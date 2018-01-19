@@ -1,0 +1,25 @@
+{
+  "name": "threejs-raycast-updates",
+  "version": "1.0.0",
+  "description": "Repo for experimenting with new methods to raycast and collide THREEjs meshes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gkjohnson/threejs-raycast-updates.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gkjohnson/threejs-raycast-updates/issues"
+  },
+  "homepage": "https://github.com/gkjohnson/threejs-raycast-updates#readme",
+  "dependencies": {
+    "three": "^0.89.0"
+  },
+  "devDependencies": {
+    "static-server": "^3.0.0"
+  }
+}
