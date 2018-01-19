@@ -21,45 +21,60 @@
         import Stats from '../node_modules/stats.js/src/Stats.js'
         import '../index.js'
     
-        const
-            radius = 10,
-            tube = 3,
-            tubularSegments = 250,
-            radialSegments = 40;
-
         window.THREE = THREE
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
-        camera.position.z = 30;
-
+        // renderer setup
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setClearColor(0x263238 / 2, 1);
         document.body.appendChild(renderer.domElement);
 
+        // scene setup
+        const scene = new THREE.Scene();
         const light = new THREE.DirectionalLight(0xffffff, 0.5);
         light.position.set(1,1,1);
         scene.add(light);
         scene.add(new THREE.AmbientLight(0xffffff, 0.4))
 
+        // geometry setup
+        const radius = 10;
+        const tube = 3;
+        const tubularSegments = 500;
+        const radialSegments = 100;
         const geometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
         const material = new THREE.MeshLambertMaterial({ color: 0xE91E63 });
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
 
+        // camera setup
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
+        camera.position.z = 30;
+        console.log(camera.left)
+
+        // raycaster
+        const raycaster = new THREE.Raycaster();
+        window.rc = raycaster
+        raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
+
+        // stats setup
         const stats = new Stats();
         document.body.appendChild(stats.dom);
 
-
+        window.mesh = mesh
         const render = function () {
             stats.begin();
             mesh.rotation.x += 0.005;
             mesh.rotation.y += 0.005;
-            stats.end();
+
+            const perf = window.performance.now();
+            for(let i = 0; i < 50; i ++) {
+                const res = raycaster.intersectObjects(scene.children, true)
+            }
+            console.log(`${window.performance.now() - perf}ms`)
 
             renderer.render(scene, camera);
+            stats.end();
             
             requestAnimationFrame(render);
         };
