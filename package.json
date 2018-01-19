@@ -4,6 +4,7 @@
   "description": "Repo for experimenting with new methods to raycast and collide THREEjs meshes",
   "main": "index.js",
   "scripts": {
+    "serve": "static-server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,6 +18,7 @@
   },
   "homepage": "https://github.com/gkjohnson/threejs-raycast-updates#readme",
   "dependencies": {
+    "stats.js": "^0.17.0",
     "three": "^0.89.0"
   },
   "devDependencies": {

@@ -2,12 +2,78 @@
 <html>
 <head>
     <title></title>
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 <body>
 
     <script type="module">
-        import THREE as * from '../node_modules/three/build/three.module.js'
+        import * as THREE from '../node_modules/three/build/three.module.js'
+        import Stats from '../node_modules/stats.js/src/Stats.js'
         import '../index.js'
+    
+        const
+            radius = 10,
+            tube = 3,
+            tubularSegments = 250,
+            radialSegments = 40;
+
+        window.THREE = THREE
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
+        camera.position.z = 30;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x263238 / 2, 1);
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 0.5);
+        light.position.set(1,1,1);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4))
+
+        const geometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
+        const material = new THREE.MeshLambertMaterial({ color: 0xE91E63 });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        const stats = new Stats();
+        document.body.appendChild(stats.dom);
+
+
+        const render = function () {
+            stats.begin();
+            mesh.rotation.x += 0.005;
+            mesh.rotation.y += 0.005;
+            stats.end();
+
+            renderer.render(scene, camera);
+            
+            requestAnimationFrame(render);
+        };
+
+        window.addEventListener('resize', function () {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, false);
+
+        window.geom = geometry
+
+        render();
     </script>
 </body>
 </html>
