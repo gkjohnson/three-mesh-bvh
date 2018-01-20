@@ -4,6 +4,7 @@ import TriangleBoundsTree from './TriangleBoundsTree.js'
 
 THREE.Geometry.prototype.computeBoundsTree = function() {
     this.boundsTree = new TriangleBoundsTree(this);
+    return this.boundsTree;
 }
 
 THREE.Geometry.prototype.disposeBoundsTree = function() {
@@ -12,6 +13,7 @@ THREE.Geometry.prototype.disposeBoundsTree = function() {
 
 THREE.BufferGeometry.prototype.computeBoundsTree = function() {
     this.boundsTree = new TriangleBoundsTree(this);
+    return this.boundsTree;
 }
 
 THREE.BufferGeometry.prototype.disposeBoundsTree = function() {
