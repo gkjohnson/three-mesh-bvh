@@ -17,6 +17,5 @@ TODO
 - Consider progressive generation of the tree, splitting nodes only when necessary
 - Add option to take only the first hit to speed things up
 - Add options for depth / leaf node count
-- Add faster methods for box updates
 - Use in conjunction with THREE Octtree for faster queries? Or do something similar
 - Build demo page
