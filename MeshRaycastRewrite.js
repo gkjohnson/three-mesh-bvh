@@ -1,4 +1,4 @@
-import  { Matrix4, Ray, Sphere, Vector3, Vector2, Triangle, DoubleSide, BackSide, } from './node_modules/three/build/three.module.js'
+import  { Mesh, Matrix4, Ray, Sphere, Vector3, Vector2, Triangle, DoubleSide, BackSide, } from './node_modules/three/build/three.module.js'
 
 var inverseMatrix = new Matrix4();
 var ray = new Ray();
@@ -264,4 +264,4 @@ function raycast( raycaster, intersects ) {
 
 };
 
-export default raycast;
+Mesh.prototype.raycast = raycast;

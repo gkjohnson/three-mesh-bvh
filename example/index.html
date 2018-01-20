@@ -11,6 +11,7 @@
             margin: 0;
             overflow: hidden;
         }
+
         canvas {
             width: 100%;
             height: 100%;
@@ -56,10 +57,7 @@
         camera.position.z = 40;
         camera.far = 100;
         camera.updateProjectionMatrix()
-        window.camera = camera;
-        console.log(camera.left)
 
-        
         // stats setup
         const stats = new Stats();
         document.body.appendChild(stats.dom);
@@ -142,9 +140,9 @@
 
             if (!options.mesh.useBoundsTree && mesh.geometry.boundsTree) mesh.geometry.disposeBoundsTree();
             if (options.mesh.useBoundsTree && !mesh.geometry.boundsTree) {
-                console.time('computeing bounds tree');
+                console.time('computing bounds tree');
                 mesh.geometry.computeBoundsTree();
-                console.timeEnd('computeing bounds tree');
+                console.timeEnd('computing bounds tree');
             }
         }
 

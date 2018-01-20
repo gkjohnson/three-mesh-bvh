@@ -1,10 +1,6 @@
 import * as THREE from './node_modules/three/build/three.module.js'
+import './MeshRaycastRewrite.js'
 import TriangleBoundsTree from './TriangleBoundsTree.js'
-import raycastRewrite from './MeshRaycastRewrite.js'
-
-THREE.Mesh.prototype.raycast = function(raycaster, intersects) {
-    return raycastRewrite.call(this, raycaster, intersects);
-}
 
 THREE.Geometry.prototype.computeBoundsTree = function() {
     this.boundsTree = new TriangleBoundsTree(this);

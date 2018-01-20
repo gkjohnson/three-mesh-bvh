@@ -1,5 +1,8 @@
 import  * as THREE from './node_modules/three/build/three.module.js'
 
+const maxLeafNodes = 50;
+const maxMatchingTriangles = 0.5;
+
 const abcFields = ['a', 'b', 'c'];
 const xyzFields = ['x', 'y', 'z'];
 
@@ -20,18 +23,17 @@ class TriangleBoundsNode {
 class TriangleBoundsTree {
     constructor(geo) {
         if (geo.isBufferGeometry) {
-            this._root = this.initBufferGeometry(geo);
+            this._root = this._initBufferGeometry(geo);
         } else if(geo.isGeometry) {
-            this._root = this.initGeometry(geo);
+            this._root = this._initGeometry(geo);
         } else {
             throw new Error('Object is not Geometry or BufferGeometry');
         }
     }
 
+    /* Public API */
     collectCandidates(origray) {
-
         let candidates = [];
-
         const recurse = (node, ray) => {
             if (!ray.intersectsSphere(node.boundingSphere) || !ray.intersectsBox(node.boundingBox)) return;
             
@@ -42,7 +44,8 @@ class TriangleBoundsTree {
         return candidates;
     }
 
-    initBufferGeometry(geo) {
+    /* Private Functions */
+    _initBufferGeometry(geo) {
         // array of position attributes with vector xyz
         // values as separate elements
         const pos = geo.attributes.position;
@@ -111,7 +114,7 @@ class TriangleBoundsTree {
             node.boundingBox.getCenter(node.boundingSphere.center);
             getSphere(tris, node.boundingSphere);
 
-            if (tris.length <= 50) {
+            if (tris.length <= maxLeafNodes) {
                 node.tris = tris;
                 return node;
             }
@@ -155,7 +158,7 @@ class TriangleBoundsTree {
                 if (inLeft && inRight) sharedCount ++;
             }
 
-            if (sharedCount / tris.length > 0.5) {
+            if (sharedCount / tris.length > maxMatchingTriangles) {
                 node.tris = tris;
             } else {
                 node.children.push(recurse(left));
@@ -167,7 +170,7 @@ class TriangleBoundsTree {
         return recurse(origTris);
     }
 
-    initGeometry(geo) {
+    _initGeometry(geo) {
         const faces = geo.faces;
         const verts = geo.vertices;
 
@@ -221,7 +224,7 @@ class TriangleBoundsTree {
             node.boundingBox.getCenter(node.boundingSphere.center);
             getSphere(tris, node.boundingSphere);
 
-            if (tris.length <= 50) {
+            if (tris.length <= maxLeafNodes) {
                 node.tris = tris;
                 return node;
             }
@@ -262,7 +265,7 @@ class TriangleBoundsTree {
                 if (inLeft && inRight) sharedCount ++;
             }
 
-            if (sharedCount / tris.length > 0.5) {
+            if (sharedCount / tris.length > maxMatchingTriangles) {
                 node.tris = tris;
             } else {
                 node.children.push(recurse(left));
