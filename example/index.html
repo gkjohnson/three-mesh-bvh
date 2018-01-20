@@ -149,7 +149,7 @@
         const render = () => {
             stats.begin();
             mesh.rotation.x += 0.01 * options.mesh.speed;
-            mesh.rotation.y += 0.05 * options.mesh.speed;
+            mesh.rotation.y += 0.01 * options.mesh.speed;
             mesh.updateMatrixWorld();
 
             rayCasterObjects.forEach(f => f.update());

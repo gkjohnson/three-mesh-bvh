@@ -1,4 +1,4 @@
-import  { Mesh, Matrix4, Ray, Sphere, Vector3, Vector2, Triangle, DoubleSide, BackSide, } from './node_modules/three/build/three.module.js'
+import  { Mesh, Matrix4, Ray, Sphere, Vector3, Vector2, Triangle, DoubleSide, BackSide, Face3 } from './node_modules/three/build/three.module.js'
 
 var inverseMatrix = new Matrix4();
 var ray = new Ray();
@@ -127,6 +127,8 @@ function raycast( raycaster, intersects ) {
 
     var intersection;
 
+    var btIndices = geometry.boundsTree ? geometry.boundsTree.collectCandidates( ray ) : null;
+
     if ( geometry.isBufferGeometry ) {
 
         var a, b, c;
@@ -139,17 +141,18 @@ function raycast( raycaster, intersects ) {
 
             // indexed buffer geometry
 
-            for ( i = 0, l = index.count; i < l; i += 3 ) {
+            for ( i = 0, l = btIndices ? btIndices.length : index.count / 3; i < l; i ++ ) {
+                var i2 = (btIndices ? btIndices[i] : i) * 3;
 
-                a = index.getX( i );
-                b = index.getX( i + 1 );
-                c = index.getX( i + 2 );
+                a = index.getX( i2 );
+                b = index.getX( i2 + 1 );
+                c = index.getX( i2 + 2 );
 
                 intersection = checkBufferGeometryIntersection( this, raycaster, ray, position, uv, a, b, c );
 
                 if ( intersection ) {
 
-                    intersection.faceIndex = Math.floor( i / 3 ); // triangle number in indices buffer semantics
+                    intersection.faceIndex = Math.floor( i2 / 3 ); // triangle number in indices buffer semantics
                     intersects.push( intersection );
 
                 }
@@ -160,11 +163,12 @@ function raycast( raycaster, intersects ) {
 
             // non-indexed buffer geometry
 
-            for ( i = 0, l = position.count; i < l; i += 3 ) {
+            for ( i = 0, l = btIndicies ? btIndicies.length : position.count / 3; i < l; i ++ ) {
+                var i2 = (btIndices ? btIndices[i] : i) * 3;
 
-                a = i;
-                b = i + 1;
-                c = i + 2;
+                a = i2;
+                b = i2 + 1;
+                c = i2 + 2;
 
                 intersection = checkBufferGeometryIntersection( this, raycaster, ray, position, uv, a, b, c );
 
