@@ -2,6 +2,9 @@
 <html>
 <head>
     <title></title>
+    <script type="text/javascript" src="../node_modules/dat.gui/build/dat.gui.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../node_modules/dat.gui/build/dat.gui.css">
+
     <style type="text/css">
         html, body {
             padding: 0;
@@ -61,18 +64,26 @@
         const stats = new Stats();
         document.body.appendChild(stats.dom);
 
-        // Create the bounds tree on the complicated geometry
-        mesh.geometry.computeBoundsTree();
-
         // Create ray casters in the scene
-        const updateFunctions = [];
+        const rayCasterObjects = [];
         const raycaster = new THREE.Raycaster();
         const sphere = new THREE.SphereGeometry(.25, 20, 20);
         const cylinder = new THREE.CylinderGeometry(0.02, 0.02);
         const pointDist = 25;
 
-        for (let i = 0; i < 100; i ++) {
-            
+        const options = {
+            raycasters: {
+                count: 25,
+                speed: 1,
+            },
+
+            mesh: {
+                useBoundsTree: true,
+                speed: 1
+            }
+        }
+        
+        const addRaycaster = () => {
             // Objects
             const obj = new THREE.Object3D();
             const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -98,34 +109,52 @@
             const dirvec = new THREE.Vector3();
             const xdir = (Math.random() - 0.5);
             const ydir = (Math.random() - 0.5);
-            updateFunctions.push(() => {
-                obj.rotation.x += xdir * 0.01 * 5;
-                obj.rotation.y += ydir * 0.01 * 5;
+            rayCasterObjects.push({
+                update: () => {
+                    obj.rotation.x += xdir * 0.01 * options.raycasters.speed;
+                    obj.rotation.y += ydir * 0.01 * options.raycasters.speed;
 
-                origMesh.updateMatrixWorld();
-                origvec.setFromMatrixPosition(origMesh.matrixWorld);
-                dirvec.copy(origvec).multiplyScalar(-1).normalize();
+                    origMesh.updateMatrixWorld();
+                    origvec.setFromMatrixPosition(origMesh.matrixWorld);
+                    dirvec.copy(origvec).multiplyScalar(-1).normalize();
 
-                raycaster.set(origvec, dirvec);
-                const res = raycaster.intersectObject(mesh, true);
-                const length = res.length ? res[0].distance : 1000;
-                
-                hitMesh.position.set(pointDist - length, 0, 0);
-                
-                cylinderMesh.position.set(pointDist - (length / 2), 0, 0);
-                cylinderMesh.scale.set(1, length, 1);
+                    raycaster.set(origvec, dirvec);
+                    const res = raycaster.intersectObject(mesh, true);
+                    const length = res.length ? res[0].distance : 1000;
+                    
+                    hitMesh.position.set(pointDist - length, 0, 0);
+                    
+                    cylinderMesh.position.set(pointDist - (length / 2), 0, 0);
+                    cylinderMesh.scale.set(1, length, 1);
 
-                cylinderMesh.rotation.z = Math.PI / 2;
+                    cylinderMesh.rotation.z = Math.PI / 2;
+                },
+
+                remove: () => {
+                    scene.remove(obj);
+                }
             });
         }
 
-        const render = function () {
+        const updateFromOptions = () => {
+            while (rayCasterObjects.length > options.raycasters.count) rayCasterObjects.pop().remove();
+            while (rayCasterObjects.length < options.raycasters.count) addRaycaster();
+
+            if (!options.mesh.useBoundsTree && mesh.geometry.boundsTree) mesh.geometry.disposeBoundsTree();
+            if (options.mesh.useBoundsTree && !mesh.geometry.boundsTree) {
+                console.time('computeing bounds tree');
+                mesh.geometry.computeBoundsTree();
+                console.timeEnd('computeing bounds tree');
+            }
+        }
+
+        const render = () => {
             stats.begin();
-            mesh.rotation.x += 0.05;
-            mesh.rotation.y += 0.05;
+            mesh.rotation.x += 0.01 * options.mesh.speed;
+            mesh.rotation.y += 0.05 * options.mesh.speed;
             mesh.updateMatrixWorld();
 
-            updateFunctions.forEach(f => f());
+            rayCasterObjects.forEach(f => f.update());
 
             renderer.render(scene, camera);
             stats.end();
@@ -134,6 +163,17 @@
         };
 
         // Run
+        const gui = new dat.GUI();
+        const rcfolder = gui.addFolder('Raycasters');
+        rcfolder.add(options.raycasters, 'count').min(1).max(200).onChange(() => updateFromOptions());
+        rcfolder.add(options.raycasters, 'speed').min(0).max(20);
+        rcfolder.open();
+
+        const meshfolder = gui.addFolder('Mesh');
+        meshfolder.add(options.mesh, 'useBoundsTree').onChange(() => updateFromOptions());
+        meshfolder.add(options.mesh, 'speed').min(0).max(20);
+        meshfolder.open();
+
         window.addEventListener('resize', function () {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -141,6 +181,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }, false);
 
+        updateFromOptions();
         render();
     </script>
 </body>
