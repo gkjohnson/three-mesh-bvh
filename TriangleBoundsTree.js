@@ -1,9 +1,19 @@
+import  * as THREE from './node_modules/three/build/three.module.js'
+
+const abcFields = ['a', 'b', 'c'];
+const xyzFields = ['x', 'y', 'z'];
+
+// reusable vectors
+const avgtemp = new THREE.Vector3();
+const vectemp = new THREE.Vector3();
+const centemp = new THREE.Vector3();
 
 class TriangleBoundsNode {
     constructor() {
-        this.bounds = new THREE.Box3();
-        this.children = [];     // 
-        this.tris = [];         // triangle indices
+        this.boundingBox = new THREE.Box3();
+        this.boundingSphere = new THREE.Sphere();
+        this.children = [];
+        this.tris = [];
     }
 }
 
@@ -23,12 +33,8 @@ class TriangleBoundsTree {
         let candidates = [];
 
         const recurse = (node, ray) => {
-            if (!ray.intersectsBox(node.bounds)) {
-                return;
-            }
-
-            // console.log(ray)
-
+            if (!ray.intersectsSphere(node.boundingSphere) || !ray.intersectsBox(node.boundingBox)) return;
+            
             if (node.children.length) node.children.forEach(c => recurse(c, ray))
             else candidates = [...candidates, ...node.tris];
         }
@@ -48,10 +54,6 @@ class TriangleBoundsTree {
         // the list of triangle indices (initialized to 1...n)
         const origTris = new Array(geo.index ? (geo.index.length / 3) : (pos.length / 9));
         for (let i = 0; i < origTris.length; i ++) origTris[i] = i;
-
-        // reusable vectors
-        const avgtemp = new THREE.Vector3();
-        const vectemp = new THREE.Vector3();
 
         // Sets the bounds object to the aabb that contains the
         // provided triangles and the avg vector to the average
@@ -80,25 +82,46 @@ class TriangleBoundsTree {
             avg.z /= tris.length * 3;
         }
 
+        const getSphere = (tris, sphere) => {
+            const center = sphere.center;
+            let maxRadiusSq = 0;
+
+            for (let i = 0; i < tris.length * 3; i ++) {
+                const index = getIndex(i);
+                const x = pos[index * 3 + 0];
+                const y = pos[index * 3 + 1];
+                const z = pos[index * 3 + 2];
+            
+                vectemp.x = x;
+                vectemp.y = y;
+                vectemp.z = z;
+
+                maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(vectemp));
+            }
+
+            sphere.radius = Math.sqrt(maxRadiusSq);
+        }
+
         // Create the nodes
         const recurse = tris => {
             const node = new TriangleBoundsNode();
 
             // get the bounds of the triangles
-            getBounds(tris, node.bounds, avgtemp);
+            getBounds(tris, node.boundingBox, avgtemp);
+            node.boundingBox.getCenter(node.boundingSphere.center);
+            getSphere(tris, node.boundingSphere);
 
-            if (tris.length <= 4) {
+            if (tris.length <= 50) {
                 node.tris = tris;
                 return node;
             }
 
             // decide which axis to split on (longest edge)
-            const dim = ['x', 'y', 'z'];
             let splitDimStr = null;
             let splitDimIdx = -1;
             let splitDist = -Infinity;
-            dim.forEach((d, i) => {
-                const dist = node.bounds.min[d] - node.bounds.max[d];
+            xyzFields.forEach((d, i) => {
+                const dist = node.boundingBox.min[d] - node.boundingBox.max[d];
                 if (dist > splitDist) {
                     splitDist = dist;
                     splitDimStr = d;
@@ -151,8 +174,6 @@ class TriangleBoundsTree {
         const origTris = new Array(faces.length);
         for (let i = 0; i < origTris.length; i ++) origTris[i] = i;
 
-        const avgtemp = new THREE.Vector3();
-
         // Sets the bounds object to the aabb that contains the
         // provided triangles and the avg vector to the average
         // of all the vertex points
@@ -161,7 +182,7 @@ class TriangleBoundsTree {
 
             for (let i = 0; i < tris.length; i ++) {
                 const face = faces[tris[i]];
-                (['a', 'b', 'c']).forEach(id => {
+                abcFields.forEach(id => {
                     const vert = verts[face[id]];
                     bounds.expandByPoint(vert);
     
@@ -176,11 +197,29 @@ class TriangleBoundsTree {
             avg.z /= tris.length * 3;
         }
 
+        const getSphere = (tris, sphere) => {
+            const center = sphere.center;
+            let maxRadiusSq = 0;
+
+            for (let i = 0; i < tris.length; i ++) {
+
+                const face = faces[tris[i]];
+                abcFields.forEach(id => {
+                    const vert = verts[face[id]];
+                    maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(vert));
+                });
+            }
+
+            sphere.radius = Math.sqrt(maxRadiusSq);
+        }
+
         const recurse = tris => {
             const node = new TriangleBoundsNode();
 
             // get the bounds of the triangles
-            getBounds(tris, node.bounds, avgtemp);
+            getBounds(tris, node.boundingBox, avgtemp);
+            node.boundingBox.getCenter(node.boundingSphere.center);
+            getSphere(tris, node.boundingSphere);
 
             if (tris.length <= 50) {
                 node.tris = tris;
@@ -188,12 +227,11 @@ class TriangleBoundsTree {
             }
 
             // decide which axis to split on (longest edge)
-            const dim = ['x', 'y', 'z'];
             let splitDimStr = null;
             let splitDimIdx = -1;
             let splitDist = -Infinity;
-            dim.forEach((d, i) => {
-                const dist = node.bounds.max[d] - node.bounds.min[d];
+            xyzFields.forEach((d, i) => {
+                const dist = node.boundingBox.max[d] - node.boundingBox.min[d];
                 if (dist > splitDist) {
                     splitDist = dist;
                     splitDimStr = d;
@@ -211,7 +249,7 @@ class TriangleBoundsTree {
                 let inLeft = false;
                 let inRight = false;
 
-                (['a', 'b', 'c']).forEach((id, i) => {
+                abcFields.forEach((id, i) => {
                     const vert = verts[face[id]];
                     const val = vert[splitDimStr];
 

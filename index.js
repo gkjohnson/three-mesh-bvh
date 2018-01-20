@@ -73,13 +73,13 @@ const inverseMatrix = new THREE.Matrix4();
 THREE.Mesh.prototype.raycast = function(raycaster, intersects) {
     
     // check if bounds tree exists and cast against it
-    if (!this.geometry.__boundstree || this.geometry.morphTargets.length) {
+    if (!this.geometry.boundsTree || this.geometry.morphTargets.length) {
         return origRaycast.call(this, raycaster, intersects);
     } else {
         inverseMatrix.getInverse(this.matrixWorld);
         ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
 
-        const candidates = this.geometry.__boundstree.collectCandidates(ray);
+        const candidates = this.geometry.boundsTree.collectCandidates(ray);
 
 
         if (this.geometry.isBufferGeometry) {
@@ -129,17 +129,17 @@ THREE.Mesh.prototype.raycast = function(raycaster, intersects) {
 }
 
 THREE.Geometry.prototype.computeBoundsTree = function() {
-    this.__boundstree = new TriangleBoundsTree(this);
+    this.boundsTree = new TriangleBoundsTree(this);
 }
 
-THREE.Geometry.prototype.disponseBoundsTree = function() {
-    this.__boundstree = null;
+THREE.Geometry.prototype.disposeBoundsTree = function() {
+    this.boundsTree = null;
 }
 
 THREE.BufferGeometry.prototype.computeBoundsTree = function() {
-    this.__boundstree = new TriangleBoundsTree(this);
+    this.boundsTree = new TriangleBoundsTree(this);
 }
 
-THREE.BufferGeometry.prototype.disponseBoundsTree = function() {
-    this.__boundstree = null;
+THREE.BufferGeometry.prototype.disposeBoundsTree = function() {
+    this.boundsTree = null;
 }
