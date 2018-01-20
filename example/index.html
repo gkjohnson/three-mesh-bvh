@@ -43,14 +43,17 @@
         scene.add(new THREE.AmbientLight(0xffffff, 0.4))
 
         // geometry setup
-        const radius = 10;
-        const tube = 3;
+        const radius = 1;
+        const tube = .3;
         const tubularSegments = 400;
         const radialSegments = 100;
-        const geometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-        const material = new THREE.MeshLambertMaterial({ color: 0xE91E63 });
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
+        
+        const containerObj = new THREE.Object3D();
+        const knotGeometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments);
+        // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
+        const material = new THREE.MeshLambertMaterial({ color: 0xE91E63 });        
+        containerObj.scale.multiplyScalar(10);
+        scene.add(containerObj);
 
         // camera setup
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
@@ -71,16 +74,24 @@
 
         const options = {
             raycasters: {
-                count: 25,
+                count: 50,
                 speed: 1,
             },
 
             mesh: {
+                count: 1,
                 useBoundsTree: true,
                 speed: 1
             }
         }
         
+        const addKnot = () => {
+            const mesh = new THREE.Mesh(knotGeometry, material);
+            mesh.rotation.x = Math.random() * 10;
+            mesh.rotation.y = Math.random() * 10;
+            containerObj.add(mesh);
+        }
+
         const addRaycaster = () => {
             // Objects
             const obj = new THREE.Object3D();
@@ -117,7 +128,7 @@
                     dirvec.copy(origvec).multiplyScalar(-1).normalize();
 
                     raycaster.set(origvec, dirvec);
-                    const res = raycaster.intersectObject(mesh, true);
+                    const res = raycaster.intersectObject(containerObj, true);
                     const length = res.length ? res[0].distance : 1000;
                     
                     hitMesh.position.set(pointDist - length, 0, 0);
@@ -138,19 +149,58 @@
             while (rayCasterObjects.length > options.raycasters.count) rayCasterObjects.pop().remove();
             while (rayCasterObjects.length < options.raycasters.count) addRaycaster();
 
-            if (!options.mesh.useBoundsTree && mesh.geometry.boundsTree) mesh.geometry.disposeBoundsTree();
-            if (options.mesh.useBoundsTree && !mesh.geometry.boundsTree) {
+            if (!options.mesh.useBoundsTree && knotGeometry.boundsTree) knotGeometry.disposeBoundsTree();
+            if (options.mesh.useBoundsTree && !knotGeometry.boundsTree) {
                 console.time('computing bounds tree');
-                mesh.geometry.computeBoundsTree();
+                knotGeometry.computeBoundsTree();
                 console.timeEnd('computing bounds tree');
+            }
+
+            const oldLen = containerObj.children.length;
+            
+            while (containerObj.children.length > options.mesh.count) {
+                containerObj.remove(containerObj.children[0]);
+            }
+            while (containerObj.children.length < options.mesh.count) {
+                addKnot();
+            }
+
+
+            if (oldLen !== containerObj.children.length) {
+                const lerp = (a, b, t) => a + (b - a) * t;
+                const lerpAmt = (containerObj.children.length - 1) / (300 - 1);
+                const dist = lerp(0, 2, lerpAmt);
+                const scale = lerp(1, 0.2, lerpAmt);
+
+                console.log(scale)
+
+                containerObj.children.forEach(c => {
+                    c.scale.set(1, 1, 1).multiplyScalar(scale);
+
+                    const vec3 = new THREE.Vector3(0, 1, 0);
+                    vec3.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI * Math.random());
+                    vec3.applyAxisAngle(new THREE.Vector3(0, 1, 0), 2 * Math.PI * Math.random());
+                    vec3.multiplyScalar(dist)
+
+                    c.position.set(vec3.x, vec3.y, vec3.z);
+                })
             }
         }
 
+        containerObj.rotation.x = 10.989999999999943;
+        containerObj.rotation.y = 10.989999999999943;
         const render = () => {
             stats.begin();
-            mesh.rotation.x += 0.01 * options.mesh.speed;
-            mesh.rotation.y += 0.01 * options.mesh.speed;
-            mesh.updateMatrixWorld();
+            containerObj.rotation.x += 0.01 * options.mesh.speed;
+            containerObj.rotation.y += 0.01 * options.mesh.speed;
+            containerObj.children.forEach(c => {
+                c.rotation.x += 0.05 * options.mesh.speed;
+                c.rotation.y += 0.05 * options.mesh.speed;
+            })
+            containerObj.updateMatrixWorld();
+
+            raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
+            raycaster.intersectObject(containerObj, true);
 
             rayCasterObjects.forEach(f => f.update());
 
@@ -163,11 +213,12 @@
         // Run
         const gui = new dat.GUI();
         const rcfolder = gui.addFolder('Raycasters');
-        rcfolder.add(options.raycasters, 'count').min(1).max(200).onChange(() => updateFromOptions());
+        rcfolder.add(options.raycasters, 'count').min(1).max(200).step(1).onChange(() => updateFromOptions());
         rcfolder.add(options.raycasters, 'speed').min(0).max(20);
         rcfolder.open();
 
         const meshfolder = gui.addFolder('Mesh');
+        meshfolder.add(options.mesh, 'count').min(1).max(300).step(1).onChange(() => updateFromOptions());
         meshfolder.add(options.mesh, 'useBoundsTree').onChange(() => updateFromOptions());
         meshfolder.add(options.mesh, 'speed').min(0).max(20);
         meshfolder.open();
