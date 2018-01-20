@@ -18,6 +18,24 @@ class TriangleBoundsTree {
         }
     }
 
+    collectCandidates(origray) {
+
+        let candidates = [];
+
+        const recurse = (node, ray) => {
+            if (!ray.intersectsBox(node.bounds)) {
+                return;
+            }
+
+            // console.log(ray)
+
+            if (node.children.length) node.children.forEach(c => recurse(c, ray))
+            else candidates = [...candidates, ...node.tris];
+        }
+        recurse(this._root, origray);
+        return candidates;
+    }
+
     initBufferGeometry(geo) {
         // array of position attributes with vector xyz
         // values as separate elements
@@ -164,7 +182,7 @@ class TriangleBoundsTree {
             // get the bounds of the triangles
             getBounds(tris, node.bounds, avgtemp);
 
-            if (tris.length <= 4) {
+            if (tris.length <= 50) {
                 node.tris = tris;
                 return node;
             }
@@ -175,7 +193,7 @@ class TriangleBoundsTree {
             let splitDimIdx = -1;
             let splitDist = -Infinity;
             dim.forEach((d, i) => {
-                const dist = node.bounds.min[d] - node.bounds.max[d];
+                const dist = node.bounds.max[d] - node.bounds.min[d];
                 if (dist > splitDist) {
                     splitDist = dist;
                     splitDimStr = d;
