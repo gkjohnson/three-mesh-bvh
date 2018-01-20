@@ -30,7 +30,7 @@ let boundsViz = null;
 const containerObj = new THREE.Object3D();
 const knotGeometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments);
 // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-const material = new THREE.MeshLambertMaterial({ color: 0xE91E63 });        
+const material = new THREE.MeshPhongMaterial({ color: 0xE91E63 });        
 containerObj.scale.multiplyScalar(10);
 scene.add(containerObj);
 
