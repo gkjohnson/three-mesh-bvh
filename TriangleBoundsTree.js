@@ -48,11 +48,11 @@ class TriangleBoundsTree {
     _initBufferGeometry(geo) {
         // array of position attributes with vector xyz
         // values as separate elements
-        const pos = geo.attributes.position;
+        const pos = geo.attributes.position.array;
 
         // function for retrieving the next vertex index because
         // we may not have array indices
-        const getIndex = geo.index ? (i => geo.index[i]) : (i => i);
+        const getVertIndex = geo.index ? (i => geo.index.array[i]) : (i => i);
 
         // the list of triangle indices (initialized to 1...n)
         const origTris = new Array(geo.index ? (geo.index.length / 3) : (pos.length / 9));
@@ -64,20 +64,25 @@ class TriangleBoundsTree {
         const getBounds = (tris, bounds, avg) => {
             avg.set(0, 0, 0);
 
-            for (let i = 0; i < tris.length * 3; i ++) {
-                const index = getIndex(i);
-                const x = pos[index * 3 + 0];
-                const y = pos[index * 3 + 1];
-                const z = pos[index * 3 + 2];
+            for (let i = 0; i < tris.length; i ++) {
+                const tri = tris[i];
 
-                vectemp.x = x;
-                vectemp.y = y;
-                vectemp.z = z;
-                bounds.expandByPoint(vectemp);
+                for (let v = 0; v < 3; v ++) {
+                    const vindex = getVertIndex(tri * 3 + v);
 
-                avg.x += x;
-                avg.y += y;
-                avg.z += z;
+                    const x = pos[vindex * 3 + 0];
+                    const y = pos[vindex * 3 + 1];
+                    const z = pos[vindex * 3 + 2];
+
+                    vectemp.x = x;
+                    vectemp.y = y;
+                    vectemp.z = z;
+                    bounds.expandByPoint(vectemp);
+
+                    avg.x += x;
+                    avg.y += y;
+                    avg.z += z;
+                }
             }
 
             avg.x /= tris.length * 3;
@@ -89,17 +94,22 @@ class TriangleBoundsTree {
             const center = sphere.center;
             let maxRadiusSq = 0;
 
-            for (let i = 0; i < tris.length * 3; i ++) {
-                const index = getIndex(i);
-                const x = pos[index * 3 + 0];
-                const y = pos[index * 3 + 1];
-                const z = pos[index * 3 + 2];
-            
-                vectemp.x = x;
-                vectemp.y = y;
-                vectemp.z = z;
+            for (let i = 0; i < tris.length; i ++) {
+                const tri = tris[i];
 
-                maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(vectemp));
+                for (let v = 0; v < 3; v ++) {
+                    const vindex = getVertIndex(tri * 3 + v);
+
+                    const x = pos[vindex + 0];
+                    const y = pos[vindex + 1];
+                    const z = pos[vindex + 2];
+                
+                    vectemp.x = x;
+                    vectemp.y = y;
+                    vectemp.z = z;
+
+                    maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(vectemp));
+                }
             }
 
             sphere.radius = Math.sqrt(maxRadiusSq);
@@ -124,7 +134,7 @@ class TriangleBoundsTree {
             let splitDimIdx = -1;
             let splitDist = -Infinity;
             xyzFields.forEach((d, i) => {
-                const dist = node.boundingBox.min[d] - node.boundingBox.max[d];
+                const dist = node.boundingBox.max[d] - node.boundingBox.min[d];
                 if (dist > splitDist) {
                     splitDist = dist;
                     splitDimStr = d;
@@ -138,16 +148,16 @@ class TriangleBoundsTree {
             let sharedCount = 0;
             for (let i = 0; i < tris.length; i ++) {
                 const tri = tris[i];
+
                 let inLeft = false;
                 let inRight = false;
 
-                for (let t = 0; t < 3; t ++) {
-                    // get the vertex index
-                    const index = getIndex(tri + t);
+                for (let v = 0; v < 3; v ++) {
+                    const vindex = getVertIndex(tri * 3 + v);
 
                     // get the vertex value along the
                     // given axis
-                    const val = pos[index * 3 + splitDimIdx];
+                    const val = pos[vindex * 3 + splitDimIdx];
 
                     inLeft = inLeft || val >= avgtemp[splitDimStr];
                     inRight = inRight || val <= avgtemp[splitDimStr];
@@ -164,6 +174,7 @@ class TriangleBoundsTree {
                 node.children.push(recurse(left));
                 node.children.push(recurse(right));
             }
+
             return node;
         }
 
