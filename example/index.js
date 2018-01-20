@@ -67,6 +67,10 @@ const options = {
     }
 }
 
+// Delta timer
+let lastFrameTime = null;
+let deltaTime = 0;
+
 const addKnot = () => {
     const mesh = new THREE.Mesh(knotGeometry, material);
     mesh.rotation.x = Math.random() * 10;
@@ -103,8 +107,8 @@ const addRaycaster = () => {
     const ydir = (Math.random() - 0.5);
     rayCasterObjects.push({
         update: () => {
-            obj.rotation.x += xdir * 0.01 * options.raycasters.speed;
-            obj.rotation.y += ydir * 0.01 * options.raycasters.speed;
+            obj.rotation.x += xdir * 0.0001 * options.raycasters.speed * deltaTime;
+            obj.rotation.y += ydir * 0.0001 * options.raycasters.speed * deltaTime;
 
             origMesh.updateMatrixWorld();
             origvec.setFromMatrixPosition(origMesh.matrixWorld);
@@ -186,11 +190,15 @@ containerObj.rotation.y = 10.989999999999943;
 const render = () => {
     stats.begin();
 
-    containerObj.rotation.x += 0.005 * options.mesh.speed;
-    containerObj.rotation.y += 0.005 * options.mesh.speed;
+    const currTime = window.performance.now();
+    lastFrameTime = lastFrameTime || currTime;
+    deltaTime = currTime - lastFrameTime;
+
+    containerObj.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
+    containerObj.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
     containerObj.children.forEach(c => {
-        c.rotation.x += 0.005 * options.mesh.speed;
-        c.rotation.y += 0.005 * options.mesh.speed;
+        c.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
+        c.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
     })
     containerObj.updateMatrixWorld();
 
@@ -205,6 +213,8 @@ const render = () => {
     rayCasterObjects.forEach(f => f.update());
 
     renderer.render(scene, camera);
+
+    lastFrameTime = currTime;
 
     stats.end();
     
