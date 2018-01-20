@@ -61,6 +61,8 @@
         const stats = new Stats();
         document.body.appendChild(stats.dom);
 
+        mesh.geometry.computeBoundsTree();
+
         window.mesh = mesh
         const render = function () {
             stats.begin();
