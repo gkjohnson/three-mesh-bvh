@@ -21,17 +21,18 @@
         import Stats from '../node_modules/stats.js/src/Stats.js'
         import '../index.js'
     
-        window.THREE = THREE
+        const bgColor = 0x263238 / 2;
 
         // renderer setup
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x263238 / 2, 1);
+        renderer.setClearColor(bgColor, 1);
         document.body.appendChild(renderer.domElement);
 
         // scene setup
         const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x263238 / 2, 20, 60)
         const light = new THREE.DirectionalLight(0xffffff, 0.5);
         light.position.set(1,1,1);
         scene.add(light);
@@ -49,34 +50,87 @@
 
         // camera setup
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
-        camera.position.z = 30;
+        camera.position.z = 40;
+        camera.far = 100;
+        camera.updateProjectionMatrix()
+        window.camera = camera;
         console.log(camera.left)
 
-        // raycaster
-        const raycaster = new THREE.Raycaster();
-        window.rc = raycaster
-        raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
-
+        
         // stats setup
         const stats = new Stats();
         document.body.appendChild(stats.dom);
 
+        // Create the bounds tree on the complicated geometry
         mesh.geometry.computeBoundsTree();
 
-        window.mesh = mesh
+        const updateFunctions = [];
+        const raycaster = new THREE.Raycaster();
+        const sphere = new THREE.SphereGeometry(.25, 20, 20);
+        const cylinder = new THREE.CylinderGeometry(0.02, 0.02);
+        const pointDist = 25;
+
+        for (let i = 0; i < 100; i ++) {
+            
+            const obj = new THREE.Object3D();
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const origMesh = new THREE.Mesh(sphere, material);
+            const hitMesh = new THREE.Mesh(sphere, material);
+            hitMesh.scale.multiplyScalar(0.5);
+
+            const cylinderMesh = new THREE.Mesh(cylinder, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }));
+
+            obj.add(cylinderMesh);
+            obj.add(origMesh);
+            obj.add(hitMesh);
+            origMesh.position.set(pointDist, 0, 0);
+            scene.add(obj);
+
+            obj.rotation.x = Math.random() * 10;
+            obj.rotation.y = Math.random() * 10;
+
+            const xdir = (Math.random() - 0.5);
+            const ydir = (Math.random() - 0.5);
+
+
+            const origvec = new THREE.Vector3();
+            const dirvec = new THREE.Vector3();
+            updateFunctions.push(() => {
+                obj.rotation.x += xdir * 0.01;
+                obj.rotation.y += ydir * 0.01;
+
+                origMesh.updateMatrixWorld();
+                origvec.setFromMatrixPosition(origMesh.matrixWorld);
+                dirvec.copy(origvec).multiplyScalar(-1).normalize();
+
+                raycaster.set(origvec, dirvec);
+                const res = raycaster.intersectObject(mesh, true);
+                const length = res.length ? res[0].distance : 1000;
+                
+                hitMesh.position.set(pointDist - length, 0, 0);
+                
+                cylinderMesh.position.set(pointDist - (length / 2), 0, 0);
+                cylinderMesh.scale.set(1, length, 1);
+
+                cylinderMesh.rotation.z = Math.PI / 2;
+
+            });
+        }
 
         mesh.rotation.x = 8.35;
         mesh.rotation.y = 8.35;
         const render = function () {
             stats.begin();
-            // mesh.rotation.x += 0.025;
-            // mesh.rotation.y += 0.025;
+            mesh.rotation.x += 0.05;
+            mesh.rotation.y += 0.05;
 
-            const perf = window.performance.now();
-            for(let i = 0; i < 100; i ++) {
-                const res = raycaster.intersectObjects(scene.children, true)
-            }
-            console.log(`${window.performance.now() - perf}ms`)
+            // const perf = window.performance.now();
+            // for(let i = 0; i < 100; i ++) {
+            //     const res = raycaster.intersectObjects(scene.children, true)
+            // }
+            // console.log(`${window.performance.now() - perf}ms`)
+
+            updateFunctions.forEach(f => f());
 
             renderer.render(scene, camera);
             stats.end();
