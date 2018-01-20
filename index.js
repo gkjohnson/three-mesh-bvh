@@ -1,6 +1,6 @@
 import * as THREE from './node_modules/three/build/three.module.js'
-import './MeshRaycastRewrite.js'
-import TriangleBoundsTree from './TriangleBoundsTree.js'
+import './lib/ThreeMeshRewrite.js'
+import TriangleBoundsTree from './lib/TriangleBoundsTree.js'
 
 THREE.Geometry.prototype.computeBoundsTree = function() {
     this.boundsTree = new TriangleBoundsTree(this);
