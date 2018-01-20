@@ -64,6 +64,7 @@
         // Create the bounds tree on the complicated geometry
         mesh.geometry.computeBoundsTree();
 
+        // Create ray casters in the scene
         const updateFunctions = [];
         const raycaster = new THREE.Raycaster();
         const sphere = new THREE.SphereGeometry(.25, 20, 20);
@@ -72,6 +73,7 @@
 
         for (let i = 0; i < 100; i ++) {
             
+            // Objects
             const obj = new THREE.Object3D();
             const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
             const origMesh = new THREE.Mesh(sphere, material);
@@ -80,24 +82,25 @@
 
             const cylinderMesh = new THREE.Mesh(cylinder, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }));
 
+            // Init the rotation root
             obj.add(cylinderMesh);
             obj.add(origMesh);
             obj.add(hitMesh);
-            origMesh.position.set(pointDist, 0, 0);
             scene.add(obj);
 
+            // set transforms
+            origMesh.position.set(pointDist, 0, 0);
             obj.rotation.x = Math.random() * 10;
             obj.rotation.y = Math.random() * 10;
 
-            const xdir = (Math.random() - 0.5);
-            const ydir = (Math.random() - 0.5);
-
-
+            // reusable vectors
             const origvec = new THREE.Vector3();
             const dirvec = new THREE.Vector3();
+            const xdir = (Math.random() - 0.5);
+            const ydir = (Math.random() - 0.5);
             updateFunctions.push(() => {
-                obj.rotation.x += xdir * 0.01;
-                obj.rotation.y += ydir * 0.01;
+                obj.rotation.x += xdir * 0.01 * 5;
+                obj.rotation.y += ydir * 0.01 * 5;
 
                 origMesh.updateMatrixWorld();
                 origvec.setFromMatrixPosition(origMesh.matrixWorld);
@@ -113,22 +116,14 @@
                 cylinderMesh.scale.set(1, length, 1);
 
                 cylinderMesh.rotation.z = Math.PI / 2;
-
             });
         }
 
-        mesh.rotation.x = 8.35;
-        mesh.rotation.y = 8.35;
         const render = function () {
             stats.begin();
             mesh.rotation.x += 0.05;
             mesh.rotation.y += 0.05;
-
-            // const perf = window.performance.now();
-            // for(let i = 0; i < 100; i ++) {
-            //     const res = raycaster.intersectObjects(scene.children, true)
-            // }
-            // console.log(`${window.performance.now() - perf}ms`)
+            mesh.updateMatrixWorld();
 
             updateFunctions.forEach(f => f());
 
@@ -138,14 +133,13 @@
             requestAnimationFrame(render);
         };
 
+        // Run
         window.addEventListener('resize', function () {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
 
             renderer.setSize(window.innerWidth, window.innerHeight);
         }, false);
-
-        window.geom = geometry
 
         render();
     </script>
