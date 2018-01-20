@@ -64,13 +64,16 @@
         mesh.geometry.computeBoundsTree();
 
         window.mesh = mesh
+
+        mesh.rotation.x = 8.35;
+        mesh.rotation.y = 8.35;
         const render = function () {
             stats.begin();
-            mesh.rotation.x += 0.005;
-            mesh.rotation.y += 0.005;
+            // mesh.rotation.x += 0.025;
+            // mesh.rotation.y += 0.025;
 
             const perf = window.performance.now();
-            for(let i = 0; i < 50; i ++) {
+            for(let i = 0; i < 100; i ++) {
                 const res = raycaster.intersectObjects(scene.children, true)
             }
             console.log(`${window.performance.now() - perf}ms`)
