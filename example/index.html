@@ -23,6 +23,7 @@
     <script type="module">
         import * as THREE from '../node_modules/three/build/three.module.js'
         import Stats from '../node_modules/stats.js/src/Stats.js'
+        import TriangleBoundsTreeVisualizer from '../lib/TriangleBoundsTreeVisualizer.js'
         import '../index.js'
     
         const bgColor = 0x263238 / 2;
@@ -48,6 +49,7 @@
         const tubularSegments = 400;
         const radialSegments = 100;
         
+        let boundsViz = null;
         const containerObj = new THREE.Object3D();
         const knotGeometry = new THREE.TorusKnotBufferGeometry(radius, tube, tubularSegments, radialSegments);
         // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
@@ -72,6 +74,7 @@
         const cylinder = new THREE.CylinderGeometry(0.02, 0.02);
         const pointDist = 25;
 
+        const knots = [];
         const options = {
             raycasters: {
                 count: 50,
@@ -81,7 +84,9 @@
             mesh: {
                 count: 1,
                 useBoundsTree: true,
-                speed: 1
+                visualizeBounds: false,
+                speed: 1,
+                visualBoundsDepth: 10
             }
         }
         
@@ -89,6 +94,7 @@
             const mesh = new THREE.Mesh(knotGeometry, material);
             mesh.rotation.x = Math.random() * 10;
             mesh.rotation.y = Math.random() * 10;
+            knots.push(mesh);
             containerObj.add(mesh);
         }
 
@@ -146,9 +152,11 @@
         }
 
         const updateFromOptions = () => {
+            // Update raycaster count
             while (rayCasterObjects.length > options.raycasters.count) rayCasterObjects.pop().remove();
             while (rayCasterObjects.length < options.raycasters.count) addRaycaster();
 
+            // Update whether or not to use the bounds tree
             if (!options.mesh.useBoundsTree && knotGeometry.boundsTree) knotGeometry.disposeBoundsTree();
             if (options.mesh.useBoundsTree && !knotGeometry.boundsTree) {
                 console.time('computing bounds tree');
@@ -156,25 +164,22 @@
                 console.timeEnd('computing bounds tree');
             }
 
+            // Update knot count
             const oldLen = containerObj.children.length;
-            
-            while (containerObj.children.length > options.mesh.count) {
-                containerObj.remove(containerObj.children[0]);
+            while (knots.length > options.mesh.count) {
+                containerObj.remove(knots.pop());
             }
-            while (containerObj.children.length < options.mesh.count) {
+            while (knots.length < options.mesh.count) {
                 addKnot();
             }
 
-
-            if (oldLen !== containerObj.children.length) {
+            if (oldLen !== knots.length) {
                 const lerp = (a, b, t) => a + (b - a) * t;
-                const lerpAmt = (containerObj.children.length - 1) / (300 - 1);
+                const lerpAmt = (knots.length - 1) / (300 - 1);
                 const dist = lerp(0, 2, lerpAmt);
                 const scale = lerp(1, 0.2, lerpAmt);
 
-                console.log(scale)
-
-                containerObj.children.forEach(c => {
+                knots.forEach(c => {
                     c.scale.set(1, 1, 1).multiplyScalar(scale);
 
                     const vec3 = new THREE.Vector3(0, 1, 0);
@@ -185,22 +190,35 @@
                     c.position.set(vec3.x, vec3.y, vec3.z);
                 })
             }
+
+            // Update bounds viz
+            if (boundsViz && !options.mesh.visualizeBounds) {
+                containerObj.remove(boundsViz);
+                boundsViz = null;
+            }
+            if (!boundsViz && options.mesh.visualizeBounds) {
+                boundsViz = new TriangleBoundsTreeVisualizer(knots[0]);
+                containerObj.add(boundsViz);
+            }
+
+            if(boundsViz) boundsViz.depth = options.mesh.visualBoundsDepth;
         }
 
         containerObj.rotation.x = 10.989999999999943;
         containerObj.rotation.y = 10.989999999999943;
         const render = () => {
             stats.begin();
-            containerObj.rotation.x += 0.01 * options.mesh.speed;
-            containerObj.rotation.y += 0.01 * options.mesh.speed;
+
+            containerObj.rotation.x += 0.005 * options.mesh.speed;
+            containerObj.rotation.y += 0.005 * options.mesh.speed;
             containerObj.children.forEach(c => {
-                c.rotation.x += 0.05 * options.mesh.speed;
-                c.rotation.y += 0.05 * options.mesh.speed;
+                c.rotation.x += 0.005 * options.mesh.speed;
+                c.rotation.y += 0.005 * options.mesh.speed;
             })
             containerObj.updateMatrixWorld();
 
-            raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
-            raycaster.intersectObject(containerObj, true);
+            if(boundsViz) boundsViz.update();
+            
 
             rayCasterObjects.forEach(f => f.update());
 
@@ -221,6 +239,8 @@
         meshfolder.add(options.mesh, 'count').min(1).max(300).step(1).onChange(() => updateFromOptions());
         meshfolder.add(options.mesh, 'useBoundsTree').onChange(() => updateFromOptions());
         meshfolder.add(options.mesh, 'speed').min(0).max(20);
+        meshfolder.add(options.mesh, 'visualizeBounds').onChange(() => updateFromOptions());
+        meshfolder.add(options.mesh, 'visualBoundsDepth').min(1).max(40).step(1).onChange(() => updateFromOptions());
         meshfolder.open();
 
         window.addEventListener('resize', function () {
