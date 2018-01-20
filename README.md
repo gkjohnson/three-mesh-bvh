@@ -1,4 +1,5 @@
 # threejs-raycast-updates
-Repo for experimenting with new methods to raycast and collide THREEjs meshes
 
-https://github.com/mrdoob/three.js/blob/dev/src/objects/Mesh.js
+A modification to threejs mesh raycasting that builds a bounds tree from the triangles to make raycasting against high-polygon meshes faster.
+
+![screenshot](./docs/screenshot.png)
