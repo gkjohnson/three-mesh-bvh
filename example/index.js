@@ -224,7 +224,7 @@ const render = () => {
 // Run
 const gui = new dat.GUI();
 const rcfolder = gui.addFolder('Raycasters');
-rcfolder.add(options.raycasters, 'count').min(1).max(200).step(1).onChange(() => updateFromOptions());
+rcfolder.add(options.raycasters, 'count').min(1).max(400).step(1).onChange(() => updateFromOptions());
 rcfolder.add(options.raycasters, 'speed').min(0).max(20);
 rcfolder.open();
 
