@@ -14,7 +14,7 @@ THREE.Mesh.prototype.raycast = function(raycaster, intersects) {
 
         this.geometry.boundsTree.raycastAll(this, raycaster, ray, intersects);
     } else {
-        origRaycast.apply(this, raycaster, intersects);
+        origRaycast.call(this, raycaster, intersects);
     }
 }
 
