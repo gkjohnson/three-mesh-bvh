@@ -70,22 +70,22 @@
 "use strict";
 /* unused harmony export WebGLRenderTargetCube */
 /* unused harmony export WebGLRenderTarget */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "A", function() { return WebGLRenderer; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "D", function() { return WebGLRenderer; });
 /* unused harmony export ShaderLib */
 /* unused harmony export UniformsLib */
 /* unused harmony export UniformsUtils */
 /* unused harmony export ShaderChunk */
 /* unused harmony export FogExp2 */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "j", function() { return Fog; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "t", function() { return Scene; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "k", function() { return Fog; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "w", function() { return Scene; });
 /* unused harmony export LensFlare */
 /* unused harmony export Sprite */
 /* unused harmony export LOD */
 /* unused harmony export SkinnedMesh */
 /* unused harmony export Skeleton */
 /* unused harmony export Bone */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "m", function() { return Mesh; });
-/* unused harmony export LineSegments */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "p", function() { return Mesh; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "n", function() { return LineSegments; });
 /* unused harmony export LineLoop */
 /* unused harmony export Line */
 /* unused harmony export Points */
@@ -121,12 +121,12 @@
 /* unused harmony export RectAreaLight */
 /* unused harmony export HemisphereLight */
 /* unused harmony export DirectionalLightShadow */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return DirectionalLight; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return DirectionalLight; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AmbientLight; });
 /* unused harmony export LightShadow */
 /* unused harmony export Light */
 /* unused harmony export StereoCamera */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "q", function() { return PerspectiveCamera; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "t", function() { return PerspectiveCamera; });
 /* unused harmony export OrthographicCamera */
 /* unused harmony export CubeCamera */
 /* unused harmony export ArrayCamera */
@@ -151,15 +151,15 @@
 /* unused harmony export AnimationClip */
 /* unused harmony export Uniform */
 /* unused harmony export InstancedBufferGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return BufferGeometry; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "k", function() { return Geometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return BufferGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "l", function() { return Geometry; });
 /* unused harmony export InterleavedBufferAttribute */
 /* unused harmony export InstancedInterleavedBuffer */
 /* unused harmony export InterleavedBuffer */
 /* unused harmony export InstancedBufferAttribute */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return Face3; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "p", function() { return Object3D; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "s", function() { return Raycaster; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "j", function() { return Face3; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "s", function() { return Object3D; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "v", function() { return Raycaster; });
 /* unused harmony export Layers */
 /* unused harmony export EventDispatcher */
 /* unused harmony export Clock */
@@ -168,23 +168,23 @@
 /* unused harmony export DiscreteInterpolant */
 /* unused harmony export CubicInterpolant */
 /* unused harmony export Interpolant */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "x", function() { return Triangle; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "A", function() { return Triangle; });
 /* unused harmony export Math */
 /* unused harmony export Spherical */
 /* unused harmony export Cylindrical */
 /* unused harmony export Plane */
 /* unused harmony export Frustum */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "u", function() { return Sphere; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "r", function() { return Ray; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "l", function() { return Matrix4; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "x", function() { return Sphere; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "u", function() { return Ray; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "o", function() { return Matrix4; });
 /* unused harmony export Matrix3 */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return Box3; });
 /* unused harmony export Box2 */
 /* unused harmony export Line3 */
 /* unused harmony export Euler */
 /* unused harmony export Vector4 */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "z", function() { return Vector3; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "y", function() { return Vector2; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "C", function() { return Vector3; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "B", function() { return Vector2; });
 /* unused harmony export Quaternion */
 /* unused harmony export Color */
 /* unused harmony export ImmediateRenderObject */
@@ -200,7 +200,7 @@
 /* unused harmony export DirectionalLightHelper */
 /* unused harmony export CameraHelper */
 /* unused harmony export BoxHelper */
-/* unused harmony export Box3Helper */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return Box3Helper; });
 /* unused harmony export PlaneHelper */
 /* unused harmony export ArrowHelper */
 /* unused harmony export AxesHelper */
@@ -229,12 +229,12 @@
 /* unused harmony export TubeGeometry */
 /* unused harmony export TubeBufferGeometry */
 /* unused harmony export TorusKnotGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "w", function() { return TorusKnotBufferGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "z", function() { return TorusKnotBufferGeometry; });
 /* unused harmony export TorusGeometry */
 /* unused harmony export TorusBufferGeometry */
 /* unused harmony export TextGeometry */
 /* unused harmony export TextBufferGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "v", function() { return SphereGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "y", function() { return SphereGeometry; });
 /* unused harmony export SphereBufferGeometry */
 /* unused harmony export RingGeometry */
 /* unused harmony export RingBufferGeometry */
@@ -249,7 +249,7 @@
 /* unused harmony export EdgesGeometry */
 /* unused harmony export ConeGeometry */
 /* unused harmony export ConeBufferGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return CylinderGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return CylinderGeometry; });
 /* unused harmony export CylinderBufferGeometry */
 /* unused harmony export CircleGeometry */
 /* unused harmony export CircleBufferGeometry */
@@ -262,15 +262,15 @@
 /* unused harmony export PointsMaterial */
 /* unused harmony export MeshPhysicalMaterial */
 /* unused harmony export MeshStandardMaterial */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "o", function() { return MeshPhongMaterial; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "r", function() { return MeshPhongMaterial; });
 /* unused harmony export MeshToonMaterial */
 /* unused harmony export MeshNormalMaterial */
 /* unused harmony export MeshLambertMaterial */
 /* unused harmony export MeshDepthMaterial */
 /* unused harmony export MeshDistanceMaterial */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "n", function() { return MeshBasicMaterial; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "q", function() { return MeshBasicMaterial; });
 /* unused harmony export LineDashedMaterial */
-/* unused harmony export LineBasicMaterial */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "m", function() { return LineBasicMaterial; });
 /* unused harmony export Material */
 /* unused harmony export Float64BufferAttribute */
 /* unused harmony export Float32BufferAttribute */
@@ -305,7 +305,7 @@
 /* unused harmony export PCFSoftShadowMap */
 /* unused harmony export FrontSide */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return BackSide; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return DoubleSide; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return DoubleSide; });
 /* unused harmony export FlatShading */
 /* unused harmony export SmoothShading */
 /* unused harmony export NoColors */
@@ -417,7 +417,7 @@
 /* unused harmony export RGBDEncoding */
 /* unused harmony export BasicDepthPacking */
 /* unused harmony export RGBADepthPacking */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return BoxGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return BoxGeometry; });
 /* unused harmony export Face4 */
 /* unused harmony export LineStrip */
 /* unused harmony export LinePieces */
@@ -46056,30 +46056,30 @@ function CanvasRenderer() {
 
 
 // From THREE.js Mesh raycast
-var inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Matrix4 */]();
-var ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* Ray */]();
-var sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Sphere */]();
+var inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Matrix4 */]();
+var ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Ray */]();
+var sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Sphere */]();
 
-var vA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-var vB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-var vC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+var vA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+var vB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+var vC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 
-var tempA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-var tempB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-var tempC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+var tempA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+var tempB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+var tempC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 
-var uvA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["y" /* Vector2 */]();
-var uvB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["y" /* Vector2 */]();
-var uvC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["y" /* Vector2 */]();
+var uvA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector2 */]();
+var uvB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector2 */]();
+var uvC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector2 */]();
 
-var barycoord = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+var barycoord = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 
-var intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-var intersectionPointWorld = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+var intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+var intersectionPointWorld = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 
 function uvIntersection( point, p1, p2, p3, uv1, uv2, uv3 ) {
 
-    __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Triangle */].barycoordFromPoint( point, p1, p2, p3, barycoord );
+    __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Triangle */].barycoordFromPoint( point, p1, p2, p3, barycoord );
 
     uv1.multiplyScalar( barycoord.x );
     uv2.multiplyScalar( barycoord.y );
@@ -46100,7 +46100,7 @@ function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point 
 
     } else {
 
-        intersect = ray.intersectTriangle( pA, pB, pC, material.side !== __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["h" /* DoubleSide */], point );
+        intersect = ray.intersectTriangle( pA, pB, pC, material.side !== __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["i" /* DoubleSide */], point );
 
     }
 
@@ -46141,7 +46141,7 @@ function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, 
 
         }
 
-        intersection.face = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["i" /* Face3 */]( a, b, c, __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Triangle */].normal( vA, vB, vC ) );
+        intersection.face = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["j" /* Face3 */]( a, b, c, __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Triangle */].normal( vA, vB, vC ) );
         intersection.faceIndex = a;
 
     }
@@ -46170,16 +46170,16 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 const bgColor = 0x263238 / 2;
 
 // renderer setup
-const renderer = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* WebGLRenderer */]({ antialias: true });
+const renderer = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["D" /* WebGLRenderer */]({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(bgColor, 1);
 document.body.appendChild(renderer.domElement);
 
 // scene setup
-const scene = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["t" /* Scene */]();
-scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["j" /* Fog */](0x263238 / 2, 20, 60)
-const light = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["g" /* DirectionalLight */](0xffffff, 0.5);
+const scene = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["w" /* Scene */]();
+scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Fog */](0x263238 / 2, 20, 60)
+const light = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["h" /* DirectionalLight */](0xffffff, 0.5);
 light.position.set(1,1,1);
 scene.add(light);
 scene.add(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["a" /* AmbientLight */](0xffffff, 0.4))
@@ -46191,15 +46191,15 @@ const tubularSegments = 400;
 const radialSegments = 100;
 
 let boundsViz = null;
-const containerObj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Object3D */]();
-const knotGeometry = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["w" /* TorusKnotBufferGeometry */](radius, tube, tubularSegments, radialSegments);
+const containerObj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */]();
+const knotGeometry = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* TorusKnotBufferGeometry */](radius, tube, tubularSegments, radialSegments);
 // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* MeshPhongMaterial */]({ color: 0xE91E63 });        
+const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* MeshPhongMaterial */]({ color: 0xE91E63 });        
 containerObj.scale.multiplyScalar(10);
 scene.add(containerObj);
 
 // camera setup
-const camera = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["q" /* PerspectiveCamera */](75, window.innerWidth / window.innerHeight, 0.1, 50);
+const camera = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["t" /* PerspectiveCamera */](75, window.innerWidth / window.innerHeight, 0.1, 50);
 camera.position.z = 40;
 camera.far = 100;
 camera.updateProjectionMatrix()
@@ -46210,9 +46210,9 @@ document.body.appendChild(stats.dom);
 
 // Create ray casters in the scene
 const rayCasterObjects = [];
-const raycaster = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Raycaster */]();
-const sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* SphereGeometry */](.25, 20, 20);
-const cylinder = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["f" /* CylinderGeometry */](0.02, 0.02);
+const raycaster = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Raycaster */]();
+const sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["y" /* SphereGeometry */](.25, 20, 20);
+const cylinder = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["g" /* CylinderGeometry */](0.02, 0.02);
 const pointDist = 25;
 
 const knots = [];
@@ -46236,7 +46236,7 @@ let lastFrameTime = null;
 let deltaTime = 0;
 
 const addKnot = () => {
-    const mesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */](knotGeometry, material);
+    const mesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](knotGeometry, material);
     mesh.rotation.x = Math.random() * 10;
     mesh.rotation.y = Math.random() * 10;
     knots.push(mesh);
@@ -46245,13 +46245,13 @@ const addKnot = () => {
 
 const addRaycaster = () => {
     // Objects
-    const obj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Object3D */]();
-    const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* MeshBasicMaterial */]({ color: 0xffffff });
-    const origMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */](sphere, material);
-    const hitMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */](sphere, material);
+    const obj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */]();
+    const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["q" /* MeshBasicMaterial */]({ color: 0xffffff });
+    const origMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](sphere, material);
+    const hitMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](sphere, material);
     hitMesh.scale.multiplyScalar(0.5);
 
-    const cylinderMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */](cylinder, new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* MeshBasicMaterial */]({ color: 0xffffff, transparent: true, opacity: 0.25 }));
+    const cylinderMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](cylinder, new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["q" /* MeshBasicMaterial */]({ color: 0xffffff, transparent: true, opacity: 0.25 }));
 
     // Init the rotation root
     obj.add(cylinderMesh);
@@ -46265,8 +46265,8 @@ const addRaycaster = () => {
     obj.rotation.y = Math.random() * 10;
 
     // reusable vectors
-    const origvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-    const dirvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+    const origvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+    const dirvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
     const xdir = (Math.random() - 0.5);
     const ydir = (Math.random() - 0.5);
     rayCasterObjects.push({
@@ -46327,9 +46327,9 @@ const updateFromOptions = () => {
         knots.forEach(c => {
             c.scale.set(1, 1, 1).multiplyScalar(scale);
 
-            const vec3 = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */](0, 1, 0);
-            vec3.applyAxisAngle(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */](1, 0, 0), Math.PI * Math.random());
-            vec3.applyAxisAngle(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */](0, 1, 0), 2 * Math.PI * Math.random());
+            const vec3 = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */](0, 1, 0);
+            vec3.applyAxisAngle(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */](1, 0, 0), Math.PI * Math.random());
+            vec3.applyAxisAngle(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */](0, 1, 0), 2 * Math.PI * Math.random());
             vec3.multiplyScalar(dist)
 
             c.position.set(vec3.x, vec3.y, vec3.z);
@@ -46597,10 +46597,13 @@ Stats.Panel = function ( name, fg, bg ) {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
 
 
-const cube = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* CubeGeometry */](1, 1, 1);
-const wiremat = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* MeshBasicMaterial */]({ color: 0x00FF88, wireframe: true, wireframeLinewidth: 1, transparent: true, opacity: 0.3 });
+const cube = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["f" /* CubeGeometry */](1, 1, 1);
+const wiremat = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* LineBasicMaterial */]({ color: 0x00FF88, wireframe: true, wireframeLinewidth: 1, transparent: true, opacity: 0.3 });
+const boxGeom = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["d" /* Box3Helper */]().geometry;
 
-class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Object3D */] {
+console.log();
+
+class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */] {
     constructor(mesh, depth = 10) {
         super();
 
@@ -46623,11 +46626,10 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
                     if (d === this.depth) return;
 
                     if (d === this.depth - 1 || n.children.length === 0) {
-                        const m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */](cube, wiremat);
-                        this.add(m);
+                        let m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* LineSegments */](boxGeom, wiremat);
                         n.boundingBox.getCenter(m.position)
-                        m.scale.subVectors(n.boundingBox.max, n.boundingBox.min);
-                        m.raycast = () => [];
+                        m.scale.subVectors(n.boundingBox.max, n.boundingBox.min).multiplyScalar(0.5);
+                        this.add(m);
                     }
                     n.children.forEach(n => recurse(n, d + 1))
                 }
@@ -46654,11 +46656,11 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
 
 
 
-const ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* Ray */]();
-const inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Matrix4 */]();
-const origRaycast = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */].prototype.raycast;
+const ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Ray */]();
+const inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Matrix4 */]();
+const origRaycast = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */].prototype.raycast;
 
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* Mesh */].prototype.raycast = function(raycaster, intersects) {
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */].prototype.raycast = function(raycaster, intersects) {
     if (this.geometry.boundsTree) {
         if (this.material === undefined) return;
 
@@ -46672,21 +46674,21 @@ __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* M
     }
 }
 
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Geometry */].prototype.computeBoundsTree = function(strat) {
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Geometry */].prototype.computeBoundsTree = function(strat) {
     this.boundsTree = new __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__["a" /* default */](this, strat);
     return this.boundsTree;
 }
 
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Geometry */].prototype.disposeBoundsTree = function() {
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Geometry */].prototype.disposeBoundsTree = function() {
     this.boundsTree = null;
 }
 
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["d" /* BufferGeometry */].prototype.computeBoundsTree = function(strat) {
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* BufferGeometry */].prototype.computeBoundsTree = function(strat) {
     this.boundsTree = new __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__["a" /* default */](this, strat);
     return this.boundsTree;
 }
 
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["d" /* BufferGeometry */].prototype.disposeBoundsTree = function() {
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* BufferGeometry */].prototype.disposeBoundsTree = function() {
     this.boundsTree = null;
 }
 
@@ -46712,7 +46714,7 @@ const Strategies = {
 }
 
 const xyzFields = ['x', 'y', 'z'];
-const intersectvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+const intersectvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 
 // Classes
 class MeshBVHNode {
@@ -46960,8 +46962,8 @@ class MeshBVH extends MeshBVHNode {
         // because otherwise we run the risk of a stackoverflow
         // In the case of buffer geometry it also seems to be
         // faster than recursing
-        const avgtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-        const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+        const avgtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+        const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
         const queue = [];
         const createNode = (tris, bb, newNode) => {
             const node = newNode || new MeshBVHNode();
@@ -46974,7 +46976,7 @@ class MeshBVH extends MeshBVHNode {
             // It's possible that the bounds sphere will have a smaller
             // radius because the bounds do not encapsulate full triangles
             // on an edge
-            node.boundingSphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Sphere */]();
+            node.boundingSphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Sphere */]();
             bb.getCenter(node.boundingSphere.center);
             node.boundingSphere.radius = vectemp.subVectors(bb.max, node.boundingSphere.center).length();
             Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["h" /* shrinkSphereTo */])(tris, node.boundingSphere, geo, vertexElem);
@@ -47066,8 +47068,8 @@ class MeshBVH extends MeshBVHNode {
 
 
 // reusable vectors
-const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
-const centemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+const centemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 const bndtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]();
 const abcFields = ['a', 'b', 'c'];
 const xyzFields = ['x', 'y', 'z'];
@@ -47176,7 +47178,7 @@ const shrinkSphereTo = (tris, sphere, geo, getValFunc) => {
 
 // For BVH code specifically. Does not check morph targets
 // Copied from mesh raycasting
-const intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Vector3 */]();
+const intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
 const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
     if (geo.isBufferGeometry) {
         tri = tri * 3;
