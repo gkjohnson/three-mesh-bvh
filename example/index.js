@@ -22,7 +22,7 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.4))
 
 // geometry setup
 const radius = 1;
-const tube = .3;
+const tube = .4;
 const tubularSegments = 400;
 const radialSegments = 100;
 
@@ -116,7 +116,7 @@ const addRaycaster = () => {
 
             raycaster.set(origvec, dirvec);
             const res = raycaster.intersectObject(containerObj, true);
-            const length = res.length ? res[0].distance : 1000;
+            const length = res.length ? res[0].distance : pointDist;
             
             hitMesh.position.set(pointDist - length, 0, 0);
             
@@ -224,7 +224,7 @@ const render = () => {
 // Run
 const gui = new dat.GUI();
 const rcfolder = gui.addFolder('Raycasters');
-rcfolder.add(options.raycasters, 'count').min(1).max(400).step(1).onChange(() => updateFromOptions());
+rcfolder.add(options.raycasters, 'count').min(1).max(500).step(1).onChange(() => updateFromOptions());
 rcfolder.add(options.raycasters, 'speed').min(0).max(20);
 rcfolder.open();
 
