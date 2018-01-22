@@ -1,9 +1,9 @@
 import * as THREE from './node_modules/three/build/three.module.js'
 import './lib/ThreeMeshRewrite.js'
-import TriangleBoundsTree from './lib/TriangleBoundsTree.js'
+import MeshBVH from './lib/MeshBVH.js'
 
 THREE.Geometry.prototype.computeBoundsTree = function() {
-    this.boundsTree = new TriangleBoundsTree(this);
+    this.boundsTree = new MeshBVH(this);
     return this.boundsTree;
 }
 
@@ -12,7 +12,7 @@ THREE.Geometry.prototype.disposeBoundsTree = function() {
 }
 
 THREE.BufferGeometry.prototype.computeBoundsTree = function() {
-    this.boundsTree = new TriangleBoundsTree(this);
+    this.boundsTree = new MeshBVH(this);
     return this.boundsTree;
 }
 

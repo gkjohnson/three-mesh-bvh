@@ -1,6 +1,6 @@
 import * as THREE from '../node_modules/three/build/three.module.js'
 import Stats from '../node_modules/stats.js/src/Stats.js'
-import TriangleBoundsTreeVisualizer from '../lib/TriangleBoundsTreeVisualizer.js'
+import MeshBVHVisualizer from '../lib/MeshBVHVisualizer.js'
 import '../index.js'
 
 const bgColor = 0x263238 / 2;
@@ -178,7 +178,7 @@ const updateFromOptions = () => {
         boundsViz = null;
     }
     if (!boundsViz && options.mesh.visualizeBounds) {
-        boundsViz = new TriangleBoundsTreeVisualizer(knots[0]);
+        boundsViz = new MeshBVHVisualizer(knots[0]);
         containerObj.add(boundsViz);
     }
 
