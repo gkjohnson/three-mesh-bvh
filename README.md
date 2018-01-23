@@ -2,7 +2,11 @@
 
 A THREEjs utility for providing more efficient raycasts against sufficiently complex meshes.
 
-![screenshot](./docs/screenshot.png)
+[Demo Here!](https://gkjohnson.github.io/threejs-raycast-updates/example/index.bundle.html)
+
+![screenshot](./docs/example-sm.gif)
+
+Casting 500 rays against an 80,000 polygon model at 60fps!
 
 ## Use
 
