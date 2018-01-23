@@ -54,7 +54,7 @@ const pointDist = 25;
 const knots = [];
 const options = {
     raycasters: {
-        count: 50,
+        count: 150,
         speed: 1,
     },
 
