@@ -46178,7 +46178,7 @@ document.body.appendChild(renderer.domElement);
 
 // scene setup
 const scene = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["w" /* Scene */]();
-scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Fog */](0x263238 / 2, 20, 60)
+scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Fog */](0x263238 / 2, 40, 80)
 const light = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["h" /* DirectionalLight */](0xffffff, 0.5);
 light.position.set(1,1,1);
 scene.add(light);
@@ -46186,7 +46186,7 @@ scene.add(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module
 
 // geometry setup
 const radius = 1;
-const tube = .3;
+const tube = .4;
 const tubularSegments = 400;
 const radialSegments = 100;
 
@@ -46194,13 +46194,17 @@ let boundsViz = null;
 const containerObj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */]();
 const knotGeometry = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* TorusKnotBufferGeometry */](radius, tube, tubularSegments, radialSegments);
 // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* MeshPhongMaterial */]({ color: 0xE91E63 });        
+const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* MeshPhongMaterial */]({ color: 0xE91E63 });
+
+console.log(knotGeometry.index)
+console.log(knotGeometry.attributes)
+
 containerObj.scale.multiplyScalar(10);
 scene.add(containerObj);
 
 // camera setup
 const camera = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["t" /* PerspectiveCamera */](75, window.innerWidth / window.innerHeight, 0.1, 50);
-camera.position.z = 40;
+camera.position.z = 60;
 camera.far = 100;
 camera.updateProjectionMatrix()
 
@@ -46218,7 +46222,7 @@ const pointDist = 25;
 const knots = [];
 const options = {
     raycasters: {
-        count: 1,
+        count: 150,
         speed: 1,
     },
 
@@ -46280,7 +46284,7 @@ const addRaycaster = () => {
 
             raycaster.set(origvec, dirvec);
             const res = raycaster.intersectObject(containerObj, true);
-            const length = res.length ? res[0].distance : 1000;
+            const length = res.length ? res[0].distance : pointDist;
             
             hitMesh.position.set(pointDist - length, 0, 0);
             
@@ -46388,7 +46392,7 @@ const render = () => {
 // Run
 const gui = new dat.GUI();
 const rcfolder = gui.addFolder('Raycasters');
-rcfolder.add(options.raycasters, 'count').min(1).max(400).step(1).onChange(() => updateFromOptions());
+rcfolder.add(options.raycasters, 'count').min(1).max(500).step(1).onChange(() => updateFromOptions());
 rcfolder.add(options.raycasters, 'speed').min(0).max(20);
 rcfolder.open();
 
@@ -46608,6 +46612,7 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
         super();
 
         this.depth = depth;
+        this._oldDepth = -1;
         this._mesh = mesh;
         this._boundsTree = null;
 
@@ -46616,26 +46621,31 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
 
     update() {
         if (this._mesh.geometry.boundsTree !== this._boundsTree || this._oldDepth !== this.depth) {
-            while (this.children.length) this.remove(this.children.pop());
-            
             this._oldDepth = this.depth;
             this._boundsTree = this._mesh.geometry.boundsTree;
 
+            let requiredChildren = 0;
             if (this._boundsTree) {
                 const recurse = (n, d) => {
                     if (d === this.depth) return;
 
                     if (d === this.depth - 1 || n.children.length === 0) {
-                        let m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* LineSegments */](boxGeom, wiremat);
+                        let m = requiredChildren < this.children.length ? this.children[requiredChildren++] : null;
+                        if (!m) {
+                            m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* LineSegments */](boxGeom, wiremat);
+                            m.raycast = () => [];
+                            this.add(m);
+                        }
                         n.boundingBox.getCenter(m.position)
                         m.scale.subVectors(n.boundingBox.max, n.boundingBox.min).multiplyScalar(0.5);
-                        this.add(m);
                     }
                     n.children.forEach(n => recurse(n, d + 1))
                 }
 
                 recurse(this._boundsTree._root, 0);
             }
+
+            while (this.children.length > requiredChildren) this.remove(this.children.pop());
         }
 
         this.position.copy(this._mesh.position);
