@@ -46178,7 +46178,7 @@ document.body.appendChild(renderer.domElement);
 
 // scene setup
 const scene = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["w" /* Scene */]();
-scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Fog */](0x263238 / 2, 40, 80)
+scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Fog */](0x263238 / 2, 20, 60)
 const light = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["h" /* DirectionalLight */](0xffffff, 0.5);
 light.position.set(1,1,1);
 scene.add(light);
@@ -46194,17 +46194,13 @@ let boundsViz = null;
 const containerObj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */]();
 const knotGeometry = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* TorusKnotBufferGeometry */](radius, tube, tubularSegments, radialSegments);
 // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* MeshPhongMaterial */]({ color: 0xE91E63 });
-
-console.log(knotGeometry.index)
-console.log(knotGeometry.attributes)
-
+const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* MeshPhongMaterial */]({ color: 0xE91E63 });        
 containerObj.scale.multiplyScalar(10);
 scene.add(containerObj);
 
 // camera setup
 const camera = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["t" /* PerspectiveCamera */](75, window.innerWidth / window.innerHeight, 0.1, 50);
-camera.position.z = 60;
+camera.position.z = 40;
 camera.far = 100;
 camera.updateProjectionMatrix()
 
@@ -46605,8 +46601,6 @@ const cube = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_mod
 const wiremat = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* LineBasicMaterial */]({ color: 0x00FF88, wireframe: true, wireframeLinewidth: 1, transparent: true, opacity: 0.3 });
 const boxGeom = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["d" /* Box3Helper */]().geometry;
 
-console.log();
-
 class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */] {
     constructor(mesh, depth = 10) {
         super();
@@ -46630,12 +46624,13 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
                     if (d === this.depth) return;
 
                     if (d === this.depth - 1 || n.children.length === 0) {
-                        let m = requiredChildren < this.children.length ? this.children[requiredChildren++] : null;
+                        let m = requiredChildren < this.children.length ? this.children[requiredChildren] : null;
                         if (!m) {
                             m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* LineSegments */](boxGeom, wiremat);
                             m.raycast = () => [];
                             this.add(m);
                         }
+                        requiredChildren ++;
                         n.boundingBox.getCenter(m.position)
                         m.scale.subVectors(n.boundingBox.max, n.boundingBox.min).multiplyScalar(0.5);
                     }
@@ -46677,7 +46672,7 @@ __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* M
         inverseMatrix.getInverse(this.matrixWorld);
         ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
 
-        const res = this.geometry.boundsTree.raycast(this, raycaster, ray, intersects);
+        const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
         if (res) intersects.push(res);
     } else {
         origRaycast.call(this, raycaster, intersects);
@@ -46741,14 +46736,14 @@ class MeshBVHNode {
             (ray.intersectsBox(this.boundingBox) || this.boundingBox.containsPoint(ray.origin));
     }
 
-    raycastAll(mesh, raycaster, ray, intersects) {
+    raycast(mesh, raycaster, ray, intersects) {
         if (!this.intersectsRay(ray)) return;
 
         if (this.tris) Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["f" /* intersectTris */])(mesh, this.geometry, raycaster, ray, this.tris, intersects);
-        else this.children.forEach(c => c.raycastAll(mesh, raycaster, ray, intersects));
+        else this.children.forEach(c => c.raycast(mesh, raycaster, ray, intersects));
     }
 
-    raycast(mesh, raycaster, ray) {
+    raycastFirst(mesh, raycaster, ray) {
         if (!this.intersectsRay(ray)) return null;
 
         if (this.tris) {
@@ -46763,8 +46758,8 @@ class MeshBVHNode {
             const c2dist = intersectvec.length() * intersectvec.dot(ray.direction);
 
             return c1dist < c2dist ?
-                c1.raycast(mesh, raycaster, ray) || c2.raycast(mesh, raycaster, ray) : 
-                c2.raycast(mesh, raycaster, ray) || c1.raycast(mesh, raycaster, ray);
+                c1.raycastFirst(mesh, raycaster, ray) || c2.raycastFirst(mesh, raycaster, ray) : 
+                c2.raycastFirst(mesh, raycaster, ray) || c1.raycastFirst(mesh, raycaster, ray);
         }
     }
 }
@@ -47084,6 +47079,8 @@ const bndtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_
 const abcFields = ['a', 'b', 'c'];
 const xyzFields = ['x', 'y', 'z'];
 
+// TODO: This could probably be optimizied to not dig so deeply into an object
+// and reust some of the fetch values in some cases
 const getBufferGeometryVertexElem = (geo, tri, vert, elem) => {
     return geo.attributes.position.array[(geo.index ? geo.index.array[3 * tri + vert] : (3 * tri + vert)) * 3  + elem];
 }
@@ -47112,7 +47109,7 @@ const getLongestEdgeIndex = bb => {
 const getAverage = (tris, avg, geo, getValFunc) => {
     avg.set(0, 0, 0);
 
-    for (let i = 0; i < tris.length; i ++) {
+    for (let i = 0, l = tris.length; i < l; i ++) {
         const tri = tris[i];
 
         for (let v = 0; v < 3; v ++) {
@@ -47138,7 +47135,7 @@ const shrinkBoundsTo = (tris, bounds, geo, getValFunc) => {
     bndtemp.max.y = -Infinity;
     bndtemp.max.z = -Infinity;
 
-    for (let i = 0; i < tris.length; i ++) {
+    for (let i = 0, l = tris.length; i < l; i ++) {
         const tri = tris[i];
 
         for (let v = 0; v < 3; v ++) {
@@ -47167,7 +47164,7 @@ const shrinkSphereTo = (tris, sphere, geo, getValFunc) => {
     const center = sphere.center;
     let maxRadiusSq = 0;
 
-    for (let i = 0; i < tris.length; i ++) {
+    for (let i = 0, l = tris.length; i < l; i ++) {
         const tri = tris[i];
 
         for (let v = 0; v < 3; v ++) {
@@ -47243,21 +47240,22 @@ const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
 }
 
 const intersectTris = (mesh, geo, raycaster, ray, tris, intersections) => {
-    tris.forEach(tri => {
-        intersectTri(mesh, geo, raycaster, ray, tri, intersections);
-    });
+    for (let i = 0, l = tris.length; i < l; i ++) {
+        intersectTri(mesh, geo, raycaster, ray, tris[i], intersections);
+    }
 }
 
 const intersectClosestTri = (mesh, geo, raycaster, ray, tris) => {
     let dist = Infinity;
     let res = null;
-    tris.forEach(tri => {
-        const intersection = intersectTri(mesh, geo, raycaster, ray, tri);
+    for (let i = 0, l = tris.length; i < l; i ++) {
+        const intersection = intersectTri(mesh, geo, raycaster, ray, tris[i]);
         if (intersection && intersection.distance < dist) {
             res = intersection;
             dist = intersection.distance;
         }
-    });
+    }
+
     return res;
 }
 
