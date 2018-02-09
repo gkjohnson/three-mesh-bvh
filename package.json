@@ -1,28 +1,51 @@
 {
-  "name": "threejs-raycast-updates",
+  "name": "threejs-fast-raycast",
+
   "version": "1.0.0",
-  "description": "Repo for experimenting with new methods to raycast and collide THREEjs meshes",
+  
+  "description": "THREE.js extension for creating mesh BVH trees for fast raycasting on complex meshes.",
+  
   "main": "index.js",
+  
   "scripts": {
     "serve": "static-server",
     "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/threejs-raycast-updates.git"
   },
-  "author": "",
-  "license": "ISC",
+  
+  "keywords": [
+    "graphics",
+    "raycast",
+    "tree",
+    "bounds",
+    "threejs",
+    "three-js",
+    "octree",
+    "bounds-hierarchy",
+    "performance"
+  ],
+
+  "author": "Garrett Johnson <garrett.kjohnson@gmail.com>",
+  
+  "license": "MIT",
+  
   "bugs": {
     "url": "https://github.com/gkjohnson/threejs-raycast-updates/issues"
   },
+  
   "homepage": "https://github.com/gkjohnson/threejs-raycast-updates#readme",
-  "dependencies": {
-    "stats.js": "^0.17.0",
+  
+  "peerDependencies": {
     "three": "^0.89.0"
   },
+  
   "devDependencies": {
+    "three": "^0.89.0",
+    "stats.js": "^0.17.0",
     "dat.gui": "^0.6.5",
     "script-loader": "^0.7.2",
     "webpack": "^3.10.0"
