@@ -2,7 +2,7 @@
 
 A THREEjs utility for providing more efficient raycasts against sufficiently complex meshes.
 
-[Demo Here!](https://gkjohnson.github.io/threejs-raycast-updates/example/index.bundle.html)
+[Demo Here!](https://gkjohnson.github.io/threejs-fast-raycast/example/index.bundle.html)
 
 ![screenshot](./docs/example-sm.gif)
 
