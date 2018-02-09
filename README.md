@@ -1,4 +1,4 @@
-# threejs-raycast-updates
+# threejs-fast-raycast
 
 A THREEjs utility for providing more efficient raycasts against sufficiently complex meshes.
 
