@@ -12,8 +12,10 @@ THREE.Mesh.prototype.raycast = function(raycaster, intersects) {
         inverseMatrix.getInverse(this.matrixWorld);
         ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
 
-        const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
-        if (res) intersects.push(res);
+        let seenFaces = {};
+        this.geometry.boundsTree.raycast(this, raycaster, ray, intersects, seenFaces);
+        //const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
+        //if (res) intersects.push(res);
     } else {
         origRaycast.call(this, raycaster, intersects);
     }
