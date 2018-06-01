@@ -9,7 +9,7 @@
   
   "scripts": {
     "serve": "static-server",
-    "build": "webpack",
+    "build": "webpack"
   },
   
   "repository": {
