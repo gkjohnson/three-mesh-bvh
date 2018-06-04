@@ -46056,7 +46056,6 @@ function CanvasRenderer() {
 
 
 // From THREE.js Mesh raycast
-var inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Matrix4 */]();
 var ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Ray */]();
 var sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Sphere */]();
 
@@ -46279,7 +46278,7 @@ const addRaycaster = () => {
             dirvec.copy(origvec).multiplyScalar(-1).normalize();
 
             raycaster.set(origvec, dirvec);
-            const res = raycaster.intersectObject(containerObj, true);
+            const res = raycaster.intersectObject(containerObj, true, null, true);
             const length = res.length ? res[0].distance : pointDist;
             
             hitMesh.position.set(pointDist - length, 0, 0);
@@ -46664,6 +46663,8 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
 const ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Ray */]();
 const inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Matrix4 */]();
 const origRaycast = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */].prototype.raycast;
+const origIntersectObject = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Raycaster */].prototype.intersectObject;
+const origIntersectObjects = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Raycaster */].prototype.intersectObjects;
 
 __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */].prototype.raycast = function(raycaster, intersects) {
     if (this.geometry.boundsTree) {
@@ -46672,11 +46673,26 @@ __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* M
         inverseMatrix.getInverse(this.matrixWorld);
         ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
 
-        const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
-        if (res) intersects.push(res);
+        if (raycaster.firstHitOnly === true) {
+            const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
+            if (res) intersects.push(res);
+        } else {
+            let seenFaces = {};
+            this.geometry.boundsTree.raycast(this, raycaster, ray, intersects, seenFaces);
+        }
     } else {
         origRaycast.call(this, raycaster, intersects);
     }
+}
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Raycaster */].prototype.intersectObject = function ( object, recursive, optionalTarget, firstHitOnly = false) {
+  this.firstHitOnly = firstHitOnly;
+  return origIntersectObject.call(this, object, recursive, optionalTarget);
+}
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Raycaster */].prototype.intersectObjects = function ( objects, recursive, optionalTarget, firstHitOnly = false) {
+  this.firstHitOnly = firstHitOnly;
+  return origIntersectObjects.call(this, objects, recursive, optionalTarget);
 }
 
 __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Geometry */].prototype.computeBoundsTree = function(strat) {
@@ -46736,11 +46752,11 @@ class MeshBVHNode {
             (ray.intersectsBox(this.boundingBox) || this.boundingBox.containsPoint(ray.origin));
     }
 
-    raycast(mesh, raycaster, ray, intersects) {
+    raycast(mesh, raycaster, ray, intersects, seenFaces) {
         if (!this.intersectsRay(ray)) return;
 
-        if (this.tris) Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["f" /* intersectTris */])(mesh, this.geometry, raycaster, ray, this.tris, intersects);
-        else this.children.forEach(c => c.raycast(mesh, raycaster, ray, intersects));
+        if (this.tris) Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["f" /* intersectTris */])(mesh, this.geometry, raycaster, ray, this.tris, intersects, seenFaces);
+        else this.children.forEach(c => c.raycast(mesh, raycaster, ray, intersects, seenFaces));
     }
 
     raycastFirst(mesh, raycaster, ray) {
@@ -47186,7 +47202,11 @@ const shrinkSphereTo = (tris, sphere, geo, getValFunc) => {
 // For BVH code specifically. Does not check morph targets
 // Copied from mesh raycasting
 const intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
+const intersectTri = (mesh, geo, raycaster, ray, tri, intersections, seenFaces) => {
+    const faceIndex = tri;
+    if (seenFaces != null && seenFaces[faceIndex]) {
+        return null;
+    }
     if (geo.isBufferGeometry) {
         tri = tri * 3;
         const a = geo.index ? geo.index.getX(tri) : tri;
@@ -47196,7 +47216,10 @@ const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
         const intersection = Object(__WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__["a" /* checkBufferGeometryIntersection */])(mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c);
 
         if (intersection) {
-            intersection.index = a; // triangle number in positions buffer semantics
+            if (seenFaces != null) {
+                seenFaces[faceIndex] = true;
+            }
+            intersection.faceIndex = faceIndex; // triangle number
             if (intersections) intersections.push(intersection);
             return intersection;
         }
@@ -47219,6 +47242,10 @@ const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
 
             if (intersection) {
 
+                if (seenFaces != null) {
+                    seenFaces[faceIndex] = true;
+                }
+
                 if (uvs && uvs[ f ]) {
 
                     const uvs_f = uvs[ f ];
@@ -47239,9 +47266,9 @@ const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
     return null;    
 }
 
-const intersectTris = (mesh, geo, raycaster, ray, tris, intersections) => {
+const intersectTris = (mesh, geo, raycaster, ray, tris, intersections, seenFaces) => {
     for (let i = 0, l = tris.length; i < l; i ++) {
-        intersectTri(mesh, geo, raycaster, ray, tris[i], intersections);
+        intersectTri(mesh, geo, raycaster, ray, tris[i], intersections, seenFaces);
     }
 }
 

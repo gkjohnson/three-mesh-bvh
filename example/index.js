@@ -115,7 +115,7 @@ const addRaycaster = () => {
             dirvec.copy(origvec).multiplyScalar(-1).normalize();
 
             raycaster.set(origvec, dirvec);
-            const res = raycaster.intersectObject(containerObj, true);
+            const res = raycaster.intersectObject(containerObj, true, null, true);
             const length = res.length ? res[0].distance : pointDist;
             
             hitMesh.position.set(pointDist - length, 0, 0);
