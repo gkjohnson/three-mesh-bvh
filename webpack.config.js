@@ -1,4 +1,3 @@
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
     entry: `${__dirname}/example/index.js`,
     output: {
@@ -9,4 +8,4 @@ module.exports = {
     module: {
         rules: []
     }
-}
+};
