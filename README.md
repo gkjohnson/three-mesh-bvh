@@ -40,7 +40,7 @@ A direct handle to the calculated bounds tree.
 ##### instersectObject(object, recursive, optionalTarget, firstHitOnly = false)
 ##### instersectObjects(objects, recursive, optionalTarget, firstHitOnly = false)
 
-The `intersectObject` and `intersectObjects` functions have an added `firstHitOnly` parameter indicating that only the first hit should be pushed onto the `intersects` array.
+The `intersectObject` and `intersectObjects` functions have an added `firstHitOnly` parameter indicating that only the first hit should be pushed onto the `intersects` array for every piece of geometry. Setting `firstHitOnly` to true makes bounds tree-enabled intersections much faster.
 
 ## Gotchas
 
