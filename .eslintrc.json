@@ -1,0 +1,4 @@
+{
+	"root": true,
+	"extends": "./node_modules/eslint-config-mdcs/index.js"
+}

@@ -1,22 +1,16 @@
 {
   "name": "threejs-fast-raycast",
-
   "version": "1.0.0",
-
   "description": "THREE.js extension for creating mesh BVH trees for fast raycasting on complex meshes.",
-
   "main": "index.js",
-
   "scripts": {
     "start": "static-server",
     "build": "webpack"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/threejs-raycast-updates.git"
   },
-
   "keywords": [
     "graphics",
     "raycast",
@@ -28,26 +22,22 @@
     "bounds-hierarchy",
     "performance"
   ],
-
   "author": "Garrett Johnson <garrett.kjohnson@gmail.com>",
-
   "license": "MIT",
-
   "bugs": {
     "url": "https://github.com/gkjohnson/threejs-raycast-updates/issues"
   },
-
   "homepage": "https://github.com/gkjohnson/threejs-raycast-updates#readme",
-
   "peerDependencies": {
     "three": "^0.89.0"
   },
-
   "devDependencies": {
-    "three": "^0.89.0",
-    "stats.js": "^0.17.0",
     "dat.gui": "^0.6.5",
+    "eslint-config-mdcs": "^4.2.3",
     "script-loader": "^0.7.2",
+    "static-server": "^2.2.1",
+    "stats.js": "^0.17.0",
+    "three": "^0.89.0",
     "webpack": "^3.10.0"
   }
 }
