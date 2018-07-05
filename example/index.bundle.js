@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -70,22 +70,22 @@
 "use strict";
 /* unused harmony export WebGLRenderTargetCube */
 /* unused harmony export WebGLRenderTarget */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "D", function() { return WebGLRenderer; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "C", function() { return WebGLRenderer; });
 /* unused harmony export ShaderLib */
 /* unused harmony export UniformsLib */
 /* unused harmony export UniformsUtils */
 /* unused harmony export ShaderChunk */
 /* unused harmony export FogExp2 */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "k", function() { return Fog; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "w", function() { return Scene; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "j", function() { return Fog; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "v", function() { return Scene; });
 /* unused harmony export LensFlare */
 /* unused harmony export Sprite */
 /* unused harmony export LOD */
 /* unused harmony export SkinnedMesh */
 /* unused harmony export Skeleton */
 /* unused harmony export Bone */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "p", function() { return Mesh; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "n", function() { return LineSegments; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "o", function() { return Mesh; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "m", function() { return LineSegments; });
 /* unused harmony export LineLoop */
 /* unused harmony export Line */
 /* unused harmony export Points */
@@ -121,12 +121,12 @@
 /* unused harmony export RectAreaLight */
 /* unused harmony export HemisphereLight */
 /* unused harmony export DirectionalLightShadow */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return DirectionalLight; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return DirectionalLight; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AmbientLight; });
 /* unused harmony export LightShadow */
 /* unused harmony export Light */
 /* unused harmony export StereoCamera */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "t", function() { return PerspectiveCamera; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "s", function() { return PerspectiveCamera; });
 /* unused harmony export OrthographicCamera */
 /* unused harmony export CubeCamera */
 /* unused harmony export ArrayCamera */
@@ -152,14 +152,14 @@
 /* unused harmony export Uniform */
 /* unused harmony export InstancedBufferGeometry */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return BufferGeometry; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "l", function() { return Geometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "k", function() { return Geometry; });
 /* unused harmony export InterleavedBufferAttribute */
 /* unused harmony export InstancedInterleavedBuffer */
 /* unused harmony export InterleavedBuffer */
 /* unused harmony export InstancedBufferAttribute */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "j", function() { return Face3; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "s", function() { return Object3D; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "v", function() { return Raycaster; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return Face3; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "r", function() { return Object3D; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "u", function() { return Raycaster; });
 /* unused harmony export Layers */
 /* unused harmony export EventDispatcher */
 /* unused harmony export Clock */
@@ -168,23 +168,23 @@
 /* unused harmony export DiscreteInterpolant */
 /* unused harmony export CubicInterpolant */
 /* unused harmony export Interpolant */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "A", function() { return Triangle; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "z", function() { return Triangle; });
 /* unused harmony export Math */
 /* unused harmony export Spherical */
 /* unused harmony export Cylindrical */
 /* unused harmony export Plane */
 /* unused harmony export Frustum */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "x", function() { return Sphere; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "u", function() { return Ray; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "o", function() { return Matrix4; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "w", function() { return Sphere; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "t", function() { return Ray; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "n", function() { return Matrix4; });
 /* unused harmony export Matrix3 */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return Box3; });
 /* unused harmony export Box2 */
 /* unused harmony export Line3 */
 /* unused harmony export Euler */
 /* unused harmony export Vector4 */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "C", function() { return Vector3; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "B", function() { return Vector2; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "B", function() { return Vector3; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "A", function() { return Vector2; });
 /* unused harmony export Quaternion */
 /* unused harmony export Color */
 /* unused harmony export ImmediateRenderObject */
@@ -229,12 +229,12 @@
 /* unused harmony export TubeGeometry */
 /* unused harmony export TubeBufferGeometry */
 /* unused harmony export TorusKnotGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "z", function() { return TorusKnotBufferGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "y", function() { return TorusKnotBufferGeometry; });
 /* unused harmony export TorusGeometry */
 /* unused harmony export TorusBufferGeometry */
 /* unused harmony export TextGeometry */
 /* unused harmony export TextBufferGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "y", function() { return SphereGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "x", function() { return SphereGeometry; });
 /* unused harmony export SphereBufferGeometry */
 /* unused harmony export RingGeometry */
 /* unused harmony export RingBufferGeometry */
@@ -249,7 +249,7 @@
 /* unused harmony export EdgesGeometry */
 /* unused harmony export ConeGeometry */
 /* unused harmony export ConeBufferGeometry */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return CylinderGeometry; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return CylinderGeometry; });
 /* unused harmony export CylinderBufferGeometry */
 /* unused harmony export CircleGeometry */
 /* unused harmony export CircleBufferGeometry */
@@ -262,15 +262,15 @@
 /* unused harmony export PointsMaterial */
 /* unused harmony export MeshPhysicalMaterial */
 /* unused harmony export MeshStandardMaterial */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "r", function() { return MeshPhongMaterial; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "q", function() { return MeshPhongMaterial; });
 /* unused harmony export MeshToonMaterial */
 /* unused harmony export MeshNormalMaterial */
 /* unused harmony export MeshLambertMaterial */
 /* unused harmony export MeshDepthMaterial */
 /* unused harmony export MeshDistanceMaterial */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "q", function() { return MeshBasicMaterial; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "p", function() { return MeshBasicMaterial; });
 /* unused harmony export LineDashedMaterial */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "m", function() { return LineBasicMaterial; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "l", function() { return LineBasicMaterial; });
 /* unused harmony export Material */
 /* unused harmony export Float64BufferAttribute */
 /* unused harmony export Float32BufferAttribute */
@@ -305,7 +305,7 @@
 /* unused harmony export PCFSoftShadowMap */
 /* unused harmony export FrontSide */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return BackSide; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return DoubleSide; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return DoubleSide; });
 /* unused harmony export FlatShading */
 /* unused harmony export SmoothShading */
 /* unused harmony export NoColors */
@@ -417,7 +417,7 @@
 /* unused harmony export RGBDEncoding */
 /* unused harmony export BasicDepthPacking */
 /* unused harmony export RGBADepthPacking */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return BoxGeometry; });
+/* unused harmony export CubeGeometry */
 /* unused harmony export Face4 */
 /* unused harmony export LineStrip */
 /* unused harmony export LinePieces */
@@ -46049,119 +46049,11 @@ function CanvasRenderer() {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* unused harmony export uvIntersection */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return checkIntersection; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return checkBufferGeometryIntersection; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
-
-
-// From THREE.js Mesh raycast
-var inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Matrix4 */]();
-var ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Ray */]();
-var sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Sphere */]();
-
-var vA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-var vB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-var vC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-
-var tempA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-var tempB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-var tempC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-
-var uvA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector2 */]();
-var uvB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector2 */]();
-var uvC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector2 */]();
-
-var barycoord = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-
-var intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-var intersectionPointWorld = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-
-function uvIntersection( point, p1, p2, p3, uv1, uv2, uv3 ) {
-
-    __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Triangle */].barycoordFromPoint( point, p1, p2, p3, barycoord );
-
-    uv1.multiplyScalar( barycoord.x );
-    uv2.multiplyScalar( barycoord.y );
-    uv3.multiplyScalar( barycoord.z );
-
-    uv1.add( uv2 ).add( uv3 );
-
-    return uv1.clone();
-
-}
-
-function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point ) {
-
-    var intersect;
-    if ( material.side === __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["b" /* BackSide */] ) {
-
-        intersect = ray.intersectTriangle( pC, pB, pA, true, point );
-
-    } else {
-
-        intersect = ray.intersectTriangle( pA, pB, pC, material.side !== __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["i" /* DoubleSide */], point );
-
-    }
-
-    if ( intersect === null ) return null;
-
-    intersectionPointWorld.copy( point );
-    intersectionPointWorld.applyMatrix4( object.matrixWorld );
-
-    var distance = raycaster.ray.origin.distanceTo( intersectionPointWorld );
-
-    if ( distance < raycaster.near || distance > raycaster.far ) return null;
-
-    return {
-        distance: distance,
-        point: intersectionPointWorld.clone(),
-        object: object
-    };
-
-}
-
-function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, a, b, c ) {
-
-    vA.fromBufferAttribute( position, a );
-    vB.fromBufferAttribute( position, b );
-    vC.fromBufferAttribute( position, c );
-
-    var intersection = checkIntersection( object, object.material, raycaster, ray, vA, vB, vC, intersectionPoint );
-
-    if ( intersection ) {
-
-        if ( uv ) {
-
-            uvA.fromBufferAttribute( uv, a );
-            uvB.fromBufferAttribute( uv, b );
-            uvC.fromBufferAttribute( uv, c );
-
-            intersection.uv = uvIntersection( intersectionPoint, vA, vB, vC, uvA, uvB, uvC );
-
-        }
-
-        intersection.face = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["j" /* Face3 */]( a, b, c, __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Triangle */].normal( vA, vB, vC ) );
-        intersection.faceIndex = a;
-
-    }
-
-    return intersection;
-
-}
-
-
-
-/***/ }),
-/* 2 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_stats_js_src_Stats_js__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__lib_MeshBVHVisualizer_js__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__index_js__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_stats_js_src_Stats_js__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__lib_MeshBVHVisualizer_js__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__index_js__ = __webpack_require__(4);
 
 
 
@@ -46170,248 +46062,279 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 const bgColor = 0x263238 / 2;
 
 // renderer setup
-const renderer = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["D" /* WebGLRenderer */]({ antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(bgColor, 1);
-document.body.appendChild(renderer.domElement);
+const renderer = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* WebGLRenderer */]( { antialias: true } );
+renderer.setPixelRatio( window.devicePixelRatio );
+renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.setClearColor( bgColor, 1 );
+document.body.appendChild( renderer.domElement );
 
 // scene setup
-const scene = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["w" /* Scene */]();
-scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Fog */](0x263238 / 2, 20, 60)
-const light = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["h" /* DirectionalLight */](0xffffff, 0.5);
-light.position.set(1,1,1);
-scene.add(light);
-scene.add(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["a" /* AmbientLight */](0xffffff, 0.4))
+const scene = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Scene */]();
+scene.fog = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["j" /* Fog */]( 0x263238 / 2, 20, 60 );
+const light = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["g" /* DirectionalLight */]( 0xffffff, 0.5 );
+light.position.set( 1, 1, 1 );
+scene.add( light );
+scene.add( new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["a" /* AmbientLight */]( 0xffffff, 0.4 ) );
 
 // geometry setup
 const radius = 1;
-const tube = .4;
+const tube = 0.4;
 const tubularSegments = 400;
 const radialSegments = 100;
 
 let boundsViz = null;
-const containerObj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */]();
-const knotGeometry = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* TorusKnotBufferGeometry */](radius, tube, tubularSegments, radialSegments);
+const containerObj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* Object3D */]();
+const knotGeometry = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["y" /* TorusKnotBufferGeometry */]( radius, tube, tubularSegments, radialSegments );
 // const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* MeshPhongMaterial */]({ color: 0xE91E63 });        
-containerObj.scale.multiplyScalar(10);
-scene.add(containerObj);
+const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["q" /* MeshPhongMaterial */]( { color: 0xE91E63 } );
+containerObj.scale.multiplyScalar( 10 );
+scene.add( containerObj );
 
 // camera setup
-const camera = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["t" /* PerspectiveCamera */](75, window.innerWidth / window.innerHeight, 0.1, 50);
+const camera = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* PerspectiveCamera */]( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
 camera.position.z = 40;
 camera.far = 100;
-camera.updateProjectionMatrix()
+camera.updateProjectionMatrix();
 
 // stats setup
 const stats = new __WEBPACK_IMPORTED_MODULE_1__node_modules_stats_js_src_Stats_js__["a" /* default */]();
-document.body.appendChild(stats.dom);
+document.body.appendChild( stats.dom );
 
 // Create ray casters in the scene
 const rayCasterObjects = [];
-const raycaster = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["v" /* Raycaster */]();
-const sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["y" /* SphereGeometry */](.25, 20, 20);
-const cylinder = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["g" /* CylinderGeometry */](0.02, 0.02);
+const raycaster = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Raycaster */]();
+const sphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* SphereGeometry */]( 0.25, 20, 20 );
+const cylinder = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["f" /* CylinderGeometry */]( 0.02, 0.02 );
 const pointDist = 25;
 
 const knots = [];
 const options = {
-    raycasters: {
-        count: 150,
-        speed: 1,
-    },
+	raycasters: {
+		count: 150,
+		speed: 1
+	},
 
-    mesh: {
-        count: 1,
-        useBoundsTree: true,
-        visualizeBounds: false,
-        speed: 1,
-        visualBoundsDepth: 10
-    }
-}
+	mesh: {
+		count: 1,
+		useBoundsTree: true,
+		visualizeBounds: false,
+		speed: 1,
+		visualBoundsDepth: 10
+	}
+};
 
 // Delta timer
 let lastFrameTime = null;
 let deltaTime = 0;
 
 const addKnot = () => {
-    const mesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](knotGeometry, material);
-    mesh.rotation.x = Math.random() * 10;
-    mesh.rotation.y = Math.random() * 10;
-    knots.push(mesh);
-    containerObj.add(mesh);
-}
+
+	const mesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Mesh */]( knotGeometry, material );
+	mesh.rotation.x = Math.random() * 10;
+	mesh.rotation.y = Math.random() * 10;
+	knots.push( mesh );
+	containerObj.add( mesh );
+
+};
 
 const addRaycaster = () => {
-    // Objects
-    const obj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */]();
-    const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["q" /* MeshBasicMaterial */]({ color: 0xffffff });
-    const origMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](sphere, material);
-    const hitMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](sphere, material);
-    hitMesh.scale.multiplyScalar(0.5);
 
-    const cylinderMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */](cylinder, new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["q" /* MeshBasicMaterial */]({ color: 0xffffff, transparent: true, opacity: 0.25 }));
+	// Objects
+	const obj = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* Object3D */]();
+	const material = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* MeshBasicMaterial */]( { color: 0xffffff } );
+	const origMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Mesh */]( sphere, material );
+	const hitMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Mesh */]( sphere, material );
+	hitMesh.scale.multiplyScalar( 0.5 );
 
-    // Init the rotation root
-    obj.add(cylinderMesh);
-    obj.add(origMesh);
-    obj.add(hitMesh);
-    scene.add(obj);
+	const cylinderMesh = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Mesh */]( cylinder, new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* MeshBasicMaterial */]( { color: 0xffffff, transparent: true, opacity: 0.25 } ) );
 
-    // set transforms
-    origMesh.position.set(pointDist, 0, 0);
-    obj.rotation.x = Math.random() * 10;
-    obj.rotation.y = Math.random() * 10;
+	// Init the rotation root
+	obj.add( cylinderMesh );
+	obj.add( origMesh );
+	obj.add( hitMesh );
+	scene.add( obj );
 
-    // reusable vectors
-    const origvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-    const dirvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-    const xdir = (Math.random() - 0.5);
-    const ydir = (Math.random() - 0.5);
-    rayCasterObjects.push({
-        update: () => {
-            obj.rotation.x += xdir * 0.0001 * options.raycasters.speed * deltaTime;
-            obj.rotation.y += ydir * 0.0001 * options.raycasters.speed * deltaTime;
+	// set transforms
+	origMesh.position.set( pointDist, 0, 0 );
+	obj.rotation.x = Math.random() * 10;
+	obj.rotation.y = Math.random() * 10;
 
-            origMesh.updateMatrixWorld();
-            origvec.setFromMatrixPosition(origMesh.matrixWorld);
-            dirvec.copy(origvec).multiplyScalar(-1).normalize();
+	// reusable vectors
+	const origvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+	const dirvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+	const xdir = ( Math.random() - 0.5 );
+	const ydir = ( Math.random() - 0.5 );
+	rayCasterObjects.push( {
+		update: () => {
 
-            raycaster.set(origvec, dirvec);
-            const res = raycaster.intersectObject(containerObj, true);
-            const length = res.length ? res[0].distance : pointDist;
-            
-            hitMesh.position.set(pointDist - length, 0, 0);
-            
-            cylinderMesh.position.set(pointDist - (length / 2), 0, 0);
-            cylinderMesh.scale.set(1, length, 1);
+			obj.rotation.x += xdir * 0.0001 * options.raycasters.speed * deltaTime;
+			obj.rotation.y += ydir * 0.0001 * options.raycasters.speed * deltaTime;
 
-            cylinderMesh.rotation.z = Math.PI / 2;
-        },
+			origMesh.updateMatrixWorld();
+			origvec.setFromMatrixPosition( origMesh.matrixWorld );
+			dirvec.copy( origvec ).multiplyScalar( - 1 ).normalize();
 
-        remove: () => {
-            scene.remove(obj);
-        }
-    });
-}
+			raycaster.set( origvec, dirvec );
+			const res = raycaster.intersectObject( containerObj, true, null, true );
+			const length = res.length ? res[ 0 ].distance : pointDist;
+
+			hitMesh.position.set( pointDist - length, 0, 0 );
+
+			cylinderMesh.position.set( pointDist - ( length / 2 ), 0, 0 );
+			cylinderMesh.scale.set( 1, length, 1 );
+
+			cylinderMesh.rotation.z = Math.PI / 2;
+
+		},
+
+		remove: () => {
+
+			scene.remove( obj );
+
+		}
+	} );
+
+};
 
 const updateFromOptions = () => {
-    // Update raycaster count
-    while (rayCasterObjects.length > options.raycasters.count) rayCasterObjects.pop().remove();
-    while (rayCasterObjects.length < options.raycasters.count) addRaycaster();
 
-    // Update whether or not to use the bounds tree
-    if (!options.mesh.useBoundsTree && knotGeometry.boundsTree) knotGeometry.disposeBoundsTree();
-    if (options.mesh.useBoundsTree && !knotGeometry.boundsTree) {
-        console.time('computing bounds tree');
-        knotGeometry.computeBoundsTree();
-        console.timeEnd('computing bounds tree');
-    }
+	// Update raycaster count
+	while ( rayCasterObjects.length > options.raycasters.count ) rayCasterObjects.pop().remove();
+	while ( rayCasterObjects.length < options.raycasters.count ) addRaycaster();
 
-    // Update knot count
-    const oldLen = knots.length;
-    while (knots.length > options.mesh.count) {
-        containerObj.remove(knots.pop());
-    }
-    while (knots.length < options.mesh.count) {
-        addKnot();
-    }
+	// Update whether or not to use the bounds tree
+	if ( ! options.mesh.useBoundsTree && knotGeometry.boundsTree ) knotGeometry.disposeBoundsTree();
+	if ( options.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
 
-    if (oldLen !== knots.length) {
-        const lerp = (a, b, t) => a + (b - a) * t;
-        const lerpAmt = (knots.length - 1) / (300 - 1);
-        const dist = lerp(0, 2, lerpAmt);
-        const scale = lerp(1, 0.2, lerpAmt);
+		console.time( 'computing bounds tree' );
+		knotGeometry.computeBoundsTree();
+		console.timeEnd( 'computing bounds tree' );
 
-        knots.forEach(c => {
-            c.scale.set(1, 1, 1).multiplyScalar(scale);
+	}
 
-            const vec3 = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */](0, 1, 0);
-            vec3.applyAxisAngle(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */](1, 0, 0), Math.PI * Math.random());
-            vec3.applyAxisAngle(new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */](0, 1, 0), 2 * Math.PI * Math.random());
-            vec3.multiplyScalar(dist)
+	// Update knot count
+	const oldLen = knots.length;
+	while ( knots.length > options.mesh.count ) {
 
-            c.position.set(vec3.x, vec3.y, vec3.z);
-        })
-    }
+		containerObj.remove( knots.pop() );
 
-    // Update bounds viz
-    if (boundsViz && !options.mesh.visualizeBounds) {
-        containerObj.remove(boundsViz);
-        boundsViz = null;
-    }
-    if (!boundsViz && options.mesh.visualizeBounds) {
-        boundsViz = new __WEBPACK_IMPORTED_MODULE_2__lib_MeshBVHVisualizer_js__["a" /* default */](knots[0]);
-        containerObj.add(boundsViz);
-    }
+	}
+	while ( knots.length < options.mesh.count ) {
 
-    if(boundsViz) boundsViz.depth = options.mesh.visualBoundsDepth;
-}
+		addKnot();
+
+	}
+
+	if ( oldLen !== knots.length ) {
+
+		const lerp = ( a, b, t ) => a + ( b - a ) * t;
+		const lerpAmt = ( knots.length - 1 ) / ( 300 - 1 );
+		const dist = lerp( 0, 2, lerpAmt );
+		const scale = lerp( 1, 0.2, lerpAmt );
+
+		knots.forEach( c => {
+
+			c.scale.set( 1, 1, 1 ).multiplyScalar( scale );
+
+			const vec3 = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]( 0, 1, 0 );
+			vec3.applyAxisAngle( new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]( 1, 0, 0 ), Math.PI * Math.random() );
+			vec3.applyAxisAngle( new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]( 0, 1, 0 ), 2 * Math.PI * Math.random() );
+			vec3.multiplyScalar( dist );
+
+			c.position.set( vec3.x, vec3.y, vec3.z );
+
+		} );
+
+	}
+
+	// Update bounds viz
+	if ( boundsViz && ! options.mesh.visualizeBounds ) {
+
+		containerObj.remove( boundsViz );
+		boundsViz = null;
+
+	}
+	if ( ! boundsViz && options.mesh.visualizeBounds ) {
+
+		boundsViz = new __WEBPACK_IMPORTED_MODULE_2__lib_MeshBVHVisualizer_js__["a" /* default */]( knots[ 0 ] );
+		containerObj.add( boundsViz );
+
+	}
+
+	if ( boundsViz ) boundsViz.depth = options.mesh.visualBoundsDepth;
+
+};
 
 containerObj.rotation.x = 10.989999999999943;
 containerObj.rotation.y = 10.989999999999943;
 const render = () => {
-    stats.begin();
 
-    const currTime = window.performance.now();
-    lastFrameTime = lastFrameTime || currTime;
-    deltaTime = currTime - lastFrameTime;
+	stats.begin();
 
-    containerObj.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
-    containerObj.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
-    containerObj.children.forEach(c => {
-        c.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
-        c.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
-    })
-    containerObj.updateMatrixWorld();
+	const currTime = window.performance.now();
+	lastFrameTime = lastFrameTime || currTime;
+	deltaTime = currTime - lastFrameTime;
 
-    if(boundsViz) boundsViz.update();
-    
-    // raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
+	containerObj.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
+	containerObj.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
+	containerObj.children.forEach( c => {
 
-    // const st = window.performance.now();
-    // raycaster.intersectObject(containerObj, true);
-    // console.log(window.performance.now() - st, 'ms')
+		c.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
+		c.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
 
-    rayCasterObjects.forEach(f => f.update());
+	} );
+	containerObj.updateMatrixWorld();
 
-    renderer.render(scene, camera);
+	if ( boundsViz ) boundsViz.update();
 
-    lastFrameTime = currTime;
+	// raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
 
-    stats.end();
-    
-    requestAnimationFrame(render);
+	// const st = window.performance.now();
+	// raycaster.intersectObject(containerObj, true);
+	// console.log(window.performance.now() - st, 'ms')
+
+	rayCasterObjects.forEach( f => f.update() );
+
+	renderer.render( scene, camera );
+
+	lastFrameTime = currTime;
+
+	stats.end();
+
+	requestAnimationFrame( render );
+
 };
 
 // Run
 const gui = new dat.GUI();
-const rcfolder = gui.addFolder('Raycasters');
-rcfolder.add(options.raycasters, 'count').min(1).max(500).step(1).onChange(() => updateFromOptions());
-rcfolder.add(options.raycasters, 'speed').min(0).max(20);
+const rcfolder = gui.addFolder( 'Raycasters' );
+rcfolder.add( options.raycasters, 'count' ).min( 1 ).max( 500 ).step( 1 ).onChange( () => updateFromOptions() );
+rcfolder.add( options.raycasters, 'speed' ).min( 0 ).max( 20 );
 rcfolder.open();
 
-const meshfolder = gui.addFolder('Mesh');
-meshfolder.add(options.mesh, 'count').min(1).max(300).step(1).onChange(() => updateFromOptions());
-meshfolder.add(options.mesh, 'useBoundsTree').onChange(() => updateFromOptions());
-meshfolder.add(options.mesh, 'speed').min(0).max(20);
-meshfolder.add(options.mesh, 'visualizeBounds').onChange(() => updateFromOptions());
-meshfolder.add(options.mesh, 'visualBoundsDepth').min(1).max(40).step(1).onChange(() => updateFromOptions());
+const meshfolder = gui.addFolder( 'Mesh' );
+meshfolder.add( options.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
+meshfolder.add( options.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
+meshfolder.add( options.mesh, 'speed' ).min( 0 ).max( 20 );
+meshfolder.add( options.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+meshfolder.add( options.mesh, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 meshfolder.open();
 
-window.addEventListener('resize', function () {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+window.addEventListener( 'resize', function () {
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}, false);
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+
+}, false );
 
 updateFromOptions();
 render();
 
+
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -46590,66 +46513,168 @@ Stats.Panel = function ( name, fg, bg ) {
 
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
 
 
-const cube = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["f" /* CubeGeometry */](1, 1, 1);
-const wiremat = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* LineBasicMaterial */]({ color: 0x00FF88, wireframe: true, wireframeLinewidth: 1, transparent: true, opacity: 0.3 });
+const wiremat = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* LineBasicMaterial */]( { color: 0x00FF88, wireframe: true, wireframeLinewidth: 1, transparent: true, opacity: 0.3 } );
 const boxGeom = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["d" /* Box3Helper */]().geometry;
 
-class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["s" /* Object3D */] {
-    constructor(mesh, depth = 10) {
-        super();
+class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["r" /* Object3D */] {
 
-        this.depth = depth;
-        this._oldDepth = -1;
-        this._mesh = mesh;
-        this._boundsTree = null;
+	constructor( mesh, depth = 10 ) {
 
-        this.update();
-    }
+		super();
 
-    update() {
-        if (this._mesh.geometry.boundsTree !== this._boundsTree || this._oldDepth !== this.depth) {
-            this._oldDepth = this.depth;
-            this._boundsTree = this._mesh.geometry.boundsTree;
+		this.depth = depth;
+		this._oldDepth = - 1;
+		this._mesh = mesh;
+		this._boundsTree = null;
 
-            let requiredChildren = 0;
-            if (this._boundsTree) {
-                const recurse = (n, d) => {
-                    if (d === this.depth) return;
+		this.update();
 
-                    if (d === this.depth - 1 || n.children.length === 0) {
-                        let m = requiredChildren < this.children.length ? this.children[requiredChildren] : null;
-                        if (!m) {
-                            m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* LineSegments */](boxGeom, wiremat);
-                            m.raycast = () => [];
-                            this.add(m);
-                        }
-                        requiredChildren ++;
-                        n.boundingBox.getCenter(m.position)
-                        m.scale.subVectors(n.boundingBox.max, n.boundingBox.min).multiplyScalar(0.5);
-                    }
-                    n.children.forEach(n => recurse(n, d + 1))
-                }
+	}
 
-                recurse(this._boundsTree._root, 0);
-            }
+	update() {
 
-            while (this.children.length > requiredChildren) this.remove(this.children.pop());
-        }
+		if ( this._mesh.geometry.boundsTree !== this._boundsTree || this._oldDepth !== this.depth ) {
 
-        this.position.copy(this._mesh.position);
-        this.rotation.copy(this._mesh.rotation);
-        this.scale.copy(this._mesh.scale);
-    }
+			this._oldDepth = this.depth;
+			this._boundsTree = this._mesh.geometry.boundsTree;
+
+			let requiredChildren = 0;
+			if ( this._boundsTree ) {
+
+				const recurse = ( n, d ) => {
+
+					if ( d === this.depth ) return;
+
+					if ( d === this.depth - 1 || n.children.length === 0 ) {
+
+						let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
+						if ( ! m ) {
+
+							m = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["m" /* LineSegments */]( boxGeom, wiremat );
+							m.raycast = () => [];
+							this.add( m );
+
+						}
+						requiredChildren ++;
+						n.boundingBox.getCenter( m.position );
+						m.scale.subVectors( n.boundingBox.max, n.boundingBox.min ).multiplyScalar( 0.5 );
+
+					}
+					n.children.forEach( n => recurse( n, d + 1 ) );
+
+				};
+
+				recurse( this._boundsTree._root, 0 );
+
+			}
+
+			while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
+
+		}
+
+		this.position.copy( this._mesh.position );
+		this.rotation.copy( this._mesh.rotation );
+		this.scale.copy( this._mesh.scale );
+
+	}
+
 }
 
 /* harmony default export */ __webpack_exports__["a"] = (MeshBVHVisualizer);
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__ = __webpack_require__(5);
+
+
+
+const ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["t" /* Ray */]();
+const inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["n" /* Matrix4 */]();
+const origRaycast = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Mesh */].prototype.raycast;
+const origIntersectObject = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Raycaster */].prototype.intersectObject;
+const origIntersectObjects = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Raycaster */].prototype.intersectObjects;
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Mesh */].prototype.raycast = function (raycaster, intersects) {
+
+    if (this.geometry.boundsTree) {
+
+        if (this.material === undefined) return;
+
+        inverseMatrix.getInverse(this.matrixWorld);
+        ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
+
+        if (raycaster.firstHitOnly === true) {
+
+            const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
+            if (res) intersects.push(res);
+
+        } else {
+
+            let seenFaces = {};
+            this.geometry.boundsTree.raycast(this, raycaster, ray, intersects, seenFaces);
+
+        }
+
+    } else {
+
+        origRaycast.call(this, raycaster, intersects);
+
+    }
+
+};
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Raycaster */].prototype.intersectObject = function (object, recursive, optionalTarget, firstHitOnly = false) {
+
+    this.firstHitOnly = firstHitOnly;
+    return origIntersectObject.call(this, object, recursive, optionalTarget);
+
+};
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Raycaster */].prototype.intersectObjects = function (objects, recursive, optionalTarget, firstHitOnly = false) {
+
+    this.firstHitOnly = firstHitOnly;
+    return origIntersectObjects.call(this, objects, recursive, optionalTarget);
+
+};
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Geometry */].prototype.computeBoundsTree = function (strat) {
+
+    this.boundsTree = new __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__["a" /* default */](this, strat);
+    return this.boundsTree;
+
+};
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["k" /* Geometry */].prototype.disposeBoundsTree = function () {
+
+    this.boundsTree = null;
+
+};
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* BufferGeometry */].prototype.computeBoundsTree = function (strat) {
+
+    this.boundsTree = new __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__["a" /* default */](this, strat);
+    return this.boundsTree;
+
+};
+
+__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* BufferGeometry */].prototype.disposeBoundsTree = function () {
+
+    this.boundsTree = null;
+
+};
+
 
 /***/ }),
 /* 5 */
@@ -46657,404 +46682,431 @@ class MeshBVHVisualizer extends __WEBPACK_IMPORTED_MODULE_0__node_modules_three_
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__ = __webpack_require__(6);
-
-
-
-const ray = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["u" /* Ray */]();
-const inverseMatrix = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["o" /* Matrix4 */]();
-const origRaycast = __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */].prototype.raycast;
-
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["p" /* Mesh */].prototype.raycast = function(raycaster, intersects) {
-    if (this.geometry.boundsTree) {
-        if (this.material === undefined) return;
-
-        inverseMatrix.getInverse(this.matrixWorld);
-        ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
-
-        const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
-        if (res) intersects.push(res);
-    } else {
-        origRaycast.call(this, raycaster, intersects);
-    }
-}
-
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Geometry */].prototype.computeBoundsTree = function(strat) {
-    this.boundsTree = new __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__["a" /* default */](this, strat);
-    return this.boundsTree;
-}
-
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["l" /* Geometry */].prototype.disposeBoundsTree = function() {
-    this.boundsTree = null;
-}
-
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* BufferGeometry */].prototype.computeBoundsTree = function(strat) {
-    this.boundsTree = new __WEBPACK_IMPORTED_MODULE_1__lib_MeshBVH_js__["a" /* default */](this, strat);
-    return this.boundsTree;
-}
-
-__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["e" /* BufferGeometry */].prototype.disposeBoundsTree = function() {
-    this.boundsTree = null;
-}
-
-/***/ }),
-/* 6 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__IntersectionUtilities_js__ = __webpack_require__(1);
-
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__ = __webpack_require__(6);
 
 
 
 // Settings
 const maxLeafNodes = 10;
-const maxMatchingTriangles = 0.5;
 const Strategies = {
-    get CENTER()    { return 0; },
-    get AVERAGE()   { return 1; },
-    get SAH()       { return 2; }
-}
+	get CENTER() {
 
-const xyzFields = ['x', 'y', 'z'];
-const intersectvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+		return 0;
+
+	},
+	get AVERAGE() {
+
+		return 1;
+
+	},
+	get SAH() {
+
+		return 2;
+
+	}
+};
+
+const xyzFields = [ 'x', 'y', 'z' ];
+const intersectvec = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
 
 // Classes
 class MeshBVHNode {
-    constructor() {
-        this.boundingBox = null;
-        this.boundingSphere = null;
-        this.geometry = null;
-        this.tris = null;
-        this.children = [];
-    }
 
-    intersectsRay(ray) {
-        return (ray.intersectsSphere(this.boundingSphere) || this.boundingSphere.containsPoint(ray.origin)) &&
-            (ray.intersectsBox(this.boundingBox) || this.boundingBox.containsPoint(ray.origin));
-    }
+	constructor() {
 
-    raycast(mesh, raycaster, ray, intersects) {
-        if (!this.intersectsRay(ray)) return;
+		this.boundingBox = null;
+		this.boundingSphere = null;
+		this.geometry = null;
+		this.tris = null;
+		this.children = [];
 
-        if (this.tris) Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["f" /* intersectTris */])(mesh, this.geometry, raycaster, ray, this.tris, intersects);
-        else this.children.forEach(c => c.raycast(mesh, raycaster, ray, intersects));
-    }
+	}
 
-    raycastFirst(mesh, raycaster, ray) {
-        if (!this.intersectsRay(ray)) return null;
+	intersectsRay( ray ) {
 
-        if (this.tris) {
-            return Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["e" /* intersectClosestTri */])(mesh, this.geometry, raycaster, ray, this.tris);
-        } else {
-            const c1 = this.children[0];
-            intersectvec.subVectors(c1.boundingSphere.center, ray.origin);
-            const c1dist = intersectvec.length() * intersectvec.dot(ray.direction);
+		return ( ray.intersectsSphere( this.boundingSphere ) || this.boundingSphere.containsPoint( ray.origin ) ) &&
+            ( ray.intersectsBox( this.boundingBox ) || this.boundingBox.containsPoint( ray.origin ) );
 
-            const c2 = this.children[1];
-            intersectvec.subVectors(c2.boundingSphere.center, ray.origin);
-            const c2dist = intersectvec.length() * intersectvec.dot(ray.direction);
+	}
 
-            return c1dist < c2dist ?
-                c1.raycastFirst(mesh, raycaster, ray) || c2.raycastFirst(mesh, raycaster, ray) : 
-                c2.raycastFirst(mesh, raycaster, ray) || c1.raycastFirst(mesh, raycaster, ray);
-        }
-    }
+	raycast( mesh, raycaster, ray, intersects, seenFaces ) {
+
+		if ( ! this.intersectsRay( ray ) ) return;
+
+		if ( this.tris ) Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["f" /* intersectTris */])( mesh, this.geometry, raycaster, ray, this.tris, intersects, seenFaces );
+		else this.children.forEach( c => c.raycast( mesh, raycaster, ray, intersects, seenFaces ) );
+
+	}
+
+	raycastFirst( mesh, raycaster, ray ) {
+
+		if ( ! this.intersectsRay( ray ) ) return null;
+
+		if ( this.tris ) {
+
+			return Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["e" /* intersectClosestTri */])( mesh, this.geometry, raycaster, ray, this.tris );
+
+		} else {
+
+			const c1 = this.children[ 0 ];
+			intersectvec.subVectors( c1.boundingSphere.center, ray.origin );
+			const c1dist = intersectvec.length() * intersectvec.dot( ray.direction );
+
+			const c2 = this.children[ 1 ];
+			intersectvec.subVectors( c2.boundingSphere.center, ray.origin );
+			const c2dist = intersectvec.length() * intersectvec.dot( ray.direction );
+
+			return c1dist < c2dist
+				? c1.raycastFirst( mesh, raycaster, ray ) || c2.raycastFirst( mesh, raycaster, ray )
+				: c2.raycastFirst( mesh, raycaster, ray ) || c1.raycastFirst( mesh, raycaster, ray );
+
+		}
+
+	}
+
 }
 
 class MeshBVH extends MeshBVHNode {
-    static get Strategy() { return Strategies; }
 
-    constructor(geo, strategy = 0) {
-        super();
+	static get Strategy() {
 
-        strategy = Math.max(0, Math.min(2, strategy));
+		return Strategies;
 
-        if (geo.isBufferGeometry || geo.isGeometry) {
-            this._root = this._buildTree(geo, strategy);
-        } else {
-            throw new Error('Object is not Geometry or BufferGeometry');
-        }
-    }
+	}
 
-    /* Private Functions */
-    _buildTree(geo, strategy) {
-        const vertexElem = geo.isBufferGeometry ? __WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["b" /* getBufferGeometryVertexElem */] : __WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["c" /* getGeometryVertexElem */];
+	constructor( geo, strategy = 0 ) {
 
-        // a list of every available triangle index
-        const origTris =
-            geo.isBufferGeometry ? 
-                new Array(geo.index ? (geo.index.count / 3) : (pos.length / 9)) :
-                Array(geo.faces.length);
+		super();
 
-        for (let i = 0; i < origTris.length; i ++) origTris[i] = i;
+		strategy = Math.max( 0, Math.min( 2, strategy ) );
 
+		if ( geo.isBufferGeometry || geo.isGeometry ) {
 
-        // SAH Initialization
-        let sahplanes = null;
-        if (strategy === Strategies.SAH) {
-            sahplanes = [new Array(origTris.length * 2), new Array(origTris.length * 2), new Array(origTris.length * 2)];
-            for (let i = 0; i < origTris.length; i ++) {
-                const tri = origTris[i];
-                const tri2 = tri * 2;
+			this._root = this._buildTree( geo, strategy );
 
-                for (let el = 0; el < 3; el ++) {
-                    let min = Infinity;
-                    let max = -Infinity;
-                    for (let v = 0; v < 3; v ++) {
-                        const val = vertexElem(geo, tri, v, el);
-                        min = Math.min(val, min);
-                        max = Math.max(val, max);
-                    }
+		} else {
 
-                    sahplanes[el][tri2 + 0] = { p: min, minSide: true, tri };
-                    sahplanes[el][tri2 + 1] = { p: max, minSide: false, tri };
-                }
-            }
-        }
+			throw new Error( 'Object is not Geometry or BufferGeometry' );
 
-        const splitStrategy = (bounds, sphere, avg, tris, geometry) => {
-            let axis = -1;
-            let pos = 0;
+		}
 
-            // Center
-            if (strategy === Strategies.CENTER) {
-                axis = Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["d" /* getLongestEdgeIndex */])(bounds);
-                const field = xyzFields[axis];
-                pos = sphere.center[field];
-            } else if (strategy === Strategies.AVERAGE) {
-                axis = Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["d" /* getLongestEdgeIndex */])(bounds);
-                pos = avg[xyzFields[axis]];
-            } else if (strategy === Strategies.SAH) {
+	}
 
-                // Surface Area Heuristic
-                // In order to make this code more terse, the x, y, and z
-                // variables of various structures have been stuffed into
-                // 0, 1, and 2 array indices so they can be easily computed
-                // and accessed within array iteration
+	/* Private Functions */
+	_buildTree( geo, strategy ) {
 
-                // Cost values defineed for operations. We're using bounds for traversal, so
-                // the cost of traversing one more layer is more than intersecting a triangle.
-                const TRAVERSAL_COST = 3;
-                const INTERSECTION_COST = 1;
+		const vertexElem = geo.isBufferGeometry ? __WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["b" /* getBufferGeometryVertexElem */] : __WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["c" /* getGeometryVertexElem */];
 
-                // Define the width, height, and depth of the bounds as a box
-                const dim = [
-                    bounds.max.x - bounds.min.x,
-                    bounds.max.y - bounds.min.y,
-                    bounds.max.z - bounds.min.z
-                ];
-                const sa = 2 * (dim[0] * dim[1] + dim[0] * dim[2] + dim[1] * dim[2]);
-                
-                // Get the precalculated planes based for the triangles we're
-                // testing here
-                const filteredLists =[[], [], []];
-                tris.forEach(t => {
-                    const t2 = t * 2;
+		// a list of every available triangle index
+		const origTris =
+            geo.isBufferGeometry
+            	? new Array( geo.index ? ( geo.index.count / 3 ) : ( geo.attributes.position.count / 3 ) )
+            	: Array( geo.faces.length );
 
-                    for (let i = 0; i < 3; i ++) {
-                        filteredLists[i].push(sahplanes[i][t2 + 0]);
-                        filteredLists[i].push(sahplanes[i][t2 + 1]);
-                    }
-                });
-                filteredLists.forEach(planes => planes.sort((a, b) => a.p - b.p));
-                
-                // this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
-                const getCost = (sa, sal, nl, sar, nr) => 
-                    TRAVERSAL_COST + INTERSECTION_COST * ((sal / sa) * nl + (sar / sa) * nr);
-                
-                // the cost of _not_ splitting into smaller bounds
-                const noSplitCost = INTERSECTION_COST * tris.length;
+		for ( let i = 0; i < origTris.length; i ++ ) origTris[ i ] = i;
 
-                axis = -1;
-                let bestCost = noSplitCost;
-                for (let i = 0; i < 3; i ++) {
+		// SAH Initialization
+		let sahplanes = null;
+		if ( strategy === Strategies.SAH ) {
 
-                    // o1 and o2 represent the _other_ two axes in the
-                    // the space. So if we're checking the x (0) dimension,
-                    // then o1 and o2 would be y and z (1 and 2)
-                    const o1 = (i + 1) % 3;
-                    const o2 = (i + 2) % 3;
+			sahplanes = [ new Array( origTris.length * 2 ), new Array( origTris.length * 2 ), new Array( origTris.length * 2 ) ];
+			for ( let i = 0; i < origTris.length; i ++ ) {
 
-                    const bmin = bounds.min[xyzFields[i]];
-                    const bmax = bounds.max[xyzFields[i]];
-                    const planes = filteredLists[i];
+				const tri = origTris[ i ];
+				const tri2 = tri * 2;
 
-                    // The number of left and right triangles on either side
-                    // given the current split
-                    let nl = 0, nr = tris.length;                
-                    for (let p = 0; p < planes.length; p ++) {
-                        const pinfo = planes[p];
+				for ( let el = 0; el < 3; el ++ ) {
 
-                        // As the plane moves, we have to increment or decrement the
-                        // number of triangles on either side of the plane
-                        nl += pinfo.minSide ? 1 : 0;
-                        nr -= !pinfo.minSide ? 1 : 0;
+					let min = Infinity;
+					let max = - Infinity;
+					for ( let v = 0; v < 3; v ++ ) {
 
-                        // the distance from the plane to the edge of the broader bounds
-                        const ldim = pinfo.p - bmin;
-                        const rdim = bmax - pinfo.p;
+						const val = vertexElem( geo, tri, v, el );
+						min = Math.min( val, min );
+						max = Math.max( val, max );
 
-                        // same for the other two dimensions
-                        let ldimo1 = dim[o1], rdimo1 = dim[o1];
-                        let ldimo2 = dim[o2], rdimo2 = dim[o2];
+					}
 
+					sahplanes[ el ][ tri2 + 0 ] = { p: min, minSide: true, tri };
+					sahplanes[ el ][ tri2 + 1 ] = { p: max, minSide: false, tri };
 
+				}
 
-                        // // compute the other bounding planes for the box
-                        // // if only the current triangles are considered to
-                        // // be in the box
-                        // // This is really slow and probably not really worth it
-                        // const o1planes = sahplanes[o1];
-                        // const o2planes = sahplanes[o2];
-                        // let lmin = Infinity, lmax = -Infinity;
-                        // let rmin = Infinity, rmax = -Infinity;
-                        // planes.forEach((p, i) => {
-                        //     const tri2 = p.tri * 2;
-                        //     const inf1 = o1planes[tri2 + 0];
-                        //     const inf2 = o1planes[tri2 + 1];
-                        //     if (i <= nl) {
-                        //         lmin = Math.min(inf1.p, inf2.p, lmin);
-                        //         lmax = Math.max(inf1.p, inf2.p, lmax);
-                        //     }
-                        //     if (i >= nr) {
-                        //         rmin = Math.min(inf1.p, inf2.p, rmin);
-                        //         rmax = Math.max(inf1.p, inf2.p, rmax);
-                        //     }
-                        // })
-                        // ldimo1 = Math.min(lmax - lmin, ldimo1);
-                        // rdimo1 = Math.min(rmax - rmin, rdimo1);
+			}
 
+		}
 
-                        // planes.forEach((p, i) => {
-                        //     const tri2 = p.tri * 2;
-                        //     const inf1 = o2planes[tri2 + 0];
-                        //     const inf2 = o2planes[tri2 + 1];
-                        //     if (i <= nl) {
-                        //         lmin = Math.min(inf1.p, inf2.p, lmin);
-                        //         lmax = Math.max(inf1.p, inf2.p, lmax);
-                        //     }
-                        //     if (i >= nr) {
-                        //         rmin = Math.min(inf1.p, inf2.p, rmin);
-                        //         rmax = Math.max(inf1.p, inf2.p, rmax);
-                        //     }
-                        // })
-                        // ldimo2 = Math.min(lmax - lmin, ldimo2);
-                        // rdimo2 = Math.min(rmax - rmin, rdimo2);
+		const splitStrategy = ( bounds, sphere, avg, tris, geometry ) => {
 
+			let axis = - 1;
+			let pos = 0;
 
+			// Center
+			if ( strategy === Strategies.CENTER ) {
 
-                        // surface areas and cost
-                        const sal = 2 * (ldimo1 * ldimo2 + ldimo1 * ldim + ldimo2 * ldim);
-                        const sar = 2 * (rdimo1 * rdimo2 + rdimo1 * rdim + rdimo2 * rdim);
-                        const cost = getCost(sa, sal, nl, sar, nr);
+				axis = Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["d" /* getLongestEdgeIndex */])( bounds );
+				const field = xyzFields[ axis ];
+				pos = sphere.center[ field ];
 
-                        if (cost < bestCost) {
-                            axis = i;
-                            pos = pinfo.p;
-                            bestCost = cost;
-                        }
-                    }
-                }
-            }
+			} else if ( strategy === Strategies.AVERAGE ) {
 
-            return { axis, pos };
-        }
+				axis = Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["d" /* getLongestEdgeIndex */])( bounds );
+				pos = avg[ xyzFields[ axis ] ];
 
-        // use a queue to run the node creation functions
-        // because otherwise we run the risk of a stackoverflow
-        // In the case of buffer geometry it also seems to be
-        // faster than recursing
-        const avgtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-        const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-        const queue = [];
-        const createNode = (tris, bb, newNode) => {
-            const node = newNode || new MeshBVHNode();
-            node.geometry = geo;
+			} else if ( strategy === Strategies.SAH ) {
 
-            // get the bounds of the triangles
-            node.boundingBox = bb;
+				// Surface Area Heuristic
+				// In order to make this code more terse, the x, y, and z
+				// variables of various structures have been stuffed into
+				// 0, 1, and 2 array indices so they can be easily computed
+				// and accessed within array iteration
 
-            // Create the bounding sphere with the minium radius
-            // It's possible that the bounds sphere will have a smaller
-            // radius because the bounds do not encapsulate full triangles
-            // on an edge
-            node.boundingSphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["x" /* Sphere */]();
-            bb.getCenter(node.boundingSphere.center);
-            node.boundingSphere.radius = vectemp.subVectors(bb.max, node.boundingSphere.center).length();
-            Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["h" /* shrinkSphereTo */])(tris, node.boundingSphere, geo, vertexElem);
+				// Cost values defineed for operations. We're using bounds for traversal, so
+				// the cost of traversing one more layer is more than intersecting a triangle.
+				const TRAVERSAL_COST = 3;
+				const INTERSECTION_COST = 1;
 
-            // early out wif we've met our capacity
-            if (tris.length <= maxLeafNodes) {
-                node.tris = tris;
-                return node;
-            }
+				// Define the width, height, and depth of the bounds as a box
+				const dim = [
+					bounds.max.x - bounds.min.x,
+					bounds.max.y - bounds.min.y,
+					bounds.max.z - bounds.min.z
+				];
+				const sa = 2 * ( dim[ 0 ] * dim[ 1 ] + dim[ 0 ] * dim[ 2 ] + dim[ 1 ] * dim[ 2 ] );
 
-            // Find where to split the volume
-            Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["a" /* getAverage */])(tris, avgtemp, geo, vertexElem);
-            const split = splitStrategy(node.boundingBox, node.boundingSphere, avgtemp, tris, geo);
-            if (split.axis === -1) {
-                node.tris = tris;
-                return node;
-            }
+				// Get the precalculated planes based for the triangles we're
+				// testing here
+				const filteredLists = [[], [], []];
+				tris.forEach( t => {
 
-            // Collect the nodes for either side
-            const left = [], right = [];
-            let sharedCount = 0;
-            for (let i = 0; i < tris.length; i ++) {
-                const tri = tris[i];
+					const t2 = t * 2;
 
-                let inLeft = false;
-                let inRight = false;
+					for ( let i = 0; i < 3; i ++ ) {
 
-                for (let v = 0; v < 3; v ++) {
-                    const val = vertexElem(geo, tri, v, split.axis);
+						filteredLists[ i ].push( sahplanes[ i ][ t2 + 0 ] );
+						filteredLists[ i ].push( sahplanes[ i ][ t2 + 1 ] );
 
-                    inLeft = inLeft || val <= split.pos;
-                    inRight = inRight || val >= split.pos;
-                }
+					}
 
-                if (inLeft) left.push(tri);
-                if (inRight) right.push(tri);
-                if (inLeft && inRight) sharedCount ++;
-            }
+				} );
+				filteredLists.forEach( planes => planes.sort( ( a, b ) => a.p - b.p ) );
 
-            // create the two new child nodes
-            if (!left.length || !right.length || right.length === sharedCount || left.length === sharedCount) {
-                node.tris = tris;
-            } else {
-                // create the bounds for the left child, keeping it within
-                // the bounds of the parent and split plane
-                const bl = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]().copy(bb);
-                bl.max[xyzFields[split.axis]] = split.pos;
-                Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["g" /* shrinkBoundsTo */])(left, bl, geo, vertexElem);
-                queue.push(() => node.children.push(createNode(left, bl)));
+				// this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
+				const getCost = ( sa, sal, nl, sar, nr ) =>
+					TRAVERSAL_COST + INTERSECTION_COST * ( ( sal / sa ) * nl + ( sar / sa ) * nr );
 
-                // repeat for right
-                const br = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]().copy(bb);
-                br.min[xyzFields[split.axis]] = split.pos;
-                Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["g" /* shrinkBoundsTo */])(right, br, geo, vertexElem);
-                queue.push(() => node.children.push(createNode(right, br)));
-            }
+				// the cost of _not_ splitting into smaller bounds
+				const noSplitCost = INTERSECTION_COST * tris.length;
 
-            return node;
-        }
+				axis = - 1;
+				let bestCost = noSplitCost;
+				for ( let i = 0; i < 3; i ++ ) {
 
-        if (!geo.boundingBox) geo.computeBoundingBox();
+					// o1 and o2 represent the _other_ two axes in the
+					// the space. So if we're checking the x (0) dimension,
+					// then o1 and o2 would be y and z (1 and 2)
+					const o1 = ( i + 1 ) % 3;
+					const o2 = ( i + 2 ) % 3;
 
-        const n = createNode(origTris, (new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]()).copy(geo.boundingBox), this);
-        while (queue.length) queue.pop()();
-        return n;
-    }
+					const bmin = bounds.min[ xyzFields[ i ] ];
+					const bmax = bounds.max[ xyzFields[ i ] ];
+					const planes = filteredLists[ i ];
+
+					// The number of left and right triangles on either side
+					// given the current split
+					let nl = 0;
+					let nr = tris.length;
+					for ( let p = 0; p < planes.length; p ++ ) {
+
+						const pinfo = planes[ p ];
+
+						// As the plane moves, we have to increment or decrement the
+						// number of triangles on either side of the plane
+						nl += pinfo.minSide ? 1 : 0;
+						nr -= ! pinfo.minSide ? 1 : 0;
+
+						// the distance from the plane to the edge of the broader bounds
+						const ldim = pinfo.p - bmin;
+						const rdim = bmax - pinfo.p;
+
+						// same for the other two dimensions
+						let ldimo1 = dim[ o1 ], rdimo1 = dim[ o1 ];
+						let ldimo2 = dim[ o2 ], rdimo2 = dim[ o2 ];
+
+						/*
+                        // compute the other bounding planes for the box
+                        // if only the current triangles are considered to
+                        // be in the box
+                        // This is really slow and probably not really worth it
+                        const o1planes = sahplanes[o1];
+                        const o2planes = sahplanes[o2];
+                        let lmin = Infinity, lmax = -Infinity;
+                        let rmin = Infinity, rmax = -Infinity;
+                        planes.forEach((p, i) => {
+                            const tri2 = p.tri * 2;
+                            const inf1 = o1planes[tri2 + 0];
+                            const inf2 = o1planes[tri2 + 1];
+                            if (i <= nl) {
+                                lmin = Math.min(inf1.p, inf2.p, lmin);
+                                lmax = Math.max(inf1.p, inf2.p, lmax);
+                            }
+                            if (i >= nr) {
+                                rmin = Math.min(inf1.p, inf2.p, rmin);
+                                rmax = Math.max(inf1.p, inf2.p, rmax);
+                            }
+                        })
+                        ldimo1 = Math.min(lmax - lmin, ldimo1);
+                        rdimo1 = Math.min(rmax - rmin, rdimo1);
+
+                        planes.forEach((p, i) => {
+                            const tri2 = p.tri * 2;
+                            const inf1 = o2planes[tri2 + 0];
+                            const inf2 = o2planes[tri2 + 1];
+                            if (i <= nl) {
+                                lmin = Math.min(inf1.p, inf2.p, lmin);
+                                lmax = Math.max(inf1.p, inf2.p, lmax);
+                            }
+                            if (i >= nr) {
+                                rmin = Math.min(inf1.p, inf2.p, rmin);
+                                rmax = Math.max(inf1.p, inf2.p, rmax);
+                            }
+                        })
+                        ldimo2 = Math.min(lmax - lmin, ldimo2);
+                        rdimo2 = Math.min(rmax - rmin, rdimo2);
+                        */
+
+						// surface areas and cost
+						const sal = 2 * ( ldimo1 * ldimo2 + ldimo1 * ldim + ldimo2 * ldim );
+						const sar = 2 * ( rdimo1 * rdimo2 + rdimo1 * rdim + rdimo2 * rdim );
+						const cost = getCost( sa, sal, nl, sar, nr );
+
+						if ( cost < bestCost ) {
+
+							axis = i;
+							pos = pinfo.p;
+							bestCost = cost;
+
+						}
+
+					}
+
+				}
+
+			}
+
+			return { axis, pos };
+
+		};
+
+		// use a queue to run the node creation functions
+		// because otherwise we run the risk of a stackoverflow
+		// In the case of buffer geometry it also seems to be
+		// faster than recursing
+		const avgtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+		const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+		const queue = [];
+		const createNode = ( tris, bb, newNode ) => {
+
+			const node = newNode || new MeshBVHNode();
+			node.geometry = geo;
+
+			// get the bounds of the triangles
+			node.boundingBox = bb;
+
+			// Create the bounding sphere with the minium radius
+			// It's possible that the bounds sphere will have a smaller
+			// radius because the bounds do not encapsulate full triangles
+			// on an edge
+			node.boundingSphere = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["w" /* Sphere */]();
+			bb.getCenter( node.boundingSphere.center );
+			node.boundingSphere.radius = vectemp.subVectors( bb.max, node.boundingSphere.center ).length();
+			Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["h" /* shrinkSphereTo */])( tris, node.boundingSphere, geo, vertexElem );
+
+			// early out wif we've met our capacity
+			if ( tris.length <= maxLeafNodes ) {
+
+				node.tris = tris;
+				return node;
+
+			}
+
+			// Find where to split the volume
+			Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["a" /* getAverage */])( tris, avgtemp, geo, vertexElem );
+			const split = splitStrategy( node.boundingBox, node.boundingSphere, avgtemp, tris, geo );
+			if ( split.axis === - 1 ) {
+
+				node.tris = tris;
+				return node;
+
+			}
+
+			// Collect the nodes for either side
+			const left = [];
+			const right = [];
+			let sharedCount = 0;
+			for ( let i = 0; i < tris.length; i ++ ) {
+
+				const tri = tris[ i ];
+
+				let inLeft = false;
+				let inRight = false;
+
+				for ( let v = 0; v < 3; v ++ ) {
+
+					const val = vertexElem( geo, tri, v, split.axis );
+
+					inLeft = inLeft || val <= split.pos;
+					inRight = inRight || val >= split.pos;
+
+				}
+
+				if ( inLeft ) left.push( tri );
+				if ( inRight ) right.push( tri );
+				if ( inLeft && inRight ) sharedCount ++;
+
+			}
+
+			// create the two new child nodes
+			if ( ! left.length || ! right.length || right.length === sharedCount || left.length === sharedCount ) {
+
+				node.tris = tris;
+
+			} else {
+
+				// create the bounds for the left child, keeping it within
+				// the bounds of the parent and split plane
+				const bl = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]().copy( bb );
+				bl.max[ xyzFields[ split.axis ] ] = split.pos;
+				Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["g" /* shrinkBoundsTo */])( left, bl, geo, vertexElem );
+				queue.push( () => node.children.push( createNode( left, bl ) ) );
+
+				// repeat for right
+				const br = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]().copy( bb );
+				br.min[ xyzFields[ split.axis ] ] = split.pos;
+				Object(__WEBPACK_IMPORTED_MODULE_1__GeometryUtilities_js__["g" /* shrinkBoundsTo */])( right, br, geo, vertexElem );
+				queue.push( () => node.children.push( createNode( right, br ) ) );
+
+			}
+
+			return node;
+
+		};
+
+		if ( ! geo.boundingBox ) geo.computeBoundingBox();
+
+		const n = createNode( origTris, ( new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]() ).copy( geo.boundingBox ), this );
+		while ( queue.length ) queue.pop()();
+		return n;
+
+	}
+
 }
 
 /* harmony default export */ __webpack_exports__["a"] = (MeshBVH);
 
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -47068,196 +47120,367 @@ class MeshBVH extends MeshBVHNode {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return intersectTris; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return intersectClosestTri; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__ = __webpack_require__(7);
 
 
 
 // reusable vectors
-const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-const centemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
+const vectemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
 const bndtemp = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["c" /* Box3 */]();
-const abcFields = ['a', 'b', 'c'];
-const xyzFields = ['x', 'y', 'z'];
+const abcFields = [ 'a', 'b', 'c' ];
+const xyzFields = [ 'x', 'y', 'z' ];
 
 // TODO: This could probably be optimizied to not dig so deeply into an object
 // and reust some of the fetch values in some cases
-const getBufferGeometryVertexElem = (geo, tri, vert, elem) => {
-    return geo.attributes.position.array[(geo.index ? geo.index.array[3 * tri + vert] : (3 * tri + vert)) * 3  + elem];
-}
+const getBufferGeometryVertexElem = ( geo, tri, vert, elem ) => {
+
+	return geo.attributes.position.array[ ( geo.index ? geo.index.array[ 3 * tri + vert ] : ( 3 * tri + vert ) ) * 3 + elem ];
+
+};
 
 // TODO: This function seems significantly slower than
 // before when we were had custom bounds functions
-const getGeometryVertexElem = (geo, tri, vert, elem) => {
-    return geo.vertices[geo.faces[tri][abcFields[vert]]][xyzFields[elem]];
-}
+const getGeometryVertexElem = ( geo, tri, vert, elem ) => {
+
+	return geo.vertices[ geo.faces[ tri ][ abcFields[ vert ] ] ][ xyzFields[ elem ] ];
+
+};
 
 const getLongestEdgeIndex = bb => {
-    let splitDimIdx = -1;
-    let splitDist = -Infinity;
-    xyzFields.forEach((d, i) => {
-        const dist = bb.max[d] - bb.min[d];
-        if (dist > splitDist) {
-            splitDist = dist;
-            splitDimIdx = i;
-        }
-    });
-    return splitDimIdx;
-}
+
+	let splitDimIdx = - 1;
+	let splitDist = - Infinity;
+	xyzFields.forEach( ( d, i ) => {
+
+		const dist = bb.max[ d ] - bb.min[ d ];
+		if ( dist > splitDist ) {
+
+			splitDist = dist;
+			splitDimIdx = i;
+
+		}
+
+	} );
+	return splitDimIdx;
+
+};
 
 // returns the average point of the all the provided
 // triangles in the geometry
-const getAverage = (tris, avg, geo, getValFunc) => {
-    avg.set(0, 0, 0);
+const getAverage = ( tris, avg, geo, getValFunc ) => {
 
-    for (let i = 0, l = tris.length; i < l; i ++) {
-        const tri = tris[i];
+	avg.set( 0, 0, 0 );
 
-        for (let v = 0; v < 3; v ++) {
-            avg.x += getValFunc(geo, tri, v, 0);
-            avg.y += getValFunc(geo, tri, v, 1);
-            avg.z += getValFunc(geo, tri, v, 2);
-        }
-    }
+	for ( let i = 0, l = tris.length; i < l; i ++ ) {
 
-    avg.x /= tris.length * 3;
-    avg.y /= tris.length * 3;
-    avg.z /= tris.length * 3;
-}
+		const tri = tris[ i ];
+
+		for ( let v = 0; v < 3; v ++ ) {
+
+			avg.x += getValFunc( geo, tri, v, 0 );
+			avg.y += getValFunc( geo, tri, v, 1 );
+			avg.z += getValFunc( geo, tri, v, 2 );
+
+		}
+
+	}
+
+	avg.x /= tris.length * 3;
+	avg.y /= tris.length * 3;
+	avg.z /= tris.length * 3;
+
+};
 
 // shrinks the provided bounds on any dimensions to fit
 // the provided triangles
-const shrinkBoundsTo = (tris, bounds, geo, getValFunc) => {
-    bndtemp.min.x = Infinity;
-    bndtemp.min.y = Infinity;
-    bndtemp.min.z = Infinity;
+const shrinkBoundsTo = ( tris, bounds, geo, getValFunc ) => {
 
-    bndtemp.max.x = -Infinity;
-    bndtemp.max.y = -Infinity;
-    bndtemp.max.z = -Infinity;
+	bndtemp.min.x = Infinity;
+	bndtemp.min.y = Infinity;
+	bndtemp.min.z = Infinity;
 
-    for (let i = 0, l = tris.length; i < l; i ++) {
-        const tri = tris[i];
+	bndtemp.max.x = - Infinity;
+	bndtemp.max.y = - Infinity;
+	bndtemp.max.z = - Infinity;
 
-        for (let v = 0; v < 3; v ++) {
-            const x = getValFunc(geo, tri, v, 0);
-            const y = getValFunc(geo, tri, v, 1);
-            const z = getValFunc(geo, tri, v, 2);
+	for ( let i = 0, l = tris.length; i < l; i ++ ) {
 
-            vectemp.x = x;
-            vectemp.y = y;
-            vectemp.z = z;
-            bndtemp.expandByPoint(vectemp);
-       }
-    }
+		const tri = tris[ i ];
 
-    bounds.min.x = Math.max(bndtemp.min.x, bounds.min.x);
-    bounds.min.y = Math.max(bndtemp.min.y, bounds.min.y);
-    bounds.min.z = Math.max(bndtemp.min.z, bounds.min.z);
+		for ( let v = 0; v < 3; v ++ ) {
 
-    bounds.max.x = Math.min(bndtemp.max.x, bounds.max.x);
-    bounds.max.y = Math.min(bndtemp.max.y, bounds.max.y);
-    bounds.max.z = Math.min(bndtemp.max.z, bounds.max.z);
-}
+			const x = getValFunc( geo, tri, v, 0 );
+			const y = getValFunc( geo, tri, v, 1 );
+			const z = getValFunc( geo, tri, v, 2 );
+
+			vectemp.x = x;
+			vectemp.y = y;
+			vectemp.z = z;
+			bndtemp.expandByPoint( vectemp );
+
+		}
+
+	}
+
+	bounds.min.x = Math.max( bndtemp.min.x, bounds.min.x );
+	bounds.min.y = Math.max( bndtemp.min.y, bounds.min.y );
+	bounds.min.z = Math.max( bndtemp.min.z, bounds.min.z );
+
+	bounds.max.x = Math.min( bndtemp.max.x, bounds.max.x );
+	bounds.max.y = Math.min( bndtemp.max.y, bounds.max.y );
+	bounds.max.z = Math.min( bndtemp.max.z, bounds.max.z );
+
+};
 
 // shrinks the provided sphere to fit the provided triangles
-const shrinkSphereTo = (tris, sphere, geo, getValFunc) => {
-    const center = sphere.center;
-    let maxRadiusSq = 0;
+const shrinkSphereTo = ( tris, sphere, geo, getValFunc ) => {
 
-    for (let i = 0, l = tris.length; i < l; i ++) {
-        const tri = tris[i];
+	const center = sphere.center;
+	let maxRadiusSq = 0;
 
-        for (let v = 0; v < 3; v ++) {
-            const x = getValFunc(geo, tri, v, 0);
-            const y = getValFunc(geo, tri, v, 1);
-            const z = getValFunc(geo, tri, v, 2);
-        
-            vectemp.x = x;
-            vectemp.y = y;
-            vectemp.z = z;
+	for ( let i = 0, l = tris.length; i < l; i ++ ) {
 
-            maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(vectemp));
-        }
-    }
+		const tri = tris[ i ];
 
-    sphere.radius = Math.min(sphere.radius, Math.sqrt(maxRadiusSq));
-}
+		for ( let v = 0; v < 3; v ++ ) {
+
+			const x = getValFunc( geo, tri, v, 0 );
+			const y = getValFunc( geo, tri, v, 1 );
+			const z = getValFunc( geo, tri, v, 2 );
+
+			vectemp.x = x;
+			vectemp.y = y;
+			vectemp.z = z;
+
+			maxRadiusSq = Math.max( maxRadiusSq, center.distanceToSquared( vectemp ) );
+
+		}
+
+	}
+
+	sphere.radius = Math.min( sphere.radius, Math.sqrt( maxRadiusSq ) );
+
+};
 
 // For BVH code specifically. Does not check morph targets
 // Copied from mesh raycasting
-const intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["C" /* Vector3 */]();
-const intersectTri = (mesh, geo, raycaster, ray, tri, intersections) => {
-    if (geo.isBufferGeometry) {
-        tri = tri * 3;
-        const a = geo.index ? geo.index.getX(tri) : tri;
-        const b = geo.index ? geo.index.getX(tri + 1) : tri + 1;
-        const c = geo.index ? geo.index.getX(tri + 2) : tri + 2;
+// Ripped an modified from the THREE.js source in Mesh.CS
+const intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+const intersectTri = ( mesh, geo, raycaster, ray, tri, intersections, seenFaces ) => {
 
-        const intersection = Object(__WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__["a" /* checkBufferGeometryIntersection */])(mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c);
+	const faceIndex = tri;
+	if ( seenFaces != null && seenFaces[ faceIndex ] ) {
 
-        if (intersection) {
-            intersection.index = a; // triangle number in positions buffer semantics
-            if (intersections) intersections.push(intersection);
-            return intersection;
-        }
+		return null;
 
-    } else if (geo.isGeometry) {
-        const faces = geo.faces;
-        const vertices = geo.vertices;
-        const uvs = geo.uvs;
-        const face = faces[tri];
-        const isMultiMaterial = Array.isArray(mesh.material);
-        const faceMaterial = isMultiMaterial ? mesh.material[face.materialIndex] : mesh.material;
+	}
+	if ( geo.isBufferGeometry ) {
 
-        if (faceMaterial !== undefined) {
+		tri = tri * 3;
+		const a = geo.index ? geo.index.getX( tri ) : tri;
+		const b = geo.index ? geo.index.getX( tri + 1 ) : tri + 1;
+		const c = geo.index ? geo.index.getX( tri + 2 ) : tri + 2;
 
-            const fvA = vertices[ face.a ];
-            const fvB = vertices[ face.b ];
-            const fvC = vertices[ face.c ];
+		const intersection = Object(__WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__["a" /* checkBufferGeometryIntersection */])( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
 
-            const intersection = Object(__WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__["b" /* checkIntersection */])(mesh, faceMaterial, raycaster, ray, fvA, fvB, fvC, intersectionPoint);
+		if ( intersection ) {
 
-            if (intersection) {
+			if ( seenFaces != null ) {
 
-                if (uvs && uvs[ f ]) {
+				seenFaces[ faceIndex ] = true;
 
-                    const uvs_f = uvs[ f ];
-                    uvA.copy(uvs_f[ 0 ]);
-                    uvB.copy(uvs_f[ 1 ]);
-                    uvC.copy(uvs_f[ 2 ]);
+			}
+			intersection.faceIndex = faceIndex; // triangle number
+			if ( intersections ) intersections.push( intersection );
+			return intersection;
 
-                    intersection.uv = uvIntersection(intersectionPoint, fvA, fvB, fvC, uvA, uvB, uvC);
-                }
+		}
 
-                intersection.face = face;
-                intersection.faceIndex = tri;
-                if (intersections) intersections.push(intersection);
-                return intersection;
-            }
-        }
-    }
-    return null;    
+	} else if ( geo.isGeometry ) {
+
+		const faces = geo.faces;
+		const vertices = geo.vertices;
+		const uvs = geo.uvs;
+		const face = faces[ tri ];
+		const isMultiMaterial = Array.isArray( mesh.material );
+		const faceMaterial = isMultiMaterial ? mesh.material[ face.materialIndex ] : mesh.material;
+
+		const uvA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Vector2 */]();
+		const uvB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Vector2 */]();
+		const uvC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Vector2 */]();
+
+		if ( faceMaterial !== undefined ) {
+
+			const fvA = vertices[ face.a ];
+			const fvB = vertices[ face.b ];
+			const fvC = vertices[ face.c ];
+
+			const intersection = Object(__WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__["b" /* checkIntersection */])( mesh, faceMaterial, raycaster, ray, fvA, fvB, fvC, intersectionPoint );
+
+			if ( intersection ) {
+
+				if ( seenFaces != null ) {
+
+					seenFaces[ faceIndex ] = true;
+
+				}
+
+				if ( uvs && uvs[ faceIndex ] ) {
+
+					const uvsf = uvs[ faceIndex ];
+					uvA.copy( uvsf[ 0 ] );
+					uvB.copy( uvsf[ 1 ] );
+					uvC.copy( uvsf[ 2 ] );
+
+					intersection.uv = Object(__WEBPACK_IMPORTED_MODULE_1__IntersectionUtilities_js__["c" /* uvIntersection */])( intersectionPoint, fvA, fvB, fvC, uvA, uvB, uvC );
+
+				}
+
+				intersection.face = face;
+				intersection.faceIndex = tri;
+				if ( intersections ) intersections.push( intersection );
+				return intersection;
+
+			}
+
+		}
+
+	}
+	return null;
+
+};
+
+const intersectTris = ( mesh, geo, raycaster, ray, tris, intersections, seenFaces ) => {
+
+	for ( let i = 0, l = tris.length; i < l; i ++ ) {
+
+		intersectTri( mesh, geo, raycaster, ray, tris[ i ], intersections, seenFaces );
+
+	}
+
+};
+
+const intersectClosestTri = ( mesh, geo, raycaster, ray, tris ) => {
+
+	let dist = Infinity;
+	let res = null;
+	for ( let i = 0, l = tris.length; i < l; i ++ ) {
+
+		const intersection = intersectTri( mesh, geo, raycaster, ray, tris[ i ] );
+		if ( intersection && intersection.distance < dist ) {
+
+			res = intersection;
+			dist = intersection.distance;
+
+		}
+
+	}
+
+	return res;
+
+};
+
+
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return uvIntersection; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return checkIntersection; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return checkBufferGeometryIntersection; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__ = __webpack_require__(0);
+
+
+// From THREE.js Mesh raycast
+var vA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+var vB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+var vC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+
+var uvA = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Vector2 */]();
+var uvB = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Vector2 */]();
+var uvC = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["A" /* Vector2 */]();
+
+var barycoord = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+
+var intersectionPoint = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+var intersectionPointWorld = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["B" /* Vector3 */]();
+
+function uvIntersection( point, p1, p2, p3, uv1, uv2, uv3 ) {
+
+	__WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Triangle */].barycoordFromPoint( point, p1, p2, p3, barycoord );
+
+	uv1.multiplyScalar( barycoord.x );
+	uv2.multiplyScalar( barycoord.y );
+	uv3.multiplyScalar( barycoord.z );
+
+	uv1.add( uv2 ).add( uv3 );
+
+	return uv1.clone();
+
 }
 
-const intersectTris = (mesh, geo, raycaster, ray, tris, intersections) => {
-    for (let i = 0, l = tris.length; i < l; i ++) {
-        intersectTri(mesh, geo, raycaster, ray, tris[i], intersections);
-    }
+function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point ) {
+
+	var intersect;
+	if ( material.side === __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["b" /* BackSide */] ) {
+
+		intersect = ray.intersectTriangle( pC, pB, pA, true, point );
+
+	} else {
+
+		intersect = ray.intersectTriangle( pA, pB, pC, material.side !== __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["h" /* DoubleSide */], point );
+
+	}
+
+	if ( intersect === null ) return null;
+
+	intersectionPointWorld.copy( point );
+	intersectionPointWorld.applyMatrix4( object.matrixWorld );
+
+	var distance = raycaster.ray.origin.distanceTo( intersectionPointWorld );
+
+	if ( distance < raycaster.near || distance > raycaster.far ) return null;
+
+	return {
+		distance: distance,
+		point: intersectionPointWorld.clone(),
+		object: object
+	};
+
 }
 
-const intersectClosestTri = (mesh, geo, raycaster, ray, tris) => {
-    let dist = Infinity;
-    let res = null;
-    for (let i = 0, l = tris.length; i < l; i ++) {
-        const intersection = intersectTri(mesh, geo, raycaster, ray, tris[i]);
-        if (intersection && intersection.distance < dist) {
-            res = intersection;
-            dist = intersection.distance;
-        }
-    }
+function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, a, b, c ) {
 
-    return res;
+	vA.fromBufferAttribute( position, a );
+	vB.fromBufferAttribute( position, b );
+	vC.fromBufferAttribute( position, c );
+
+	var intersection = checkIntersection( object, object.material, raycaster, ray, vA, vB, vC, intersectionPoint );
+
+	if ( intersection ) {
+
+		if ( uv ) {
+
+			uvA.fromBufferAttribute( uv, a );
+			uvB.fromBufferAttribute( uv, b );
+			uvC.fromBufferAttribute( uv, c );
+
+			intersection.uv = uvIntersection( intersectionPoint, vA, vB, vC, uvA, uvB, uvC );
+
+		}
+
+		intersection.face = new __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["i" /* Face3 */]( a, b, c, __WEBPACK_IMPORTED_MODULE_0__node_modules_three_build_three_module_js__["z" /* Triangle */].normal( vA, vB, vC ) );
+		intersection.faceIndex = a;
+
+	}
+
+	return intersection;
+
 }
+
 
 
 

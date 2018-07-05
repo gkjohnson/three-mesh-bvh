@@ -22,6 +22,26 @@ geom.computeBoundsTree();
 // Fast raycasts!
 ```
 
+### THREE API Extensions
+#### BufferGeometry & Geometry
+##### computeBoundsTree()
+
+Computes a bounds hierarchy for the geometry which is used to for raycasts. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
+
+##### disposeBoundsTree()
+
+Removes the previously caculated bounds tree
+
+##### boundsTree
+
+A direct handle to the calculated bounds tree.
+
+#### Raycaster
+##### instersectObject(object, recursive, optionalTarget, firstHitOnly = false)
+##### instersectObjects(objects, recursive, optionalTarget, firstHitOnly = false)
+
+The `intersectObject` and `intersectObjects` functions have an added `firstHitOnly` parameter indicating that only the first hit should be pushed onto the `intersects` array for every piece of geometry. Setting `firstHitOnly` to true makes bounds tree-enabled intersections much faster.
+
 ## Gotchas
 
 - This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
