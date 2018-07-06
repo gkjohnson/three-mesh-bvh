@@ -2,7 +2,6 @@ import * as THREE from '../node_modules/three/build/three.module.js';
 import Stats from '../node_modules/stats.js/src/Stats.js';
 import OctreeVisualizer from '../lib/OctreeVisualizer.js';
 import Octree from '../lib/Octree.js';
-import '../index.js';
 
 const bgColor = 0x263238 / 2;
 
@@ -20,19 +19,10 @@ light.position.set( 1, 1, 1 );
 scene.add( light );
 scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 
-// geometry setup
-const radius = 1;
-const tube = .4;
-const tubularSegments = 400;
-const radialSegments = 100;
-
 let boundsViz = null;
 const containerObj = new THREE.Object3D();
-// const geom = new THREE.TorusKnotBufferGeometry(.5, .2, 40, 10);
 const geom = new THREE.SphereBufferGeometry( 1, 30, 30 );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
-
-geom.computeBoundsTree();
 
 scene.add( containerObj );
 
@@ -52,36 +42,46 @@ let deltaTime = 0;
 const knots = [];
 
 const octree = new Octree();
+boundsViz = new OctreeVisualizer( octree );
+scene.add( boundsViz );
 window.octree = octree;
 
+// Raycast line
+const lineMesh = new THREE.Line( new THREE.Geometry(), new THREE.LineBasicMaterial( { color: 0xffffff } ) );
+lineMesh.geometry.vertices.push( new THREE.Vector3() );
+lineMesh.geometry.vertices.push( new THREE.Vector3() );
+scene.add( lineMesh );
+
+var seed = 1;
+function random() {
+
+	const x = Math.sin( seed ++ ) * 10000;
+	return x - Math.floor( x );
+
+}
+
+// Adds a mesh to the scene
 const addMesh = () => {
 
 	const mesh = new THREE.Mesh( geom, material );
-	mesh.rotation.x = Math.random() * 10;
-	mesh.rotation.y = Math.random() * 10;
+	mesh.rotation.x = random() * 10;
+	mesh.rotation.y = random() * 10;
 	knots.push( mesh );
 	containerObj.add( mesh );
 
-
-
-	const dist = Math.random() * 40 - 20;
-	const scale = Math.random() * 7.5 + 2.5;
+	const dist = random() * 40 - 20;
+	const scale = random() * 7.5 + 2.5;
 	mesh.scale.set( 1, 1, 1 ).multiplyScalar( scale );
 
 	const vec3 = new THREE.Vector3( 0, 1, 0 );
-	vec3.applyAxisAngle( new THREE.Vector3( 1, 0, 0 ), Math.PI * Math.random() );
-	vec3.applyAxisAngle( new THREE.Vector3( 0, 1, 0 ), 2 * Math.PI * Math.random() );
+	vec3.applyAxisAngle( new THREE.Vector3( 1, 0, 0 ), Math.PI * random() );
+	vec3.applyAxisAngle( new THREE.Vector3( 0, 1, 0 ), 2 * Math.PI * random() );
 	vec3.multiplyScalar( dist );
 
 	mesh.position.set( vec3.x, vec3.y, vec3.z );
-	// mesh.position.set(2,3,6);
-	// mesh.scale.set(10,10,10);
-
 
 	mesh.updateMatrix();
 	mesh.updateMatrixWorld();
-
-
 
 	mesh.geometry.computeBoundingSphere();
 	mesh.geometry.computeBoundingBox();
@@ -92,28 +92,11 @@ const addMesh = () => {
 
 };
 
-scene.add( new THREE.AxesHelper() );
-
-window.add = ( x = 0, y = 0, z = 0, s = 10 ) => {
+const addMeshAtLocation = ( x = 0, y = 0, z = 0, s = 10 ) => {
 
 	const o = addMesh();
 	o.position.set( x, y, z );
 	o.scale.set( 1, 1, 1 ).multiplyScalar( s );
-
-	// const c = o;
-
-	// const dist = Math.random() * 40 - 20;
-	// const scale = Math.random() * 7.5 + 2.5;
-	// c.scale.set(1, 1, 1).multiplyScalar(scale);
-
-	// const vec3 = new THREE.Vector3(0, 1, 0);
-	// vec3.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI * Math.random());
-	// vec3.applyAxisAngle(new THREE.Vector3(0, 1, 0), 2 * Math.PI * Math.random());
-	// vec3.multiplyScalar(dist)
-
-	// c.position.set(vec3.x, vec3.y, vec3.z);
-
-
 
 	o.updateMatrix();
 	o.updateMatrixWorld();
@@ -121,75 +104,25 @@ window.add = ( x = 0, y = 0, z = 0, s = 10 ) => {
 	o.boundingSphere.copy( o.geometry.boundingSphere );
 	o.boundingSphere.applyMatrix4( o.matrixWorld );
 
-	// o.geometry.computeBoundingSphere();
-
-	// const sphere = o.geometry.boundingSphere.clone();
-	// sphere.applyMatrix4(o.matrixWorld);
-	// o.boundingSphere = sphere;
 	octree.add( o );
-	// octree.remove(o);
-	// containerObj.remove(o);
 
 	return o;
 
 };
 
-// window.add();
-// window.add(2, 2, 2, 10)
+const setRay = function ( x, y, z, dx, dy, dz ) {
 
-boundsViz = new OctreeVisualizer( octree );
-scene.add( boundsViz );
+	console.log( 'POSE', `setRay(${ [ ...arguments ].join( ', ' ) })` );
 
-
-const sphere = new THREE.SphereGeometry( 1, 1, 1 );
-const raymat = new THREE.MeshBasicMaterial( { color: 0xffffff } );
-const raysphere = [];
-for ( let i = 0; i < 50; i ++ ) {
-
-	const origMesh = new THREE.Mesh( sphere, raymat );
-	origMesh.scale.set( 1, 1, 1 ).multiplyScalar( .25 );
-	scene.add( origMesh );
-	raysphere.push( origMesh );
-
-}
-
-
-// for(let x = -1; x <= 1; x += 1)
-//     for(let y = -1; y <= 1; y += 1)
-//         for(let z = -1; z <= 1; z += 1) {
-//             const o = addMesh();
-//             o.position.set(x,y,z).multiplyScalar(20);
-//         }
-
-
-// knots.forEach(c => {
-//     c.updateMatrix();
-//     c.updateMatrixWorld();
-//     c.boundingSphere.copy(c.geometry.boundingSphere);
-//     c.boundingSphere.applyMatrix4(c.matrixWorld);
-//     octree.update(c);
-// })
-
-
-
-window.setRay = ( x, y, z, dx, dy, dz ) => {
-
-	knots.forEach( o => {
-
-		o.material = material;
-
-	} );
+	knots.forEach( o => o.material = material );
 
 	const r = new THREE.Ray( new THREE.Vector3( x, y, z ), new THREE.Vector3( dx, dy, dz ).normalize() );
 	const rc = new THREE.Raycaster();
 	rc.ray.copy( r );
 
 	console.time( 'oct raycast' );
-	const intersects = [];
-	const res2 = octree.raycastFirst( rc, intersects );
-	if ( res2 ) intersects.push( res2 );
+	const intersects = octree.raycast( rc );
 
-	console.log( res2 );
 	console.log( intersects );
 	console.timeEnd( 'oct raycast' );
 
@@ -198,42 +131,41 @@ window.setRay = ( x, y, z, dx, dy, dz ) => {
 	console.log( res );
 	console.timeEnd( 'OBJ' );
 
-
 	const c1 = res ? res.map( i => i.distance ) : [];
 	const c2 = intersects ? intersects.map( i => i.distance ) : [];
 
-	console.log( 'SAME', c1.join( ',' ) === c2.join( ',' ) );
+	const c1str = c1.join( ',' );
+	const c2str = c2.join( ',' );
+	const same = c1str === c2str;
+	if ( same !== true ) {
+
+		console.log( c1str );
+		console.log( c2str );
+		throw 'NOT SAME';
+
+	} else {
+
+		console.log( 'SAME!' );
+
+	}
 
 
-	const p = new THREE.Vector3();
-	p.copy( r.origin );
-
-	raysphere.forEach( ( o, i ) => {
-
-		p.x += r.direction.x * 1;
-		p.y += r.direction.y * 1;
-		p.z += r.direction.z * 1;
-
-		o.position.copy( p );
-
-	} );
+	lineMesh.geometry.vertices[ 0 ].copy( r.origin );
+	lineMesh.geometry.vertices[ 1 ].copy( r.origin ).addScaledVector( r.direction.normalize(), 200 );
+	lineMesh.geometry.verticesNeedUpdate = true;
 
 };
-
-// {x: -9.90173989091766, y: -9.90173989091766, z: 1.3984087859456258}
-const obj = window.add( - 9.9, - 9.9, - 1.4, 1 );
-
-window.sphere = obj;
+window.setRay = setRay;
 
 const arr = [];
-for ( let i = 0; i < 5000; i ++ ) {
+for ( let i = 0; i < 10000; i ++ ) {
 
-	arr.push( window.add( Math.random() * 40 - 20, Math.random() * 40 - 20, Math.random() * 40 - 20, Math.random() * 1 ) );
+	arr.push( addMeshAtLocation( random() * 40 - 20, random() * 40 - 20, random() * 40 - 20, random() * 1 ) );
 
 
 	const o = arr[ i ];
-	// o.position.y = Math.sin(i) * 10;
-	// o.position.z = Math.cos(i) * 10;
+	// o.position.y = Math.sin( i ) * 10;
+	// o.position.z = Math.cos( i ) * 10;
 	o.updateMatrix();
 	o.updateMatrixWorld();
 	o.boundingSphere.copy( o.geometry.boundingSphere );
@@ -242,45 +174,25 @@ for ( let i = 0; i < 5000; i ++ ) {
 
 }
 
-octree._runObjectActions();
-octree._runNodeUpdates();
+setRay( 30, 30, 30, - 1, - 1, - 1 );
 
-// window.dogo = true;
-window.setRay( 1, 1, 1, - 1, - 1, - 1 );
-
+let theta = 0;
+let phi = 0;
 
 const render = () => {
 
+	theta += 0.001;
+	phi += 0.02;
+
+	const x = Math.cos( phi ) * 30;
+	const z = Math.sin( phi ) * 30;
+	const y = Math.sin( theta ) * 30;
+
+	setRay( x, y, z, - x, - y, - z );
+
+
 	controls.update();
 	stats.begin();
-
-	const t = 0; //window.performance.now();
-
-	// arr.forEach((o, i) => {
-	//     o.position.y = Math.sin(t * 0.001 + i) * 10;
-	//     o.position.z = Math.cos(t * 0.001 + i) * 10;
-	//     // o.position.x = Math.sin(t * 0.001 + i) * 10;
-	//     o.updateMatrix();
-	//     o.updateMatrixWorld();
-	//     o.boundingSphere.copy(o.geometry.boundingSphere);
-	//     o.boundingSphere.applyMatrix4(o.matrixWorld);
-	//     octree.update(o);
-	// })
-
-
-	if ( window.dogo ) {
-
-		obj.position.y = Math.sin( t * 0.001 ) * 10;
-		obj.position.z = Math.cos( t * 0.001 ) * 10;
-		obj.position.x = Math.sin( t * 0.001 ) * 10;
-		obj.updateMatrix();
-		obj.updateMatrixWorld();
-		obj.boundingSphere.copy( obj.geometry.boundingSphere );
-		obj.boundingSphere.applyMatrix4( obj.matrixWorld );
-		octree.update( obj );
-
-	}
-
 
 	const currTime = window.performance.now();
 	lastFrameTime = lastFrameTime || currTime;
@@ -312,9 +224,6 @@ window.addEventListener( 'resize', function () {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 
 }, false );
-
-
-
 
 const controls = new window.THREE.OrbitControls( camera );
 
