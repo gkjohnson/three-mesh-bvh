@@ -88,8 +88,6 @@ const addMesh = () => {
 	mesh.updateMatrix();
 	mesh.updateMatrixWorld();
 
-	mesh.geometry.computeBoundingSphere();
-	mesh.geometry.computeBoundingBox();
 	mesh.boundingSphere = mesh.geometry.boundingSphere.clone();
 	mesh.boundingSphere.applyMatrix4( mesh.matrixWorld );
 
