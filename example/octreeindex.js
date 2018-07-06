@@ -2,6 +2,7 @@ import * as THREE from '../node_modules/three/build/three.module.js';
 import Stats from '../node_modules/stats.js/src/Stats.js';
 import OctreeVisualizer from '../lib/OctreeVisualizer.js';
 import Octree from '../lib/Octree.js';
+import '../index.js';
 
 const bgColor = 0x263238 / 2;
 
@@ -23,6 +24,10 @@ let boundsViz = null;
 const containerObj = new THREE.Object3D();
 const geom = new THREE.TorusKnotBufferGeometry( 1, 0.4, 40, 10 );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
+
+geom.computeBoundingSphere();
+geom.computeBoundingBox();
+geom.computeBoundsTree();
 
 scene.add( containerObj );
 
