@@ -21,7 +21,7 @@ scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 
 let boundsViz = null;
 const containerObj = new THREE.Object3D();
-const geom = new THREE.SphereBufferGeometry( 1, 30, 30 );
+const geom = new THREE.TorusKnotBufferGeometry( 1, 0.4, 40, 10 );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
 
 scene.add( containerObj );
@@ -157,14 +157,23 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 	}
 
 	console.time( 'Octtree RaycastFirst' );
-	const intersects3 = octree.raycastFirst( rc );
+	const intersects3 = [ octree.raycastFirst( rc ) ];
 	console.log( intersects3 );
 	console.timeEnd( 'Octtree RaycastFirst' );
 
-	if ( intersects1[ 0 ].distance !== intersects3.distance ) {
+	if ( intersects1.length > 0 && intersects3.length > 0 && intersects1[ 0 ].distance !== intersects3[ 0 ].distance ) {
 
-		console.log( intersects1[ 0 ], intersects3, "NOPE" );
+		console.error( 'RaycastFirst is not equal' );
+		console.log( intersects1[ 0 ], intersects3[ 0 ] );
+		console.log( intersects1[ 0 ].object === intersects3[ 0 ].object );
+
+		children.forEach( c => c.parent.remove( c ) );
+		containerObj.add( intersects1[ 0 ].object );
+		containerObj.add( intersects3[ 0 ].object );
+
+		boundsViz.parent.remove( boundsViz );
 		failed = true;
+
 	}
 
 
