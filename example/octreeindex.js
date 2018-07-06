@@ -111,6 +111,8 @@ const addMeshAtLocation = ( x = 0, y = 0, z = 0, s = 10 ) => {
 };
 
 let failed = false;
+const sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( .1, 10, 10 ), new THREE.MeshBasicMaterial() );
+scene.add( sphere );
 const setRay = function ( x, y, z, dx, dy, dz ) {
 
 	if ( failed ) return;
@@ -157,7 +159,9 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 	}
 
 	console.time( 'Octtree RaycastFirst' );
-	const intersects3 = [ octree.raycastFirst( rc ) ];
+	const intersects3 = [];
+	const res = octree.raycastFirst( rc );
+	if ( res ) intersects3.push( res );
 	console.log( intersects3 );
 	console.timeEnd( 'Octtree RaycastFirst' );
 
@@ -173,6 +177,15 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 
 		boundsViz.parent.remove( boundsViz );
 		failed = true;
+
+	}
+
+	sphere.visible = false;
+	if ( intersects3.length > 0 ) {
+
+		sphere.position.copy( intersects3[ 0 ].point );
+		lineMesh.geometry.vertices[ 1 ].copy( sphere.position );
+		sphere.visible = true;
 
 	}
 
@@ -197,15 +210,13 @@ for ( let i = 0; i < 10000; i ++ ) {
 
 }
 
-setRay( 30, 30, 30, - 1, - 1, - 1 );
-
 let theta = 0;
 let phi = 0;
 
 const render = () => {
 
-	theta += 0.01;
-	phi += 0.2;
+	theta += 0.001;
+	phi += 0.002;
 
 	const x = Math.cos( phi ) * 30;
 	const z = Math.sin( phi ) * 30;
