@@ -39,7 +39,7 @@ document.body.appendChild( stats.dom );
 // Delta timer
 let lastFrameTime = null;
 let deltaTime = 0;
-const knots = [];
+const children = [];
 
 const octree = new Octree();
 boundsViz = new OctreeVisualizer( octree );
@@ -66,7 +66,7 @@ const addMesh = () => {
 	const mesh = new THREE.Mesh( geom, material );
 	mesh.rotation.x = random() * 10;
 	mesh.rotation.y = random() * 10;
-	knots.push( mesh );
+	children.push( mesh );
 	containerObj.add( mesh );
 
 	const dist = random() * 40 - 20;
@@ -110,29 +110,36 @@ const addMeshAtLocation = ( x = 0, y = 0, z = 0, s = 10 ) => {
 
 };
 
+let failed = false;
 const setRay = function ( x, y, z, dx, dy, dz ) {
+
+	if ( failed ) return;
 
 	console.log( 'POSE', `setRay(${ [ ...arguments ].join( ', ' ) })` );
 
-	knots.forEach( o => o.material = material );
+	children.forEach( o => o.material = material );
 
 	const r = new THREE.Ray( new THREE.Vector3( x, y, z ), new THREE.Vector3( dx, dy, dz ).normalize() );
 	const rc = new THREE.Raycaster();
 	rc.ray.copy( r );
 
-	console.time( 'oct raycast' );
-	const intersects = octree.raycast( rc );
 
-	console.log( intersects );
-	console.timeEnd( 'oct raycast' );
+	lineMesh.geometry.vertices[ 0 ].copy( r.origin );
+	lineMesh.geometry.vertices[ 1 ].copy( r.origin ).addScaledVector( r.direction.normalize(), 200 );
+	lineMesh.geometry.verticesNeedUpdate = true;
 
-	console.time( 'OBJ' );
-	const res = rc.intersectObject( scene, true );
-	console.log( res );
-	console.timeEnd( 'OBJ' );
+	console.time( 'Octtree Raycast' );
+	const intersects1 = octree.raycast( rc );
+	console.log( intersects1 );
+	console.timeEnd( 'Octtree Raycast' );
 
-	const c1 = res ? res.map( i => i.distance ) : [];
-	const c2 = intersects ? intersects.map( i => i.distance ) : [];
+	console.time( 'THREE Raycast' );
+	const intersects2 = rc.intersectObject( containerObj, true );
+	console.log( intersects2 );
+	console.timeEnd( 'THREE Raycast' );
+
+	const c1 = intersects1 ? intersects1.map( i => i.distance ) : [];
+	const c2 = intersects2 ? intersects2.map( i => i.distance ) : [];
 
 	const c1str = c1.join( ',' );
 	const c2str = c2.join( ',' );
@@ -141,18 +148,25 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 
 		console.log( c1str );
 		console.log( c2str );
-		throw 'NOT SAME';
+		failed = true;
 
-	} else {
+		console.error( 'Raycast Failed' );
 
-		console.log( 'SAME!' );
+		boundsViz.parent.remove( boundsViz );
 
 	}
 
+	console.time( 'Octtree RaycastFirst' );
+	const intersects3 = octree.raycastFirst( rc );
+	console.log( intersects3 );
+	console.timeEnd( 'Octtree RaycastFirst' );
 
-	lineMesh.geometry.vertices[ 0 ].copy( r.origin );
-	lineMesh.geometry.vertices[ 1 ].copy( r.origin ).addScaledVector( r.direction.normalize(), 200 );
-	lineMesh.geometry.verticesNeedUpdate = true;
+	if ( intersects1[ 0 ].distance !== intersects3.distance ) {
+
+		console.log( intersects1[ 0 ], intersects3, "NOPE" );
+		failed = true;
+	}
+
 
 };
 window.setRay = setRay;
@@ -181,8 +195,8 @@ let phi = 0;
 
 const render = () => {
 
-	theta += 0.001;
-	phi += 0.02;
+	theta += 0.01;
+	phi += 0.2;
 
 	const x = Math.cos( phi ) * 30;
 	const z = Math.sin( phi ) * 30;
