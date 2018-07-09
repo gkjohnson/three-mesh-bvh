@@ -1,6 +1,5 @@
 import * as THREE from '../node_modules/three/build/three.module.js';
 import Stats from '../node_modules/stats.js/src/Stats.js';
-import OctreeVisualizer from '../lib/OctreeVisualizer.js';
 import Octree from '../lib/Octree.js';
 import '../index.js';
 
@@ -15,15 +14,16 @@ document.body.appendChild( renderer.domElement );
 
 // scene setup
 const scene = new THREE.Scene();
+
 const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
 light.position.set( 1, 1, 1 );
 scene.add( light );
 scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 
-let boundsViz = null;
 const containerObj = new THREE.Object3D();
-const geom = new THREE.TorusKnotBufferGeometry( 1, 0.4, 40, 10 );
+const geom = new THREE.TorusKnotBufferGeometry( 1, 0.4, 100, 30 );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
+const hoverMaterial = new THREE.MeshPhongMaterial( { color: 0xFFC107 } );
 
 geom.computeBoundingSphere();
 geom.computeBoundingBox();
@@ -34,30 +34,20 @@ scene.add( containerObj );
 // camera setup
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
 camera.position.z = 60;
-camera.far = 1000;
+camera.far = 750;
 camera.updateProjectionMatrix();
+
+const sceneFog = new THREE.Fog( 0x263238 / 2, 20, camera.far );
+
+const cameraHelper = new THREE.CameraHelper( camera );
+scene.add( cameraHelper );
 
 // stats setup
 const stats = new Stats();
 document.body.appendChild( stats.dom );
 
-// Delta timer
-let lastFrameTime = null;
-let deltaTime = 0;
-const children = [];
-
 const octree = new Octree();
-boundsViz = new OctreeVisualizer( octree );
-scene.add( boundsViz );
-window.octree = octree;
-
-// Raycast line
-const lineMesh = new THREE.Line( new THREE.Geometry(), new THREE.LineBasicMaterial( { color: 0xffffff } ) );
-lineMesh.geometry.vertices.push( new THREE.Vector3() );
-lineMesh.geometry.vertices.push( new THREE.Vector3() );
-lineMesh.frustumCulled = false;
-scene.add( lineMesh );
-
+const allChildren = [];
 var seed = 1;
 function random() {
 
@@ -67,24 +57,15 @@ function random() {
 }
 
 // Adds a mesh to the scene
-const addMesh = () => {
+const addMesh = ( x, y, z, s ) => {
 
 	const mesh = new THREE.Mesh( geom, material );
 	mesh.rotation.x = random() * 10;
 	mesh.rotation.y = random() * 10;
-	children.push( mesh );
-	containerObj.add( mesh );
 
-	const dist = random() * 40 - 20;
-	const scale = random() * 7.5 + 2.5;
-	mesh.scale.set( 1, 1, 1 ).multiplyScalar( scale );
-
-	const vec3 = new THREE.Vector3( 0, 1, 0 );
-	vec3.applyAxisAngle( new THREE.Vector3( 1, 0, 0 ), Math.PI * random() );
-	vec3.applyAxisAngle( new THREE.Vector3( 0, 1, 0 ), 2 * Math.PI * random() );
-	vec3.multiplyScalar( dist );
-
-	mesh.position.set( vec3.x, vec3.y, vec3.z );
+	mesh.scale.set( 1, 1, 1 ).multiplyScalar( s );
+	mesh.position.set( x, y, z );
+	mesh.boundingSphere = mesh.geometry.boundingSphere.clone();
 
 	mesh.updateMatrix();
 	mesh.updateMatrixWorld();
@@ -93,197 +74,112 @@ const addMesh = () => {
 		mesh.boundingSphere.copy( mesh.geometry.boundingSphere );
 		mesh.boundingSphere.applyMatrix4( mesh.matrixWorld );
 
-	}
+	};
 
-	mesh.boundingSphere = mesh.geometry.boundingSphere.clone();
-	mesh.boundingSphere.applyMatrix4( mesh.matrixWorld );
+	mesh.updateBoundingSphere();
+	octree.add( mesh );
+	mesh.frustumCulled = false;
+	mesh.matrixAutoUpdate = false;
+
+	allChildren.push( mesh );
 
 	return mesh;
 
 };
 
-const addMeshAtLocation = ( x = 0, y = 0, z = 0, s = 10 ) => {
+const addMeshes = ( function* addMeshes() {
 
-	const o = addMesh();
-	o.position.set( x, y, z );
-	o.scale.set( 1, 1, 1 ).multiplyScalar( s );
+	const size = 10000;
+	const count = 1000000;
+	for ( let i = 0; i < 1000000; i ++ ) {
 
-	o.updateMatrix();
-	o.updateMatrixWorld();
+		if ( i % 1000 === 0 ) {
 
-	o.updateBoundingSphere();
-	octree.add( o );
+			document.getElementById( 'loaded' ).style.width = `${ ( ( i + 1 ) / count ) * 100 }%`;
+			yield null;
 
+		}
 
-	return o;
-
-};
-
-let failed = false;
-const sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( .1, 10, 10 ), new THREE.MeshBasicMaterial() );
-scene.add( sphere );
-const setRay = function ( x, y, z, dx, dy, dz ) {
-
-	if ( failed ) return;
-
-	// containerObj.rotateX( 0.01 );
-	// containerObj.updateMatrix( true );
-	// containerObj.updateMatrixWorld( true );
-
-	// children.forEach( c => {
-
-	// 	c.updateBoundingSphere();
-	// 	octree.update( c );
-
-	// } );
-	// octree._runObjectActions();
-
-
-	console.log( 'POSE', `setRay(${ [ ...arguments ].join( ', ' ) })` );
-
-	children.forEach( o => o.material = material );
-
-	const r = new THREE.Ray( new THREE.Vector3( x, y, z ), new THREE.Vector3( dx, dy, dz ).normalize() );
-	const rc = new THREE.Raycaster();
-	rc.ray.copy( r );
-
-
-	lineMesh.geometry.vertices[ 0 ].copy( r.origin );
-	lineMesh.geometry.vertices[ 1 ].copy( r.origin ).addScaledVector( r.direction.normalize(), 200 );
-	lineMesh.geometry.verticesNeedUpdate = true;
-
-
-
-	console.time( 'Octtree Raycast' );
-	const intersects1 = octree.raycast( rc );
-	console.log( intersects1 );
-	console.timeEnd( 'Octtree Raycast' );
-
-	console.time( 'THREE Raycast' );
-	const intersects2 = rc.intersectObject( containerObj, true );
-	console.log( intersects2 );
-	console.timeEnd( 'THREE Raycast' );
-
-	const c1 = intersects1 ? intersects1.map( i => i.distance ) : [];
-	const c2 = intersects2 ? intersects2.map( i => i.distance ) : [];
-
-	const c1str = c1.join( ',' );
-	const c2str = c2.join( ',' );
-	const same = c1str === c2str;
-	if ( same !== true ) {
-
-		console.log( c1str );
-		console.log( c2str );
-		failed = true;
-
-		console.error( 'Raycast Failed' );
-
-		boundsViz.parent.remove( boundsViz );
+		addMesh( random() * size - size / 2, random() * size - size / 2, random() * size - size / 2, 5 + random() * 10 );
 
 	}
 
-	console.time( 'Octtree RaycastFirst' );
-	const intersects3 = [];
-	const res = octree.raycastFirst( rc );
-	if ( res ) intersects3.push( res );
-	console.log( intersects3 );
-	console.timeEnd( 'Octtree RaycastFirst' );
+	document.getElementById( 'loaded' ).remove();
 
-	if ( intersects1.length > 0 && intersects3.length > 0 && intersects1[ 0 ].distance !== intersects3[ 0 ].distance ) {
+} )();
 
-		console.error( 'RaycastFirst is not equal' );
-		console.log( intersects1[ 0 ], intersects3[ 0 ] );
-		console.log( intersects1[ 0 ].object === intersects3[ 0 ].object );
+function addMeshesLoop() {
 
-		children.forEach( c => c.parent.remove( c ) );
-		containerObj.add( intersects1[ 0 ].object );
-		containerObj.add( intersects3[ 0 ].object );
-
-		boundsViz.parent.remove( boundsViz );
-		failed = true;
-
-	}
-
-	sphere.visible = false;
-	if ( res ) {
-
-		sphere.position.copy( res.point );
-		lineMesh.geometry.vertices[ 1 ].copy( sphere.position );
-		sphere.visible = true;
-
-	}
-
-
-};
-window.setRay = setRay;
-
-const arr = [];
-for ( let i = 0; i < 10000; i ++ ) {
-
-	arr.push( addMeshAtLocation( random() * 40 - 20, random() * 40 - 20, random() * 40 - 20, random() * 1 ) );
-
-
-	const o = arr[ i ];
-	// o.position.y = Math.sin( i ) * 10;
-	// o.position.z = Math.cos( i ) * 10;
-	o.updateMatrix();
-	o.updateMatrixWorld();
-	o.boundingSphere.copy( o.geometry.boundingSphere );
-	o.boundingSphere.applyMatrix4( o.matrixWorld );
-	octree.update( o );
+	const res = addMeshes.next();
+	if ( ! res.done ) requestAnimationFrame( addMeshesLoop );
 
 }
 
-scene.add(new THREE.AxesHelper())
-let theta = 0;
-let phi = 0;
+function resizeFunc() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+
+	camera2.aspect = el2.clientWidth / el2.clientHeight;
+	camera2.updateProjectionMatrix();
+	renderer2.setSize( el2.clientWidth, el2.clientHeight );
+
+
+}
+
+
+addMeshesLoop();
+
+
+const renderer2 = new THREE.WebGLRenderer( { antialias: true } );
+renderer2.setPixelRatio( window.devicePixelRatio );
+renderer2.setClearColor( bgColor, 1 );
+
+const el2 = renderer2.domElement;
+el2.setAttribute( 'picture-in-picture', true );
+document.body.appendChild( el2 );
+
+
+const camera2 = new THREE.PerspectiveCamera();
+camera2.position.z = 60;
+camera2.far = 10000;
+camera2.updateProjectionMatrix();
+camera2.position.set( 4000, 4000, 4000 );
+camera2.lookAt( 0, 0, 0 );
 
 const render = () => {
 
-	theta += 0.01;
-	phi += 0.002;
+	stats.begin();
 
-	const x = Math.cos( phi ) * 50;
-	const z = Math.sin( phi ) * 50;
-	const y = Math.sin( theta ) * 50;
-
-	setRay( x, y, z, - x, - y, - z );
-	// setRay(49.37719725612613, 3.945892623583004, 7.86717173637453, -49.37719725612613, -3.945892623583004, -7.86717173637453)
-
-	const sca = 5;
-	// setRay( x, y, z, - x, - y, - z );
-	// TODO: This seems to be failing because of a bug in the BVH raycast
-	// Make sure to remove the rotation first
-	// setRay(-20.73720130400495, 27.587280031929104, 21.678756469806455, 20.73720130400495, -27.587280031929104, -21.678756469806455)
+	// Update the camera position
+	controls.update();
+	camera.updateMatrixWorld();
+	camera.updateProjectionMatrix();
+	cameraHelper.update();
 
 
-	const mat =
-		new THREE.Matrix4()
-			.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+	// Get the frustum
+	const mat = new THREE.Matrix4();
+	mat.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+
 	const frustum = new THREE.Frustum();
 	frustum.setFromMatrix( mat );
 
-	console.time('frustum cast')
 	const res = octree.frustumCast( frustum );
-	console.log( res && res.length );
-	console.timeEnd('frustum cast')
+	containerObj.remove( ...containerObj.children );
+	if ( res && res.length ) containerObj.add( ...res );
 
-	controls.update();
-	stats.begin();
+	document.getElementById( 'in-frame' ).innerText = `${ res && res.length || 0 } / ${ allChildren.length } meshes in view`;
 
-	const currTime = window.performance.now();
-	lastFrameTime = lastFrameTime || currTime;
-	deltaTime = currTime - lastFrameTime;
-
-	// containerObj.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
-	// containerObj.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
-	containerObj.updateMatrixWorld();
-
-	if ( boundsViz ) boundsViz.update();
-
+	// Render the scenes
+	scene.fog = sceneFog;
+	scene.remove( cameraHelper );
 	renderer.render( scene, camera );
 
-	lastFrameTime = currTime;
+	scene.fog = null;
+	scene.add( cameraHelper );
+	renderer2.render( scene, camera2 );
 
 	stats.end();
 
@@ -291,16 +187,8 @@ const render = () => {
 
 };
 
-
-
-window.addEventListener( 'resize', function () {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-}, false );
+window.addEventListener( 'resize', resizeFunc, false );
+resizeFunc();
 
 const controls = new window.THREE.OrbitControls( camera );
 
