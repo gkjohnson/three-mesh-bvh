@@ -23,7 +23,7 @@ scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 const containerObj = new THREE.Object3D();
 const geom = new THREE.TorusKnotBufferGeometry( 1, 0.4, 100, 30 );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
-const hoverMaterial = new THREE.MeshPhongMaterial( { color: 0xFFC107 } );
+const hoverMaterial = new THREE.MeshPhongMaterial( { color: 0xFFC107, emissive: 0xFFC107, emissiveIntensity: 0.5 } );
 
 geom.computeBoundingSphere();
 geom.computeBoundingBox();
@@ -186,6 +186,30 @@ const render = () => {
 	requestAnimationFrame( render );
 
 };
+
+const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+let lastHit = null;
+window.addEventListener( 'mousemove', e => {
+
+	mouse.x = ( e.pageX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( e.pageY / window.innerHeight ) * 2 + 1;
+
+	raycaster.setFromCamera( mouse, camera );
+
+	if ( lastHit ) lastHit.material = material;
+	lastHit = null;
+
+	const hit = octree.raycastFirst( raycaster );
+
+	if ( hit ) {
+
+		hit.object.material = hoverMaterial;
+		lastHit = hit.object;
+
+	}
+
+} );
 
 window.addEventListener( 'resize', resizeFunc, false );
 resizeFunc();
