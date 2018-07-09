@@ -37,10 +37,14 @@ Removes the previously caculated bounds tree
 A direct handle to the calculated bounds tree.
 
 #### Raycaster
-##### instersectObject(object, recursive, optionalTarget, firstHitOnly = false)
-##### instersectObjects(objects, recursive, optionalTarget, firstHitOnly = false)
+##### firstHitOnly
 
-The `intersectObject` and `intersectObjects` functions have an added `firstHitOnly` parameter indicating that only the first hit should be pushed onto the `intersects` array for every piece of geometry. Setting `firstHitOnly` to true makes bounds tree-enabled intersections much faster.
+The `intersectObject` and `intersectObjects` functions use a `firstHitOnly` field on the raycaster indicating that only the first hit should be pushed onto the `intersects` array for every piece of geometry. Setting `firstHitOnly` to true makes bounds tree-enabled intersections much faster.
+
+```js
+raycaster.firstHitOnly = true;
+raycaster.intersectObjects( objects );
+```
 
 ## Gotchas
 

@@ -4,8 +4,6 @@ import MeshBVH from './lib/MeshBVH.js';
 const ray = new THREE.Ray();
 const inverseMatrix = new THREE.Matrix4();
 const origRaycast = THREE.Mesh.prototype.raycast;
-const origIntersectObject = THREE.Raycaster.prototype.intersectObject;
-const origIntersectObjects = THREE.Raycaster.prototype.intersectObjects;
 
 THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
@@ -33,20 +31,6 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 		origRaycast.call( this, raycaster, intersects );
 
 	}
-
-};
-
-THREE.Raycaster.prototype.intersectObject = function ( object, recursive, optionalTarget, firstHitOnly = false ) {
-
-	this.firstHitOnly = firstHitOnly;
-	return origIntersectObject.call( this, object, recursive, optionalTarget );
-
-};
-
-THREE.Raycaster.prototype.intersectObjects = function ( objects, recursive, optionalTarget, firstHitOnly = false ) {
-
-	this.firstHitOnly = firstHitOnly;
-	return origIntersectObjects.call( this, objects, recursive, optionalTarget );
 
 };
 
