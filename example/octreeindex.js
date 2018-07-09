@@ -126,17 +126,17 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 
 	if ( failed ) return;
 
-	containerObj.rotateX( 0.01 );
-	containerObj.updateMatrix( true );
-	containerObj.updateMatrixWorld( true );
+	// containerObj.rotateX( 0.01 );
+	// containerObj.updateMatrix( true );
+	// containerObj.updateMatrixWorld( true );
 
-	children.forEach(c => {
+	// children.forEach( c => {
 
-		c.updateBoundingSphere();
-		octree.update( c );
+	// 	c.updateBoundingSphere();
+	// 	octree.update( c );
 
-	} );
-	octree._runObjectActions();
+	// } );
+	// octree._runObjectActions();
 
 
 	console.log( 'POSE', `setRay(${ [ ...arguments ].join( ', ' ) })` );
@@ -248,7 +248,25 @@ const render = () => {
 	const y = Math.sin( theta ) * 50;
 
 	setRay( x, y, z, - x, - y, - z );
+	// setRay(49.37719725612613, 3.945892623583004, 7.86717173637453, -49.37719725612613, -3.945892623583004, -7.86717173637453)
 
+	const sca = 5;
+	// setRay( x, y, z, - x, - y, - z );
+	// TODO: This seems to be failing because of a bug in the BVH raycast
+	// Make sure to remove the rotation first
+	// setRay(-20.73720130400495, 27.587280031929104, 21.678756469806455, 20.73720130400495, -27.587280031929104, -21.678756469806455)
+
+
+	const mat =
+		new THREE.Matrix4()
+			.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+	const frustum = new THREE.Frustum();
+	frustum.setFromMatrix( mat );
+
+	console.time('frustum cast')
+	const res = octree.frustumCast( frustum );
+	console.log( res && res.length );
+	console.timeEnd('frustum cast')
 
 	controls.update();
 	stats.begin();
