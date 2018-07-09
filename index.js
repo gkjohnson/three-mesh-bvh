@@ -7,71 +7,71 @@ const origRaycast = THREE.Mesh.prototype.raycast;
 const origIntersectObject = THREE.Raycaster.prototype.intersectObject;
 const origIntersectObjects = THREE.Raycaster.prototype.intersectObjects;
 
-THREE.Mesh.prototype.raycast = function (raycaster, intersects) {
+THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
-    if (this.geometry.boundsTree) {
+	if ( this.geometry.boundsTree ) {
 
-        if (this.material === undefined) return;
+		if ( this.material === undefined ) return;
 
-        inverseMatrix.getInverse(this.matrixWorld);
-        ray.copy(raycaster.ray).applyMatrix4(inverseMatrix);
+		inverseMatrix.getInverse( this.matrixWorld );
+		ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
 
-        if (raycaster.firstHitOnly === true) {
+		if ( raycaster.firstHitOnly === true ) {
 
-            const res = this.geometry.boundsTree.raycastFirst(this, raycaster, ray);
-            if (res) intersects.push(res);
+			const res = this.geometry.boundsTree.raycastFirst( this, raycaster, ray );
+			if ( res ) intersects.push( res );
 
-        } else {
+		} else {
 
-            let seenFaces = {};
-            this.geometry.boundsTree.raycast(this, raycaster, ray, intersects, seenFaces);
+			let seenFaces = {};
+			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects, seenFaces );
 
-        }
+		}
 
-    } else {
+	} else {
 
-        origRaycast.call(this, raycaster, intersects);
+		origRaycast.call( this, raycaster, intersects );
 
-    }
-
-};
-
-THREE.Raycaster.prototype.intersectObject = function (object, recursive, optionalTarget, firstHitOnly = false) {
-
-    this.firstHitOnly = firstHitOnly;
-    return origIntersectObject.call(this, object, recursive, optionalTarget);
+	}
 
 };
 
-THREE.Raycaster.prototype.intersectObjects = function (objects, recursive, optionalTarget, firstHitOnly = false) {
+THREE.Raycaster.prototype.intersectObject = function ( object, recursive, optionalTarget, firstHitOnly = false ) {
 
-    this.firstHitOnly = firstHitOnly;
-    return origIntersectObjects.call(this, objects, recursive, optionalTarget);
+	this.firstHitOnly = firstHitOnly;
+	return origIntersectObject.call( this, object, recursive, optionalTarget );
 
 };
 
-THREE.Geometry.prototype.computeBoundsTree = function (strat) {
+THREE.Raycaster.prototype.intersectObjects = function ( objects, recursive, optionalTarget, firstHitOnly = false ) {
 
-    this.boundsTree = new MeshBVH(this, strat);
-    return this.boundsTree;
+	this.firstHitOnly = firstHitOnly;
+	return origIntersectObjects.call( this, objects, recursive, optionalTarget );
+
+};
+
+THREE.Geometry.prototype.computeBoundsTree = function ( strat ) {
+
+	this.boundsTree = new MeshBVH( this, strat );
+	return this.boundsTree;
 
 };
 
 THREE.Geometry.prototype.disposeBoundsTree = function () {
 
-    this.boundsTree = null;
+	this.boundsTree = null;
 
 };
 
-THREE.BufferGeometry.prototype.computeBoundsTree = function (strat) {
+THREE.BufferGeometry.prototype.computeBoundsTree = function ( strat ) {
 
-    this.boundsTree = new MeshBVH(this, strat);
-    return this.boundsTree;
+	this.boundsTree = new MeshBVH( this, strat );
+	return this.boundsTree;
 
 };
 
 THREE.BufferGeometry.prototype.disposeBoundsTree = function () {
 
-    this.boundsTree = null;
+	this.boundsTree = null;
 
 };
