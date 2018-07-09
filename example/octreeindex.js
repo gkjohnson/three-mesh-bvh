@@ -88,6 +88,12 @@ const addMesh = () => {
 
 	mesh.updateMatrix();
 	mesh.updateMatrixWorld();
+	mesh.updateBoundingSphere = () => {
+
+		mesh.boundingSphere.copy( mesh.geometry.boundingSphere );
+		mesh.boundingSphere.applyMatrix4( mesh.matrixWorld );
+
+	}
 
 	mesh.boundingSphere = mesh.geometry.boundingSphere.clone();
 	mesh.boundingSphere.applyMatrix4( mesh.matrixWorld );
@@ -105,10 +111,9 @@ const addMeshAtLocation = ( x = 0, y = 0, z = 0, s = 10 ) => {
 	o.updateMatrix();
 	o.updateMatrixWorld();
 
-	o.boundingSphere.copy( o.geometry.boundingSphere );
-	o.boundingSphere.applyMatrix4( o.matrixWorld );
-
+	o.updateBoundingSphere();
 	octree.add( o );
+
 
 	return o;
 
@@ -120,6 +125,19 @@ scene.add( sphere );
 const setRay = function ( x, y, z, dx, dy, dz ) {
 
 	if ( failed ) return;
+
+	containerObj.rotateX( 0.01 );
+	containerObj.updateMatrix( true );
+	containerObj.updateMatrixWorld( true );
+
+	children.forEach(c => {
+
+		c.updateBoundingSphere();
+		octree.update( c );
+
+	} );
+	octree._runObjectActions();
+
 
 	console.log( 'POSE', `setRay(${ [ ...arguments ].join( ', ' ) })` );
 
@@ -133,6 +151,8 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 	lineMesh.geometry.vertices[ 0 ].copy( r.origin );
 	lineMesh.geometry.vertices[ 1 ].copy( r.origin ).addScaledVector( r.direction.normalize(), 200 );
 	lineMesh.geometry.verticesNeedUpdate = true;
+
+
 
 	console.time( 'Octtree Raycast' );
 	const intersects1 = octree.raycast( rc );
@@ -185,9 +205,9 @@ const setRay = function ( x, y, z, dx, dy, dz ) {
 	}
 
 	sphere.visible = false;
-	if ( intersects3.length > 0 ) {
+	if ( res ) {
 
-		sphere.position.copy( intersects3[ 0 ].point );
+		sphere.position.copy( res.point );
 		lineMesh.geometry.vertices[ 1 ].copy( sphere.position );
 		sphere.visible = true;
 
@@ -214,12 +234,13 @@ for ( let i = 0; i < 10000; i ++ ) {
 
 }
 
+scene.add(new THREE.AxesHelper())
 let theta = 0;
 let phi = 0;
 
 const render = () => {
 
-	theta += 0.001;
+	theta += 0.01;
 	phi += 0.002;
 
 	const x = Math.cos( phi ) * 50;
