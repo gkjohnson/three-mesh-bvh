@@ -57,33 +57,39 @@ function random() {
 }
 
 // Adds a mesh to the scene
+const pos = new THREE.Vector3();
+const rot = new THREE.Quaternion();
+const euler = new THREE.Euler();
+const sca = new THREE.Vector3();
 const addMesh = ( x, y, z, s ) => {
 
-	const mesh = new THREE.Mesh( geom, material );
-	mesh.rotation.x = random() * 10;
-	mesh.rotation.y = random() * 10;
+	pos.set( x, y, z );
+	euler.set( 0, 0, 0 );
+	euler.x = random() * 10;
+	euler.y = random() * 10;
+	rot.setFromEuler( euler );
+	sca.set( s, s, s );
+	const obj = {
 
-	mesh.scale.set( 1, 1, 1 ).multiplyScalar( s );
-	mesh.position.set( x, y, z );
-	mesh.boundingSphere = mesh.geometry.boundingSphere.clone();
+		index: allChildren.length,
+		material: material,
+		matrixWorld: new THREE.Matrix4().compose( pos, rot, sca ),
+		boundingSphere: geom.boundingSphere.clone(),
 
-	mesh.updateMatrix();
-	mesh.updateMatrixWorld();
-	mesh.updateBoundingSphere = () => {
+		mesh: null,
+		raycast( ...args ) {
 
-		mesh.boundingSphere.copy( mesh.geometry.boundingSphere );
-		mesh.boundingSphere.applyMatrix4( mesh.matrixWorld );
+			return this.mesh && this.mesh.raycast( ...args );
+
+		}
 
 	};
 
-	mesh.updateBoundingSphere();
-	octree.add( mesh );
-	mesh.frustumCulled = false;
-	mesh.matrixAutoUpdate = false;
+	obj.boundingSphere.applyMatrix4( obj.matrixWorld );
+	octree.add( obj );
+	allChildren.push( obj );
 
-	allChildren.push( mesh );
-
-	return mesh;
+	return obj;
 
 };
 
@@ -148,6 +154,7 @@ camera2.updateProjectionMatrix();
 camera2.position.set( 4000, 4000, 4000 );
 camera2.lookAt( 0, 0, 0 );
 
+let previousRendered = null;
 const render = () => {
 
 	stats.begin();
@@ -167,8 +174,30 @@ const render = () => {
 	frustum.setFromMatrix( mat );
 
 	const res = octree.frustumCast( frustum );
-	containerObj.remove( ...containerObj.children );
-	if ( res && res.length ) containerObj.add( ...res );
+	while ( containerObj.children.length < res.length ) {
+
+		const mesh = new THREE.Mesh( geom, material );
+		mesh.frustumCulled = false;
+		mesh.matrixAutoUpdate = false;
+		containerObj.add( mesh );
+
+	}
+
+	while ( containerObj.children.length > res.length ) {
+
+		containerObj.remove( containerObj.children[ 0 ] );
+
+	}
+
+	res.forEach( ( o, i ) => {
+
+		containerObj.children[ i ].matrix = o.matrixWorld;
+		containerObj.children[ i ].matrixWorld = o.matrixWorld;
+		containerObj.children[ i ].material = o.material;
+		o.mesh = containerObj.children[ i ];
+		o.mesh.__proxy = o;
+
+	} );
 
 	document.getElementById( 'in-frame' ).innerText = `${ res && res.length || 0 } / ${ allChildren.length } meshes in view`;
 
@@ -190,26 +219,29 @@ const render = () => {
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 let lastHit = null;
+// TODO: Use the Octree here for casting, though it's a little slow at the moment
+// Hopefully SAH can speed it up.
 window.addEventListener( 'mousemove', e => {
 
 	mouse.x = ( e.pageX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( e.pageY / window.innerHeight ) * 2 + 1;
 
+	raycaster.firstHitOnly = true;
 	raycaster.setFromCamera( mouse, camera );
 
 	if ( lastHit ) lastHit.material = material;
 	lastHit = null;
 
-	const hit = octree.raycastFirst( raycaster );
+	const hit = raycaster.intersectObjects( containerObj.children ).shift();
 
 	if ( hit ) {
 
-		hit.object.material = hoverMaterial;
-		lastHit = hit.object;
+		hit.object.__proxy.material = hoverMaterial;
+		lastHit = hit.object.__proxy;
 
 	}
 
-} );
+}, true );
 
 window.addEventListener( 'resize', resizeFunc, false );
 resizeFunc();
