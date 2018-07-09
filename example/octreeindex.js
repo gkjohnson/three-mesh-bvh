@@ -55,6 +55,7 @@ window.octree = octree;
 const lineMesh = new THREE.Line( new THREE.Geometry(), new THREE.LineBasicMaterial( { color: 0xffffff } ) );
 lineMesh.geometry.vertices.push( new THREE.Vector3() );
 lineMesh.geometry.vertices.push( new THREE.Vector3() );
+lineMesh.frustumCulled = false;
 scene.add( lineMesh );
 
 var seed = 1;
@@ -221,9 +222,9 @@ const render = () => {
 	theta += 0.001;
 	phi += 0.002;
 
-	const x = Math.cos( phi ) * 30;
-	const z = Math.sin( phi ) * 30;
-	const y = Math.sin( theta ) * 30;
+	const x = Math.cos( phi ) * 50;
+	const z = Math.sin( phi ) * 50;
+	const y = Math.sin( theta ) * 50;
 
 	setRay( x, y, z, - x, - y, - z );
 
