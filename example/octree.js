@@ -91,7 +91,7 @@ const addMeshes = ( function* addMeshes() {
 
 	const size = 10000;
 	const count = 1000000;
-	for ( let i = 0; i < 1000000; i ++ ) {
+	for ( let i = 0; i < count; i ++ ) {
 
 		if ( i % 1000 === 0 ) {
 
