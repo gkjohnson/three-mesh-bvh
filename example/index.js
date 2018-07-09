@@ -231,12 +231,6 @@ const render = () => {
 
 	if ( boundsViz ) boundsViz.update();
 
-	// raycaster.set(camera.position, new THREE.Vector3(0, 0, -1));
-
-	// const st = window.performance.now();
-	// raycaster.intersectObject(containerObj, true);
-	// console.log(window.performance.now() - st, 'ms')
-
 	rayCasterObjects.forEach( f => f.update() );
 
 	renderer.render( scene, camera );
