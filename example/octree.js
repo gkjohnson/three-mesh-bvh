@@ -95,11 +95,11 @@ const addMesh = ( x, y, z, s ) => {
 
 const addMeshes = ( function* addMeshes() {
 
-	const size = 10000;
-	const count = 1000000;
+	const size = 13000;
+	const count = 2000000;
 	for ( let i = 0; i < count; i ++ ) {
 
-		if ( i % 1000 === 0 ) {
+		if ( i % 10000 === 0 ) {
 
 			document.getElementById( 'loaded' ).style.width = `${ ( ( i + 1 ) / count ) * 100 }%`;
 			yield null;
@@ -154,7 +154,6 @@ camera2.updateProjectionMatrix();
 camera2.position.set( 4000, 4000, 4000 );
 camera2.lookAt( 0, 0, 0 );
 
-let previousRendered = null;
 const render = () => {
 
 	stats.begin();
@@ -189,15 +188,18 @@ const render = () => {
 
 	}
 
-	res.forEach( ( o, i ) => {
+	for ( let i = 0, l = res.length; i < l; i ++ ) {
 
-		containerObj.children[ i ].matrix = o.matrixWorld;
-		containerObj.children[ i ].matrixWorld = o.matrixWorld;
-		containerObj.children[ i ].material = o.material;
-		o.mesh = containerObj.children[ i ];
-		o.mesh.__proxy = o;
+		const o = res[ i ];
+		const c = containerObj.children[ i ];
+		c.matrix = o.matrixWorld;
+		c.matrixWorld = o.matrixWorld;
+		c.material = o.material;
+		c.__proxy = o;
+		o.mesh = c;
 
-	} );
+	}
+
 
 	document.getElementById( 'in-frame' ).innerText = `${ res && res.length || 0 } / ${ allChildren.length } meshes in view`;
 
@@ -232,7 +234,7 @@ window.addEventListener( 'mousemove', e => {
 	if ( lastHit ) lastHit.material = material;
 	lastHit = null;
 
-	const hit = raycaster.intersectObjects( containerObj.children ).shift();
+	const hit = octree.raycastFirst( raycaster );
 
 	if ( hit ) {
 
