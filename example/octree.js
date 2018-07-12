@@ -2,6 +2,7 @@ import * as THREE from '../node_modules/three/build/three.module.js';
 import Stats from '../node_modules/stats.js/src/Stats.js';
 import Octree from '../lib/Octree.js';
 import '../index.js';
+import { create } from 'domain';
 
 const bgColor = 0x263238 / 2;
 
@@ -93,31 +94,28 @@ const addMesh = ( x, y, z, s ) => {
 
 };
 
-const addMeshes = ( function* addMeshes() {
+let createdMeshes = 0;
+const addMeshes = function addMeshes() {
 
 	const size = 13000;
 	const count = 2000000;
-	for ( let i = 0; i < count; i ++ ) {
-
-		if ( i % 10000 === 0 ) {
-
-			document.getElementById( 'loaded' ).style.width = `${ ( ( i + 1 ) / count ) * 100 }%`;
-			yield null;
-
-		}
+	for ( let i = 0; i < 10000 && createdMeshes < count; i ++ ) {
 
 		addMesh( random() * size - size / 2, random() * size - size / 2, random() * size - size / 2, 5 + random() * 10 );
 
 	}
 
-	document.getElementById( 'loaded' ).remove();
+	document.getElementById( 'loaded' ).style.width = `${ ( ( createdMeshes + 1 ) / count ) * 100 }%`;
+	if ( createdMeshes === count ) document.getElementById( 'loaded' ).remove();
 
-} )();
+	return createdMeshes === count;
+
+};
 
 function addMeshesLoop() {
 
-	const res = addMeshes.next();
-	if ( ! res.done ) requestAnimationFrame( addMeshesLoop );
+	const done = addMeshes();
+	if ( ! done ) requestAnimationFrame( addMeshesLoop );
 
 }
 
