@@ -53,12 +53,5 @@ raycaster.intersectObjects( objects );
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets cannot be used.
 - If the geometry is changed, then a call to `computedBoundsTree()` is required to update the bounds tree.
 
-## Approach
-
-TODO
-
 ## TODO
-- Add option to basically devolve to an oct tree to speed up generation of tree
 - Consider progressive generation of the tree, splitting nodes only when necessary
-- Add option to take only the first hit to speed things up
-- Use in conjunction with THREE Octtree for faster queries? Or do something similar
