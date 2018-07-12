@@ -55,3 +55,4 @@ raycaster.intersectObjects( objects );
 
 ## TODO
 - Consider progressive generation of the tree, splitting nodes only when necessary
+- Try to lessen the amount of copied code from THREE
