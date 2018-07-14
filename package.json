@@ -2,25 +2,12 @@
   "main": "index.js",
   "scripts": {
     "start": "static-server",
-    "build": "npm run build-boundstree && npm run build-octree",
-    "build-boundstree": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps",
-    "build-octree": "parcel build ./example/octree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps"
+    "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/threejs-raycast-updates.git"
   },
-  "keywords": [
-    "graphics",
-    "raycast",
-    "tree",
-    "bounds",
-    "threejs",
-    "three-js",
-    "octree",
-    "bounds-hierarchy",
-    "performance"
-  ],
   "author": "Garrett Johnson <garrett.kjohnson@gmail.com>",
   "license": "MIT",
   "bugs": {
