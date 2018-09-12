@@ -23,6 +23,7 @@
     "babel-core": "^6.26.3",
     "babel-jest": "^23.6.0",
     "dat.gui": "^0.7.2",
+    "eslint": "^5.5.0",
     "eslint-config-mdcs": "^4.2.3",
     "jest": "^23.6.0",
     "jest-cli": "^23.6.0",
