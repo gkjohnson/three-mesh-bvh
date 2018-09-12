@@ -65,11 +65,11 @@ describe( 'Raycaster', () => {
 	beforeEach( () => {
 
 		raycaster = new THREE.Raycaster();
-		raycaster.ray.origin.set( 0, 0, - 100 );
+		raycaster.ray.origin.set( 0, 0, - 10 );
 		raycaster.ray.direction.set( 0, 0, 1 );
 
 		scene = new THREE.Scene();
-		geometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+		geometry = new THREE.TorusBufferGeometry( 5, 5, 40, 10 );
 		mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
 
 		scene.add( mesh );
@@ -119,20 +119,14 @@ describe( 'Raycaster', () => {
 
 	describe( 'firstHitOnly = true', () => {
 
-		// TODO: The BVH is not returning the same closest point, possibly because the ray
-		// is intersecting at the seam between multiple triangles / between multiple nodes
-		// and that case is not being handled properly
-		it.skip( 'should yield closest hit only with a bounds tree', () => {
-
-			const allHits = [];
-			const bvhHits = [];
+		it( 'should yield closest hit only with a bounds tree', () => {
 
 			raycaster.firstHitOnly = false;
-			mesh.raycast( raycaster, allHits );
+			const allHits = raycaster.intersectObject( mesh, true );
 
 			raycaster.firstHitOnly = true;
 			geometry.computeBoundsTree();
-			mesh.raycast( raycaster, bvhHits );
+			const bvhHits = raycaster.intersectObject( mesh, true );
 
 			expect( allHits.length ).toEqual( 10 );
 			expect( bvhHits.length ).toEqual( 1 );
