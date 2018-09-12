@@ -180,11 +180,11 @@ describe( 'Random intersections comparison', () => {
 
 	} );
 
-
 	for ( let i = 0; i < 100; i ++ ) {
 
 		it( 'cast ' + i, () => {
 
+			raycaster.firstHitOnly = false;
 			raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
 			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
@@ -194,12 +194,13 @@ describe( 'Random intersections comparison', () => {
 			geometry.boundsTree = boundsTree;
 			const bvhHits = raycaster.intersectObject( scene, true );
 
+			raycaster.firstHitOnly = true;
+			const firstHit = raycaster.intersectObject( scene, true );
+
 			expect( ogHits ).toEqual( bvhHits );
+			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
 
 		} );
-
-		it.skip( 'firstHitOnly cast', () => {} );
-
 
 	}
 
