@@ -1,8 +1,6 @@
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
 function getPrimitiveSize( el ) {
 
-	if ( el === null || el === undefined ) return 0;
-
 	switch ( typeof el ) {
 
 		case 'number':
@@ -12,7 +10,7 @@ function getPrimitiveSize( el ) {
 		case 'boolean':
 			return 4;
 		default:
-			throw new Error( `Unhandled type: '${ typeof el }'` );
+			return 0;
 
 	}
 
@@ -31,9 +29,6 @@ function getSize( obj ) {
 		traversed.push( curr );
 
 		for ( let key in curr ) {
-
-			// console.log(key)
-			// if ( ! (key === 'children' || /^\d+$/.test( key ) ) ) continue;
 
 			if ( ! curr.hasOwnProperty( key ) ) continue;
 

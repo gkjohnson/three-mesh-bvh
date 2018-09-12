@@ -10,7 +10,7 @@ const BenchmarkJS = require( 'benchmarkjs' );
 
 // } );
 
-const geometry = new THREE.TorusBufferGeometry( 5, 5, 200, 50 );
+const geometry = new THREE.TorusBufferGeometry( 5, 5, 100, 25 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
 const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 0, 0, - 10 );
