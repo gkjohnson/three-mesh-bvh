@@ -15,7 +15,7 @@
   },
   "homepage": "https://github.com/gkjohnson/threejs-raycast-updates#readme",
   "peerDependencies": {
-    "three": "^0.89.0"
+    "three": "^0.91.0"
   },
   "devDependencies": {
     "dat.gui": "^0.7.2",
@@ -24,6 +24,6 @@
     "script-loader": "^0.7.2",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
-    "three": "^0.89.0"
+    "three": "^0.96.0"
   }
 }
