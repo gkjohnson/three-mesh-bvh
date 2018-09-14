@@ -1,6 +1,7 @@
 # threejs-fast-raycast
 
 [![lgtm code quality](https://img.shields.io/lgtm/grade/javascript/g/gkjohnson/threejs-fast-raycast.svg?style=flat-square&label=code-quality)](https://lgtm.com/projects/g/gkjohnson/threejs-fast-raycast/)
+[![travis build](https://img.shields.io/travis/gkjohnson/threejs-fast-raycast.svg?style=flat-square)](https://travis-ci.org/gkjohnson/threejs-fast-raycast)
 
 A THREEjs utility for providing more efficient raycasts against sufficiently complex meshes.
 

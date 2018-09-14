@@ -3,7 +3,8 @@
   "scripts": {
     "start": "static-server",
     "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps",
-    "benchmark": "node benchmark --allow-natives-syntax"
+    "test": "jest",
+    "lint": "eslint *.js ./test/*.js"
   },
   "repository": {
     "type": "git",
@@ -19,14 +20,18 @@
     "three": "^0.91.0"
   },
   "devDependencies": {
-    "babel-register": "^6.26.0",
-    "benchmarkjs": "^0.1.8",
+    "babel-core": "^6.26.3",
+    "babel-jest": "^23.6.0",
     "dat.gui": "^0.7.2",
+    "eslint": "^5.5.0",
     "eslint-config-mdcs": "^4.2.3",
+    "jest": "^23.6.0",
+    "jest-cli": "^23.6.0",
     "parcel-bundler": "^1.9.6",
     "script-loader": "^0.7.2",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
     "three": "^0.96.0"
-  }
+  },
+  "dependencies": {}
 }
