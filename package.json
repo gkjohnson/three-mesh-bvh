@@ -5,7 +5,7 @@
     "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps",
     "test": "jest",
     "lint": "eslint *.js ./test/*.js",
-    "benchmark": "node benchmark"
+    "benchmark": "node benchmark/index.js"
   },
   "repository": {
     "type": "git",
