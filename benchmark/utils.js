@@ -16,6 +16,13 @@ function getPrimitiveSize( el ) {
 
 }
 
+function isTypedArray( arr ) {
+
+	const regex = /(Uint|Int|Float)(8|16|32)Array/;
+	return regex.test( arr.constructor.name );
+
+}
+
 function getSize( obj ) {
 
 	const traversed = [ ];
@@ -37,7 +44,15 @@ function getSize( obj ) {
 			const value = curr[ key ];
 			if ( value && ( typeof value === 'object' || typeof value === 'function' ) ) {
 
-				stack.push( value );
+				if ( isTypedArray( value ) ) {
+
+					bytes += value.byteLength;
+
+				} else {
+
+					stack.push( value );
+
+				}
 
 			} else {
 
