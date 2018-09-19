@@ -34,9 +34,9 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
 };
 
-THREE.Geometry.prototype.computeBoundsTree = function ( strat ) {
+THREE.Geometry.prototype.computeBoundsTree = function ( options ) {
 
-	this.boundsTree = new MeshBVH( this, strat );
+	this.boundsTree = new MeshBVH( this, options );
 	return this.boundsTree;
 
 };
@@ -47,9 +47,9 @@ THREE.Geometry.prototype.disposeBoundsTree = function () {
 
 };
 
-THREE.BufferGeometry.prototype.computeBoundsTree = function ( strat ) {
+THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
 
-	this.boundsTree = new MeshBVH( this, strat );
+	this.boundsTree = new MeshBVH( this, options );
 	return this.boundsTree;
 
 };
