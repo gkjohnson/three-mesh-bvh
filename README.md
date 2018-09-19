@@ -55,7 +55,3 @@ raycaster.intersectObjects( objects );
 - Computing the bounds hierarchy is faster for `THREE.BufferGeometry` than it is for `THREE.Geometry`.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets cannot be used.
 - If the geometry is changed, then a call to `computedBoundsTree()` is required to update the bounds tree.
-
-## TODO
-- Consider progressive generation of the tree, splitting nodes only when necessary
-- Try to lessen the amount of copied code from THREE
