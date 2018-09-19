@@ -4,7 +4,8 @@
     "start": "static-server",
     "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps",
     "test": "jest",
-    "lint": "eslint *.js ./test/*.js"
+    "lint": "eslint *.js ./test/*.js",
+    "benchmark": "node benchmark/index.js"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "babel-core": "^6.26.3",
     "babel-jest": "^23.6.0",
+    "babel-require": "^1.0.1",
     "dat.gui": "^0.7.2",
     "eslint": "^5.5.0",
     "eslint-config-mdcs": "^4.2.3",
