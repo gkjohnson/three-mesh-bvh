@@ -1,5 +1,5 @@
 /* global
-    describe it beforeAll beforeEach expect
+    describe it beforeAll beforeEach afterEach expect
 */
 
 import * as THREE from '../node_modules/three/build/three.module.js';
@@ -51,6 +51,65 @@ describe( 'Bounds Tree', () => {
 		raycaster.firstHitOnly = true;
 		mesh.raycast( raycaster, [] );
 		expect( calledRaycastFirst ).toBeTruthy();
+
+	} );
+
+} );
+
+describe( 'Options', () => {
+
+	let mesh = null;
+	beforeAll( () => {
+
+		const geometry = new THREE.TorusBufferGeometry( 5, 5, 400, 100 );
+		mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
+
+	} );
+
+	describe( 'maxDepth', () => {
+
+		// Returns the max tree depth of the BVH
+		function getMaxDepth( node, depth = 0 ) {
+
+			if ( ! node.children ) return depth;
+
+			return node.children.reduce( ( acc, n ) => {
+
+				return Math.max( getMaxDepth( n, depth + 1 ), acc );
+
+			}, depth );
+
+		}
+
+		it( 'should not be limited by default', () => {
+
+			mesh.geometry.computeBoundsTree();
+
+			const depth = getMaxDepth( mesh.geometry.boundsTree );
+			expect( depth ).toBeGreaterThan( 10 );
+
+		} );
+
+		it( 'should cap the depth of the bounds tree', () => {
+
+			mesh.geometry.computeBoundsTree( { maxDepth: 10 } );
+
+			const depth = getMaxDepth( mesh.geometry.boundsTree );
+			expect( depth ).toEqual( 10 );
+
+		} );
+
+	} );
+
+	describe( 'strategy', () => {
+
+		it.skip( 'should set the split strategy', () => {} );
+
+	} );
+
+	afterEach( () => {
+
+		mesh.geometry.boundsTree = null;
 
 	} );
 
