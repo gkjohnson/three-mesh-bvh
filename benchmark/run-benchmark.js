@@ -2,7 +2,7 @@ import { getSize, pad, runBenchmark } from './utils.js';
 import * as THREE from '../node_modules/three/build/three.module.js';
 import '../index.js';
 
-const geometry = new THREE.TorusBufferGeometry( 5, 5, 100, 25 );
+const geometry = new THREE.TorusBufferGeometry( 5, 5, 1000, 25 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
 const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 0, 0, - 10 );
