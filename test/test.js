@@ -17,16 +17,6 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
-	it( 'should be generated when calling Geometry.computeBoundsTree', () => {
-
-		const geom = new THREE.SphereGeometry( 1, 1, 1 );
-		expect( geom.boundsTree ).not.toBeDefined();
-
-		geom.computeBoundsTree();
-		expect( geom.boundsTree ).toBeDefined();
-
-	} );
-
 	it( 'should use the boundsTree when raycasting if available', () => {
 
 		const geom = new THREE.SphereBufferGeometry( 1, 1, 1 );

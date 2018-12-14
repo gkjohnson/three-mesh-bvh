@@ -34,23 +34,10 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
 };
 
-THREE.Geometry.prototype.computeBoundsTree = function ( options ) {
-
-	this.boundsTree = new MeshBVH( this, options );
-	return this.boundsTree;
-
-};
-
-THREE.Geometry.prototype.disposeBoundsTree = function () {
-
-	this.boundsTree = null;
-
-};
-
 THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
 
 	this.boundsTree = new MeshBVH( this, options );
-	this.setIndex(new THREE.BufferAttribute(this.boundsTree.index, 1));
+	this.setIndex( new THREE.BufferAttribute( this.boundsTree.index, 1 ) );
 	return this.boundsTree;
 
 };
