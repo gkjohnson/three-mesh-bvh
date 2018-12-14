@@ -21,8 +21,7 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
 		} else {
 
-			let seenFaces = {};
-			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects, seenFaces );
+			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects );
 
 		}
 
