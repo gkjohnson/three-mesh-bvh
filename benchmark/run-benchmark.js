@@ -57,12 +57,12 @@ runBenchmark(
 console.log( '' );
 
 geometry.computeBoundsTree();
-const bvhSize = getSize( geometry.boundsTree );
-console.log( `${ pad( 'BVH Memory Usage', 25 ) }: ${ bvhSize / 1000 } kb` );
 
-// NOTE: There is a reference to the geometry in the bounds tree so the
-// geometry will get rolled up with the tree. Subtract it out here.
+// NOTE: There is a reference to the index in the bounds tree so the
+// index will get rolled up with the tree. Subtract it out here.
 // If the reference is removed then this will no longer be valid.
-geometry.boundsTree = null;
-const geoSize = getSize( geometry );
-console.log( `${ pad( 'Geometry Memory Usage', 25 ) }: ${ geoSize / 1000 } kb` );
+const indexSize = getSize( geometry.boundsTree.index );
+console.log( `${ pad( 'Index Memory Usage', 25 ) }: ${ indexSize / 1000 } kb` );
+
+const bvhSize = getSize( geometry.boundsTree ) - indexSize;
+console.log( `${ pad( 'BVH Memory Usage', 25 ) }: ${ bvhSize / 1000 } kb` );
