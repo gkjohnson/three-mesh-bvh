@@ -36,7 +36,7 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
 
 	this.boundsTree = new MeshBVH( this, options );
-	this.setIndex( new THREE.BufferAttribute( this.boundsTree.index, 1 ) );
+	this.setIndex( this.boundsTree.index );
 	return this.boundsTree;
 
 };

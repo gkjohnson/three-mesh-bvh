@@ -3,6 +3,7 @@
 */
 
 import * as THREE from '../node_modules/three/build/three.module.js';
+import MeshBVH from '../lib/MeshBVH.js';
 import '../index.js';
 
 describe( 'Bounds Tree', () => {
@@ -170,11 +171,14 @@ describe( 'Raycaster', () => {
 
 		it( 'should yield closest hit only with a bounds tree', () => {
 
+			const bvh = new MeshBVH( geometry );
+			geometry.setIndex( bvh.index );
+
 			raycaster.firstHitOnly = false;
 			const allHits = raycaster.intersectObject( mesh, true );
 
+			geometry.boundsTree = bvh;
 			raycaster.firstHitOnly = true;
-			geometry.computeBoundsTree();
 			const bvhHits = raycaster.intersectObject( mesh, true );
 
 			expect( allHits.length ).toEqual( 10 );
