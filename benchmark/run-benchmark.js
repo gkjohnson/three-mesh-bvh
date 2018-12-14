@@ -58,7 +58,7 @@ console.log( '' );
 
 geometry.computeBoundsTree();
 const bvhSize = getSize( geometry.boundsTree );
-console.log( `${ pad( 'Total Memory Usage', 25 ) }: ${ bvhSize / 1000 } kb` );
+console.log( `${ pad( 'BVH Memory Usage', 25 ) }: ${ bvhSize / 1000 } kb` );
 
 // NOTE: There is a reference to the geometry in the bounds tree so the
 // geometry will get rolled up with the tree. Subtract it out here.
@@ -66,5 +66,3 @@ console.log( `${ pad( 'Total Memory Usage', 25 ) }: ${ bvhSize / 1000 } kb` );
 geometry.boundsTree = null;
 const geoSize = getSize( geometry );
 console.log( `${ pad( 'Geometry Memory Usage', 25 ) }: ${ geoSize / 1000 } kb` );
-
-console.log( `${ pad( 'Bounds Tree Memory Usage', 25 ) }: ${ ( bvhSize - geoSize ) / 1000 } kb` );
