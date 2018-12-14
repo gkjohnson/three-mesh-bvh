@@ -50,6 +50,7 @@ THREE.Geometry.prototype.disposeBoundsTree = function () {
 THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
 
 	this.boundsTree = new MeshBVH( this, options );
+	this.setIndex(new THREE.BufferAttribute(this.boundsTree.index, 1));
 	return this.boundsTree;
 
 };
