@@ -2,7 +2,7 @@
     describe it beforeAll beforeEach afterEach expect
 */
 
-import * as THREE from '../node_modules/three/build/three.module.js';
+import * as THREE from 'three';
 import MeshBVH from '../src/MeshBVH.js';
 import '../src/index.js';
 

@@ -1,4 +1,4 @@
-import { Vector3, Vector2, Triangle, DoubleSide, BackSide, Face3 } from '../node_modules/three/build/three.module.js';
+import { Vector3, Vector2, Triangle, DoubleSide, BackSide, Face3 } from 'three';
 
 // From THREE.js Mesh raycast
 var vA = new Vector3();

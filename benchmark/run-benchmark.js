@@ -1,5 +1,5 @@
+import * as THREE from 'three';
 import { getSize, pad, runBenchmark } from './utils.js';
-import * as THREE from '../node_modules/three/build/three.module.js';
 import '../src/index.js';
 
 const geometry = new THREE.TorusBufferGeometry( 5, 5, 1000, 25 );
