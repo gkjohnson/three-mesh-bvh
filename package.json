@@ -1,6 +1,9 @@
 {
-	"module": "src/index.js",
-	"main": "umd/index.js",
+  "name": "threejs-fast-raycast",
+  "version": "0.0.1",
+  "description": "A BVH implementation to speed up raycasting against three.js meshes.",
+  "module": "src/index.js",
+  "main": "umd/index.js",
   "scripts": {
     "start": "static-server",
     "build": " rollup -c & parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
@@ -10,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gkjohnson/threejs-raycast-updates.git"
+    "url": "git+https://github.com/gkjohnson/threejs-fast-raycast.git"
   },
   "author": "Garrett Johnson <garrett.kjohnson@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/gkjohnson/threejs-raycast-updates/issues"
+    "url": "https://github.com/gkjohnson/threejs-fast-raycast/issues"
   },
-  "homepage": "https://github.com/gkjohnson/threejs-raycast-updates#readme",
+  "homepage": "https://github.com/gkjohnson/threejs-fast-raycast#readme",
   "peerDependencies": {
     "three": "^0.91.0"
   },
