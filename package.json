@@ -2,7 +2,7 @@
   "main": "index.js",
   "scripts": {
     "start": "static-server",
-    "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps",
+    "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
     "lint": "eslint *.js ./test/*.js",
     "benchmark": "node benchmark/index.js"
@@ -26,7 +26,7 @@
     "@babel/register": "^7.0.0",
     "babel-core": "^7.0.0-bridge.0",
     "babel-jest": "^23.6.0",
-    "dat.gui": "^0.7.2",
+    "dat.gui": "^0.7.3",
     "eslint": "^5.5.0",
     "eslint-config-mdcs": "^4.2.3",
     "jest": "^23.6.0",

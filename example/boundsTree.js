@@ -1,4 +1,5 @@
 import * as THREE from '../node_modules/three/build/three.module.js';
+import * as dat from 'dat.gui';
 import Stats from '../node_modules/stats.js/src/Stats.js';
 import MeshBVHVisualizer from '../lib/MeshBVHVisualizer.js';
 import '../index.js';
