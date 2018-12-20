@@ -21,8 +21,7 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
 		} else {
 
-			let seenFaces = {};
-			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects, seenFaces );
+			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects );
 
 		}
 
@@ -34,22 +33,10 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
 };
 
-THREE.Geometry.prototype.computeBoundsTree = function ( options ) {
-
-	this.boundsTree = new MeshBVH( this, options );
-	return this.boundsTree;
-
-};
-
-THREE.Geometry.prototype.disposeBoundsTree = function () {
-
-	this.boundsTree = null;
-
-};
-
 THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
 
 	this.boundsTree = new MeshBVH( this, options );
+	this.setIndex( this.boundsTree.index );
 	return this.boundsTree;
 
 };

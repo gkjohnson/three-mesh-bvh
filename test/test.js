@@ -3,6 +3,7 @@
 */
 
 import * as THREE from '../node_modules/three/build/three.module.js';
+import MeshBVH from '../lib/MeshBVH.js';
 import '../index.js';
 
 describe( 'Bounds Tree', () => {
@@ -10,16 +11,6 @@ describe( 'Bounds Tree', () => {
 	it( 'should be generated when calling BufferGeometry.computeBoundsTree', () => {
 
 		const geom = new THREE.SphereBufferGeometry( 1, 1, 1 );
-		expect( geom.boundsTree ).not.toBeDefined();
-
-		geom.computeBoundsTree();
-		expect( geom.boundsTree ).toBeDefined();
-
-	} );
-
-	it( 'should be generated when calling Geometry.computeBoundsTree', () => {
-
-		const geom = new THREE.SphereGeometry( 1, 1, 1 );
 		expect( geom.boundsTree ).not.toBeDefined();
 
 		geom.computeBoundsTree();
@@ -180,11 +171,14 @@ describe( 'Raycaster', () => {
 
 		it( 'should yield closest hit only with a bounds tree', () => {
 
+			const bvh = new MeshBVH( geometry );
+			geometry.setIndex( bvh.index );
+
 			raycaster.firstHitOnly = false;
 			const allHits = raycaster.intersectObject( mesh, true );
 
+			geometry.boundsTree = bvh;
 			raycaster.firstHitOnly = true;
-			geometry.computeBoundsTree();
 			const bvhHits = raycaster.intersectObject( mesh, true );
 
 			expect( allHits.length ).toEqual( 10 );

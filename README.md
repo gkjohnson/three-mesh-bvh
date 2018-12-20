@@ -26,7 +26,7 @@ geom.computeBoundsTree();
 ```
 
 ### THREE API Extensions
-#### BufferGeometry & Geometry
+#### BufferGeometry
 ##### computeBoundsTree()
 
 Computes a bounds hierarchy for the geometry which is used to for raycasts. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
@@ -52,6 +52,7 @@ raycaster.intersectObjects( objects );
 ## Gotchas
 
 - This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
-- Computing the bounds hierarchy is faster for `THREE.BufferGeometry` than it is for `THREE.Geometry`.
+- A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
+  be produced and retained as a side effect of the construction.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets cannot be used.
 - If the geometry is changed, then a call to `computedBoundsTree()` is required to update the bounds tree.
