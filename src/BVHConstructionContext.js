@@ -230,15 +230,19 @@ export default class BVHConstructionContext {
 		if ( strategy === SplitStrategy.CENTER ) {
 
 			axis = getLongestEdgeIndex( bounds );
-			if (axis !== -1) {
-				pos = (bounds[ axis + 3 ] + bounds[ axis ]) / 2;
+			if ( axis !== - 1 ) {
+
+				pos = ( bounds[ axis + 3 ] + bounds[ axis ] ) / 2;
+
 			}
 
 		} else if ( strategy === SplitStrategy.AVERAGE ) {
 
 			axis = getLongestEdgeIndex( bounds );
-			if (axis !== -1) {
+			if ( axis !== - 1 ) {
+
 				pos = this.getAverage( offset, count, axis );
+
 			}
 
 		} else if ( strategy === SplitStrategy.SAH ) {

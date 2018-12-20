@@ -48,6 +48,6 @@ function getLongestEdgeIndex( bounds ) {
 
 	return splitDimIdx;
 
-};
+}
 
 export { boundsToArray, arrayToBox, getLongestEdgeIndex };
