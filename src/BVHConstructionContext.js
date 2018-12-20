@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getLongestEdgeIndex } from './GeometryUtilities.js';
+import { arrayToBox, getLongestEdgeIndex } from './BoundsUtilities.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
 
@@ -69,8 +69,7 @@ const SplitStrategy = {
 	}
 };
 
-const avgtemp = new THREE.Vector3();
-const centertemp = new THREE.Vector3();
+const boxtemp = new THREE.Box3();
 
 export default class BVHConstructionContext {
 
@@ -107,34 +106,24 @@ export default class BVHConstructionContext {
 
 	}
 
-	// returns the average point of the all the provided
-	// triangles in the geometry
-	getAverage( offset, count, avg ) {
+	// returns the average coordinate on the specified axis of the all the provided triangles
+	getAverage( offset, count, axis ) {
 
-		let avgx = 0;
-		let avgy = 0;
-		let avgz = 0;
+		let avg = 0;
 		const centroids = this.centroids;
 		const tris = this.tris;
 
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			const tri = tris[ i ];
-
-			avgx += centroids[ tri * 3 + 0 ];
-			avgy += centroids[ tri * 3 + 1 ];
-			avgz += centroids[ tri * 3 + 2 ];
+			avg += centroids[ tris[ i ] * 3 + axis ];
 
 		}
 
-		avg.x = avgx / ( count * 3 );
-		avg.y = avgy / ( count * 3 );
-		avg.z = avgz / ( count * 3 );
+		return avg / ( count * 3 );
 
 	}
 
-	// shrinks the provided bounds on any dimensions to fit
-	// the provided triangles
+	// shrinks the provided bounds on any dimensions to fit the provided triangles
 	shrinkBoundsTo( offset, count, parent, target ) {
 
 		let minx = Infinity;
@@ -232,7 +221,7 @@ export default class BVHConstructionContext {
 
 	}
 
-	getOptimalSplit( bb, offset, count, strategy ) {
+	getOptimalSplit( bounds, offset, count, strategy ) {
 
 		let axis = - 1;
 		let pos = 0;
@@ -240,15 +229,17 @@ export default class BVHConstructionContext {
 		// Center
 		if ( strategy === SplitStrategy.CENTER ) {
 
-			axis = getLongestEdgeIndex( bb );
-			bb.getCenter( centertemp );
-			pos = centertemp[ xyzFields[ axis ] ];
+			axis = getLongestEdgeIndex( bounds );
+			if (axis !== -1) {
+				pos = (bounds[ axis + 3 ] + bounds[ axis ]) / 2;
+			}
 
 		} else if ( strategy === SplitStrategy.AVERAGE ) {
 
-			axis = getLongestEdgeIndex( bb );
-			this.getAverage( offset, count, avgtemp );
-			pos = avgtemp[ xyzFields[ axis ] ];
+			axis = getLongestEdgeIndex( bounds );
+			if (axis !== -1) {
+				pos = this.getAverage( offset, count, axis );
+			}
 
 		} else if ( strategy === SplitStrategy.SAH ) {
 
@@ -263,6 +254,7 @@ export default class BVHConstructionContext {
 			const TRAVERSAL_COST = 3;
 			const INTERSECTION_COST = 1;
 			const tris = this.tris;
+			const bb = arrayToBox( bounds, boxtemp );
 
 			// Define the width, height, and depth of the bounds as a box
 			const dim = [

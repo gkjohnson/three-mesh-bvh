@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
-import { arrayToBox, boundsToArray } from './BoundsUtilities.js';
+import { boundsToArray } from './BoundsUtilities.js';
 
 export default class MeshBVH extends MeshBVHNode {
 
@@ -38,7 +38,6 @@ export default class MeshBVH extends MeshBVHNode {
 		const verticesLength = geo.attributes.position.count;
 		const indicesLength = ctx.tris.length * 3;
 		const indices = new ( verticesLength < 65536 ? Uint16Array : Uint32Array )( indicesLength );
-		const boxtemp = new THREE.Box3();
 
 		// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
@@ -55,8 +54,7 @@ export default class MeshBVH extends MeshBVHNode {
 			}
 
 			// Find where to split the volume
-			arrayToBox( node.boundingData, boxtemp );
-			const split = ctx.getOptimalSplit( boxtemp, offset, count, options.strategy );
+			const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
 			if ( split.axis === - 1 ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
