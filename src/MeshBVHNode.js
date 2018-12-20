@@ -45,12 +45,28 @@ class MeshBVHNode {
 
 		} else {
 
+
 			// consider the position of the split plane with respect to the oncoming ray; whichever direction
 			// the ray is coming from, look for an intersection among that side of the tree first
+			const children = this.children;
+			const splitAxis = this.splitAxis;
+			const xyzAxis = xyzFields[ splitAxis ];
+			const rayDir = ray.direction[ xyzAxis ];
+			const leftToRight = rayDir >= 0;
+			const l2rFactor = leftToRight ? - 1 : 1;
 
-			const leftToRight = ray.direction[ xyzFields[ this.splitAxis ] ] >= 0;
-			const c1 = leftToRight ? this.children[ 0 ] : this.children[ 1 ];
-			const c2 = leftToRight ? this.children[ 1 ] : this.children[ 0 ];
+			let c1, c2;
+			if ( leftToRight ) {
+
+				c1 = children[ 0 ];
+				c2 = children[ 1 ];
+
+			} else {
+
+				c1 = children[ 1 ];
+				c2 = children[ 0 ];
+
+			}
 
 			const c1Intersection = c1.intersectRay( ray, boxIntersection );
 			const c1Result = c1Intersection ? c1.raycastFirst( mesh, raycaster, ray ) : null;
@@ -61,7 +77,11 @@ class MeshBVHNode {
 
 			if ( c1Result && c2Intersection ) {
 
-				if ( c1Result.distance * c1Result.distance <= ray.origin.distanceToSquared( c2Intersection ) ) {
+				const rayOrig = ray.origin[ xyzAxis ];
+				const toPoint = rayOrig - c1Result.point[ xyzAxis ];
+				const toChild = rayOrig - c2Intersection[ xyzAxis ];
+
+				if ( toPoint * toPoint <= toChild * toChild ) {
 
 					return c1Result;
 
