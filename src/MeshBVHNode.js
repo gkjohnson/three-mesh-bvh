@@ -53,7 +53,6 @@ class MeshBVHNode {
 			const xyzAxis = xyzFields[ splitAxis ];
 			const rayDir = ray.direction[ xyzAxis ];
 			const leftToRight = rayDir >= 0;
-			const l2rFactor = leftToRight ? - 1 : 1;
 
 			let c1, c2;
 			if ( leftToRight ) {
@@ -70,18 +69,19 @@ class MeshBVHNode {
 
 			const c1Intersection = c1.intersectRay( ray, boxIntersection );
 			const c1Result = c1Intersection ? c1.raycastFirst( mesh, raycaster, ray ) : null;
-			const c2Intersection = c2.intersectRay( ray, boxIntersection );
 
 			// if we got an intersection in the first node and it's closer than the second node's bounding
 			// box, we don't need to consider the second node because it couldn't possibly be a better result
 
-			if ( c1Result && c2Intersection ) {
+			if ( c1Result ) {
 
 				const rayOrig = ray.origin[ xyzAxis ];
 				const toPoint = rayOrig - c1Result.point[ xyzAxis ];
-				const toChild = rayOrig - c2Intersection[ xyzAxis ];
+				const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
+				const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
 
-				if ( toPoint * toPoint <= toChild * toChild ) {
+				const toPoint2 = toPoint * toPoint;
+				if ( toPoint2 <= toChild1 * toChild1 && toPoint2 <= toChild2 * toChild2 ) {
 
 					return c1Result;
 
@@ -91,7 +91,7 @@ class MeshBVHNode {
 
 			// either there was no intersection in the first node, or there could still be a closer
 			// intersection in the second, so check the second node and then take the better of the two
-
+			const c2Intersection = c2.intersectRay( ray, boxIntersection );
 			const c2Result = c2Intersection ? c2.raycastFirst( mesh, raycaster, ray ) : null;
 
 			if ( c1Result && c2Result ) {
