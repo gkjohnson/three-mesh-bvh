@@ -1,5 +1,5 @@
 {
-  "main": "index.js",
+  "module": "src/index.js",
   "scripts": {
     "start": "static-server",
     "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",

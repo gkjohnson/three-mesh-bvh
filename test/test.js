@@ -3,8 +3,8 @@
 */
 
 import * as THREE from '../node_modules/three/build/three.module.js';
-import MeshBVH from '../lib/MeshBVH.js';
-import '../index.js';
+import MeshBVH from '../src/MeshBVH.js';
+import '../src/index.js';
 
 describe( 'Bounds Tree', () => {
 

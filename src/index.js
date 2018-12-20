@@ -1,5 +1,5 @@
-import * as THREE from './node_modules/three/build/three.module.js';
-import MeshBVH from './lib/MeshBVH.js';
+import * as THREE from '../node_modules/three/build/three.module.js';
+import MeshBVH from './MeshBVH.js';
 
 const ray = new THREE.Ray();
 const inverseMatrix = new THREE.Matrix4();
