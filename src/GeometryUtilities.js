@@ -6,7 +6,7 @@ const getLongestEdgeIndex = ( bb ) => {
 
 	let splitDimIdx = - 1;
 	let splitDist = - Infinity;
-	for ( let i = 0; i < xyzFields.length; i++ ) {
+	for ( let i = 0; i < xyzFields.length; i ++ ) {
 
 		const d = xyzFields[ i ];
 		const dist = bb.max[ d ] - bb.min[ d ];

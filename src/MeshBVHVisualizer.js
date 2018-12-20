@@ -56,6 +56,7 @@ class MeshBVHVisualizer extends THREE.Object3D {
 						n.children.forEach( n => recurse( n, d + 1 ) );
 
 					}
+
 				};
 
 				recurse( this._boundsTree._root, 0 );

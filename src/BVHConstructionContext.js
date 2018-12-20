@@ -7,7 +7,7 @@ function getTriangleCount( geo ) {
 
 	return geo.index ? ( geo.index.count / 3 ) : ( geo.attributes.position.count / 3 );
 
-};
+}
 
 // TODO: This could probably be optimizied to not dig so deeply into an object
 // and reust some of the fetch values in some cases
@@ -15,7 +15,7 @@ function getBufferGeometryVertexElem( geo, tri, vert, elem ) {
 
 	return geo.attributes.position.array[ ( geo.index ? geo.index.array[ 3 * tri + vert ] : ( 3 * tri + vert ) ) * 3 + elem ];
 
-};
+}
 
 // precomputes data about each triangle required for quickly calculating tree splits:
 //
@@ -84,7 +84,7 @@ export default class BVHConstructionContext {
 		this.bounds = data.bounds;
 
 		// a list of every available triangle index
-		const triCount = getTriangleCount ( geo );
+		const triCount = getTriangleCount( geo );
 		this.tris = new Array( triCount );
 		for ( let i = 0; i < triCount; i ++ ) this.tris[ i ] = i;
 
@@ -173,14 +173,14 @@ export default class BVHConstructionContext {
 
 	// writes entries into a new geometry index (target) with the vertices of triangles from
 	// offset through count
-	writeReorderedIndices ( offset, count, target ) {
+	writeReorderedIndices( offset, count, target ) {
 
 		const tris = this.tris;
 		const oldIndices = this.geo.index ? this.geo.index.array : null;
 
-		for (let i = offset, end = offset + count; i < end; i++) {
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			const oldTri = tris[i];
+			const oldTri = tris[ i ];
 			target[ 3 * i + 0 ] = oldIndices ? oldIndices[ 3 * oldTri + 0 ] : 3 * oldTri + 0;
 			target[ 3 * i + 1 ] = oldIndices ? oldIndices[ 3 * oldTri + 1 ] : 3 * oldTri + 1;
 			target[ 3 * i + 2 ] = oldIndices ? oldIndices[ 3 * oldTri + 2 ] : 3 * oldTri + 1;
@@ -192,7 +192,7 @@ export default class BVHConstructionContext {
 	// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 	// will be on the left and elements on the right side of the split will be on the right. returns the index
 	// of the first element on the right side, or offset + count if there are no elements on the right side.
-	partition ( offset, count, split ) {
+	partition( offset, count, split ) {
 
 		let left = offset;
 		let right = offset + count - 1;
@@ -206,13 +206,13 @@ export default class BVHConstructionContext {
 
 			while ( centroids[ tris[ left ] * 3 + axis ] < pos ) {
 
-				left++;
+				left ++;
 
 			}
 
 			while ( centroids[ tris[ right ] * 3 + axis ] >= pos ) {
 
-				right--;
+				right --;
 
 			}
 
@@ -221,8 +221,8 @@ export default class BVHConstructionContext {
 				let tmp = tris[ left ];
 				tris[ left ] = tris[ right ];
 				tris[ right ] = tmp;
-				left++;
-				right--;
+				left ++;
+				right --;
 
 			}
 

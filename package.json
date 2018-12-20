@@ -4,7 +4,7 @@
     "start": "static-server",
     "build": "parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
-    "lint": "eslint *.js ./test/*.js",
+    "lint": "eslint ./src/*.js ./test/*.js",
     "benchmark": "node benchmark/index.js"
   },
   "repository": {

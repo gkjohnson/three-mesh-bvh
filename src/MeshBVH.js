@@ -90,7 +90,7 @@ export default class MeshBVH extends MeshBVHNode {
 				splitNode( right, rstart, rcount, depth + 1 );
 
 				node.splitAxis = split.axis;
-				node.children = [left, right];
+				node.children = [ left, right ];
 
 			}
 
