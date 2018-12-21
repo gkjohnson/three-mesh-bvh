@@ -54,6 +54,7 @@ class MeshBVHNode {
 			const rayDir = ray.direction[ xyzAxis ];
 			const leftToRight = rayDir >= 0;
 
+			// c1 is the child to check first
 			let c1, c2;
 			if ( leftToRight ) {
 
@@ -72,16 +73,16 @@ class MeshBVHNode {
 
 			// if we got an intersection in the first node and it's closer than the second node's bounding
 			// box, we don't need to consider the second node because it couldn't possibly be a better result
-
 			if ( c1Result ) {
 
+				// check only along the split axis
 				const rayOrig = ray.origin[ xyzAxis ];
 				const toPoint = rayOrig - c1Result.point[ xyzAxis ];
 				const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
 				const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
 
-				const toPoint2 = toPoint * toPoint;
-				if ( toPoint2 <= toChild1 * toChild1 && toPoint2 <= toChild2 * toChild2 ) {
+				const toPointSq = toPoint * toPoint;
+				if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
 
 					return c1Result;
 
