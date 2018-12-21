@@ -1,28 +1,5 @@
 import { checkBufferGeometryIntersection } from './IntersectionUtilities.js';
 
-const xyzFields = [ 'x', 'y', 'z' ];
-
-const getLongestEdgeIndex = ( bb ) => {
-
-	let splitDimIdx = - 1;
-	let splitDist = - Infinity;
-	for ( let i = 0; i < xyzFields.length; i ++ ) {
-
-		const d = xyzFields[ i ];
-		const dist = bb.max[ d ] - bb.min[ d ];
-		if ( dist > splitDist ) {
-
-			splitDist = dist;
-			splitDimIdx = i;
-
-		}
-
-	}
-
-	return splitDimIdx;
-
-};
-
 // For BVH code specifically. Does not check morph targets
 // Copied from mesh raycasting
 // Ripped an modified from the THREE.js source in Mesh.CS
@@ -78,5 +55,5 @@ const intersectClosestTri = ( mesh, geo, raycaster, ray, offset, count ) => {
 };
 
 export {
-	getLongestEdgeIndex, intersectTri, intersectTris, intersectClosestTri
+	intersectTri, intersectTris, intersectClosestTri
 };
