@@ -15,7 +15,7 @@ export default class MeshBVH extends MeshBVHNode {
 
 			strategy: CENTER,
 			maxDepth: Infinity,
-			maxLeafNodes: 10
+			maxLeafTris: 10
 
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
@@ -44,8 +44,8 @@ export default class MeshBVH extends MeshBVHNode {
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
-			// early out wif we've met our capacity
-			if ( count <= options.maxLeafNodes ) {
+			// early out if we've met our capacity
+			if ( count <= options.maxLeafTris ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
