@@ -94,6 +94,25 @@ describe( 'Options', () => {
 
 		} );
 
+		it.only( 'successfully raycast', () => {
+
+			const raycaster = new THREE.Raycaster();
+			raycaster.ray.origin.set( 0, 0, 10 );
+			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 );
+
+			const ogHits = raycaster.intersectObject( mesh, [] );
+
+			mesh.geometry.computeBoundsTree( { maxDepth: 3 } );
+			const bvhHits = raycaster.intersectObject( mesh, [] );
+
+			raycaster.raycastFirst = true;
+			const firstHit = raycaster.intersectObject( mesh, [] );
+
+			expect( ogHits ).toEqual( bvhHits );
+			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
+
+		} );
+
 	} );
 
 	describe( 'strategy', () => {
