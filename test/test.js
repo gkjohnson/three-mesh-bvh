@@ -3,8 +3,7 @@
 */
 
 import * as THREE from 'three';
-import MeshBVH from '../src/MeshBVH.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -94,19 +93,22 @@ describe( 'Options', () => {
 
 		} );
 
-		it.only( 'successfully raycast', () => {
+		it( 'successfully raycast', () => {
 
 			const raycaster = new THREE.Raycaster();
 			raycaster.ray.origin.set( 0, 0, 10 );
-			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 );
+			raycaster.ray.direction.set( 0, 0, - 1 );
 
-			const ogHits = raycaster.intersectObject( mesh, [] );
+			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3 } );
+			mesh.geometry.setIndex( bvh.index );
 
-			mesh.geometry.computeBoundsTree( { maxDepth: 3 } );
-			const bvhHits = raycaster.intersectObject( mesh, [] );
+			const ogHits = raycaster.intersectObject( mesh, true );
+
+			mesh.geometry.boundsTree = bvh;
+			const bvhHits = raycaster.intersectObject( mesh, true );
 
 			raycaster.raycastFirst = true;
-			const firstHit = raycaster.intersectObject( mesh, [] );
+			const firstHit = raycaster.intersectObject( mesh, true );
 
 			expect( ogHits ).toEqual( bvhHits );
 			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
