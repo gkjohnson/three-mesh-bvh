@@ -68,13 +68,13 @@ export default class MeshBVH extends MeshBVHNode {
 			const splitOffset = ctx.partition( offset, count, split );
 
 			// create the two new child nodes
-			if ( splitOffset === offset || splitOffset === offset + count ) {
+			if ( splitOffset === offset || splitOffset === offset + count || depth >= options.maxDepth ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
 				node.count = count;
 
-			} else if ( depth < options.maxDepth ) {
+			} else {
 
 				// create the left child, keeping the bounds within the bounds of the parent
 				const left = new MeshBVHNode();
