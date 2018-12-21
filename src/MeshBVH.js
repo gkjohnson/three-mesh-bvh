@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
 import { boundsToArray } from './BoundsUtilities.js';
+import { CENTER } from './Constants.js';
 
 export default class MeshBVH extends MeshBVHNode {
 
@@ -12,7 +13,7 @@ export default class MeshBVH extends MeshBVHNode {
 		// default options
 		options = Object.assign( {
 
-			strategy: 0,
+			strategy: CENTER,
 			maxDepth: Infinity,
 			maxLeafNodes: 10
 

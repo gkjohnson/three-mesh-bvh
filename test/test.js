@@ -4,7 +4,11 @@
 
 import * as THREE from 'three';
 import MeshBVH from '../src/MeshBVH.js';
-import '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 describe( 'Bounds Tree', () => {
 

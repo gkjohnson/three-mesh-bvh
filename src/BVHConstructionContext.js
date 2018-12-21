@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { arrayToBox, getLongestEdgeIndex } from './BoundsUtilities.js';
+import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
 
@@ -51,24 +52,6 @@ function computeTriangleData( geo ) {
 
 }
 
-const SplitStrategy = {
-	get CENTER() {
-
-		return 0;
-
-	},
-	get AVERAGE() {
-
-		return 1;
-
-	},
-	get SAH() {
-
-		return 2;
-
-	}
-};
-
 const boxtemp = new THREE.Box3();
 
 export default class BVHConstructionContext {
@@ -89,7 +72,7 @@ export default class BVHConstructionContext {
 
 		// SAH Initialization
 		this.sahplanes = null;
-		if ( options.strategy === SplitStrategy.SAH ) {
+		if ( options.strategy === SAH ) {
 
 			this.sahplanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
 			for ( let tri = 0; tri < triCount; tri ++ ) {
@@ -227,7 +210,7 @@ export default class BVHConstructionContext {
 		let pos = 0;
 
 		// Center
-		if ( strategy === SplitStrategy.CENTER ) {
+		if ( strategy === CENTER ) {
 
 			axis = getLongestEdgeIndex( bounds );
 			if ( axis !== - 1 ) {
@@ -236,7 +219,7 @@ export default class BVHConstructionContext {
 
 			}
 
-		} else if ( strategy === SplitStrategy.AVERAGE ) {
+		} else if ( strategy === AVERAGE ) {
 
 			axis = getLongestEdgeIndex( bounds );
 			if ( axis !== - 1 ) {
@@ -245,7 +228,7 @@ export default class BVHConstructionContext {
 
 			}
 
-		} else if ( strategy === SplitStrategy.SAH ) {
+		} else if ( strategy === SAH ) {
 
 			// Surface Area Heuristic
 			// In order to make this code more terse, the x, y, and z
