@@ -1,11 +1,11 @@
-# threejs-fast-raycast
+# three-mesh-bvh
 
-[![lgtm code quality](https://img.shields.io/lgtm/grade/javascript/g/gkjohnson/threejs-fast-raycast.svg?style=flat-square&label=code-quality)](https://lgtm.com/projects/g/gkjohnson/threejs-fast-raycast/)
-[![travis build](https://img.shields.io/travis/gkjohnson/threejs-fast-raycast.svg?style=flat-square)](https://travis-ci.org/gkjohnson/threejs-fast-raycast)
+[![lgtm code quality](https://img.shields.io/lgtm/grade/javascript/g/gkjohnson/three-mesh-bvh.svg?style=flat-square&label=code-quality)](https://lgtm.com/projects/g/gkjohnson/three-mesh-bvh/)
+[![travis build](https://img.shields.io/travis/gkjohnson/three-mesh-bvh.svg?style=flat-square)](https://travis-ci.org/gkjohnson/three-mesh-bvh)
 
 A THREEjs utility for providing more efficient raycasts against sufficiently complex meshes.
 
-[Demo Here!](https://gkjohnson.github.io/threejs-fast-raycast/example/bundle/boundsTree.html)
+[Demo Here!](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/boundsTree.html)
 
 ![screenshot](./docs/example-sm.gif)
 
@@ -15,7 +15,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 ```js
 import * as THREE from '.../three.js'
-import '.../threejs-fast-raycasting.js'
+import '.../three-mesh-bvh.js'
 
 // 80,000 polygon mesh
 const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
