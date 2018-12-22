@@ -82,6 +82,39 @@ function pad( str, len ) {
 
 }
 
+function getExtremes( node, depth = 0, result = null ) {
+
+	if ( ! result ) {
+
+		result = {
+			depth: {
+				min: Infinity, max: - Infinity
+			},
+			tris: {
+				min: Infinity, max: - Infinity
+			}
+		};
+
+	}
+
+	if ( ! node.children ) {
+
+		result.depth.min = Math.min( depth, result.depth.min );
+		result.depth.max = Math.max( depth, result.depth.max );
+
+		result.tris.min = Math.min( node.count, result.tris.min );
+		result.tris.max = Math.max( node.count, result.tris.max );
+
+	} else {
+
+		node.children.forEach( c => getExtremes( c, depth + 1, result ) );
+
+	}
+
+	return result;
+
+}
+
 function runBenchmark( name, func, maxTime, maxIterations = Infinity ) {
 
 	let iterations = 0;
@@ -99,4 +132,4 @@ function runBenchmark( name, func, maxTime, maxIterations = Infinity ) {
 
 }
 
-export { getSize, pad, runBenchmark };
+export { getSize, pad, runBenchmark, getExtremes };
