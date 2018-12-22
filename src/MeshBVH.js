@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
 import { boundsToArray } from './BoundsUtilities.js';
+import { CENTER } from './Constants.js';
 
 export default class MeshBVH extends MeshBVHNode {
 
@@ -12,9 +13,9 @@ export default class MeshBVH extends MeshBVHNode {
 		// default options
 		options = Object.assign( {
 
-			strategy: 0,
+			strategy: CENTER,
 			maxDepth: Infinity,
-			maxLeafNodes: 10
+			maxLeafTris: 10
 
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
@@ -43,8 +44,8 @@ export default class MeshBVH extends MeshBVHNode {
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
-			// early out wif we've met our capacity
-			if ( count <= options.maxLeafNodes ) {
+			// early out if we've met our capacity
+			if ( count <= options.maxLeafTris ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
@@ -67,13 +68,13 @@ export default class MeshBVH extends MeshBVHNode {
 			const splitOffset = ctx.partition( offset, count, split );
 
 			// create the two new child nodes
-			if ( splitOffset === offset || splitOffset === offset + count ) {
+			if ( splitOffset === offset || splitOffset === offset + count || depth >= options.maxDepth ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
 				node.count = count;
 
-			} else if ( depth < options.maxDepth ) {
+			} else {
 
 				// create the left child, keeping the bounds within the bounds of the parent
 				const left = new MeshBVHNode();

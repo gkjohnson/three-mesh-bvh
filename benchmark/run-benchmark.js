@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { getSize, pad, runBenchmark } from './utils.js';
-import '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const geometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );

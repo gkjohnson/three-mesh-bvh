@@ -1,18 +1,20 @@
 import * as THREE from 'three';
 import MeshBVH from './MeshBVH.js';
+import Visualizer from './MeshBVHVisualizer.js';
+import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const ray = new THREE.Ray();
-const inverseMatrix = new THREE.Matrix4();
-const origRaycast = THREE.Mesh.prototype.raycast;
+const tmpInverseMatrix = new THREE.Matrix4();
+const origMeshRaycastFunc = THREE.Mesh.prototype.raycast;
 
-THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
+function acceleratedRaycast( raycaster, intersects ) {
 
 	if ( this.geometry.boundsTree ) {
 
 		if ( this.material === undefined ) return;
 
-		inverseMatrix.getInverse( this.matrixWorld );
-		ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
+		tmpInverseMatrix.getInverse( this.matrixWorld );
+		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
 		if ( raycaster.firstHitOnly === true ) {
 
@@ -27,22 +29,28 @@ THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
 
 	} else {
 
-		origRaycast.call( this, raycaster, intersects );
+		origMeshRaycastFunc.call( this, raycaster, intersects );
 
 	}
 
-};
+}
 
-THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
+function computeBoundsTree( options ) {
 
 	this.boundsTree = new MeshBVH( this, options );
 	this.setIndex( this.boundsTree.index );
 	return this.boundsTree;
 
-};
+}
 
-THREE.BufferGeometry.prototype.disposeBoundsTree = function () {
+function disposeBoundsTree() {
 
 	this.boundsTree = null;
 
+}
+
+export {
+	MeshBVH, Visualizer,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
+	CENTER, AVERAGE, SAH
 };

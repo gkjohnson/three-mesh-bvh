@@ -2,7 +2,11 @@ import * as THREE from '../node_modules/three/build/three.module.js';
 import * as dat from 'dat.gui';
 import Stats from '../node_modules/stats.js/src/Stats.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const bgColor = 0x263238 / 2;
 
