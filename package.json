@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gkjohnson/threejs-fast-raycast.git"
+    "url": "git+https://github.com/gkjohnson/three-mesh-bvh.git"
   },
   "author": "Garrett Johnson <garrett.kjohnson@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/gkjohnson/threejs-fast-raycast/issues"
+    "url": "https://github.com/gkjohnson/three-mesh-bvh/issues"
   },
-  "homepage": "https://github.com/gkjohnson/threejs-fast-raycast#readme",
+  "homepage": "https://github.com/gkjohnson/three-mesh-bvh#readme",
   "peerDependencies": {
     "three": "^0.91.0"
   },
