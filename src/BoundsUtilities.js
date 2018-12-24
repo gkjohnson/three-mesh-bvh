@@ -170,4 +170,128 @@ function boxIntersectsObb(bounds, obbPlanes, obbPoints) {
 
 }
 
-export { boundsToArray, arrayToBox, getLongestEdgeIndex, boxToObbPoints, boxIntersectsObb };
+const A = new Vector3();
+const B = new Vector3();
+const C = new Vector3();
+const P = new Vector3();
+const BmA = new Vector3();
+const CmA = new Vector3();
+const V = new Vector3();
+
+const AB = new Vector3();
+const BC = new Vector3();
+const CA = new Vector3();
+
+const Q1 = new Vector3();
+const Q2 = new Vector3();
+const Q3 = new Vector3();
+const QA = new Vector3();
+const QB = new Vector3();
+const QC = new Vector3();
+function sphereItersectTriangle(sphere, triangle) {
+
+	// http://realtimecollisiondetection.net/blog/?p=103
+
+	P.copy(sphere.center);
+	A.copy(triangle.a);
+	B.copy(triangle.b);
+	C.copy(triangle.c);
+	const r = sphere.radius;
+
+	// A = A - P
+	// B = B - P
+	// C = C - P
+	A.sub( P );
+	B.sub( P );
+	C.sub( P );
+
+	// rr = r * r
+	const rr = r * r
+
+	// V = cross(B - A, C - A)
+	BmA.subVectors( B, A );
+	CmA.subVectors( C, A );
+	V.crossVectors( BmA, CmA );
+
+	// d = dot(A, V)
+	// e = dot(V, V)
+	const d = A.dot( V );
+	const e = V.dot( V );
+	
+	// sep1 = d * d > rr * e
+	// aa = dot(A, A)
+	// ab = dot(A, B)
+	// ac = dot(A, C)
+	// bb = dot(B, B)
+	// bc = dot(B, C)
+	// cc = dot(C, C)
+	const sep1 = d * d > rr * e;
+	const aa = A.dot( A );
+	const ab = A.dot( B );
+	const ac = A.dot( C );
+	const bb = B.dot( B );
+	const bc = B.dot( C );
+	const cc = C.dot( C );
+
+	// sep2 = (aa > rr) & (ab > aa) & (ac > aa)
+	// sep3 = (bb > rr) & (ab > bb) & (bc > bb)
+	// sep4 = (cc > rr) & (ac > cc) & (bc > cc)
+	const sep2 = (aa > rr) && (ab > aa) && (ac > aa);
+	const sep3 = (bb > rr) && (ab > bb) && (bc > bb);
+	const sep4 = (cc > rr) && (ac > cc) && (bc > cc);
+
+	// AB = B - A
+	// BC = C - B
+	// CA = A - C
+	AB.subVectors( B, A );
+	BC.subVectors( C, B );
+	CA.subVectors( A, C );
+	
+	// d1 = ab - aa
+	// d2 = bc - bb
+	// d3 = ac - cc
+	// e1 = dot(AB, AB)
+	// e2 = dot(BC, BC)
+	// e3 = dot(CA, CA)
+	const d1 = ab - aa
+	const d2 = bc - bb
+	const d3 = ac - cc
+	const e1 = dot(AB, AB)
+	const e2 = dot(BC, BC)
+	const e3 = dot(CA, CA)
+	
+	// Q1 = A * e1 - d1 * AB
+	AB.multiplyScalar( d1 );
+	Q1.copy( A ).multiplyScalar( e1 ).sub( AB );
+	
+	// Q2 = B * e2 - d2 * BC
+	BC.multiplyScalar( d2 );
+	Q2.copy( B ).multiplyScalar( e2 ).sub( BC );
+
+	// Q3 = C * e3 - d3 * CA
+	CA.multiplyScalar( d3 );
+	Q3.copy( C ).multiplyScalar( e3 ).sub( CA );
+
+	// QC = C * e1 - Q1
+	QC.copy( C ).multiplyScalar( e1 ).sub( Q1 );
+
+	// QA = A * e2 - Q2
+	QA.copy( A ).multiplyScalar( e2 ).sub( Q2 );
+
+	// QB = B * e3 - Q3
+	QB.copy( B ).multiplyScalar( e1 ).sub( Q3 );
+	
+	// sep5 = [dot(Q1, Q1) > rr * e1 * e1] & [dot(Q1, QC) > 0]
+	// sep6 = [dot(Q2, Q2) > rr * e2 * e2] & [dot(Q2, QA) > 0]
+	// sep7 = [dot(Q3, Q3) > rr * e3 * e3] & [dot(Q3, QB) > 0]
+	const sep5 = (Q1.dot(Q1) > rr * e1 * e1) && (dot(Q1, QC) > 0)
+	const sep6 = (Q2.dot(Q2) > rr * e2 * e2) && (dot(Q2, QA) > 0)
+	const sep7 = (Q3.dot(Q3) > rr * e3 * e3) && (dot(Q3, QB) > 0)
+	return sep1 || sep2 || sep3 || sep4 || sep5 || sep6 || sep7
+
+}
+
+export {
+	boundsToArray, arrayToBox, getLongestEdgeIndex, boxToObbPoints,
+	boxToObbPlanes, boxIntersectsObb, sphereItersectTriangle
+};
