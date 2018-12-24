@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('three')) :
-	typeof define === 'function' && define.amd ? define(['three'], factory) :
-	(global = global || self, factory(global.THREE));
-}(this, function (THREE) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'three'], factory) :
+	(global = global || self, factory(global.MeshBVH = global.MeshBVH || {}, global.THREE));
+}(this, function (exports, THREE) { 'use strict';
 
 	// From THREE.js Mesh raycast
 	var vA = new THREE.Vector3();
@@ -91,29 +91,6 @@
 
 	}
 
-	const xyzFields = [ 'x', 'y', 'z' ];
-
-	const getLongestEdgeIndex = ( bb ) => {
-
-		let splitDimIdx = - 1;
-		let splitDist = - Infinity;
-		for ( let i = 0; i < xyzFields.length; i ++ ) {
-
-			const d = xyzFields[ i ];
-			const dist = bb.max[ d ] - bb.min[ d ];
-			if ( dist > splitDist ) {
-
-				splitDist = dist;
-				splitDimIdx = i;
-
-			}
-
-		}
-
-		return splitDimIdx;
-
-	};
-
 	// For BVH code specifically. Does not check morph targets
 	// Copied from mesh raycasting
 	// Ripped an modified from the THREE.js source in Mesh.CS
@@ -199,9 +176,30 @@
 
 	}
 
+	function getLongestEdgeIndex( bounds ) {
+
+		let splitDimIdx = - 1;
+		let splitDist = - Infinity;
+
+		for ( let i = 0; i < 3; i ++ ) {
+
+			const dist = bounds[ i + 3 ] - bounds[ i ];
+			if ( dist > splitDist ) {
+
+				splitDist = dist;
+				splitDimIdx = i;
+
+			}
+
+		}
+
+		return splitDimIdx;
+
+	}
+
 	const boundingBox = new THREE.Box3();
 	const boxIntersection = new THREE.Vector3();
-	const xyzFields$1 = [ 'x', 'y', 'z' ];
+	const xyzFields = [ 'x', 'y', 'z' ];
 
 	class MeshBVHNode {
 
@@ -240,23 +238,44 @@
 
 			} else {
 
+
 				// consider the position of the split plane with respect to the oncoming ray; whichever direction
 				// the ray is coming from, look for an intersection among that side of the tree first
+				const children = this.children;
+				const splitAxis = this.splitAxis;
+				const xyzAxis = xyzFields[ splitAxis ];
+				const rayDir = ray.direction[ xyzAxis ];
+				const leftToRight = rayDir >= 0;
 
-				const leftToRight = ray.direction[ xyzFields$1[ this.splitAxis ] ] >= 0;
-				const c1 = leftToRight ? this.children[ 0 ] : this.children[ 1 ];
-				const c2 = leftToRight ? this.children[ 1 ] : this.children[ 0 ];
+				// c1 is the child to check first
+				let c1, c2;
+				if ( leftToRight ) {
+
+					c1 = children[ 0 ];
+					c2 = children[ 1 ];
+
+				} else {
+
+					c1 = children[ 1 ];
+					c2 = children[ 0 ];
+
+				}
 
 				const c1Intersection = c1.intersectRay( ray, boxIntersection );
 				const c1Result = c1Intersection ? c1.raycastFirst( mesh, raycaster, ray ) : null;
-				const c2Intersection = c2.intersectRay( ray, boxIntersection );
 
 				// if we got an intersection in the first node and it's closer than the second node's bounding
 				// box, we don't need to consider the second node because it couldn't possibly be a better result
+				if ( c1Result ) {
 
-				if ( c1Result && c2Intersection ) {
+					// check only along the split axis
+					const rayOrig = ray.origin[ xyzAxis ];
+					const toPoint = rayOrig - c1Result.point[ xyzAxis ];
+					const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
+					const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
 
-					if ( c1Result.distance * c1Result.distance <= ray.origin.distanceToSquared( c2Intersection ) ) {
+					const toPointSq = toPoint * toPoint;
+					if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
 
 						return c1Result;
 
@@ -266,7 +285,7 @@
 
 				// either there was no intersection in the first node, or there could still be a closer
 				// intersection in the second, so check the second node and then take the better of the two
-
+				const c2Intersection = c2.intersectRay( ray, boxIntersection );
 				const c2Result = c2Intersection ? c2.raycastFirst( mesh, raycaster, ray ) : null;
 
 				if ( c1Result && c2Result ) {
@@ -285,7 +304,12 @@
 
 	}
 
-	const xyzFields$2 = [ 'x', 'y', 'z' ];
+	// Split strategy constants
+	const CENTER = 0;
+	const AVERAGE = 1;
+	const SAH = 2;
+
+	const xyzFields$1 = [ 'x', 'y', 'z' ];
 
 	function getTriangleCount( geo ) {
 
@@ -335,26 +359,7 @@
 
 	}
 
-	const SplitStrategy = {
-		get CENTER() {
-
-			return 0;
-
-		},
-		get AVERAGE() {
-
-			return 1;
-
-		},
-		get SAH() {
-
-			return 2;
-
-		}
-	};
-
-	const avgtemp = new THREE.Vector3();
-	const centertemp = new THREE.Vector3();
+	const boxtemp = new THREE.Box3();
 
 	class BVHConstructionContext {
 
@@ -374,7 +379,7 @@
 
 			// SAH Initialization
 			this.sahplanes = null;
-			if ( options.strategy === SplitStrategy.SAH ) {
+			if ( options.strategy === SAH ) {
 
 				this.sahplanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
 				for ( let tri = 0; tri < triCount; tri ++ ) {
@@ -391,34 +396,24 @@
 
 		}
 
-		// returns the average point of the all the provided
-		// triangles in the geometry
-		getAverage( offset, count, avg ) {
+		// returns the average coordinate on the specified axis of the all the provided triangles
+		getAverage( offset, count, axis ) {
 
-			let avgx = 0;
-			let avgy = 0;
-			let avgz = 0;
+			let avg = 0;
 			const centroids = this.centroids;
 			const tris = this.tris;
 
 			for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-				const tri = tris[ i ];
-
-				avgx += centroids[ tri * 3 + 0 ];
-				avgy += centroids[ tri * 3 + 1 ];
-				avgz += centroids[ tri * 3 + 2 ];
+				avg += centroids[ tris[ i ] * 3 + axis ];
 
 			}
 
-			avg.x = avgx / ( count * 3 );
-			avg.y = avgy / ( count * 3 );
-			avg.z = avgz / ( count * 3 );
+			return avg / ( count * 3 );
 
 		}
 
-		// shrinks the provided bounds on any dimensions to fit
-		// the provided triangles
+		// shrinks the provided bounds on any dimensions to fit the provided triangles
 		shrinkBoundsTo( offset, count, parent, target ) {
 
 			let minx = Infinity;
@@ -486,21 +481,21 @@
 			const centroids = this.centroids;
 
 			// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
-			while ( left <= right ) {
+			while ( true ) {
 
-				while ( centroids[ tris[ left ] * 3 + axis ] < pos ) {
+				while ( left <= right && centroids[ tris[ left ] * 3 + axis ] < pos ) {
 
 					left ++;
 
 				}
 
-				while ( centroids[ tris[ right ] * 3 + axis ] >= pos ) {
+				while ( left <= right && centroids[ tris[ right ] * 3 + axis ] >= pos ) {
 
 					right --;
 
 				}
 
-				if ( left <= right ) {
+				if ( left < right ) {
 
 					let tmp = tris[ left ];
 					tris[ left ] = tris[ right ];
@@ -508,33 +503,41 @@
 					left ++;
 					right --;
 
+				} else {
+
+					return left;
+
 				}
 
 			}
 
-			return left;
-
 		}
 
-		getOptimalSplit( bb, offset, count, strategy ) {
+		getOptimalSplit( bounds, offset, count, strategy ) {
 
 			let axis = - 1;
 			let pos = 0;
 
 			// Center
-			if ( strategy === SplitStrategy.CENTER ) {
+			if ( strategy === CENTER ) {
 
-				axis = getLongestEdgeIndex( bb );
-				bb.getCenter( centertemp );
-				pos = centertemp[ xyzFields$2[ axis ] ];
+				axis = getLongestEdgeIndex( bounds );
+				if ( axis !== - 1 ) {
 
-			} else if ( strategy === SplitStrategy.AVERAGE ) {
+					pos = ( bounds[ axis + 3 ] + bounds[ axis ] ) / 2;
 
-				axis = getLongestEdgeIndex( bb );
-				this.getAverage( offset, count, avgtemp );
-				pos = avgtemp[ xyzFields$2[ axis ] ];
+				}
 
-			} else if ( strategy === SplitStrategy.SAH ) {
+			} else if ( strategy === AVERAGE ) {
+
+				axis = getLongestEdgeIndex( bounds );
+				if ( axis !== - 1 ) {
+
+					pos = this.getAverage( offset, count, axis );
+
+				}
+
+			} else if ( strategy === SAH ) {
 
 				// Surface Area Heuristic
 				// In order to make this code more terse, the x, y, and z
@@ -547,6 +550,7 @@
 				const TRAVERSAL_COST = 3;
 				const INTERSECTION_COST = 1;
 				const tris = this.tris;
+				const bb = arrayToBox( bounds, boxtemp );
 
 				// Define the width, height, and depth of the bounds as a box
 				const dim = [
@@ -588,8 +592,8 @@
 					const o1 = ( i + 1 ) % 3;
 					const o2 = ( i + 2 ) % 3;
 
-					const bmin = bb.min[ xyzFields$2[ i ] ];
-					const bmax = bb.max[ xyzFields$2[ i ] ];
+					const bmin = bb.min[ xyzFields$1[ i ] ];
+					const bmax = bb.max[ xyzFields$1[ i ] ];
 					const planes = filteredLists[ i ];
 
 					// The number of left and right triangles on either side
@@ -689,9 +693,9 @@
 			// default options
 			options = Object.assign( {
 
-				strategy: 0,
+				strategy: CENTER,
 				maxDepth: Infinity,
-				maxLeafNodes: 10
+				maxLeafTris: 10
 
 			}, options );
 			options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
@@ -715,14 +719,13 @@
 			const verticesLength = geo.attributes.position.count;
 			const indicesLength = ctx.tris.length * 3;
 			const indices = new ( verticesLength < 65536 ? Uint16Array : Uint32Array )( indicesLength );
-			const boxtemp = new THREE.Box3();
 
 			// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 			// recording the offset and count of its triangles and writing them into the reordered geometry index.
 			const splitNode = ( node, offset, count, depth = 0 ) => {
 
-				// early out wif we've met our capacity
-				if ( count <= options.maxLeafNodes ) {
+				// early out if we've met our capacity
+				if ( count <= options.maxLeafTris ) {
 
 					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
@@ -732,8 +735,7 @@
 				}
 
 				// Find where to split the volume
-				arrayToBox( node.boundingData, boxtemp );
-				const split = ctx.getOptimalSplit( boxtemp, offset, count, options.strategy );
+				const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
 				if ( split.axis === - 1 ) {
 
 					ctx.writeReorderedIndices( offset, count, indices );
@@ -746,13 +748,13 @@
 				const splitOffset = ctx.partition( offset, count, split );
 
 				// create the two new child nodes
-				if ( splitOffset === offset || splitOffset === offset + count ) {
+				if ( splitOffset === offset || splitOffset === offset + count || depth >= options.maxDepth ) {
 
 					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
 					node.count = count;
 
-				} else if ( depth < options.maxDepth ) {
+				} else {
 
 					// create the left child, keeping the bounds within the bounds of the parent
 					const left = new MeshBVHNode();
@@ -787,18 +789,92 @@
 
 	}
 
-	const ray = new THREE.Ray();
-	const inverseMatrix = new THREE.Matrix4();
-	const origRaycast = THREE.Mesh.prototype.raycast;
+	const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
+	const boxGeom = new THREE.Box3Helper().geometry;
+	let boundingBox$1 = new THREE.Box3();
 
-	THREE.Mesh.prototype.raycast = function ( raycaster, intersects ) {
+	class MeshBVHVisualizer extends THREE.Object3D {
+
+		constructor( mesh, depth = 10 ) {
+
+			super();
+
+			this.depth = depth;
+			this._oldDepth = - 1;
+			this._mesh = mesh;
+			this._boundsTree = null;
+
+			this.update();
+
+		}
+
+		update() {
+
+			if ( this._mesh.geometry.boundsTree !== this._boundsTree || this._oldDepth !== this.depth ) {
+
+				this._oldDepth = this.depth;
+				this._boundsTree = this._mesh.geometry.boundsTree;
+
+				let requiredChildren = 0;
+				if ( this._boundsTree ) {
+
+					const recurse = ( n, d ) => {
+
+						if ( d === this.depth ) return;
+
+						if ( d === this.depth - 1 || n.children == null || n.children.length === 0 ) {
+
+							let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
+							if ( ! m ) {
+
+								m = new THREE.LineSegments( boxGeom, wiremat );
+								m.raycast = () => [];
+								this.add( m );
+
+							}
+							requiredChildren ++;
+							arrayToBox( n.boundingData, boundingBox$1 );
+							boundingBox$1.getCenter( m.position );
+							m.scale.subVectors( boundingBox$1.max, boundingBox$1.min ).multiplyScalar( 0.5 );
+
+						}
+
+						if ( n.children != null ) {
+
+							n.children.forEach( n => recurse( n, d + 1 ) );
+
+						}
+
+					};
+
+					recurse( this._boundsTree._root, 0 );
+
+				}
+
+				while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
+
+			}
+
+			this.position.copy( this._mesh.position );
+			this.rotation.copy( this._mesh.rotation );
+			this.scale.copy( this._mesh.scale );
+
+		}
+
+	}
+
+	const ray = new THREE.Ray();
+	const tmpInverseMatrix = new THREE.Matrix4();
+	const origMeshRaycastFunc = THREE.Mesh.prototype.raycast;
+
+	function acceleratedRaycast( raycaster, intersects ) {
 
 		if ( this.geometry.boundsTree ) {
 
 			if ( this.material === undefined ) return;
 
-			inverseMatrix.getInverse( this.matrixWorld );
-			ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
+			tmpInverseMatrix.getInverse( this.matrixWorld );
+			ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
 			if ( raycaster.firstHitOnly === true ) {
 
@@ -813,25 +889,36 @@
 
 		} else {
 
-			origRaycast.call( this, raycaster, intersects );
+			origMeshRaycastFunc.call( this, raycaster, intersects );
 
 		}
 
-	};
+	}
 
-	THREE.BufferGeometry.prototype.computeBoundsTree = function ( options ) {
+	function computeBoundsTree( options ) {
 
 		this.boundsTree = new MeshBVH( this, options );
 		this.setIndex( this.boundsTree.index );
 		return this.boundsTree;
 
-	};
+	}
 
-	THREE.BufferGeometry.prototype.disposeBoundsTree = function () {
+	function disposeBoundsTree() {
 
 		this.boundsTree = null;
 
-	};
+	}
+
+	exports.MeshBVH = MeshBVH;
+	exports.Visualizer = MeshBVHVisualizer;
+	exports.acceleratedRaycast = acceleratedRaycast;
+	exports.computeBoundsTree = computeBoundsTree;
+	exports.disposeBoundsTree = disposeBoundsTree;
+	exports.CENTER = CENTER;
+	exports.AVERAGE = AVERAGE;
+	exports.SAH = SAH;
+
+	Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
 //# sourceMappingURL=index.js.map

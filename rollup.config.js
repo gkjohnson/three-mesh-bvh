@@ -6,7 +6,7 @@ export default
 
 	output: {
 
-		// name,
+		name: 'MeshBVH',
 		extend: true,
 		format: 'umd',
 		file: './umd/index.js',
