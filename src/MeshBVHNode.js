@@ -1,8 +1,12 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox } from './BoundsUtilities.js';
+import { arrayToBox, sphereItersectTriangle, boxToObbPlanes, boxToObbPoints, boxIntersectsObb } from './BoundsUtilities.js';
 
+const triangle = new THREE.Triangle();
+const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+const inverseCache = new THREE.Matrix4();
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
@@ -10,8 +14,21 @@ const xyzFields = [ 'x', 'y', 'z' ];
 function boundsArrayIntersectRay( boundingData, ray ) {
 
 	arrayToBox( boundingData, boundingBox );
-
 	return ray.intersectBox( boundingBox, boxIntersection );
+
+}
+
+function boundsArrayIntersectSphere( boundingData, sphere ) {
+
+	arrayToBox( boundingData, boundingBox );
+	return boundingBox.intersectsSphere( sphere );
+
+}
+
+function boundsArrayIntersectBox( boundingData, obbPlanes, obbPoints ) {
+
+	arrayToBox( boundingData, boundingBox );
+	return boxIntersectsObb( boundingBox, obbPlanes, obbPoints );
 
 }
 
@@ -22,6 +39,129 @@ class MeshBVHNode {
 
 		// internal nodes have boundingData, children, and splitAxis
 		// leaf nodes have offset and count (referring to primitives in the mesh geometry)
+
+	}
+
+	spherecast( mesh, sphere ) {
+
+		if ( boundsArrayIntersectSphere( this.boundingData, sphere ) ) return false;
+
+		if ( this.count ) {
+
+			const index = mesh.index;
+			const pos = mesh.attributes.position;
+
+			const ta = triangle.a;
+			const tb = triangle.b;
+			const tc = triangle.c;
+			
+			for ( let i = 0, l = this.count; i < l; i += 3 ) {
+
+				let i3 = index.getX( i );
+				ta.x = pos.getX( i3 );
+				ta.y = pos.getY( i3 );
+				ta.z = pos.getZ( i3 );
+
+				i3 = index.getX( i + 1 );
+				tb.x = pos.getX( i3 );
+				tb.y = pos.getY( i3 );
+				tb.z = pos.getZ( i3 );
+				
+				i3 = index.getX( i + 2 );
+				tc.x = pos.getX( i3 );
+				tc.y = pos.getY( i3 );
+				tc.z = pos.getZ( i3 );
+				
+				if ( sphereItersectTriangle( sphere, triangle ) ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+
+		} else {
+
+			const c1 = this.children[ 0 ];
+			const c2 = this.children[ 1 ];
+			
+			return c1.spherecast( mesh, sphere ) || c2.spherecast( mesh, sphere );
+
+		}
+
+	}
+
+	boxcast( mesh, box, boxToLocal ) {
+
+		if ( boxToLocal ) {
+
+			boxToObbPlanes( box, boxToLocal, planesCache );
+			boxToObbPoints( box, boxToLocal, pointsCache );
+			inverseCache.getInverse( boxToLocal );
+
+		}
+
+		if ( boundsArrayIntersectBox( this.boundingData, planesCache, pointsCache ) ) return false;
+
+		if ( this.count ) {
+
+			const index = mesh.index;
+			const pos = mesh.attributes.position;
+
+			const ta = triangle.a;
+			const tb = triangle.b;
+			const tc = triangle.c;
+			
+			for ( let i = 0, l = this.count; i < l; i += 3 ) {
+
+				let i3 = index.getX( i );
+				ta.x = pos.getX( i3 );
+				ta.y = pos.getY( i3 );
+				ta.z = pos.getZ( i3 );
+				ta.applyMatrix4( inverseCache );
+
+				i3 = index.getX( i + 1 );
+				tb.x = pos.getX( i3 );
+				tb.y = pos.getY( i3 );
+				tb.z = pos.getZ( i3 );
+				tb.applyMatrix4( inverseCache );
+				
+				i3 = index.getX( i + 2 );
+				tc.x = pos.getX( i3 );
+				tc.y = pos.getY( i3 );
+				tc.z = pos.getZ( i3 );
+				tc.applyMatrix4( inverseCache );
+
+				if ( box.intersectTriangle( triangle ) ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+
+		} else {
+
+			const c1 = this.children[ 0 ];
+			const c2 = this.children[ 1 ];
+			
+			return c1.boxcast( mesh, box ) || c2.boxcast( mesh, box ); 
+
+		}
+
+	}
+
+	bvhcast( mesh, bvh, bvhToLocal ) {
+
+	}
+
+	meshcast( mesh, meshToLocal ) {
 
 	}
 

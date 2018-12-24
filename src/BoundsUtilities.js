@@ -291,7 +291,14 @@ function sphereItersectTriangle( sphere, triangle ) {
 
 }
 
+function triangleIntersectsTriangle( triA, triB ) {
+
+	throw new Error('Not Implemented');
+
+}
+
 export {
 	boundsToArray, arrayToBox, getLongestEdgeIndex, boxToObbPoints,
-	boxToObbPlanes, boxIntersectsObb, sphereItersectTriangle
+	boxToObbPlanes, boxIntersectsObb, sphereItersectTriangle,
+	triangleIntersectsTriangle
 };
