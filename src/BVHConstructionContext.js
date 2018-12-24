@@ -176,7 +176,7 @@ export default class BVHConstructionContext {
 		// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 		while ( true ) {
 
-			while ( left <= right && centroids[ tris[ left ] * 3 + axis ] < pos) {
+			while ( left <= right && centroids[ tris[ left ] * 3 + axis ] < pos ) {
 
 				left ++;
 
