@@ -174,21 +174,21 @@ export default class BVHConstructionContext {
 		const centroids = this.centroids;
 
 		// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
-		while ( left <= right ) {
+		while ( true ) {
 
-			while ( centroids[ tris[ left ] * 3 + axis ] < pos ) {
+			while ( left <= right && centroids[ tris[ left ] * 3 + axis ] < pos ) {
 
 				left ++;
 
 			}
 
-			while ( centroids[ tris[ right ] * 3 + axis ] >= pos ) {
+			while ( left <= right && centroids[ tris[ right ] * 3 + axis ] >= pos ) {
 
 				right --;
 
 			}
 
-			if ( left <= right ) {
+			if ( left < right ) {
 
 				let tmp = tris[ left ];
 				tris[ left ] = tris[ right ];
@@ -196,11 +196,13 @@ export default class BVHConstructionContext {
 				left ++;
 				right --;
 
+			} else {
+
+				return left;
+
 			}
 
 		}
-
-		return left;
 
 	}
 
