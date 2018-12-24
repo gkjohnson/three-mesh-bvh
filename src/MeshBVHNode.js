@@ -159,6 +159,8 @@ class MeshBVHNode {
 
 	bvhcast( mesh, bvh, bvhToLocal ) {
 
+		// cache intersection of each bvh node to avoid recomputing the planes and points
+
 	}
 
 	meshcast( mesh, meshToLocal ) {
