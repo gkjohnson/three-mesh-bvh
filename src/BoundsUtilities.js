@@ -1,4 +1,4 @@
-import { Plane, Vector3 } from 'three';
+import { Vector3 } from 'three';
 
 // Returns a Float32Array representing the bounds data for box.
 function boundsToArray( bx ) {
@@ -52,28 +52,28 @@ function getLongestEdgeIndex( bounds ) {
 
 }
 
-function boxToObbPoints(bounds, matrix, target) {
+function boxToObbPoints( bounds, matrix, target ) {
 
 	const min = bounds.min;
 	const max = bounds.max;
-	for (let x = 0; x <= 1; x ++ ) {
-		
-		for (let y = 0; y <= 1; y ++ ) {
-		
-			for (let z = 0; z <= 1; z ++ ) {
+	for ( let x = 0; x <= 1; x ++ ) {
 
-				const i = ( 1 << (x + y + z) ) - 1;
+		for ( let y = 0; y <= 1; y ++ ) {
+
+			for ( let z = 0; z <= 1; z ++ ) {
+
+				const i = ( 1 << ( x + y + z ) ) - 1;
 				const v = target[ i ];
-				v.x = min.x * x + max.x * (1 - x);
-				v.y = min.y * x + max.y * (1 - y);
-				v.z = min.z * x + max.z * (1 - z);
+				v.x = min.x * x + max.x * ( 1 - x );
+				v.y = min.y * x + max.y * ( 1 - y );
+				v.z = min.z * x + max.z * ( 1 - z );
 
 				v.applyMatrix4( matrix );
 
 			}
-		
+
 		}
-	
+
 	}
 
 	return target;
@@ -83,7 +83,7 @@ function boxToObbPoints(bounds, matrix, target) {
 const xyzFields = [ 'x', 'y', 'z' ];
 const v1 = new Vector3();
 const v2 = new Vector3();
-function boxToObbPlanes(bounds, matrix, target) {
+function boxToObbPlanes( bounds, matrix, target ) {
 
 	const min = bounds.min;
 	const max = bounds.max;
@@ -95,7 +95,7 @@ function boxToObbPlanes(bounds, matrix, target) {
 		const i1 = xyzFields[ ( i + 0 ) % 3 ];
 		const i2 = xyzFields[ ( i + 1 ) % 3 ];
 		const i3 = xyzFields[ ( i + 2 ) % 3 ];
-		
+
 		v1[ i1 ] = min[ i1 ];
 		v1[ i2 ] = min[ i2 ];
 		v1[ i3 ] = min[ i3 ];
@@ -107,10 +107,10 @@ function boxToObbPlanes(bounds, matrix, target) {
 		v1.applyMatrix4( matrix );
 		v2.applyMatrix4( matrix );
 
-		p1.normal.subVectors(v1, v2);
+		p1.normal.subVectors( v1, v2 );
 		p1.constant = p1.normal.dot( v1 );
 
-		p2.normal.subVectors(v1, v2);
+		p2.normal.subVectors( v1, v2 );
 		p2.constant = p2.normal.dot( v2 );
 
 	}
@@ -119,13 +119,13 @@ function boxToObbPlanes(bounds, matrix, target) {
 
 }
 
-function boxIntersectsObb(bounds, obbPlanes, obbPoints) {
+function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 
 	// check if obb points fall on either side
 	// of the planes
 	const min = bounds.min;
 	const max = bounds.max;
-	for( let i = 0; i < 3 ; i ++ ) {
+	for ( let i = 0; i < 3; i ++ ) {
 
 		const field = xyzFields[ i ];
 		const val0 = obbPoints[ 0 ][ field ];
@@ -141,7 +141,7 @@ function boxIntersectsObb(bounds, obbPlanes, obbPoints) {
 			if ( sideMin !== obbSideMin || sideMax !== obbSideMax ) {
 
 				return true;
-			
+
 			}
 
 		}
@@ -156,7 +156,7 @@ function boxIntersectsObb(bounds, obbPlanes, obbPoints) {
 	}
 
 	// check if bounds intersect obb planes
-	for( let i = 0, l = obbPlanes.length; i < l; i ++ ) {
+	for ( let i = 0, l = obbPlanes.length; i < l; i ++ ) {
 
 		if ( bounds.intersectsPlane( obbPlanes[ i ] ) ) {
 
@@ -188,14 +188,14 @@ const Q3 = new Vector3();
 const QA = new Vector3();
 const QB = new Vector3();
 const QC = new Vector3();
-function sphereItersectTriangle(sphere, triangle) {
+function sphereItersectTriangle( sphere, triangle ) {
 
 	// http://realtimecollisiondetection.net/blog/?p=103
 
-	P.copy(sphere.center);
-	A.copy(triangle.a);
-	B.copy(triangle.b);
-	C.copy(triangle.c);
+	P.copy( sphere.center );
+	A.copy( triangle.a );
+	B.copy( triangle.b );
+	C.copy( triangle.c );
 	const r = sphere.radius;
 
 	// A = A - P
@@ -206,7 +206,7 @@ function sphereItersectTriangle(sphere, triangle) {
 	C.sub( P );
 
 	// rr = r * r
-	const rr = r * r
+	const rr = r * r;
 
 	// V = cross(B - A, C - A)
 	BmA.subVectors( B, A );
@@ -217,7 +217,7 @@ function sphereItersectTriangle(sphere, triangle) {
 	// e = dot(V, V)
 	const d = A.dot( V );
 	const e = V.dot( V );
-	
+
 	// sep1 = d * d > rr * e
 	// aa = dot(A, A)
 	// ab = dot(A, B)
@@ -236,9 +236,9 @@ function sphereItersectTriangle(sphere, triangle) {
 	// sep2 = (aa > rr) & (ab > aa) & (ac > aa)
 	// sep3 = (bb > rr) & (ab > bb) & (bc > bb)
 	// sep4 = (cc > rr) & (ac > cc) & (bc > cc)
-	const sep2 = (aa > rr) && (ab > aa) && (ac > aa);
-	const sep3 = (bb > rr) && (ab > bb) && (bc > bb);
-	const sep4 = (cc > rr) && (ac > cc) && (bc > cc);
+	const sep2 = ( aa > rr ) && ( ab > aa ) && ( ac > aa );
+	const sep3 = ( bb > rr ) && ( ab > bb ) && ( bc > bb );
+	const sep4 = ( cc > rr ) && ( ac > cc ) && ( bc > cc );
 
 	// AB = B - A
 	// BC = C - B
@@ -246,24 +246,24 @@ function sphereItersectTriangle(sphere, triangle) {
 	AB.subVectors( B, A );
 	BC.subVectors( C, B );
 	CA.subVectors( A, C );
-	
+
 	// d1 = ab - aa
 	// d2 = bc - bb
 	// d3 = ac - cc
 	// e1 = dot(AB, AB)
 	// e2 = dot(BC, BC)
 	// e3 = dot(CA, CA)
-	const d1 = ab - aa
-	const d2 = bc - bb
-	const d3 = ac - cc
-	const e1 = dot(AB, AB)
-	const e2 = dot(BC, BC)
-	const e3 = dot(CA, CA)
-	
+	const d1 = ab - aa;
+	const d2 = bc - bb;
+	const d3 = ac - cc;
+	const e1 = AB.dot( AB );
+	const e2 = BC.dot( BC );
+	const e3 = CA.dot( CA );
+
 	// Q1 = A * e1 - d1 * AB
 	AB.multiplyScalar( d1 );
 	Q1.copy( A ).multiplyScalar( e1 ).sub( AB );
-	
+
 	// Q2 = B * e2 - d2 * BC
 	BC.multiplyScalar( d2 );
 	Q2.copy( B ).multiplyScalar( e2 ).sub( BC );
@@ -280,14 +280,14 @@ function sphereItersectTriangle(sphere, triangle) {
 
 	// QB = B * e3 - Q3
 	QB.copy( B ).multiplyScalar( e1 ).sub( Q3 );
-	
+
 	// sep5 = [dot(Q1, Q1) > rr * e1 * e1] & [dot(Q1, QC) > 0]
 	// sep6 = [dot(Q2, Q2) > rr * e2 * e2] & [dot(Q2, QA) > 0]
 	// sep7 = [dot(Q3, Q3) > rr * e3 * e3] & [dot(Q3, QB) > 0]
-	const sep5 = (Q1.dot(Q1) > rr * e1 * e1) && (dot(Q1, QC) > 0)
-	const sep6 = (Q2.dot(Q2) > rr * e2 * e2) && (dot(Q2, QA) > 0)
-	const sep7 = (Q3.dot(Q3) > rr * e3 * e3) && (dot(Q3, QB) > 0)
-	return sep1 || sep2 || sep3 || sep4 || sep5 || sep6 || sep7
+	const sep5 = ( Q1.dot( Q1 ) > rr * e1 * e1 ) && ( dot( Q1, QC ) > 0 );
+	const sep6 = ( Q2.dot( Q2 ) > rr * e2 * e2 ) && ( dot( Q2, QA ) > 0 );
+	const sep7 = ( Q3.dot( Q3 ) > rr * e3 * e3 ) && ( dot( Q3, QB ) > 0 );
+	return sep1 || sep2 || sep3 || sep4 || sep5 || sep6 || sep7;
 
 }
 
