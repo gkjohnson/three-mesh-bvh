@@ -284,16 +284,16 @@ function sphereItersectTriangle( sphere, triangle ) {
 	// sep5 = [dot(Q1, Q1) > rr * e1 * e1] & [dot(Q1, QC) > 0]
 	// sep6 = [dot(Q2, Q2) > rr * e2 * e2] & [dot(Q2, QA) > 0]
 	// sep7 = [dot(Q3, Q3) > rr * e3 * e3] & [dot(Q3, QB) > 0]
-	const sep5 = ( Q1.dot( Q1 ) > rr * e1 * e1 ) && ( dot( Q1, QC ) > 0 );
-	const sep6 = ( Q2.dot( Q2 ) > rr * e2 * e2 ) && ( dot( Q2, QA ) > 0 );
-	const sep7 = ( Q3.dot( Q3 ) > rr * e3 * e3 ) && ( dot( Q3, QB ) > 0 );
+	const sep5 = ( Q1.dot( Q1 ) > rr * e1 * e1 ) && ( Q1.dot( QC ) > 0 );
+	const sep6 = ( Q2.dot( Q2 ) > rr * e2 * e2 ) && ( Q2.dot( QA ) > 0 );
+	const sep7 = ( Q3.dot( Q3 ) > rr * e3 * e3 ) && ( Q3.dot( QB ) > 0 );
 	return sep1 || sep2 || sep3 || sep4 || sep5 || sep6 || sep7;
 
 }
 
 function triangleIntersectsTriangle( triA, triB ) {
 
-	throw new Error('Not Implemented');
+	throw new Error( 'Not Implemented' );
 
 }
 

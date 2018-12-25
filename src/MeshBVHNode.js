@@ -54,7 +54,7 @@ class MeshBVHNode {
 			const ta = triangle.a;
 			const tb = triangle.b;
 			const tc = triangle.c;
-			
+
 			for ( let i = 0, l = this.count; i < l; i += 3 ) {
 
 				let i3 = index.getX( i );
@@ -66,12 +66,12 @@ class MeshBVHNode {
 				tb.x = pos.getX( i3 );
 				tb.y = pos.getY( i3 );
 				tb.z = pos.getZ( i3 );
-				
+
 				i3 = index.getX( i + 2 );
 				tc.x = pos.getX( i3 );
 				tc.y = pos.getY( i3 );
 				tc.z = pos.getZ( i3 );
-				
+
 				if ( sphereItersectTriangle( sphere, triangle ) ) {
 
 					return true;
@@ -87,7 +87,7 @@ class MeshBVHNode {
 
 			const c1 = this.children[ 0 ];
 			const c2 = this.children[ 1 ];
-			
+
 			return c1.spherecast( mesh, sphere ) || c2.spherecast( mesh, sphere );
 
 		}
@@ -114,7 +114,7 @@ class MeshBVHNode {
 			const ta = triangle.a;
 			const tb = triangle.b;
 			const tc = triangle.c;
-			
+
 			for ( let i = 0, l = this.count; i < l; i += 3 ) {
 
 				let i3 = index.getX( i );
@@ -128,7 +128,7 @@ class MeshBVHNode {
 				tb.y = pos.getY( i3 );
 				tb.z = pos.getZ( i3 );
 				tb.applyMatrix4( inverseCache );
-				
+
 				i3 = index.getX( i + 2 );
 				tc.x = pos.getX( i3 );
 				tc.y = pos.getY( i3 );
@@ -150,8 +150,8 @@ class MeshBVHNode {
 
 			const c1 = this.children[ 0 ];
 			const c2 = this.children[ 1 ];
-			
-			return c1.boxcast( mesh, box ) || c2.boxcast( mesh, box ); 
+
+			return c1.boxcast( mesh, box ) || c2.boxcast( mesh, box );
 
 		}
 
