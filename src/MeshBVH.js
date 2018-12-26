@@ -45,7 +45,7 @@ export default class MeshBVH extends MeshBVHNode {
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
 			// early out if we've met our capacity
-			if ( count <= options.maxLeafTris ) {
+			if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
@@ -68,7 +68,7 @@ export default class MeshBVH extends MeshBVHNode {
 			const splitOffset = ctx.partition( offset, count, split );
 
 			// create the two new child nodes
-			if ( splitOffset === offset || splitOffset === offset + count || depth >= options.maxDepth ) {
+			if ( splitOffset === offset || splitOffset === offset + count ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
