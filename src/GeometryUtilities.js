@@ -6,9 +6,9 @@ import { checkBufferGeometryIntersection } from './IntersectionUtilities.js';
 const intersectTri = ( mesh, geo, raycaster, ray, tri, intersections ) => {
 
 	const triOffset = tri * 3;
-	const a = geo.index ? geo.index.getX( triOffset ) : triOffset;
-	const b = geo.index ? geo.index.getX( triOffset + 1 ) : triOffset + 1;
-	const c = geo.index ? geo.index.getX( triOffset + 2 ) : triOffset + 2;
+	const a = geo.index.getX( triOffset );
+	const b = geo.index.getX( triOffset + 1 );
+	const c = geo.index.getX( triOffset + 2 );
 
 	const intersection = checkBufferGeometryIntersection( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
 
