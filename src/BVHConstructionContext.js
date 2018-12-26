@@ -106,8 +106,8 @@ export default class BVHConstructionContext {
 
 	}
 
-	// shrinks the provided bounds on any dimensions to fit the provided triangles
-	shrinkBoundsTo( offset, count, parent, target ) {
+	// computes the union of the bounds of all of the given triangles and puts the resulting box in target
+	getBounds( offset, count, target ) {
 
 		let minx = Infinity;
 		let miny = Infinity;
@@ -131,13 +131,13 @@ export default class BVHConstructionContext {
 
 		}
 
-		target[ 0 ] = Math.max( minx, parent[ 0 ] );
-		target[ 1 ] = Math.max( miny, parent[ 1 ] );
-		target[ 2 ] = Math.max( minz, parent[ 2 ] );
+		target[ 0 ] = minx;
+		target[ 1 ] = miny;
+		target[ 2 ] = minz;
 
-		target[ 3 ] = Math.min( maxx, parent[ 3 ] );
-		target[ 4 ] = Math.min( maxy, parent[ 4 ] );
-		target[ 5 ] = Math.min( maxz, parent[ 5 ] );
+		target[ 3 ] = maxx;
+		target[ 4 ] = maxy;
+		target[ 5 ] = maxz;
 
 		return target;
 
