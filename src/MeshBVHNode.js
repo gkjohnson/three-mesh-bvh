@@ -11,6 +11,29 @@ const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
+function setTriangle(tri, i, index, pos) {
+
+	const ta = tri.a;
+	const tb = tri.b;
+	const tc = tri.c;
+
+	let i3 = index.getX( i );
+	ta.x = pos.getX( i3 );
+	ta.y = pos.getY( i3 );
+	ta.z = pos.getZ( i3 );
+
+	i3 = index.getX( i + 1 );
+	tb.x = pos.getX( i3 );
+	tb.y = pos.getY( i3 );
+	tb.z = pos.getZ( i3 );
+
+	i3 = index.getX( i + 2 );
+	tc.x = pos.getX( i3 );
+	tc.y = pos.getY( i3 );
+	tc.z = pos.getZ( i3 );
+
+}
+
 function boundsArrayIntersectRay( boundingData, ray ) {
 
 	arrayToBox( boundingData, boundingBox );
@@ -51,26 +74,9 @@ class MeshBVHNode {
 			const index = mesh.index;
 			const pos = mesh.attributes.position;
 
-			const ta = triangle.a;
-			const tb = triangle.b;
-			const tc = triangle.c;
-
 			for ( let i = 0, l = this.count; i < l; i += 3 ) {
 
-				let i3 = index.getX( i );
-				ta.x = pos.getX( i3 );
-				ta.y = pos.getY( i3 );
-				ta.z = pos.getZ( i3 );
-
-				i3 = index.getX( i + 1 );
-				tb.x = pos.getX( i3 );
-				tb.y = pos.getY( i3 );
-				tb.z = pos.getZ( i3 );
-
-				i3 = index.getX( i + 2 );
-				tc.x = pos.getX( i3 );
-				tc.y = pos.getY( i3 );
-				tc.z = pos.getZ( i3 );
+				setTriangle(triangle, i, index, pos);
 
 				if ( sphereItersectTriangle( sphere, triangle ) ) {
 
@@ -111,29 +117,12 @@ class MeshBVHNode {
 			const index = mesh.index;
 			const pos = mesh.attributes.position;
 
-			const ta = triangle.a;
-			const tb = triangle.b;
-			const tc = triangle.c;
-
 			for ( let i = 0, l = this.count; i < l; i += 3 ) {
 
-				let i3 = index.getX( i );
-				ta.x = pos.getX( i3 );
-				ta.y = pos.getY( i3 );
-				ta.z = pos.getZ( i3 );
-				ta.applyMatrix4( inverseCache );
-
-				i3 = index.getX( i + 1 );
-				tb.x = pos.getX( i3 );
-				tb.y = pos.getY( i3 );
-				tb.z = pos.getZ( i3 );
-				tb.applyMatrix4( inverseCache );
-
-				i3 = index.getX( i + 2 );
-				tc.x = pos.getX( i3 );
-				tc.y = pos.getY( i3 );
-				tc.z = pos.getZ( i3 );
-				tc.applyMatrix4( inverseCache );
+				setTriangle(triangle, i, index, pos);
+				triangle.a.applyMatrix4( inverseCache );
+				triangle.b.applyMatrix4( inverseCache );
+				triangle.c.applyMatrix4( inverseCache );
 
 				if ( box.intersectTriangle( triangle ) ) {
 
@@ -157,13 +146,10 @@ class MeshBVHNode {
 
 	}
 
-	bvhcast( mesh, bvh, bvhToLocal ) {
+	meshcast( mesh, otherMesh, meshToLocal ) {
 
 		// cache intersection of each bvh node to avoid recomputing the planes and points
-
-	}
-
-	meshcast( mesh, meshToLocal ) {
+		// drill down both bvh trees
 
 	}
 
