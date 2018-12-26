@@ -44,16 +44,6 @@ export default class MeshBVH extends MeshBVHNode {
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
-			// early out if we've met our capacity
-			if ( count <= options.maxLeafTris ) {
-
-				ctx.writeReorderedIndices( offset, count, indices );
-				node.offset = offset;
-				node.count = count;
-				return node;
-
-			}
-
 			// Find where to split the volume
 			const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
 			if ( split.axis === - 1 ) {
@@ -66,9 +56,15 @@ export default class MeshBVH extends MeshBVHNode {
 			}
 
 			const splitOffset = ctx.partition( offset, count, split );
+			const lcount = splitOffset - offset;
+			const rcount = count - lcount;
+
+			const didntSplit = splitOffset === offset || splitOffset === offset + count;
+			const reachedMaxDepth = depth >= options.maxDepth;
+			const tooFewTris = lcount <= options.maxLeafTris || rcount <= options.maxLeafTris;
 
 			// create the two new child nodes
-			if ( splitOffset === offset || splitOffset === offset + count || depth >= options.maxDepth ) {
+			if ( didntSplit || reachedMaxDepth || tooFewTris ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
@@ -78,13 +74,13 @@ export default class MeshBVH extends MeshBVHNode {
 
 				// create the left child, keeping the bounds within the bounds of the parent
 				const left = new MeshBVHNode();
-				const lstart = offset, lcount = splitOffset - offset;
+				const lstart = offset;
 				left.boundingData = ctx.shrinkBoundsTo( lstart, lcount, node.boundingData, new Float32Array( 6 ) );
 				splitNode( left, lstart, lcount, depth + 1 );
 
 				// repeat for right
 				const right = new MeshBVHNode();
-				const rstart = splitOffset, rcount = count - lcount;
+				const rstart = splitOffset;
 				right.boundingData = ctx.shrinkBoundsTo( rstart, rcount, node.boundingData, new Float32Array( 6 ) );
 				splitNode( right, rstart, rcount, depth + 1 );
 
