@@ -44,7 +44,6 @@ export default class MeshBVH extends MeshBVHNode {
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
-
 			// early out if we've met our capacity
 			if ( depth >= options.maxDepth ) {
 
@@ -84,13 +83,13 @@ export default class MeshBVH extends MeshBVHNode {
 
 				// create the left child and compute its bounding box
 				const left = new MeshBVHNode();
-				const lstart = offset, lcount = splitOffset - offset;
+				const lstart = offset;
 				left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
 				splitNode( left, lstart, lcount, depth + 1 );
 
 				// repeat for right
 				const right = new MeshBVHNode();
-				const rstart = splitOffset, rcount = count - lcount;
+				const rstart = splitOffset;
 				right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
 				splitNode( right, rstart, rcount, depth + 1 );
 
