@@ -35,7 +35,7 @@ const mesh = new THREE.Mesh(geom, material);
 geom.computeBoundsTree();
 ```
 
-Or manually building and using the BVH
+Or manually building the BVH
 
 ```js
 // Import via ES6 modules
