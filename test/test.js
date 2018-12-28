@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 
+MeshBVH.suppressWarnings = true;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;

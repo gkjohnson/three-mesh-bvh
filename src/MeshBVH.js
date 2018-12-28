@@ -4,7 +4,7 @@ import BVHConstructionContext from './BVHConstructionContext.js';
 import { boundsToArray } from './BoundsUtilities.js';
 import { CENTER } from './Constants.js';
 
-export default class MeshBVH extends MeshBVHNode {
+class MeshBVH extends MeshBVHNode {
 
 	constructor( geo, options = {} ) {
 
@@ -14,7 +14,7 @@ export default class MeshBVH extends MeshBVHNode {
 		options = Object.assign( {
 
 			strategy: CENTER,
-			maxDepth: Infinity,
+			maxDepth: 40,
 			maxLeafTris: 10
 
 		}, options );
@@ -26,7 +26,7 @@ export default class MeshBVH extends MeshBVHNode {
 
 		} else {
 
-			throw new Error( 'Only BufferGeometries are supported.' );
+			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
 
 		}
 
@@ -39,10 +39,17 @@ export default class MeshBVH extends MeshBVHNode {
 		const verticesLength = geo.attributes.position.count;
 		const indicesLength = ctx.tris.length * 3;
 		const indices = new ( verticesLength < 65536 ? Uint16Array : Uint32Array )( indicesLength );
+		let reachedMaxDepth = false;
 
 		// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
 		const splitNode = ( node, offset, count, depth = 0 ) => {
+
+			if ( depth >= options.maxDepth ) {
+				
+				reachedMaxDepth = true;
+
+			}
 
 			// early out if we've met our capacity
 			if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
@@ -98,13 +105,23 @@ export default class MeshBVH extends MeshBVHNode {
 		};
 
 		if ( ! geo.boundingBox ) geo.computeBoundingBox();
-
 		this.boundingData = boundsToArray( geo.boundingBox );
 		this.index = new THREE.BufferAttribute( indices, 1 );
 		splitNode( this, 0, ctx.tris.length );
+
+		if ( reachedMaxDepth && !MeshBVH.suppressWarnings ) {
+
+			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+			console.warn( this, geo );
+
+		}
 
 		return this;
 
 	}
 
 }
+
+MeshBVH.suppressWarnings = false;
+
+export default MeshBVH;
