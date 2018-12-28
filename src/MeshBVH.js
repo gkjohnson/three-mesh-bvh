@@ -76,16 +76,16 @@ export default class MeshBVH extends MeshBVHNode {
 
 			} else {
 
-				// create the left child, keeping the bounds within the bounds of the parent
+				// create the left child and compute its bounding box
 				const left = new MeshBVHNode();
 				const lstart = offset, lcount = splitOffset - offset;
-				left.boundingData = ctx.shrinkBoundsTo( lstart, lcount, node.boundingData, new Float32Array( 6 ) );
+				left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
 				splitNode( left, lstart, lcount, depth + 1 );
 
 				// repeat for right
 				const right = new MeshBVHNode();
 				const rstart = splitOffset, rcount = count - lcount;
-				right.boundingData = ctx.shrinkBoundsTo( rstart, rcount, node.boundingData, new Float32Array( 6 ) );
+				right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
 				splitNode( right, rstart, rcount, depth + 1 );
 
 				node.splitAxis = split.axis;
