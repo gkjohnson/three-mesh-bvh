@@ -46,7 +46,7 @@ export default class MeshBVH extends MeshBVHNode {
 
 
 			// early out if we've met our capacity
-			if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
+			if ( depth >= options.maxDepth ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
@@ -71,11 +71,10 @@ export default class MeshBVH extends MeshBVHNode {
 			const rcount = count - lcount;
 
 			const didntSplit = splitOffset === offset || splitOffset === offset + count;
-			const reachedMaxDepth = depth >= options.maxDepth;
 			const tooFewTris = lcount <= options.maxLeafTris || rcount <= options.maxLeafTris;
 
 			// create the two new child nodes
-			if ( didntSplit || reachedMaxDepth || tooFewTris ) {
+			if ( didntSplit || tooFewTris ) {
 
 				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
