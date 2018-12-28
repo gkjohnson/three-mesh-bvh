@@ -44,6 +44,17 @@ export default class MeshBVH extends MeshBVHNode {
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
+
+			// early out if we've met our capacity
+			if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
+
+				ctx.writeReorderedIndices( offset, count, indices );
+				node.offset = offset;
+				node.count = count;
+				return node;
+
+			}
+
 			// Find where to split the volume
 			const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
 			if ( split.axis === - 1 ) {
@@ -72,16 +83,16 @@ export default class MeshBVH extends MeshBVHNode {
 
 			} else {
 
-				// create the left child, keeping the bounds within the bounds of the parent
+				// create the left child and compute its bounding box
 				const left = new MeshBVHNode();
-				const lstart = offset;
-				left.boundingData = ctx.shrinkBoundsTo( lstart, lcount, node.boundingData, new Float32Array( 6 ) );
+				const lstart = offset, lcount = splitOffset - offset;
+				left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
 				splitNode( left, lstart, lcount, depth + 1 );
 
 				// repeat for right
 				const right = new MeshBVHNode();
-				const rstart = splitOffset;
-				right.boundingData = ctx.shrinkBoundsTo( rstart, rcount, node.boundingData, new Float32Array( 6 ) );
+				const rstart = splitOffset, rcount = count - lcount;
+				right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
 				splitNode( right, rstart, rcount, depth + 1 );
 
 				node.splitAxis = split.axis;
