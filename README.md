@@ -13,7 +13,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 ## Use
 
-Using premade functions
+Using pre-made functions
 
 ```js
 // Import via ES6 modules
@@ -23,16 +23,16 @@ import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } '.../three-m
 // Or UMD
 const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVH;
 
+
+// Add the extension functions
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = accelertedRaycast;
 
-// 80,000 polygon mesh
+// Generate geometry and associated BVH
 const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
 const mesh = new THREE.Mesh(geom, material);
 geom.computeBoundsTree();
-
-// Fast raycasts!
 ```
 
 Or manually building and using the BVH
@@ -45,13 +45,12 @@ import { MeshBVH, acceleratedRaycast } '.../three-mesh-bvh.js'
 // Or UMD
 const { MeshBVH, acceleratedRaycast } = window.MeshBVH;
 
-// optional -- assumes bounds tree is available on
-// mesh.geometry.boundsTree
+
+// Add the raycast function. Assumes the BVH is available on
+// the `boundsTree` variable
 THREE.Mesh.prototype.raycast = accelertedRaycast;
 
-// 80,000 polygon mesh
-const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
-const mesh = new THREE.Mesh(geom, material);
+// ...
 
 // Generate the BVH and use the newly generated index
 geom.boundsTree = new MeshBVH(geom);
@@ -62,7 +61,7 @@ geom.setIndex(geom.boundsTree.index);
 ### Split Strategy Constants
 #### CENTER
 
-Option for spliting each BVH node down the center of the longest axis of the bounds.
+Option for splitting each BVH node down the center of the longest axis of the bounds.
 
 This is the fastest construction option but will yield a less optimal hierarchy.
 
