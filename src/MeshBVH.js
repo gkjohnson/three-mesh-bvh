@@ -33,12 +33,28 @@ export default class MeshBVH extends MeshBVHNode {
 	}
 
 	/* Private Functions */
+
+	_ensureIndex( geo ) {
+
+		if ( ! geo.index ) {
+
+			const triCount = geo.attributes.position.count / 3;
+			const indexCount = triCount * 3;
+			const index = new ( triCount > 65535 ? Uint32Array : Uint16Array )( indexCount );
+			for ( let i = 0; i < indexCount; i ++ ) {
+				index[ i ] = i;
+			}
+			geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
+
+		}
+
+	}
+
 	_buildTree( geo, options ) {
 
+		this._ensureIndex( geo );
+
 		const ctx = new BVHConstructionContext( geo, options );
-		const verticesLength = geo.attributes.position.count;
-		const indicesLength = ctx.tris.length * 3;
-		const indices = new ( verticesLength < 65536 ? Uint16Array : Uint32Array )( indicesLength );
 
 		// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
@@ -47,7 +63,6 @@ export default class MeshBVH extends MeshBVHNode {
 			// early out if we've met our capacity
 			if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
 
-				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
 				node.count = count;
 				return node;
@@ -58,7 +73,6 @@ export default class MeshBVH extends MeshBVHNode {
 			const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
 			if ( split.axis === - 1 ) {
 
-				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
 				node.count = count;
 				return node;
@@ -70,7 +84,6 @@ export default class MeshBVH extends MeshBVHNode {
 			// create the two new child nodes
 			if ( splitOffset === offset || splitOffset === offset + count ) {
 
-				ctx.writeReorderedIndices( offset, count, indices );
 				node.offset = offset;
 				node.count = count;
 
@@ -100,8 +113,7 @@ export default class MeshBVH extends MeshBVHNode {
 		if ( ! geo.boundingBox ) geo.computeBoundingBox();
 
 		this.boundingData = boundsToArray( geo.boundingBox );
-		this.index = new THREE.BufferAttribute( indices, 1 );
-		splitNode( this, 0, ctx.tris.length );
+		splitNode( this, 0, geo.index.count / 3 );
 
 		return this;
 
