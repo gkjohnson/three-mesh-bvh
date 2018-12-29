@@ -27,7 +27,7 @@ const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.Mesh
 // Add the extension functions
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
-THREE.Mesh.prototype.raycast = accelertedRaycast;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // Generate geometry and associated BVH
 const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
@@ -48,7 +48,7 @@ const { MeshBVH, acceleratedRaycast } = window.MeshBVH;
 
 // Add the raycast function. Assumes the BVH is available on
 // the `boundsTree` variable
-THREE.Mesh.prototype.raycast = accelertedRaycast;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // ...
 
@@ -92,7 +92,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
     // The maximum depth to allow the tree to build to
     // Setting this to a smaller trades raycast speed for better construction
-    // time and less memory allocation 
+    // time and less memory allocation
     maxDepth: Infinity,
 
     // The number of triangles to aim for in a leaf node
@@ -128,7 +128,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 #### acceleratedRaycast(...)
 
-An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach. 
+An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach.
 
 If the raycaster object being used has member `firstHitOnly` set to `true` then the faster, first raycast hit function will be used.
 
