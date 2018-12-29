@@ -41,10 +41,13 @@ export default class MeshBVH extends MeshBVHNode {
 			const triCount = geo.attributes.position.count / 3;
 			const indexCount = triCount * 3;
 			const index = new ( triCount > 65535 ? Uint32Array : Uint16Array )( indexCount );
-			for ( let i = 0; i < indexCount; i ++ ) {
-				index[ i ] = i;
-			}
 			geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
+
+			for ( let i = 0; i < indexCount; i ++ ) {
+
+				index[ i ] = i;
+
+			}
 
 		}
 
