@@ -17,8 +17,8 @@ Using pre-made functions
 
 ```js
 // Import via ES6 modules
-import * as THREE from '.../three.js'
-import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } '.../three-mesh-bvh.js'
+import * as THREE from 'three';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } 'three-mesh-bvh';
 
 // Or UMD
 const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVH;
@@ -39,8 +39,8 @@ Or manually building the BVH
 
 ```js
 // Import via ES6 modules
-import * as THREE from '.../three.js'
-import { MeshBVH, acceleratedRaycast } '.../three-mesh-bvh.js'
+import * as THREE from 'three';
+import { MeshBVH, acceleratedRaycast } 'three-mesh-bvh';
 
 // Or UMD
 const { MeshBVH, acceleratedRaycast } = window.MeshBVH;
