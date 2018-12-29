@@ -130,7 +130,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach.
 
-If the raycaster object being used has member `firstHitOnly` set to `true` then the faster, first raycast hit function will be used.
+If the raycaster object being used has a property `firstHitOnly` set to `true`, then the raycasting will terminate as soon as it finds the closest intersection to the ray's origin and return only that intersection. This is typically several times faster than searching for all intersections.
 
 ```js
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
