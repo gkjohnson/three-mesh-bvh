@@ -4,14 +4,6 @@ import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
 
-// TODO: This could probably be optimizied to not dig so deeply into an object
-// and reust some of the fetch values in some cases
-function getBufferGeometryVertexElem( geo, tri, vert, elem ) {
-
-	return geo.attributes.position.array[ geo.index.array[ 3 * tri + vert ] * 3 + elem ];
-
-}
-
 // precomputes data about each triangle required for quickly calculating tree splits:
 //
 // - bounds: an array of size tris.length * 6 where triangle i maps to a
@@ -23,18 +15,24 @@ function getBufferGeometryVertexElem( geo, tri, vert, elem ) {
 //
 function computeTriangleData( geo ) {
 
-	const triCount = geo.index.count / 3;
+	const verts = geo.attributes.position.array;
+	const index = geo.index.array;
+	const triCount = index.length / 3;
 	const bounds = new Float32Array( triCount * 6 );
 	const centroids = new Float32Array( triCount * 3 );
 
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
+		const ai = index[ 3 * tri + 0 ] * 3;
+		const bi = index[ 3 * tri + 1 ] * 3;
+		const ci = index[ 3 * tri + 2 ] * 3;
+
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const a = getBufferGeometryVertexElem( geo, tri, 0, el );
-			const b = getBufferGeometryVertexElem( geo, tri, 1, el );
-			const c = getBufferGeometryVertexElem( geo, tri, 2, el );
-			bounds[ tri * 6 + el * 2 ] = Math.min( a, b, c );
+			const a = verts[ ai + el ];
+			const b = verts[ bi + el ];
+			const c = verts[ ci + el ];
+			bounds[ tri * 6 + el * 2 + 0 ] = Math.min( a, b, c );
 			bounds[ tri * 6 + el * 2 + 1 ] = Math.max( a, b, c );
 			centroids[ tri * 3 + el ] = ( a + b + c ) / 3;
 
