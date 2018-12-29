@@ -46,7 +46,7 @@ class MeshBVH extends MeshBVHNode {
 		const splitNode = ( node, offset, count, depth = 0 ) => {
 
 			if ( depth >= options.maxDepth ) {
-				
+
 				reachedMaxDepth = true;
 
 			}
@@ -109,7 +109,7 @@ class MeshBVH extends MeshBVHNode {
 		this.index = new THREE.BufferAttribute( indices, 1 );
 		splitNode( this, 0, ctx.tris.length );
 
-		if ( reachedMaxDepth && !MeshBVH.suppressWarnings ) {
+		if ( reachedMaxDepth && ! MeshBVH.suppressWarnings ) {
 
 			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
 			console.warn( this, geo );
