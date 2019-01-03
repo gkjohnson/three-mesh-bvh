@@ -93,10 +93,13 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // The maximum depth to allow the tree to build to
     // Setting this to a smaller trades raycast speed for better construction
     // time and less memory allocation
-    maxDepth: Infinity,
+    maxDepth: 40,
 
     // The number of triangles to aim for in a leaf node
-    maxLeafTris: 10
+	maxLeafTris: 10,
+
+	// Print out warnings encountered during tree construction
+	verbose: true
 
 }
 ```
