@@ -96,7 +96,10 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     maxDepth: Infinity,
 
     // The number of triangles to aim for in a leaf node
-    maxLeafTris: 10
+	maxLeafTris: 10,
+
+	// Print out warnings encountered during tree construction
+	verbose: true
 
 }
 ```
