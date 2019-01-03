@@ -4,7 +4,7 @@ import BVHConstructionContext from './BVHConstructionContext.js';
 import { boundsToArray } from './BoundsUtilities.js';
 import { CENTER } from './Constants.js';
 
-class MeshBVH extends MeshBVHNode {
+export default class MeshBVH extends MeshBVHNode {
 
 	constructor( geo, options = {} ) {
 
@@ -15,7 +15,8 @@ class MeshBVH extends MeshBVHNode {
 
 			strategy: CENTER,
 			maxDepth: 40,
-			maxLeafTris: 10
+			maxLeafTris: 10,
+			verbose: true
 
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
@@ -109,7 +110,7 @@ class MeshBVH extends MeshBVHNode {
 		this.index = new THREE.BufferAttribute( indices, 1 );
 		splitNode( this, 0, ctx.tris.length );
 
-		if ( reachedMaxDepth && ! MeshBVH.suppressWarnings ) {
+		if ( reachedMaxDepth && options.verbose ) {
 
 			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
 			console.warn( this, geo );
@@ -121,7 +122,3 @@ class MeshBVH extends MeshBVHNode {
 	}
 
 }
-
-MeshBVH.suppressWarnings = false;
-
-export default MeshBVH;

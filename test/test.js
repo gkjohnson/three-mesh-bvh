@@ -5,7 +5,6 @@
 import * as THREE from 'three';
 import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 
-MeshBVH.suppressWarnings = true;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
@@ -87,7 +86,7 @@ describe( 'Options', () => {
 
 		it( 'should cap the depth of the bounds tree', () => {
 
-			mesh.geometry.computeBoundsTree( { maxDepth: 10 } );
+			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
 
 			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toEqual( 10 );
@@ -100,7 +99,7 @@ describe( 'Options', () => {
 			raycaster.ray.origin.set( 0, 0, 10 );
 			raycaster.ray.direction.set( 0, 0, - 1 );
 
-			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3 } );
+			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3, verbose: false } );
 			mesh.geometry.setIndex( bvh.index );
 
 			const ogHits = raycaster.intersectObject( mesh, true );
