@@ -21,7 +21,7 @@ import * as THREE from 'three';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } 'three-mesh-bvh';
 
 // Or UMD
-const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVH;
+const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVHLib;
 
 
 // Add the extension functions
@@ -43,7 +43,7 @@ import * as THREE from 'three';
 import { MeshBVH, acceleratedRaycast } 'three-mesh-bvh';
 
 // Or UMD
-const { MeshBVH, acceleratedRaycast } = window.MeshBVH;
+const { MeshBVH, acceleratedRaycast } = window.MeshBVHLib;
 
 
 // Add the raycast function. Assumes the BVH is available on
