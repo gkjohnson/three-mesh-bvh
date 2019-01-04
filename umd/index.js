@@ -1,7 +1,7 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'three'], factory) :
-	(global = global || self, factory(global.MeshBVH = global.MeshBVH || {}, global.THREE));
+	(global = global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
 }(this, function (exports, THREE) { 'use strict';
 
 	// From THREE.js Mesh raycast
@@ -97,9 +97,9 @@
 	const intersectTri = ( mesh, geo, raycaster, ray, tri, intersections ) => {
 
 		const triOffset = tri * 3;
-		const a = geo.index ? geo.index.getX( triOffset ) : triOffset;
-		const b = geo.index ? geo.index.getX( triOffset + 1 ) : triOffset + 1;
-		const c = geo.index ? geo.index.getX( triOffset + 2 ) : triOffset + 2;
+		const a = geo.index.getX( triOffset );
+		const b = geo.index.getX( triOffset + 1 );
+		const c = geo.index.getX( triOffset + 2 );
 
 		const intersection = checkBufferGeometryIntersection( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
 
@@ -409,12 +409,12 @@
 
 			}
 
-			return avg / ( count * 3 );
+			return avg / count;
 
 		}
 
-		// shrinks the provided bounds on any dimensions to fit the provided triangles
-		shrinkBoundsTo( offset, count, parent, target ) {
+		// computes the union of the bounds of all of the given triangles and puts the resulting box in target
+		getBounds( offset, count, target ) {
 
 			let minx = Infinity;
 			let miny = Infinity;
@@ -438,13 +438,13 @@
 
 			}
 
-			target[ 0 ] = Math.max( minx, parent[ 0 ] );
-			target[ 1 ] = Math.max( miny, parent[ 1 ] );
-			target[ 2 ] = Math.max( minz, parent[ 2 ] );
+			target[ 0 ] = minx;
+			target[ 1 ] = miny;
+			target[ 2 ] = minz;
 
-			target[ 3 ] = Math.min( maxx, parent[ 3 ] );
-			target[ 4 ] = Math.min( maxy, parent[ 4 ] );
-			target[ 5 ] = Math.min( maxz, parent[ 5 ] );
+			target[ 3 ] = maxx;
+			target[ 4 ] = maxy;
+			target[ 5 ] = maxz;
 
 			return target;
 
@@ -694,8 +694,9 @@
 			options = Object.assign( {
 
 				strategy: CENTER,
-				maxDepth: Infinity,
-				maxLeafTris: 10
+				maxDepth: 40,
+				maxLeafTris: 10,
+				verbose: true
 
 			}, options );
 			options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
@@ -706,7 +707,7 @@
 
 			} else {
 
-				throw new Error( 'Only BufferGeometries are supported.' );
+				throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
 
 			}
 
@@ -719,13 +720,20 @@
 			const verticesLength = geo.attributes.position.count;
 			const indicesLength = ctx.tris.length * 3;
 			const indices = new ( verticesLength < 65536 ? Uint16Array : Uint32Array )( indicesLength );
+			let reachedMaxDepth = false;
 
 			// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 			// recording the offset and count of its triangles and writing them into the reordered geometry index.
 			const splitNode = ( node, offset, count, depth = 0 ) => {
 
+				if ( depth >= options.maxDepth ) {
+
+					reachedMaxDepth = true;
+
+				}
+
 				// early out if we've met our capacity
-				if ( count <= options.maxLeafTris ) {
+				if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
 
 					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
@@ -748,7 +756,7 @@
 				const splitOffset = ctx.partition( offset, count, split );
 
 				// create the two new child nodes
-				if ( splitOffset === offset || splitOffset === offset + count || depth >= options.maxDepth ) {
+				if ( splitOffset === offset || splitOffset === offset + count ) {
 
 					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
@@ -756,16 +764,16 @@
 
 				} else {
 
-					// create the left child, keeping the bounds within the bounds of the parent
+					// create the left child and compute its bounding box
 					const left = new MeshBVHNode();
 					const lstart = offset, lcount = splitOffset - offset;
-					left.boundingData = ctx.shrinkBoundsTo( lstart, lcount, node.boundingData, new Float32Array( 6 ) );
+					left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
 					splitNode( left, lstart, lcount, depth + 1 );
 
 					// repeat for right
 					const right = new MeshBVHNode();
 					const rstart = splitOffset, rcount = count - lcount;
-					right.boundingData = ctx.shrinkBoundsTo( rstart, rcount, node.boundingData, new Float32Array( 6 ) );
+					right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
 					splitNode( right, rstart, rcount, depth + 1 );
 
 					node.splitAxis = split.axis;
@@ -778,10 +786,16 @@
 			};
 
 			if ( ! geo.boundingBox ) geo.computeBoundingBox();
-
 			this.boundingData = boundsToArray( geo.boundingBox );
 			this.index = new THREE.BufferAttribute( indices, 1 );
 			splitNode( this, 0, ctx.tris.length );
+
+			if ( reachedMaxDepth && options.verbose ) {
+
+				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+				console.warn( this, geo );
+
+			}
 
 			return this;
 

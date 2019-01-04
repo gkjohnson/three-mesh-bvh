@@ -6,7 +6,7 @@
   "main": "umd/index.js",
   "scripts": {
     "start": "static-server",
-    "build": " rollup -c & parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "build": "rollup -c & parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
     "lint": "eslint ./src/*.js ./test/*.js",
     "benchmark": "node benchmark/index.js"
