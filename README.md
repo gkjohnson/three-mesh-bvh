@@ -1,5 +1,6 @@
 # three-mesh-bvh
 
+[![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
 [![lgtm code quality](https://img.shields.io/lgtm/grade/javascript/g/gkjohnson/three-mesh-bvh.svg?style=flat-square&label=code-quality)](https://lgtm.com/projects/g/gkjohnson/three-mesh-bvh/)
 [![travis build](https://img.shields.io/travis/gkjohnson/three-mesh-bvh.svg?style=flat-square)](https://travis-ci.org/gkjohnson/three-mesh-bvh)
 

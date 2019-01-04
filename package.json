@@ -11,6 +11,10 @@
     "lint": "eslint ./src/*.js ./test/*.js",
     "benchmark": "node benchmark/index.js"
   },
+  "files": [
+    "src/*",
+    "umd/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/three-mesh-bvh.git"
