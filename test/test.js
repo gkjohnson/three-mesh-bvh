@@ -63,15 +63,16 @@ describe( 'Options', () => {
 	describe( 'maxDepth', () => {
 
 		// Returns the max tree depth of the BVH
-		function getMaxDepth( node, depth = 0 ) {
+		function getMaxDepth( node ) {
 
-			if ( ! node.children ) return depth;
+			const isLeaf = 'count' in node;
 
-			return node.children.reduce( ( acc, n ) => {
+			if ( isLeaf ) return 0;
 
-				return Math.max( getMaxDepth( n, depth + 1 ), acc );
-
-			}, depth );
+			return 1 + Math.max(
+				getMaxDepth( node.left ),
+				getMaxDepth( node.right )
+			);
 
 		}
 

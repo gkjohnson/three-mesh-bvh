@@ -32,9 +32,11 @@ class MeshBVHVisualizer extends THREE.Object3D {
 
 				const recurse = ( n, d ) => {
 
+					let isLeaf = 'count' in n;
+
 					if ( d === this.depth ) return;
 
-					if ( d === this.depth - 1 || n.children == null || n.children.length === 0 ) {
+					if ( d === this.depth - 1 || isLeaf ) {
 
 						let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
 						if ( ! m ) {
@@ -51,9 +53,10 @@ class MeshBVHVisualizer extends THREE.Object3D {
 
 					}
 
-					if ( n.children != null ) {
+					if ( ! isLeaf ) {
 
-						n.children.forEach( n => recurse( n, d + 1 ) );
+						recurse( n.left, d + 1 );
+						recurse( n.right, d + 1 );
 
 					}
 
