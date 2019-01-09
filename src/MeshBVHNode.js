@@ -12,7 +12,7 @@ class MeshBVHNode {
 
 	constructor() {
 
-		// internal nodes have boundingData, children, and splitAxis
+		// internal nodes have boundingData, left, right, and splitAxis
 		// leaf nodes have offset and count (referring to primitives in the mesh geometry)
 
 	}
@@ -28,12 +28,14 @@ class MeshBVHNode {
 	raycast( mesh, raycaster, ray, intersects ) {
 
 		if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
-		else this.children.forEach( c => {
+		else {
 
-			if ( c.intersectRay( ray, boxIntersection ) )
-				c.raycast( mesh, raycaster, ray, intersects );
+			if ( this.left.intersectRay( ray, boxIntersection ) )
+				this.left.raycast( mesh, raycaster, ray, intersects );
+			if ( this.right.intersectRay( ray, boxIntersection ) )
+				this.right.raycast( mesh, raycaster, ray, intersects );
 
-		} );
+		}
 
 	}
 
@@ -48,7 +50,6 @@ class MeshBVHNode {
 
 			// consider the position of the split plane with respect to the oncoming ray; whichever direction
 			// the ray is coming from, look for an intersection among that side of the tree first
-			const children = this.children;
 			const splitAxis = this.splitAxis;
 			const xyzAxis = xyzFields[ splitAxis ];
 			const rayDir = ray.direction[ xyzAxis ];
@@ -58,13 +59,13 @@ class MeshBVHNode {
 			let c1, c2;
 			if ( leftToRight ) {
 
-				c1 = children[ 0 ];
-				c2 = children[ 1 ];
+				c1 = this.left;
+				c2 = this.right;
 
 			} else {
 
-				c1 = children[ 1 ];
-				c2 = children[ 0 ];
+				c1 = this.right;
+				c2 = this.left;
 
 			}
 
