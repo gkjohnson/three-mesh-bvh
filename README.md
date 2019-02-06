@@ -1,9 +1,10 @@
 # three-mesh-bvh
 
+[![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
 [![lgtm code quality](https://img.shields.io/lgtm/grade/javascript/g/gkjohnson/three-mesh-bvh.svg?style=flat-square&label=code-quality)](https://lgtm.com/projects/g/gkjohnson/three-mesh-bvh/)
 [![travis build](https://img.shields.io/travis/gkjohnson/three-mesh-bvh.svg?style=flat-square)](https://travis-ci.org/gkjohnson/three-mesh-bvh)
 
-A THREEjs utility for providing more efficient raycasts against sufficiently complex meshes.
+A BVH implementation to speed up raycasting against three.js meshes.
 
 [Demo Here!](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/boundsTree.html)
 
@@ -13,40 +14,130 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 ## Use
 
-```js
-import * as THREE from '.../three.js'
-import '.../three-mesh-bvh.js'
+Using pre-made functions
 
-// 80,000 polygon mesh
+```js
+// Import via ES6 modules
+import * as THREE from 'three';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } 'three-mesh-bvh';
+
+// Or UMD
+const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVHLib;
+
+
+// Add the extension functions
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+
+// Generate geometry and associated BVH
 const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
 const mesh = new THREE.Mesh(geom, material);
 geom.computeBoundsTree();
-
-// Fast raycasts!
 ```
 
-### THREE API Extensions
-#### BufferGeometry
-##### computeBoundsTree()
-
-Computes a bounds hierarchy for the geometry which is used to for raycasts. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
-
-##### disposeBoundsTree()
-
-Removes the previously caculated bounds tree
-
-##### boundsTree
-
-A direct handle to the calculated bounds tree.
-
-#### Raycaster
-##### firstHitOnly
-
-The `intersectObject` and `intersectObjects` functions use a `firstHitOnly` field on the raycaster indicating that only the first hit should be pushed onto the `intersects` array for every piece of geometry. Setting `firstHitOnly` to true makes bounds tree-enabled intersections much faster.
+Or manually building the BVH
 
 ```js
-raycaster.firstHitOnly = true;
-raycaster.intersectObjects( objects );
+// Import via ES6 modules
+import * as THREE from 'three';
+import { MeshBVH, acceleratedRaycast } 'three-mesh-bvh';
+
+// Or UMD
+const { MeshBVH, acceleratedRaycast } = window.MeshBVHLib;
+
+
+// Add the raycast function. Assumes the BVH is available on
+// the `boundsTree` variable
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+
+// ...
+
+// Generate the BVH and use the newly generated index
+geom.boundsTree = new MeshBVH(geom);
+geom.setIndex(geom.boundsTree.index);
+```
+
+## Exports
+### Split Strategy Constants
+#### CENTER
+
+Option for splitting each BVH node down the center of the longest axis of the bounds.
+
+This is the fastest construction option but will yield a less optimal hierarchy.
+
+#### AVERAGE
+
+Option for splitting each BVH node at the average point along the longest axis for all triangle centroids in the bounds.
+
+#### SAH
+
+Option to use a Surface Area Heuristic to split the bounds optimally.
+
+This is the slowest construction option.
+
+### MeshBVH
+
+#### index : AttributeBuffer
+
+The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH will no longer work correctly if this buffer is modified.
+
+#### constructor(geometry : BufferGeometry, options : Object)
+
+Constructs the bounds tree for the given geometry and produces a new index attribute buffer. The available options are
+
+```js
+{
+    // Which split strategy to use when constructing the BVH
+    strategy: CENTER,
+
+    // The maximum depth to allow the tree to build to
+    // Setting this to a smaller trades raycast speed for better construction
+    // time and less memory allocation
+    maxDepth: 40,
+
+    // The number of triangles to aim for in a leaf node
+	maxLeafTris: 10,
+
+	// Print out warnings encountered during tree construction
+	verbose: true
+
+}
+```
+
+#### raycast(mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array)
+
+Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
+
+#### raycastFirst(mesh : Mesh, raycaster : Raycaster, ray : Ray) : RaycastHit
+
+Returns the first raycast hit in the model. This is typically much faster than returning all hits.
+
+### Extension Functions
+#### computeBoundsTree(options : Object)
+
+A pre-made BufferGeometry extension function that builds a new BVH, assigns it to `boundsTree`, and applies the new index buffer to the geometry. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
+
+```js
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+```
+
+#### disposeBoundsTree()
+
+A BufferGeometry extension function that disposes of the BVH.
+
+```js
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+```
+
+#### acceleratedRaycast(...)
+
+An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach.
+
+If the raycaster object being used has a property `firstHitOnly` set to `true`, then the raycasting will terminate as soon as it finds the closest intersection to the ray's origin and return only that intersection. This is typically several times faster than searching for all intersections.
+
+```js
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 ```
 
 ## Gotchas

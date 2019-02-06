@@ -1,16 +1,20 @@
 {
   "name": "three-mesh-bvh",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A BVH implementation to speed up raycasting against three.js meshes.",
   "module": "src/index.js",
   "main": "umd/index.js",
   "scripts": {
     "start": "static-server",
-    "build": " rollup -c & parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "build": "rollup -c & parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
     "lint": "eslint ./src/*.js ./test/*.js",
     "benchmark": "node benchmark/index.js"
   },
+  "files": [
+    "src/*",
+    "umd/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/three-mesh-bvh.git"

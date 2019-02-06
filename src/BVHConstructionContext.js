@@ -89,7 +89,7 @@ export default class BVHConstructionContext {
 
 		}
 
-		return avg / ( count * 3 );
+		return avg / count;
 
 	}
 

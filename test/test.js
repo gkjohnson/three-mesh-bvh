@@ -63,15 +63,16 @@ describe( 'Options', () => {
 	describe( 'maxDepth', () => {
 
 		// Returns the max tree depth of the BVH
-		function getMaxDepth( node, depth = 0 ) {
+		function getMaxDepth( node ) {
 
-			if ( ! node.children ) return depth;
+			const isLeaf = 'count' in node;
 
-			return node.children.reduce( ( acc, n ) => {
+			if ( isLeaf ) return 0;
 
-				return Math.max( getMaxDepth( n, depth + 1 ), acc );
-
-			}, depth );
+			return 1 + Math.max(
+				getMaxDepth( node.left ),
+				getMaxDepth( node.right )
+			);
 
 		}
 
@@ -86,7 +87,7 @@ describe( 'Options', () => {
 
 		it( 'should cap the depth of the bounds tree', () => {
 
-			mesh.geometry.computeBoundsTree( { maxDepth: 10 } );
+			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
 
 			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toEqual( 10 );
@@ -99,7 +100,7 @@ describe( 'Options', () => {
 			raycaster.ray.origin.set( 0, 0, 10 );
 			raycaster.ray.direction.set( 0, 0, - 1 );
 
-			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3 } );
+			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3, verbose: false } );
 			const ogHits = raycaster.intersectObject( mesh, true );
 
 			mesh.geometry.boundsTree = bvh;
