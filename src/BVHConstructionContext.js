@@ -4,20 +4,6 @@ import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
 
-function getTriangleCount( geo ) {
-
-	return geo.index ? ( geo.index.count / 3 ) : ( geo.attributes.position.count / 3 );
-
-}
-
-// TODO: This could probably be optimizied to not dig so deeply into an object
-// and reust some of the fetch values in some cases
-function getBufferGeometryVertexElem( geo, tri, vert, elem ) {
-
-	return geo.attributes.position.array[ ( geo.index ? geo.index.array[ 3 * tri + vert ] : ( 3 * tri + vert ) ) * 3 + elem ];
-
-}
-
 // precomputes data about each triangle required for quickly calculating tree splits:
 //
 // - bounds: an array of size tris.length * 6 where triangle i maps to a
@@ -29,18 +15,24 @@ function getBufferGeometryVertexElem( geo, tri, vert, elem ) {
 //
 function computeTriangleData( geo ) {
 
-	const triCount = getTriangleCount( geo );
+	const verts = geo.attributes.position.array;
+	const index = geo.index.array;
+	const triCount = index.length / 3;
 	const bounds = new Float32Array( triCount * 6 );
 	const centroids = new Float32Array( triCount * 3 );
 
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
+		const ai = index[ 3 * tri + 0 ] * 3;
+		const bi = index[ 3 * tri + 1 ] * 3;
+		const ci = index[ 3 * tri + 2 ] * 3;
+
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const a = getBufferGeometryVertexElem( geo, tri, 0, el );
-			const b = getBufferGeometryVertexElem( geo, tri, 1, el );
-			const c = getBufferGeometryVertexElem( geo, tri, 2, el );
-			bounds[ tri * 6 + el * 2 ] = Math.min( a, b, c );
+			const a = verts[ ai + el ];
+			const b = verts[ bi + el ];
+			const c = verts[ ci + el ];
+			bounds[ tri * 6 + el * 2 + 0 ] = Math.min( a, b, c );
 			bounds[ tri * 6 + el * 2 + 1 ] = Math.max( a, b, c );
 			centroids[ tri * 3 + el ] = ( a + b + c ) / 3;
 
@@ -65,15 +57,11 @@ export default class BVHConstructionContext {
 		this.centroids = data.centroids;
 		this.bounds = data.bounds;
 
-		// a list of every available triangle index
-		const triCount = getTriangleCount( geo );
-		this.tris = new Array( triCount );
-		for ( let i = 0; i < triCount; i ++ ) this.tris[ i ] = i;
-
 		// SAH Initialization
 		this.sahplanes = null;
 		if ( options.strategy === SAH ) {
 
+			const triCount = geo.index.count / 3;
 			this.sahplanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
 			for ( let tri = 0; tri < triCount; tri ++ ) {
 
@@ -94,11 +82,10 @@ export default class BVHConstructionContext {
 
 		let avg = 0;
 		const centroids = this.centroids;
-		const tris = this.tris;
 
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			avg += centroids[ tris[ i ] * 3 + axis ];
+			avg += centroids[ i * 3 + axis ];
 
 		}
 
@@ -116,18 +103,15 @@ export default class BVHConstructionContext {
 		let maxy = - Infinity;
 		let maxz = - Infinity;
 		const bounds = this.bounds;
-		const tris = this.tris;
 
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			const tri = tris[ i ];
-
-			minx = Math.min( minx, bounds[ tri * 6 + 0 ] );
-			maxx = Math.max( maxx, bounds[ tri * 6 + 1 ] );
-			miny = Math.min( miny, bounds[ tri * 6 + 2 ] );
-			maxy = Math.max( maxy, bounds[ tri * 6 + 3 ] );
-			minz = Math.min( minz, bounds[ tri * 6 + 4 ] );
-			maxz = Math.max( maxz, bounds[ tri * 6 + 5 ] );
+			minx = Math.min( minx, bounds[ i * 6 + 0 ] );
+			maxx = Math.max( maxx, bounds[ i * 6 + 1 ] );
+			miny = Math.min( miny, bounds[ i * 6 + 2 ] );
+			maxy = Math.max( maxy, bounds[ i * 6 + 3 ] );
+			minz = Math.min( minz, bounds[ i * 6 + 4 ] );
+			maxz = Math.max( maxz, bounds[ i * 6 + 5 ] );
 
 		}
 
@@ -143,24 +127,6 @@ export default class BVHConstructionContext {
 
 	}
 
-	// writes entries into a new geometry index (target) with the vertices of triangles from
-	// offset through count
-	writeReorderedIndices( offset, count, target ) {
-
-		const tris = this.tris;
-		const oldIndices = this.geo.index ? this.geo.index.array : null;
-
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-			const oldTri = tris[ i ];
-			target[ 3 * i + 0 ] = oldIndices ? oldIndices[ 3 * oldTri + 0 ] : 3 * oldTri + 0;
-			target[ 3 * i + 1 ] = oldIndices ? oldIndices[ 3 * oldTri + 1 ] : 3 * oldTri + 1;
-			target[ 3 * i + 2 ] = oldIndices ? oldIndices[ 3 * oldTri + 2 ] : 3 * oldTri + 1;
-
-		}
-
-	}
-
 	// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 	// will be on the left and elements on the right side of the split will be on the right. returns the index
 	// of the first element on the right side, or offset + count if there are no elements on the right side.
@@ -170,19 +136,21 @@ export default class BVHConstructionContext {
 		let right = offset + count - 1;
 		const pos = split.pos;
 		const axis = split.axis;
-		const tris = this.tris;
+		const index = this.geo.index.array;
 		const centroids = this.centroids;
+		const bounds = this.bounds;
+		const sahplanes = this.sahplanes;
 
 		// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 		while ( true ) {
 
-			while ( left <= right && centroids[ tris[ left ] * 3 + axis ] < pos ) {
+			while ( left <= right && centroids[ left * 3 + axis ] < pos ) {
 
 				left ++;
 
 			}
 
-			while ( left <= right && centroids[ tris[ right ] * 3 + axis ] >= pos ) {
+			while ( left <= right && centroids[ right * 3 + axis ] >= pos ) {
 
 				right --;
 
@@ -190,9 +158,41 @@ export default class BVHConstructionContext {
 
 			if ( left < right ) {
 
-				let tmp = tris[ left ];
-				tris[ left ] = tris[ right ];
-				tris[ right ] = tmp;
+				// we need to swap all of the information associated with the triangles at index
+				// left and right; that's the verts in the geometry index, the centroids, the bounds,
+				// and perhaps the SAH planes
+
+				for ( let i = 0; i < 3; i ++ ) {
+
+					let t0 = index[ left * 3 + i ];
+					index[ left * 3 + i ] = index[ right * 3 + i ];
+					index[ right * 3 + i ] = t0;
+
+					let t1 = centroids[ left * 3 + i ];
+					centroids[ left * 3 + i ] = centroids[ right * 3 + i ];
+					centroids[ right * 3 + i ] = t1;
+
+					let t2 = bounds[ left * 6 + i * 2 + 0 ];
+					bounds[ left * 6 + i * 2 + 0 ] = bounds[ right * 6 + i * 2 + 0 ];
+					bounds[ right * 6 + i * 2 + 0 ] = t2;
+					let t3 = bounds[ left * 6 + i * 2 + 1 ];
+					bounds[ left * 6 + i * 2 + 1 ] = bounds[ right * 6 + i * 2 + 1 ];
+					bounds[ right * 6 + i * 2 + 1 ] = t3;
+
+				}
+
+				if ( sahplanes ) {
+
+					for ( let i = 0; i < 3; i ++ ) {
+
+						let t = sahplanes[ i ][ left ];
+						sahplanes[ i ][ left ] = sahplanes[ i ][ right ];
+						sahplanes[ i ][ right ] = t;
+
+					}
+
+				}
+
 				left ++;
 				right --;
 
@@ -242,7 +242,6 @@ export default class BVHConstructionContext {
 			// the cost of traversing one more layer is more than intersecting a triangle.
 			const TRAVERSAL_COST = 3;
 			const INTERSECTION_COST = 1;
-			const tris = this.tris;
 			const bb = arrayToBox( bounds, boxtemp );
 
 			// Define the width, height, and depth of the bounds as a box
@@ -258,10 +257,9 @@ export default class BVHConstructionContext {
 			const filteredLists = [[], [], []];
 			for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-				let t = tris[ i ];
 				for ( let v = 0; v < 3; v ++ ) {
 
-					filteredLists[ v ].push( this.sahplanes[ v ][ t ] );
+					filteredLists[ v ].push( this.sahplanes[ v ][ i ] );
 
 				}
 

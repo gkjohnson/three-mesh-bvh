@@ -62,11 +62,5 @@ console.log( '' );
 
 geometry.computeBoundsTree();
 
-// NOTE: There is a reference to the index in the bounds tree so the
-// index will get rolled up with the tree. Subtract it out here.
-// If the reference is removed then this will no longer be valid.
-const indexSize = getSize( geometry.boundsTree.index );
-console.log( `${ pad( 'Index Memory Usage', 25 ) }: ${ indexSize / 1000 } kb` );
-
-const bvhSize = getSize( geometry.boundsTree ) - indexSize;
+const bvhSize = getSize( geometry.boundsTree );
 console.log( `${ pad( 'BVH Memory Usage', 25 ) }: ${ bvhSize / 1000 } kb` );

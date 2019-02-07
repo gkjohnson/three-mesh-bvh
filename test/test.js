@@ -101,8 +101,6 @@ describe( 'Options', () => {
 			raycaster.ray.direction.set( 0, 0, - 1 );
 
 			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3, verbose: false } );
-			mesh.geometry.setIndex( bvh.index );
-
 			const ogHits = raycaster.intersectObject( mesh, true );
 
 			mesh.geometry.boundsTree = bvh;
@@ -198,8 +196,6 @@ describe( 'Raycaster', () => {
 		it( 'should yield closest hit only with a bounds tree', () => {
 
 			const bvh = new MeshBVH( geometry );
-			geometry.setIndex( bvh.index );
-
 			raycaster.firstHitOnly = false;
 			const allHits = raycaster.intersectObject( mesh, true );
 
