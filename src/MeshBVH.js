@@ -52,6 +52,18 @@ export default class MeshBVH {
 
 	}
 
+	// Computes the set of { offset, count } ranges which need independent BVH roots. Each
+	// region in the geometry index that belongs to a different set of material groups requires
+	// a separate BVH root, so that triangles indices belonging to one group never get swapped
+	// with triangle indices belongs to another group. For example, if the groups were like this:
+	//
+	// [-------------------------------------------------------------]
+	// |__________________|
+	//   g0 = [0, 20]  |______________________||_____________________|
+	//                      g1 = [16, 40]           g2 = [41, 60]
+	//
+	// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
+	//
 	_getRootIndexRanges( geo ) {
 
 		if ( !geo.groups || !geo.groups.length ) {
