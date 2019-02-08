@@ -63,16 +63,22 @@ describe( 'Options', () => {
 	describe( 'maxDepth', () => {
 
 		// Returns the max tree depth of the BVH
-		function getMaxDepth( node ) {
+		function getMaxDepth( bvh ) {
 
-			const isLeaf = 'count' in node;
+			function getMaxDepthFrom( node ) {
 
-			if ( isLeaf ) return 0;
+				const isLeaf = 'count' in node;
 
-			return 1 + Math.max(
-				getMaxDepth( node.left ),
-				getMaxDepth( node.right )
-			);
+				if ( isLeaf ) return 0;
+
+				return 1 + Math.max(
+					getMaxDepthFrom( node.left ),
+					getMaxDepthFrom( node.right )
+				);
+
+			}
+
+			return Math.max.apply( null, bvh._roots.map( getMaxDepthFrom ) );
 
 		}
 
@@ -80,7 +86,7 @@ describe( 'Options', () => {
 
 			mesh.geometry.computeBoundsTree();
 
-			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[ 0 ] );
+			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toBeGreaterThan( 10 );
 
 		} );
@@ -89,7 +95,7 @@ describe( 'Options', () => {
 
 			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
 
-			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[ 0 ] );
+			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toEqual( 10 );
 
 		} );
