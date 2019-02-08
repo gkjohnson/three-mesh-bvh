@@ -4,11 +4,9 @@ import BVHConstructionContext from './BVHConstructionContext.js';
 import { boundsToArray } from './BoundsUtilities.js';
 import { CENTER } from './Constants.js';
 
-export default class MeshBVH extends MeshBVHNode {
+export default class MeshBVH {
 
 	constructor( geo, options = {} ) {
-
-		super();
 
 		// default options
 		options = Object.assign( {
@@ -23,7 +21,7 @@ export default class MeshBVH extends MeshBVHNode {
 
 		if ( geo.isBufferGeometry ) {
 
-			this._root = this._buildTree( geo, options );
+			this._roots = this._buildTree( geo, options );
 
 		} else {
 
@@ -120,9 +118,10 @@ export default class MeshBVH extends MeshBVHNode {
 
 		};
 
+		const root = new MeshBVHNode();
 		if ( ! geo.boundingBox ) geo.computeBoundingBox();
-		this.boundingData = boundsToArray( geo.boundingBox );
-		splitNode( this, 0, geo.index.count / 3 );
+		root.boundingData = boundsToArray( geo.boundingBox );
+		splitNode( root, 0, geo.index.count / 3 );
 
 		if ( reachedMaxDepth && options.verbose ) {
 
@@ -131,7 +130,7 @@ export default class MeshBVH extends MeshBVHNode {
 
 		}
 
-		return this;
+		return [ root ];
 
 	}
 

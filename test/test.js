@@ -34,8 +34,12 @@ describe( 'Bounds Tree', () => {
 		let calledRaycastFirst = false;
 		geom.boundsTree = {
 
-			raycast: () => calledRaycast = true,
-			raycastFirst: () => calledRaycastFirst = true
+			_roots: [{
+
+				raycast: () => calledRaycast = true,
+				raycastFirst: () => calledRaycastFirst = true
+
+			}]
 
 		};
 
@@ -80,7 +84,7 @@ describe( 'Options', () => {
 
 			mesh.geometry.computeBoundsTree();
 
-			const depth = getMaxDepth( mesh.geometry.boundsTree );
+			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[0] );
 			expect( depth ).toBeGreaterThan( 10 );
 
 		} );
@@ -89,7 +93,7 @@ describe( 'Options', () => {
 
 			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
 
-			const depth = getMaxDepth( mesh.geometry.boundsTree );
+			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[0] );
 			expect( depth ).toEqual( 10 );
 
 		} );
