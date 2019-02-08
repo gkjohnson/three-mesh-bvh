@@ -18,12 +18,12 @@ function acceleratedRaycast( raycaster, intersects ) {
 
 		if ( raycaster.firstHitOnly === true ) {
 
-			const res = this.geometry.boundsTree._roots[0].raycastFirst( this, raycaster, ray );
+			const res = this.geometry.boundsTree.raycastFirst( this, raycaster, ray );
 			if ( res ) intersects.push( res );
 
 		} else {
 
-			this.geometry.boundsTree._roots[0].raycast( this, raycaster, ray, intersects );
+			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects );
 
 		}
 

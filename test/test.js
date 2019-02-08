@@ -34,12 +34,8 @@ describe( 'Bounds Tree', () => {
 		let calledRaycastFirst = false;
 		geom.boundsTree = {
 
-			_roots: [{
-
-				raycast: () => calledRaycast = true,
-				raycastFirst: () => calledRaycastFirst = true
-
-			}]
+			raycast: () => calledRaycast = true,
+			raycastFirst: () => calledRaycastFirst = true
 
 		};
 

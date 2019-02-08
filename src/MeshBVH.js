@@ -168,4 +168,33 @@ export default class MeshBVH {
 
 	}
 
+	raycast( mesh, raycaster, ray, intersects ) {
+
+		for ( const root of this._roots ) {
+
+			root.raycast( mesh, raycaster, ray, intersects );
+
+		}
+
+	}
+
+	raycastFirst( mesh, raycaster, ray ) {
+
+		let closestResult = null;
+
+		for ( const root of this._roots ) {
+
+			const result = root.raycastFirst( mesh, raycaster, ray );
+			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
+
+				closestResult = result;
+
+			}
+
+		}
+
+		return closestResult;
+
+	}
+
 }
