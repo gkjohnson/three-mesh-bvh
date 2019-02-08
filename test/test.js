@@ -80,7 +80,7 @@ describe( 'Options', () => {
 
 			mesh.geometry.computeBoundsTree();
 
-			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[0] );
+			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[ 0 ] );
 			expect( depth ).toBeGreaterThan( 10 );
 
 		} );
@@ -89,7 +89,7 @@ describe( 'Options', () => {
 
 			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
 
-			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[0] );
+			const depth = getMaxDepth( mesh.geometry.boundsTree._roots[ 0 ] );
 			expect( depth ).toEqual( 10 );
 
 		} );

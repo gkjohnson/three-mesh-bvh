@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
-import { boundsToArray } from './BoundsUtilities.js';
 import { CENTER } from './Constants.js';
 
 export default class MeshBVH {
@@ -66,9 +65,9 @@ export default class MeshBVH {
 	//
 	_getRootIndexRanges( geo ) {
 
-		if ( !geo.groups || !geo.groups.length ) {
+		if ( ! geo.groups || ! geo.groups.length ) {
 
-			return [{ offset: 0, count: geo.index.count / 3 }];
+			return [ { offset: 0, count: geo.index.count / 3 } ];
 
 		}
 
@@ -81,11 +80,12 @@ export default class MeshBVH {
 
 		}
 		// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
-		const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort((a, b) => a - b);
+		const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
 		for ( let i = 0; i < sortedBoundaries.length - 2; i ++ ) {
 
 			const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
 			ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+
 		}
 		return ranges;
 
