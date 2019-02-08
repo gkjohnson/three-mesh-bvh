@@ -52,6 +52,33 @@ export default class MeshBVH {
 
 	}
 
+	_getRootIndexRanges( geo ) {
+
+		if ( !geo.groups || !geo.groups.length ) {
+
+			return [{ offset: 0, count: geo.index.count / 3 }];
+
+		}
+
+		const ranges = [];
+		const rangeBoundaries = new Set();
+		for ( const group of geo.groups ) {
+
+			rangeBoundaries.add( group.start );
+			rangeBoundaries.add( group.start + group.count );
+
+		}
+		// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
+		const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort((a, b) => a - b);
+		for ( let i = 0; i < sortedBoundaries.length - 2; i ++ ) {
+
+			const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
+			ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+		}
+		return ranges;
+
+	}
+
 	_buildTree( geo, options ) {
 
 		this._ensureIndex( geo );
@@ -118,19 +145,26 @@ export default class MeshBVH {
 
 		};
 
-		const root = new MeshBVHNode();
-		if ( ! geo.boundingBox ) geo.computeBoundingBox();
-		root.boundingData = boundsToArray( geo.boundingBox );
-		splitNode( root, 0, geo.index.count / 3 );
+		const roots = [];
+		const ranges = this._getRootIndexRanges( geo );
 
-		if ( reachedMaxDepth && options.verbose ) {
+		for ( let range of ranges ) {
 
-			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-			console.warn( this, geo );
+			const root = new MeshBVHNode();
+			root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+			splitNode( root, range.offset, range.count );
+			roots.push( root );
+
+			if ( reachedMaxDepth && options.verbose ) {
+
+				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+				console.warn( this, geo );
+
+			}
 
 		}
 
-		return [ root ];
+		return roots;
 
 	}
 
