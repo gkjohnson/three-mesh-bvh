@@ -44,7 +44,7 @@
     "script-loader": "^0.7.2",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
-    "three": "^0.96.0"
+    "three": "^0.101.1"
   },
   "dependencies": {}
 }
