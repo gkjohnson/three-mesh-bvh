@@ -48,6 +48,50 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should respect index group invariants', () => {
+
+		const geo = new THREE.TorusBufferGeometry( 5, 5, 400, 100 );
+		const groupCount = 10;
+		const groupSize = geo.index.array.length / groupCount;
+
+		for ( let g = 0; g < groupCount; g ++ ) {
+
+			const groupStart = g * groupSize;
+			geo.addGroup( groupStart, groupSize, 0 );
+
+		}
+
+		const indicesByGroup = () => {
+
+			const result = {};
+
+			for ( let g = 0; g < geo.groups.length; g ++ ) {
+
+				result[ g ] = new Set();
+				const { start, count } = geo.groups[ g ];
+				for ( let i = start; i < start + count; i ++ ) {
+
+					result[ g ].add( geo.index.array[ i ] );
+
+				}
+
+			}
+			return result;
+
+		};
+
+		const before = indicesByGroup();
+		geo.computeBoundsTree();
+		const after = indicesByGroup();
+
+		for ( let g in before ) {
+
+			expect( before[ g ] ).toEqual( after[ g ] );
+
+		}
+
+	} );
+
 } );
 
 describe( 'Options', () => {
