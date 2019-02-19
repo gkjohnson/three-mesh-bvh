@@ -274,21 +274,38 @@ describe( 'Random intersections comparison', () => {
 
 	let scene = null;
 	let raycaster = null;
-	let geometry = null;
-	let boundsTree = null;
+	let ungroupedGeometry = null;
+	let ungroupedBvh = null;
+	let groupedGeometry = null;
+	let groupedBvh = null;
+
 	beforeAll( () => {
 
-		geometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
-		geometry.computeBoundsTree();
-		boundsTree = geometry.boundsTree;
-		geometry.boundsTree = null;
+		ungroupedGeometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+		groupedGeometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+		const groupCount = 10;
+		const groupSize = groupedGeometry.index.array.length / groupCount;
+
+		for ( let g = 0; g < groupCount; g ++ ) {
+
+			const groupStart = g * groupSize;
+			groupedGeometry.addGroup( groupStart, groupSize, 0 );
+
+		}
+
+		groupedGeometry.computeBoundsTree();
+		ungroupedGeometry.computeBoundsTree();
+
+		ungroupedBvh = ungroupedGeometry.boundsTree;
+		groupedBvh = groupedGeometry.boundsTree;
 
 		scene = new THREE.Scene();
 		raycaster = new THREE.Raycaster();
 
 		for ( var i = 0; i < 10; i ++ ) {
 
-			let mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
+			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
+			let mesh = new THREE.Mesh( geo, new THREE.MeshBasicMaterial() );
 			mesh.rotation.x = Math.random() * 10;
 			mesh.rotation.y = Math.random() * 10;
 			mesh.rotation.z = Math.random() * 10;
@@ -313,10 +330,12 @@ describe( 'Random intersections comparison', () => {
 			raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
 			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
-			geometry.boundsTree = null;
+			ungroupedGeometry.boundsTree = null;
+			groupedGeometry.boundsTree = null;
 			const ogHits = raycaster.intersectObject( scene, true );
 
-			geometry.boundsTree = boundsTree;
+			ungroupedGeometry.boundsTree = ungroupedBvh;
+			groupedGeometry.boundsTree = groupedBvh;
 			const bvhHits = raycaster.intersectObject( scene, true );
 
 			raycaster.firstHitOnly = true;
