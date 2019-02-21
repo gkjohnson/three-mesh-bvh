@@ -172,6 +172,26 @@ describe( 'Options', () => {
 
 	} );
 
+	describe( 'index', () => {
+
+		it( 'should create a new index buffer by default', () => {
+
+			const bvh = new MeshBVH( mesh.geometry, { index: null, maxDepth: 3, verbose: false } );
+			expect( bvh.index ).toBeTruthy();
+			expect( bvh.index ).not.toBe( mesh.geometry.index );
+
+		} );
+
+		it( 'should use the index buffer provided', () => {
+
+			const bvh = new MeshBVH( mesh.geometry, { index: mesh.geometry.index, maxDepth: 3, verbose: false } );
+			expect( bvh.index ).toBeTruthy();
+			expect( bvh.index ).toBe( mesh.geometry.index );
+
+		} );
+
+	} );
+
 	afterEach( () => {
 
 		mesh.geometry.boundsTree = null;
