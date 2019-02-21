@@ -7,20 +7,38 @@ export default class MeshBVH {
 
 	constructor( geo, options = {} ) {
 
-		// default options
-		options = Object.assign( {
-
-			strategy: CENTER,
-			maxDepth: 40,
-			maxLeafTris: 10,
-			verbose: true
-
-		}, options );
-		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
-
 		if ( geo.isBufferGeometry ) {
 
+			// default options
+			options = Object.assign( {
+
+				strategy: CENTER,
+				maxDepth: 40,
+				maxLeafTris: 10,
+				verbose: true,
+				index: null
+
+			}, options );
+			options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
+
+			if ( ! options.index ) {
+
+				const triCount = geo.attributes.position.count / 3;
+				const indexCount = triCount * 3;
+				const indexArray = new ( triCount > 65535 ? Uint32Array : Uint16Array )( indexCount );
+
+				for ( let i = 0; i < indexCount; i ++ ) {
+
+					indexArray[ i ] = i;
+
+				}
+
+				options.index = new THREE.BufferAttribute( indexArray, 1, true );
+
+			}
+
 			this._roots = this._buildTree( geo, options );
+			this.index = options.index;
 
 		} else {
 
@@ -31,26 +49,6 @@ export default class MeshBVH {
 	}
 
 	/* Private Functions */
-
-	_ensureIndex( geo ) {
-
-		if ( ! geo.index ) {
-
-			const triCount = geo.attributes.position.count / 3;
-			const indexCount = triCount * 3;
-			const index = new ( triCount > 65535 ? Uint32Array : Uint16Array )( indexCount );
-			geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
-
-			for ( let i = 0; i < indexCount; i ++ ) {
-
-				index[ i ] = i;
-
-			}
-
-		}
-
-	}
-
 	// Computes the set of { offset, count } ranges which need independent BVH roots. Each
 	// region in the geometry index that belongs to a different set of material groups requires
 	// a separate BVH root, so that triangles indices belonging to one group never get swapped
@@ -63,11 +61,11 @@ export default class MeshBVH {
 	//
 	// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
 	//
-	_getRootIndexRanges( geo ) {
+	_getRootIndexRanges( geo, index ) {
 
 		if ( ! geo.groups || ! geo.groups.length ) {
 
-			return [ { offset: 0, count: geo.index.count / 3 } ];
+			return [ { offset: 0, count: index.count / 3 } ];
 
 		}
 
@@ -93,8 +91,6 @@ export default class MeshBVH {
 	}
 
 	_buildTree( geo, options ) {
-
-		this._ensureIndex( geo );
 
 		const ctx = new BVHConstructionContext( geo, options );
 		let reachedMaxDepth = false;
@@ -159,7 +155,7 @@ export default class MeshBVH {
 		};
 
 		const roots = [];
-		const ranges = this._getRootIndexRanges( geo );
+		const ranges = this._getRootIndexRanges( geo, options.index );
 
 		for ( let range of ranges ) {
 
@@ -185,7 +181,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			root.raycast( mesh, raycaster, ray, intersects );
+			root.raycast( mesh, this.index, raycaster, ray, intersects );
 
 		}
 
@@ -197,7 +193,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			const result = root.raycastFirst( mesh, raycaster, ray );
+			const result = root.raycastFirst( mesh, this.index, raycaster, ray );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;

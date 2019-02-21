@@ -37,7 +37,13 @@ function acceleratedRaycast( raycaster, intersects ) {
 
 function computeBoundsTree( options ) {
 
+	options = Object.assign( {
+		index: this.getIndex()
+	}, options );
+
 	this.boundsTree = new MeshBVH( this, options );
+	this.setIndex( this.boundsTree.index, 1, false );
+
 	return this.boundsTree;
 
 }

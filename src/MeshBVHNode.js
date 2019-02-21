@@ -25,25 +25,25 @@ class MeshBVHNode {
 
 	}
 
-	raycast( mesh, raycaster, ray, intersects ) {
+	raycast( mesh, index, raycaster, ray, intersects ) {
 
-		if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
+		if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, index, intersects );
 		else {
 
 			if ( this.left.intersectRay( ray, boxIntersection ) )
-				this.left.raycast( mesh, raycaster, ray, intersects );
+				this.left.raycast( mesh, index, raycaster, ray, intersects );
 			if ( this.right.intersectRay( ray, boxIntersection ) )
-				this.right.raycast( mesh, raycaster, ray, intersects );
+				this.right.raycast( mesh, index, raycaster, ray, intersects );
 
 		}
 
 	}
 
-	raycastFirst( mesh, raycaster, ray ) {
+	raycastFirst( mesh, index, raycaster, ray ) {
 
 		if ( this.count ) {
 
-			return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, this.offset, this.count );
+			return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, index );
 
 		} else {
 
@@ -70,7 +70,7 @@ class MeshBVHNode {
 			}
 
 			const c1Intersection = c1.intersectRay( ray, boxIntersection );
-			const c1Result = c1Intersection ? c1.raycastFirst( mesh, raycaster, ray ) : null;
+			const c1Result = c1Intersection ? c1.raycastFirst( mesh, index, raycaster, ray ) : null;
 
 			// if we got an intersection in the first node and it's closer than the second node's bounding
 			// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -94,7 +94,7 @@ class MeshBVHNode {
 			// either there was no intersection in the first node, or there could still be a closer
 			// intersection in the second, so check the second node and then take the better of the two
 			const c2Intersection = c2.intersectRay( ray, boxIntersection );
-			const c2Result = c2Intersection ? c2.raycastFirst( mesh, raycaster, ray ) : null;
+			const c2Result = c2Intersection ? c2.raycastFirst( mesh, index, raycaster, ray ) : null;
 
 			if ( c1Result && c2Result ) {
 

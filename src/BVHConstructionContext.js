@@ -13,10 +13,10 @@ const xyzFields = [ 'x', 'y', 'z' ];
 // - centroids: an array of size tris.length * 3 where triangle i maps to an [x, y, z] triplet
 //   starting at index i * 3, representing the centroid of triangle i
 //
-function computeTriangleData( geo ) {
+function computeTriangleData( geo, indexAttr ) {
 
 	const verts = geo.attributes.position.array;
-	const index = geo.index.array;
+	const index = indexAttr.array;
 	const triCount = index.length / 3;
 	const bounds = new Float32Array( triCount * 6 );
 	const centroids = new Float32Array( triCount * 3 );
@@ -53,7 +53,7 @@ export default class BVHConstructionContext {
 		this.geo = geo;
 		this.options = options;
 
-		const data = computeTriangleData( geo );
+		const data = computeTriangleData( geo, options.index );
 		this.centroids = data.centroids;
 		this.bounds = data.bounds;
 
@@ -61,7 +61,7 @@ export default class BVHConstructionContext {
 		this.sahplanes = null;
 		if ( options.strategy === SAH ) {
 
-			const triCount = geo.index.count / 3;
+			const triCount = options.index.count / 3;
 			this.sahplanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
 			for ( let tri = 0; tri < triCount; tri ++ ) {
 
@@ -136,7 +136,7 @@ export default class BVHConstructionContext {
 		let right = offset + count - 1;
 		const pos = split.pos;
 		const axis = split.axis;
-		const index = this.geo.index.array;
+		const index = this.options.index.array;
 		const centroids = this.centroids;
 		const bounds = this.bounds;
 		const sahplanes = this.sahplanes;
