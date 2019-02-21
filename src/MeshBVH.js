@@ -1,14 +1,11 @@
 import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
-import { boundsToArray } from './BoundsUtilities.js';
 import { CENTER } from './Constants.js';
 
-export default class MeshBVH extends MeshBVHNode {
+export default class MeshBVH {
 
 	constructor( geo, options = {} ) {
-
-		super();
 
 		// default options
 		options = Object.assign( {
@@ -23,7 +20,7 @@ export default class MeshBVH extends MeshBVHNode {
 
 		if ( geo.isBufferGeometry ) {
 
-			this._root = this._buildTree( geo, options );
+			this._roots = this._buildTree( geo, options );
 
 		} else {
 
@@ -51,6 +48,47 @@ export default class MeshBVH extends MeshBVHNode {
 			}
 
 		}
+
+	}
+
+	// Computes the set of { offset, count } ranges which need independent BVH roots. Each
+	// region in the geometry index that belongs to a different set of material groups requires
+	// a separate BVH root, so that triangles indices belonging to one group never get swapped
+	// with triangle indices belongs to another group. For example, if the groups were like this:
+	//
+	// [-------------------------------------------------------------]
+	// |__________________|
+	//   g0 = [0, 20]  |______________________||_____________________|
+	//                      g1 = [16, 40]           g2 = [41, 60]
+	//
+	// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
+	//
+	_getRootIndexRanges( geo ) {
+
+		if ( ! geo.groups || ! geo.groups.length ) {
+
+			return [ { offset: 0, count: geo.index.count / 3 } ];
+
+		}
+
+		const ranges = [];
+		const rangeBoundaries = new Set();
+		for ( const group of geo.groups ) {
+
+			rangeBoundaries.add( group.start );
+			rangeBoundaries.add( group.start + group.count );
+
+		}
+
+		// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
+		const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
+		for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
+
+			const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
+			ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+
+		}
+		return ranges;
 
 	}
 
@@ -120,18 +158,55 @@ export default class MeshBVH extends MeshBVHNode {
 
 		};
 
-		if ( ! geo.boundingBox ) geo.computeBoundingBox();
-		this.boundingData = boundsToArray( geo.boundingBox );
-		splitNode( this, 0, geo.index.count / 3 );
+		const roots = [];
+		const ranges = this._getRootIndexRanges( geo );
 
-		if ( reachedMaxDepth && options.verbose ) {
+		for ( let range of ranges ) {
 
-			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-			console.warn( this, geo );
+			const root = new MeshBVHNode();
+			root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+			splitNode( root, range.offset, range.count );
+			roots.push( root );
+
+			if ( reachedMaxDepth && options.verbose ) {
+
+				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+				console.warn( this, geo );
+
+			}
 
 		}
 
-		return this;
+		return roots;
+
+	}
+
+	raycast( mesh, raycaster, ray, intersects ) {
+
+		for ( const root of this._roots ) {
+
+			root.raycast( mesh, raycaster, ray, intersects );
+
+		}
+
+	}
+
+	raycastFirst( mesh, raycaster, ray ) {
+
+		let closestResult = null;
+
+		for ( const root of this._roots ) {
+
+			const result = root.raycastFirst( mesh, raycaster, ray );
+			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
+
+				closestResult = result;
+
+			}
+
+		}
+
+		return closestResult;
 
 	}
 

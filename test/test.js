@@ -48,6 +48,50 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should respect index group invariants', () => {
+
+		const geo = new THREE.TorusBufferGeometry( 5, 5, 400, 100 );
+		const groupCount = 10;
+		const groupSize = geo.index.array.length / groupCount;
+
+		for ( let g = 0; g < groupCount; g ++ ) {
+
+			const groupStart = g * groupSize;
+			geo.addGroup( groupStart, groupSize, 0 );
+
+		}
+
+		const indicesByGroup = () => {
+
+			const result = {};
+
+			for ( let g = 0; g < geo.groups.length; g ++ ) {
+
+				result[ g ] = new Set();
+				const { start, count } = geo.groups[ g ];
+				for ( let i = start; i < start + count; i ++ ) {
+
+					result[ g ].add( geo.index.array[ i ] );
+
+				}
+
+			}
+			return result;
+
+		};
+
+		const before = indicesByGroup();
+		geo.computeBoundsTree();
+		const after = indicesByGroup();
+
+		for ( let g in before ) {
+
+			expect( before[ g ] ).toEqual( after[ g ] );
+
+		}
+
+	} );
+
 } );
 
 describe( 'Options', () => {
@@ -63,16 +107,22 @@ describe( 'Options', () => {
 	describe( 'maxDepth', () => {
 
 		// Returns the max tree depth of the BVH
-		function getMaxDepth( node ) {
+		function getMaxDepth( bvh ) {
 
-			const isLeaf = 'count' in node;
+			function getMaxDepthFrom( node ) {
 
-			if ( isLeaf ) return 0;
+				const isLeaf = 'count' in node;
 
-			return 1 + Math.max(
-				getMaxDepth( node.left ),
-				getMaxDepth( node.right )
-			);
+				if ( isLeaf ) return 0;
+
+				return 1 + Math.max(
+					getMaxDepthFrom( node.left ),
+					getMaxDepthFrom( node.right )
+				);
+
+			}
+
+			return Math.max.apply( null, bvh._roots.map( getMaxDepthFrom ) );
 
 		}
 
@@ -224,21 +274,38 @@ describe( 'Random intersections comparison', () => {
 
 	let scene = null;
 	let raycaster = null;
-	let geometry = null;
-	let boundsTree = null;
+	let ungroupedGeometry = null;
+	let ungroupedBvh = null;
+	let groupedGeometry = null;
+	let groupedBvh = null;
+
 	beforeAll( () => {
 
-		geometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
-		geometry.computeBoundsTree();
-		boundsTree = geometry.boundsTree;
-		geometry.boundsTree = null;
+		ungroupedGeometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+		groupedGeometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+		const groupCount = 10;
+		const groupSize = groupedGeometry.index.array.length / groupCount;
+
+		for ( let g = 0; g < groupCount; g ++ ) {
+
+			const groupStart = g * groupSize;
+			groupedGeometry.addGroup( groupStart, groupSize, 0 );
+
+		}
+
+		groupedGeometry.computeBoundsTree();
+		ungroupedGeometry.computeBoundsTree();
+
+		ungroupedBvh = ungroupedGeometry.boundsTree;
+		groupedBvh = groupedGeometry.boundsTree;
 
 		scene = new THREE.Scene();
 		raycaster = new THREE.Raycaster();
 
 		for ( var i = 0; i < 10; i ++ ) {
 
-			let mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
+			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
+			let mesh = new THREE.Mesh( geo, new THREE.MeshBasicMaterial() );
 			mesh.rotation.x = Math.random() * 10;
 			mesh.rotation.y = Math.random() * 10;
 			mesh.rotation.z = Math.random() * 10;
@@ -263,10 +330,12 @@ describe( 'Random intersections comparison', () => {
 			raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
 			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
-			geometry.boundsTree = null;
+			ungroupedGeometry.boundsTree = null;
+			groupedGeometry.boundsTree = null;
 			const ogHits = raycaster.intersectObject( scene, true );
 
-			geometry.boundsTree = boundsTree;
+			ungroupedGeometry.boundsTree = ungroupedBvh;
+			groupedGeometry.boundsTree = groupedBvh;
 			const bvhHits = raycaster.intersectObject( scene, true );
 
 			raycaster.firstHitOnly = true;
