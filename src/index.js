@@ -42,7 +42,7 @@ function computeBoundsTree( options ) {
 	}, options );
 
 	this.boundsTree = new MeshBVH( this, options );
-	this.setIndex( this.boundsTree.index, 1, false );
+	this.setIndex( this.boundsTree.index );
 
 	return this.boundsTree;
 
