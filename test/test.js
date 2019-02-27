@@ -21,6 +21,61 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should throw an error if THREE.Geometry is used', () => {
+
+		const geom = new THREE.SphereGeometry( 1, 1, 1 );
+		let errorThrown = false;
+		try {
+		
+			new MeshBVH( geom, { verbose: false } );
+		
+		} catch {
+		
+			errorThrown = true;
+		
+		}
+
+		expect( errorThrown ).toBe( true );
+
+	} );
+
+	it( 'should throw an error if InterleavedBufferAttributes are used', () => {
+
+		const indexAttr = new THREE.InterleavedBufferAttribute( new THREE.InterleavedBuffer( new Uint32Array( [ 1, 2, 3 ] ), 1 ), 4, 0, false );
+		const posAttr = new THREE.InterleavedBufferAttribute( new THREE.InterleavedBuffer( new Float32Array( [ 1, 2, 3 ] ), 3 ), 4, 0, false );
+
+		let geometry;
+		let posErrorThrown = false;
+		let indexErrorThrown = false;
+
+		geometry = new THREE.BoxBufferGeometry();
+		geometry.addAttribute( 'position', posAttr );
+		try {
+
+			new MeshBVH( geom, { verbose: false } );
+
+		} catch {
+
+			posErrorThrown = true;
+
+		}
+		expect( posErrorThrown ).toBe( true );
+
+		geometry = new THREE.BoxBufferGeometry();
+		geometry.setIndex( indexAttr );
+		try {
+
+			new MeshBVH( geom, { verbose: false } );
+
+		} catch {
+
+			indexErrorThrown = true;
+
+		}
+		expect( indexErrorThrown ).toBe( true );
+
+	} );
+
 	it( 'should use the boundsTree when raycasting if available', () => {
 
 		const geom = new THREE.SphereBufferGeometry( 1, 1, 1 );
