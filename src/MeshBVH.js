@@ -7,6 +7,20 @@ export default class MeshBVH {
 
 	constructor( geo, options = {} ) {
 
+		if ( ! geo.isBufferGeometry ) {
+
+			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
+
+		} else if ( geo.attributes.position.isInterleavedBufferAttribute ) {
+
+			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the position attribute.' );
+
+		} else if ( geo.index && geo.index.isInterleavedBufferAttribute ) {
+
+			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the index attribute.' );
+
+		}
+
 		// default options
 		options = Object.assign( {
 
@@ -18,15 +32,8 @@ export default class MeshBVH {
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
 
-		if ( geo.isBufferGeometry ) {
+		this._roots = this._buildTree( geo, options );
 
-			this._roots = this._buildTree( geo, options );
-
-		} else {
-
-			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
-
-		}
 
 	}
 
