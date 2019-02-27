@@ -105,6 +105,8 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 }
 ```
 
+*NOTE: The geometry's index attribute array is modified in order to build the bounds tree. If the geometry has no index then one is added.*
+
 #### raycast(mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array)
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
@@ -146,4 +148,7 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
   be produced and retained as a side effect of the construction.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets cannot be used.
-- If the geometry is changed, then a call to `computedBoundsTree()` is required to update the bounds tree.
+- If the geometry is changed then a new bounds tree will need to be generated.
+- Only BufferGeometry (not [Geometry](https://threejs.org/docs/#api/en/core/Geometry)) is supported when building a bounds tree.
+- [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported on the geometry index or position attributes.
+- A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in poorer raycast performance on geometry with lots of groups.
