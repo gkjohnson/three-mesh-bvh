@@ -55,7 +55,6 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // Generate the BVH and use the newly generated index
 geom.boundsTree = new MeshBVH(geom);
-geom.setIndex(geom.boundsTree.index);
 ```
 
 ## Exports
