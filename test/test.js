@@ -26,13 +26,13 @@ describe( 'Bounds Tree', () => {
 		const geom = new THREE.SphereGeometry( 1, 1, 1 );
 		let errorThrown = false;
 		try {
-		
+
 			new MeshBVH( geom, { verbose: false } );
-		
-		} catch {
-		
+
+		} catch ( e ) {
+
 			errorThrown = true;
-		
+
 		}
 
 		expect( errorThrown ).toBe( true );
@@ -52,9 +52,9 @@ describe( 'Bounds Tree', () => {
 		geometry.addAttribute( 'position', posAttr );
 		try {
 
-			new MeshBVH( geom, { verbose: false } );
+			new MeshBVH( geometry, { verbose: false } );
 
-		} catch {
+		} catch ( e ) {
 
 			posErrorThrown = true;
 
@@ -65,9 +65,9 @@ describe( 'Bounds Tree', () => {
 		geometry.setIndex( indexAttr );
 		try {
 
-			new MeshBVH( geom, { verbose: false } );
+			new MeshBVH( geometry, { verbose: false } );
 
-		} catch {
+		} catch ( e ) {
 
 			indexErrorThrown = true;
 
