@@ -19,7 +19,7 @@ Using pre-made functions
 ```js
 // Import via ES6 modules
 import * as THREE from 'three';
-import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } 'three-mesh-bvh';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 
 // Or UMD
 const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVHLib;
