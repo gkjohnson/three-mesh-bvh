@@ -205,7 +205,7 @@
 
 		constructor() {
 
-			// internal nodes have boundingData, children, and splitAxis
+			// internal nodes have boundingData, left, right, and splitAxis
 			// leaf nodes have offset and count (referring to primitives in the mesh geometry)
 
 		}
@@ -221,12 +221,14 @@
 		raycast( mesh, raycaster, ray, intersects ) {
 
 			if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
-			else this.children.forEach( c => {
+			else {
 
-				if ( c.intersectRay( ray, boxIntersection ) )
-					c.raycast( mesh, raycaster, ray, intersects );
+				if ( this.left.intersectRay( ray, boxIntersection ) )
+					this.left.raycast( mesh, raycaster, ray, intersects );
+				if ( this.right.intersectRay( ray, boxIntersection ) )
+					this.right.raycast( mesh, raycaster, ray, intersects );
 
-			} );
+			}
 
 		}
 
@@ -241,7 +243,6 @@
 
 				// consider the position of the split plane with respect to the oncoming ray; whichever direction
 				// the ray is coming from, look for an intersection among that side of the tree first
-				const children = this.children;
 				const splitAxis = this.splitAxis;
 				const xyzAxis = xyzFields[ splitAxis ];
 				const rayDir = ray.direction[ xyzAxis ];
@@ -251,13 +252,13 @@
 				let c1, c2;
 				if ( leftToRight ) {
 
-					c1 = children[ 0 ];
-					c2 = children[ 1 ];
+					c1 = this.left;
+					c2 = this.right;
 
 				} else {
 
-					c1 = children[ 1 ];
-					c2 = children[ 0 ];
+					c1 = this.right;
+					c2 = this.left;
 
 				}
 
@@ -311,20 +312,6 @@
 
 	const xyzFields$1 = [ 'x', 'y', 'z' ];
 
-	function getTriangleCount( geo ) {
-
-		return geo.index ? ( geo.index.count / 3 ) : ( geo.attributes.position.count / 3 );
-
-	}
-
-	// TODO: This could probably be optimizied to not dig so deeply into an object
-	// and reust some of the fetch values in some cases
-	function getBufferGeometryVertexElem( geo, tri, vert, elem ) {
-
-		return geo.attributes.position.array[ ( geo.index ? geo.index.array[ 3 * tri + vert ] : ( 3 * tri + vert ) ) * 3 + elem ];
-
-	}
-
 	// precomputes data about each triangle required for quickly calculating tree splits:
 	//
 	// - bounds: an array of size tris.length * 6 where triangle i maps to a
@@ -336,18 +323,24 @@
 	//
 	function computeTriangleData( geo ) {
 
-		const triCount = getTriangleCount( geo );
+		const verts = geo.attributes.position.array;
+		const index = geo.index.array;
+		const triCount = index.length / 3;
 		const bounds = new Float32Array( triCount * 6 );
 		const centroids = new Float32Array( triCount * 3 );
 
 		for ( let tri = 0; tri < triCount; tri ++ ) {
 
+			const ai = index[ 3 * tri + 0 ] * 3;
+			const bi = index[ 3 * tri + 1 ] * 3;
+			const ci = index[ 3 * tri + 2 ] * 3;
+
 			for ( let el = 0; el < 3; el ++ ) {
 
-				const a = getBufferGeometryVertexElem( geo, tri, 0, el );
-				const b = getBufferGeometryVertexElem( geo, tri, 1, el );
-				const c = getBufferGeometryVertexElem( geo, tri, 2, el );
-				bounds[ tri * 6 + el * 2 ] = Math.min( a, b, c );
+				const a = verts[ ai + el ];
+				const b = verts[ bi + el ];
+				const c = verts[ ci + el ];
+				bounds[ tri * 6 + el * 2 + 0 ] = Math.min( a, b, c );
 				bounds[ tri * 6 + el * 2 + 1 ] = Math.max( a, b, c );
 				centroids[ tri * 3 + el ] = ( a + b + c ) / 3;
 
@@ -372,15 +365,11 @@
 			this.centroids = data.centroids;
 			this.bounds = data.bounds;
 
-			// a list of every available triangle index
-			const triCount = getTriangleCount( geo );
-			this.tris = new Array( triCount );
-			for ( let i = 0; i < triCount; i ++ ) this.tris[ i ] = i;
-
 			// SAH Initialization
 			this.sahplanes = null;
 			if ( options.strategy === SAH ) {
 
+				const triCount = geo.index.count / 3;
 				this.sahplanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
 				for ( let tri = 0; tri < triCount; tri ++ ) {
 
@@ -401,11 +390,10 @@
 
 			let avg = 0;
 			const centroids = this.centroids;
-			const tris = this.tris;
 
 			for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-				avg += centroids[ tris[ i ] * 3 + axis ];
+				avg += centroids[ i * 3 + axis ];
 
 			}
 
@@ -423,18 +411,15 @@
 			let maxy = - Infinity;
 			let maxz = - Infinity;
 			const bounds = this.bounds;
-			const tris = this.tris;
 
 			for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-				const tri = tris[ i ];
-
-				minx = Math.min( minx, bounds[ tri * 6 + 0 ] );
-				maxx = Math.max( maxx, bounds[ tri * 6 + 1 ] );
-				miny = Math.min( miny, bounds[ tri * 6 + 2 ] );
-				maxy = Math.max( maxy, bounds[ tri * 6 + 3 ] );
-				minz = Math.min( minz, bounds[ tri * 6 + 4 ] );
-				maxz = Math.max( maxz, bounds[ tri * 6 + 5 ] );
+				minx = Math.min( minx, bounds[ i * 6 + 0 ] );
+				maxx = Math.max( maxx, bounds[ i * 6 + 1 ] );
+				miny = Math.min( miny, bounds[ i * 6 + 2 ] );
+				maxy = Math.max( maxy, bounds[ i * 6 + 3 ] );
+				minz = Math.min( minz, bounds[ i * 6 + 4 ] );
+				maxz = Math.max( maxz, bounds[ i * 6 + 5 ] );
 
 			}
 
@@ -450,24 +435,6 @@
 
 		}
 
-		// writes entries into a new geometry index (target) with the vertices of triangles from
-		// offset through count
-		writeReorderedIndices( offset, count, target ) {
-
-			const tris = this.tris;
-			const oldIndices = this.geo.index ? this.geo.index.array : null;
-
-			for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-				const oldTri = tris[ i ];
-				target[ 3 * i + 0 ] = oldIndices ? oldIndices[ 3 * oldTri + 0 ] : 3 * oldTri + 0;
-				target[ 3 * i + 1 ] = oldIndices ? oldIndices[ 3 * oldTri + 1 ] : 3 * oldTri + 1;
-				target[ 3 * i + 2 ] = oldIndices ? oldIndices[ 3 * oldTri + 2 ] : 3 * oldTri + 1;
-
-			}
-
-		}
-
 		// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 		// will be on the left and elements on the right side of the split will be on the right. returns the index
 		// of the first element on the right side, or offset + count if there are no elements on the right side.
@@ -477,19 +444,21 @@
 			let right = offset + count - 1;
 			const pos = split.pos;
 			const axis = split.axis;
-			const tris = this.tris;
+			const index = this.geo.index.array;
 			const centroids = this.centroids;
+			const bounds = this.bounds;
+			const sahplanes = this.sahplanes;
 
 			// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 			while ( true ) {
 
-				while ( left <= right && centroids[ tris[ left ] * 3 + axis ] < pos ) {
+				while ( left <= right && centroids[ left * 3 + axis ] < pos ) {
 
 					left ++;
 
 				}
 
-				while ( left <= right && centroids[ tris[ right ] * 3 + axis ] >= pos ) {
+				while ( left <= right && centroids[ right * 3 + axis ] >= pos ) {
 
 					right --;
 
@@ -497,9 +466,41 @@
 
 				if ( left < right ) {
 
-					let tmp = tris[ left ];
-					tris[ left ] = tris[ right ];
-					tris[ right ] = tmp;
+					// we need to swap all of the information associated with the triangles at index
+					// left and right; that's the verts in the geometry index, the centroids, the bounds,
+					// and perhaps the SAH planes
+
+					for ( let i = 0; i < 3; i ++ ) {
+
+						let t0 = index[ left * 3 + i ];
+						index[ left * 3 + i ] = index[ right * 3 + i ];
+						index[ right * 3 + i ] = t0;
+
+						let t1 = centroids[ left * 3 + i ];
+						centroids[ left * 3 + i ] = centroids[ right * 3 + i ];
+						centroids[ right * 3 + i ] = t1;
+
+						let t2 = bounds[ left * 6 + i * 2 + 0 ];
+						bounds[ left * 6 + i * 2 + 0 ] = bounds[ right * 6 + i * 2 + 0 ];
+						bounds[ right * 6 + i * 2 + 0 ] = t2;
+						let t3 = bounds[ left * 6 + i * 2 + 1 ];
+						bounds[ left * 6 + i * 2 + 1 ] = bounds[ right * 6 + i * 2 + 1 ];
+						bounds[ right * 6 + i * 2 + 1 ] = t3;
+
+					}
+
+					if ( sahplanes ) {
+
+						for ( let i = 0; i < 3; i ++ ) {
+
+							let t = sahplanes[ i ][ left ];
+							sahplanes[ i ][ left ] = sahplanes[ i ][ right ];
+							sahplanes[ i ][ right ] = t;
+
+						}
+
+					}
+
 					left ++;
 					right --;
 
@@ -549,7 +550,6 @@
 				// the cost of traversing one more layer is more than intersecting a triangle.
 				const TRAVERSAL_COST = 3;
 				const INTERSECTION_COST = 1;
-				const tris = this.tris;
 				const bb = arrayToBox( bounds, boxtemp );
 
 				// Define the width, height, and depth of the bounds as a box
@@ -565,10 +565,9 @@
 				const filteredLists = [[], [], []];
 				for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-					let t = tris[ i ];
 					for ( let v = 0; v < 3; v ++ ) {
 
-						filteredLists[ v ].push( this.sahplanes[ v ][ t ] );
+						filteredLists[ v ].push( this.sahplanes[ v ][ i ] );
 
 					}
 
@@ -684,11 +683,23 @@
 
 	}
 
-	class MeshBVH extends MeshBVHNode {
+	class MeshBVH {
 
 		constructor( geo, options = {} ) {
 
-			super();
+			if ( ! geo.isBufferGeometry ) {
+
+				throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
+
+			} else if ( geo.attributes.position.isInterleavedBufferAttribute ) {
+
+				throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the position attribute.' );
+
+			} else if ( geo.index && geo.index.isInterleavedBufferAttribute ) {
+
+				throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the index attribute.' );
+
+			}
 
 			// default options
 			options = Object.assign( {
@@ -701,25 +712,78 @@
 			}, options );
 			options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
 
-			if ( geo.isBufferGeometry ) {
+			this._roots = this._buildTree( geo, options );
 
-				this._root = this._buildTree( geo, options );
 
-			} else {
+		}
 
-				throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
+		/* Private Functions */
+
+		_ensureIndex( geo ) {
+
+			if ( ! geo.index ) {
+
+				const triCount = geo.attributes.position.count / 3;
+				const indexCount = triCount * 3;
+				const index = new ( triCount > 65535 ? Uint32Array : Uint16Array )( indexCount );
+				geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
+
+				for ( let i = 0; i < indexCount; i ++ ) {
+
+					index[ i ] = i;
+
+				}
 
 			}
 
 		}
 
-		/* Private Functions */
+		// Computes the set of { offset, count } ranges which need independent BVH roots. Each
+		// region in the geometry index that belongs to a different set of material groups requires
+		// a separate BVH root, so that triangles indices belonging to one group never get swapped
+		// with triangle indices belongs to another group. For example, if the groups were like this:
+		//
+		// [-------------------------------------------------------------]
+		// |__________________|
+		//   g0 = [0, 20]  |______________________||_____________________|
+		//                      g1 = [16, 40]           g2 = [41, 60]
+		//
+		// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
+		//
+		_getRootIndexRanges( geo ) {
+
+			if ( ! geo.groups || ! geo.groups.length ) {
+
+				return [ { offset: 0, count: geo.index.count / 3 } ];
+
+			}
+
+			const ranges = [];
+			const rangeBoundaries = new Set();
+			for ( const group of geo.groups ) {
+
+				rangeBoundaries.add( group.start );
+				rangeBoundaries.add( group.start + group.count );
+
+			}
+
+			// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
+			const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
+			for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
+
+				const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
+				ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+
+			}
+			return ranges;
+
+		}
+
 		_buildTree( geo, options ) {
 
+			this._ensureIndex( geo );
+
 			const ctx = new BVHConstructionContext( geo, options );
-			const verticesLength = geo.attributes.position.count;
-			const indicesLength = ctx.tris.length * 3;
-			const indices = new ( verticesLength < 65536 ? Uint16Array : Uint32Array )( indicesLength );
 			let reachedMaxDepth = false;
 
 			// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
@@ -735,7 +799,6 @@
 				// early out if we've met our capacity
 				if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
 
-					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
 					node.count = count;
 					return node;
@@ -746,7 +809,6 @@
 				const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
 				if ( split.axis === - 1 ) {
 
-					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
 					node.count = count;
 					return node;
@@ -758,26 +820,24 @@
 				// create the two new child nodes
 				if ( splitOffset === offset || splitOffset === offset + count ) {
 
-					ctx.writeReorderedIndices( offset, count, indices );
 					node.offset = offset;
 					node.count = count;
 
 				} else {
 
+					node.splitAxis = split.axis;
+
 					// create the left child and compute its bounding box
-					const left = new MeshBVHNode();
+					const left = node.left = new MeshBVHNode();
 					const lstart = offset, lcount = splitOffset - offset;
 					left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
 					splitNode( left, lstart, lcount, depth + 1 );
 
 					// repeat for right
-					const right = new MeshBVHNode();
+					const right = node.right = new MeshBVHNode();
 					const rstart = splitOffset, rcount = count - lcount;
 					right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
 					splitNode( right, rstart, rcount, depth + 1 );
-
-					node.splitAxis = split.axis;
-					node.children = [ left, right ];
 
 				}
 
@@ -785,19 +845,55 @@
 
 			};
 
-			if ( ! geo.boundingBox ) geo.computeBoundingBox();
-			this.boundingData = boundsToArray( geo.boundingBox );
-			this.index = new THREE.BufferAttribute( indices, 1 );
-			splitNode( this, 0, ctx.tris.length );
+			const roots = [];
+			const ranges = this._getRootIndexRanges( geo );
 
-			if ( reachedMaxDepth && options.verbose ) {
+			for ( let range of ranges ) {
 
-				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( this, geo );
+				const root = new MeshBVHNode();
+				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+				splitNode( root, range.offset, range.count );
+				roots.push( root );
+
+				if ( reachedMaxDepth && options.verbose ) {
+
+					console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+					console.warn( this, geo );
+
+				}
 
 			}
 
-			return this;
+			return roots;
+
+		}
+
+		raycast( mesh, raycaster, ray, intersects ) {
+
+			for ( const root of this._roots ) {
+
+				root.raycast( mesh, raycaster, ray, intersects );
+
+			}
+
+		}
+
+		raycastFirst( mesh, raycaster, ray ) {
+
+			let closestResult = null;
+
+			for ( const root of this._roots ) {
+
+				const result = root.raycastFirst( mesh, raycaster, ray );
+				if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
+
+					closestResult = result;
+
+				}
+
+			}
+
+			return closestResult;
 
 		}
 
@@ -834,9 +930,11 @@
 
 					const recurse = ( n, d ) => {
 
+						let isLeaf = 'count' in n;
+
 						if ( d === this.depth ) return;
 
-						if ( d === this.depth - 1 || n.children == null || n.children.length === 0 ) {
+						if ( d === this.depth - 1 || isLeaf ) {
 
 							let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
 							if ( ! m ) {
@@ -853,9 +951,10 @@
 
 						}
 
-						if ( n.children != null ) {
+						if ( ! isLeaf ) {
 
-							n.children.forEach( n => recurse( n, d + 1 ) );
+							recurse( n.left, d + 1 );
+							recurse( n.right, d + 1 );
 
 						}
 
@@ -912,7 +1011,6 @@
 	function computeBoundsTree( options ) {
 
 		this.boundsTree = new MeshBVH( this, options );
-		this.setIndex( this.boundsTree.index );
 		return this.boundsTree;
 
 	}
