@@ -156,20 +156,36 @@ describe( 'Spherecast ', () => {
 
 	beforeAll( () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
 		mesh = new THREE.Mesh( geom );
 		bvh = new MeshBVH( geom, { verbose: false } );
 
 	} );
 
-	it.only( 'should return true if a sphere is intersecting the mesh', () => {
+	it( 'should return true if the sphere is intersecting the mesh', () => {
 
 		const sphere = new THREE.Sphere();
-		sphere.radius = 1;
+		sphere.radius = .01;
 		sphere.center.set( 0, 1, 0 );
-		const res = bvh.spherecast( mesh, sphere );
+		expect( bvh.spherecast( mesh, sphere ) ).toBe( true );
 
-		console.log( 'HERE', res )
+	} );
+
+	it( 'should return false if the sphere is inside the mesh', () => {
+
+		const sphere = new THREE.Sphere();
+		sphere.radius = 0.9;
+		sphere.center.set( 0, 0, 0 );
+		expect( bvh.spherecast( mesh, sphere ) ).toBe( false );
+
+	} );
+
+	it( 'should return false if the sphere is outside the mesh', () => {
+
+		const sphere = new THREE.Sphere();
+		sphere.radius = 0.9;
+		sphere.center.set( 0, 2.01, 0 );
+		expect( bvh.spherecast( mesh, sphere ) ).toBe( false );
 
 	} );
 

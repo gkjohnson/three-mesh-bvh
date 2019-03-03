@@ -81,10 +81,11 @@ class MeshBVHNode {
 			const index = geometry.index;
 			const pos = geometry.attributes.position;
 			const offset = this.offset;
+			const count = this.count;
 
-			for ( let i = 0, l = this.count; i < l; i ++ ) {
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
 
-				setTriangle( triangle, 3 * ( i + offset ), index, pos );
+				setTriangle( triangle, i, index, pos );
 
 				if ( sphereIntersectTriangle( sphere, triangle ) ) {
 
@@ -99,14 +100,17 @@ class MeshBVHNode {
 
 		} else {
 
+			// TODO: consider an option to return all the intersected triangles
 			const left = this.left;
 			const right = this.right;
 
-			const leftIntersection = left.spherecast( mesh, sphere );
-			const rightIntersection = right.spherecast( mesh, sphere );
+			const leftIntersection = boundsArrayIntersectSphere( left.boundingData, sphere ) && left.spherecast( mesh, sphere );
+			if ( leftIntersection ) return true;
 
-			// TODO: order these by distance to bounds
-			return leftIntersection || rightIntersection;
+			const rightIntersection = boundsArrayIntersectSphere( right.boundingData, sphere ) && right.spherecast( mesh, sphere );
+			if ( rightIntersection ) return true;
+
+			return false;
 
 		}
 
