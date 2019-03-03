@@ -51,6 +51,10 @@ class MeshBVHVisualizer extends THREE.Object3D {
 						boundingBox.getCenter( m.position );
 						m.scale.subVectors( boundingBox.max, boundingBox.min ).multiplyScalar( 0.5 );
 
+						if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
+						if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
+						if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
+
 					}
 
 					if ( ! isLeaf ) {
@@ -62,7 +66,7 @@ class MeshBVHVisualizer extends THREE.Object3D {
 
 				};
 
-				recurse( this._boundsTree._roots[0], 0 );
+				recurse( this._boundsTree._roots[ 0 ], 0 );
 
 			}
 

@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { Vector3, Line3, Plane } from 'three';
 
 // Returns a Float32Array representing the bounds data for box.
 function boundsToArray( bx ) {
@@ -173,6 +173,41 @@ function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 // TODO: Try this:
 // https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
 
+function sphereIntersectTriangle( sphere, triangle ) {
+
+	const { radius, center } = sphere;
+	const { a, b, c } = triangle;
+
+	// phase 1
+	const line1 = new Line3( a, b );
+	const line2 = new Line3( a, c );
+	const line3 = new Line3( b, c );
+
+	const closestPoint1 = line1.closestPointToPoint( center, true, new Vector3() );
+	if ( closestPoint1.distanceTo( center ) <= radius ) return true;
+
+	const closestPoint2 = line2.closestPointToPoint( center, true, new Vector3() );
+	if ( closestPoint2.distanceTo( center ) <= radius ) return true;
+
+	const closestPoint3 = line3.closestPointToPoint( center, true, new Vector3() );
+	if ( closestPoint3.distanceTo( center ) <= radius ) return true;
+
+	// phase 2
+	const plane = triangle.getPlane( new Plane() );
+	const dp = Math.abs( plane.distanceToPoint( center ) );
+	if ( dp <= radius ) {
+
+		const pp = plane.projectPoint( center, new Vector3() );
+		const cp = triangle.containsPoint( pp );
+		if ( cp ) return true;
+
+	}
+
+	return false;
+
+}
+
+
 const A = new Vector3();
 const B = new Vector3();
 const C = new Vector3();
@@ -191,7 +226,7 @@ const Q3 = new Vector3();
 const QA = new Vector3();
 const QB = new Vector3();
 const QC = new Vector3();
-function sphereIntersectTriangle( sphere, triangle ) {
+function sphereIntersectTriangle2( sphere, triangle ) {
 
 	// http://realtimecollisiondetection.net/blog/?p=103
 

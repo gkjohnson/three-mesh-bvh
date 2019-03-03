@@ -76,15 +76,15 @@ class MeshBVHNode {
 	spherecast( mesh, sphere ) {
 
 		if ( this.count ) {
-			console.log('CHECKIN')
 
 			const geometry = mesh.geometry;
 			const index = geometry.index;
 			const pos = geometry.attributes.position;
+			const offset = this.offset;
 
-			for ( let i = 0, l = this.count; i < l; i += 3 ) {
+			for ( let i = 0, l = this.count; i < l; i ++ ) {
 
-				setTriangle( triangle, i, index, pos );
+				setTriangle( triangle, 3 * ( i + offset ), index, pos );
 
 				if ( sphereIntersectTriangle( sphere, triangle ) ) {
 
@@ -102,8 +102,8 @@ class MeshBVHNode {
 			const left = this.left;
 			const right = this.right;
 
-			const leftIntersection = boundsArrayIntersectSphere( left.boundingData, sphere ) && left.spherecast( mesh, sphere );
-			const rightIntersection = boundsArrayIntersectSphere( right.boundingData, sphere ) && right.spherecast( mesh, sphere );
+			const leftIntersection = left.spherecast( mesh, sphere );
+			const rightIntersection = right.spherecast( mesh, sphere );
 
 			// TODO: order these by distance to bounds
 			return leftIntersection || rightIntersection;
