@@ -261,7 +261,7 @@ function sphereIntersectTriangle( sphere, triangle ) {
 }
 
 // returns true if all points are on the positive side of the plane
-function separatesPoints( plane, points ) {
+function planeSeparatesPoints( plane, points ) {
 
 	for ( let i = 0, l = points.length; i < l; i ++ ) {
 
@@ -280,6 +280,51 @@ function separatesPoints( plane, points ) {
 const tempTriPlane = new Plane();
 const tempTriNormal = new Vector3();
 const tempTriEdge = new Vector3();
+function triangleSeparatesPoints( triangle, points ) {
+
+	const triEdge = tempTriEdge;
+	const triNormal = tempTriNormal;
+	triangle.getNormal( triNormal );
+
+	// check the triangle plane
+	const triPlane = tempTriPlane;
+	triangle.getPlane( triPlane );
+
+	if ( planeSeparatesPoints( triPlane, points ) ) return true;
+
+
+	// check the other way
+	triPlane.negate();
+	if ( planeSeparatesPoints( triPlane, points ) ) return true;
+
+
+	// check the edge 1 plane
+	triEdge.subVectors( triangle.a, triangle.b );
+	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
+	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.a );
+
+	if ( triEdge.length() !== 0 && planeSeparatesPoints( triPlane, points ) ) return true;
+
+
+	// check the edge 2 plane
+	triEdge.subVectors( triangle.b, triangle.c );
+	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
+	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.b );
+
+	if ( triEdge.length() !== 0 && planeSeparatesPoints( triPlane, points ) ) return true;
+
+
+	// check the edge 3 plane
+	triEdge.subVectors( triangle.c, triangle.b );
+	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
+	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.c );
+
+	if ( triEdge.length() !== 0 && planeSeparatesPoints( triPlane, points ) ) return true;
+
+	return false;
+
+}
+
 function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
 
 	// check if the planes are separating
@@ -304,59 +349,30 @@ function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
 
 	}
 
-	const triEdge = tempTriEdge;
-	const triNormal = tempTriNormal;
-	triangle.getNormal( triNormal );
-
-	// check the triangle plane
-	const triPlane = tempTriPlane;
-	triangle.getPlane( triPlane );
-
-	if ( separatesPoints( triPlane, obbPoints ) ) return false;
-
-
-	// check the other way
-	triPlane.negate();
-	if ( separatesPoints( triPlane, obbPoints ) ) return false;
-
-
-	// check the edge 1 plane
-	triEdge.subVectors( triangle.a, triangle.b );
-	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
-	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.a );
-
-	if ( triEdge.length() !== 0 && separatesPoints( triPlane, obbPoints ) ) return false;
-
-
-	// check the edge 2 plane
-	triEdge.subVectors( triangle.b, triangle.c );
-	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
-	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.b );
-
-	if ( triEdge.length() !== 0 && separatesPoints( triPlane, obbPoints ) ) return false;
-
-
-	// check the edge 3 plane
-	triEdge.subVectors( triangle.c, triangle.b );
-	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
-	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.c );
-
-	if ( triEdge.length() !== 0 && separatesPoints( triPlane, obbPoints ) ) return false;
+	if ( triangleSeparatesPoints( triangle, obbPoints ) ) return false;
 
 	return true;
 
 }
 
+const tempVectorArray = [];
 function triangleIntersectsTriangle( triA, triB ) {
 
-	// get the plane for each triangle
-	// get the intersection point for each edge and check if it's within the triangles
-	// Plane.intersectLine
+	// check if there's a plane from the first triangle that separates the vectors
+	tempVectorArray[ 0 ] = triB.a;
+	tempVectorArray[ 1 ] = triB.b;
+	tempVectorArray[ 2 ] = triB.c;
 
-	// or just use the separating axis theorem
+	if ( triangleSeparatesPoints( triA, tempVectorArray ) ) return false;
 
+	// check the second
+	tempVectorArray[ 0 ] = triA.a;
+	tempVectorArray[ 1 ] = triA.b;
+	tempVectorArray[ 2 ] = triA.c;
 
-	throw new Error( 'Not Implemented' );
+	if ( triangleSeparatesPoints( triB, tempVectorArray ) ) return false;
+
+	return true;
 
 }
 
