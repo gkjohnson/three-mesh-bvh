@@ -188,7 +188,7 @@ const Q3 = new Vector3();
 const QA = new Vector3();
 const QB = new Vector3();
 const QC = new Vector3();
-function sphereItersectTriangle( sphere, triangle ) {
+function sphereIntersectTriangle( sphere, triangle ) {
 
 	// http://realtimecollisiondetection.net/blog/?p=103
 
@@ -287,7 +287,8 @@ function sphereItersectTriangle( sphere, triangle ) {
 	const sep5 = ( Q1.dot( Q1 ) > rr * e1 * e1 ) && ( Q1.dot( QC ) > 0 );
 	const sep6 = ( Q2.dot( Q2 ) > rr * e2 * e2 ) && ( Q2.dot( QA ) > 0 );
 	const sep7 = ( Q3.dot( Q3 ) > rr * e3 * e3 ) && ( Q3.dot( QB ) > 0 );
-	return sep1 || sep2 || sep3 || sep4 || sep5 || sep6 || sep7;
+
+	return ! ( sep1 || sep2 || sep3 || sep4 || sep5 || sep6 || sep7 );
 
 }
 
@@ -299,6 +300,6 @@ function triangleIntersectsTriangle( triA, triB ) {
 
 export {
 	boundsToArray, arrayToBox, getLongestEdgeIndex, boxToObbPoints,
-	boxToObbPlanes, boxIntersectsObb, sphereItersectTriangle,
+	boxToObbPlanes, boxIntersectsObb, sphereIntersectTriangle,
 	triangleIntersectsTriangle
 };

@@ -1,7 +1,7 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereItersectTriangle, boxToObbPlanes, boxToObbPoints, boxIntersectsObb } from './BoundsUtilities.js';
+import { arrayToBox, sphereIntersectTriangle } from './BoundsUtilities.js';
 
 const triangle = new THREE.Triangle();
 const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
@@ -11,7 +11,7 @@ const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
-function setTriangle(tri, i, index, pos) {
+function setTriangle( tri, i, index, pos ) {
 
 	const ta = tri.a;
 	const tb = tri.b;
@@ -60,25 +60,33 @@ class MeshBVHNode {
 
 	constructor() {
 
-		// internal nodes have boundingData, children, and splitAxis
+		// internal nodes have boundingData, left, right, and splitAxis
 		// leaf nodes have offset and count (referring to primitives in the mesh geometry)
+
+	}
+
+	intersectRay( ray, target ) {
+
+		arrayToBox( this.boundingData, boundingBox );
+
+		return ray.intersectBox( boundingBox, target );
 
 	}
 
 	spherecast( mesh, sphere ) {
 
-		if ( boundsArrayIntersectSphere( this.boundingData, sphere ) ) return false;
-
 		if ( this.count ) {
+			console.log('CHECKIN')
 
-			const index = mesh.index;
-			const pos = mesh.attributes.position;
+			const geometry = mesh.geometry;
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
 
 			for ( let i = 0, l = this.count; i < l; i += 3 ) {
 
-				setTriangle(triangle, i, index, pos);
+				setTriangle( triangle, i, index, pos );
 
-				if ( sphereItersectTriangle( sphere, triangle ) ) {
+				if ( sphereIntersectTriangle( sphere, triangle ) ) {
 
 					return true;
 
@@ -91,77 +99,30 @@ class MeshBVHNode {
 
 		} else {
 
-			const c1 = this.children[ 0 ];
-			const c2 = this.children[ 1 ];
+			const left = this.left;
+			const right = this.right;
 
-			return c1.spherecast( mesh, sphere ) || c2.spherecast( mesh, sphere );
+			const leftIntersection = boundsArrayIntersectSphere( left.boundingData, sphere ) && left.spherecast( mesh, sphere );
+			const rightIntersection = boundsArrayIntersectSphere( right.boundingData, sphere ) && right.spherecast( mesh, sphere );
 
-		}
-
-	}
-
-	boxcast( mesh, box, boxToLocal ) {
-
-		if ( boxToLocal ) {
-
-			boxToObbPlanes( box, boxToLocal, planesCache );
-			boxToObbPoints( box, boxToLocal, pointsCache );
-			inverseCache.getInverse( boxToLocal );
+			// TODO: order these by distance to bounds
+			return leftIntersection || rightIntersection;
 
 		}
-
-		if ( boundsArrayIntersectBox( this.boundingData, planesCache, pointsCache ) ) return false;
-
-		if ( this.count ) {
-
-			const index = mesh.index;
-			const pos = mesh.attributes.position;
-
-			for ( let i = 0, l = this.count; i < l; i += 3 ) {
-
-				setTriangle(triangle, i, index, pos);
-				triangle.a.applyMatrix4( inverseCache );
-				triangle.b.applyMatrix4( inverseCache );
-				triangle.c.applyMatrix4( inverseCache );
-
-				if ( box.intersectTriangle( triangle ) ) {
-
-					return true;
-
-				}
-
-			}
-
-			return false;
-
-
-		} else {
-
-			const c1 = this.children[ 0 ];
-			const c2 = this.children[ 1 ];
-
-			return c1.boxcast( mesh, box ) || c2.boxcast( mesh, box );
-
-		}
-
-	}
-
-	meshcast( mesh, otherMesh, meshToLocal ) {
-
-		// cache intersection of each bvh node to avoid recomputing the planes and points
-		// drill down both bvh trees
 
 	}
 
 	raycast( mesh, raycaster, ray, intersects ) {
 
 		if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
-		else this.children.forEach( c => {
+		else {
 
-			if ( boundsArrayIntersectRay( c.boundingData, ray ) )
-				c.raycast( mesh, raycaster, ray, intersects );
+			if ( this.left.intersectRay( ray, boxIntersection ) )
+				this.left.raycast( mesh, raycaster, ray, intersects );
+			if ( this.right.intersectRay( ray, boxIntersection ) )
+				this.right.raycast( mesh, raycaster, ray, intersects );
 
-		} );
+		}
 
 	}
 
@@ -176,7 +137,6 @@ class MeshBVHNode {
 
 			// consider the position of the split plane with respect to the oncoming ray; whichever direction
 			// the ray is coming from, look for an intersection among that side of the tree first
-			const children = this.children;
 			const splitAxis = this.splitAxis;
 			const xyzAxis = xyzFields[ splitAxis ];
 			const rayDir = ray.direction[ xyzAxis ];
@@ -186,17 +146,17 @@ class MeshBVHNode {
 			let c1, c2;
 			if ( leftToRight ) {
 
-				c1 = children[ 0 ];
-				c2 = children[ 1 ];
+				c1 = this.left;
+				c2 = this.right;
 
 			} else {
 
-				c1 = children[ 1 ];
-				c2 = children[ 0 ];
+				c1 = this.right;
+				c2 = this.left;
 
 			}
 
-			const c1Intersection = boundsArrayIntersectRay( c1.boundingData, ray );
+			const c1Intersection = c1.intersectRay( ray, boxIntersection );
 			const c1Result = c1Intersection ? c1.raycastFirst( mesh, raycaster, ray ) : null;
 
 			// if we got an intersection in the first node and it's closer than the second node's bounding
@@ -220,7 +180,7 @@ class MeshBVHNode {
 
 			// either there was no intersection in the first node, or there could still be a closer
 			// intersection in the second, so check the second node and then take the better of the two
-			const c2Intersection = boundsArrayIntersectRay( c2.boundingData, ray );
+			const c2Intersection = c2.intersectRay( ray, boxIntersection );
 			const c2Result = c2Intersection ? c2.raycastFirst( mesh, raycaster, ray ) : null;
 
 			if ( c1Result && c2Result ) {

@@ -149,6 +149,32 @@ describe( 'Bounds Tree', () => {
 
 } );
 
+describe( 'Spherecast ', () => {
+
+	let mesh = null;
+	let bvh = null;
+
+	beforeAll( () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		mesh = new THREE.Mesh( geom );
+		bvh = new MeshBVH( geom, { verbose: false } );
+
+	} );
+
+	it.only( 'should return true if a sphere is intersecting the mesh', () => {
+
+		const sphere = new THREE.Sphere();
+		sphere.radius = 1;
+		sphere.center.set( 0, 1, 0 );
+		const res = bvh.spherecast( mesh, sphere );
+
+		console.log( 'HERE', res )
+
+	} );
+
+} );
+
 describe( 'Options', () => {
 
 	let mesh = null;

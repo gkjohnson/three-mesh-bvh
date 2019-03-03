@@ -62,7 +62,7 @@ class MeshBVHVisualizer extends THREE.Object3D {
 
 				};
 
-				recurse( this._boundsTree._root, 0 );
+				recurse( this._boundsTree._roots[0], 0 );
 
 			}
 

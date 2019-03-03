@@ -217,4 +217,16 @@ export default class MeshBVH {
 
 	}
 
+	spherecast( mesh, sphere ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.spherecast( mesh, sphere ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
 }
