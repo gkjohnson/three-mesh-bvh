@@ -170,6 +170,9 @@ function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 
 }
 
+// TODO: Try this:
+// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
+
 const A = new Vector3();
 const B = new Vector3();
 const C = new Vector3();
