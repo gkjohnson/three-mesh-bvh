@@ -62,11 +62,11 @@ function boxToObbPoints( bounds, matrix, target ) {
 
 			for ( let z = 0; z <= 1; z ++ ) {
 
-				const i = ( 1 << ( x + y + z ) ) - 1;
+				const i = ( ( 1 << 0 ) * x ) | ( ( 1 << 1 ) * y ) | ( ( 1 << 2 ) * z );
 				const v = target[ i ];
 				v.x = min.x * x + max.x * ( 1 - x );
-				v.y = min.y * x + max.y * ( 1 - y );
-				v.z = min.z * x + max.z * ( 1 - z );
+				v.y = min.y * y + max.y * ( 1 - y );
+				v.z = min.z * z + max.z * ( 1 - z );
 
 				v.applyMatrix4( matrix );
 
@@ -80,37 +80,49 @@ function boxToObbPoints( bounds, matrix, target ) {
 
 }
 
+// returns an array with infinite planes defining the box
+// in the following order
+// [ minx, miny, minz, maxx, maxy, maxz ]
+
+// the normals of the plane face outward
 const xyzFields = [ 'x', 'y', 'z' ];
 const v1 = new Vector3();
 const v2 = new Vector3();
+const center = new Vector3();
 function boxToObbPlanes( bounds, matrix, target ) {
 
 	const min = bounds.min;
 	const max = bounds.max;
+	bounds.getCenter( center );
+
+	// iterate over every axis
 	for ( let i = 0; i < 3; i ++ ) {
 
+		// plane 1 and 2 targets along the given axis
 		const p1 = target[ i ];
 		const p2 = target[ i + 3 ];
 
+		// i1 is the axis we're working with
 		const i1 = xyzFields[ ( i + 0 ) % 3 ];
 		const i2 = xyzFields[ ( i + 1 ) % 3 ];
 		const i3 = xyzFields[ ( i + 2 ) % 3 ];
 
+		// get the center point on each side of the box
 		v1[ i1 ] = min[ i1 ];
-		v1[ i2 ] = min[ i2 ];
-		v1[ i3 ] = min[ i3 ];
+		v1[ i2 ] = center[ i2 ];
+		v1[ i3 ] = center[ i3 ];
 
-		v1[ i1 ] = max[ i1 ];
-		v1[ i2 ] = min[ i2 ];
-		v1[ i3 ] = min[ i3 ];
+		v2[ i1 ] = max[ i1 ];
+		v2[ i2 ] = center[ i2 ];
+		v2[ i3 ] = center[ i3 ];
 
 		v1.applyMatrix4( matrix );
 		v2.applyMatrix4( matrix );
 
-		p1.normal.subVectors( v1, v2 );
+		p1.normal.subVectors( v1, v2 ).normalize();
 		p1.constant = p1.normal.dot( v1 );
 
-		p2.normal.subVectors( v1, v2 );
+		p2.normal.copy( p1.normal ).multiplyScalar( - 1 );
 		p2.constant = p2.normal.dot( v2 );
 
 	}
@@ -121,52 +133,96 @@ function boxToObbPlanes( bounds, matrix, target ) {
 
 function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 
-	// check if obb points fall on either side
-	// of the planes
+	for ( let i = 0, l = obbPoints.length; i < l; i ++ ) {
+
+		if ( bounds.containsPoint( obbPoints[ i ] ) ) return true;
+
+	}
+
+	// check the bounds planes
 	const min = bounds.min;
 	const max = bounds.max;
 	for ( let i = 0; i < 3; i ++ ) {
 
 		const field = xyzFields[ i ];
-		const val0 = obbPoints[ 0 ][ field ];
 		const minVal = min[ field ];
 		const maxVal = max[ field ];
-		let sideMin = val0 > minVal;
-		let sideMax = val0 < maxVal;
-		for ( let i = 1; i < 8; i ++ ) {
 
+		// save the side that we find the first field is on
+		let didCross = false;
+		for ( let i = 0; i < 8; i ++ ) {
+
+			// For the negative side plane the point should be less to
+			// separate the boxes. The opposite for max side
 			const val = obbPoints[ i ][ field ];
-			const obbSideMin = val > minVal;
-			const obbSideMax = val < maxVal;
-			if ( sideMin !== obbSideMin || sideMax !== obbSideMax ) {
+			const obbSideMin = val >= minVal;
+			const obbSideMax = val <= maxVal;
 
-				return true;
+			// we've found a point that's on the opposite side of the plane
+			if ( obbSideMin || obbSideMax ) {
+
+				didCross = true;
+				break;
 
 			}
 
 		}
 
-		// inside box
-		if ( sideMin === sideMax ) {
+		// if one plane separated all points then we found a separating plane
+		if ( didCross === false ) {
 
-			return true;
-
-		}
-
-	}
-
-	// check if bounds intersect obb planes
-	for ( let i = 0, l = obbPlanes.length; i < l; i ++ ) {
-
-		if ( bounds.intersectsPlane( obbPlanes[ i ] ) ) {
-
-			return true;
+			return false;
 
 		}
 
 	}
 
-	return false;
+	// check the obb planes
+	for ( let i = 0; i < 6; i ++ ) {
+
+		// p1 is min side plane, p2 is max side plane
+		const plane = obbPlanes[ i ];
+		let didCross = false;
+
+		pointsLoop :
+		for ( let x = 0; x <= 1; x ++ ) {
+
+			for ( let y = 0; y <= 1; y ++ ) {
+
+				for ( let z = 0; z <= 1; z ++ ) {
+
+					v1.x = min.x * x + max.x * ( 1 - x );
+					v1.y = min.y * y + max.y * ( 1 - y );
+					v1.z = min.z * z + max.z * ( 1 - z );
+
+					// if the point doesn't fall on the side of the plane that points
+					// away from the OBB, then it's not a separating plane
+
+					// TODO: we're assuming the normal is pointing away from the box here
+					// so why is this >= and not <=?
+					if ( plane.distanceToPoint( v1 ) >= 0 ) {
+
+						didCross = true;
+						break pointsLoop;
+
+					}
+
+				}
+
+			}
+
+		}
+
+		if ( didCross === false ) {
+
+			return false;
+
+		}
+
+
+	}
+
+	return true;
 
 }
 
@@ -211,6 +267,43 @@ function sphereIntersectTriangle( sphere, triangle ) {
 
 }
 
+function boxIntersectsTriangle( obbPlanes, triangle ) {
+
+	let crossCount = 0;
+	for ( let i = 0; i < 3; i ++ ) {
+
+		let sideA, sideB, sideC;
+
+		const p1 = obbPlanes[ i ];
+		sideA = p1.distanceToPoint( triangle.a ) > 0;
+		sideB = p1.distanceToPoint( triangle.b ) > 0;
+		sideC = p1.distanceToPoint( triangle.c ) > 0;
+
+		if ( sideA !== sideB || sideA !== sideC ) {
+
+			crossCount ++;
+			continue;
+
+		}
+
+		const p2 = obbPlanes[ i + 3 ];
+		sideA = p2.distanceToPoint( triangle.a ) > 0;
+		sideB = p2.distanceToPoint( triangle.b ) > 0;
+		sideC = p2.distanceToPoint( triangle.c ) > 0;
+
+		if ( sideA !== sideB || sideA !== sideC ) {
+
+			crossCount ++;
+			continue;
+
+		}
+
+	}
+
+	return crossCount === 3;
+
+}
+
 function triangleIntersectsTriangle( triA, triB ) {
 
 	throw new Error( 'Not Implemented' );
@@ -219,6 +312,6 @@ function triangleIntersectsTriangle( triA, triB ) {
 
 export {
 	boundsToArray, arrayToBox, getLongestEdgeIndex, boxToObbPoints,
-	boxToObbPlanes, boxIntersectsObb, sphereIntersectTriangle,
+	boxToObbPlanes, boxIntersectsObb, sphereIntersectTriangle, boxIntersectsTriangle,
 	triangleIntersectsTriangle
 };

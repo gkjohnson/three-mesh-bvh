@@ -1,12 +1,11 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereIntersectTriangle } from './BoundsUtilities.js';
+import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb } from './BoundsUtilities.js';
 
 const triangle = new THREE.Triangle();
 const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
-const inverseCache = new THREE.Matrix4();
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
@@ -70,6 +69,55 @@ class MeshBVHNode {
 		arrayToBox( this.boundingData, boundingBox );
 
 		return ray.intersectBox( boundingBox, target );
+
+	}
+
+	boxcast( mesh, box, boxToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
+
+		if ( cachedObbPlanes === null ) {
+
+			cachedObbPoints = cachedObbPoints || boxToObbPoints( box, boxToBvh, pointsCache );
+			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( box, boxToBvh, planesCache );
+
+		}
+
+		return boundsArrayIntersectBox( this.boundingData, cachedObbPlanes, cachedObbPoints );
+
+		if ( this.count ) {
+			return true;
+
+			const geometry = mesh.geometry;
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+			const offset = this.offset;
+			const count = this.count;
+
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+				setTriangle( triangle, i, index, pos );
+
+				if ( boxIntersectsTriangle( cachedObbPlanes, triangle ) ) {
+
+					return true;
+
+				}
+
+			}
+
+		} else {
+
+			const left = this.left;
+			const right = this.right;
+
+			const leftIntersection = boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) && left.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
+			if ( leftIntersection ) return true;
+
+			const rightIntersection = boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) && right.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
+			if ( rightIntersection ) return true;
+
+			return false;
+
+		}
 
 	}
 

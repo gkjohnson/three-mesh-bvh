@@ -34,8 +34,8 @@ const tubularSegments = 40;
 const radialSegments = 10;
 
 let boundsViz = null;
-// const knotGeometry = new THREE.BoxBufferGeometry( 1, 1, 1, 1, 1, 1 );
-const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+const knotGeometry = new THREE.BoxBufferGeometry( 1, 1, 1, 1, 1, 1 );
+// const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63, side: THREE.DoubleSide } );
 const mesh = new THREE.Mesh( knotGeometry, material );
 mesh.geometry.computeBoundsTree();
@@ -81,12 +81,21 @@ const updateFromOptions = () => {
 
 };
 
-const sphereMesh = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 20, 20 ) );
-scene.add( sphereMesh );
+// const sphereMesh = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 20, 20 ) );
+// scene.add( sphereMesh );
 
-const sphere = new THREE.Sphere( undefined, 0.5 );
-sphere.center.y = -0.9;
-window.sphere = sphere;
+// const sphere = new THREE.Sphere( undefined, 0.5 );
+// sphere.center.y = -0.9;
+// window.sphere = sphere;
+
+const boxMesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ) );
+scene.add( boxMesh );
+
+const box = new THREE.Box3();
+box.min.set( 1, 1, 1 ).multiplyScalar( - 0.5 );
+box.max.set( 1, 1, 1 ).multiplyScalar( 0.5 );
+window.box = boxMesh;
+
 
 const render = () => {
 
@@ -95,15 +104,27 @@ const render = () => {
 	if ( boundsViz ) boundsViz.update();
 
 	renderer.render( scene, camera );
-	console.log( mesh.geometry.boundsTree.spherecast( mesh, sphere ) );
 	stats.end();
 
-	sphereMesh.position.copy( sphere.center );
-	sphereMesh.scale.set( sphere.radius, sphere.radius, sphere.radius );
+	// console.log( mesh.geometry.boundsTree.spherecast( mesh, sphere ) );
+	// sphereMesh.position.copy( sphere.center );
+	// sphereMesh.scale.set( sphere.radius, sphere.radius, sphere.radius );
+
+
+	const mat = new THREE.Matrix4();
+	mat.getInverse( boxMesh.matrixWorld );
+
+	console.log( mesh.geometry.boundsTree.boxcast( mesh, box, mat ) );
+	box.min.copy( boxMesh.scale ).multiplyScalar( - 0.5 );
+	box.max.copy( boxMesh.scale ).multiplyScalar( 0.5 );
 
 	requestAnimationFrame( render );
 
 };
+
+window.planeHelpers = new Array( 6 ).fill().map( () => new THREE.PlaneHelper( new THREE.Plane(), 2, 0xff0000 ) );
+window.planeHelpers.forEach( p => scene.add( p ) )
+scene.add( window.planeHelpers );
 
 // Run
 const gui = new dat.GUI();
