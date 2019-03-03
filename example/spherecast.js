@@ -90,6 +90,8 @@ const updateFromOptions = () => {
 
 const boxMesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ) );
 scene.add( boxMesh );
+// boxMesh.rotation.set( Math.PI / 4, Math.PI / 4, 0 );
+// boxMesh.position.y = 1.2;
 
 const box = new THREE.Box3();
 box.min.set( 1, 1, 1 ).multiplyScalar( - 0.5 );

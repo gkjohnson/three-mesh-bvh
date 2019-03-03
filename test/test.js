@@ -189,6 +189,9 @@ describe( 'Spherecast ', () => {
 
 	} );
 
+	// TODO: Add robust tests for the intersection functions
+	it.skip( '', () => {} );
+
 } );
 
 describe( 'Options', () => {
