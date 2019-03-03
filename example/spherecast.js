@@ -34,8 +34,8 @@ const tubularSegments = 40;
 const radialSegments = 10;
 
 let boundsViz = null;
-const knotGeometry = new THREE.BoxBufferGeometry( 1, 1, 1, 1, 1, 1 );
-// const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+// const knotGeometry = new THREE.BoxBufferGeometry( 1, 1, 1, 1, 1, 1 );
+const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
 const material = new THREE.MeshPhongMaterial( { color: 0xE91E63, side: THREE.DoubleSide } );
 const mesh = new THREE.Mesh( knotGeometry, material );
 mesh.geometry.computeBoundsTree();
@@ -106,13 +106,15 @@ const render = () => {
 	renderer.render( scene, camera );
 	stats.end();
 
+	// perform sphere cast
 	// console.log( mesh.geometry.boundsTree.spherecast( mesh, sphere ) );
 	// sphereMesh.position.copy( sphere.center );
 	// sphereMesh.scale.set( sphere.radius, sphere.radius, sphere.radius );
 
-
+	// perform box cast
+	const wMat = new THREE.Matrix4().compose( boxMesh.position, boxMesh.quaternion, new THREE.Vector3( 1, 1, 1 ) );
 	const mat = new THREE.Matrix4();
-	mat.getInverse( boxMesh.matrixWorld );
+	mat.getInverse( wMat );
 
 	console.log( mesh.geometry.boundsTree.boxcast( mesh, box, mat ) );
 	box.min.copy( boxMesh.scale ).multiplyScalar( - 0.5 );

@@ -81,10 +81,7 @@ class MeshBVHNode {
 
 		}
 
-		return boundsArrayIntersectBox( this.boundingData, cachedObbPlanes, cachedObbPoints );
-
 		if ( this.count ) {
-			return true;
 
 			const geometry = mesh.geometry;
 			const index = geometry.index;

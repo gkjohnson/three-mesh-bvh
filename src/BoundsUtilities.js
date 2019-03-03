@@ -267,31 +267,42 @@ function sphereIntersectTriangle( sphere, triangle ) {
 
 }
 
+// TODO: Test this more
 function boxIntersectsTriangle( obbPlanes, triangle ) {
 
 	let crossCount = 0;
 	for ( let i = 0; i < 3; i ++ ) {
 
-		let sideA, sideB, sideC;
-
+		let s1A, s1B, s1C;
+		let d1A, d1B, d1C;
 		const p1 = obbPlanes[ i ];
-		sideA = p1.distanceToPoint( triangle.a ) > 0;
-		sideB = p1.distanceToPoint( triangle.b ) > 0;
-		sideC = p1.distanceToPoint( triangle.c ) > 0;
+		d1A = p1.distanceToPoint( triangle.a );
+		d1B = p1.distanceToPoint( triangle.b );
+		d1C = p1.distanceToPoint( triangle.c );
 
-		if ( sideA !== sideB || sideA !== sideC ) {
+		s1A = d1A >= 0;
+		s1B = d1B >= 0;
+		s1C = d1C >= 0;
+
+		if ( s1A !== s1B || s1A !== s1C || d1A === 0 || d1B === 0 || d1C === 0 ) {
 
 			crossCount ++;
 			continue;
 
 		}
 
+		let s2A, s2B, s2C;
+		let d2A, d2B, d2C;
 		const p2 = obbPlanes[ i + 3 ];
-		sideA = p2.distanceToPoint( triangle.a ) > 0;
-		sideB = p2.distanceToPoint( triangle.b ) > 0;
-		sideC = p2.distanceToPoint( triangle.c ) > 0;
+		d2A = p2.distanceToPoint( triangle.a );
+		d2B = p2.distanceToPoint( triangle.b );
+		d2C = p2.distanceToPoint( triangle.c );
 
-		if ( sideA !== sideB || sideA !== sideC ) {
+		s2A = d2A >= 0;
+		s2B = d2B >= 0;
+		s2C = d2C >= 0;
+
+		if ( s2A !== s2B || s2A !== s2C || d2A === 0 || d2B === 0 || d2C === 0 ) {
 
 			crossCount ++;
 			continue;
