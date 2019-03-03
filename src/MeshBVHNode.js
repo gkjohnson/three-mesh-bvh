@@ -101,7 +101,7 @@ class MeshBVHNode {
 
 				if (
 					// sphereIntersectTriangle( cachedBoundingSphere, triangle ) &&
-					boxIntersectsTriangle( cachedObbPlanes, triangle )
+					boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle )
 				) {
 
 					return true;

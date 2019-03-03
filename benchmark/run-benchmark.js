@@ -77,7 +77,7 @@ runBenchmark(
 geometry.computeBoundsTree();
 runBenchmark(
 
-	'boxcast',
+	'Boxcast',
 	() => mesh.geometry.boundsTree.boxcast( mesh, box, boxMat ),
 	3000
 

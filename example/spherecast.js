@@ -30,8 +30,8 @@ scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 // geometry setup
 const radius = 1;
 const tube = 0.4;
-const tubularSegments = 40;
-const radialSegments = 10;
+const tubularSegments = 400;
+const radialSegments = 100;
 
 let boundsViz = null;
 // const knotGeometry = new THREE.BoxBufferGeometry( 1, 1, 1, 1, 1, 1 );
@@ -118,7 +118,7 @@ const render = () => {
 	const mat = new THREE.Matrix4();
 	mat.getInverse( wMat );
 
-	console.log( mesh.geometry.boundsTree.boxcast( mesh, box, mat ) );
+	console.log( mesh.geometry.boundsTree.boxcast( mesh, box, wMat ) );
 	box.min.copy( boxMesh.scale ).multiplyScalar( - 0.5 );
 	box.max.copy( boxMesh.scale ).multiplyScalar( 0.5 );
 

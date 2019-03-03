@@ -149,7 +149,7 @@ describe( 'Bounds Tree', () => {
 
 } );
 
-describe( 'Spherecast ', () => {
+describe( 'Spherecast', () => {
 
 	let mesh = null;
 	let bvh = null;
@@ -190,6 +190,107 @@ describe( 'Spherecast ', () => {
 	} );
 
 } );
+
+describe( 'Boxcast', () => {
+
+	let mesh = null;
+	let bvh = null;
+
+	beforeAll( () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
+		mesh = new THREE.Mesh( geom );
+		bvh = new MeshBVH( geom, { verbose: false } );
+
+	} );
+
+	it( 'should return false if the box is outside the mesh', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		const boxToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 3, 0 ),
+				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+				new THREE.Vector3( 1, 1, 1 ) );
+
+		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( false );
+
+	} );
+
+	it( 'should return true if one corner is inside the mesh', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		const boxToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 2, 0 ),
+				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+				new THREE.Vector3( 1, 1, 1 ) );
+
+		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( true );
+
+	} );
+
+	it( 'should return true if the box encapsulates the mesh entirely', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 10, - 10, - 10 );
+		box.max.set( 10, 10, 10 );
+
+		const boxToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 0, 0 ),
+				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+				new THREE.Vector3( 1, 1, 1 ) );
+
+		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( true );
+
+	} );
+
+	it( 'should return false if the box inside the mesh entirely', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - .5, - .5, - .5 );
+		box.max.set( .5, .5, .5 );
+
+		const boxToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 0, 0 ),
+				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+				new THREE.Vector3( 1, 1, 1 ) );
+
+		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( false );
+
+	} );
+
+	it( 'should return true if the box intersects it with a side only', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 10, 0, - 10 );
+		box.max.set( 10, 10, 10 );
+
+		const boxToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 0, 0 ),
+				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+				new THREE.Vector3( 1, 1, 1 ) );
+
+		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( true );
+
+	} );
+
+} );
+
 
 describe( 'Options', () => {
 

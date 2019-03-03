@@ -119,11 +119,13 @@ function boxToObbPlanes( bounds, matrix, target ) {
 		v1.applyMatrix4( matrix );
 		v2.applyMatrix4( matrix );
 
+		// NOTE: the constants seem to be stored negatively here
+		// for some reason?
 		p1.normal.subVectors( v1, v2 ).normalize();
-		p1.constant = p1.normal.dot( v1 );
+		p1.setFromNormalAndCoplanarPoint( p1.normal, v1 );
 
 		p2.normal.copy( p1.normal ).multiplyScalar( - 1 );
-		p2.constant = p2.normal.dot( v2 );
+		p2.setFromNormalAndCoplanarPoint( p2.normal, v2 );
 
 	}
 
@@ -139,7 +141,7 @@ function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 
 	}
 
-	// check the bounds planes
+	// check the abb bounds planes
 	const min = bounds.min;
 	const max = bounds.max;
 	for ( let i = 0; i < 3; i ++ ) {
@@ -197,10 +199,7 @@ function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 
 					// if the point doesn't fall on the side of the plane that points
 					// away from the OBB, then it's not a separating plane
-
-					// TODO: we're assuming the normal is pointing away from the box here
-					// so why is this >= and not <=?
-					if ( plane.distanceToPoint( v1 ) >= 0 ) {
+					if ( plane.distanceToPoint( v1 ) <= 0 ) {
 
 						didCross = true;
 						break pointsLoop;
@@ -267,63 +266,101 @@ function sphereIntersectTriangle( sphere, triangle ) {
 
 }
 
-// TODO: Test this more
-function boxIntersectsTriangle( obbPlanes, triangle ) {
+// returns true if all points are on the positive side of the plane
+function separatesPoints( plane, points ) {
 
-	let crossCount = 0;
-	for ( let i = 0; i < 3; i ++ ) {
+	for ( let i = 0, l = points.length; i < l; i ++ ) {
 
-		let s1A, s1B, s1C;
-		let d1A, d1B, d1C;
-		const p1 = obbPlanes[ i ];
-		d1A = p1.distanceToPoint( triangle.a );
-		d1B = p1.distanceToPoint( triangle.b );
-		d1C = p1.distanceToPoint( triangle.c );
+		if ( plane.distanceToPoint( points[ i ] ) <= 0 ) {
 
-		s1A = d1A >= 0;
-		s1B = d1B >= 0;
-		s1C = d1C >= 0;
-
-		if ( s1A !== s1B || s1A !== s1C || d1A === 0 || d1B === 0 || d1C === 0 ) {
-
-			crossCount ++;
-			continue;
-
-		}
-
-		let s2A, s2B, s2C;
-		let d2A, d2B, d2C;
-		const p2 = obbPlanes[ i + 3 ];
-		d2A = p2.distanceToPoint( triangle.a );
-		d2B = p2.distanceToPoint( triangle.b );
-		d2C = p2.distanceToPoint( triangle.c );
-
-		s2A = d2A >= 0;
-		s2B = d2B >= 0;
-		s2C = d2C >= 0;
-
-		if ( s2A !== s2B || s2A !== s2C || d2A === 0 || d2B === 0 || d2C === 0 ) {
-
-			crossCount ++;
-			continue;
-
-		}
-
-		// check if the vertices are on the inside of the box
-		if ( s1A === s2A || s1B === s2B || s1C === s2C ) {
-
-			crossCount ++;
-			continue;
+			return false;
 
 		}
 
 	}
 
-	return crossCount === 3;
+	return true;
+
+}
+
+const tempTriPlane = new Plane();
+const tempTriNormal = new Vector3();
+const tempTriEdge = new Vector3();
+function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
+
+	// check if the planes are separating
+	for ( let i = 0; i < 6; i ++ ) {
+
+		const plane = obbPlanes[ i ];
+		const distA = plane.distanceToPoint( triangle.a );
+		const distB = plane.distanceToPoint( triangle.b );
+		const distC = plane.distanceToPoint( triangle.c );
+
+		const sideA = distA > 0;
+		const sideB = distB > 0;
+		const sideC = distC > 0;
+
+		// If all the triangle points are on the outward side of the
+		// plane then it must be separating
+		if ( sideA && sideB && sideC ) {
+
+			return false;
+
+		}
+
+	}
+
+	const triEdge = tempTriEdge;
+	const triNormal = tempTriNormal;
+	triangle.getNormal( triNormal );
+
+	// check the triangle plane
+	const triPlane = tempTriPlane;
+	triangle.getPlane( triPlane );
+
+	if ( separatesPoints( triPlane, obbPoints ) ) return false;
+
+
+	// check the other way
+	triPlane.negate();
+	if ( separatesPoints( triPlane, obbPoints ) ) return false;
+
+
+	// check the edge 1 plane
+	triEdge.subVectors( triangle.a, triangle.b );
+	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
+	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.a );
+
+	if ( triEdge.length() !== 0 && separatesPoints( triPlane, obbPoints ) ) return false;
+
+
+	// check the edge 2 plane
+	triEdge.subVectors( triangle.b, triangle.c );
+	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
+	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.b );
+
+	if ( triEdge.length() !== 0 && separatesPoints( triPlane, obbPoints ) ) return false;
+
+
+	// check the edge 3 plane
+	triEdge.subVectors( triangle.c, triangle.b );
+	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
+	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.c );
+
+	if ( triEdge.length() !== 0 && separatesPoints( triPlane, obbPoints ) ) return false;
+
+	return true;
 
 }
 
 function triangleIntersectsTriangle( triA, triB ) {
+
+	// get the plane for each triangle
+	// get the intersection point for each edge and check if it's within the triangles
+	// Plane.intersectLine
+
+	// or just use the separating axis theorem
+
 
 	throw new Error( 'Not Implemented' );
 
