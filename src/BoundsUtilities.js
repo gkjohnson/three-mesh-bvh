@@ -309,6 +309,14 @@ function boxIntersectsTriangle( obbPlanes, triangle ) {
 
 		}
 
+		// check if the vertices are on the inside of the box
+		if ( s1A === s2A || s1B === s2B || s1C === s2C ) {
+
+			crossCount ++;
+			continue;
+
+		}
+
 	}
 
 	return crossCount === 3;

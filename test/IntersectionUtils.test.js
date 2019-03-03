@@ -3,8 +3,7 @@
 */
 
 import * as THREE from 'three';
-import { sphereIntersectTriangle } from '../src/BoundsUtilities.js';
-import { CompressedPixelFormat } from 'three';
+import { sphereIntersectTriangle, boxToObbPlanes, boxIntersectsTriangle } from '../src/BoundsUtilities.js';
 
 function setRandomVector( vector, length ) {
 
@@ -18,6 +17,20 @@ function setRandomVector( vector, length ) {
 		.multiplyScalar( length );
 
 	return vector;
+
+}
+
+// TODO: re-enable the rotation here and address issues in the tests
+function getRandomOrientation( matrix, range ) {
+
+	const pos = new THREE.Vector3();
+	const quat = new THREE.Quaternion();
+	const sca = new THREE.Vector3( 1, 1, 1 );
+
+	setRandomVector( pos, range );
+	// quat.setFromEuler( new THREE.Euler( Math.random() * 180, Math.random() * 180, Math.random() * 180 ) );
+	matrix.compose( pos, quat, sca );
+	return matrix;
 
 }
 
@@ -185,3 +198,210 @@ describe( 'Sphere Intersections', () => {
 
 } );
 
+describe( 'Box Intersections', () => {
+
+	const obbPlanes = new Array( 6 ).fill().map( () => new THREE.Plane() );
+
+	it( 'Should intersect triangles with a vertex inside', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		// TODO: understand this inversion more
+		const boxToWorld = getRandomOrientation( new THREE.Matrix4(), 10 );
+		const invMat = new THREE.Matrix4().getInverse( boxToWorld );
+		boxToObbPlanes( box, invMat, obbPlanes );
+
+		const center = new THREE.Vector3();
+		center.setFromMatrixPosition( boxToWorld );
+
+		const triangle = new THREE.Triangle();
+		for ( let i = 0; i < 100; i ++ ) {
+
+			const fields = [ 'a', 'b', 'c' ];
+			const i0 = i % 3;
+			const i1 = ( i + 1 ) % 3;
+			const i2 = ( i + 2 ) % 3;
+
+			setRandomVector( triangle[ fields[ i0 ] ], Math.random() - 0.0001 )
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i1 ] ], 3 + 0.0001 + Math.random() )
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i2 ] ], 3 + 0.0001 + Math.random() )
+				.add( center );
+
+			expect( boxIntersectsTriangle( obbPlanes, triangle ) ).toBe( true );
+
+		}
+
+	} );
+
+	it( 'Should intersect triangles with two vertices inside', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		// TODO: understand this inversion more
+		const boxToWorld = getRandomOrientation( new THREE.Matrix4(), 10 );
+		const invMat = new THREE.Matrix4().getInverse( boxToWorld );
+		boxToObbPlanes( box, invMat, obbPlanes );
+
+		const center = new THREE.Vector3();
+		center.setFromMatrixPosition( boxToWorld );
+
+		const triangle = new THREE.Triangle();
+		for ( let i = 0; i < 100; i ++ ) {
+
+			const fields = [ 'a', 'b', 'c' ];
+			const i0 = i % 3;
+			const i1 = ( i + 1 ) % 3;
+			const i2 = ( i + 2 ) % 3;
+
+			setRandomVector( triangle[ fields[ i0 ] ], Math.random() - 0.0001 )
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i1 ] ], Math.random() - 0.0001 )
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i2 ] ], 3 + 0.0001 + Math.random() )
+				.add( center );
+
+			expect( boxIntersectsTriangle( obbPlanes, triangle ) ).toBe( true );
+
+		}
+
+	} );
+
+	it( 'Should intersect triangles with all vertices inside', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		// TODO: understand this inversion more
+		const boxToWorld = getRandomOrientation( new THREE.Matrix4(), 10 );
+		const invMat = new THREE.Matrix4().getInverse( boxToWorld );
+		boxToObbPlanes( box, invMat, obbPlanes );
+
+		const center = new THREE.Vector3();
+		center.setFromMatrixPosition( boxToWorld );
+
+		const triangle = new THREE.Triangle();
+		for ( let i = 0; i < 100; i ++ ) {
+
+			const fields = [ 'a', 'b', 'c' ];
+			const i0 = i % 3;
+			const i1 = ( i + 1 ) % 3;
+			const i2 = ( i + 2 ) % 3;
+
+			setRandomVector( triangle[ fields[ i0 ] ], Math.random() - 0.0001 )
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i1 ] ], Math.random() - 0.0001 )
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i2 ] ], Math.random() - 0.0001 )
+				.add( center );
+
+			expect( boxIntersectsTriangle( obbPlanes, triangle ) ).toBe( true );
+
+		}
+
+	} );
+
+
+	it( 'Should intersect triangles that cut across', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		// TODO: understand this inversion more
+		const boxToWorld = getRandomOrientation( new THREE.Matrix4(), 10 );
+		const invMat = new THREE.Matrix4().getInverse( boxToWorld );
+		boxToObbPlanes( box, invMat, obbPlanes );
+
+		const center = new THREE.Vector3();
+		center.setFromMatrixPosition( boxToWorld );
+
+		const triangle = new THREE.Triangle();
+		for ( let i = 0; i < 100; i ++ ) {
+
+			const fields = [ 'a', 'b', 'c' ];
+			const i0 = i % 3;
+			const i1 = ( i + 1 ) % 3;
+			const i2 = ( i + 2 ) % 3;
+
+			setRandomVector( triangle[ fields[ i0 ] ], 3 + 0.0001 + Math.random() );
+
+			triangle[ fields[ i1 ] ]
+				.copy( triangle[ fields[ i0 ] ] )
+				.multiplyScalar( - 1 )
+				.add( center );
+
+			triangle[ fields[ i0 ] ]
+				.add( center );
+
+			setRandomVector( triangle[ fields[ i2 ] ], 3 + 0.0001 + Math.random() )
+				.add( center );
+
+			expect( boxIntersectsTriangle( obbPlanes, triangle ) ).toBe( true );
+
+		}
+
+	} );
+
+	// TODO: Fix this test
+	it( 'Should not intersect triangles outside sphere', () => {
+
+		const box = new THREE.Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.max.set( 1, 1, 1 );
+
+		// TODO: understand this inversion more
+		const boxToWorld = getRandomOrientation( new THREE.Matrix4(), 10 );
+		const invMat = new THREE.Matrix4().getInverse( boxToWorld );
+		boxToObbPlanes( box, invMat, obbPlanes );
+
+		const center = new THREE.Vector3();
+		center.setFromMatrixPosition( boxToWorld );
+
+		const plane = new THREE.Plane();
+		const vec = new THREE.Vector3();
+
+		const triangle = new THREE.Triangle();
+		for ( let i = 0; i < 100; i ++ ) {
+
+			// project the triangle out onto a plane
+			setRandomVector( plane.normal, 1 );
+			plane.setFromNormalAndCoplanarPoint( plane.normal, center );
+			plane.constant += ( Math.sign( Math.random() - 0.5 ) || 1 ) * 5.001;
+
+			const fields = [ 'a', 'b', 'c' ];
+			const i0 = i % 3;
+			const i1 = ( i + 1 ) % 3;
+			const i2 = ( i + 2 ) % 3;
+
+			setRandomVector( vec, 10 * Math.random() )
+				.add( center );
+			plane.projectPoint( vec, triangle[ fields[ i0 ] ] );
+
+			setRandomVector( vec, 10 * Math.random() )
+				.add( center );
+			plane.projectPoint( vec, triangle[ fields[ i1 ] ] );
+
+			setRandomVector( vec, 10 * Math.random() )
+				.add( center );
+			plane.projectPoint( vec, triangle[ fields[ i2 ] ] );
+
+			expect( boxIntersectsTriangle( obbPlanes, triangle ) ).toBe( false );
+
+		}
+
+	} );
+
+} );
