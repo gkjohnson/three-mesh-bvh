@@ -3,7 +3,7 @@
 */
 
 import * as THREE from 'three';
-import { sphereIntersectTriangle, boxToObbPlanes, boxIntersectsTriangle, boxToObbPoints } from '../src/BoundsUtilities.js';
+import { sphereIntersectTriangle, boxToObbPlanes, boxIntersectsTriangle, boxToObbPoints, triangleIntersectsTriangle } from '../src/BoundsUtilities.js';
 
 function setRandomVector( vector, length ) {
 
@@ -34,9 +34,129 @@ function getRandomOrientation( matrix, range ) {
 
 }
 
+describe( 'Triangle Intersections', () => {
+
+	const t1 = new THREE.Triangle();
+	const t2 = new THREE.Triangle();
+
+	it( 'should return true if the are the same', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 1, 0, 0 );
+		t2.b.set( 1, 0, 0 );
+		t2.c.set( 0, 1, 0 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+
+	} );
+
+	it( 'should return false if they the same but offset on one axis', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 1, 0, 1 );
+		t2.b.set( 1, 0, 1 );
+		t2.c.set( 0, 1, 1 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
+
+	} );
+
+	it( 'should return false if the triangles are on the same plane but separated', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 4, 0, 0 );
+		t2.b.set( - 2, 0, 0 );
+		t2.c.set( - 3, 1, 0 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
+
+	} );
+
+	it( 'should return true if the triangles are on the same plane and overlapping', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 2, 0, 0 );
+		t2.b.set( 0, 0, 0 );
+		t2.c.set( - 1, 1, 0 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+
+	} );
+
+	it( 'should return true if just one vertex is overlapping', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 1, 0, 0 );
+		t2.b.set( - 3, 0, 0 );
+		t2.c.set( - 2, 1, 0 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+
+	} );
+
+	it( 'should return true if just one vertex is in the middle of a triangle', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( 0, 0.5, 0 );
+		t2.b.set( - 1, 0.5, 1 );
+		t2.c.set( 1, 0.5, 1 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+
+	} );
+
+	it( 'should return true if one triangle is completely inside the other', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 0.5, 0.25, 0 );
+		t2.b.set( 0.5, 0.25, 0 );
+		t2.c.set( 0, 0.75, 0 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+
+	} );
+
+	it( 'should return true if the triangles are intersecting at an angle', () => {
+
+		t1.a.set( - 1, 0, 0 );
+		t1.b.set( 1, 0, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( 0, 0.5, 0.5 );
+		t2.b.set( 0.5, 0.5, - 0.5 );
+		t2.c.set( - 0.5, 0.5, - 0.5 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+
+	} );
+
+
+} );
+
 describe( 'Sphere Intersections', () => {
 
-	it( 'Should intersect triangles with a vertex inside', () => {
+	it( 'should intersect triangles with a vertex inside', () => {
 
 		const sphere = new THREE.Sphere();
 		sphere.radius = 1;
@@ -65,7 +185,7 @@ describe( 'Sphere Intersections', () => {
 
 	} );
 
-	it( 'Should intersect triangles with two vertices inside', () => {
+	it( 'should intersect triangles with two vertices inside', () => {
 
 		const sphere = new THREE.Sphere();
 		sphere.radius = 1;
@@ -94,7 +214,7 @@ describe( 'Sphere Intersections', () => {
 
 	} );
 
-	it( 'Should intersect triangles with all vertices inside', () => {
+	it( 'should intersect triangles with all vertices inside', () => {
 
 		const sphere = new THREE.Sphere();
 		sphere.radius = 1;
@@ -123,7 +243,7 @@ describe( 'Sphere Intersections', () => {
 
 	} );
 
-	it( 'Should intersect triangles that only intersect the middle', () => {
+	it( 'should intersect triangles that only intersect the middle', () => {
 
 		const sphere = new THREE.Sphere();
 		sphere.radius = 1;
@@ -156,7 +276,7 @@ describe( 'Sphere Intersections', () => {
 
 	} );
 
-	it( 'Should not intersect triangles outside sphere', () => {
+	it( 'should not intersect triangles outside sphere', () => {
 
 		const sphere = new THREE.Sphere();
 		sphere.radius = 1;
@@ -222,7 +342,7 @@ describe( 'Box Intersections', () => {
 
 	} );
 
-	it( 'Should intersect triangles with a vertex inside', () => {
+	it( 'should intersect triangles with a vertex inside', () => {
 
 		const triangle = new THREE.Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
@@ -247,7 +367,7 @@ describe( 'Box Intersections', () => {
 
 	} );
 
-	it( 'Should intersect triangles with two vertices inside', () => {
+	it( 'should intersect triangles with two vertices inside', () => {
 
 		const triangle = new THREE.Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
@@ -272,7 +392,7 @@ describe( 'Box Intersections', () => {
 
 	} );
 
-	it( 'Should intersect triangles with all vertices inside', () => {
+	it( 'should intersect triangles with all vertices inside', () => {
 
 		const triangle = new THREE.Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
@@ -298,7 +418,7 @@ describe( 'Box Intersections', () => {
 	} );
 
 
-	it( 'Should intersect triangles that cut across', () => {
+	it( 'should intersect triangles that cut across', () => {
 
 		const triangle = new THREE.Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
@@ -327,8 +447,7 @@ describe( 'Box Intersections', () => {
 
 	} );
 
-	// TODO: Fix this test
-	it( 'Should not intersect triangles outside sphere', () => {
+	it( 'should not intersect triangles outside sphere', () => {
 
 		const center = new THREE.Vector3();
 		center.setFromMatrixPosition( boxToWorld );

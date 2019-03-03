@@ -299,25 +299,25 @@ function triangleSeparatesPoints( triangle, points ) {
 
 
 	// check the edge 1 plane
-	triEdge.subVectors( triangle.a, triangle.b );
+	triEdge.subVectors( triangle.b, triangle.c );
 	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
-	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.a );
+	triPlane.setFromNormalAndCoplanarPoint( triPlane.normal, triangle.a );
 
 	if ( triEdge.length() !== 0 && planeSeparatesPoints( triPlane, points ) ) return true;
 
 
 	// check the edge 2 plane
-	triEdge.subVectors( triangle.b, triangle.c );
+	triEdge.subVectors( triangle.c, triangle.b );
 	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
-	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.b );
+	triPlane.setFromNormalAndCoplanarPoint( triPlane.normal, triangle.b );
 
 	if ( triEdge.length() !== 0 && planeSeparatesPoints( triPlane, points ) ) return true;
 
 
 	// check the edge 3 plane
-	triEdge.subVectors( triangle.c, triangle.b );
+	triEdge.subVectors( triangle.a, triangle.c );
 	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
-	triPlane.setFromNormalAndCoplanarPoint( triNormal, triangle.c );
+	triPlane.setFromNormalAndCoplanarPoint( triPlane.normal, triangle.c );
 
 	if ( triEdge.length() !== 0 && planeSeparatesPoints( triPlane, points ) ) return true;
 
