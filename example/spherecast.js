@@ -126,8 +126,6 @@ const render = () => {
 
 };
 
-window.planeHelpers = new Array( 6 ).fill().map( () => new THREE.PlaneHelper( new THREE.Plane(), 2, 0xff0000 ) );
-window.planeHelpers.forEach( p => scene.add( p ) )
 scene.add( window.planeHelpers );
 
 // Run

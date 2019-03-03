@@ -135,12 +135,6 @@ function boxToObbPlanes( bounds, matrix, target ) {
 
 function boxIntersectsObb( bounds, obbPlanes, obbPoints ) {
 
-	for ( let i = 0, l = obbPoints.length; i < l; i ++ ) {
-
-		if ( bounds.containsPoint( obbPoints[ i ] ) ) return true;
-
-	}
-
 	// check the abb bounds planes
 	const min = bounds.min;
 	const max = bounds.max;

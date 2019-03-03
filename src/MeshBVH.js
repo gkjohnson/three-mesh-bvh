@@ -219,7 +219,6 @@ export default class MeshBVH {
 
 	boxcast( mesh, box, boxToMesh ) {
 
-
 		for ( const root of this._roots ) {
 
 			if ( root.boxcast( mesh, box, boxToMesh ) ) return true;

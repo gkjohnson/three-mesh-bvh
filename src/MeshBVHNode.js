@@ -73,19 +73,14 @@ class MeshBVHNode {
 
 	}
 
-	boxcast( mesh, box, boxToBvh, cachedObbPoints = null, cachedObbPlanes = null, cachedBoundingSphere = null ) {
+	boxcast( mesh, box, boxToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
 
 		if ( cachedObbPlanes === null ) {
 
 			cachedObbPoints = cachedObbPoints || boxToObbPoints( box, boxToBvh, pointsCache );
 			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( box, boxToBvh, planesCache );
-			cachedBoundingSphere = boundingSphere.setFromPoints( cachedObbPoints );
-
-			// TODO: for some reason the bounding sphere check doesn't seem to be doing what is expected
 
 		}
-
-		// return boundsArrayIntersectBox( this.boundingData, cachedObbPlanes, cachedObbPoints );
 
 		if ( this.count ) {
 
@@ -99,10 +94,7 @@ class MeshBVHNode {
 
 				setTriangle( triangle, i, index, pos );
 
-				if (
-					// sphereIntersectTriangle( cachedBoundingSphere, triangle ) &&
-					boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle )
-				) {
+				if ( boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle ) ) {
 
 					return true;
 
@@ -116,14 +108,12 @@ class MeshBVHNode {
 			const right = this.right;
 
 			const leftIntersection =
-				// boundsArrayIntersectSphere( left.boundingData, boundingSphere ) &&
 				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
 				left.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
 
 			if ( leftIntersection ) return true;
 
 			const rightIntersection =
-				// boundsArrayIntersectSphere( right.boundingData, boundingSphere ) &&
 				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
 				right.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
 
