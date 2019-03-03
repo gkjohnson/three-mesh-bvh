@@ -7,6 +7,7 @@ const triangle = new THREE.Triangle();
 const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
 const boundingBox = new THREE.Box3();
+const boundingSphere = new THREE.Sphere();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
@@ -78,6 +79,7 @@ class MeshBVHNode {
 
 			cachedObbPoints = cachedObbPoints || boxToObbPoints( box, boxToBvh, pointsCache );
 			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( box, boxToBvh, planesCache );
+			boundingSphere.setFromPoints( cachedObbPoints );
 
 		}
 
@@ -93,7 +95,7 @@ class MeshBVHNode {
 
 				setTriangle( triangle, i, index, pos );
 
-				if ( boxIntersectsTriangle( cachedObbPlanes, triangle ) ) {
+				if ( sphereIntersectTriangle( boundingSphere, triangle ) && boxIntersectsTriangle( cachedObbPlanes, triangle ) ) {
 
 					return true;
 
@@ -106,10 +108,16 @@ class MeshBVHNode {
 			const left = this.left;
 			const right = this.right;
 
-			const leftIntersection = boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) && left.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
+			const leftIntersection =
+				boundsArrayIntersectSphere( left.boundingData, boundingSphere ) &&
+				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+				left.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
 			if ( leftIntersection ) return true;
 
-			const rightIntersection = boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) && right.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
+			const rightIntersection =
+				boundsArrayIntersectSphere( right.boundingData, boundingSphere ) &&
+				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+				right.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
 			if ( rightIntersection ) return true;
 
 			return false;
