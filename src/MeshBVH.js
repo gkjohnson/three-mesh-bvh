@@ -217,6 +217,18 @@ export default class MeshBVH {
 
 	}
 
+	geometrycast( mesh, geometry, geomToMesh ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.geometrycast( mesh, geometry, geomToMesh ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
 	boxcast( mesh, box, boxToMesh ) {
 
 		for ( const root of this._roots ) {

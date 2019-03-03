@@ -1,15 +1,16 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb } from './BoundsUtilities.js';
+import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
 
 const triangle = new THREE.Triangle();
+const triangle2 = new THREE.Triangle();
 const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
 const boundingBox = new THREE.Box3();
-const boundingSphere = new THREE.Sphere();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
+const invertedMat = new THREE.Matrix4();
 
 function setTriangle( tri, i, index, pos ) {
 
@@ -70,6 +71,93 @@ class MeshBVHNode {
 		arrayToBox( this.boundingData, boundingBox );
 
 		return ray.intersectBox( boundingBox, target );
+
+	}
+
+	geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
+
+		if ( cachedObbPlanes === null ) {
+
+			if ( ! geometry.boundingBox ) {
+
+				geometry.computeBoundingBox();
+
+			}
+
+			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, pointsCache );
+			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, planesCache );
+
+		}
+
+		if ( this.count ) {
+
+			const thisGeometry = mesh.geometry;
+			const thisIndex = thisGeometry.index;
+			const thisPos = thisGeometry.attributes.position;
+
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+
+			const offset = this.offset;
+			const count = this.count;
+
+			// get the inverse of the geometry matrix so we can transform our triangles into the
+			// geometry space we're trying to test. We assume there are fewer triangles being checked
+			// here.
+			invertedMat.getInverse( geometryToBvh );
+
+			// TODO: if the geometry has a BVH here we can possibly just perform a box cast here
+			// with this bounding data to do an early out / collect candidate triangles before checking
+			if (
+				geometry.boundsTree &&
+				! geometry.boundsTree.boxcast( new THREE.Mesh( geometry ), arrayToBox( this.boundingData, new THREE.Box3() ), invertedMat ) ) {
+
+				return false;
+
+			}
+
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+				// this triangle needs to be transformed into the current BVH coordinate frame
+				setTriangle( triangle, i, thisIndex, thisPos );
+				triangle.a.applyMatrix4( invertedMat );
+				triangle.b.applyMatrix4( invertedMat );
+				triangle.c.applyMatrix4( invertedMat );
+
+				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
+
+					setTriangle( triangle2, i2, index, pos );
+
+					if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
+
+						return true;
+
+					}
+
+				}
+
+			}
+
+		} else {
+
+			const left = this.left;
+			const right = this.right;
+
+			const leftIntersection =
+				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+				left.geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints, cachedObbPlanes );
+
+			if ( leftIntersection ) return true;
+
+			const rightIntersection =
+				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+				right.geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints, cachedObbPlanes );
+
+			if ( rightIntersection ) return true;
+
+			return false;
+
+		}
 
 	}
 
