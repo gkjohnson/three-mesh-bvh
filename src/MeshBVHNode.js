@@ -88,7 +88,6 @@ class MeshBVHNode {
 		if ( cachedObbPlanes === null ) {
 
 			if ( ! geometry.boundingBox ) {
-				console.log( geometry )
 
 				geometry.computeBoundingBox();
 

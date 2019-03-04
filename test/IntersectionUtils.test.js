@@ -39,6 +39,21 @@ describe( 'Triangle Intersections', () => {
 	const t1 = new THREE.Triangle();
 	const t2 = new THREE.Triangle();
 
+	it( 'should return false if they are at different angles but not intersecting', () => {
+
+		// TODO: fix this test
+		t1.a.set( - 1, - 1, 0 );
+		t1.b.set( 1, - 1, 0 );
+		t1.c.set( 0, 1, 0 );
+
+		t2.a.set( - 1, 0, - 0 );
+		t2.b.set( - 0, 0, 1 );
+		t2.c.set( - 2, 0, 1 );
+
+		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
+
+	} );
+
 	it( 'should return true if the are the same', () => {
 
 		t1.a.set( - 1, 0, 0 );
@@ -59,9 +74,9 @@ describe( 'Triangle Intersections', () => {
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
 
-		t2.a.set( - 1, 0, 1 );
-		t2.b.set( 1, 0, 1 );
-		t2.c.set( 0, 1, 1 );
+		t2.a.set( - 1, 0, 0.01 );
+		t2.b.set( 1, 0, 0.01 );
+		t2.c.set( 0, 1, 0.01 );
 
 		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
 
@@ -73,9 +88,9 @@ describe( 'Triangle Intersections', () => {
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
 
-		t2.a.set( - 4, 0, 0 );
-		t2.b.set( - 2, 0, 0 );
-		t2.c.set( - 3, 1, 0 );
+		t2.a.set( - 3, 0, 0 );
+		t2.b.set( - 1.001, 0, 0 );
+		t2.c.set( - 2, 1, 0 );
 
 		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
 
