@@ -349,6 +349,7 @@ function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
 
 	}
 
+	// TODO: Is this correct?
 	if ( triangleSeparatesPoints( triangle, obbPoints ) ) return false;
 
 	return true;
@@ -356,67 +357,78 @@ function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
 }
 
 // TODO: Incorrect application of SAT?
-const tempVectorArray = [];
-function triangleIntersectsTriangleOld( triA, triB ) {
+// const tempVectorArray = [];
+// function triangleIntersectsTriangleOld( triA, triB ) {
 
-	// check if there's a plane from the first triangle that separates the vectors
-	tempVectorArray[ 0 ] = triB.a;
-	tempVectorArray[ 1 ] = triB.b;
-	tempVectorArray[ 2 ] = triB.c;
+// 	// check if there's a plane from the first triangle that separates the vectors
+// 	tempVectorArray[ 0 ] = triB.a;
+// 	tempVectorArray[ 1 ] = triB.b;
+// 	tempVectorArray[ 2 ] = triB.c;
 
-	if ( triangleSeparatesPoints( triA, tempVectorArray ) ) return false;
+// 	if ( triangleSeparatesPoints( triA, tempVectorArray ) ) return false;
 
-	// check the second
-	tempVectorArray[ 0 ] = triA.a;
-	tempVectorArray[ 1 ] = triA.b;
-	tempVectorArray[ 2 ] = triA.c;
+// 	// check the second
+// 	tempVectorArray[ 0 ] = triA.a;
+// 	tempVectorArray[ 1 ] = triA.b;
+// 	tempVectorArray[ 2 ] = triA.c;
 
-	if ( triangleSeparatesPoints( triB, tempVectorArray ) ) return false;
+// 	if ( triangleSeparatesPoints( triB, tempVectorArray ) ) return false;
 
-	return true;
+// 	return true;
 
-}
+// }
 
 function triangleIntersectsTriangle( t1, t2 ) {
 
-	const p1 = new Plane();
+	const p1 = planeTemp;
 	t1.getPlane( p1 );
-
-	const p2 = new Plane();
-	t2.getPlane( p2 );
 
 	if ( p1.distanceToPoint( t2.a ) === 0 && t1.containsPoint( t2.a ) ) return true;
 	if ( p1.distanceToPoint( t2.b ) === 0 && t1.containsPoint( t2.b ) ) return true;
 	if ( p1.distanceToPoint( t2.c ) === 0 && t1.containsPoint( t2.c ) ) return true;
 
+	const e2ab = lineTemp;
+	lineTemp.start = t2.a;
+	lineTemp.end = t2.b;
+	const e2pab = p1.intersectLine( e2ab, v1 );
+	if ( e2pab && t1.containsPoint( e2pab ) ) return true;
+
+	const e2bc = lineTemp;
+	lineTemp.start = t2.b;
+	lineTemp.end = t2.c;
+	const e2pbc = p1.intersectLine( e2bc, v1 );
+	if ( e2pbc && t1.containsPoint( e2pbc ) ) return true;
+
+	const e2ca = lineTemp;
+	lineTemp.start = t2.c;
+	lineTemp.end = t2.a;
+	const e2pca = p1.intersectLine( e2ca, v1 );
+	if ( e2pca && t1.containsPoint( e2pca ) ) return true;
+
+
+	const p2 = planeTemp;
+	t2.getPlane( p2 );
+
 	if ( p2.distanceToPoint( t1.a ) === 0 && t2.containsPoint( t1.a ) ) return true;
 	if ( p2.distanceToPoint( t1.b ) === 0 && t2.containsPoint( t1.b ) ) return true;
 	if ( p2.distanceToPoint( t1.c ) === 0 && t2.containsPoint( t1.c ) ) return true;
 
-	const e1ab = new Line3( t1.a, t1.b );
-	const e1bc = new Line3( t1.b, t1.c );
-	const e1ca = new Line3( t1.c, t1.a );
-
-	const e2ab = new Line3( t2.a, t2.b );
-	const e2bc = new Line3( t2.b, t2.c );
-	const e2ca = new Line3( t2.c, t2.a );
-
-	const e1pab = p2.intersectLine( e1ab, new Vector3() );
-	const e1pbc = p2.intersectLine( e1bc, new Vector3() );
-	const e1pca = p2.intersectLine( e1ca, new Vector3() );
-
-	const e2pab = p1.intersectLine( e2ab, new Vector3() );
-	const e2pbc = p1.intersectLine( e2bc, new Vector3() );
-	const e2pca = p1.intersectLine( e2ca, new Vector3() );
-
-
-	if ( e2pab && t1.containsPoint( e2pab ) ) return true;
-	if ( e2pbc && t1.containsPoint( e2pbc ) ) return true;
-	if ( e2pca && t1.containsPoint( e2pca ) ) return true;
-
-
+	const e1ab = lineTemp;
+	lineTemp.start = t1.a;
+	lineTemp.end = t1.b;
+	const e1pab = p2.intersectLine( e1ab, v1 );
 	if ( e1pab && t2.containsPoint( e1pab ) ) return true;
+
+	const e1bc = lineTemp;
+	lineTemp.start = t1.b;
+	lineTemp.end = t1.c;
+	const e1pbc = p2.intersectLine( e1bc, v1 );
 	if ( e1pbc && t2.containsPoint( e1pbc ) ) return true;
+
+	const e1ca = lineTemp;
+	lineTemp.start = t1.c;
+	lineTemp.end = t1.a;
+	const e1pca = p2.intersectLine( e1ca, v1 );
 	if ( e1pca && t2.containsPoint( e1pca ) ) return true;
 
 	return false;

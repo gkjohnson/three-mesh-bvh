@@ -15,7 +15,7 @@ box.min.set( 1, 1, 1 );
 const intersectGeometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
 const geomMat = new THREE.Matrix4().compose( new THREE.Vector3(), new THREE.Quaternion(), new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-const geometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
+const geometry = new THREE.TorusBufferGeometry( 5, 5, 100, 50 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
 const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 0, 0, - 10 );
