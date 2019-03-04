@@ -2,7 +2,6 @@
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
 import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
-import { TextureLoader } from 'three/build/three.module';
 
 const triangle = new THREE.Triangle();
 const triangle2 = new THREE.Triangle();
@@ -42,13 +41,6 @@ function setTriangle( tri, i, index, pos ) {
 	tc.x = pos.getX( i3 );
 	tc.y = pos.getY( i3 );
 	tc.z = pos.getZ( i3 );
-
-}
-
-function boundsArrayIntersectRay( boundingData, ray ) {
-
-	arrayToBox( boundingData, boundingBox );
-	return ray.intersectBox( boundingBox, boxIntersection );
 
 }
 
