@@ -184,9 +184,6 @@ function render() {
 
 	} else if ( s === 'geometry' ) {
 
-		// TODO: this doesn't seem to work completely correctly. When scale is small it still
-		// intersects, which is incorrect.
-
 		const hit = targetMesh.geometry.boundsTree.geometrycast( targetMesh, shape.geometry, transformMatrix );
 		shape.material.color.set( hit ? 0xff0000 : 0xffffff );
 

@@ -383,10 +383,13 @@ function triangleIntersectsTriangle( t1, t2 ) {
 	const p1 = planeTemp;
 	t1.getPlane( p1 );
 
+	// check if any of the first triangles vertices are within the second triangle
 	if ( p1.distanceToPoint( t2.a ) === 0 && t1.containsPoint( t2.a ) ) return true;
 	if ( p1.distanceToPoint( t2.b ) === 0 && t1.containsPoint( t2.b ) ) return true;
 	if ( p1.distanceToPoint( t2.c ) === 0 && t1.containsPoint( t2.c ) ) return true;
 
+	// Check if edge AB of triangle 2 intersects the plane defined by t1. If it does
+	// then check if that point falls within the first triangle.
 	const e2ab = lineTemp;
 	lineTemp.start = t2.a;
 	lineTemp.end = t2.b;
