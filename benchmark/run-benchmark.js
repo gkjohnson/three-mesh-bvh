@@ -67,6 +67,7 @@ runBenchmark(
 
 );
 
+
 geometry.computeBoundsTree();
 runBenchmark(
 
@@ -88,9 +89,21 @@ runBenchmark(
 
 
 geometry.computeBoundsTree();
+intersectGeometry.disposeBoundsTree();
 runBenchmark(
 
-	'Geometrycast',
+	'Geometrycast without BVH',
+	() => mesh.geometry.boundsTree.geometrycast( mesh, intersectGeometry, geomMat ),
+	3000
+
+);
+
+
+geometry.computeBoundsTree();
+intersectGeometry.computeBoundsTree();
+runBenchmark(
+
+	'Geometrycast with BVH',
 	() => mesh.geometry.boundsTree.geometrycast( mesh, intersectGeometry, geomMat ),
 	3000
 
