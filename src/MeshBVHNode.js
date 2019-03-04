@@ -5,12 +5,21 @@ import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoi
 
 const triangle = new THREE.Triangle();
 const triangle2 = new THREE.Triangle();
-const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-const invertedMat = new THREE.Matrix4();
+
+const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+
+// boxcast and geometrycast need two different cache arrays because geomcast will
+// call boxcast, invalidating the geometrycasts state. It might be safest to create a
+// pool or something for these as casts start because they are long lived.
+const geomPointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+const geomPlanesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+const geomBox = new THREE.Box3();
+const geomMesh = new THREE.Mesh();
+const geomInvertedMat = new THREE.Matrix4();
 
 function setTriangle( tri, i, index, pos ) {
 
@@ -79,13 +88,14 @@ class MeshBVHNode {
 		if ( cachedObbPlanes === null ) {
 
 			if ( ! geometry.boundingBox ) {
+				console.log( geometry )
 
 				geometry.computeBoundingBox();
 
 			}
 
-			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, pointsCache );
-			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, planesCache );
+			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, geomPointsCache );
+			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, geomPlanesCache );
 
 		}
 
@@ -104,33 +114,61 @@ class MeshBVHNode {
 			// get the inverse of the geometry matrix so we can transform our triangles into the
 			// geometry space we're trying to test. We assume there are fewer triangles being checked
 			// here.
-			invertedMat.getInverse( geometryToBvh );
+			geomInvertedMat.getInverse( geometryToBvh );
 
-			// TODO: if the geometry has a BVH here we can possibly just perform a box cast here
-			// with this bounding data to do an early out / collect candidate triangles before checking
-			if (
-				geometry.boundsTree &&
-				! geometry.boundsTree.boxcast( new THREE.Mesh( geometry ), arrayToBox( this.boundingData, new THREE.Box3() ), invertedMat ) ) {
+			if ( geometry.boundsTree ) {
 
-				return false;
+				function triangleCallback( tri ) {
 
-			}
+					tri.a.applyMatrix4( geometryToBvh );
+					tri.b.applyMatrix4( geometryToBvh );
+					tri.c.applyMatrix4( geometryToBvh );
 
-			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+					for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
 
-				// this triangle needs to be transformed into the current BVH coordinate frame
-				setTriangle( triangle, i, thisIndex, thisPos );
-				triangle.a.applyMatrix4( invertedMat );
-				triangle.b.applyMatrix4( invertedMat );
-				triangle.c.applyMatrix4( invertedMat );
+						// this triangle needs to be transformed into the current BVH coordinate frame
+						setTriangle( triangle2, i, thisIndex, thisPos );
+						if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
 
-				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
+							return true;
 
-					setTriangle( triangle2, i2, index, pos );
+						}
 
-					if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
+					}
 
-						return true;
+					return false;
+
+				}
+
+				let res;
+				arrayToBox( this.boundingData, geomBox );
+				geomMesh.geometry = geometry;
+
+				res = geometry.boundsTree.boxcast( geomMesh, geomBox, geomInvertedMat, triangleCallback );
+
+				geomMesh.geometry = null;
+
+				return res;
+
+			} else {
+
+				for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+					// this triangle needs to be transformed into the current BVH coordinate frame
+					setTriangle( triangle, i, thisIndex, thisPos );
+					triangle.a.applyMatrix4( geomInvertedMat );
+					triangle.b.applyMatrix4( geomInvertedMat );
+					triangle.c.applyMatrix4( geomInvertedMat );
+
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
+
+						setTriangle( triangle2, i2, index, pos );
+
+						if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
+
+							return true;
+
+						}
 
 					}
 
@@ -161,7 +199,7 @@ class MeshBVHNode {
 
 	}
 
-	boxcast( mesh, box, boxToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
+	boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObbPoints = null, cachedObbPlanes = null ) {
 
 		if ( cachedObbPlanes === null ) {
 
@@ -181,8 +219,15 @@ class MeshBVHNode {
 			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
 
 				setTriangle( triangle, i, index, pos );
+				if ( triangleCallback ) {
 
-				if ( boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle ) ) {
+					if ( triangleCallback( triangle ) ) {
+
+						return true;
+
+					}
+
+				} else if ( boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle ) ) {
 
 					return true;
 
@@ -197,13 +242,13 @@ class MeshBVHNode {
 
 			const leftIntersection =
 				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				left.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
+				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObbPoints, cachedObbPlanes );
 
 			if ( leftIntersection ) return true;
 
 			const rightIntersection =
 				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				right.boxcast( mesh, box, boxToBvh, cachedObbPoints, cachedObbPlanes );
+				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObbPoints, cachedObbPlanes );
 
 			if ( rightIntersection ) return true;
 
@@ -213,7 +258,7 @@ class MeshBVHNode {
 
 	}
 
-	spherecast( mesh, sphere ) {
+	spherecast( mesh, sphere, triangleCallback ) {
 
 		if ( this.count ) {
 
@@ -227,7 +272,15 @@ class MeshBVHNode {
 
 				setTriangle( triangle, i, index, pos );
 
-				if ( sphereIntersectTriangle( sphere, triangle ) ) {
+				if ( triangleCallback ) {
+
+					if ( triangleCallback( triangle ) ) {
+
+						return true;
+
+					}
+
+				} else if ( sphereIntersectTriangle( sphere, triangle ) ) {
 
 					return true;
 

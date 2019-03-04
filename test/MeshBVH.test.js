@@ -149,6 +149,137 @@ describe( 'Bounds Tree', () => {
 
 } );
 
+
+describe( 'Geometrycast with BVH', () => {
+
+	let mesh = null;
+	let bvh = null;
+	let intersectGeometry = null;
+
+	beforeAll( () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
+		mesh = new THREE.Mesh( geom );
+		bvh = new MeshBVH( geom, { verbose: false } );
+		intersectGeometry = new THREE.SphereBufferGeometry( 1, 50, 50 );
+		intersectGeometry.computeBoundsTree();
+
+	} );
+
+	it( 'should return true if the geometry is intersecting the mesh', () => {
+
+		const geomToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 1, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+
+	} );
+
+	it( 'should return false if the geometry is not intersecting the mesh', () => {
+
+		const geomToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 1.2, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+
+	} );
+
+	it( 'should return false if the geometry is contained by the mesh entirely', () => {
+
+		const geomToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 0, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.5, 0.5, 0.5 ) );
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+
+	} );
+
+	it( 'should return true if the geometry overlaps exactly', () => {
+
+		const geomToWorld = new THREE.Matrix4().identity();
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+
+	} );
+
+} );
+
+
+describe( 'Geometrycast', () => {
+
+	let mesh = null;
+	let bvh = null;
+	let intersectGeometry = null;
+
+	beforeAll( () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
+		mesh = new THREE.Mesh( geom );
+		bvh = new MeshBVH( geom, { verbose: false } );
+		intersectGeometry = new THREE.SphereBufferGeometry( 1, 50, 50 );
+
+	} );
+
+	it( 'should return true if the geometry is intersecting the mesh', () => {
+
+		const geomToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 1, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+
+	} );
+
+	it( 'should return false if the geometry is not intersecting the mesh', () => {
+
+		const geomToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 1.2, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+
+	} );
+
+	it( 'should return false if the geometry is contained by the mesh entirely', () => {
+
+		const geomToWorld = new THREE
+			.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 0, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.5, 0.5, 0.5 ) );
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+
+	} );
+
+	it( 'should return true if the geometry overlaps exactly', () => {
+
+		const geomToWorld = new THREE.Matrix4().identity();
+
+		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+
+	} );
+
+} );
+
 describe( 'Spherecast', () => {
 
 	let mesh = null;
