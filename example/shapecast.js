@@ -5,26 +5,19 @@ import Stats from 'stats.js/src/Stats';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 
-import { triangleIntersectsTriangle } from '../src/BoundsUtilities.js';
-
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
 
+	speed: 1,
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
 	shape: 'sphere',
 	position: new THREE.Vector3(),
 	rotation: new THREE.Euler(),
 	scale: 1,
-
-	boxBounds: {
-		min: new THREE.Vector3( - 1, - 1, - 1 ),
-		max: new THREE.Vector3( 1, 1, 1 )
-	}
-
 };
 
 let stats;
@@ -143,9 +136,12 @@ function updateFromOptions() {
 
 	}
 
-};
+}
 
 function render() {
+
+	targetMesh.rotation.y += params.speed * 0.01;
+	targetMesh.updateMatrixWorld();
 
 	stats.begin();
 
@@ -164,8 +160,10 @@ function render() {
 	shape.rotation.copy( params.rotation );
 	shape.scale.set( params.scale, params.scale, params.scale );
 
-	// TODO: include the transform into the BVH frame here, as well.
-	const transformMatrix = new THREE.Matrix4().copy( shape.matrixWorld );
+	const transformMatrix =
+		new THREE.Matrix4()
+			.getInverse( targetMesh.matrixWorld )
+			.multiply( shape.matrixWorld );
 
 	if ( s === 'sphere' ) {
 
@@ -196,10 +194,10 @@ function render() {
 
 	requestAnimationFrame( render );
 
-};
+}
 
-// Run
 const gui = new dat.GUI();
+gui.add( params, 'speed' ).min( 0 ).max( 10 );
 gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
