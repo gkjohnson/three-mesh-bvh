@@ -120,7 +120,7 @@ class MeshBVHNode {
 
 						// this triangle needs to be transformed into the current BVH coordinate frame
 						setTriangle( triangle2, i, thisIndex, thisPos );
-						if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
+						if ( triangleIntersectsTriangle( tri, triangle2 ) ) {
 
 							return true;
 
