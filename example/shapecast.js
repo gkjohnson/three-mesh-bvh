@@ -5,6 +5,8 @@ import Stats from 'stats.js/src/Stats';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 
+import { triangleIntersectsTriangle } from '../src/BoundsUtilities.js';
+
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
@@ -81,9 +83,41 @@ function init() {
 	shapes.box = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
 	scene.add( shapes.box );
 
-	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( .25, .125, 20, 35 ), shapeMaterial );
+	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( .25, .125, 80, 140 ), shapeMaterial );
 	shapes.geometry.geometry.computeBoundsTree();
 	scene.add( shapes.geometry );
+
+
+	// Code for debugging triangle intersection
+	// const t1 = new THREE.Triangle();
+	// const t2 = new THREE.Triangle();
+
+	// t1.a.set( - 1, - 1, 0 );
+	// t1.b.set( 1, - 1, 0 );
+	// t1.c.set( 0, 1, 0 );
+
+	// t2.a.set( - 1, 0, - 0.5 );
+	// t2.b.set( 0, 0, 1 );
+	// t2.c.set( - 2, 0, 1 );
+
+	// const res = triangleIntersectsTriangle( t1, t2 );
+	// console.log( 'intersects ', res );
+
+	// var lineMat = new THREE.LineBasicMaterial({ color: 0x0000ff });
+
+	// var geometry = new THREE.Geometry();
+	// geometry.vertices.push( t1.a, t1.b, t1.c, t1.a );
+	// var line = new THREE.Line( geometry, lineMat );
+	// scene.add( line );
+
+	// var geometry = new THREE.Geometry();
+	// geometry.vertices.push( t2.a, t2.b, t2.c, t2.a );
+	// var line = new THREE.Line( geometry, lineMat );
+	// scene.add( line );
+
+	// 	targetMesh.visible = false;
+
+
 
 }
 

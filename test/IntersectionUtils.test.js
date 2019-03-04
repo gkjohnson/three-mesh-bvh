@@ -46,8 +46,8 @@ describe( 'Triangle Intersections', () => {
 		t1.b.set( 1, - 1, 0 );
 		t1.c.set( 0, 1, 0 );
 
-		t2.a.set( - 1, 0, - 0 );
-		t2.b.set( - 0, 0, 1 );
+		t2.a.set( - 1, 0, 0 );
+		t2.b.set( 0, 0, 1 );
 		t2.c.set( - 2, 0, 1 );
 
 		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );

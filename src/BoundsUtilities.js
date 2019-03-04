@@ -299,7 +299,7 @@ function triangleSeparatesPoints( triangle, points ) {
 
 
 	// check the edge 1 plane
-	triEdge.subVectors( triangle.b, triangle.c );
+	triEdge.subVectors( triangle.b, triangle.a );
 	triPlane.normal.crossVectors( triEdge, triNormal ).normalize();
 	triPlane.setFromNormalAndCoplanarPoint( triPlane.normal, triangle.a );
 
@@ -355,8 +355,9 @@ function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
 
 }
 
+// TODO: Incorrect application of SAT?
 const tempVectorArray = [];
-function triangleIntersectsTriangle( triA, triB ) {
+function triangleIntersectsTriangleOld( triA, triB ) {
 
 	// check if there's a plane from the first triangle that separates the vectors
 	tempVectorArray[ 0 ] = triB.a;
@@ -375,6 +376,53 @@ function triangleIntersectsTriangle( triA, triB ) {
 	return true;
 
 }
+
+function triangleIntersectsTriangle( t1, t2 ) {
+
+	const p1 = new Plane();
+	t1.getPlane( p1 );
+
+	const p2 = new Plane();
+	t2.getPlane( p2 );
+
+	if ( p1.distanceToPoint( t2.a ) === 0 && t1.containsPoint( t2.a ) ) return true;
+	if ( p1.distanceToPoint( t2.b ) === 0 && t1.containsPoint( t2.b ) ) return true;
+	if ( p1.distanceToPoint( t2.c ) === 0 && t1.containsPoint( t2.c ) ) return true;
+
+	if ( p2.distanceToPoint( t1.a ) === 0 && t2.containsPoint( t1.a ) ) return true;
+	if ( p2.distanceToPoint( t1.b ) === 0 && t2.containsPoint( t1.b ) ) return true;
+	if ( p2.distanceToPoint( t1.c ) === 0 && t2.containsPoint( t1.c ) ) return true;
+
+	const e1ab = new Line3( t1.a, t1.b );
+	const e1bc = new Line3( t1.b, t1.c );
+	const e1ca = new Line3( t1.c, t1.a );
+
+	const e2ab = new Line3( t2.a, t2.b );
+	const e2bc = new Line3( t2.b, t2.c );
+	const e2ca = new Line3( t2.c, t2.a );
+
+	const e1pab = p2.intersectLine( e1ab, new Vector3() );
+	const e1pbc = p2.intersectLine( e1bc, new Vector3() );
+	const e1pca = p2.intersectLine( e1ca, new Vector3() );
+
+	const e2pab = p1.intersectLine( e2ab, new Vector3() );
+	const e2pbc = p1.intersectLine( e2bc, new Vector3() );
+	const e2pca = p1.intersectLine( e2ca, new Vector3() );
+
+
+	if ( e2pab && t1.containsPoint( e2pab ) ) return true;
+	if ( e2pbc && t1.containsPoint( e2pbc ) ) return true;
+	if ( e2pca && t1.containsPoint( e2pca ) ) return true;
+
+
+	if ( e1pab && t2.containsPoint( e1pab ) ) return true;
+	if ( e1pbc && t2.containsPoint( e1pbc ) ) return true;
+	if ( e1pca && t2.containsPoint( e1pca ) ) return true;
+
+	return false;
+
+}
+
 
 export {
 	boundsToArray, arrayToBox, getLongestEdgeIndex, boxToObbPoints,

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
 import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
+import { TextureLoader } from 'three/build/three.module';
 
 const triangle = new THREE.Triangle();
 const triangle2 = new THREE.Triangle();
@@ -143,7 +144,16 @@ class MeshBVHNode {
 				arrayToBox( this.boundingData, geomBox );
 				geomMesh.geometry = geometry;
 
-				res = geometry.boundsTree.boxcast( geomMesh, geomBox, geomInvertedMat, triangleCallback );
+				for ( let i = 0; i < geometry.boundsTree._roots.length; i ++ ) {
+
+					if ( geometry.boundsTree._roots[ i ].boxcast( geomMesh, geomBox, geomInvertedMat, triangleCallback ) ) {
+
+						res = true;
+						break;
+
+					}
+
+				}
 
 				geomMesh.geometry = null;
 
@@ -233,6 +243,8 @@ class MeshBVHNode {
 				}
 
 			}
+
+			return false;
 
 		} else {
 
