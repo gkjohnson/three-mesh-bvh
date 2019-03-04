@@ -138,9 +138,13 @@ function updateFromOptions() {
 
 }
 
+let lastTime = window.performance.now();
 function render() {
 
-	targetMesh.rotation.y += params.speed * 0.01;
+	const delta = window.performance.now() - lastTime;
+	lastTime = window.performance.now();
+
+	targetMesh.rotation.y += params.speed * delta * 0.001;
 	targetMesh.updateMatrixWorld();
 
 	stats.begin();
