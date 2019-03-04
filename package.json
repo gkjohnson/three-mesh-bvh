@@ -5,7 +5,7 @@
   "module": "src/index.js",
   "main": "umd/index.js",
   "scripts": {
-    "start": "parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache",
+    "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
     "build": "rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
     "lint": "eslint ./src/*.js ./test/*.js",
@@ -43,8 +43,9 @@
     "rollup": "^0.68.1",
     "script-loader": "^0.7.2",
     "static-server": "^2.2.1",
+    "stats.js": "^0.17.0",
     "three": "^0.102.1",
-    "stats.js": "^0.17.0"
+    "concurrently": "^4.1.0"
   },
   "dependencies": {}
 }

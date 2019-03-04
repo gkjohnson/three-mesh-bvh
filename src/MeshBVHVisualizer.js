@@ -66,6 +66,7 @@ class MeshBVHVisualizer extends THREE.Object3D {
 
 				};
 
+				// TODO: Fix this so it visualizes all the roots
 				recurse( this._boundsTree._roots[ 0 ], 0 );
 
 			}
