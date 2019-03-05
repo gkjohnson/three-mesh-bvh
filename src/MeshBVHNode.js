@@ -153,11 +153,11 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 	const triangle = new THREE.Triangle();
 	const triangle2 = new THREE.Triangle();
-	const geomPointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-	const geomPlanesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
-	const geomBox = new THREE.Box3();
-	const geomMesh = new THREE.Mesh();
-	const geomInvertedMat = new THREE.Matrix4();
+	const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+	const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+	const cachedBox = new THREE.Box3();
+	const cachedMesh = new THREE.Mesh();
+	const invertedMat = new THREE.Matrix4();
 
 	return function geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
 
@@ -169,8 +169,8 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 			}
 
-			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, geomPointsCache );
-			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, geomPlanesCache );
+			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, pointsCache );
+			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, planesCache );
 
 		}
 
@@ -189,7 +189,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 			// get the inverse of the geometry matrix so we can transform our triangles into the
 			// geometry space we're trying to test. We assume there are fewer triangles being checked
 			// here.
-			geomInvertedMat.getInverse( geometryToBvh );
+			invertedMat.getInverse( geometryToBvh );
 
 			if ( geometry.boundsTree ) {
 
@@ -216,12 +216,12 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 				}
 
 				let res;
-				arrayToBox( this.boundingData, geomBox );
-				geomMesh.geometry = geometry;
+				arrayToBox( this.boundingData, cachedBox );
+				cachedMesh.geometry = geometry;
 
 				for ( let i = 0; i < geometry.boundsTree._roots.length; i ++ ) {
 
-					if ( geometry.boundsTree._roots[ i ].boxcast( geomMesh, geomBox, geomInvertedMat, triangleCallback ) ) {
+					if ( geometry.boundsTree._roots[ i ].boxcast( cachedMesh, cachedBox, invertedMat, triangleCallback ) ) {
 
 						res = true;
 						break;
@@ -230,7 +230,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 				}
 
-				geomMesh.geometry = null;
+				cachedMesh.geometry = null;
 
 				return res;
 
@@ -240,9 +240,9 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 					// this triangle needs to be transformed into the current BVH coordinate frame
 					setTriangle( triangle, i, thisIndex, thisPos );
-					triangle.a.applyMatrix4( geomInvertedMat );
-					triangle.b.applyMatrix4( geomInvertedMat );
-					triangle.c.applyMatrix4( geomInvertedMat );
+					triangle.a.applyMatrix4( invertedMat );
+					triangle.b.applyMatrix4( invertedMat );
+					triangle.c.applyMatrix4( invertedMat );
 
 					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
 
