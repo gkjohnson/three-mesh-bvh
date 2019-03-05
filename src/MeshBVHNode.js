@@ -1,10 +1,9 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
+import { arrayToBox, sphereIntersectTriangle, boxToObbPoints, boxToObbPlanes } from './BoundsUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
-import { Sphere } from 'three/build/three.module';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();

@@ -374,29 +374,6 @@ function boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) {
 
 };
 
-
-// TODO: Incorrect application of SAT?
-// const tempVectorArray = [];
-// function triangleIntersectsTriangleOld( triA, triB ) {
-
-// 	// check if there's a plane from the first triangle that separates the vectors
-// 	tempVectorArray[ 0 ] = triB.a;
-// 	tempVectorArray[ 1 ] = triB.b;
-// 	tempVectorArray[ 2 ] = triB.c;
-
-// 	if ( triangleSeparatesPoints( triA, tempVectorArray ) ) return false;
-
-// 	// check the second
-// 	tempVectorArray[ 0 ] = triA.a;
-// 	tempVectorArray[ 1 ] = triA.b;
-// 	tempVectorArray[ 2 ] = triA.c;
-
-// 	if ( triangleSeparatesPoints( triB, tempVectorArray ) ) return false;
-
-// 	return true;
-
-// }
-
 const triangleIntersectsTriangle = ( function () {
 
 	const lineTemp = new Line3();
