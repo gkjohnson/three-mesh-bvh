@@ -3,23 +3,9 @@ import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
 import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
 
-const triangle = new THREE.Triangle();
-const triangle2 = new THREE.Triangle();
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-
-const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
-
-// boxcast and geometrycast need two different cache arrays because geomcast will
-// call boxcast, invalidating the geometrycasts state. It might be safest to create a
-// pool or something for these as casts start because they are long lived.
-const geomPointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-const geomPlanesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
-const geomBox = new THREE.Box3();
-const geomMesh = new THREE.Mesh();
-const geomInvertedMat = new THREE.Matrix4();
 
 function setTriangle( tri, i, index, pos ) {
 
@@ -44,17 +30,17 @@ function setTriangle( tri, i, index, pos ) {
 
 }
 
-function boundsArrayIntersectSphere( boundingData, sphere ) {
-
-	arrayToBox( boundingData, boundingBox );
-	return boundingBox.intersectsSphere( sphere );
-
-}
-
 function boundsArrayIntersectBox( boundingData, obbPlanes, obbPoints ) {
 
 	arrayToBox( boundingData, boundingBox );
 	return boxIntersectsObb( boundingBox, obbPlanes, obbPoints );
+
+}
+
+function boundsArrayIntersectSphere( boundingData, sphere ) {
+
+	arrayToBox( boundingData, boundingBox );
+	return boundingBox.intersectsSphere( sphere );
 
 }
 
@@ -163,7 +149,15 @@ class MeshBVHNode {
 
 }
 
-MeshBVHNode.prototype.geometrycast = ( function() {
+MeshBVHNode.prototype.geometrycast = ( function () {
+
+	const triangle = new THREE.Triangle();
+	const triangle2 = new THREE.Triangle();
+	const geomPointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+	const geomPlanesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+	const geomBox = new THREE.Box3();
+	const geomMesh = new THREE.Mesh();
+	const geomInvertedMat = new THREE.Matrix4();
 
 	return function geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
 
@@ -291,7 +285,11 @@ MeshBVHNode.prototype.geometrycast = ( function() {
 
 } )();
 
-MeshBVHNode.prototype.boxcast = ( function() {
+MeshBVHNode.prototype.boxcast = ( function () {
+
+	const triangle = new THREE.Triangle();
+	const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+	const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
 
 	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObbPoints = null, cachedObbPlanes = null ) {
 
@@ -357,6 +355,8 @@ MeshBVHNode.prototype.boxcast = ( function() {
 } )();
 
 MeshBVHNode.prototype.spherecast = ( function () {
+
+	const triangle = new THREE.Triangle();
 
 	return function spherecast( mesh, sphere, triangleCallback ) {
 
