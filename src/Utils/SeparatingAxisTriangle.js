@@ -70,9 +70,8 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		let points, satBounds, satAxes;
+		let satBounds, satAxes;
 
-		points = other.points;
 		satBounds = this.satBounds;
 		satAxes = this.satAxes;
 		arr[ 0 ] = other.a;
@@ -82,12 +81,11 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 			const sb = satBounds[ i ];
 			const sa = satAxes[ i ];
-			cacheSatBounds.setFromPoints( sa, points );
+			cacheSatBounds.setFromPoints( sa, arr );
 			if ( sb.isSeparated( cacheSatBounds ) ) return false;
 
 		}
 
-		points = this.points;
 		satBounds = other.satBounds;
 		satAxes = other.satAxes;
 		arr[ 0 ] = this.a;
@@ -97,7 +95,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 			const sb = satBounds[ i ];
 			const sa = satAxes[ i ];
-			cacheSatBounds.setFromPoints( sa, points );
+			cacheSatBounds.setFromPoints( sa, arr );
 			if ( sb.isSeparated( cacheSatBounds ) ) return false;
 
 		}
