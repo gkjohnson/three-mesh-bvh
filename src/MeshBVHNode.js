@@ -2,6 +2,9 @@
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
 import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
+import { OrientedBox } from './Utils/OrientedBox.js';
+import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
+import { Sphere } from 'three/build/three.module';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
@@ -27,20 +30,6 @@ function setTriangle( tri, i, index, pos ) {
 	tc.x = pos.getX( i3 );
 	tc.y = pos.getY( i3 );
 	tc.z = pos.getZ( i3 );
-
-}
-
-function boundsArrayIntersectBox( boundingData, obbPlanes, obbPoints ) {
-
-	arrayToBox( boundingData, boundingBox );
-	return boxIntersectsObb( boundingBox, obbPlanes, obbPoints );
-
-}
-
-function boundsArrayIntersectSphere( boundingData, sphere ) {
-
-	arrayToBox( boundingData, boundingBox );
-	return boundingBox.intersectsSphere( sphere );
 
 }
 
@@ -151,17 +140,17 @@ class MeshBVHNode {
 
 MeshBVHNode.prototype.geometrycast = ( function () {
 
-	const triangle = new THREE.Triangle();
-	const triangle2 = new THREE.Triangle();
-	const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-	const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+	const triangle = new SeparatingAxisTriangle();
+	const triangle2 = new SeparatingAxisTriangle();
 	const cachedBox = new THREE.Box3();
 	const cachedMesh = new THREE.Mesh();
 	const invertedMat = new THREE.Matrix4();
 
-	return function geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
+	const obb = new OrientedBox();
 
-		if ( cachedObbPlanes === null ) {
+	return function geometrycast( mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+		if ( cachedObb === null ) {
 
 			if ( ! geometry.boundingBox ) {
 
@@ -169,8 +158,9 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 			}
 
-			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, pointsCache );
-			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, planesCache );
+			obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+			obb.update();
+			cachedObb = obb;
 
 		}
 
@@ -198,12 +188,14 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 					tri.a.applyMatrix4( geometryToBvh );
 					tri.b.applyMatrix4( geometryToBvh );
 					tri.c.applyMatrix4( geometryToBvh );
+					tri.update();
 
 					for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
 
 						// this triangle needs to be transformed into the current BVH coordinate frame
 						setTriangle( triangle2, i, thisIndex, thisPos );
-						if ( triangleIntersectsTriangle( tri, triangle2 ) ) {
+						triangle2.update();
+						if ( tri.intersectsTriangle( triangle2 ) ) {
 
 							return true;
 
@@ -243,12 +235,14 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 					triangle.a.applyMatrix4( invertedMat );
 					triangle.b.applyMatrix4( invertedMat );
 					triangle.c.applyMatrix4( invertedMat );
+					triangle.update();
 
 					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
 
 						setTriangle( triangle2, i2, index, pos );
+						triangle2.update();
 
-						if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
+						if ( triangle.intersectsTriangle( triangle2 ) ) {
 
 							return true;
 
@@ -265,15 +259,18 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 			const left = this.left;
 			const right = this.right;
 
+			arrayToBox( left.boundingData, boundingBox );
 			const leftIntersection =
-				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				left.geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints, cachedObbPlanes );
+				cachedObb.intersectsBox( boundingBox ) &&
+				left.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
+
+			arrayToBox( right.boundingData, boundingBox );
 			const rightIntersection =
-				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				right.geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints, cachedObbPlanes );
+				cachedObb.intersectsBox( boundingBox ) &&
+				right.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
 
@@ -287,16 +284,21 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 MeshBVHNode.prototype.boxcast = ( function () {
 
-	const triangle = new THREE.Triangle();
+	const triangle = new SeparatingAxisTriangle();
 	const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 	const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
+	const obb = new OrientedBox();
 
-	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObbPoints = null, cachedObbPlanes = null ) {
+	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObb = null, cachedObbPoints = null, cachedObbPlanes = null ) {
 
-		if ( cachedObbPlanes === null ) {
+		if ( cachedObbPoints === null ) {
 
-			cachedObbPoints = cachedObbPoints || boxToObbPoints( box, boxToBvh, pointsCache );
-			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( box, boxToBvh, planesCache );
+			cachedObbPoints = boxToObbPoints( box, boxToBvh, pointsCache );
+			cachedObbPlanes = boxToObbPlanes( box, boxToBvh, planesCache );
+
+			obb.set( box.min, box.max, boxToBvh );
+			obb.update();
+			cachedObb = obb;
 
 		}
 
@@ -311,6 +313,7 @@ MeshBVHNode.prototype.boxcast = ( function () {
 			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
 
 				setTriangle( triangle, i, index, pos );
+				triangle.update();
 				if ( triangleCallback ) {
 
 					if ( triangleCallback( triangle ) ) {
@@ -319,7 +322,7 @@ MeshBVHNode.prototype.boxcast = ( function () {
 
 					}
 
-				} else if ( boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle ) ) {
+				} else if ( cachedObb.intersectsTriangle( triangle ) ) {
 
 					return true;
 
@@ -334,15 +337,25 @@ MeshBVHNode.prototype.boxcast = ( function () {
 			const left = this.left;
 			const right = this.right;
 
+			// TODO: the commented intersection approach seems to be much more efficient
+			arrayToBox( left.boundingData, boundingBox );
 			const leftIntersection =
-				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObbPoints, cachedObbPlanes );
+				cachedObb.intersectsBox( boundingBox ) &&
+				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
+			// const leftIntersection =
+			// 	boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+			// 	left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb, cachedObbPoints, cachedObbPlanes );
 
 			if ( leftIntersection ) return true;
 
+
+			arrayToBox( right.boundingData, boundingBox );
 			const rightIntersection =
-				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObbPoints, cachedObbPlanes );
+				cachedObb.intersectsBox( boundingBox ) &&
+				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
+			// const rightIntersection =
+			// 	boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+			// 	right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb, cachedObbPoints, cachedObbPlanes );
 
 			if ( rightIntersection ) return true;
 
@@ -397,10 +410,13 @@ MeshBVHNode.prototype.spherecast = ( function () {
 			const left = this.left;
 			const right = this.right;
 
-			const leftIntersection = boundsArrayIntersectSphere( left.boundingData, sphere ) && left.spherecast( mesh, sphere );
+			arrayToBox( left.boundingData, boundingBox );
+			const leftIntersection = sphere.intersectsBox( boundingBox, boxIntersection ) && left.spherecast( mesh, sphere );
 			if ( leftIntersection ) return true;
 
-			const rightIntersection = boundsArrayIntersectSphere( right.boundingData, sphere ) && right.spherecast( mesh, sphere );
+
+			arrayToBox( right.boundingData, boundingBox );
+			const rightIntersection = sphere.intersectsBox( boundingBox, boxIntersection ) && right.spherecast( mesh, sphere );
 			if ( rightIntersection ) return true;
 
 			return false;
