@@ -1,7 +1,7 @@
 import { Triangle, Vector3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 
-class SeparatingAxisTriangle extends Triangle {
+export class SeparatingAxisTriangle extends Triangle {
 
 	constructor( ...args ) {
 
@@ -38,17 +38,17 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 
 		const axis1 = satAxes[ 1 ];
 		const sab1 = satBounds[ 1 ];
-		axis1.subtractVectors( a, b );
+		axis1.subVectors( a, b );
 		sab1.setFromPoints( axis1, arr );
 
 		const axis2 = satAxes[ 2 ];
 		const sab2 = satBounds[ 2 ];
-		axis2.subtractVectors( b, c );
+		axis2.subVectors( b, c );
 		sab2.setFromPoints( axis2, arr );
 
 		const axis3 = satAxes[ 3 ];
 		const sab3 = satBounds[ 3 ];
-		axis3.subtractVectors( a, b );
+		axis3.subVectors( a, b );
 		sab3.setFromPoints( axis3, arr );
 
 	};

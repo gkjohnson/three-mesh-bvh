@@ -5,7 +5,7 @@ import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
 const rightVector = new Vector3( 1, 0, 0 );
 const upVector = new Vector3( 0, 1, 0 );
 const forwardVector = new Vector3( 0, 0, 1 );
-export class OrientedBox3 extends Box3 {
+export class OrientedBox extends Box3 {
 
 	constructor( ...args ) {
 
@@ -29,14 +29,14 @@ export class OrientedBox3 extends Box3 {
 
 	copy( other ) {
 
-		super( other );
-		this.matrix = other.matrix;
+		super.copy( other );
+		this.matrix.copy( other.matrix );
 
 	}
 
 }
 
-OrientedBox3.prototype.update = ( function () {
+OrientedBox.prototype.update = ( function () {
 
 	const v1 = new Vector3();
 	const v2 = new Vector3();
@@ -96,7 +96,7 @@ OrientedBox3.prototype.update = ( function () {
 
 } )();
 
-OrientedBox3.prototype.intersectsBox = ( function () {
+OrientedBox.prototype.intersectsBox = ( function () {
 
 	const aabbBounds = new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
@@ -134,7 +134,7 @@ OrientedBox3.prototype.intersectsBox = ( function () {
 
 } )();
 
-OrientedBox3.prototype.intersectsTriangle = ( function () {
+OrientedBox.prototype.intersectsTriangle = ( function () {
 
 	const saTri = new SeparatingAxisTriangle();
 	const pointsArr = new Array( 3 );
