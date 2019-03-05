@@ -343,7 +343,7 @@ MeshBVHNode.prototype.boxcast = ( function () {
 				cachedObb.intersectsBox( boundingBox ) &&
 				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
 			// const leftIntersection =
-			// 	boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+			// 	boxIntersectsObb( boundingBox, cachedObbPlanes, cachedObbPoints ) &&
 			// 	left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb, cachedObbPoints, cachedObbPlanes );
 
 			if ( leftIntersection ) return true;
@@ -354,7 +354,7 @@ MeshBVHNode.prototype.boxcast = ( function () {
 				cachedObb.intersectsBox( boundingBox ) &&
 				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
 			// const rightIntersection =
-			// 	boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
+			// 	boxIntersectsObb( boundingBox, cachedObbPlanes, cachedObbPoints ) &&
 			// 	right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb, cachedObbPoints, cachedObbPlanes );
 
 			if ( rightIntersection ) return true;

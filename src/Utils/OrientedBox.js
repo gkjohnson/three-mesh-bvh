@@ -1,4 +1,4 @@
-import { Box3, Vector3, Matrix4 } from 'three';
+import { Box3, Vector3, Matrix4, Sphere } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
 
@@ -17,6 +17,7 @@ export class OrientedBox extends Box3 {
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
+		this.sphere = new Sphere();
 
 	}
 
@@ -67,6 +68,8 @@ OrientedBox.prototype.update = ( function () {
 
 		}
 
+		this.sphere.setFromPoints( this.points );
+
 		const satBounds = this.satBounds;
 		const satAxes = this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		for ( let i = 0; i < 3; i ++ ) {
@@ -100,6 +103,8 @@ OrientedBox.prototype.intersectsBox = ( function () {
 
 	const aabbBounds = new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
+
+		if ( ! box.intersectsSphere( this.sphere ) ) return false;
 
 		const min = box.min;
 		const max = box.max;
