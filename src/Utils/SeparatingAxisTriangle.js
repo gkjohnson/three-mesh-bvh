@@ -48,7 +48,7 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 
 		const axis3 = satAxes[ 3 ];
 		const sab3 = satBounds[ 3 ];
-		axis3.subVectors( a, b );
+		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, arr );
 
 	};
