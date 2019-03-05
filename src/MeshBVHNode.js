@@ -1,7 +1,7 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereIntersectTriangle, boxToObbPoints, boxToObbPlanes } from './BoundsUtilities.js';
+import { arrayToBox, sphereIntersectTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb } from './BoundsUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 

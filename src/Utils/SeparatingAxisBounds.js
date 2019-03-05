@@ -9,6 +9,25 @@ export class SeparatingAxisBounds {
 
 	}
 
+	setFromPointsField( points, field ) {
+
+		let min = Infinity;
+		let max = - Infinity;
+		for ( let i = 0, l = points.length; i < l; i ++ ) {
+
+			const p = points[ i ];
+			const val = p[ field ];
+			min = Math.min( val, min );
+			max = Math.max( val, max );
+
+		}
+
+		this.min = min;
+		this.max = max;
+
+
+	}
+
 	setFromPoints( axis, points ) {
 
 		let min = Infinity;
@@ -25,13 +44,11 @@ export class SeparatingAxisBounds {
 		this.min = min;
 		this.max = max;
 
-		return this;
-
 	}
 
 	isSeparated( other ) {
 
-		return this.min - other.max > 0 || other.min - this.max > 0;
+		return this.min > other.max || other.min > this.max;
 
 	}
 

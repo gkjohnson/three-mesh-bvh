@@ -1,10 +1,7 @@
-import { Box3, Vector3, Matrix4, Sphere } from 'three';
+import { Box3, Vector3, Matrix4, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
 
-const rightVector = new Vector3( 1, 0, 0 );
-const upVector = new Vector3( 0, 1, 0 );
-const forwardVector = new Vector3( 0, 0, 1 );
 export class OrientedBox extends Box3 {
 
 	constructor( ...args ) {
@@ -17,6 +14,7 @@ export class OrientedBox extends Box3 {
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
+		this.planes = new Array( 6 ).fill().map( () => new Plane() );
 		this.sphere = new Sphere();
 
 	}
@@ -68,36 +66,32 @@ OrientedBox.prototype.update = ( function () {
 
 		this.sphere.setFromPoints( this.points );
 
+		const planes = this.planes;
 		const satBounds = this.satBounds;
-		const satAxes = this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
+		const satAxes = this.satAxes;
 		const minVec = points[ 0 ];
 		for ( let i = 0; i < 3; i ++ ) {
 
 			const axis = satAxes[ i ];
 			const sb = satBounds[ i ];
 			const index = 1 << i;
+			const pi = points[ index ];
 
-			axis.subVectors( minVec, points[ index ] );
+			axis.subVectors( minVec, pi );
 			sb.setFromPoints( axis, points );
 
-		}
+			const p1 = planes[ i ];
+			const p2 = planes[ i + 3 ];
 
-		const alignedSatBounds = this.alignedSatBounds;
-		const asb0 = alignedSatBounds[ 0 ];
-		const asb1 = alignedSatBounds[ 1 ];
-		const asb2 = alignedSatBounds[ 2 ];
-
-		asb0.reset();
-		asb1.reset();
-		asb2.reset();
-		for ( let i = 0; i < 8; i ++ ) {
-
-			const p = points[ i ];
-			asb0.expandByValue( p.x );
-			asb1.expandByValue( p.y );
-			asb2.expandByValue( p.z );
+			p1.setFromNormalAndCoplanarPoint( axis, minVec );
+			p2.setFromNormalAndCoplanarPoint( axis, pi ).negate();
 
 		}
+
+		// const alignedSatBounds = this.alignedSatBounds;
+		// alignedSatBounds[ 0 ].setFromPointsField( points, 'x' );
+		// alignedSatBounds[ 1 ].setFromPointsField( points, 'y' );
+		// alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
 
 	};
 
@@ -105,35 +99,92 @@ OrientedBox.prototype.update = ( function () {
 
 OrientedBox.prototype.intersectsBox = ( function () {
 
-	const aabbBounds = new SeparatingAxisBounds();
+	const vector = new Vector3();
+	const xyzFields = [ 'x', 'y', 'z' ];
 	return function intersectsBox( box ) {
 
 		if ( ! box.intersectsSphere( this.sphere ) ) return false;
 
+		const planes = this.planes;
+		const points = this.points;
+
+		// check the abb bounds planes
 		const min = box.min;
 		const max = box.max;
-		const satBounds = this.satBounds;
-		const satAxes = this.satAxes;
-		const alignedSatBounds = this.alignedSatBounds;
-
-		aabbBounds.min = min.x;
-		aabbBounds.max = max.x;
-		if ( alignedSatBounds[ 0 ].isSeparated( aabbBounds ) ) return false;
-
-		aabbBounds.min = min.y;
-		aabbBounds.max = max.y;
-		if ( alignedSatBounds[ 1 ].isSeparated( aabbBounds ) ) return false;
-
-		aabbBounds.min = min.z;
-		aabbBounds.max = max.z;
-		if ( alignedSatBounds[ 2 ].isSeparated( aabbBounds ) ) return false;
-
 		for ( let i = 0; i < 3; i ++ ) {
 
-			const axis = satAxes[ i ];
-			const sb = satBounds[ i ];
-			aabbBounds.setFromBox( axis, box );
-			if ( sb.isSeparated( aabbBounds ) ) return false;
+			const field = xyzFields[ i ];
+			const minVal = min[ field ];
+			const maxVal = max[ field ];
+
+			// save the side that we find the first field is on
+			let didCross = false;
+			for ( let i = 0; i < 8; i ++ ) {
+
+				// For the negative side plane the point should be less to
+				// separate the boxes. The opposite for max side
+				const val = points[ i ][ field ];
+				const obbSideMin = val >= minVal;
+				const obbSideMax = val <= maxVal;
+
+				// we've found a point that's on the opposite side of the plane
+				if ( obbSideMin || obbSideMax ) {
+
+					didCross = true;
+					break;
+
+				}
+
+			}
+
+			// if one plane separated all points then we found a separating plane
+			if ( didCross === false ) {
+
+				return false;
+
+			}
+
+		}
+
+		// check the obb planes
+		for ( let i = 0; i < 6; i ++ ) {
+
+			// p1 is min side plane, p2 is max side plane
+			const plane = planes[ i ];
+			let didCross = false;
+
+			pointsLoop :
+			for ( let x = 0; x <= 1; x ++ ) {
+
+				for ( let y = 0; y <= 1; y ++ ) {
+
+					for ( let z = 0; z <= 1; z ++ ) {
+
+						vector.x = min.x * x + max.x * ( 1 - x );
+						vector.y = min.y * y + max.y * ( 1 - y );
+						vector.z = min.z * z + max.z * ( 1 - z );
+
+						// if the point doesn't fall on the side of the plane that points
+						// away from the OBB, then it's not a separating plane
+						if ( plane.distanceToPoint( vector ) <= 0 ) {
+
+							didCross = true;
+							break pointsLoop;
+
+						}
+
+					}
+
+				}
+
+			}
+
+			if ( didCross === false ) {
+
+				return false;
+
+			}
+
 
 		}
 
@@ -142,6 +193,46 @@ OrientedBox.prototype.intersectsBox = ( function () {
 	};
 
 } )();
+
+// OrientedBox.prototype.intersectsBox = ( function () {
+
+// 	const aabbBounds = new SeparatingAxisBounds();
+// 	return function intersectsBox( box ) {
+
+// 		if ( ! box.intersectsSphere( this.sphere ) ) return false;
+
+// 		const min = box.min;
+// 		const max = box.max;
+// 		const satBounds = this.satBounds;
+// 		const satAxes = this.satAxes;
+// 		const alignedSatBounds = this.alignedSatBounds;
+
+// 		aabbBounds.min = min.x;
+// 		aabbBounds.max = max.x;
+// 		if ( alignedSatBounds[ 0 ].isSeparated( aabbBounds ) ) return false;
+
+// 		aabbBounds.min = min.y;
+// 		aabbBounds.max = max.y;
+// 		if ( alignedSatBounds[ 1 ].isSeparated( aabbBounds ) ) return false;
+
+// 		aabbBounds.min = min.z;
+// 		aabbBounds.max = max.z;
+// 		if ( alignedSatBounds[ 2 ].isSeparated( aabbBounds ) ) return false;
+
+// 		for ( let i = 0; i < 3; i ++ ) {
+
+// 			const axis = satAxes[ i ];
+// 			const sb = satBounds[ i ];
+// 			aabbBounds.setFromBox( axis, box );
+// 			if ( sb.isSeparated( aabbBounds ) ) return false;
+
+// 		}
+
+// 		return true;
+
+// 	};
+
+// } )();
 
 OrientedBox.prototype.intersectsTriangle = ( function () {
 
