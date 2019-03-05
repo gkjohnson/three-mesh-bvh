@@ -58,8 +58,11 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 	const saTri2 = new SeparatingAxisTriangle();
-	const arr = new Array( 3 );
-	const cacheSatBounds = new SeparatingAxisBounds();
+	const arr1 = new Array( 3 );
+	const arr2 = new Array( 3 );
+	const cachedSatBounds = new SeparatingAxisBounds();
+	const cachedSatBounds2 = new SeparatingAxisBounds();
+	const cachedAxis = new Vector3();
 	return function intersectsTriangle( other ) {
 
 		if ( ! other.isSeparatingAxisTriangle ) {
@@ -70,33 +73,48 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		let satBounds, satAxes;
 
-		satBounds = this.satBounds;
-		satAxes = this.satAxes;
-		arr[ 0 ] = other.a;
-		arr[ 1 ] = other.b;
-		arr[ 2 ] = other.c;
+		const satBounds1 = this.satBounds;
+		const satAxes1 = this.satAxes;
+		arr2[ 0 ] = other.a;
+		arr2[ 1 ] = other.b;
+		arr2[ 2 ] = other.c;
 		for ( let i = 0; i < 4; i ++ ) {
 
-			const sb = satBounds[ i ];
-			const sa = satAxes[ i ];
-			cacheSatBounds.setFromPoints( sa, arr );
-			if ( sb.isSeparated( cacheSatBounds ) ) return false;
+			const sb = satBounds1[ i ];
+			const sa = satAxes1[ i ];
+			cachedSatBounds.setFromPoints( sa, arr2 );
+			if ( sb.isSeparated( cachedSatBounds ) ) return false;
 
 		}
 
-		satBounds = other.satBounds;
-		satAxes = other.satAxes;
-		arr[ 0 ] = this.a;
-		arr[ 1 ] = this.b;
-		arr[ 2 ] = this.c;
+		const satBounds2 = other.satBounds;
+		const satAxes2 = other.satAxes;
+		arr1[ 0 ] = this.a;
+		arr1[ 1 ] = this.b;
+		arr1[ 2 ] = this.c;
 		for ( let i = 0; i < 4; i ++ ) {
 
-			const sb = satBounds[ i ];
-			const sa = satAxes[ i ];
-			cacheSatBounds.setFromPoints( sa, arr );
-			if ( sb.isSeparated( cacheSatBounds ) ) return false;
+			const sb = satBounds2[ i ];
+			const sa = satAxes2[ i ];
+			cachedSatBounds.setFromPoints( sa, arr1 );
+			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+		}
+
+		// check crossed axes
+		for ( let i = 0; i < 4; i ++ ) {
+
+			const sa1 = satAxes1[ i ];
+			for ( let i2 = 0; i2 < 4; i2 ++ ) {
+
+				const sa2 = satAxes2[ i2 ];
+				cachedAxis.crossVectors( sa1, sa2 );
+				cachedSatBounds.setFromPoints( cachedAxis, arr1 );
+				cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
+				if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+			}
 
 		}
 
