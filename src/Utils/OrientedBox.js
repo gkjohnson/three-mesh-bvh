@@ -39,8 +39,6 @@ export class OrientedBox extends Box3 {
 
 OrientedBox.prototype.update = ( function () {
 
-	const v1 = new Vector3();
-	const v2 = new Vector3();
 	return function update() {
 
 		const matrix = this.matrix;
@@ -72,28 +70,34 @@ OrientedBox.prototype.update = ( function () {
 
 		const satBounds = this.satBounds;
 		const satAxes = this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
+		const minVec = points[ 0 ];
 		for ( let i = 0; i < 3; i ++ ) {
 
 			const axis = satAxes[ i ];
 			const sb = satBounds[ i ];
-			v1.copy( min );
-			v2.copy( min );
-			if ( i === 0 ) v2.x = max.x;
-			if ( i === 1 ) v2.y = max.y;
-			if ( i === 2 ) v2.z = max.z;
+			const index = 1 << i;
 
-			v1.applyMatrix4( matrix );
-			v2.applyMatrix4( matrix );
-
-			axis.subVectors( v1, v2 );
+			axis.subVectors( minVec, points[ index ] );
 			sb.setFromPoints( axis, points );
 
 		}
 
 		const alignedSatBounds = this.alignedSatBounds;
-		alignedSatBounds[ 0 ].setFromPoints( rightVector, points );
-		alignedSatBounds[ 1 ].setFromPoints( upVector, points );
-		alignedSatBounds[ 2 ].setFromPoints( forwardVector, points );
+		const asb0 = alignedSatBounds[ 0 ];
+		const asb1 = alignedSatBounds[ 1 ];
+		const asb2 = alignedSatBounds[ 2 ];
+
+		asb0.reset();
+		asb1.reset();
+		asb2.reset();
+		for ( let i = 0; i < 8; i ++ ) {
+
+			const p = points[ i ];
+			asb0.expandByValue( p.x );
+			asb1.expandByValue( p.y );
+			asb2.expandByValue( p.z );
+
+		}
 
 	};
 
