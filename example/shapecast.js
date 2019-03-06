@@ -48,11 +48,11 @@ function init() {
 	// geometry setup
 	const radius = 1;
 	const tube = 0.4;
-	const tubularSegments = 200;
-	const radialSegments = 50;
+	const tubularSegments = 400;
+	const radialSegments = 100;
 
 	const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
-	const material = new THREE.MeshPhongMaterial( { color: 0xE91E63, side: THREE.DoubleSide } );
+	const material = new THREE.MeshPhongMaterial( { color: 0xffffff, side: THREE.DoubleSide } );
 	targetMesh = new THREE.Mesh( knotGeometry, material );
 	targetMesh.geometry.computeBoundsTree();
 	scene.add( targetMesh );
@@ -76,7 +76,7 @@ function init() {
 	shapes.box = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
 	scene.add( shapes.box );
 
-	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( .25, .125, 80, 140 ), shapeMaterial );
+	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( .5, .2, 200, 50 ), shapeMaterial );
 	shapes.geometry.geometry.computeBoundsTree();
 	scene.add( shapes.geometry );
 
@@ -175,7 +175,8 @@ function render() {
 		sphere.applyMatrix4( transformMatrix );
 
 		const hit = targetMesh.geometry.boundsTree.spherecast( targetMesh, sphere );
-		shape.material.color.set( hit ? 0xff0000 : 0xffffff );
+		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
+		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
 	} else if ( s === 'box' ) {
 
@@ -184,12 +185,14 @@ function render() {
 		box.max.set( 0.5, 0.5, 0.5 );
 
 		const hit = targetMesh.geometry.boundsTree.boxcast( targetMesh, box, transformMatrix );
-		shape.material.color.set( hit ? 0xff0000 : 0xffffff );
+		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
+		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
 	} else if ( s === 'geometry' ) {
 
 		const hit = targetMesh.geometry.boundsTree.geometrycast( targetMesh, shape.geometry, transformMatrix );
-		shape.material.color.set( hit ? 0xff0000 : 0xffffff );
+		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
+		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
 	}
 
