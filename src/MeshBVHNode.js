@@ -181,7 +181,7 @@ MeshBVHNode.prototype.shapecast = ( function () {
 
 			arrayToBox( c1.boundingData, boundingBox );
 			const c1Intersection =
-				intersectsBoundsFunc( c1, ! ! c1.count ) &&
+				intersectsBoundsFunc( boundingBox, ! ! c1.count ) &&
 				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
 
 			if ( c1Intersection ) return true;
@@ -189,7 +189,7 @@ MeshBVHNode.prototype.shapecast = ( function () {
 
 			arrayToBox( c2.boundingData, boundingBox );
 			const c2Intersection =
-				intersectsBoundsFunc( c2, ! ! c2.count ) &&
+				intersectsBoundsFunc( boundingBox, ! ! c2.count ) &&
 				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
 
 			if ( c2Intersection ) return true;
@@ -206,11 +206,11 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
-	const cachedBox = new THREE.Box3();
 	const cachedMesh = new THREE.Mesh();
 	const invertedMat = new THREE.Matrix4();
 
 	const obb = new OrientedBox();
+	const obb2 = new OrientedBox();
 
 	return function geometrycast( mesh, geometry, geometryToBvh, cachedObb = null ) {
 
@@ -272,12 +272,17 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 				}
 
 				let res;
-				arrayToBox( this.boundingData, cachedBox );
+				arrayToBox( this.boundingData, obb2 );
+				obb2.matrix.copy( invertedMat );
+				obb2.update();
+
 				cachedMesh.geometry = geometry;
 
-				for ( let i = 0; i < geometry.boundsTree._roots.length; i ++ ) {
+				const roots = geometry.boundsTree._roots;
+				for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-					if ( geometry.boundsTree._roots[ i ].boxcast( cachedMesh, cachedBox, invertedMat, triangleCallback ) ) {
+					const root = roots[ i ];
+					if ( root.shapecast( cachedMesh, box => obb2.intersectsBox( box ), triangleCallback ) ) {
 
 						res = true;
 						break;
@@ -348,72 +353,18 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 MeshBVHNode.prototype.boxcast = ( function () {
 
-	const triangle = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
 
-	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObb = null ) {
+	return function boxcast( mesh, box, boxToBvh ) {
 
-		if ( cachedObb === null ) {
+		obb.set( box.min, box.max, boxToBvh );
+		obb.update();
 
-			obb.set( box.min, box.max, boxToBvh );
-			obb.update();
-			cachedObb = obb;
-
-		}
-
-		if ( this.count ) {
-
-			const geometry = mesh.geometry;
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
-			const offset = this.offset;
-			const count = this.count;
-
-			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-				setTriangle( triangle, i, index, pos );
-				triangle.update();
-				if ( triangleCallback ) {
-
-					if ( triangleCallback( triangle ) ) {
-
-						return true;
-
-					}
-
-				} else if ( cachedObb.intersectsTriangle( triangle ) ) {
-
-					return true;
-
-				}
-
-			}
-
-			return false;
-
-		} else {
-
-			const left = this.left;
-			const right = this.right;
-
-			arrayToBox( left.boundingData, boundingBox );
-			const leftIntersection =
-				cachedObb.intersectsBox( boundingBox ) &&
-				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
-
-			if ( leftIntersection ) return true;
-
-
-			arrayToBox( right.boundingData, boundingBox );
-			const rightIntersection =
-				cachedObb.intersectsBox( boundingBox ) &&
-				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
-
-			if ( rightIntersection ) return true;
-
-			return false;
-
-		}
+		return this.shapecast(
+			mesh,
+			box => obb.intersectsBox( box ),
+			tri => obb.intersectsTriangle( tri )
+		);
 
 	};
 
@@ -421,58 +372,13 @@ MeshBVHNode.prototype.boxcast = ( function () {
 
 MeshBVHNode.prototype.spherecast = ( function () {
 
-	const triangle = new THREE.Triangle();
+	return function spherecast( mesh, sphere ) {
 
-	return function spherecast( mesh, sphere, triangleCallback ) {
-
-		if ( this.count ) {
-
-			const geometry = mesh.geometry;
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
-			const offset = this.offset;
-			const count = this.count;
-
-			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-				setTriangle( triangle, i, index, pos );
-
-				if ( triangleCallback ) {
-
-					if ( triangleCallback( triangle ) ) {
-
-						return true;
-
-					}
-
-				} else if ( sphereIntersectTriangle( sphere, triangle ) ) {
-
-					return true;
-
-				}
-
-			}
-
-			return false;
-
-
-		} else {
-
-			const left = this.left;
-			const right = this.right;
-
-			arrayToBox( left.boundingData, boundingBox );
-			const leftIntersection = sphere.intersectsBox( boundingBox, boxIntersection ) && left.spherecast( mesh, sphere );
-			if ( leftIntersection ) return true;
-
-
-			arrayToBox( right.boundingData, boundingBox );
-			const rightIntersection = sphere.intersectsBox( boundingBox, boxIntersection ) && right.spherecast( mesh, sphere );
-			if ( rightIntersection ) return true;
-
-			return false;
-
-		}
+		return this.shapecast(
+			mesh,
+			box => sphere.intersectsBox( box ),
+			tri => sphereIntersectTriangle( sphere, tri )
+		);
 
 	};
 
