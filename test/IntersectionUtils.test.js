@@ -4,6 +4,8 @@
 
 import * as THREE from 'three';
 import { sphereIntersectTriangle, boxToObbPlanes, boxIntersectsTriangle, boxToObbPoints, triangleIntersectsTriangle } from '../src/BoundsUtilities.js';
+import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';
+import { OrientedBox } from '../src/Utils/OrientedBox.js';
 
 function setRandomVector( vector, length ) {
 
@@ -20,7 +22,6 @@ function setRandomVector( vector, length ) {
 
 }
 
-// TODO: re-enable the rotation here and address issues in the tests
 function getRandomOrientation( matrix, range ) {
 
 	const pos = new THREE.Vector3();
@@ -36,21 +37,21 @@ function getRandomOrientation( matrix, range ) {
 
 describe( 'Triangle Intersections', () => {
 
-	const t1 = new THREE.Triangle();
+	const t1 = new SeparatingAxisTriangle();
 	const t2 = new THREE.Triangle();
 
 	it( 'should return false if they are at different angles but not intersecting', () => {
 
-		// TODO: fix this test
 		t1.a.set( - 1, - 1, 0 );
 		t1.b.set( 1, - 1, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 1, 0, 0 );
 		t2.b.set( 0, 0, 1 );
 		t2.c.set( - 2, 0, 1 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
 	} );
 
@@ -59,12 +60,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 1, 0, 0 );
 		t2.b.set( 1, 0, 0 );
 		t2.c.set( 0, 1, 0 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
 
@@ -73,12 +75,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 1, 0, 0.01 );
 		t2.b.set( 1, 0, 0.01 );
 		t2.c.set( 0, 1, 0.01 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
 	} );
 
@@ -87,12 +90,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 3, 0, 0 );
 		t2.b.set( - 1.001, 0, 0 );
 		t2.c.set( - 2, 1, 0 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( false );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
 	} );
 
@@ -101,12 +105,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 2, 0, 0 );
 		t2.b.set( 0, 0, 0 );
 		t2.c.set( - 1, 1, 0 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
 
@@ -115,12 +120,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 1, 0, 0 );
 		t2.b.set( - 3, 0, 0 );
 		t2.c.set( - 2, 1, 0 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
 
@@ -129,12 +135,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( 0, 0.5, 0 );
 		t2.b.set( - 1, 0.5, 1 );
 		t2.c.set( 1, 0.5, 1 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
 
@@ -143,12 +150,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( - 0.5, 0.25, 0 );
 		t2.b.set( 0.5, 0.25, 0 );
 		t2.c.set( 0, 0.75, 0 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
 
@@ -157,12 +165,13 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
+		t1.update();
 
 		t2.a.set( 0, 0.5, 0.5 );
 		t2.b.set( 0.5, 0.5, - 0.5 );
 		t2.c.set( - 0.5, 0.5, - 0.5 );
 
-		expect( triangleIntersectsTriangle( t1, t2 ) ).toBe( true );
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
 
@@ -338,22 +347,17 @@ describe( 'Box Intersections', () => {
 	const obbPlanes = new Array( 6 ).fill().map( () => new THREE.Plane() );
 	const obbPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 
-	let box, boxToWorld, invMat, center;
+	let box, center;
 	beforeEach( () => {
 
-		box = new THREE.Box3();
+		box = new OrientedBox();
 		box.min.set( - 1, - 1, - 1 );
 		box.max.set( 1, 1, 1 );
-
-		// TODO: understand the inversion and what matrix is needed to pass into
-		// functions -- is an inverted matrix needed?
-		boxToWorld = getRandomOrientation( new THREE.Matrix4(), 10 );
-		// const invMat = new THREE.Matrix4().getInverse( boxToWorld );
-		boxToObbPlanes( box, boxToWorld, obbPlanes );
-		boxToObbPoints( box, boxToWorld, obbPoints );
+		getRandomOrientation( box.matrix, 10 );
+		box.update();
 
 		center = new THREE.Vector3();
-		center.setFromMatrixPosition( boxToWorld );
+		center.setFromMatrixPosition( box.matrix );
 
 	} );
 
@@ -376,7 +380,7 @@ describe( 'Box Intersections', () => {
 			setRandomVector( triangle[ fields[ i2 ] ], 3 + 0.0001 + Math.random() )
 				.add( center );
 
-			expect( boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) ).toBe( true );
+			expect( box.intersectsTriangle( triangle ) ).toBe( true );
 
 		}
 
@@ -401,7 +405,7 @@ describe( 'Box Intersections', () => {
 			setRandomVector( triangle[ fields[ i2 ] ], 3 + 0.0001 + Math.random() )
 				.add( center );
 
-			expect( boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) ).toBe( true );
+			expect( box.intersectsTriangle( triangle ) ).toBe( true );
 
 		}
 
@@ -426,7 +430,7 @@ describe( 'Box Intersections', () => {
 			setRandomVector( triangle[ fields[ i2 ] ], Math.random() - 0.0001 )
 				.add( center );
 
-			expect( boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) ).toBe( true );
+			expect( box.intersectsTriangle( triangle ) ).toBe( true );
 
 		}
 
@@ -456,16 +460,13 @@ describe( 'Box Intersections', () => {
 			setRandomVector( triangle[ fields[ i2 ] ], 3 + 0.0001 + Math.random() )
 				.add( center );
 
-			expect( boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) ).toBe( true );
+			expect( box.intersectsTriangle( triangle ) ).toBe( true );
 
 		}
 
 	} );
 
 	it( 'should not intersect triangles outside sphere', () => {
-
-		const center = new THREE.Vector3();
-		center.setFromMatrixPosition( boxToWorld );
 
 		const plane = new THREE.Plane();
 		const vec = new THREE.Vector3();
@@ -484,18 +485,18 @@ describe( 'Box Intersections', () => {
 			const i2 = ( i + 2 ) % 3;
 
 			setRandomVector( vec, 10 * Math.random() )
-				.set( center );
+				.add( center );
 			plane.projectPoint( vec, triangle[ fields[ i0 ] ] );
 
 			setRandomVector( vec, 10 * Math.random() )
-				.set( center );
+				.add( center );
 			plane.projectPoint( vec, triangle[ fields[ i1 ] ] );
 
 			setRandomVector( vec, 10 * Math.random() )
-				.set( center );
+				.add( center );
 			plane.projectPoint( vec, triangle[ fields[ i2 ] ] );
 
-			expect( boxIntersectsTriangle( obbPlanes, obbPoints, triangle ) ).toBe( false );
+			expect( box.intersectsTriangle( triangle ) ).toBe( false );
 
 		}
 

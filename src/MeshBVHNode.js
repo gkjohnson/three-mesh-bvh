@@ -1,25 +1,13 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereIntersectTriangle, boxIntersectsTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb, triangleIntersectsTriangle } from './BoundsUtilities.js';
+import { arrayToBox, sphereIntersectTriangle, boxToObbPoints, boxToObbPlanes, boxIntersectsObb } from './BoundsUtilities.js';
+import { OrientedBox } from './Utils/OrientedBox.js';
+import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 
-const triangle = new THREE.Triangle();
-const triangle2 = new THREE.Triangle();
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-
-const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
-
-// boxcast and geometrycast need two different cache arrays because geomcast will
-// call boxcast, invalidating the geometrycasts state. It might be safest to create a
-// pool or something for these as casts start because they are long lived.
-const geomPointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-const geomPlanesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
-const geomBox = new THREE.Box3();
-const geomMesh = new THREE.Mesh();
-const geomInvertedMat = new THREE.Matrix4();
 
 function setTriangle( tri, i, index, pos ) {
 
@@ -44,20 +32,6 @@ function setTriangle( tri, i, index, pos ) {
 
 }
 
-function boundsArrayIntersectSphere( boundingData, sphere ) {
-
-	arrayToBox( boundingData, boundingBox );
-	return boundingBox.intersectsSphere( sphere );
-
-}
-
-function boundsArrayIntersectBox( boundingData, obbPlanes, obbPoints ) {
-
-	arrayToBox( boundingData, boundingBox );
-	return boxIntersectsObb( boundingBox, obbPlanes, obbPoints );
-
-}
-
 export default
 class MeshBVHNode {
 
@@ -73,242 +47,6 @@ class MeshBVHNode {
 		arrayToBox( this.boundingData, boundingBox );
 
 		return ray.intersectBox( boundingBox, target );
-
-	}
-
-	geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints = null, cachedObbPlanes = null ) {
-
-		if ( cachedObbPlanes === null ) {
-
-			if ( ! geometry.boundingBox ) {
-
-				geometry.computeBoundingBox();
-
-			}
-
-			cachedObbPoints = cachedObbPoints || boxToObbPoints( geometry.boundingBox, geometryToBvh, geomPointsCache );
-			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( geometry.boundingBox, geometryToBvh, geomPlanesCache );
-
-		}
-
-		if ( this.count ) {
-
-			const thisGeometry = mesh.geometry;
-			const thisIndex = thisGeometry.index;
-			const thisPos = thisGeometry.attributes.position;
-
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
-
-			const offset = this.offset;
-			const count = this.count;
-
-			// get the inverse of the geometry matrix so we can transform our triangles into the
-			// geometry space we're trying to test. We assume there are fewer triangles being checked
-			// here.
-			geomInvertedMat.getInverse( geometryToBvh );
-
-			if ( geometry.boundsTree ) {
-
-				function triangleCallback( tri ) {
-
-					tri.a.applyMatrix4( geometryToBvh );
-					tri.b.applyMatrix4( geometryToBvh );
-					tri.c.applyMatrix4( geometryToBvh );
-
-					for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-						// this triangle needs to be transformed into the current BVH coordinate frame
-						setTriangle( triangle2, i, thisIndex, thisPos );
-						if ( triangleIntersectsTriangle( tri, triangle2 ) ) {
-
-							return true;
-
-						}
-
-					}
-
-					return false;
-
-				}
-
-				let res;
-				arrayToBox( this.boundingData, geomBox );
-				geomMesh.geometry = geometry;
-
-				for ( let i = 0; i < geometry.boundsTree._roots.length; i ++ ) {
-
-					if ( geometry.boundsTree._roots[ i ].boxcast( geomMesh, geomBox, geomInvertedMat, triangleCallback ) ) {
-
-						res = true;
-						break;
-
-					}
-
-				}
-
-				geomMesh.geometry = null;
-
-				return res;
-
-			} else {
-
-				for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-					// this triangle needs to be transformed into the current BVH coordinate frame
-					setTriangle( triangle, i, thisIndex, thisPos );
-					triangle.a.applyMatrix4( geomInvertedMat );
-					triangle.b.applyMatrix4( geomInvertedMat );
-					triangle.c.applyMatrix4( geomInvertedMat );
-
-					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
-
-						setTriangle( triangle2, i2, index, pos );
-
-						if ( triangleIntersectsTriangle( triangle, triangle2 ) ) {
-
-							return true;
-
-						}
-
-					}
-
-				}
-
-			}
-
-		} else {
-
-			const left = this.left;
-			const right = this.right;
-
-			const leftIntersection =
-				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				left.geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints, cachedObbPlanes );
-
-			if ( leftIntersection ) return true;
-
-			const rightIntersection =
-				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				right.geometrycast( mesh, geometry, geometryToBvh, cachedObbPoints, cachedObbPlanes );
-
-			if ( rightIntersection ) return true;
-
-			return false;
-
-		}
-
-	}
-
-	boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObbPoints = null, cachedObbPlanes = null ) {
-
-		if ( cachedObbPlanes === null ) {
-
-			cachedObbPoints = cachedObbPoints || boxToObbPoints( box, boxToBvh, pointsCache );
-			cachedObbPlanes = cachedObbPlanes || boxToObbPlanes( box, boxToBvh, planesCache );
-
-		}
-
-		if ( this.count ) {
-
-			const geometry = mesh.geometry;
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
-			const offset = this.offset;
-			const count = this.count;
-
-			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-				setTriangle( triangle, i, index, pos );
-				if ( triangleCallback ) {
-
-					if ( triangleCallback( triangle ) ) {
-
-						return true;
-
-					}
-
-				} else if ( boxIntersectsTriangle( cachedObbPlanes, cachedObbPoints, triangle ) ) {
-
-					return true;
-
-				}
-
-			}
-
-			return false;
-
-		} else {
-
-			const left = this.left;
-			const right = this.right;
-
-			const leftIntersection =
-				boundsArrayIntersectBox( left.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObbPoints, cachedObbPlanes );
-
-			if ( leftIntersection ) return true;
-
-			const rightIntersection =
-				boundsArrayIntersectBox( right.boundingData, cachedObbPlanes, cachedObbPoints ) &&
-				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObbPoints, cachedObbPlanes );
-
-			if ( rightIntersection ) return true;
-
-			return false;
-
-		}
-
-	}
-
-	spherecast( mesh, sphere, triangleCallback ) {
-
-		if ( this.count ) {
-
-			const geometry = mesh.geometry;
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
-			const offset = this.offset;
-			const count = this.count;
-
-			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-				setTriangle( triangle, i, index, pos );
-
-				if ( triangleCallback ) {
-
-					if ( triangleCallback( triangle ) ) {
-
-						return true;
-
-					}
-
-				} else if ( sphereIntersectTriangle( sphere, triangle ) ) {
-
-					return true;
-
-				}
-
-			}
-
-			return false;
-
-
-		} else {
-
-			// TODO: consider an option to return all the intersected triangles
-			const left = this.left;
-			const right = this.right;
-
-			const leftIntersection = boundsArrayIntersectSphere( left.boundingData, sphere ) && left.spherecast( mesh, sphere );
-			if ( leftIntersection ) return true;
-
-			const rightIntersection = boundsArrayIntersectSphere( right.boundingData, sphere ) && right.spherecast( mesh, sphere );
-			if ( rightIntersection ) return true;
-
-			return false;
-
-		}
 
 	}
 
@@ -398,3 +136,279 @@ class MeshBVHNode {
 	}
 
 }
+
+MeshBVHNode.prototype.geometrycast = ( function () {
+
+	const triangle = new SeparatingAxisTriangle();
+	const triangle2 = new SeparatingAxisTriangle();
+	const cachedBox = new THREE.Box3();
+	const cachedMesh = new THREE.Mesh();
+	const invertedMat = new THREE.Matrix4();
+
+	const obb = new OrientedBox();
+
+	return function geometrycast( mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+		if ( cachedObb === null ) {
+
+			if ( ! geometry.boundingBox ) {
+
+				geometry.computeBoundingBox();
+
+			}
+
+			obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+			obb.update();
+			cachedObb = obb;
+
+		}
+
+		if ( this.count ) {
+
+			const thisGeometry = mesh.geometry;
+			const thisIndex = thisGeometry.index;
+			const thisPos = thisGeometry.attributes.position;
+
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+
+			const offset = this.offset;
+			const count = this.count;
+
+			// get the inverse of the geometry matrix so we can transform our triangles into the
+			// geometry space we're trying to test. We assume there are fewer triangles being checked
+			// here.
+			invertedMat.getInverse( geometryToBvh );
+
+			if ( geometry.boundsTree ) {
+
+				function triangleCallback( tri ) {
+
+					tri.a.applyMatrix4( geometryToBvh );
+					tri.b.applyMatrix4( geometryToBvh );
+					tri.c.applyMatrix4( geometryToBvh );
+					tri.update();
+
+					for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+						// this triangle needs to be transformed into the current BVH coordinate frame
+						setTriangle( triangle2, i, thisIndex, thisPos );
+						triangle2.update();
+						if ( tri.intersectsTriangle( triangle2 ) ) {
+
+							return true;
+
+						}
+
+					}
+
+					return false;
+
+				}
+
+				let res;
+				arrayToBox( this.boundingData, cachedBox );
+				cachedMesh.geometry = geometry;
+
+				for ( let i = 0; i < geometry.boundsTree._roots.length; i ++ ) {
+
+					if ( geometry.boundsTree._roots[ i ].boxcast( cachedMesh, cachedBox, invertedMat, triangleCallback ) ) {
+
+						res = true;
+						break;
+
+					}
+
+				}
+
+				cachedMesh.geometry = null;
+
+				return res;
+
+			} else {
+
+				for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+					// this triangle needs to be transformed into the current BVH coordinate frame
+					setTriangle( triangle, i, thisIndex, thisPos );
+					triangle.a.applyMatrix4( invertedMat );
+					triangle.b.applyMatrix4( invertedMat );
+					triangle.c.applyMatrix4( invertedMat );
+					triangle.update();
+
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
+
+						setTriangle( triangle2, i2, index, pos );
+						triangle2.update();
+
+						if ( triangle.intersectsTriangle( triangle2 ) ) {
+
+							return true;
+
+						}
+
+					}
+
+				}
+
+			}
+
+		} else {
+
+			const left = this.left;
+			const right = this.right;
+
+			arrayToBox( left.boundingData, boundingBox );
+			const leftIntersection =
+				cachedObb.intersectsBox( boundingBox ) &&
+				left.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+
+			if ( leftIntersection ) return true;
+
+
+			arrayToBox( right.boundingData, boundingBox );
+			const rightIntersection =
+				cachedObb.intersectsBox( boundingBox ) &&
+				right.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+
+			if ( rightIntersection ) return true;
+
+			return false;
+
+		}
+
+	};
+
+} )();
+
+MeshBVHNode.prototype.boxcast = ( function () {
+
+	const triangle = new SeparatingAxisTriangle();
+	const obb = new OrientedBox();
+
+	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObb = null ) {
+
+		if ( cachedObb === null ) {
+
+			obb.set( box.min, box.max, boxToBvh );
+			obb.update();
+			cachedObb = obb;
+
+		}
+
+		if ( this.count ) {
+
+			const geometry = mesh.geometry;
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+			const offset = this.offset;
+			const count = this.count;
+
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+				setTriangle( triangle, i, index, pos );
+				triangle.update();
+				if ( triangleCallback ) {
+
+					if ( triangleCallback( triangle ) ) {
+
+						return true;
+
+					}
+
+				} else if ( cachedObb.intersectsTriangle( triangle ) ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+		} else {
+
+			const left = this.left;
+			const right = this.right;
+
+			arrayToBox( left.boundingData, boundingBox );
+			const leftIntersection =
+				cachedObb.intersectsBox( boundingBox ) &&
+				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
+
+			if ( leftIntersection ) return true;
+
+
+			arrayToBox( right.boundingData, boundingBox );
+			const rightIntersection =
+				cachedObb.intersectsBox( boundingBox ) &&
+				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
+
+			if ( rightIntersection ) return true;
+
+			return false;
+
+		}
+
+	};
+
+} )();
+
+MeshBVHNode.prototype.spherecast = ( function () {
+
+	const triangle = new THREE.Triangle();
+
+	return function spherecast( mesh, sphere, triangleCallback ) {
+
+		if ( this.count ) {
+
+			const geometry = mesh.geometry;
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+			const offset = this.offset;
+			const count = this.count;
+
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+				setTriangle( triangle, i, index, pos );
+
+				if ( triangleCallback ) {
+
+					if ( triangleCallback( triangle ) ) {
+
+						return true;
+
+					}
+
+				} else if ( sphereIntersectTriangle( sphere, triangle ) ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+
+		} else {
+
+			const left = this.left;
+			const right = this.right;
+
+			arrayToBox( left.boundingData, boundingBox );
+			const leftIntersection = sphere.intersectsBox( boundingBox, boxIntersection ) && left.spherecast( mesh, sphere );
+			if ( leftIntersection ) return true;
+
+
+			arrayToBox( right.boundingData, boundingBox );
+			const rightIntersection = sphere.intersectsBox( boundingBox, boxIntersection ) && right.spherecast( mesh, sphere );
+			if ( rightIntersection ) return true;
+
+			return false;
+
+		}
+
+	};
+
+} )();
