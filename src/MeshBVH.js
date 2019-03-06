@@ -229,6 +229,18 @@ export default class MeshBVH {
 
 	}
 
+	shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
 	boxcast( mesh, box, boxToMesh ) {
 
 		for ( const root of this._roots ) {

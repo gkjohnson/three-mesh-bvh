@@ -271,26 +271,12 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 				}
 
-				let res;
 				arrayToBox( this.boundingData, obb2 );
 				obb2.matrix.copy( invertedMat );
 				obb2.update();
 
 				cachedMesh.geometry = geometry;
-
-				const roots = geometry.boundsTree._roots;
-				for ( let i = 0, l = roots.length; i < l; i ++ ) {
-
-					const root = roots[ i ];
-					if ( root.shapecast( cachedMesh, box => obb2.intersectsBox( box ), triangleCallback ) ) {
-
-						res = true;
-						break;
-
-					}
-
-				}
-
+				const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), triangleCallback );
 				cachedMesh.geometry = null;
 
 				return res;
