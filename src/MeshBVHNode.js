@@ -284,16 +284,11 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 MeshBVHNode.prototype.boxcast = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
-	const pointsCache = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-	const planesCache = new Array( 6 ).fill().map( () => new THREE.Plane() );
 	const obb = new OrientedBox();
 
-	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObb = null, cachedObbPoints = null, cachedObbPlanes = null ) {
+	return function boxcast( mesh, box, boxToBvh, triangleCallback = null, cachedObb = null ) {
 
-		if ( cachedObbPoints === null ) {
-
-			cachedObbPoints = boxToObbPoints( box, boxToBvh, pointsCache );
-			cachedObbPlanes = boxToObbPlanes( box, boxToBvh, planesCache );
+		if ( cachedObb === null ) {
 
 			obb.set( box.min, box.max, boxToBvh );
 			obb.update();
@@ -336,14 +331,10 @@ MeshBVHNode.prototype.boxcast = ( function () {
 			const left = this.left;
 			const right = this.right;
 
-			// TODO: the commented intersection approach seems to be much more efficient
 			arrayToBox( left.boundingData, boundingBox );
 			const leftIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
 				left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
-			// const leftIntersection =
-			// 	boxIntersectsObb( boundingBox, cachedObbPlanes, cachedObbPoints ) &&
-			// 	left.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb, cachedObbPoints, cachedObbPlanes );
 
 			if ( leftIntersection ) return true;
 
@@ -352,9 +343,6 @@ MeshBVHNode.prototype.boxcast = ( function () {
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
 				right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb );
-			// const rightIntersection =
-			// 	boxIntersectsObb( boundingBox, cachedObbPlanes, cachedObbPoints ) &&
-			// 	right.boxcast( mesh, box, boxToBvh, triangleCallback, cachedObb, cachedObbPoints, cachedObbPlanes );
 
 			if ( rightIntersection ) return true;
 
@@ -405,7 +393,6 @@ MeshBVHNode.prototype.spherecast = ( function () {
 
 		} else {
 
-			// TODO: consider an option to return all the intersected triangles
 			const left = this.left;
 			const right = this.right;
 
