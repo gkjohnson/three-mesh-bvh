@@ -137,6 +137,71 @@ class MeshBVHNode {
 
 }
 
+MeshBVHNode.prototype.shapecast = ( function () {
+
+	const triangle = new SeparatingAxisTriangle();
+	return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+
+		if ( this.count && intersectsTriangleFunc ) {
+
+			const geometry = mesh.geometry;
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+			const offset = this.offset;
+			const count = this.count;
+
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+				setTriangle( triangle, i, index, pos );
+				triangle.update();
+
+				if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+		} else {
+
+			const left = this.left;
+			const right = this.right;
+			const c1 = left;
+			const c2 = right;
+
+			if ( orderNodesFunc && orderNodesFunc( c1, c2 ) > 0 ) {
+
+				c1 = right;
+				c2 = left;
+
+			}
+
+			arrayToBox( c1.boundingData, boundingBox );
+			const c1Intersection =
+				intersectsBoundsFunc( c1, ! ! c1.count ) &&
+				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+
+			if ( c1Intersection ) return true;
+
+
+			arrayToBox( c2.boundingData, boundingBox );
+			const c2Intersection =
+				intersectsBoundsFunc( c2, ! ! c2.count ) &&
+				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+
+			if ( c2Intersection ) return true;
+
+			return false;
+
+		}
+
+	};
+
+} )();
+
 MeshBVHNode.prototype.geometrycast = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
