@@ -347,7 +347,7 @@ describe( 'Box Intersections', () => {
 	const obbPlanes = new Array( 6 ).fill().map( () => new THREE.Plane() );
 	const obbPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 
-	let box, boxToWorld, center;
+	let box, center;
 	beforeEach( () => {
 
 		box = new OrientedBox();
@@ -468,9 +468,6 @@ describe( 'Box Intersections', () => {
 
 	it( 'should not intersect triangles outside sphere', () => {
 
-		const center = new THREE.Vector3();
-		center.setFromMatrixPosition( box.matrix );
-
 		const plane = new THREE.Plane();
 		const vec = new THREE.Vector3();
 
@@ -488,15 +485,15 @@ describe( 'Box Intersections', () => {
 			const i2 = ( i + 2 ) % 3;
 
 			setRandomVector( vec, 10 * Math.random() )
-				.set( center );
+				.add( center );
 			plane.projectPoint( vec, triangle[ fields[ i0 ] ] );
 
 			setRandomVector( vec, 10 * Math.random() )
-				.set( center );
+				.add( center );
 			plane.projectPoint( vec, triangle[ fields[ i1 ] ] );
 
 			setRandomVector( vec, 10 * Math.random() )
-				.set( center );
+				.add( center );
 			plane.projectPoint( vec, triangle[ fields[ i2 ] ] );
 
 			expect( box.intersectsTriangle( triangle ) ).toBe( false );
