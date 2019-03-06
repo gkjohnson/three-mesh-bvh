@@ -169,8 +169,8 @@ MeshBVHNode.prototype.shapecast = ( function () {
 
 			const left = this.left;
 			const right = this.right;
-			const c1 = left;
-			const c2 = right;
+			let c1 = left;
+			let c2 = right;
 
 			if ( orderNodesFunc && orderNodesFunc( c1, c2 ) > 0 ) {
 
