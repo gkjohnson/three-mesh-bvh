@@ -6,7 +6,7 @@
 
 A BVH implementation to speed up raycasting against three.js meshes.
 
-[Demo Here!](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/boundsTree.html)
+[Demo Here!](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
 
 ![screenshot](./docs/example-sm.gif)
 
