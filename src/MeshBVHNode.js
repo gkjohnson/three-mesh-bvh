@@ -292,7 +292,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 					triangle.c.applyMatrix4( invertedMat );
 					triangle.update();
 
-					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
 						setTriangle( triangle2, i2, index, pos );
 						triangle2.update();
