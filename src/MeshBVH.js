@@ -217,4 +217,52 @@ export default class MeshBVH {
 
 	}
 
+	geometrycast( mesh, geometry, geomToMesh ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.geometrycast( mesh, geometry, geomToMesh ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
+	shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
+	boxcast( mesh, box, boxToMesh ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.boxcast( mesh, box, boxToMesh ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
+	spherecast( mesh, sphere ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.spherecast( mesh, sphere ) ) return true;
+
+		}
+
+		return false;
+
+	}
+
 }

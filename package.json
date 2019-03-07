@@ -5,8 +5,8 @@
   "module": "src/index.js",
   "main": "umd/index.js",
   "scripts": {
-    "start": "static-server",
-    "build": "rollup -c & parcel build ./example/boundsTree.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
+    "build": "rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
     "lint": "eslint ./src/*.js ./test/*.js",
     "benchmark": "node benchmark/index.js"
@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/gkjohnson/three-mesh-bvh#readme",
   "peerDependencies": {
-    "three": "^0.91.0"
+    "three": "^0.102.1"
   },
   "devDependencies": {
     "@babel/core": "^7.3.4",
@@ -44,7 +44,8 @@
     "script-loader": "^0.7.2",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
-    "three": "^0.101.1"
+    "three": "^0.102.1",
+    "concurrently": "^4.1.0"
   },
   "dependencies": {}
 }
