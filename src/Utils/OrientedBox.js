@@ -1,6 +1,7 @@
-import { Box3, Vector3, Matrix4, Sphere, LineSegments } from 'three';
+import { Box3, Vector3, Matrix4, Sphere, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
+import { closestPointsSegmentToSegment } from './DistanceUtilities.js';
 
 export class OrientedBox extends Box3 {
 
@@ -199,8 +200,8 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 OrientedBox.prototype.distanceToBox = ( function () {
 
 	const xyzFields = [ 'x', 'y', 'z' ];
-	const segments1 = new Array( 12 ).fill().map( () => new LineSegments() );
-	const segments2 = new Array( 12 ).fill().map( () => new LineSegments() );
+	const segments1 = new Array( 12 ).fill().map( () => new Line3() );
+	const segments2 = new Array( 12 ).fill().map( () => new Line3() );
 
 	const point1 = new Vector3();
 	const point2 = new Vector3();
@@ -266,7 +267,7 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 				const l2 = segments2[ i2 ];
 				closestPointsSegmentToSegment( l1, l2, point1, point2 );
-				const dist = point1.closestDistanceSq( point2 );
+				const dist = point1.distanceToSquared( point2 );
 				if ( dist < closestDistanceSq ) {
 
 					closestDistanceSq = dist;
