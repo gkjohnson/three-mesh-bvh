@@ -15,16 +15,13 @@ const params = {
 	speed: 1,
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
-	shape: 'sphere',
-	position: new THREE.Vector3(),
-	rotation: new THREE.Euler(),
-	scale: 1,
+	distance: 0.1,
+
 };
 
 let stats;
 let scene, camera, renderer, controls, boundsViz;
-let targetMesh;
-let shapes = {};
+let terrain, target;
 
 function init() {
 
@@ -63,12 +60,10 @@ function init() {
 	planeGeom.computeVertexNormals();
 	planeGeom.computeBoundsTree();
 
-	const plane = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { flatShading: true, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
-	scene.add( plane );
-	plane.rotation.x = - Math.PI / 2;
-	plane.position.y = - 5;
-	targetMesh = plane;
-
+	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { flatShading: true, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
+	scene.add( terrain );
+	terrain.rotation.x = - Math.PI / 2;
+	terrain.position.y = - 3;
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -83,47 +78,28 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	const shapeMaterial = new THREE.MeshStandardMaterial( { metalness: 0.1, transparent: true, opacity: 0.75 } );
-	shapes.sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 50, 50 ), shapeMaterial );
-	scene.add( shapes.sphere );
+	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
+	scene.add( target );
 
-	shapes.box = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
-	scene.add( shapes.box );
+	const gui = new dat.GUI();
+	gui.add( params, 'speed' ).min( 0 ).max( 10 );
+	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
+	gui.add( params, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => updateFromOptions() );
 
-	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( .5, .2, 200, 50 ), shapeMaterial );
-	scene.add( shapes.geometry );
+	const posFolder = gui.addFolder( 'position' );
+	posFolder.add( target.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.add( target.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.add( target.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.open();
 
+	const rotFolder = gui.addFolder( 'rotation' );
+	rotFolder.add( target.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.add( target.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.add( target.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.open();
 
-
-	// Code for debugging triangle intersection
-	// const t1 = new THREE.Triangle();
-	// const t2 = new THREE.Triangle();
-
-	// t1.a.set( - 1, - 1, 0 );
-	// t1.b.set( 1, - 1, 0 );
-	// t1.c.set( 0, 1, 0 );
-
-	// t2.a.set( - 1, 0, - 0.5 );
-	// t2.b.set( 0, 0, 1 );
-	// t2.c.set( - 2, 0, 1 );
-
-	// const res = triangleIntersectsTriangle( t1, t2 );
-	// console.log( 'intersects ', res );
-
-	// var lineMat = new THREE.LineBasicMaterial({ color: 0x0000ff });
-
-	// var geometry = new THREE.Geometry();
-	// geometry.vertices.push( t1.a, t1.b, t1.c, t1.a );
-	// var line = new THREE.Line( geometry, lineMat );
-	// scene.add( line );
-
-	// var geometry = new THREE.Geometry();
-	// geometry.vertices.push( t2.a, t2.b, t2.c, t2.a );
-	// var line = new THREE.Line( geometry, lineMat );
-	// scene.add( line );
-
-	// 	targetMesh.visible = false;
-
-
+	gui.open();
 
 }
 
@@ -138,7 +114,7 @@ function updateFromOptions() {
 	}
 	if ( ! boundsViz && params.visualizeBounds ) {
 
-		boundsViz = new MeshBVHVisualizer( targetMesh );
+		boundsViz = new MeshBVHVisualizer( terrain );
 		scene.add( boundsViz );
 
 	}
@@ -164,69 +140,19 @@ function render() {
 	renderer.render( scene, camera );
 	stats.end();
 
-	// casts
-	for ( const shape in shapes ) shapes[ shape ].visible = false;
-
-	const s = params.shape;
-	const shape = shapes[ s ];
-	shape.visible = true;
-	shape.position.copy( params.position );
-	shape.rotation.copy( params.rotation );
-	shape.scale.set( params.scale, params.scale, params.scale );
-
 	const transformMatrix =
 		new THREE.Matrix4()
-			.getInverse( targetMesh.matrixWorld )
-			.multiply( shape.matrixWorld );
+			.getInverse( terrain.matrixWorld )
+			.multiply( target.matrixWorld );
 
-	if ( s === 'sphere' ) {
-
-		const sphere = new THREE.Sphere( undefined, 1 );
-		sphere.applyMatrix4( transformMatrix );
-
-		const hit = targetMesh.geometry.boundsTree.spherecast( targetMesh, sphere );
-		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	} else if ( s === 'box' ) {
-
-		const hit = targetMesh.geometry.boundsTree.distancecast( targetMesh, shape.geometry, transformMatrix, 1 );
-		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	} else if ( s === 'geometry' ) {
-
-		const hit = targetMesh.geometry.boundsTree.geometrycast( targetMesh, shape.geometry, transformMatrix );
-		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	}
+	const hit = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, transformMatrix, params.distance );
+	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
+	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
 	requestAnimationFrame( render );
 
 }
 
-const gui = new dat.GUI();
-gui.add( params, 'speed' ).min( 0 ).max( 10 );
-gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
-gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
-
-const posFolder = gui.addFolder( 'position' );
-posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
-posFolder.add( params.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
-posFolder.add( params.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
-posFolder.open();
-
-const rotFolder = gui.addFolder( 'rotation' );
-rotFolder.add( params.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-rotFolder.add( params.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-rotFolder.open();
-
-gui.add( params, 'scale' ).min( 0.1 ).max( 2 ).step( 0.001 );
-
-gui.open();
 
 window.addEventListener( 'resize', function () {
 
