@@ -369,3 +369,46 @@ MeshBVHNode.prototype.spherecast = ( function () {
 	};
 
 } )();
+
+MeshBVHNode.prototype.distancecast = ( function () {
+
+	const tri2 = new THREE.Triangle();
+	const obb = new OrientedBox();
+	return function distancecast( mesh, geometry, geometryToBvh, threshold ) {
+
+		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
+		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+		obb.update();
+
+		const pos = geometry.attributes.position;
+		const index = geometry.index;
+		return this.shapecast(
+			mesh,
+			box => obb.distanceToBox( box ) < threshold,
+			tri => {
+
+				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+					setTriangle( tri2, i2, index, pos );
+					tri2.a.applyMatrix4( geometryToBvh );
+					tri2.b.applyMatrix4( geometryToBvh );
+					tri2.c.applyMatrix4( geometryToBvh );
+
+					const dist = tri.distanceToTriangle( tri2 );
+					if ( dist < threshold ) {
+
+						return true;
+
+					}
+
+				}
+
+				return false;
+
+			}
+
+		);
+
+	};
+
+} )();

@@ -145,39 +145,40 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 		}
 
 		let closestDistanceSq = Infinity;
-		// TODO: Do you really need to check the points against
-		// each other if you're already checking the lines?
-		// // check all point distances
-		// for ( let i = 0; i < 3; i ++ ) {
 
-		// 	let dist;
-		// 	const field = cornerFields[ i ];
-		// 	const otherVec = other[ field ];
-		// 	this.closestPointToPoint( otherVec, point );
+		// check all point distances
+		for ( let i = 0; i < 3; i ++ ) {
 
-		// 	dist = otherVec.distanceToSquared( point );
-		// 	if ( dist < closestDistanceSq ) {
+			let dist;
+			const field = cornerFields[ i ];
+			const otherVec = other[ field ];
+			this.closestPointToPoint( otherVec, point );
 
-		// 		closestDistanceSq = dist;
-		// 		target.copy( point );
-		// 		target2.copy( otherVec );
+			dist = otherVec.distanceToSquared( point );
 
-		// 	}
+			if ( dist < closestDistanceSq ) {
+
+				closestDistanceSq = dist;
+				target.copy( point );
+				target2.copy( otherVec );
+
+			}
 
 
-		// 	const thisVec = this[ field ];
-		// 	this.closestPointToPoint( thisVec, point );
+			const thisVec = this[ field ];
+			other.closestPointToPoint( thisVec, point );
 
-		// 	dist = thisVec.distanceToSquared( point );
-		// 	if ( dist < closestDistanceSq ) {
+			dist = thisVec.distanceToSquared( point );
 
-		// 		closestDistanceSq = dist;
-		// 		target.copy( thisVec );
-		// 		target2.copy( point );
+			if ( dist < closestDistanceSq ) {
 
-		// 	}
+				closestDistanceSq = dist;
+				target.copy( thisVec );
+				target2.copy( point );
 
-		// }
+			}
+
+		}
 
 		for ( let i = 0; i < 3; i ++ ) {
 

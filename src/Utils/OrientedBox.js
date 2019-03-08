@@ -11,6 +11,7 @@ export class OrientedBox extends Box3 {
 
 		this.isOrientedBox = true;
 		this.matrix = new Matrix4();
+		this.invMatrix = new Matrix4();
 		this.points = new Array( 8 ).fill().map( () => new Vector3() );
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
@@ -85,6 +86,8 @@ OrientedBox.prototype.update = ( function () {
 		alignedSatBounds[ 0 ].setFromPointsField( points, 'x' );
 		alignedSatBounds[ 1 ].setFromPointsField( points, 'y' );
 		alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
+
+		this.invMatrix.getInverse( this.matrix );
 
 	};
 
@@ -197,6 +200,23 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 
 } )();
 
+OrientedBox.prototype.closestPoint = ( function () {
+
+	return function closestPoint( point, target1 ) {
+
+		target1
+			.copy( point )
+			.applyMatrix4( this.invMatrix )
+			.clamp( this.min, this.max )
+			.applyMatrix4( this.matrix );
+
+		return target1;
+
+	};
+
+} );
+
+
 OrientedBox.prototype.distanceToBox = ( function () {
 
 	const xyzFields = [ 'x', 'y', 'z' ];
@@ -205,12 +225,15 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 	const point1 = new Vector3();
 	const point2 = new Vector3();
+	const point2point = new Vector3();
 
 	const target1 = new Vector3();
 	const target2 = new Vector3();
+
 	return function distanceToBox( box ) {
 
-		const points = this.points;
+		// TODO: You do need to check the points against the planes of the boxes
+
 
 		if ( this.intersectsBox( box ) ) {
 
@@ -222,24 +245,29 @@ OrientedBox.prototype.distanceToBox = ( function () {
 		let count = 0;
 		const min = box.min;
 		const max = box.max;
+		const points = this.points;
 		for ( let i = 0; i < 3; i ++ ) {
 
 			for ( let i1 = 0; i1 <= 1; i1 ++ ) {
 
 				for ( let i2 = 0; i2 <= 1; i2 ++ ) {
 
+					const nextIndex = ( i + 1 ) % 3;
+					const nextIndex2 = ( i + 2 ) % 3;
+
 					// get obb line segments
-					const index = 1 << i1 | 1 << i2;
-					const index2 = 1 << i | 1 << i1 | 1 << i2;
+					const index = i1 << nextIndex | i2 << nextIndex2;
+					const index2 = 1 << i | i1 << nextIndex | i2 << nextIndex2;
 					const p1 = points[ index ];
 					const p2 = points[ index2 ];
 					const line1 = segments1[ count ];
 					line1.set( p1, p2 );
 
+
 					// get aabb line segments
 					const f1 = xyzFields[ i ];
-					const f2 = xyzFields[ ( i + 1 ) % 3 ];
-					const f3 = xyzFields[ ( i + 2 ) % 3 ];
+					const f2 = xyzFields[ nextIndex ];
+					const f3 = xyzFields[ nextIndex2 ];
 					const line2 = segments2[ count ];
 					const start = line2.start;
 					const end = line2.end;
@@ -260,6 +288,51 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 		// iterate over every edge and compare distances
 		let closestDistanceSq = Infinity;
+
+		// check over all these points
+		for ( let i = 0; i < 8; i ++ ) {
+
+			const p = points[ i ];
+			point2.copy( p ).clamp( min, max );
+
+			const dist = p.distanceToSquared( point2 );
+			if ( dist < closestDistanceSq ) {
+
+				closestDistanceSq = dist;
+				target1.copy( p );
+				target2.copy( point2 );
+
+			}
+
+		}
+
+		// check all the other boxes point
+		for ( let x = 0; x <= 1; x ++ ) {
+
+			for ( let y = 0; y <= 1; y ++ ) {
+
+				for ( let z = 0; z <= 1; z ++ ) {
+
+					point2.x = x ? max.x : min.x;
+					point2.y = y ? max.y : min.y;
+					point2.z = z ? max.z : min.z;
+
+					this.closestPoint( point2, point1 );
+					const dist = point2.distanceToSquared( point1 );
+					if ( dist < closestDistanceSq ) {
+
+						closestDistanceSq = dist;
+						target1.copy( point1 );
+						target2.copy( point2 );
+
+					}
+
+				}
+
+			}
+
+		}
+
 		for ( let i = 0; i < 12; i ++ ) {
 
 			const l1 = segments1[ i ];
