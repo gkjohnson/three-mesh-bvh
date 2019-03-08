@@ -5,6 +5,7 @@ import Stats from 'stats.js/src/Stats';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import SimplexNoise from 'simplex-noise';
+import { TransformControls } from './lib/TransformControls.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -21,7 +22,7 @@ const params = {
 
 let stats;
 let scene, camera, renderer, controls, boundsViz;
-let terrain, target;
+let terrain, target, transformControls;
 
 function init() {
 
@@ -71,7 +72,6 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	controls = new OrbitControls( camera, renderer.domElement );
 
 	// stats setup
 	stats = new Stats();
@@ -81,22 +81,31 @@ function init() {
 	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
 	scene.add( target );
 
+	controls = new OrbitControls( camera, renderer.domElement );
+	transformControls = new TransformControls( camera, renderer.domElement );
+	transformControls.attach( target );
+	transformControls.addEventListener( 'dragging-changed', e => controls.enabled = ! e.value );
+	transformControls.addEventListener( 'changed', e => controls.enabled = ! e.value );
+
+	scene.add( transformControls );
+
 	const gui = new dat.GUI();
 	gui.add( params, 'speed' ).min( 0 ).max( 10 );
 	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 	gui.add( params, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => updateFromOptions() );
+	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
 
 	const posFolder = gui.addFolder( 'position' );
-	posFolder.add( target.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.add( target.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.add( target.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.add( target.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( target.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( target.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 	posFolder.open();
 
 	const rotFolder = gui.addFolder( 'rotation' );
-	rotFolder.add( target.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.add( target.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.add( target.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.add( target.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( target.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( target.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.open();
 
 	gui.open();
