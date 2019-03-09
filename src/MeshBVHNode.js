@@ -443,11 +443,14 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
 
+	const temp1 = new THREE.Vector3();
+	const temp2 = new THREE.Vector3();
+
 	// early out if under minThreshold
 	// skip checking if over maxThreshold
 	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
 	// returns null if no value found
-	return function distanceToGeometry( mesh, geometry, geometryToBvh, minThreshold = 0, maxThreshold = Infinity ) {
+	return function distanceToGeometry( mesh, geometry, geometryToBvh, minThreshold = 0, maxThreshold = Infinity, target1 = null, target2 = null ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
@@ -455,6 +458,10 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 
 		const pos = geometry.attributes.position;
 		const index = geometry.index;
+
+		let tempTarget1, tempTarget2;
+		if ( target1 ) tempTarget1 = temp1;
+		if ( target2 ) tempTarget2 = temp2;
 
 		let closestDistance = Infinity;
 		this.shapecast(
@@ -475,8 +482,14 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
 					if ( sphereDist > closestDistance ) continue;
 
-					const dist = tri.distanceToTriangle( tri2 );
-					if ( dist < closestDistance ) closestDistance = dist;
+					const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
+					if ( dist < closestDistance ) {
+
+						if ( target1 ) target1.copy( tempTarget1 );
+						if ( target2 ) target2.copy( tempTarget2 );
+						closestDistance = dist;
+
+					}
 					if ( dist < minThreshold ) return true;
 
 				}
