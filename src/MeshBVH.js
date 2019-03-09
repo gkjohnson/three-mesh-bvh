@@ -265,45 +265,45 @@ export default class MeshBVH {
 
 	}
 
-	closestPointToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 ) {
+	closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold ) {
 
 		let closestDistance = Infinity;
 		for ( const root of this._roots ) {
 
-			const dist = root.closestPointToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 );
-			if ( dist < closestDistance ) closestDistance = dist;
-			if ( dist < minThreshold ) return dist;
+			const dist = root.closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold );
+			if ( dist !== null && dist < closestDistance ) closestDistance = dist;
+			if ( dist !== null && dist < minThreshold ) return dist;
 
 		}
 
-		return closestDistance;
+		return closestDistance === Infinity ? null : closestDistance;
 
 	}
 
 	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold ) {
 
-		return this.closestPointToGeometry( mesh, geom, matrix, minThreshold, maxThreshold );
+		return this.closestPointToGeometry( mesh, geom, matrix, null, null, minThreshold, maxThreshold );
 
 	}
 
-	closestPointToPoint( mesh, point, minThreshold, maxThreshold, target ) {
+	closestPointToPoint( mesh, point, target, minThreshold, maxThreshold ) {
 
 		let closestDistance = Infinity;
 		for ( const root of this._roots ) {
 
-			const dist = root.closestPointToPoint( mesh, point, minThreshold, maxThreshold, target );
-			if ( dist < closestDistance ) closestDistance = dist;
-			if ( dist < minThreshold ) return dist;
+			const dist = root.closestPointToPoint( mesh, point, target, minThreshold, maxThreshold );
+			if ( dist !== null && dist < closestDistance ) closestDistance = dist;
+			if ( dist !== null && dist < minThreshold ) return dist;
 
 		}
 
-		return closestDistance;
+		return closestDistance === Infinity ? null : closestDistance;
 
 	}
 
 	distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
 
-		return this.closestPointToPoint( mesh, point, minThreshold, maxThreshold );
+		return this.closestPointToPoint( mesh, point, null, minThreshold, maxThreshold );
 
 	}
 

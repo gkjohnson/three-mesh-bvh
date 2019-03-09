@@ -259,13 +259,9 @@ function* updateMarchingCubes() {
 
 	marchingCubes.reset();
 
+	// get the world
 	const pos = new THREE.Vector3();
-	const scale = new THREE.Vector3();
-	const quaternion = new THREE.Quaternion();
-
-	target.matrixWorld.decompose( pos, quaternion, scale );
-
-	const targetToBvh = new THREE.Matrix4();
+	const worldToBvh = new THREE.Matrix4().getInverse( terrain.matrixWorld );
 	const distance = params.volume.distance;
 	const radius = params.volume.radius;
 	let count = 0;
@@ -283,19 +279,11 @@ function* updateMarchingCubes() {
 
 				if ( pos.length() < radius ) {
 
-					targetToBvh.getInverse( terrain.matrixWorld );
-					pos.applyMatrix4( targetToBvh );
+					pos.applyMatrix4( worldToBvh );
 
 					const dist = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance, distance );
-					const result = dist !== null && dist < distance;
+					const result = dist < distance;
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
-
-					// This is much slower
-					// mat.compose( pos, quaternion, scale );
-					// targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
-
-					// const result = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, targetToBvh, distance );
-					// marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
 				}
 
@@ -321,8 +309,13 @@ function render() {
 
 	stats.begin();
 
-	if ( boundsViz ) boundsViz.update();
+	if ( boundsViz ) {
 
+		boundsViz.update();
+
+	}
+
+	// start regenerating the marching cubes mesh if needed
 	if ( regenerate ) {
 
 		currentTask = updateMarchingCubes();
@@ -330,6 +323,7 @@ function render() {
 
 	}
 
+	// update the marching cubes volume
 	let percentage = 0;
 	if ( currentTask ) {
 
@@ -355,6 +349,7 @@ function render() {
 
 	}
 
+	// Update visibility of marching cubes mesh
 	if ( ! currentTask ) {
 
 		marchingCubesMesh.visible = params.volume.display;
@@ -362,22 +357,22 @@ function render() {
 
 	}
 
-
+	// update loading bar
 	document.getElementById( 'loader' ).setAttribute( 'style', `width: ${ percentage * 100 }%` );
 
-	const transformMatrix =
+	target.updateMatrixWorld();
+	const targetToBvh =
 		new THREE.Matrix4()
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, transformMatrix, 0, Infinity, sphere1.position, sphere2.position );
-	const hit = dist !== null && dist < params.volume.distance;
+	// get the closest point
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, targetToBvh, sphere1.position, sphere2.position, 0, params.volume.distance );
+	const hit = dist < params.volume.distance;
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
-	const newMat = new THREE.Matrix4();
-	newMat.getInverse( transformMatrix );
-
+	// update the line indicating closest point
 	sphere1.position.applyMatrix4( terrain.matrixWorld );
 	sphere2.position.applyMatrix4( terrain.matrixWorld );
 
@@ -393,14 +388,13 @@ function render() {
 	sphere1.visible = hit;
 	sphere2.visible = hit;
 
-
+	// render
 	renderer.render( scene, camera );
 	stats.end();
 
 	requestAnimationFrame( render );
 
 }
-
 
 window.addEventListener( 'resize', function () {
 
@@ -413,23 +407,4 @@ window.addEventListener( 'resize', function () {
 
 init();
 updateFromOptions();
-
-
-// // const sphereMesh = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 20, 20 ) );
-// // scene.add( sphereMesh );
-
-// // const sphere = new THREE.Sphere( undefined, 0.5 );
-// // sphere.center.y = -0.9;
-// // window.sphere = sphere;
-
-// const boxMesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ) );
-// scene.add( boxMesh );
-// // boxMesh.rotation.set( Math.PI / 4, Math.PI / 4, 0 );
-// // boxMesh.position.y = 1.2;
-
-// const box = new THREE.Box3();
-// box.min.set( 1, 1, 1 ).multiplyScalar( - 0.5 );
-// box.max.set( 1, 1, 1 ).multiplyScalar( 0.5 );
-// window.box = boxMesh;
-
 render();

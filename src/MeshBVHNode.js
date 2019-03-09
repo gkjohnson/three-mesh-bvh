@@ -415,7 +415,7 @@ MeshBVHNode.prototype.closestPointToPoint = ( function () {
 	// returns null if no value found
 
 	const temp = new THREE.Vector3();
-	return function closestPointToPoint( mesh, point, minThreshold = 0, maxThreshold = Infinity, target = null ) {
+	return function closestPointToPoint( mesh, point, target = null, minThreshold = 0, maxThreshold = Infinity ) {
 
 		let closestDistance = Infinity;
 		this.shapecast(
@@ -458,7 +458,7 @@ MeshBVHNode.prototype.closestPointToGeometry = ( function () {
 
 	const temp1 = new THREE.Vector3();
 	const temp2 = new THREE.Vector3();
-	return function closestPointToGeometry( mesh, geometry, geometryToBvh, minThreshold = 0, maxThreshold = Infinity, target1 = null, target2 = null ) {
+	return function closestPointToGeometry( mesh, geometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
