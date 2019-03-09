@@ -25,7 +25,7 @@ const params = {
 let stats;
 let scene, camera, renderer, controls, boundsViz;
 let terrain, target, transformControls;
-let marchingCubes, marchingCubesMesh;
+let marchingCubes, marchingCubesMesh, marchingCubesMeshBack;
 
 function init() {
 
@@ -80,7 +80,7 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	const shapeMaterial = new THREE.MeshStandardMaterial( { metalness: 0.1, transparent: true, opacity: 0.75 } );
+	const shapeMaterial = new THREE.MeshStandardMaterial( { roughness: 0.75, metalness: 0.1 } );
 	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
 	scene.add( target );
 
@@ -91,18 +91,38 @@ function init() {
 	transformControls.addEventListener( 'changed', e => controls.enabled = ! e.value );
 	scene.add( transformControls );
 
-	const cubeMat = new THREE.MeshStandardMaterial( { color: 0xff0000, side: THREE.DoubleSide, metalness: 0.1, glossiness: 0.75 } );
-	marchingCubes = new MarchingCubes( 50, cubeMat, false, false );
+	const cubeMat = new THREE.MeshStandardMaterial( {
+		color: 0xff0000,
+		metalness: 0.0,
+		glossiness: 0.9
+	} );
+	marchingCubes = new MarchingCubes( 100, cubeMat, false, false );
 	marchingCubes.isolation = 0;
 
-	const boundsMesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 2, 2, 2 ), new THREE.MeshStandardMaterial( { transparent: true, opacity: 0.25 } ) );
-	boundsMesh.visible = false;
+	const meshMat = new THREE.MeshStandardMaterial( {
+		flatShading: true,
+		color: 0xff0000,
+		metalness: 0.0,
+		glossiness: 0.9,
+		transparent: true,
+		depthWrite: false,
+		opacity: 0.25,
+	} );
+	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
+	marchingCubesMesh.visible = false;
+
+	const backMeshMat = meshMat.clone();
+	backMeshMat.side = THREE.BackSide;
+	marchingCubesMeshBack = new THREE.Mesh( undefined, backMeshMat );
+	marchingCubesMeshBack.visible = false;
 
 	const container = new THREE.Group();
-	container.add( marchingCubes );
-	container.add( boundsMesh );
-	scene.add( container );
 	container.scale.multiplyScalar( 5 );
+	container.add( marchingCubes );
+	container.add( marchingCubesMeshBack );
+	container.add( marchingCubesMesh );
+	scene.add( container );
+
 	window.marchingCubes = marchingCubes;
 
 	scene.updateMatrixWorld( true );
@@ -170,36 +190,46 @@ function* updateMarchingCubes() {
 	marchingCubes.position.z = 1 / size;
 
 	marchingCubes.reset();
-	const vec = new THREE.Vector3();
+	marchingCubes.field.fill( - 1 );
+
+	const pos = new THREE.Vector3();
+	const scale = new THREE.Vector3();
+	const quaternion = new THREE.Quaternion();
+
+	target.matrixWorld.decompose( pos, quaternion, scale );
+
 	const mat = new THREE.Matrix4();
 	const targetToBvh = new THREE.Matrix4();
+	const distance = params.distance;
+	let count = 0;
+
+	marchingCubesMesh.visible = false;
+	marchingCubesMeshBack.visible = false;
+	marchingCubes.visible = true;
+
 	for ( let y = 0; y < size; y ++ ) {
 
 		for ( let x = 0; x < size; x ++ ) {
 
 			for ( let z = 0; z < size; z ++ ) {
 
-				vec.x = min + cellWidth2 + x * cellWidth;
-				vec.y = min + cellWidth2 + y * cellWidth;
-				vec.z = min + cellWidth2 + z * cellWidth;
+				pos.x = min + cellWidth2 + x * cellWidth;
+				pos.y = min + cellWidth2 + y * cellWidth;
+				pos.z = min + cellWidth2 + z * cellWidth;
 
-				mat.compose( vec, target.quaternion, target.scale );
+				mat.compose( pos, quaternion, scale );
 				targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
 
-				const result = terrain.geometry.boundsTree.distancecast( target, target.geometry, targetToBvh, 1 );
-				// const result = terrain.geometry.boundsTree.geometrycast( target, target.geometry, targetToBvh ); // distancecast( target, target.geometry, targetToBvh, 1 );
-				// console.log( result )
-				marchingCubes.setCell( x, y, z, result ? 0 : 1 );
+				if ( pos.length() < 3 ) {
 
-				// marchingCubes.setCell( x, y, z, y > size / 2 - 1 ? 0 : 1 );
+					const result = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, targetToBvh, distance );
+					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
-				// const c = new THREE.Mesh( new THREE.SphereBufferGeometry() );
-				// c.position.copy( vec );
-				// scene.add( c );
-				// c.scale.multiplyScalar( 0.01 )
+				}
 
+				count ++;
 
-				yield null;
+				yield count / ( size * size * size );
 
 			}
 
@@ -207,30 +237,43 @@ function* updateMarchingCubes() {
 
 	}
 
+	marchingCubes.blur();
+	marchingCubes.isolation = 0.5;
+	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
+	marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
+	marchingCubesMesh.visible = true;
+	marchingCubesMeshBack.visible = true;
+	marchingCubes.visible = false;
+
 }
 
 let currentTask = null;
 let lastQuat = null;
+let lastDist = null;
 function render() {
 
 	stats.begin();
 
 	if ( boundsViz ) boundsViz.update();
 
-	if ( ! lastQuat || ! lastQuat.equals( target.quaternion ) ) {
+	if ( ! lastQuat || ! lastQuat.equals( target.quaternion ) || lastDist !== params.distance ) {
 
 		if ( ! lastQuat ) lastQuat = new THREE.Quaternion();
 		currentTask = updateMarchingCubes();
 		lastQuat.copy( target.quaternion );
+		lastDist = params.distance;
 
 	}
 
+	let perc = 0;
 	if ( currentTask ) {
 
 		let startTime = window.performance.now();
 		while ( window.performance.now() - startTime < 60 ) {
 
 			const res = currentTask.next();
+			perc = res.value;
+
 			if ( res.done ) {
 
 				currentTask = null;
@@ -241,6 +284,8 @@ function render() {
 		}
 
 	}
+
+	document.getElementById( 'loader' ).setAttribute( 'style', `width: ${ perc * 100 }%` );
 
 	// updateMarchingCubes();
 

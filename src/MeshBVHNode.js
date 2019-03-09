@@ -140,7 +140,9 @@ class MeshBVHNode {
 MeshBVHNode.prototype.shapecast = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
-	return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+	const cachedBox1 = new THREE.Box3();
+	const cachedBox2 = new THREE.Box3();
+	return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 		if ( this.count && intersectsTriangleFunc ) {
 
@@ -172,25 +174,60 @@ MeshBVHNode.prototype.shapecast = ( function () {
 			let c1 = left;
 			let c2 = right;
 
-			if ( orderNodesFunc && orderNodesFunc( c1, c2 ) > 0 ) {
+			let score1, score2;
+			let box1, box2;
+			if ( nodeScoreFunc ) {
 
-				c1 = right;
-				c2 = left;
+				box1 = cachedBox1;
+				box2 = cachedBox2;
+
+				arrayToBox( c1.boundingData, box1 );
+				arrayToBox( c2.boundingData, box2 );
+
+				score1 = nodeScoreFunc( box1 );
+				score2 = nodeScoreFunc( box2 );
+
+				if ( score2 < score1 ) {
+
+					c1 = right;
+					c2 = left;
+
+					const temp = score1;
+					score1 = score2;
+					score2 = temp;
+
+					const tempBox = box1;
+					box1 = box2;
+					box2 = tempBox;
+
+				}
 
 			}
 
-			arrayToBox( c1.boundingData, boundingBox );
+			if ( ! box1 ) {
+
+				box1 = cachedBox1;
+				arrayToBox( c1.boundingData, box1 );
+
+			}
+
 			const c1Intersection =
-				intersectsBoundsFunc( boundingBox, ! ! c1.count ) &&
-				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+				intersectsBoundsFunc( box1, ! ! c1.count, score1 ) &&
+				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c1Intersection ) return true;
 
 
-			arrayToBox( c2.boundingData, boundingBox );
+			if ( ! box2 ) {
+
+				box2 = cachedBox2;
+				arrayToBox( c1.boundingData, box2 );
+
+			}
+
 			const c2Intersection =
-				intersectsBoundsFunc( boundingBox, ! ! c2.count ) &&
-				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+				intersectsBoundsFunc( box2, ! ! c2.count, score2 ) &&
+				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c2Intersection ) return true;
 
@@ -374,7 +411,7 @@ MeshBVHNode.prototype.distancecast = ( function () {
 
 	const tri2 = new THREE.Triangle();
 	const obb = new OrientedBox();
-	return function distancecast( mesh, geometry, geometryToBvh, threshold ) {
+	return function distancecast( mesh, geometry, geometryToBvh, threshold = Infinity ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
@@ -382,9 +419,12 @@ MeshBVHNode.prototype.distancecast = ( function () {
 
 		const pos = geometry.attributes.position;
 		const index = geometry.index;
-		return this.shapecast(
+
+		let found = false;
+		let closestDistance = threshold;
+		const res = this.shapecast(
 			mesh,
-			box => obb.distanceToBox( box ) < threshold,
+			( box, isLeaf, score ) => score < closestDistance,
 			tri => {
 
 				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
@@ -395,8 +435,10 @@ MeshBVHNode.prototype.distancecast = ( function () {
 					tri2.c.applyMatrix4( geometryToBvh );
 
 					const dist = tri.distanceToTriangle( tri2 );
-					if ( dist < threshold ) {
+					if ( dist < closestDistance ) {
 
+						closestDistance = dist;
+						found = true;
 						return true;
 
 					}
@@ -405,9 +447,13 @@ MeshBVHNode.prototype.distancecast = ( function () {
 
 				return false;
 
-			}
+			},
+			box => obb.distanceToBox( box )
 
 		);
+
+		return res;
+		return found ? closestDistance : null;
 
 	};
 

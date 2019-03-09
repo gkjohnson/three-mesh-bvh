@@ -225,15 +225,11 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 	const point1 = new Vector3();
 	const point2 = new Vector3();
-	const point2point = new Vector3();
 
 	const target1 = new Vector3();
 	const target2 = new Vector3();
 
 	return function distanceToBox( box ) {
-
-		// TODO: You do need to check the points against the planes of the boxes
-
 
 		if ( this.intersectsBox( box ) ) {
 
