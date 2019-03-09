@@ -154,9 +154,17 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 		if ( this.intersectsTriangle( other ) ) {
 
-			// TODO: Get the intersection line or something and return the center point
-			if ( target1 ) target1.copy( this.a );
-			if ( target2 ) target2.copy( this.a );
+			if ( target1 || target2 ) {
+
+				this.getMidPoint( point );
+				other.closestPointToPoint( point, point2 );
+				this.closestPointToPoint( point2, point );
+
+				if ( target1 ) target1.copy( point );
+				if ( target2 ) target2.copy( point2 );
+
+			}
+
 			return 0;
 
 		}
