@@ -15,7 +15,6 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
 
-	speed: 1,
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
 	distance: 1,
@@ -36,16 +35,24 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.shadowMap.enabled = true;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
+	scene.fog = new THREE.Fog( 0x263238 / 2, 10, 45 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
 	light.position.set( 1, 1, 1 );
+	light.castShadow = true;
+	light.shadow.mapSize.set( 1024, 1024 );
+
+
+	const shadowCam = light.shadow.camera;
+	shadowCam.left = shadowCam.bottom = - 15;
+	shadowCam.right = shadowCam.top = 15;
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
+	scene.add( new THREE.AmbientLight( 0xE0F7FA, 0.5 ) );
 
 	// geometry setup
 	const size = 50;
@@ -64,10 +71,11 @@ function init() {
 	planeGeom.computeVertexNormals();
 	planeGeom.computeBoundsTree();
 
-	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { flatShading: true, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
-	scene.add( terrain );
+	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { color: 0xE0F7FA, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
 	terrain.rotation.x = - Math.PI / 2;
 	terrain.position.y = - 3;
+	terrain.receiveShadow = true;
+	scene.add( terrain );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -82,6 +90,8 @@ function init() {
 
 	const shapeMaterial = new THREE.MeshStandardMaterial( { roughness: 0.75, metalness: 0.1 } );
 	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
+	target.castShadow = true;
+	target.receiveShadow = true;
 	scene.add( target );
 
 	controls = new OrbitControls( camera, renderer.domElement );
@@ -92,24 +102,25 @@ function init() {
 	scene.add( transformControls );
 
 	const cubeMat = new THREE.MeshStandardMaterial( {
-		color: 0xff0000,
+		color: 0xE91E63,
 		metalness: 0.0,
-		glossiness: 0.9
+		roughness: 0.9
 	} );
 	marchingCubes = new MarchingCubes( 100, cubeMat, false, false );
 	marchingCubes.isolation = 0;
 
 	const meshMat = new THREE.MeshStandardMaterial( {
 		flatShading: true,
-		color: 0xff0000,
+		color: 0xE91E63,
 		metalness: 0.0,
-		glossiness: 0.9,
+		roughness: 0.9,
 		transparent: true,
 		depthWrite: false,
 		opacity: 0.25,
 	} );
 	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
 	marchingCubesMesh.visible = false;
+	marchingCubesMesh.castShadow = true;
 
 	const backMeshMat = meshMat.clone();
 	backMeshMat.side = THREE.BackSide;
@@ -123,12 +134,9 @@ function init() {
 	container.add( marchingCubesMesh );
 	scene.add( container );
 
-	window.marchingCubes = marchingCubes;
-
 	scene.updateMatrixWorld( true );
 
 	const gui = new dat.GUI();
-	gui.add( params, 'speed' ).min( 0 ).max( 10 );
 	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 	gui.add( params, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => updateFromOptions() );
@@ -179,7 +187,6 @@ function* updateMarchingCubes() {
 	// marching cubes ranges from -1 to 1
 	const dim = marchingCubes.matrixWorld.getMaxScaleOnAxis();
 	const min = - dim;
-	const max = dim;
 	const size = marchingCubes.size;
 	const cellWidth = 2 * dim / size;
 	const cellWidth2 = cellWidth / 2;
@@ -237,7 +244,7 @@ function* updateMarchingCubes() {
 
 	}
 
-	marchingCubes.blur();
+	marchingCubes.blur( 1 );
 	marchingCubes.isolation = 0.5;
 	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
 	marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
