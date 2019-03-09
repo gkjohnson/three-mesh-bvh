@@ -425,13 +425,13 @@ MeshBVHNode.prototype.distanceToPoint = ( function () {
 
 } )();
 
-MeshBVHNode.prototype.distancecast = ( function () {
+MeshBVHNode.prototype.distanceToGeometry = ( function () {
 
 	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
 	const sphere = new Sphere();
 
-	return function distancecast( mesh, geometry, geometryToBvh, threshold = Infinity ) {
+	return function distanceToGeometry( mesh, geometry, geometryToBvh, threshold = Infinity ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );

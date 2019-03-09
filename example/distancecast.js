@@ -205,7 +205,6 @@ function* updateMarchingCubes() {
 
 	target.matrixWorld.decompose( pos, quaternion, scale );
 
-	const mat = new THREE.Matrix4();
 	const targetToBvh = new THREE.Matrix4();
 	const distance = params.distance;
 	let count = 0;
@@ -233,10 +232,11 @@ function* updateMarchingCubes() {
 					const result = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance );
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
+					// This is much slower
 					// mat.compose( pos, quaternion, scale );
 					// targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
 
-					// const result = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, targetToBvh, distance );
+					// const result = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, targetToBvh, distance );
 					// marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
 				}
@@ -305,7 +305,7 @@ function render() {
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const hit = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, transformMatrix, params.distance );
+	const hit = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, transformMatrix, params.distance );
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 

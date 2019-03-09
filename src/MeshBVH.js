@@ -265,11 +265,11 @@ export default class MeshBVH {
 
 	}
 
-	distancecast( mesh, geom, matrix, thresold ) {
+	distanceToGeometry( mesh, geom, matrix, thresold ) {
 
 		for ( const root of this._roots ) {
 
-			if ( root.distancecast( mesh, geom, matrix, thresold ) ) return true;
+			if ( root.distanceToGeometry( mesh, geom, matrix, thresold ) ) return true;
 
 		}
 
