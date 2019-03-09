@@ -409,16 +409,30 @@ MeshBVHNode.prototype.spherecast = ( function () {
 
 MeshBVHNode.prototype.distanceToPoint = ( function () {
 
-	return function distanceToPoint( mesh, point, threshold = Infinity ) {
+	// early out if under minThreshold
+	// skip checking if over maxThreshold
+	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+	// returns null if no value found
+	return function distanceToPoint( mesh, point, minThreshold = 0, maxThreshold = Infinity ) {
 
-		return this.shapecast(
+		let closestDistance = Infinity;
+		this.shapecast(
 
 			mesh,
-			( box, isLeaf, score ) => score < threshold,
-			tri => tri.distanceToPoint( point ) < threshold,
+			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+			tri => {
+
+				const dist = tri.distanceToPoint( point );
+				if ( dist < closestDistance ) closestDistance = dist;
+				if ( dist < minThreshold ) return true;
+				return false;
+
+			},
 			box => box.distanceToPoint( point )
 
 		);
+
+		return closestDistance === Infinity ? null : closestDistance;
 
 	};
 
@@ -429,7 +443,11 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
 
-	return function distanceToGeometry( mesh, geometry, geometryToBvh, threshold = Infinity ) {
+	// early out if under minThreshold
+	// skip checking if over maxThreshold
+	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+	// returns null if no value found
+	return function distanceToGeometry( mesh, geometry, geometryToBvh, minThreshold = 0, maxThreshold = Infinity ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
@@ -438,11 +456,10 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 		const pos = geometry.attributes.position;
 		const index = geometry.index;
 
-		let found = false;
-		let closestDistance = threshold;
-		const res = this.shapecast(
+		let closestDistance = Infinity;
+		this.shapecast(
 			mesh,
-			( box, isLeaf, score ) => score < closestDistance,
+			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
 			tri => {
 
 				const sphere1 = tri.sphere;
@@ -459,13 +476,8 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 					if ( sphereDist > closestDistance ) continue;
 
 					const dist = tri.distanceToTriangle( tri2 );
-					if ( dist < closestDistance ) {
-
-						closestDistance = dist;
-						found = true;
-						return true;
-
-					}
+					if ( dist < closestDistance ) closestDistance = dist;
+					if ( dist < minThreshold ) return true;
 
 				}
 
@@ -476,8 +488,7 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 
 		);
 
-		return res;
-		// return found ? closestDistance : null;
+		return closestDistance === Infinity ? null : closestDistance;
 
 	};
 

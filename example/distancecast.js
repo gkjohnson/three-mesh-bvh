@@ -266,7 +266,7 @@ function* updateMarchingCubes() {
 					targetToBvh.getInverse( terrain.matrixWorld );
 					pos.applyMatrix4( targetToBvh );
 
-					const result = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance );
+					const result = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance, distance ) !== null;
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
 					// This is much slower
@@ -340,7 +340,7 @@ function render() {
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const hit = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, transformMatrix, params.distance );
+	const hit = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, transformMatrix, params.distance, params.distance ) !== null;
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
