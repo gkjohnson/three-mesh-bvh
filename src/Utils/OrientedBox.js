@@ -200,9 +200,9 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 
 } )();
 
-OrientedBox.prototype.closestPoint = ( function () {
+OrientedBox.prototype.closestPointToPoint = ( function () {
 
-	return function closestPoint( point, target1 ) {
+	return function closestPointToPoint( point, target1 ) {
 
 		target1
 			.copy( point )
@@ -214,7 +214,19 @@ OrientedBox.prototype.closestPoint = ( function () {
 
 	};
 
-} );
+} )();
+
+OrientedBox.prototype.distanceToPoint = ( function () {
+
+	const target = new Vector3();
+	return function distanceToPoint( point ) {
+
+		this.closestPointToPoint( point, target );
+		return point.distanceTo( target );
+
+	};
+
+} )();
 
 
 OrientedBox.prototype.distanceToBox = ( function () {
@@ -323,7 +335,7 @@ OrientedBox.prototype.distanceToBox = ( function () {
 					point2.y = y ? max.y : min.y;
 					point2.z = z ? max.z : min.z;
 
-					this.closestPoint( point2, point1 );
+					this.closestPointToPoint( point2, point1 );
 					const dist = point2.distanceToSquared( point1 );
 					if ( dist < closestDistanceSq ) {
 
@@ -364,7 +376,6 @@ OrientedBox.prototype.distanceToBox = ( function () {
 		}
 
 		return Math.sqrt( closestDistanceSq );
-		// return target1.distanceTo( target2 );
 
 	};
 

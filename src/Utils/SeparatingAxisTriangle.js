@@ -1,4 +1,4 @@
-import { Triangle, Vector3, Line3 } from 'three';
+import { Triangle, Vector3, Line3, Sphere } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment } from './DistanceUtilities.js';
 
@@ -11,6 +11,8 @@ export class SeparatingAxisTriangle extends Triangle {
 		this.isSeparatingAxisTriangle = true;
 		this.satAxes = new Array( 4 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
+		this.points = [ this.a, this.b, this.c ];
+		this.sphere = new Sphere();
 
 	}
 
@@ -51,6 +53,8 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 		const sab3 = satBounds[ 3 ];
 		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, arr );
+
+		this.sphere.setFromPoints( this.points );
 
 	};
 
@@ -124,6 +128,20 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 } )();
 
+
+SeparatingAxisTriangle.prototype.distanceToPoint = ( function () {
+
+	const target = new Vector3();
+	return function distanceToPoint( point ) {
+
+		this.closestPointToPoint( point, target );
+		return point.distanceTo( target );
+
+	};
+
+} )();
+
+
 SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 	const point = new Vector3();
@@ -133,7 +151,8 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 	const line2 = new Line3();
 	const target = null;
 	const target2 = null;
-	return function distanceToTriangle( other, threshold = 0 ) {
+
+	return function distanceToTriangle( other ) {
 
 		if ( this.intersectsTriangle( other ) ) {
 
@@ -144,7 +163,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 		}
 
-		const threshold2 = threshold * threshold;
 		let closestDistanceSq = Infinity;
 
 		// check all point distances
@@ -163,8 +181,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 				if ( target ) target.copy( point );
 				if ( target2 ) target2.copy( otherVec );
 
-				if ( dist < threshold2 ) return Math.sqrt( dist );
-
 			}
 
 
@@ -178,8 +194,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 				closestDistanceSq = dist;
 				if ( target ) target.copy( thisVec );
 				if ( target2 ) target2.copy( point );
-
-				if ( dist < threshold2 ) return Math.sqrt( dist );
 
 			}
 
@@ -205,8 +219,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 					if ( target ) target.copy( point );
 					if ( target2 ) target2.copy( point2 );
 
-					if ( dist < threshold2 ) return Math.sqrt( dist );
-
 				}
 
 			}
@@ -214,7 +226,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 		}
 
 		return Math.sqrt( closestDistanceSq );
-		// return target.distanceTo( target2 );
 
 	};
 

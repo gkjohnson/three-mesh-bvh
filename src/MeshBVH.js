@@ -277,4 +277,17 @@ export default class MeshBVH {
 
 	}
 
+	distanceToPoint( mesh, point, threshold ) {
+
+		for ( const root of this._roots ) {
+
+			if ( root.distanceToPoint( mesh, point, threshold ) ) return true;
+
+		}
+
+		return false;
+
+
+	}
+
 }

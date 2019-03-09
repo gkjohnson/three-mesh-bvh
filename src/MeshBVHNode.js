@@ -4,6 +4,7 @@ import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
 import { arrayToBox, sphereIntersectTriangle } from './BoundsUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
+import { Sphere } from 'three/build/three.module';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
@@ -407,16 +408,36 @@ MeshBVHNode.prototype.spherecast = ( function () {
 
 } )();
 
+MeshBVHNode.prototype.distanceToPoint = ( function () {
+
+	return function distanceToPoint( mesh, point, threshold = Infinity ) {
+
+		return this.shapecast(
+
+			mesh,
+			( box, isLeaf, score ) => score < threshold,
+			tri => tri.distanceToPoint( point ) < threshold,
+			box => box.distanceToPoint( point )
+
+		);
+
+	};
+
+} )();
+
 MeshBVHNode.prototype.distancecast = ( function () {
 
-	const tri2 = new THREE.Triangle();
+	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
+	const sphere = new Sphere();
+
 	return function distancecast( mesh, geometry, geometryToBvh, threshold = Infinity ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
 		obb.update();
 
+		const obbSphere = obb.sphere;
 		const pos = geometry.attributes.position;
 		const index = geometry.index;
 
@@ -427,12 +448,18 @@ MeshBVHNode.prototype.distancecast = ( function () {
 			( box, isLeaf, score ) => score < closestDistance,
 			tri => {
 
+				const sphere1 = tri.sphere;
 				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
 					setTriangle( tri2, i2, index, pos );
 					tri2.a.applyMatrix4( geometryToBvh );
 					tri2.b.applyMatrix4( geometryToBvh );
 					tri2.c.applyMatrix4( geometryToBvh );
+					tri2.sphere.setFromPoints( tri2.points );
+
+					const sphere2 = tri2.sphere;
+					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
+					if ( sphereDist > closestDistance ) continue;
 
 					const dist = tri.distanceToTriangle( tri2 );
 					if ( dist < closestDistance ) {
@@ -448,7 +475,7 @@ MeshBVHNode.prototype.distancecast = ( function () {
 				return false;
 
 			},
-			box => obb.distanceToBox( box, threshold )
+			box => obb.distanceToBox( box, closestDistance )
 
 		);
 

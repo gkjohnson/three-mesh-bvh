@@ -120,6 +120,17 @@ runBenchmark(
 
 );
 
+const vec = new THREE.Vector3();
+geometry.computeBoundsTree();
+intersectGeometry.computeBoundsTree();
+runBenchmark(
+
+	'Distance To Point',
+	() => mesh.geometry.boundsTree.distanceToPoint( mesh, vec, 1 ),
+	3000
+
+);
+
 
 console.log( '' );
 

@@ -41752,7 +41752,11 @@ var MarchingCubes = function MarchingCubes(resolution, material, enableUvs, enab
   /////////////////////////////////////
 
 
-  this.blur = function () {
+  this.blur = function (intensity) {
+    if (intensity === undefined) {
+      intensity = 1;
+    }
+
     var field = this.field;
     var fieldCopy = field.slice();
     var size = this.size;
@@ -41778,13 +41782,13 @@ var MarchingCubes = function MarchingCubes(resolution, material, enableUvs, enab
                 if (z3 < 0 || z3 >= size) continue;
                 var index2 = size2 * z3 + size * y3 + x3;
                 var val2 = fieldCopy[index2];
-                val += val2;
                 count++;
+                val += intensity * (val2 - val) / count;
               }
             }
           }
 
-          field[index] = val / count;
+          field[index] = val;
         }
       }
     }
@@ -45735,6 +45739,8 @@ function (_Triangle) {
     _this.satBounds = new Array(4).fill().map(function () {
       return new _SeparatingAxisBounds.SeparatingAxisBounds();
     });
+    _this.points = [_this.a, _this.b, _this.c];
+    _this.sphere = new _three.Sphere();
     return _this;
   }
 
@@ -45770,6 +45776,7 @@ SeparatingAxisTriangle.prototype.update = function () {
     var sab3 = satBounds[3];
     axis3.subVectors(c, a);
     sab3.setFromPoints(axis3, arr);
+    this.sphere.setFromPoints(this.points);
   };
 }();
 
@@ -45830,19 +45837,27 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = function () {
   };
 }();
 
+SeparatingAxisTriangle.prototype.distanceToPoint = function () {
+  var target = new _three.Vector3();
+  return function distanceToPoint(point) {
+    this.closestPointToPoint(point, target);
+    return point.distanceTo(target);
+  };
+}();
+
 SeparatingAxisTriangle.prototype.distanceToTriangle = function () {
   var point = new _three.Vector3();
   var point2 = new _three.Vector3();
   var cornerFields = ['a', 'b', 'c'];
   var line1 = new _three.Line3();
   var line2 = new _three.Line3();
-  var target = new _three.Vector3();
-  var target2 = new _three.Vector3();
+  var target = null;
+  var target2 = null;
   return function distanceToTriangle(other) {
     if (this.intersectsTriangle(other)) {
       // TODO: Get the intersection line or something and return the center point
-      target.copy(this.a);
-      target2.copy(this.a);
+      if (target) target.copy(this.a);
+      if (target2) target2.copy(this.a);
       return 0;
     }
 
@@ -45857,8 +45872,8 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = function () {
 
       if (dist < closestDistanceSq) {
         closestDistanceSq = dist;
-        target.copy(point);
-        target2.copy(otherVec);
+        if (target) target.copy(point);
+        if (target2) target2.copy(otherVec);
       }
 
       var thisVec = this[field];
@@ -45867,8 +45882,8 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = function () {
 
       if (dist < closestDistanceSq) {
         closestDistanceSq = dist;
-        target.copy(thisVec);
-        target2.copy(point);
+        if (target) target.copy(thisVec);
+        if (target2) target2.copy(point);
       }
     }
 
@@ -45887,13 +45902,13 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = function () {
 
         if (_dist < closestDistanceSq) {
           closestDistanceSq = _dist;
-          target.copy(point);
-          target2.copy(point2);
+          if (target) target.copy(point);
+          if (target2) target2.copy(point2);
         }
       }
     }
 
-    return target.distanceTo(target2);
+    return Math.sqrt(closestDistanceSq);
   };
 }();
 },{"three":"../node_modules/three/build/three.module.js","./SeparatingAxisBounds.js":"../src/Utils/SeparatingAxisBounds.js","./DistanceUtilities.js":"../src/Utils/DistanceUtilities.js"}],"../src/Utils/OrientedBox.js":[function(require,module,exports) {
@@ -46117,12 +46132,20 @@ OrientedBox.prototype.intersectsTriangle = function () {
   };
 }();
 
-OrientedBox.prototype.closestPoint = function () {
-  return function closestPoint(point, target1) {
+OrientedBox.prototype.closestPointToPoint = function () {
+  return function closestPointToPoint(point, target1) {
     target1.copy(point).applyMatrix4(this.invMatrix).clamp(this.min, this.max).applyMatrix4(this.matrix);
     return target1;
   };
-};
+}();
+
+OrientedBox.prototype.distanceToPoint = function () {
+  var target = new _three.Vector3();
+  return function distanceToPoint(point) {
+    this.closestPointToPoint(point, target);
+    return point.distanceTo(target);
+  };
+}();
 
 OrientedBox.prototype.distanceToBox = function () {
   var xyzFields = ['x', 'y', 'z'];
@@ -46134,33 +46157,55 @@ OrientedBox.prototype.distanceToBox = function () {
   });
   var point1 = new _three.Vector3();
   var point2 = new _three.Vector3();
-  var target1 = new _three.Vector3();
-  var target2 = new _three.Vector3();
+  var target1 = null;
+  var target2 = null;
   return function distanceToBox(box) {
+    var threshold = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
     if (this.intersectsBox(box)) {
+      // TODO: output box target points
+      // if ( target1 ) target1.copy( this.a );
+      // if ( target2 ) target2.copy( this.a );
       return 0;
+    }
+
+    var threshold2 = threshold * threshold;
+    var min = box.min;
+    var max = box.max;
+    var points = this.points; // iterate over every edge and compare distances
+
+    var closestDistanceSq = Infinity; // check over all these points
+
+    for (var i = 0; i < 8; i++) {
+      var p = points[i];
+      point2.copy(p).clamp(min, max);
+      var dist = p.distanceToSquared(point2);
+
+      if (dist < closestDistanceSq) {
+        closestDistanceSq = dist;
+        if (target1) target1.copy(p);
+        if (target2) target2.copy(point2);
+        if (dist < threshold2) return Math.sqrt(dist);
+      }
     } // generate and check all line segment distances
 
 
     var count = 0;
-    var min = box.min;
-    var max = box.max;
-    var points = this.points;
 
-    for (var i = 0; i < 3; i++) {
+    for (var _i4 = 0; _i4 < 3; _i4++) {
       for (var i1 = 0; i1 <= 1; i1++) {
         for (var i2 = 0; i2 <= 1; i2++) {
-          var nextIndex = (i + 1) % 3;
-          var nextIndex2 = (i + 2) % 3; // get obb line segments
+          var nextIndex = (_i4 + 1) % 3;
+          var nextIndex2 = (_i4 + 2) % 3; // get obb line segments
 
           var index = i1 << nextIndex | i2 << nextIndex2;
-          var index2 = 1 << i | i1 << nextIndex | i2 << nextIndex2;
+          var index2 = 1 << _i4 | i1 << nextIndex | i2 << nextIndex2;
           var p1 = points[index];
           var p2 = points[index2];
           var line1 = segments1[count];
           line1.set(p1, p2); // get aabb line segments
 
-          var f1 = xyzFields[i];
+          var f1 = xyzFields[_i4];
           var f2 = xyzFields[nextIndex];
           var f3 = xyzFields[nextIndex2];
           var line2 = segments2[count];
@@ -46172,22 +46217,8 @@ OrientedBox.prototype.distanceToBox = function () {
           end[f1] = max[f1];
           end[f2] = i1 ? min[f2] : max[f2];
           end[f3] = i2 ? min[f3] : max[f2];
+          count++;
         }
-      }
-    } // iterate over every edge and compare distances
-
-
-    var closestDistanceSq = Infinity; // check over all these points
-
-    for (var _i4 = 0; _i4 < 8; _i4++) {
-      var p = points[_i4];
-      point2.copy(p).clamp(min, max);
-      var dist = p.distanceToSquared(point2);
-
-      if (dist < closestDistanceSq) {
-        closestDistanceSq = dist;
-        target1.copy(p);
-        target2.copy(point2);
       }
     } // check all the other boxes point
 
@@ -46198,14 +46229,15 @@ OrientedBox.prototype.distanceToBox = function () {
           point2.x = x ? max.x : min.x;
           point2.y = y ? max.y : min.y;
           point2.z = z ? max.z : min.z;
-          this.closestPoint(point2, point1);
+          this.closestPointToPoint(point2, point1);
 
           var _dist = point2.distanceToSquared(point1);
 
           if (_dist < closestDistanceSq) {
             closestDistanceSq = _dist;
-            target1.copy(point1);
-            target2.copy(point2);
+            if (target1) target1.copy(point1);
+            if (target2) target2.copy(point2);
+            if (_dist < threshold2) return Math.sqrt(_dist);
           }
         }
       }
@@ -46222,13 +46254,14 @@ OrientedBox.prototype.distanceToBox = function () {
 
         if (_dist2 < closestDistanceSq) {
           closestDistanceSq = _dist2;
-          target1.copy(point1);
-          target2.copy(point2);
+          if (target1) target1.copy(point1);
+          if (target2) target2.copy(point2);
+          if (_dist2 < threshold2) return Math.sqrt(_dist2);
         }
       }
     }
 
-    return target1.distanceTo(target2);
+    return Math.sqrt(closestDistanceSq);
   };
 }();
 },{"three":"../node_modules/three/build/three.module.js","./SeparatingAxisBounds.js":"../src/Utils/SeparatingAxisBounds.js","./SeparatingAxisTriangle.js":"../src/Utils/SeparatingAxisTriangle.js","./DistanceUtilities.js":"../src/Utils/DistanceUtilities.js"}],"../src/MeshBVHNode.js":[function(require,module,exports) {
@@ -46248,6 +46281,8 @@ var _BoundsUtilities = require("./BoundsUtilities.js");
 var _OrientedBox = require("./Utils/OrientedBox.js");
 
 var _SeparatingAxisTriangle = require("./Utils/SeparatingAxisTriangle.js");
+
+var _three2 = require("three/build/three.module");
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -46552,27 +46587,47 @@ MeshBVHNode.prototype.spherecast = function () {
   };
 }();
 
+MeshBVHNode.prototype.distanceToPoint = function () {
+  return function distanceToPoint(mesh, point) {
+    var threshold = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : Infinity;
+    return this.shapecast(mesh, function (box, isLeaf, score) {
+      return score < threshold;
+    }, function (tri) {
+      return tri.distanceToPoint(point) < threshold;
+    }, function (box) {
+      return box.distanceToPoint(point);
+    });
+  };
+}();
+
 MeshBVHNode.prototype.distancecast = function () {
-  var tri2 = new THREE.Triangle();
+  var tri2 = new _SeparatingAxisTriangle.SeparatingAxisTriangle();
   var obb = new _OrientedBox.OrientedBox();
+  var sphere = new _three2.Sphere();
   return function distancecast(mesh, geometry, geometryToBvh) {
     var threshold = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : Infinity;
     if (!geometry.boundingBox) geometry.computeBoundingBox();
     obb.set(geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh);
     obb.update();
+    var obbSphere = obb.sphere;
     var pos = geometry.attributes.position;
-    var index = geometry.index; // TODO: clean this up. Use a threshold or don't.
-
+    var index = geometry.index;
     var found = false;
     var closestDistance = threshold;
     var res = this.shapecast(mesh, function (box, isLeaf, score) {
       return score < closestDistance;
     }, function (tri) {
+      var sphere1 = tri.sphere;
+
       for (var i2 = 0, l2 = index.count; i2 < l2; i2 += 3) {
         setTriangle(tri2, i2, index, pos);
         tri2.a.applyMatrix4(geometryToBvh);
         tri2.b.applyMatrix4(geometryToBvh);
         tri2.c.applyMatrix4(geometryToBvh);
+        tri2.sphere.setFromPoints(tri2.points);
+        var sphere2 = tri2.sphere;
+        var sphereDist = sphere2.center.distanceTo(sphere1.center) - sphere2.radius - sphere1.radius;
+        if (sphereDist > closestDistance) continue;
         var dist = tri.distanceToTriangle(tri2);
 
         if (dist < closestDistance) {
@@ -46584,13 +46639,13 @@ MeshBVHNode.prototype.distancecast = function () {
 
       return false;
     }, function (box) {
-      return obb.distanceToBox(box);
+      return obb.distanceToBox(box, closestDistance);
     });
     return res;
     return found ? closestDistance : null;
   };
 }();
-},{"three":"../node_modules/three/build/three.module.js","./GeometryUtilities.js":"../src/GeometryUtilities.js","./BoundsUtilities.js":"../src/BoundsUtilities.js","./Utils/OrientedBox.js":"../src/Utils/OrientedBox.js","./Utils/SeparatingAxisTriangle.js":"../src/Utils/SeparatingAxisTriangle.js"}],"../src/Constants.js":[function(require,module,exports) {
+},{"three":"../node_modules/three/build/three.module.js","./GeometryUtilities.js":"../src/GeometryUtilities.js","./BoundsUtilities.js":"../src/BoundsUtilities.js","./Utils/OrientedBox.js":"../src/Utils/OrientedBox.js","./Utils/SeparatingAxisTriangle.js":"../src/Utils/SeparatingAxisTriangle.js","three/build/three.module":"../node_modules/three/build/three.module.js"}],"../src/Constants.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -47376,6 +47431,35 @@ function () {
         } finally {
           if (_didIteratorError9) {
             throw _iteratorError9;
+          }
+        }
+      }
+
+      return false;
+    }
+  }, {
+    key: "distanceToPoint",
+    value: function distanceToPoint(mesh, point, threshold) {
+      var _iteratorNormalCompletion10 = true;
+      var _didIteratorError10 = false;
+      var _iteratorError10 = undefined;
+
+      try {
+        for (var _iterator10 = this._roots[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+          var root = _step10.value;
+          if (root.distanceToPoint(mesh, point, threshold)) return true;
+        }
+      } catch (err) {
+        _didIteratorError10 = true;
+        _iteratorError10 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion10 && _iterator10.return != null) {
+            _iterator10.return();
+          }
+        } finally {
+          if (_didIteratorError10) {
+            throw _iteratorError10;
           }
         }
       }
@@ -48232,7 +48316,6 @@ THREE.Mesh.prototype.raycast = _index.acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = _index.computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = _index.disposeBoundsTree;
 var params = {
-  speed: 1,
   visualizeBounds: false,
   visualBoundsDepth: 10,
   distance: 1
@@ -48251,14 +48334,20 @@ function init() {
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(bgColor, 1);
+  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement); // scene setup
 
   scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x263238 / 2, 20, 60);
+  scene.fog = new THREE.Fog(0x263238 / 2, 10, 45);
   var light = new THREE.DirectionalLight(0xffffff, 0.5);
   light.position.set(1, 1, 1);
+  light.castShadow = true;
+  light.shadow.mapSize.set(1024, 1024);
+  var shadowCam = light.shadow.camera;
+  shadowCam.left = shadowCam.bottom = -15;
+  shadowCam.right = shadowCam.top = 15;
   scene.add(light);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.4)); // geometry setup
+  scene.add(new THREE.AmbientLight(0xE0F7FA, 0.5)); // geometry setup
 
   var size = 50;
   var dim = 250;
@@ -48275,14 +48364,15 @@ function init() {
   planeGeom.computeVertexNormals();
   planeGeom.computeBoundsTree();
   terrain = new THREE.Mesh(planeGeom, new THREE.MeshStandardMaterial({
-    flatShading: true,
+    color: 0xFFFFFF,
     metalness: 0.1,
     roughness: 0.9,
     side: THREE.DoubleSide
   }));
-  scene.add(terrain);
   terrain.rotation.x = -Math.PI / 2;
-  terrain.position.y = -3; // camera setup
+  terrain.position.y = -3;
+  terrain.receiveShadow = true;
+  scene.add(terrain); // camera setup
 
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
   camera.position.z = 5;
@@ -48296,6 +48386,8 @@ function init() {
     metalness: 0.1
   });
   target = new THREE.Mesh(new THREE.BoxBufferGeometry(1, 1, 1), shapeMaterial);
+  target.castShadow = true;
+  target.receiveShadow = true;
   scene.add(target);
   controls = new _OrbitControls.OrbitControls(camera, renderer.domElement);
   transformControls = new _TransformControls.TransformControls(camera, renderer.domElement);
@@ -48308,23 +48400,24 @@ function init() {
   });
   scene.add(transformControls);
   var cubeMat = new THREE.MeshStandardMaterial({
-    color: 0xff0000,
+    color: 0xE91E63,
     metalness: 0.0,
-    glossiness: 0.9
+    roughness: 0.9
   });
-  marchingCubes = new _MarchingCubes.MarchingCubes(100, cubeMat, false, false);
+  marchingCubes = new _MarchingCubes.MarchingCubes(120, cubeMat, false, false);
   marchingCubes.isolation = 0;
   var meshMat = new THREE.MeshStandardMaterial({
     flatShading: true,
-    color: 0xff0000,
+    color: 0xE91E63,
     metalness: 0.0,
-    glossiness: 0.9,
+    roughness: 0.9,
     transparent: true,
     depthWrite: false,
     opacity: 0.25
   });
   marchingCubesMesh = new THREE.Mesh(undefined, meshMat);
   marchingCubesMesh.visible = false;
+  marchingCubesMesh.castShadow = true;
   var backMeshMat = meshMat.clone();
   backMeshMat.side = THREE.BackSide;
   marchingCubesMeshBack = new THREE.Mesh(undefined, backMeshMat);
@@ -48335,10 +48428,8 @@ function init() {
   container.add(marchingCubesMeshBack);
   container.add(marchingCubesMesh);
   scene.add(container);
-  window.marchingCubes = marchingCubes;
   scene.updateMatrixWorld(true);
   var gui = new dat.GUI();
-  gui.add(params, 'speed').min(0).max(10);
   gui.add(params, 'visualizeBounds').onChange(function () {
     return updateFromOptions();
   });
@@ -48380,7 +48471,7 @@ function updateFromOptions() {
 }
 
 function updateMarchingCubes() {
-  var dim, min, max, size, cellWidth, cellWidth2, pos, scale, quaternion, mat, targetToBvh, distance, count, y, x, z, result;
+  var dim, min, size, cellWidth, cellWidth2, pos, scale, quaternion, mat, targetToBvh, distance, count, y, x, z, result;
   return regeneratorRuntime.wrap(function updateMarchingCubes$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
@@ -48388,7 +48479,6 @@ function updateMarchingCubes() {
           // marching cubes ranges from -1 to 1
           dim = marchingCubes.matrixWorld.getMaxScaleOnAxis();
           min = -dim;
-          max = dim;
           size = marchingCubes.size;
           cellWidth = 2 * dim / size;
           cellWidth2 = cellWidth / 2;
@@ -48411,60 +48501,63 @@ function updateMarchingCubes() {
           marchingCubes.visible = true;
           y = 0;
 
-        case 24:
+        case 23:
           if (!(y < size)) {
-            _context.next = 47;
+            _context.next = 44;
             break;
           }
 
           x = 0;
 
-        case 26:
+        case 25:
           if (!(x < size)) {
-            _context.next = 44;
+            _context.next = 41;
             break;
           }
 
           z = 0;
 
-        case 28:
+        case 27:
           if (!(z < size)) {
-            _context.next = 41;
+            _context.next = 38;
             break;
           }
 
           pos.x = min + cellWidth2 + x * cellWidth;
           pos.y = min + cellWidth2 + y * cellWidth;
           pos.z = min + cellWidth2 + z * cellWidth;
-          mat.compose(pos, quaternion, scale);
-          targetToBvh.getInverse(terrain.matrixWorld).multiply(mat);
 
           if (pos.length() < 3) {
-            result = terrain.geometry.boundsTree.distancecast(terrain, target.geometry, targetToBvh, distance);
-            marchingCubes.setCell(x, y, z, result ? 0 : 1);
+            targetToBvh.getInverse(terrain.matrixWorld);
+            pos.applyMatrix4(targetToBvh);
+            result = terrain.geometry.boundsTree.distanceToPoint(terrain, pos, distance);
+            marchingCubes.setCell(x, y, z, result ? 0 : 1); // mat.compose( pos, quaternion, scale );
+            // targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
+            // const result = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, targetToBvh, distance );
+            // marchingCubes.setCell( x, y, z, result ? 0 : 1 );
           }
 
           count++;
-          _context.next = 38;
+          _context.next = 35;
           return count / (size * size * size);
 
-        case 38:
+        case 35:
           z++;
-          _context.next = 28;
+          _context.next = 27;
+          break;
+
+        case 38:
+          x++;
+          _context.next = 25;
           break;
 
         case 41:
-          x++;
-          _context.next = 26;
+          y++;
+          _context.next = 23;
           break;
 
         case 44:
-          y++;
-          _context.next = 24;
-          break;
-
-        case 47:
-          marchingCubes.blur();
+          marchingCubes.blur(1);
           marchingCubes.isolation = 0.5;
           marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
           marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
@@ -48472,7 +48565,7 @@ function updateMarchingCubes() {
           marchingCubesMeshBack.visible = true;
           marchingCubes.visible = false;
 
-        case 54:
+        case 51:
         case "end":
           return _context.stop();
       }
@@ -48481,17 +48574,14 @@ function updateMarchingCubes() {
 }
 
 var currentTask = null;
-var lastQuat = null;
 var lastDist = null;
 
 function render() {
   stats.begin();
   if (boundsViz) boundsViz.update();
 
-  if (!lastQuat || !lastQuat.equals(target.quaternion) || lastDist !== params.distance) {
-    if (!lastQuat) lastQuat = new THREE.Quaternion();
+  if (lastDist !== params.distance) {
     currentTask = updateMarchingCubes();
-    lastQuat.copy(target.quaternion);
     lastDist = params.distance;
   }
 
@@ -48570,7 +48660,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52126" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56355" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

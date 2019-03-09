@@ -106,7 +106,7 @@ function init() {
 		metalness: 0.0,
 		roughness: 0.9
 	} );
-	marchingCubes = new MarchingCubes( 100, cubeMat, false, false );
+	marchingCubes = new MarchingCubes( 120, cubeMat, false, false );
 	marchingCubes.isolation = 0;
 
 	const meshMat = new THREE.MeshStandardMaterial( {
@@ -224,13 +224,20 @@ function* updateMarchingCubes() {
 				pos.y = min + cellWidth2 + y * cellWidth;
 				pos.z = min + cellWidth2 + z * cellWidth;
 
-				mat.compose( pos, quaternion, scale );
-				targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
 
 				if ( pos.length() < 3 ) {
 
-					const result = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, targetToBvh, distance );
+					targetToBvh.getInverse( terrain.matrixWorld );
+					pos.applyMatrix4( targetToBvh );
+
+					const result = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance );
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
+
+					// mat.compose( pos, quaternion, scale );
+					// targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
+
+					// const result = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, targetToBvh, distance );
+					// marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
 				}
 
@@ -255,7 +262,6 @@ function* updateMarchingCubes() {
 }
 
 let currentTask = null;
-let lastQuat = null;
 let lastDist = null;
 function render() {
 
@@ -263,11 +269,9 @@ function render() {
 
 	if ( boundsViz ) boundsViz.update();
 
-	if ( ! lastQuat || ! lastQuat.equals( target.quaternion ) || lastDist !== params.distance ) {
+	if ( lastDist !== params.distance ) {
 
-		if ( ! lastQuat ) lastQuat = new THREE.Quaternion();
 		currentTask = updateMarchingCubes();
-		lastQuat.copy( target.quaternion );
 		lastDist = params.distance;
 
 	}
