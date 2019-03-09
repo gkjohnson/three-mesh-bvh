@@ -412,7 +412,7 @@ MeshBVHNode.prototype.closestPointToPoint = ( function () {
 	// early out if under minThreshold
 	// skip checking if over maxThreshold
 	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-	// returns null if no value found
+	// returns Infinity if no value found
 
 	const temp = new THREE.Vector3();
 	return function closestPointToPoint( mesh, point, target = null, minThreshold = 0, maxThreshold = Infinity ) {
@@ -440,7 +440,7 @@ MeshBVHNode.prototype.closestPointToPoint = ( function () {
 
 		);
 
-		return closestDistance === Infinity ? null : closestDistance;
+		return closestDistance;
 
 	};
 
@@ -451,7 +451,7 @@ MeshBVHNode.prototype.closestPointToGeometry = ( function () {
 	// early out if under minThreshold
 	// skip checking if over maxThreshold
 	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-	// returns null if no value found
+	// returns Infinity if no value found
 
 	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
@@ -509,7 +509,7 @@ MeshBVHNode.prototype.closestPointToGeometry = ( function () {
 
 		);
 
-		return closestDistance === Infinity ? null : closestDistance;
+		return closestDistance;
 
 	};
 
