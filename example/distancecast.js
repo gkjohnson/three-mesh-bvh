@@ -252,7 +252,7 @@ function* updateMarchingCubes() {
 	const cellWidth = 2 * dim / size;
 	const cellWidth2 = cellWidth / 2;
 
-	marchingCubes.isolation = 0.0000001;
+	marchingCubes.isolation = 0.5;
 	marchingCubes.position.x = 1 / size;
 	marchingCubes.position.y = 1 / size;
 	marchingCubes.position.z = 1 / size;
@@ -286,7 +286,8 @@ function* updateMarchingCubes() {
 					targetToBvh.getInverse( terrain.matrixWorld );
 					pos.applyMatrix4( targetToBvh );
 
-					const result = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance, distance ) !== null;
+					const dist = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance, distance );
+					const result = dist !== null && dist < distance;
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
 					// This is much slower
@@ -369,7 +370,7 @@ function render() {
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, transformMatrix, 0, params.volume.distance, sphere1.position, sphere2.position );
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, transformMatrix, 0, Infinity, sphere1.position, sphere2.position );
 	const hit = dist !== null && dist < params.volume.distance;
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
