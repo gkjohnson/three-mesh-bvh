@@ -221,7 +221,7 @@ MeshBVHNode.prototype.shapecast = ( function () {
 			if ( ! box2 ) {
 
 				box2 = cachedBox2;
-				arrayToBox( c1.boundingData, box2 );
+				arrayToBox( c2.boundingData, box2 );
 
 			}
 
