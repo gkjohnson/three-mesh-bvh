@@ -126,10 +126,10 @@ function init() {
 		flatShading: true,
 		color: 0xE91E63,
 		metalness: 0.0,
-		roughness: 0.9,
+		roughness: 0.35,
 		transparent: true,
 		depthWrite: false,
-		opacity: 0.1,
+		opacity: 0.15,
 	} );
 	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
 	marchingCubesMesh.visible = false;
