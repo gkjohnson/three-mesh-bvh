@@ -1,11 +1,13 @@
 import * as THREE from 'three/build/three.module';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { TransformControls } from './lib/TransformControls.js';
+import { MarchingCubes } from './lib/MarchingCubes.js';
 import * as dat from 'dat.gui';
 import Stats from 'stats.js/src/Stats';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import SimplexNoise from 'simplex-noise';
-import { TransformControls } from './lib/TransformControls.js';
+import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -16,13 +18,14 @@ const params = {
 	speed: 1,
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
-	distance: 0.1,
+	distance: 1,
 
 };
 
 let stats;
 let scene, camera, renderer, controls, boundsViz;
 let terrain, target, transformControls;
+let marchingCubes, marchingCubesMesh;
 
 function init() {
 
@@ -86,8 +89,23 @@ function init() {
 	transformControls.attach( target );
 	transformControls.addEventListener( 'dragging-changed', e => controls.enabled = ! e.value );
 	transformControls.addEventListener( 'changed', e => controls.enabled = ! e.value );
-
 	scene.add( transformControls );
+
+	const cubeMat = new THREE.MeshStandardMaterial( { color: 0xff0000, side: THREE.DoubleSide, metalness: 0.1, glossiness: 0.75 } );
+	marchingCubes = new MarchingCubes( 50, cubeMat, false, false );
+	marchingCubes.isolation = 0;
+
+	const boundsMesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 2, 2, 2 ), new THREE.MeshStandardMaterial( { transparent: true, opacity: 0.25 } ) );
+	boundsMesh.visible = false;
+
+	const container = new THREE.Group();
+	container.add( marchingCubes );
+	container.add( boundsMesh );
+	scene.add( container );
+	container.scale.multiplyScalar( 5 );
+	window.marchingCubes = marchingCubes;
+
+	scene.updateMatrixWorld( true );
 
 	const gui = new dat.GUI();
 	gui.add( params, 'speed' ).min( 0 ).max( 10 );
@@ -136,18 +154,95 @@ function updateFromOptions() {
 
 }
 
-let lastTime = window.performance.now();
-function render() {
+function* updateMarchingCubes() {
 
-	const delta = window.performance.now() - lastTime;
-	lastTime = window.performance.now();
+	// marching cubes ranges from -1 to 1
+	const dim = marchingCubes.matrixWorld.getMaxScaleOnAxis();
+	const min = - dim;
+	const max = dim;
+	const size = marchingCubes.size;
+	const cellWidth = 2 * dim / size;
+	const cellWidth2 = cellWidth / 2;
+
+	marchingCubes.isolation = 0.0000001;
+	marchingCubes.position.x = 1 / size;
+	marchingCubes.position.y = 1 / size;
+	marchingCubes.position.z = 1 / size;
+
+	marchingCubes.reset();
+	const vec = new THREE.Vector3();
+	const mat = new THREE.Matrix4();
+	const targetToBvh = new THREE.Matrix4();
+	for ( let y = 0; y < size; y ++ ) {
+
+		for ( let x = 0; x < size; x ++ ) {
+
+			for ( let z = 0; z < size; z ++ ) {
+
+				vec.x = min + cellWidth2 + x * cellWidth;
+				vec.y = min + cellWidth2 + y * cellWidth;
+				vec.z = min + cellWidth2 + z * cellWidth;
+
+				mat.compose( vec, target.quaternion, target.scale );
+				targetToBvh.getInverse( terrain.matrixWorld ).multiply( mat );
+
+				const result = terrain.geometry.boundsTree.distancecast( target, target.geometry, targetToBvh, 1 );
+				// const result = terrain.geometry.boundsTree.geometrycast( target, target.geometry, targetToBvh ); // distancecast( target, target.geometry, targetToBvh, 1 );
+				// console.log( result )
+				marchingCubes.setCell( x, y, z, result ? 0 : 1 );
+
+				// marchingCubes.setCell( x, y, z, y > size / 2 - 1 ? 0 : 1 );
+
+				// const c = new THREE.Mesh( new THREE.SphereBufferGeometry() );
+				// c.position.copy( vec );
+				// scene.add( c );
+				// c.scale.multiplyScalar( 0.01 )
+
+
+				yield null;
+
+			}
+
+		}
+
+	}
+
+}
+
+let currentTask = null;
+let lastQuat = null;
+function render() {
 
 	stats.begin();
 
 	if ( boundsViz ) boundsViz.update();
 
-	renderer.render( scene, camera );
-	stats.end();
+	if ( ! lastQuat || ! lastQuat.equals( target.quaternion ) ) {
+
+		if ( ! lastQuat ) lastQuat = new THREE.Quaternion();
+		currentTask = updateMarchingCubes();
+		lastQuat.copy( target.quaternion );
+
+	}
+
+	if ( currentTask ) {
+
+		let startTime = window.performance.now();
+		while ( window.performance.now() - startTime < 60 ) {
+
+			const res = currentTask.next();
+			if ( res.done ) {
+
+				currentTask = null;
+				break;
+
+			}
+
+		}
+
+	}
+
+	// updateMarchingCubes();
 
 	const transformMatrix =
 		new THREE.Matrix4()
@@ -157,6 +252,9 @@ function render() {
 	const hit = terrain.geometry.boundsTree.distancecast( terrain, target.geometry, transformMatrix, params.distance );
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
+
+	renderer.render( scene, camera );
+	stats.end();
 
 	requestAnimationFrame( render );
 
