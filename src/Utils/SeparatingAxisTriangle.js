@@ -131,19 +131,20 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 	const cornerFields = [ 'a', 'b', 'c' ];
 	const line1 = new Line3();
 	const line2 = new Line3();
-	const target = new Vector3();
-	const target2 = new Vector3();
-	return function distanceToTriangle( other ) {
+	const target = null;
+	const target2 = null;
+	return function distanceToTriangle( other, threshold = 0 ) {
 
 		if ( this.intersectsTriangle( other ) ) {
 
 			// TODO: Get the intersection line or something and return the center point
-			target.copy( this.a );
-			target2.copy( this.a );
+			if ( target ) target.copy( this.a );
+			if ( target2 ) target2.copy( this.a );
 			return 0;
 
 		}
 
+		const threshold2 = threshold * threshold;
 		let closestDistanceSq = Infinity;
 
 		// check all point distances
@@ -159,8 +160,10 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 			if ( dist < closestDistanceSq ) {
 
 				closestDistanceSq = dist;
-				target.copy( point );
-				target2.copy( otherVec );
+				if ( target ) target.copy( point );
+				if ( target2 ) target2.copy( otherVec );
+
+				if ( dist < threshold2 ) return Math.sqrt( dist );
 
 			}
 
@@ -173,8 +176,10 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 			if ( dist < closestDistanceSq ) {
 
 				closestDistanceSq = dist;
-				target.copy( thisVec );
-				target2.copy( point );
+				if ( target ) target.copy( thisVec );
+				if ( target2 ) target2.copy( point );
+
+				if ( dist < threshold2 ) return Math.sqrt( dist );
 
 			}
 
@@ -197,8 +202,10 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 				if ( dist < closestDistanceSq ) {
 
 					closestDistanceSq = dist;
-					target.copy( point );
-					target2.copy( point2 );
+					if ( target ) target.copy( point );
+					if ( target2 ) target2.copy( point2 );
+
+					if ( dist < threshold2 ) return Math.sqrt( dist );
 
 				}
 
@@ -206,7 +213,8 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 		}
 
-		return target.distanceTo( target2 );
+		return Math.sqrt( closestDistanceSq );
+		// return target.distanceTo( target2 );
 
 	};
 

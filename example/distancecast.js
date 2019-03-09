@@ -71,7 +71,7 @@ function init() {
 	planeGeom.computeVertexNormals();
 	planeGeom.computeBoundsTree();
 
-	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { color: 0xE0F7FA, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
+	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { color: 0xFFFFFF, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
 	terrain.rotation.x = - Math.PI / 2;
 	terrain.position.y = - 3;
 	terrain.receiveShadow = true;

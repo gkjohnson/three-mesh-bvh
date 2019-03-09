@@ -226,22 +226,50 @@ OrientedBox.prototype.distanceToBox = ( function () {
 	const point1 = new Vector3();
 	const point2 = new Vector3();
 
-	const target1 = new Vector3();
-	const target2 = new Vector3();
+	const target1 = null;
+	const target2 = null;
 
-	return function distanceToBox( box ) {
+	return function distanceToBox( box, threshold = 0 ) {
 
 		if ( this.intersectsBox( box ) ) {
 
+			// TODO: output box target points
+			// if ( target1 ) target1.copy( this.a );
+			// if ( target2 ) target2.copy( this.a );
 			return 0;
+
+		}
+
+		const threshold2 = threshold * threshold;
+		const min = box.min;
+		const max = box.max;
+		const points = this.points;
+
+
+		// iterate over every edge and compare distances
+		let closestDistanceSq = Infinity;
+
+		// check over all these points
+		for ( let i = 0; i < 8; i ++ ) {
+
+			const p = points[ i ];
+			point2.copy( p ).clamp( min, max );
+
+			const dist = p.distanceToSquared( point2 );
+			if ( dist < closestDistanceSq ) {
+
+				closestDistanceSq = dist;
+				if ( target1 ) target1.copy( p );
+				if ( target2 ) target2.copy( point2 );
+
+				if ( dist < threshold2 ) return Math.sqrt( dist );
+
+			}
 
 		}
 
 		// generate and check all line segment distances
 		let count = 0;
-		const min = box.min;
-		const max = box.max;
-		const points = this.points;
 		for ( let i = 0; i < 3; i ++ ) {
 
 			for ( let i1 = 0; i1 <= 1; i1 ++ ) {
@@ -276,27 +304,9 @@ OrientedBox.prototype.distanceToBox = ( function () {
 					end[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
 					end[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
 
+					count ++;
+
 				}
-
-			}
-
-		}
-
-		// iterate over every edge and compare distances
-		let closestDistanceSq = Infinity;
-
-		// check over all these points
-		for ( let i = 0; i < 8; i ++ ) {
-
-			const p = points[ i ];
-			point2.copy( p ).clamp( min, max );
-
-			const dist = p.distanceToSquared( point2 );
-			if ( dist < closestDistanceSq ) {
-
-				closestDistanceSq = dist;
-				target1.copy( p );
-				target2.copy( point2 );
 
 			}
 
@@ -318,8 +328,10 @@ OrientedBox.prototype.distanceToBox = ( function () {
 					if ( dist < closestDistanceSq ) {
 
 						closestDistanceSq = dist;
-						target1.copy( point1 );
-						target2.copy( point2 );
+						if ( target1 ) target1.copy( point1 );
+						if ( target2 ) target2.copy( point2 );
+
+						if ( dist < threshold2 ) return Math.sqrt( dist );
 
 					}
 
@@ -340,8 +352,10 @@ OrientedBox.prototype.distanceToBox = ( function () {
 				if ( dist < closestDistanceSq ) {
 
 					closestDistanceSq = dist;
-					target1.copy( point1 );
-					target2.copy( point2 );
+					if ( target1 ) target1.copy( point1 );
+					if ( target2 ) target2.copy( point2 );
+
+					if ( dist < threshold2 ) return Math.sqrt( dist );
 
 				}
 
@@ -349,7 +363,8 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 		}
 
-		return target1.distanceTo( target2 );
+		return Math.sqrt( closestDistanceSq );
+		// return target1.distanceTo( target2 );
 
 	};
 
