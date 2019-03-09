@@ -18,13 +18,17 @@ const params = {
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
 	distance: 1,
+	resolution: 100,
+	radius: 4,
+	hideWhileGenerating: false,
+	fieldSize: 10
 
 };
 
 let stats;
 let scene, camera, renderer, controls, boundsViz;
 let terrain, target, transformControls;
-let marchingCubes, marchingCubesMesh, marchingCubesMeshBack;
+let marchingCubes, marchingCubesMesh, marchingCubesMeshBack, marchingCubesContainer;
 
 function init() {
 
@@ -104,9 +108,10 @@ function init() {
 	const cubeMat = new THREE.MeshStandardMaterial( {
 		color: 0xE91E63,
 		metalness: 0.0,
-		roughness: 0.9
+		roughness: 0.9,
+		side: THREE.DoubleSide,
 	} );
-	marchingCubes = new MarchingCubes( 120, cubeMat, false, false );
+	marchingCubes = new MarchingCubes( 100, cubeMat, false, false );
 	marchingCubes.isolation = 0;
 
 	const meshMat = new THREE.MeshStandardMaterial( {
@@ -120,26 +125,35 @@ function init() {
 	} );
 	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
 	marchingCubesMesh.visible = false;
-	marchingCubesMesh.castShadow = true;
+	marchingCubesMesh.receiveShadow = true;
 
 	const backMeshMat = meshMat.clone();
 	backMeshMat.side = THREE.BackSide;
 	marchingCubesMeshBack = new THREE.Mesh( undefined, backMeshMat );
+	marchingCubesMeshBack.receiveShadow = true;
 	marchingCubesMeshBack.visible = false;
 
-	const container = new THREE.Group();
-	container.scale.multiplyScalar( 5 );
-	container.add( marchingCubes );
-	container.add( marchingCubesMeshBack );
-	container.add( marchingCubesMesh );
-	scene.add( container );
+	marchingCubesContainer = new THREE.Group();
+	marchingCubesContainer.scale.multiplyScalar( 5 );
+	marchingCubesContainer.add( marchingCubes );
+	marchingCubesContainer.add( marchingCubesMeshBack );
+	marchingCubesContainer.add( marchingCubesMesh );
+	scene.add( marchingCubesContainer );
 
 	scene.updateMatrixWorld( true );
 
 	const gui = new dat.GUI();
 	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
-	gui.add( params, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => updateFromOptions() );
+
+	const mcFolder = gui.addFolder( 'distanceVolume' );
+	mcFolder.add( params, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => regenerate = true );
+	mcFolder.add( params, 'radius' ).min( 1 ).max( 20 ).onChange( () => regenerate = true );
+	mcFolder.add( params, 'resolution', 5, 200, 1 ).onChange( () => regenerate = true );
+	mcFolder.add( params, 'fieldSize', 3, 20, 1 ).onChange( () => regenerate = true );
+	mcFolder.add( params, 'hideWhileGenerating' );
+	mcFolder.open();
+
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
 
 	const posFolder = gui.addFolder( 'position' );
@@ -153,6 +167,12 @@ function init() {
 	rotFolder.add( target.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.add( target.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.open();
+
+	const scaleFolder = gui.addFolder( 'scale' );
+	scaleFolder.add( target.scale, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	scaleFolder.add( target.scale, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	scaleFolder.add( target.scale, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	scaleFolder.open();
 
 	gui.open();
 
@@ -182,7 +202,25 @@ function updateFromOptions() {
 
 }
 
+function regenerateMesh() {
+
+	marchingCubes.isolation = 0.5;
+	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
+	marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
+
+}
+
 function* updateMarchingCubes() {
+
+	marchingCubesContainer.scale.set( params.fieldSize / 2, params.fieldSize / 2, params.fieldSize / 2 );
+	marchingCubesContainer.updateMatrixWorld();
+
+	marchingCubesContainer.remove( marchingCubes );
+	const newMarchingCubes = new MarchingCubes( params.resolution, marchingCubes.material, false, false );
+	newMarchingCubes.isolation = 0;
+	marchingCubes = newMarchingCubes;
+	marchingCubesContainer.add( marchingCubes );
+	marchingCubes.updateMatrixWorld();
 
 	// marching cubes ranges from -1 to 1
 	const dim = marchingCubes.matrixWorld.getMaxScaleOnAxis();
@@ -197,7 +235,6 @@ function* updateMarchingCubes() {
 	marchingCubes.position.z = 1 / size;
 
 	marchingCubes.reset();
-	marchingCubes.field.fill( - 1 );
 
 	const pos = new THREE.Vector3();
 	const scale = new THREE.Vector3();
@@ -207,11 +244,11 @@ function* updateMarchingCubes() {
 
 	const targetToBvh = new THREE.Matrix4();
 	const distance = params.distance;
+	const radius = params.radius;
 	let count = 0;
 
 	marchingCubesMesh.visible = false;
 	marchingCubesMeshBack.visible = false;
-	marchingCubes.visible = true;
 
 	for ( let y = 0; y < size; y ++ ) {
 
@@ -224,7 +261,7 @@ function* updateMarchingCubes() {
 				pos.z = min + cellWidth2 + z * cellWidth;
 
 
-				if ( pos.length() < 3 ) {
+				if ( pos.length() < radius ) {
 
 					targetToBvh.getInverse( terrain.matrixWorld );
 					pos.applyMatrix4( targetToBvh );
@@ -252,27 +289,25 @@ function* updateMarchingCubes() {
 	}
 
 	marchingCubes.blur( 1 );
-	marchingCubes.isolation = 0.5;
-	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
-	marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
+
+	regenerateMesh();
+
 	marchingCubesMesh.visible = true;
 	marchingCubesMeshBack.visible = true;
-	marchingCubes.visible = false;
-
 }
 
 let currentTask = null;
-let lastDist = null;
+let regenerate = true;
 function render() {
 
 	stats.begin();
 
 	if ( boundsViz ) boundsViz.update();
 
-	if ( lastDist !== params.distance ) {
+	if ( regenerate ) {
 
 		currentTask = updateMarchingCubes();
-		lastDist = params.distance;
+		regenerate = false;
 
 	}
 
@@ -280,13 +315,15 @@ function render() {
 	if ( currentTask ) {
 
 		let startTime = window.performance.now();
-		while ( window.performance.now() - startTime < 60 ) {
+		marchingCubes.visible = ! params.hideWhileGenerating;
+		while ( window.performance.now() - startTime < 15 ) {
 
 			const res = currentTask.next();
 			percentage = res.value;
 
 			if ( res.done ) {
 
+				marchingCubes.visible = false;
 				currentTask = null;
 				break;
 
