@@ -17,11 +17,16 @@ const params = {
 
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
-	distance: 1,
-	resolution: 100,
-	radius: 4,
-	hideWhileGenerating: false,
-	fieldSize: 10
+
+	volume: {
+		distance: 1,
+		resolution: 100,
+		radius: 4,
+		hideWhileGenerating: false,
+		fieldSize: 10,
+		display: true,
+	},
+	displayClosestPoint: true,
 
 };
 
@@ -65,12 +70,14 @@ function init() {
 	const planeGeom = new THREE.PlaneBufferGeometry( size, size, dim - 1, dim - 1 );
 	const posAttr = planeGeom.attributes.position;
 
-	const noise = new SimplexNoise( Math.random() );
+	const seed = ~ ~ ( Math.random() * 100 );
+	console.log( 'noise seed: ', seed );
+	const noise = new SimplexNoise( seed );
 	for ( let i = 0; i < dim * dim; i ++ ) {
 
 		const x = posAttr.getX( i ) / 15;
 		const y = posAttr.getY( i ) / 15;
-		posAttr.setZ( i, noise.noise2D( x, y ) * 2 );
+		posAttr.setZ( i, noise.noise2D( x, y ) * 3 );
 
 	}
 	planeGeom.computeVertexNormals();
@@ -94,7 +101,7 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	const shapeMaterial = new THREE.MeshStandardMaterial( { roughness: 0.75, metalness: 0.1 } );
-	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
+	target = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.5, 0.25, 1, 20, 1 ), shapeMaterial );
 	target.castShadow = true;
 	target.receiveShadow = true;
 	scene.add( target );
@@ -166,11 +173,12 @@ function init() {
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 
 	const mcFolder = gui.addFolder( 'distanceVolume' );
-	mcFolder.add( params, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => regenerate = true );
-	mcFolder.add( params, 'radius' ).min( 1 ).max( 20 ).onChange( () => regenerate = true );
-	mcFolder.add( params, 'resolution', 5, 200, 1 ).onChange( () => regenerate = true );
-	mcFolder.add( params, 'fieldSize', 3, 20, 1 ).onChange( () => regenerate = true );
-	mcFolder.add( params, 'hideWhileGenerating' );
+	mcFolder.add( params.volume, 'display' );
+	mcFolder.add( params.volume, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => regenerate = true );
+	mcFolder.add( params.volume, 'radius' ).min( 1 ).max( 20 ).onChange( () => regenerate = true );
+	mcFolder.add( params.volume, 'resolution', 5, 200, 1 ).onChange( () => regenerate = true );
+	mcFolder.add( params.volume, 'fieldSize', 3, 20, 1 ).onChange( () => regenerate = true );
+	mcFolder.add( params.volume, 'hideWhileGenerating' );
 	mcFolder.open();
 
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
@@ -179,19 +187,16 @@ function init() {
 	posFolder.add( target.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 	posFolder.add( target.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 	posFolder.add( target.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
-	posFolder.open();
 
 	const rotFolder = gui.addFolder( 'rotation' );
 	rotFolder.add( target.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.add( target.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.add( target.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	rotFolder.open();
 
 	const scaleFolder = gui.addFolder( 'scale' );
 	scaleFolder.add( target.scale, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	scaleFolder.add( target.scale, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	scaleFolder.add( target.scale, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	scaleFolder.open();
 
 	gui.open();
 
@@ -230,11 +235,11 @@ function regenerateMesh() {
 
 function* updateMarchingCubes() {
 
-	marchingCubesContainer.scale.set( params.fieldSize / 2, params.fieldSize / 2, params.fieldSize / 2 );
+	marchingCubesContainer.scale.set( params.volume.fieldSize / 2, params.volume.fieldSize / 2, params.volume.fieldSize / 2 );
 	marchingCubesContainer.updateMatrixWorld();
 
 	marchingCubesContainer.remove( marchingCubes );
-	const newMarchingCubes = new MarchingCubes( params.resolution, marchingCubes.material, false, false );
+	const newMarchingCubes = new MarchingCubes( params.volume.resolution, marchingCubes.material, false, false );
 	newMarchingCubes.isolation = 0;
 	marchingCubes = newMarchingCubes;
 	marchingCubesContainer.add( marchingCubes );
@@ -261,12 +266,9 @@ function* updateMarchingCubes() {
 	target.matrixWorld.decompose( pos, quaternion, scale );
 
 	const targetToBvh = new THREE.Matrix4();
-	const distance = params.distance;
-	const radius = params.radius;
+	const distance = params.volume.distance;
+	const radius = params.volume.radius;
 	let count = 0;
-
-	marchingCubesMesh.visible = false;
-	marchingCubesMeshBack.visible = false;
 
 	for ( let y = 0; y < size; y ++ ) {
 
@@ -307,12 +309,8 @@ function* updateMarchingCubes() {
 	}
 
 	marchingCubes.blur( 1 );
-	marchingCubes.blur( 1 );
 
 	regenerateMesh();
-
-	marchingCubesMesh.visible = true;
-	marchingCubesMeshBack.visible = true;
 
 }
 
@@ -334,8 +332,11 @@ function render() {
 	let percentage = 0;
 	if ( currentTask ) {
 
+		marchingCubesMesh.visible = false;
+		marchingCubesMeshBack.visible = false;
+
 		let startTime = window.performance.now();
-		marchingCubes.visible = ! params.hideWhileGenerating;
+		marchingCubes.visible = ! params.volume.hideWhileGenerating && params.volume.display;
 		while ( window.performance.now() - startTime < 15 ) {
 
 			const res = currentTask.next();
@@ -353,6 +354,14 @@ function render() {
 
 	}
 
+	if ( ! currentTask ) {
+
+		marchingCubesMesh.visible = params.volume.display;
+		marchingCubesMeshBack.visible = params.volume.display;
+
+	}
+
+
 	document.getElementById( 'loader' ).setAttribute( 'style', `width: ${ percentage * 100 }%` );
 
 	const transformMatrix =
@@ -360,8 +369,8 @@ function render() {
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, transformMatrix, 0, params.distance, sphere1.position, sphere2.position );
-	const hit = dist !== null && dist < params.distance;
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, transformMatrix, 0, params.volume.distance, sphere1.position, sphere2.position );
+	const hit = dist !== null && dist < params.volume.distance;
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
