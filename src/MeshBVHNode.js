@@ -448,7 +448,7 @@ MeshBVHNode.prototype.distancecast = ( function () {
 				return false;
 
 			},
-			box => obb.distanceToBox( box )
+			box => obb.distanceToBox( box, threshold )
 
 		);
 
