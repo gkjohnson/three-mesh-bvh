@@ -4,7 +4,6 @@ import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
 import { arrayToBox, sphereIntersectTriangle } from './BoundsUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
-import { Sphere } from 'three/build/three.module';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();

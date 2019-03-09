@@ -115,7 +115,7 @@ intersectGeometry.computeBoundsTree();
 runBenchmark(
 
 	'Distance cast',
-	() => mesh.geometry.boundsTree.distancecast( mesh, intersectGeometry, geomMat, 1 ),
+	() => mesh.geometry.boundsTree.distanceToGeometry( mesh, intersectGeometry, geomMat, 1 ),
 	3000
 
 );
