@@ -65,10 +65,7 @@ function init() {
 	const planeGeom = new THREE.PlaneBufferGeometry( size, size, dim - 1, dim - 1 );
 	const posAttr = planeGeom.attributes.position;
 
-	const seed = 61; //~ ~ ( Math.random() * 100 );
-	console.log( seed )
-
-	const noise = new SimplexNoise( seed );
+	const noise = new SimplexNoise( Math.random() );
 	for ( let i = 0; i < dim * dim; i ++ ) {
 
 		const x = posAttr.getX( i ) / 15;
@@ -100,7 +97,6 @@ function init() {
 	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
 	target.castShadow = true;
 	target.receiveShadow = true;
-	target.rotation.set( Math.PI / 4, 0, Math.PI / 4 )
 	scene.add( target );
 
 	controls = new OrbitControls( camera, renderer.domElement );
@@ -364,7 +360,7 @@ function render() {
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const dist = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, transformMatrix, 0, params.distance, sphere1.position, sphere2.position );
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, transformMatrix, 0, params.distance, sphere1.position, sphere2.position );
 	const hit = dist !== null && dist < params.distance;
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );

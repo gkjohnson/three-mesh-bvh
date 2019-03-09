@@ -407,13 +407,15 @@ MeshBVHNode.prototype.spherecast = ( function () {
 
 } )();
 
-MeshBVHNode.prototype.distanceToPoint = ( function () {
+MeshBVHNode.prototype.closestPointToPoint = ( function () {
 
 	// early out if under minThreshold
 	// skip checking if over maxThreshold
 	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
 	// returns null if no value found
-	return function distanceToPoint( mesh, point, minThreshold = 0, maxThreshold = Infinity ) {
+
+	const temp = new THREE.Vector3();
+	return function closestPointToPoint( mesh, point, minThreshold = 0, maxThreshold = Infinity, target = null ) {
 
 		let closestDistance = Infinity;
 		this.shapecast(
@@ -422,8 +424,14 @@ MeshBVHNode.prototype.distanceToPoint = ( function () {
 			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
 			tri => {
 
-				const dist = tri.distanceToPoint( point );
-				if ( dist < closestDistance ) closestDistance = dist;
+				tri.closestPointToPoint( point, temp );
+				const dist = point.distanceTo( temp );
+				if ( dist < closestDistance ) {
+
+					if ( target ) target.copy( temp );
+					closestDistance = dist;
+
+				}
 				if ( dist < minThreshold ) return true;
 				return false;
 
@@ -438,19 +446,19 @@ MeshBVHNode.prototype.distanceToPoint = ( function () {
 
 } )();
 
-MeshBVHNode.prototype.distanceToGeometry = ( function () {
+MeshBVHNode.prototype.closestPointToGeometry = ( function () {
+
+	// early out if under minThreshold
+	// skip checking if over maxThreshold
+	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+	// returns null if no value found
 
 	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
 
 	const temp1 = new THREE.Vector3();
 	const temp2 = new THREE.Vector3();
-
-	// early out if under minThreshold
-	// skip checking if over maxThreshold
-	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-	// returns null if no value found
-	return function distanceToGeometry( mesh, geometry, geometryToBvh, minThreshold = 0, maxThreshold = Infinity, target1 = null, target2 = null ) {
+	return function closestPointToGeometry( mesh, geometry, geometryToBvh, minThreshold = 0, maxThreshold = Infinity, target1 = null, target2 = null ) {
 
 		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );

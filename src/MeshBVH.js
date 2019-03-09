@@ -265,12 +265,33 @@ export default class MeshBVH {
 
 	}
 
-	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 ) {
+	closestPointToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 ) {
 
 		let closestDistance = Infinity;
 		for ( const root of this._roots ) {
 
-			const dist = root.distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 );
+			const dist = root.closestPointToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 );
+			if ( dist < closestDistance ) closestDistance = dist;
+			if ( dist < minThreshold ) return dist;
+
+		}
+
+		return closestDistance;
+
+	}
+
+	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold ) {
+
+		return this.closestPointToGeometry( mesh, geom, matrix, minThreshold, maxThreshold );
+
+	}
+
+	closestPointToPoint( mesh, point, minThreshold, maxThreshold, target ) {
+
+		let closestDistance = Infinity;
+		for ( const root of this._roots ) {
+
+			const dist = root.closestPointToPoint( mesh, point, minThreshold, maxThreshold, target );
 			if ( dist < closestDistance ) closestDistance = dist;
 			if ( dist < minThreshold ) return dist;
 
@@ -282,16 +303,7 @@ export default class MeshBVH {
 
 	distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
 
-		let closestDistance = Infinity;
-		for ( const root of this._roots ) {
-
-			const dist = root.distanceToPoint( mesh, point, minThreshold, maxThreshold );
-			if ( dist < closestDistance ) closestDistance = dist;
-			if ( dist < minThreshold ) return dist;
-
-		}
-
-		return closestDistance;
+		return this.closestPointToPoint( mesh, point, minThreshold, maxThreshold );
 
 	}
 
