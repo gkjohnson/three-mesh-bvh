@@ -429,7 +429,6 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 
 	const tri2 = new SeparatingAxisTriangle();
 	const obb = new OrientedBox();
-	const sphere = new Sphere();
 
 	return function distanceToGeometry( mesh, geometry, geometryToBvh, threshold = Infinity ) {
 
@@ -437,7 +436,6 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
 		obb.update();
 
-		const obbSphere = obb.sphere;
 		const pos = geometry.attributes.position;
 		const index = geometry.index;
 
@@ -480,7 +478,7 @@ MeshBVHNode.prototype.distanceToGeometry = ( function () {
 		);
 
 		return res;
-		return found ? closestDistance : null;
+		// return found ? closestDistance : null;
 
 	};
 

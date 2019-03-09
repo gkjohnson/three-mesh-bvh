@@ -149,15 +149,13 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 	const cornerFields = [ 'a', 'b', 'c' ];
 	const line1 = new Line3();
 	const line2 = new Line3();
-	const target = null;
-	const target2 = null;
 
-	return function distanceToTriangle( other ) {
+	return function distanceToTriangle( other, target1 = null, target2 = null ) {
 
 		if ( this.intersectsTriangle( other ) ) {
 
 			// TODO: Get the intersection line or something and return the center point
-			if ( target ) target.copy( this.a );
+			if ( target1 ) target1.copy( this.a );
 			if ( target2 ) target2.copy( this.a );
 			return 0;
 
@@ -178,7 +176,7 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 			if ( dist < closestDistanceSq ) {
 
 				closestDistanceSq = dist;
-				if ( target ) target.copy( point );
+				if ( target1 ) target1.copy( point );
 				if ( target2 ) target2.copy( otherVec );
 
 			}
@@ -192,7 +190,7 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 			if ( dist < closestDistanceSq ) {
 
 				closestDistanceSq = dist;
-				if ( target ) target.copy( thisVec );
+				if ( target1 ) target1.copy( thisVec );
 				if ( target2 ) target2.copy( point );
 
 			}
@@ -216,7 +214,7 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 				if ( dist < closestDistanceSq ) {
 
 					closestDistanceSq = dist;
-					if ( target ) target.copy( point );
+					if ( target1 ) target1.copy( point );
 					if ( target2 ) target2.copy( point2 );
 
 				}

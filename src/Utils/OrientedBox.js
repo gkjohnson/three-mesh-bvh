@@ -238,16 +238,20 @@ OrientedBox.prototype.distanceToBox = ( function () {
 	const point1 = new Vector3();
 	const point2 = new Vector3();
 
-	const target1 = null;
-	const target2 = null;
-
-	return function distanceToBox( box, threshold = 0 ) {
+	return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
 
 		if ( this.intersectsBox( box ) ) {
 
-			// TODO: output box target points
-			// if ( target1 ) target1.copy( this.a );
-			// if ( target2 ) target2.copy( this.a );
+			if ( target1 || target2 ) {
+
+				box.getCenter( point2 );
+				this.closestPointToPoint( point2, point1 );
+				box.closestPointToPoint( point1, point2 );
+
+				if ( target1 ) target1.copy( point1 );
+				if ( target2 ) target2.copy( point2 );
+
+			}
 			return 0;
 
 		}

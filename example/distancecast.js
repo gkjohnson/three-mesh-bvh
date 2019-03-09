@@ -276,14 +276,14 @@ function render() {
 
 	}
 
-	let perc = 0;
+	let percentage = 0;
 	if ( currentTask ) {
 
 		let startTime = window.performance.now();
 		while ( window.performance.now() - startTime < 60 ) {
 
 			const res = currentTask.next();
-			perc = res.value;
+			percentage = res.value;
 
 			if ( res.done ) {
 
@@ -296,9 +296,7 @@ function render() {
 
 	}
 
-	document.getElementById( 'loader' ).setAttribute( 'style', `width: ${ perc * 100 }%` );
-
-	// updateMarchingCubes();
+	document.getElementById( 'loader' ).setAttribute( 'style', `width: ${ percentage * 100 }%` );
 
 	const transformMatrix =
 		new THREE.Matrix4()
