@@ -29,6 +29,7 @@ let stats;
 let scene, camera, renderer, controls, boundsViz;
 let terrain, target, transformControls;
 let marchingCubes, marchingCubesMesh, marchingCubesMeshBack, marchingCubesContainer;
+let sphere1, sphere2, line;
 
 function init() {
 
@@ -64,7 +65,10 @@ function init() {
 	const planeGeom = new THREE.PlaneBufferGeometry( size, size, dim - 1, dim - 1 );
 	const posAttr = planeGeom.attributes.position;
 
-	const noise = new SimplexNoise( Math.random() );
+	const seed = 61; //~ ~ ( Math.random() * 100 );
+	console.log( seed )
+
+	const noise = new SimplexNoise( seed );
 	for ( let i = 0; i < dim * dim; i ++ ) {
 
 		const x = posAttr.getX( i ) / 15;
@@ -96,6 +100,7 @@ function init() {
 	target = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
 	target.castShadow = true;
 	target.receiveShadow = true;
+	target.rotation.set( Math.PI / 4, 0, Math.PI / 4 )
 	scene.add( target );
 
 	controls = new OrbitControls( camera, renderer.domElement );
@@ -121,7 +126,7 @@ function init() {
 		roughness: 0.9,
 		transparent: true,
 		depthWrite: false,
-		opacity: 0.25,
+		opacity: 0.1,
 	} );
 	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
 	marchingCubesMesh.visible = false;
@@ -139,6 +144,24 @@ function init() {
 	marchingCubesContainer.add( marchingCubesMeshBack );
 	marchingCubesContainer.add( marchingCubesMesh );
 	scene.add( marchingCubesContainer );
+
+
+	sphere1 = new THREE.Mesh(
+		new THREE.SphereBufferGeometry( 0.025, 20, 20 ),
+		new THREE.MeshBasicMaterial( {
+			color: 0xE91E63,
+		} ) );
+	scene.add( sphere1 );
+
+	sphere2 = sphere1.clone();
+	scene.add( sphere2 );
+
+	const lineCube = new THREE.Mesh( new THREE.BoxBufferGeometry(), sphere1.material );
+	lineCube.position.z = 0.5;
+
+	line = new THREE.Object3D();
+	line.add( lineCube );
+	scene.add( line );
 
 	scene.updateMatrixWorld( true );
 
@@ -204,7 +227,6 @@ function updateFromOptions() {
 
 function regenerateMesh() {
 
-	marchingCubes.isolation = 0.5;
 	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
 	marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
 
@@ -289,11 +311,13 @@ function* updateMarchingCubes() {
 	}
 
 	marchingCubes.blur( 1 );
+	marchingCubes.blur( 1 );
 
 	regenerateMesh();
 
 	marchingCubesMesh.visible = true;
 	marchingCubesMeshBack.visible = true;
+
 }
 
 let currentTask = null;
@@ -340,9 +364,29 @@ function render() {
 			.getInverse( terrain.matrixWorld )
 			.multiply( target.matrixWorld );
 
-	const hit = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, transformMatrix, params.distance, params.distance ) !== null;
+	const dist = terrain.geometry.boundsTree.distanceToGeometry( terrain, target.geometry, transformMatrix, 0, params.distance, sphere1.position, sphere2.position );
+	const hit = dist !== null && dist < params.distance;
 	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
+
+	const newMat = new THREE.Matrix4();
+	newMat.getInverse( transformMatrix );
+
+	sphere1.position.applyMatrix4( terrain.matrixWorld );
+	sphere2.position.applyMatrix4( terrain.matrixWorld );
+
+	line.position.copy( sphere1.position );
+	line.lookAt( sphere2.position );
+	line.scale.set(
+		0.01,
+		0.01,
+		sphere1.position.distanceTo( sphere2.position )
+	);
+
+	line.visible = hit;
+	sphere1.visible = hit;
+	sphere2.visible = hit;
+
 
 	renderer.render( scene, camera );
 	stats.end();

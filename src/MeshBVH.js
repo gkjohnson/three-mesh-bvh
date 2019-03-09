@@ -265,12 +265,12 @@ export default class MeshBVH {
 
 	}
 
-	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold ) {
+	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 ) {
 
 		let closestDistance = Infinity;
 		for ( const root of this._roots ) {
 
-			const dist = root.distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold );
+			const dist = root.distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold, target1, target2 );
 			if ( dist < closestDistance ) closestDistance = dist;
 			if ( dist < minThreshold ) return dist;
 
