@@ -1,7 +1,7 @@
 import { Vector3, Line3, Plane } from 'three';
 
 // Returns a Float32Array representing the bounds data for box.
-function boundsToArray( bx ) {
+function boxToArray( bx ) {
 
 	const arr = new Float32Array( 6 );
 
@@ -98,5 +98,5 @@ const sphereIntersectTriangle = ( function () {
 } )();
 
 export {
-	boundsToArray, arrayToBox, getLongestEdgeIndex, sphereIntersectTriangle
+	boxToArray, arrayToBox, getLongestEdgeIndex, sphereIntersectTriangle
 };
