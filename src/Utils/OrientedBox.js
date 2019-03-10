@@ -1,7 +1,7 @@
-import { Box3, Vector3, Matrix4, Sphere } from 'three';
+import { Box3, Vector3, Matrix4, Sphere, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
-
+import { closestPointsSegmentToSegment } from './DistanceUtilities.js';
 
 export class OrientedBox extends Box3 {
 
@@ -11,6 +11,7 @@ export class OrientedBox extends Box3 {
 
 		this.isOrientedBox = true;
 		this.matrix = new Matrix4();
+		this.invMatrix = new Matrix4();
 		this.points = new Array( 8 ).fill().map( () => new Vector3() );
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
@@ -85,6 +86,8 @@ OrientedBox.prototype.update = ( function () {
 		alignedSatBounds[ 0 ].setFromPointsField( points, 'x' );
 		alignedSatBounds[ 1 ].setFromPointsField( points, 'y' );
 		alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
+
+		this.invMatrix.getInverse( this.matrix );
 
 	};
 
@@ -192,6 +195,191 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 		}
 
 		return true;
+
+	};
+
+} )();
+
+OrientedBox.prototype.closestPointToPoint = ( function () {
+
+	return function closestPointToPoint( point, target1 ) {
+
+		target1
+			.copy( point )
+			.applyMatrix4( this.invMatrix )
+			.clamp( this.min, this.max )
+			.applyMatrix4( this.matrix );
+
+		return target1;
+
+	};
+
+} )();
+
+OrientedBox.prototype.distanceToPoint = ( function () {
+
+	const target = new Vector3();
+	return function distanceToPoint( point ) {
+
+		this.closestPointToPoint( point, target );
+		return point.distanceTo( target );
+
+	};
+
+} )();
+
+
+OrientedBox.prototype.distanceToBox = ( function () {
+
+	const xyzFields = [ 'x', 'y', 'z' ];
+	const segments1 = new Array( 12 ).fill().map( () => new Line3() );
+	const segments2 = new Array( 12 ).fill().map( () => new Line3() );
+
+	const point1 = new Vector3();
+	const point2 = new Vector3();
+
+	return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
+
+		if ( this.intersectsBox( box ) ) {
+
+			if ( target1 || target2 ) {
+
+				box.getCenter( point2 );
+				this.closestPointToPoint( point2, point1 );
+				box.closestPointToPoint( point1, point2 );
+
+				if ( target1 ) target1.copy( point1 );
+				if ( target2 ) target2.copy( point2 );
+
+			}
+			return 0;
+
+		}
+
+		const threshold2 = threshold * threshold;
+		const min = box.min;
+		const max = box.max;
+		const points = this.points;
+
+
+		// iterate over every edge and compare distances
+		let closestDistanceSq = Infinity;
+
+		// check over all these points
+		for ( let i = 0; i < 8; i ++ ) {
+
+			const p = points[ i ];
+			point2.copy( p ).clamp( min, max );
+
+			const dist = p.distanceToSquared( point2 );
+			if ( dist < closestDistanceSq ) {
+
+				closestDistanceSq = dist;
+				if ( target1 ) target1.copy( p );
+				if ( target2 ) target2.copy( point2 );
+
+				if ( dist < threshold2 ) return Math.sqrt( dist );
+
+			}
+
+		}
+
+		// generate and check all line segment distances
+		let count = 0;
+		for ( let i = 0; i < 3; i ++ ) {
+
+			for ( let i1 = 0; i1 <= 1; i1 ++ ) {
+
+				for ( let i2 = 0; i2 <= 1; i2 ++ ) {
+
+					const nextIndex = ( i + 1 ) % 3;
+					const nextIndex2 = ( i + 2 ) % 3;
+
+					// get obb line segments
+					const index = i1 << nextIndex | i2 << nextIndex2;
+					const index2 = 1 << i | i1 << nextIndex | i2 << nextIndex2;
+					const p1 = points[ index ];
+					const p2 = points[ index2 ];
+					const line1 = segments1[ count ];
+					line1.set( p1, p2 );
+
+
+					// get aabb line segments
+					const f1 = xyzFields[ i ];
+					const f2 = xyzFields[ nextIndex ];
+					const f3 = xyzFields[ nextIndex2 ];
+					const line2 = segments2[ count ];
+					const start = line2.start;
+					const end = line2.end;
+
+					start[ f1 ] = min[ f1 ];
+					start[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
+					start[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
+
+					end[ f1 ] = max[ f1 ];
+					end[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
+					end[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
+
+					count ++;
+
+				}
+
+			}
+
+		}
+
+		// check all the other boxes point
+		for ( let x = 0; x <= 1; x ++ ) {
+
+			for ( let y = 0; y <= 1; y ++ ) {
+
+				for ( let z = 0; z <= 1; z ++ ) {
+
+					point2.x = x ? max.x : min.x;
+					point2.y = y ? max.y : min.y;
+					point2.z = z ? max.z : min.z;
+
+					this.closestPointToPoint( point2, point1 );
+					const dist = point2.distanceToSquared( point1 );
+					if ( dist < closestDistanceSq ) {
+
+						closestDistanceSq = dist;
+						if ( target1 ) target1.copy( point1 );
+						if ( target2 ) target2.copy( point2 );
+
+						if ( dist < threshold2 ) return Math.sqrt( dist );
+
+					}
+
+				}
+
+			}
+
+		}
+
+		for ( let i = 0; i < 12; i ++ ) {
+
+			const l1 = segments1[ i ];
+			for ( let i2 = 0; i2 < 12; i2 ++ ) {
+
+				const l2 = segments2[ i2 ];
+				closestPointsSegmentToSegment( l1, l2, point1, point2 );
+				const dist = point1.distanceToSquared( point2 );
+				if ( dist < closestDistanceSq ) {
+
+					closestDistanceSq = dist;
+					if ( target1 ) target1.copy( point1 );
+					if ( target2 ) target2.copy( point2 );
+
+					if ( dist < threshold2 ) return Math.sqrt( dist );
+
+				}
+
+			}
+
+		}
+
+		return Math.sqrt( closestDistanceSq );
 
 	};
 

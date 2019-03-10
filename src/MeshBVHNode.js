@@ -140,7 +140,9 @@ class MeshBVHNode {
 MeshBVHNode.prototype.shapecast = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
-	return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+	const cachedBox1 = new THREE.Box3();
+	const cachedBox2 = new THREE.Box3();
+	return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 		if ( this.count && intersectsTriangleFunc ) {
 
@@ -172,25 +174,60 @@ MeshBVHNode.prototype.shapecast = ( function () {
 			let c1 = left;
 			let c2 = right;
 
-			if ( orderNodesFunc && orderNodesFunc( c1, c2 ) > 0 ) {
+			let score1, score2;
+			let box1, box2;
+			if ( nodeScoreFunc ) {
 
-				c1 = right;
-				c2 = left;
+				box1 = cachedBox1;
+				box2 = cachedBox2;
+
+				arrayToBox( c1.boundingData, box1 );
+				arrayToBox( c2.boundingData, box2 );
+
+				score1 = nodeScoreFunc( box1 );
+				score2 = nodeScoreFunc( box2 );
+
+				if ( score2 < score1 ) {
+
+					c1 = right;
+					c2 = left;
+
+					const temp = score1;
+					score1 = score2;
+					score2 = temp;
+
+					const tempBox = box1;
+					box1 = box2;
+					box2 = tempBox;
+
+				}
 
 			}
 
-			arrayToBox( c1.boundingData, boundingBox );
+			if ( ! box1 ) {
+
+				box1 = cachedBox1;
+				arrayToBox( c1.boundingData, box1 );
+
+			}
+
 			const c1Intersection =
-				intersectsBoundsFunc( boundingBox, ! ! c1.count ) &&
-				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+				intersectsBoundsFunc( box1, ! ! c1.count, score1 ) &&
+				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c1Intersection ) return true;
 
 
-			arrayToBox( c2.boundingData, boundingBox );
+			if ( ! box2 ) {
+
+				box2 = cachedBox2;
+				arrayToBox( c2.boundingData, box2 );
+
+			}
+
 			const c2Intersection =
-				intersectsBoundsFunc( boundingBox, ! ! c2.count ) &&
-				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+				intersectsBoundsFunc( box2, ! ! c2.count, score2 ) &&
+				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c2Intersection ) return true;
 
@@ -292,7 +329,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 					triangle.c.applyMatrix4( invertedMat );
 					triangle.update();
 
-					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 ++ ) {
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
 						setTriangle( triangle2, i2, index, pos );
 						triangle2.update();
@@ -365,6 +402,114 @@ MeshBVHNode.prototype.spherecast = ( function () {
 			box => sphere.intersectsBox( box ),
 			tri => sphereIntersectTriangle( sphere, tri )
 		);
+
+	};
+
+} )();
+
+MeshBVHNode.prototype.closestPointToPoint = ( function () {
+
+	// early out if under minThreshold
+	// skip checking if over maxThreshold
+	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+	// returns Infinity if no value found
+
+	const temp = new THREE.Vector3();
+	return function closestPointToPoint( mesh, point, target = null, minThreshold = 0, maxThreshold = Infinity ) {
+
+		let closestDistance = Infinity;
+		this.shapecast(
+
+			mesh,
+			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+			tri => {
+
+				tri.closestPointToPoint( point, temp );
+				const dist = point.distanceTo( temp );
+				if ( dist < closestDistance ) {
+
+					if ( target ) target.copy( temp );
+					closestDistance = dist;
+
+				}
+				if ( dist < minThreshold ) return true;
+				return false;
+
+			},
+			box => box.distanceToPoint( point )
+
+		);
+
+		return closestDistance;
+
+	};
+
+} )();
+
+MeshBVHNode.prototype.closestPointToGeometry = ( function () {
+
+	// early out if under minThreshold
+	// skip checking if over maxThreshold
+	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+	// returns Infinity if no value found
+
+	const tri2 = new SeparatingAxisTriangle();
+	const obb = new OrientedBox();
+
+	const temp1 = new THREE.Vector3();
+	const temp2 = new THREE.Vector3();
+	return function closestPointToGeometry( mesh, geometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+
+		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
+		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+		obb.update();
+
+		const pos = geometry.attributes.position;
+		const index = geometry.index;
+
+		let tempTarget1, tempTarget2;
+		if ( target1 ) tempTarget1 = temp1;
+		if ( target2 ) tempTarget2 = temp2;
+
+		let closestDistance = Infinity;
+		this.shapecast(
+			mesh,
+			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+			tri => {
+
+				const sphere1 = tri.sphere;
+				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+					setTriangle( tri2, i2, index, pos );
+					tri2.a.applyMatrix4( geometryToBvh );
+					tri2.b.applyMatrix4( geometryToBvh );
+					tri2.c.applyMatrix4( geometryToBvh );
+					tri2.sphere.setFromPoints( tri2.points );
+
+					const sphere2 = tri2.sphere;
+					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
+					if ( sphereDist > closestDistance ) continue;
+
+					const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
+					if ( dist < closestDistance ) {
+
+						if ( target1 ) target1.copy( tempTarget1 );
+						if ( target2 ) target2.copy( tempTarget2 );
+						closestDistance = dist;
+
+					}
+					if ( dist < minThreshold ) return true;
+
+				}
+
+				return false;
+
+			},
+			box => obb.distanceToBox( box, closestDistance )
+
+		);
+
+		return closestDistance;
 
 	};
 

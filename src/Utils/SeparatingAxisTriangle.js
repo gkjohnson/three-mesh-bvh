@@ -1,5 +1,6 @@
-import { Triangle, Vector3 } from 'three';
+import { Triangle, Vector3, Line3, Sphere } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
+import { closestPointsSegmentToSegment } from './DistanceUtilities.js';
 
 export class SeparatingAxisTriangle extends Triangle {
 
@@ -10,6 +11,8 @@ export class SeparatingAxisTriangle extends Triangle {
 		this.isSeparatingAxisTriangle = true;
 		this.satAxes = new Array( 4 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
+		this.points = [ this.a, this.b, this.c ];
+		this.sphere = new Sphere();
 
 	}
 
@@ -51,6 +54,8 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, arr );
 
+		this.sphere.setFromPoints( this.points );
+
 	};
 
 } )();
@@ -72,7 +77,6 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			other = saTri2;
 
 		}
-
 
 		const satBounds1 = this.satBounds;
 		const satAxes1 = this.satAxes;
@@ -123,3 +127,113 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 	};
 
 } )();
+
+
+SeparatingAxisTriangle.prototype.distanceToPoint = ( function () {
+
+	const target = new Vector3();
+	return function distanceToPoint( point ) {
+
+		this.closestPointToPoint( point, target );
+		return point.distanceTo( target );
+
+	};
+
+} )();
+
+
+SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
+
+	const point = new Vector3();
+	const point2 = new Vector3();
+	const cornerFields = [ 'a', 'b', 'c' ];
+	const line1 = new Line3();
+	const line2 = new Line3();
+
+	return function distanceToTriangle( other, target1 = null, target2 = null ) {
+
+		if ( this.intersectsTriangle( other ) ) {
+
+			if ( target1 || target2 ) {
+
+				this.getMidPoint( point );
+				other.closestPointToPoint( point, point2 );
+				this.closestPointToPoint( point2, point );
+
+				if ( target1 ) target1.copy( point );
+				if ( target2 ) target2.copy( point2 );
+
+			}
+
+			return 0;
+
+		}
+
+		let closestDistanceSq = Infinity;
+
+		// check all point distances
+		for ( let i = 0; i < 3; i ++ ) {
+
+			let dist;
+			const field = cornerFields[ i ];
+			const otherVec = other[ field ];
+			this.closestPointToPoint( otherVec, point );
+
+			dist = otherVec.distanceToSquared( point );
+
+			if ( dist < closestDistanceSq ) {
+
+				closestDistanceSq = dist;
+				if ( target1 ) target1.copy( point );
+				if ( target2 ) target2.copy( otherVec );
+
+			}
+
+
+			const thisVec = this[ field ];
+			other.closestPointToPoint( thisVec, point );
+
+			dist = thisVec.distanceToSquared( point );
+
+			if ( dist < closestDistanceSq ) {
+
+				closestDistanceSq = dist;
+				if ( target1 ) target1.copy( thisVec );
+				if ( target2 ) target2.copy( point );
+
+			}
+
+		}
+
+		for ( let i = 0; i < 3; i ++ ) {
+
+			const f11 = cornerFields[ i ];
+			const f12 = cornerFields[ ( i + 1 ) % 3 ];
+			line1.set( this[ f11 ], this[ f12 ] );
+			for ( let i2 = 0; i2 < 3; i2 ++ ) {
+
+				const f21 = cornerFields[ i ];
+				const f22 = cornerFields[ ( i + 1 ) % 3 ];
+				line2.set( other[ f21 ], other[ f22 ] );
+
+				closestPointsSegmentToSegment( line1, line2, point, point2 );
+
+				const dist = point.distanceToSquared( point2 );
+				if ( dist < closestDistanceSq ) {
+
+					closestDistanceSq = dist;
+					if ( target1 ) target1.copy( point );
+					if ( target2 ) target2.copy( point2 );
+
+				}
+
+			}
+
+		}
+
+		return Math.sqrt( closestDistanceSq );
+
+	};
+
+} )();
+

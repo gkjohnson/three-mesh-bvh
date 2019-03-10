@@ -109,6 +109,29 @@ runBenchmark(
 
 );
 
+
+geometry.computeBoundsTree();
+intersectGeometry.computeBoundsTree();
+runBenchmark(
+
+	'Distance cast',
+	() => mesh.geometry.boundsTree.distanceToGeometry( mesh, intersectGeometry, geomMat, 1, 1 ),
+	3000
+
+);
+
+const vec = new THREE.Vector3();
+geometry.computeBoundsTree();
+intersectGeometry.computeBoundsTree();
+runBenchmark(
+
+	'Distance To Point',
+	() => mesh.geometry.boundsTree.distanceToPoint( mesh, vec, 1, 1 ),
+	3000
+
+);
+
+
 console.log( '' );
 
 geometry.computeBoundsTree();
