@@ -53,14 +53,15 @@ function init() {
 	scene.fog = new THREE.Fog( 0x263238 / 2, 10, 45 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
-	light.position.set( 1, 1, 1 );
+	light.position.set( 20, 20, 20 );
 	light.castShadow = true;
 	light.shadow.mapSize.set( 1024, 1024 );
-
 
 	const shadowCam = light.shadow.camera;
 	shadowCam.left = shadowCam.bottom = - 15;
 	shadowCam.right = shadowCam.top = 15;
+	shadowCam.updateProjectionMatrix();
+
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xE0F7FA, 0.5 ) );
 
