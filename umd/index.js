@@ -197,9 +197,977 @@
 
 	}
 
+	const sphereIntersectTriangle = ( function () {
+
+		// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
+		const closestPointTemp = new THREE.Vector3();
+		const projectedPointTemp = new THREE.Vector3();
+		const planeTemp = new THREE.Plane();
+		const lineTemp = new THREE.Line3();
+		return function sphereIntersectTriangle( sphere, triangle ) {
+
+			const { radius, center } = sphere;
+			const { a, b, c } = triangle;
+
+			// phase 1
+			lineTemp.start = a;
+			lineTemp.end = b;
+			const closestPoint1 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+			if ( closestPoint1.distanceTo( center ) <= radius ) return true;
+
+			lineTemp.start = a;
+			lineTemp.end = c;
+			const closestPoint2 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+			if ( closestPoint2.distanceTo( center ) <= radius ) return true;
+
+			lineTemp.start = b;
+			lineTemp.end = c;
+			const closestPoint3 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+			if ( closestPoint3.distanceTo( center ) <= radius ) return true;
+
+			// phase 2
+			const plane = triangle.getPlane( planeTemp );
+			const dp = Math.abs( plane.distanceToPoint( center ) );
+			if ( dp <= radius ) {
+
+				const pp = plane.projectPoint( center, projectedPointTemp );
+				const cp = triangle.containsPoint( pp );
+				if ( cp ) return true;
+
+			}
+
+			return false;
+
+		};
+
+	} )();
+
+	class SeparatingAxisBounds {
+
+		constructor() {
+
+			this.min = Infinity;
+			this.max = - Infinity;
+
+		}
+
+		setFromPointsField( points, field ) {
+
+			let min = Infinity;
+			let max = - Infinity;
+			for ( let i = 0, l = points.length; i < l; i ++ ) {
+
+				const p = points[ i ];
+				const val = p[ field ];
+				min = Math.min( val, min );
+				max = Math.max( val, max );
+
+			}
+
+			this.min = min;
+			this.max = max;
+
+
+		}
+
+		setFromPoints( axis, points ) {
+
+			let min = Infinity;
+			let max = - Infinity;
+			for ( let i = 0, l = points.length; i < l; i ++ ) {
+
+				const p = points[ i ];
+				const val = axis.dot( p );
+				min = Math.min( val, min );
+				max = Math.max( val, max );
+
+			}
+
+			this.min = min;
+			this.max = max;
+
+		}
+
+		isSeparated( other ) {
+
+			return this.min > other.max || other.min > this.max;
+
+		}
+
+	}
+
+	SeparatingAxisBounds.prototype.setFromBox = ( function () {
+
+		const p = new THREE.Vector3();
+		return function setFromBox( axis, box ) {
+
+			const boxMin = box.min;
+			const boxMax = box.max;
+			let min = Infinity;
+			let max = - Infinity;
+			for ( let x = 0; x <= 1; x ++ ) {
+
+				for ( let y = 0; y <= 1; y ++ ) {
+
+					for ( let z = 0; z <= 1; z ++ ) {
+
+						p.x = boxMin.x * x + boxMax.x * ( 1 - x );
+						p.y = boxMin.y * y + boxMax.y * ( 1 - y );
+						p.z = boxMin.z * z + boxMax.z * ( 1 - z );
+
+						const val = axis.dot( p );
+						min = Math.min( val, min );
+						max = Math.max( val, max );
+
+					}
+
+				}
+
+			}
+
+			this.min = min;
+			this.max = max;
+
+		};
+
+	} )();
+
+	const areIntersecting = ( function () {
+
+		const cacheSatBounds = new SeparatingAxisBounds();
+		return function areIntersecting( shape1, shape2 ) {
+
+			const points1 = shape1.points;
+			const satAxes1 = shape1.satAxes;
+			const satBounds1 = shape1.satBounds;
+
+			const points2 = shape2.points;
+			const satAxes2 = shape2.satAxes;
+			const satBounds2 = shape2.satBounds;
+
+			// check axes of the first shape
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const sb = satBounds1[ i ];
+				const sa = satAxes1[ i ];
+				cacheSatBounds.setFromPoints( sa, points2 );
+				if ( sb.isSeparated( cacheSatBounds ) ) return false;
+
+			}
+
+			// check axes of the second shape
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const sb = satBounds2[ i ];
+				const sa = satAxes2[ i ];
+				cacheSatBounds.setFromPoints( sa, points1 );
+				if ( sb.isSeparated( cacheSatBounds ) ) return false;
+
+			}
+
+		};
+
+	} )();
+
+	const closestPointLineToLine = ( function () {
+
+		// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Line.cpp#L56
+		const dir1 = new THREE.Vector3();
+		const dir2 = new THREE.Vector3();
+		const v02 = new THREE.Vector3();
+		return function closestPointLineToLine( l1, l2, result ) {
+
+			const v0 = l1.start;
+			const v10 = dir1;
+			const v2 = l2.start;
+			const v32 = dir2;
+
+			v02.subVectors( v0, v2 );
+			dir1.subVectors( l1.end, l2.start );
+			dir2.subVectors( l2.end, l2.start );
+
+			// float d0232 = v02.Dot(v32);
+			const d0232 = v02.dot( v32 );
+
+			// float d3210 = v32.Dot(v10);
+			const d3210 = v32.dot( v10 );
+
+			// float d3232 = v32.Dot(v32);
+			const d3232 = v32.dot( v32 );
+
+			// float d0210 = v02.Dot(v10);
+			const d0210 = v02.dot( v10 );
+
+			// float d1010 = v10.Dot(v10);
+			const d1010 = v10.dot( v10 );
+
+			// float denom = d1010*d3232 - d3210*d3210;
+			const denom = d1010 * d3232 - d3210 * d3210;
+
+			let d, d2;
+			if ( denom !== 0 ) {
+
+				d = ( d0232 * d3210 - d0210 * d3232 ) / denom;
+
+			} else {
+
+				d = 0;
+
+			}
+
+			d2 = ( d0232 + d * d3210 ) / d3232;
+
+			result.x = d;
+			result.y = d2;
+
+		};
+
+	} )();
+
+	const closestPointsSegmentToSegment = ( function () {
+
+		// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/LineSegment.cpp#L187
+		const paramResult = new THREE.Vector2();
+		const temp1 = new THREE.Vector3();
+		const temp2 = new THREE.Vector3();
+		return function closestPointsSegmentToSegment( l1, l2, target1, target2 ) {
+
+			closestPointLineToLine( l1, l2, paramResult );
+
+			let d = paramResult.x;
+			let d2 = paramResult.y;
+			if ( d >= 0 && d <= 1 && d2 >= 0 && d2 <= 1 ) {
+
+				l1.at( d, target1 );
+				l1.at( d2, target2 );
+
+				return;
+
+			} else if ( d >= 0 && d <= 1 ) {
+
+				// Only d2 is out of bounds.
+				if ( d2 < 0 ) {
+
+					l2.at( 0, target2 );
+
+				} else {
+
+					l2.at( 1, target2 );
+
+				}
+
+				l1.closestPointToPoint( target2, true, target1 );
+				return;
+
+			} else if ( d2 >= 0 && d2 <= 1 ) {
+
+				// Only d is out of bounds.
+				if ( d < 0 ) {
+
+					l1.at( 0, target1 );
+
+				} else {
+
+					l1.at( 1, target1 );
+
+				}
+
+				l2.closestPointToPoint( target1, true, target2 );
+				return;
+
+			} else {
+
+				// Both u and u2 are out of bounds.
+				let p;
+				if ( d < 0 ) {
+
+					p = l1.start;
+
+				} else {
+
+					p = l1.end;
+
+				}
+
+				let p2;
+				if ( d2 < 0 ) {
+
+					p2 = l2.start;
+
+				} else {
+
+					p2 = l2.end;
+
+				}
+
+				const closestPoint = temp1;
+				const closestPoint2 = temp2;
+				l1.closestPointToPoint( p2, true, temp1 );
+				l2.closestPointToPoint( p, true, temp2 );
+
+				if ( closestPoint.distanceToSquared( p2 ) <= closestPoint2.distanceToSquared( p ) ) {
+
+					target1.copy( closestPoint );
+					target2.copy( p2 );
+					return;
+
+				} else {
+
+					target1.copy( p );
+					target2.copy( closestPoint2 );
+					return;
+
+				}
+
+			}
+
+		};
+
+	} )();
+
+	class SeparatingAxisTriangle extends THREE.Triangle {
+
+		constructor( ...args ) {
+
+			super( ...args );
+
+			this.isSeparatingAxisTriangle = true;
+			this.satAxes = new Array( 4 ).fill().map( () => new THREE.Vector3() );
+			this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
+			this.points = [ this.a, this.b, this.c ];
+			this.sphere = new THREE.Sphere();
+
+		}
+
+	}
+
+	SeparatingAxisTriangle.prototype.update = ( function () {
+
+		const arr = new Array( 3 );
+		return function update( ) {
+
+			const a = this.a;
+			const b = this.b;
+			const c = this.c;
+
+			arr[ 0 ] = this.a;
+			arr[ 1 ] = this.b;
+			arr[ 2 ] = this.c;
+
+			const satAxes = this.satAxes;
+			const satBounds = this.satBounds;
+
+			const axis0 = satAxes[ 0 ];
+			const sab0 = satBounds[ 0 ];
+			this.getNormal( axis0 );
+			sab0.setFromPoints( axis0, arr );
+
+			const axis1 = satAxes[ 1 ];
+			const sab1 = satBounds[ 1 ];
+			axis1.subVectors( a, b );
+			sab1.setFromPoints( axis1, arr );
+
+			const axis2 = satAxes[ 2 ];
+			const sab2 = satBounds[ 2 ];
+			axis2.subVectors( b, c );
+			sab2.setFromPoints( axis2, arr );
+
+			const axis3 = satAxes[ 3 ];
+			const sab3 = satBounds[ 3 ];
+			axis3.subVectors( c, a );
+			sab3.setFromPoints( axis3, arr );
+
+			this.sphere.setFromPoints( this.points );
+
+		};
+
+	} )();
+
+	SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
+
+		const saTri2 = new SeparatingAxisTriangle();
+		const arr1 = new Array( 3 );
+		const arr2 = new Array( 3 );
+		const cachedSatBounds = new SeparatingAxisBounds();
+		const cachedSatBounds2 = new SeparatingAxisBounds();
+		const cachedAxis = new THREE.Vector3();
+		return function intersectsTriangle( other ) {
+
+			if ( ! other.isSeparatingAxisTriangle ) {
+
+				saTri2.copy( other );
+				saTri2.update();
+				other = saTri2;
+
+			}
+
+			const satBounds1 = this.satBounds;
+			const satAxes1 = this.satAxes;
+			arr2[ 0 ] = other.a;
+			arr2[ 1 ] = other.b;
+			arr2[ 2 ] = other.c;
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const sb = satBounds1[ i ];
+				const sa = satAxes1[ i ];
+				cachedSatBounds.setFromPoints( sa, arr2 );
+				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			}
+
+			const satBounds2 = other.satBounds;
+			const satAxes2 = other.satAxes;
+			arr1[ 0 ] = this.a;
+			arr1[ 1 ] = this.b;
+			arr1[ 2 ] = this.c;
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const sb = satBounds2[ i ];
+				const sa = satAxes2[ i ];
+				cachedSatBounds.setFromPoints( sa, arr1 );
+				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			}
+
+			// check crossed axes
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const sa1 = satAxes1[ i ];
+				for ( let i2 = 0; i2 < 4; i2 ++ ) {
+
+					const sa2 = satAxes2[ i2 ];
+					cachedAxis.crossVectors( sa1, sa2 );
+					cachedSatBounds.setFromPoints( cachedAxis, arr1 );
+					cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
+					if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+				}
+
+			}
+
+			return true;
+
+		};
+
+	} )();
+
+
+	SeparatingAxisTriangle.prototype.distanceToPoint = ( function () {
+
+		const target = new THREE.Vector3();
+		return function distanceToPoint( point ) {
+
+			this.closestPointToPoint( point, target );
+			return point.distanceTo( target );
+
+		};
+
+	} )();
+
+
+	SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
+
+		const point = new THREE.Vector3();
+		const point2 = new THREE.Vector3();
+		const cornerFields = [ 'a', 'b', 'c' ];
+		const line1 = new THREE.Line3();
+		const line2 = new THREE.Line3();
+
+		return function distanceToTriangle( other, target1 = null, target2 = null ) {
+
+			if ( this.intersectsTriangle( other ) ) {
+
+				if ( target1 || target2 ) {
+
+					this.getMidPoint( point );
+					other.closestPointToPoint( point, point2 );
+					this.closestPointToPoint( point2, point );
+
+					if ( target1 ) target1.copy( point );
+					if ( target2 ) target2.copy( point2 );
+
+				}
+
+				return 0;
+
+			}
+
+			let closestDistanceSq = Infinity;
+
+			// check all point distances
+			for ( let i = 0; i < 3; i ++ ) {
+
+				let dist;
+				const field = cornerFields[ i ];
+				const otherVec = other[ field ];
+				this.closestPointToPoint( otherVec, point );
+
+				dist = otherVec.distanceToSquared( point );
+
+				if ( dist < closestDistanceSq ) {
+
+					closestDistanceSq = dist;
+					if ( target1 ) target1.copy( point );
+					if ( target2 ) target2.copy( otherVec );
+
+				}
+
+
+				const thisVec = this[ field ];
+				other.closestPointToPoint( thisVec, point );
+
+				dist = thisVec.distanceToSquared( point );
+
+				if ( dist < closestDistanceSq ) {
+
+					closestDistanceSq = dist;
+					if ( target1 ) target1.copy( thisVec );
+					if ( target2 ) target2.copy( point );
+
+				}
+
+			}
+
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const f11 = cornerFields[ i ];
+				const f12 = cornerFields[ ( i + 1 ) % 3 ];
+				line1.set( this[ f11 ], this[ f12 ] );
+				for ( let i2 = 0; i2 < 3; i2 ++ ) {
+
+					const f21 = cornerFields[ i ];
+					const f22 = cornerFields[ ( i + 1 ) % 3 ];
+					line2.set( other[ f21 ], other[ f22 ] );
+
+					closestPointsSegmentToSegment( line1, line2, point, point2 );
+
+					const dist = point.distanceToSquared( point2 );
+					if ( dist < closestDistanceSq ) {
+
+						closestDistanceSq = dist;
+						if ( target1 ) target1.copy( point );
+						if ( target2 ) target2.copy( point2 );
+
+					}
+
+				}
+
+			}
+
+			return Math.sqrt( closestDistanceSq );
+
+		};
+
+	} )();
+
+	class OrientedBox extends THREE.Box3 {
+
+		constructor( ...args ) {
+
+			super( ...args );
+
+			this.isOrientedBox = true;
+			this.matrix = new THREE.Matrix4();
+			this.invMatrix = new THREE.Matrix4();
+			this.points = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+			this.satAxes = new Array( 3 ).fill().map( () => new THREE.Vector3() );
+			this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
+			this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
+			this.sphere = new THREE.Sphere();
+
+		}
+
+		set( min, max, matrix ) {
+
+			super.set( min, max );
+			this.matrix = matrix;
+
+		}
+
+		copy( other ) {
+
+			super.copy( other );
+			this.matrix.copy( other.matrix );
+
+		}
+
+	}
+
+	OrientedBox.prototype.update = ( function () {
+
+		return function update() {
+
+			const matrix = this.matrix;
+			const min = this.min;
+			const max = this.max;
+
+			const points = this.points;
+			for ( let x = 0; x <= 1; x ++ ) {
+
+				for ( let y = 0; y <= 1; y ++ ) {
+
+					for ( let z = 0; z <= 1; z ++ ) {
+
+						const i = ( ( 1 << 0 ) * x ) | ( ( 1 << 1 ) * y ) | ( ( 1 << 2 ) * z );
+						const v = points[ i ];
+						v.x = x ? max.x : min.x;
+						v.y = y ? max.y : min.y;
+						v.z = z ? max.z : min.z;
+
+						v.applyMatrix4( matrix );
+
+					}
+
+				}
+
+			}
+
+			this.sphere.setFromPoints( this.points );
+
+			const satBounds = this.satBounds;
+			const satAxes = this.satAxes;
+			const minVec = points[ 0 ];
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const axis = satAxes[ i ];
+				const sb = satBounds[ i ];
+				const index = 1 << i;
+				const pi = points[ index ];
+
+				axis.subVectors( minVec, pi );
+				sb.setFromPoints( axis, points );
+
+			}
+
+			const alignedSatBounds = this.alignedSatBounds;
+			alignedSatBounds[ 0 ].setFromPointsField( points, 'x' );
+			alignedSatBounds[ 1 ].setFromPointsField( points, 'y' );
+			alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
+
+			this.invMatrix.getInverse( this.matrix );
+
+		};
+
+	} )();
+
+	OrientedBox.prototype.intersectsBox = ( function () {
+
+		const aabbBounds = new SeparatingAxisBounds();
+		return function intersectsBox( box ) {
+
+			if ( ! box.intersectsSphere( this.sphere ) ) return false;
+
+			const min = box.min;
+			const max = box.max;
+			const satBounds = this.satBounds;
+			const satAxes = this.satAxes;
+			const alignedSatBounds = this.alignedSatBounds;
+
+			aabbBounds.min = min.x;
+			aabbBounds.max = max.x;
+			if ( alignedSatBounds[ 0 ].isSeparated( aabbBounds ) ) return false;
+
+			aabbBounds.min = min.y;
+			aabbBounds.max = max.y;
+			if ( alignedSatBounds[ 1 ].isSeparated( aabbBounds ) ) return false;
+
+			aabbBounds.min = min.z;
+			aabbBounds.max = max.z;
+			if ( alignedSatBounds[ 2 ].isSeparated( aabbBounds ) ) return false;
+
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const axis = satAxes[ i ];
+				const sb = satBounds[ i ];
+				aabbBounds.setFromBox( axis, box );
+				if ( sb.isSeparated( aabbBounds ) ) return false;
+
+			}
+
+			return true;
+
+		};
+
+	} )();
+
+	OrientedBox.prototype.intersectsTriangle = ( function () {
+
+		const saTri = new SeparatingAxisTriangle();
+		const pointsArr = new Array( 3 );
+		const cachedSatBounds = new SeparatingAxisBounds();
+		const cachedSatBounds2 = new SeparatingAxisBounds();
+		const cachedAxis = new THREE.Vector3();
+		return function intersectsTriangle( triangle ) {
+
+			if ( ! triangle.isSeparatingAxisTriangle ) {
+
+				saTri.copy( triangle );
+				saTri.update();
+				triangle = saTri;
+
+			}
+
+			const satBounds = this.satBounds;
+			const satAxes = this.satAxes;
+
+			pointsArr[ 0 ] = triangle.a;
+			pointsArr[ 1 ] = triangle.b;
+			pointsArr[ 2 ] = triangle.c;
+
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const sb = satBounds[ i ];
+				const sa = satAxes[ i ];
+				cachedSatBounds.setFromPoints( sa, pointsArr );
+				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			}
+
+			const triSatBounds = triangle.satBounds;
+			const triSatAxes = triangle.satAxes;
+			const points = this.points;
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const sb = triSatBounds[ i ];
+				const sa = triSatAxes[ i ];
+				cachedSatBounds.setFromPoints( sa, points );
+				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			}
+
+			// check crossed axes
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const sa1 = satAxes[ i ];
+				for ( let i2 = 0; i2 < 4; i2 ++ ) {
+
+					const sa2 = triSatAxes[ i2 ];
+					cachedAxis.crossVectors( sa1, sa2 );
+					cachedSatBounds.setFromPoints( cachedAxis, pointsArr );
+					cachedSatBounds2.setFromPoints( cachedAxis, points );
+					if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+				}
+
+			}
+
+			return true;
+
+		};
+
+	} )();
+
+	OrientedBox.prototype.closestPointToPoint = ( function () {
+
+		return function closestPointToPoint( point, target1 ) {
+
+			target1
+				.copy( point )
+				.applyMatrix4( this.invMatrix )
+				.clamp( this.min, this.max )
+				.applyMatrix4( this.matrix );
+
+			return target1;
+
+		};
+
+	} )();
+
+	OrientedBox.prototype.distanceToPoint = ( function () {
+
+		const target = new THREE.Vector3();
+		return function distanceToPoint( point ) {
+
+			this.closestPointToPoint( point, target );
+			return point.distanceTo( target );
+
+		};
+
+	} )();
+
+
+	OrientedBox.prototype.distanceToBox = ( function () {
+
+		const xyzFields = [ 'x', 'y', 'z' ];
+		const segments1 = new Array( 12 ).fill().map( () => new THREE.Line3() );
+		const segments2 = new Array( 12 ).fill().map( () => new THREE.Line3() );
+
+		const point1 = new THREE.Vector3();
+		const point2 = new THREE.Vector3();
+
+		return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
+
+			if ( this.intersectsBox( box ) ) {
+
+				if ( target1 || target2 ) {
+
+					box.getCenter( point2 );
+					this.closestPointToPoint( point2, point1 );
+					box.closestPointToPoint( point1, point2 );
+
+					if ( target1 ) target1.copy( point1 );
+					if ( target2 ) target2.copy( point2 );
+
+				}
+				return 0;
+
+			}
+
+			const threshold2 = threshold * threshold;
+			const min = box.min;
+			const max = box.max;
+			const points = this.points;
+
+
+			// iterate over every edge and compare distances
+			let closestDistanceSq = Infinity;
+
+			// check over all these points
+			for ( let i = 0; i < 8; i ++ ) {
+
+				const p = points[ i ];
+				point2.copy( p ).clamp( min, max );
+
+				const dist = p.distanceToSquared( point2 );
+				if ( dist < closestDistanceSq ) {
+
+					closestDistanceSq = dist;
+					if ( target1 ) target1.copy( p );
+					if ( target2 ) target2.copy( point2 );
+
+					if ( dist < threshold2 ) return Math.sqrt( dist );
+
+				}
+
+			}
+
+			// generate and check all line segment distances
+			let count = 0;
+			for ( let i = 0; i < 3; i ++ ) {
+
+				for ( let i1 = 0; i1 <= 1; i1 ++ ) {
+
+					for ( let i2 = 0; i2 <= 1; i2 ++ ) {
+
+						const nextIndex = ( i + 1 ) % 3;
+						const nextIndex2 = ( i + 2 ) % 3;
+
+						// get obb line segments
+						const index = i1 << nextIndex | i2 << nextIndex2;
+						const index2 = 1 << i | i1 << nextIndex | i2 << nextIndex2;
+						const p1 = points[ index ];
+						const p2 = points[ index2 ];
+						const line1 = segments1[ count ];
+						line1.set( p1, p2 );
+
+
+						// get aabb line segments
+						const f1 = xyzFields[ i ];
+						const f2 = xyzFields[ nextIndex ];
+						const f3 = xyzFields[ nextIndex2 ];
+						const line2 = segments2[ count ];
+						const start = line2.start;
+						const end = line2.end;
+
+						start[ f1 ] = min[ f1 ];
+						start[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
+						start[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
+
+						end[ f1 ] = max[ f1 ];
+						end[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
+						end[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
+
+						count ++;
+
+					}
+
+				}
+
+			}
+
+			// check all the other boxes point
+			for ( let x = 0; x <= 1; x ++ ) {
+
+				for ( let y = 0; y <= 1; y ++ ) {
+
+					for ( let z = 0; z <= 1; z ++ ) {
+
+						point2.x = x ? max.x : min.x;
+						point2.y = y ? max.y : min.y;
+						point2.z = z ? max.z : min.z;
+
+						this.closestPointToPoint( point2, point1 );
+						const dist = point2.distanceToSquared( point1 );
+						if ( dist < closestDistanceSq ) {
+
+							closestDistanceSq = dist;
+							if ( target1 ) target1.copy( point1 );
+							if ( target2 ) target2.copy( point2 );
+
+							if ( dist < threshold2 ) return Math.sqrt( dist );
+
+						}
+
+					}
+
+				}
+
+			}
+
+			for ( let i = 0; i < 12; i ++ ) {
+
+				const l1 = segments1[ i ];
+				for ( let i2 = 0; i2 < 12; i2 ++ ) {
+
+					const l2 = segments2[ i2 ];
+					closestPointsSegmentToSegment( l1, l2, point1, point2 );
+					const dist = point1.distanceToSquared( point2 );
+					if ( dist < closestDistanceSq ) {
+
+						closestDistanceSq = dist;
+						if ( target1 ) target1.copy( point1 );
+						if ( target2 ) target2.copy( point2 );
+
+						if ( dist < threshold2 ) return Math.sqrt( dist );
+
+					}
+
+				}
+
+			}
+
+			return Math.sqrt( closestDistanceSq );
+
+		};
+
+	} )();
+
 	const boundingBox = new THREE.Box3();
 	const boxIntersection = new THREE.Vector3();
 	const xyzFields = [ 'x', 'y', 'z' ];
+
+	function setTriangle( tri, i, index, pos ) {
+
+		const ta = tri.a;
+		const tb = tri.b;
+		const tc = tri.c;
+
+		let i3 = index.getX( i );
+		ta.x = pos.getX( i3 );
+		ta.y = pos.getY( i3 );
+		ta.z = pos.getZ( i3 );
+
+		i3 = index.getX( i + 1 );
+		tb.x = pos.getX( i3 );
+		tb.y = pos.getY( i3 );
+		tb.z = pos.getZ( i3 );
+
+		i3 = index.getX( i + 2 );
+		tc.x = pos.getX( i3 );
+		tc.y = pos.getY( i3 );
+		tc.z = pos.getZ( i3 );
+
+	}
 
 	class MeshBVHNode {
 
@@ -304,6 +1272,384 @@
 		}
 
 	}
+
+	MeshBVHNode.prototype.shapecast = ( function () {
+
+		const triangle = new SeparatingAxisTriangle();
+		const cachedBox1 = new THREE.Box3();
+		const cachedBox2 = new THREE.Box3();
+		return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+
+			if ( this.count && intersectsTriangleFunc ) {
+
+				const geometry = mesh.geometry;
+				const index = geometry.index;
+				const pos = geometry.attributes.position;
+				const offset = this.offset;
+				const count = this.count;
+
+				for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+					setTriangle( triangle, i, index, pos );
+					triangle.update();
+
+					if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
+
+						return true;
+
+					}
+
+				}
+
+				return false;
+
+			} else {
+
+				const left = this.left;
+				const right = this.right;
+				let c1 = left;
+				let c2 = right;
+
+				let score1, score2;
+				let box1, box2;
+				if ( nodeScoreFunc ) {
+
+					box1 = cachedBox1;
+					box2 = cachedBox2;
+
+					arrayToBox( c1.boundingData, box1 );
+					arrayToBox( c2.boundingData, box2 );
+
+					score1 = nodeScoreFunc( box1 );
+					score2 = nodeScoreFunc( box2 );
+
+					if ( score2 < score1 ) {
+
+						c1 = right;
+						c2 = left;
+
+						const temp = score1;
+						score1 = score2;
+						score2 = temp;
+
+						const tempBox = box1;
+						box1 = box2;
+						box2 = tempBox;
+
+					}
+
+				}
+
+				if ( ! box1 ) {
+
+					box1 = cachedBox1;
+					arrayToBox( c1.boundingData, box1 );
+
+				}
+
+				const c1Intersection =
+					intersectsBoundsFunc( box1, ! ! c1.count, score1 ) &&
+					c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				if ( c1Intersection ) return true;
+
+
+				if ( ! box2 ) {
+
+					box2 = cachedBox2;
+					arrayToBox( c2.boundingData, box2 );
+
+				}
+
+				const c2Intersection =
+					intersectsBoundsFunc( box2, ! ! c2.count, score2 ) &&
+					c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				if ( c2Intersection ) return true;
+
+				return false;
+
+			}
+
+		};
+
+	} )();
+
+	MeshBVHNode.prototype.geometrycast = ( function () {
+
+		const triangle = new SeparatingAxisTriangle();
+		const triangle2 = new SeparatingAxisTriangle();
+		const cachedMesh = new THREE.Mesh();
+		const invertedMat = new THREE.Matrix4();
+
+		const obb = new OrientedBox();
+		const obb2 = new OrientedBox();
+
+		return function geometrycast( mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+			if ( cachedObb === null ) {
+
+				if ( ! geometry.boundingBox ) {
+
+					geometry.computeBoundingBox();
+
+				}
+
+				obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+				obb.update();
+				cachedObb = obb;
+
+			}
+
+			if ( this.count ) {
+
+				const thisGeometry = mesh.geometry;
+				const thisIndex = thisGeometry.index;
+				const thisPos = thisGeometry.attributes.position;
+
+				const index = geometry.index;
+				const pos = geometry.attributes.position;
+
+				const offset = this.offset;
+				const count = this.count;
+
+				// get the inverse of the geometry matrix so we can transform our triangles into the
+				// geometry space we're trying to test. We assume there are fewer triangles being checked
+				// here.
+				invertedMat.getInverse( geometryToBvh );
+
+				if ( geometry.boundsTree ) {
+
+					function triangleCallback( tri ) {
+
+						tri.a.applyMatrix4( geometryToBvh );
+						tri.b.applyMatrix4( geometryToBvh );
+						tri.c.applyMatrix4( geometryToBvh );
+						tri.update();
+
+						for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+							// this triangle needs to be transformed into the current BVH coordinate frame
+							setTriangle( triangle2, i, thisIndex, thisPos );
+							triangle2.update();
+							if ( tri.intersectsTriangle( triangle2 ) ) {
+
+								return true;
+
+							}
+
+						}
+
+						return false;
+
+					}
+
+					arrayToBox( this.boundingData, obb2 );
+					obb2.matrix.copy( invertedMat );
+					obb2.update();
+
+					cachedMesh.geometry = geometry;
+					const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), triangleCallback );
+					cachedMesh.geometry = null;
+
+					return res;
+
+				} else {
+
+					for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+						// this triangle needs to be transformed into the current BVH coordinate frame
+						setTriangle( triangle, i, thisIndex, thisPos );
+						triangle.a.applyMatrix4( invertedMat );
+						triangle.b.applyMatrix4( invertedMat );
+						triangle.c.applyMatrix4( invertedMat );
+						triangle.update();
+
+						for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+							setTriangle( triangle2, i2, index, pos );
+							triangle2.update();
+
+							if ( triangle.intersectsTriangle( triangle2 ) ) {
+
+								return true;
+
+							}
+
+						}
+
+					}
+
+				}
+
+			} else {
+
+				const left = this.left;
+				const right = this.right;
+
+				arrayToBox( left.boundingData, boundingBox );
+				const leftIntersection =
+					cachedObb.intersectsBox( boundingBox ) &&
+					left.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+
+				if ( leftIntersection ) return true;
+
+
+				arrayToBox( right.boundingData, boundingBox );
+				const rightIntersection =
+					cachedObb.intersectsBox( boundingBox ) &&
+					right.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+
+				if ( rightIntersection ) return true;
+
+				return false;
+
+			}
+
+		};
+
+	} )();
+
+	MeshBVHNode.prototype.boxcast = ( function () {
+
+		const obb = new OrientedBox();
+
+		return function boxcast( mesh, box, boxToBvh ) {
+
+			obb.set( box.min, box.max, boxToBvh );
+			obb.update();
+
+			return this.shapecast(
+				mesh,
+				box => obb.intersectsBox( box ),
+				tri => obb.intersectsTriangle( tri )
+			);
+
+		};
+
+	} )();
+
+	MeshBVHNode.prototype.spherecast = ( function () {
+
+		return function spherecast( mesh, sphere ) {
+
+			return this.shapecast(
+				mesh,
+				box => sphere.intersectsBox( box ),
+				tri => sphereIntersectTriangle( sphere, tri )
+			);
+
+		};
+
+	} )();
+
+	MeshBVHNode.prototype.closestPointToPoint = ( function () {
+
+		// early out if under minThreshold
+		// skip checking if over maxThreshold
+		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+		// returns Infinity if no value found
+
+		const temp = new THREE.Vector3();
+		return function closestPointToPoint( mesh, point, target = null, minThreshold = 0, maxThreshold = Infinity ) {
+
+			let closestDistance = Infinity;
+			this.shapecast(
+
+				mesh,
+				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+				tri => {
+
+					tri.closestPointToPoint( point, temp );
+					const dist = point.distanceTo( temp );
+					if ( dist < closestDistance ) {
+
+						if ( target ) target.copy( temp );
+						closestDistance = dist;
+
+					}
+					if ( dist < minThreshold ) return true;
+					return false;
+
+				},
+				box => box.distanceToPoint( point )
+
+			);
+
+			return closestDistance;
+
+		};
+
+	} )();
+
+	MeshBVHNode.prototype.closestPointToGeometry = ( function () {
+
+		// early out if under minThreshold
+		// skip checking if over maxThreshold
+		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+		// returns Infinity if no value found
+
+		const tri2 = new SeparatingAxisTriangle();
+		const obb = new OrientedBox();
+
+		const temp1 = new THREE.Vector3();
+		const temp2 = new THREE.Vector3();
+		return function closestPointToGeometry( mesh, geometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+
+			if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
+			obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+			obb.update();
+
+			const pos = geometry.attributes.position;
+			const index = geometry.index;
+
+			let tempTarget1, tempTarget2;
+			if ( target1 ) tempTarget1 = temp1;
+			if ( target2 ) tempTarget2 = temp2;
+
+			let closestDistance = Infinity;
+			this.shapecast(
+				mesh,
+				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+				tri => {
+
+					const sphere1 = tri.sphere;
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+						setTriangle( tri2, i2, index, pos );
+						tri2.a.applyMatrix4( geometryToBvh );
+						tri2.b.applyMatrix4( geometryToBvh );
+						tri2.c.applyMatrix4( geometryToBvh );
+						tri2.sphere.setFromPoints( tri2.points );
+
+						const sphere2 = tri2.sphere;
+						const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
+						if ( sphereDist > closestDistance ) continue;
+
+						const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
+						if ( dist < closestDistance ) {
+
+							if ( target1 ) target1.copy( tempTarget1 );
+							if ( target2 ) target2.copy( tempTarget2 );
+							closestDistance = dist;
+
+						}
+						if ( dist < minThreshold ) return true;
+
+					}
+
+					return false;
+
+				},
+				box => obb.distanceToBox( box, closestDistance )
+
+			);
+
+			return closestDistance;
+
+		};
+
+	} )();
 
 	// Split strategy constants
 	const CENTER = 0;
@@ -897,6 +2243,96 @@
 
 		}
 
+		geometrycast( mesh, geometry, geomToMesh ) {
+
+			for ( const root of this._roots ) {
+
+				if ( root.geometrycast( mesh, geometry, geomToMesh ) ) return true;
+
+			}
+
+			return false;
+
+		}
+
+		shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+
+			for ( const root of this._roots ) {
+
+				if ( root.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
+
+			}
+
+			return false;
+
+		}
+
+		boxcast( mesh, box, boxToMesh ) {
+
+			for ( const root of this._roots ) {
+
+				if ( root.boxcast( mesh, box, boxToMesh ) ) return true;
+
+			}
+
+			return false;
+
+		}
+
+		spherecast( mesh, sphere ) {
+
+			for ( const root of this._roots ) {
+
+				if ( root.spherecast( mesh, sphere ) ) return true;
+
+			}
+
+			return false;
+
+		}
+
+		closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold ) {
+
+			let closestDistance = Infinity;
+			for ( const root of this._roots ) {
+
+				const dist = root.closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold );
+				if ( dist < closestDistance ) closestDistance = dist;
+				if ( dist < minThreshold ) return dist;
+
+			}
+
+			return closestDistance;
+
+		}
+
+		distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold ) {
+
+			return this.closestPointToGeometry( mesh, geom, matrix, null, null, minThreshold, maxThreshold );
+
+		}
+
+		closestPointToPoint( mesh, point, target, minThreshold, maxThreshold ) {
+
+			let closestDistance = Infinity;
+			for ( const root of this._roots ) {
+
+				const dist = root.closestPointToPoint( mesh, point, target, minThreshold, maxThreshold );
+				if ( dist < closestDistance ) closestDistance = dist;
+				if ( dist < minThreshold ) return dist;
+
+			}
+
+			return closestDistance;
+
+		}
+
+		distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
+
+			return this.closestPointToPoint( mesh, point, null, minThreshold, maxThreshold );
+
+		}
+
 	}
 
 	const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
@@ -949,6 +2385,10 @@
 							boundingBox$1.getCenter( m.position );
 							m.scale.subVectors( boundingBox$1.max, boundingBox$1.min ).multiplyScalar( 0.5 );
 
+							if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
+							if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
+							if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
+
 						}
 
 						if ( ! isLeaf ) {
@@ -960,7 +2400,8 @@
 
 					};
 
-					recurse( this._boundsTree._root, 0 );
+					// TODO: Fix this so it visualizes all the roots
+					recurse( this._boundsTree._roots[ 0 ], 0 );
 
 				}
 
