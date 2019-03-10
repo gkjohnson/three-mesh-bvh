@@ -1,6 +1,7 @@
 import { Vector3, Vector2, Triangle, DoubleSide, BackSide, Face3 } from 'three';
 
-// From THREE.js Mesh raycast
+// Ripped and modified From THREE.js Mesh raycast
+// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
 var vA = new Vector3();
 var vB = new Vector3();
 var vC = new Vector3();
@@ -87,4 +88,27 @@ function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, 
 
 }
 
-export { uvIntersection, checkIntersection, checkBufferGeometryIntersection };
+
+// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
+function intersectTri( mesh, geo, raycaster, ray, tri, intersections ) {
+
+	const triOffset = tri * 3;
+	const a = geo.index.getX( triOffset );
+	const b = geo.index.getX( triOffset + 1 );
+	const c = geo.index.getX( triOffset + 2 );
+
+	const intersection = checkBufferGeometryIntersection( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
+
+	if ( intersection ) {
+
+		intersection.faceIndex = tri;
+		if ( intersections ) intersections.push( intersection );
+		return intersection;
+
+	}
+
+	return null;
+
+};
+
+export { intersectTri };

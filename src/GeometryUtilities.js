@@ -1,28 +1,4 @@
-import { checkBufferGeometryIntersection } from './IntersectionUtilities.js';
-
-// For BVH code specifically. Does not check morph targets
-// Copied from mesh raycasting
-// Ripped an modified from the THREE.js source in Mesh.CS
-const intersectTri = ( mesh, geo, raycaster, ray, tri, intersections ) => {
-
-	const triOffset = tri * 3;
-	const a = geo.index.getX( triOffset );
-	const b = geo.index.getX( triOffset + 1 );
-	const c = geo.index.getX( triOffset + 2 );
-
-	const intersection = checkBufferGeometryIntersection( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
-
-	if ( intersection ) {
-
-		intersection.faceIndex = tri;
-		if ( intersections ) intersections.push( intersection );
-		return intersection;
-
-	}
-
-	return null;
-
-};
+import { intersectTri } from './IntersectionUtilities.js';
 
 const intersectTris = ( mesh, geo, raycaster, ray, offset, count, intersections ) => {
 
@@ -54,6 +30,4 @@ const intersectClosestTri = ( mesh, geo, raycaster, ray, offset, count ) => {
 
 };
 
-export {
-	intersectTri, intersectTris, intersectClosestTri
-};
+export { intersectTris, intersectClosestTri };
