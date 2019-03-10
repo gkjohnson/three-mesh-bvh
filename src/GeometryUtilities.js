@@ -1,6 +1,6 @@
 import { intersectTri } from './Utils/ThreeIntersectionUtilities.js';
 
-const intersectTris = ( mesh, geo, raycaster, ray, offset, count, intersections ) => {
+export function intersectTris( mesh, geo, raycaster, ray, offset, count, intersections ) {
 
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
@@ -10,7 +10,7 @@ const intersectTris = ( mesh, geo, raycaster, ray, offset, count, intersections 
 
 };
 
-const intersectClosestTri = ( mesh, geo, raycaster, ray, offset, count ) => {
+export function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
 
 	let dist = Infinity;
 	let res = null;
@@ -29,5 +29,3 @@ const intersectClosestTri = ( mesh, geo, raycaster, ray, offset, count ) => {
 	return res;
 
 };
-
-export { intersectTris, intersectClosestTri };
