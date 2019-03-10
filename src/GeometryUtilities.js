@@ -1,4 +1,4 @@
-import { intersectTri } from './IntersectionUtilities.js';
+import { intersectTri } from './Utils/ThreeIntersectionUtilities.js';
 
 const intersectTris = ( mesh, geo, raycaster, ray, offset, count, intersections ) => {
 
