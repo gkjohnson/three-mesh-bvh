@@ -131,6 +131,7 @@ function init() {
 		transparent: true,
 		depthWrite: false,
 		opacity: 0.15,
+		premultipliedAlpha: true,
 	} );
 	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
 	marchingCubesMesh.visible = false;

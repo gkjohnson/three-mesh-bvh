@@ -69,7 +69,12 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	const shapeMaterial = new THREE.MeshStandardMaterial( { metalness: 0.1, transparent: true, opacity: 0.75 } );
+	const shapeMaterial = new THREE.MeshStandardMaterial( {
+		metalness: 0.1,
+		transparent: true,
+		opacity: 0.75,
+		premultipliedAlpha: true
+	} );
 	shapes.sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 50, 50 ), shapeMaterial );
 	scene.add( shapes.sphere );
 
