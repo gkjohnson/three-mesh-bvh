@@ -4,7 +4,8 @@
 	(global = global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
 }(this, function (exports, THREE) { 'use strict';
 
-	// From THREE.js Mesh raycast
+	// Ripped and modified From THREE.js Mesh raycast
+	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
 	var vA = new THREE.Vector3();
 	var vB = new THREE.Vector3();
 	var vC = new THREE.Vector3();
@@ -91,10 +92,9 @@
 
 	}
 
-	// For BVH code specifically. Does not check morph targets
-	// Copied from mesh raycasting
-	// Ripped an modified from the THREE.js source in Mesh.CS
-	const intersectTri = ( mesh, geo, raycaster, ray, tri, intersections ) => {
+
+	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
+	function intersectTri( mesh, geo, raycaster, ray, tri, intersections ) {
 
 		const triOffset = tri * 3;
 		const a = geo.index.getX( triOffset );
@@ -113,9 +113,9 @@
 
 		return null;
 
-	};
+	}
 
-	const intersectTris = ( mesh, geo, raycaster, ray, offset, count, intersections ) => {
+	function intersectTris( mesh, geo, raycaster, ray, offset, count, intersections ) {
 
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
@@ -123,9 +123,9 @@
 
 		}
 
-	};
+	}
 
-	const intersectClosestTri = ( mesh, geo, raycaster, ray, offset, count ) => {
+	function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
 
 		let dist = Infinity;
 		let res = null;
@@ -143,10 +143,10 @@
 
 		return res;
 
-	};
+	}
 
 	// Returns a Float32Array representing the bounds data for box.
-	function boundsToArray( bx ) {
+	function boxToArray( bx ) {
 
 		const arr = new Float32Array( 6 );
 
@@ -196,51 +196,6 @@
 		return splitDimIdx;
 
 	}
-
-	const sphereIntersectTriangle = ( function () {
-
-		// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
-		const closestPointTemp = new THREE.Vector3();
-		const projectedPointTemp = new THREE.Vector3();
-		const planeTemp = new THREE.Plane();
-		const lineTemp = new THREE.Line3();
-		return function sphereIntersectTriangle( sphere, triangle ) {
-
-			const { radius, center } = sphere;
-			const { a, b, c } = triangle;
-
-			// phase 1
-			lineTemp.start = a;
-			lineTemp.end = b;
-			const closestPoint1 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
-			if ( closestPoint1.distanceTo( center ) <= radius ) return true;
-
-			lineTemp.start = a;
-			lineTemp.end = c;
-			const closestPoint2 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
-			if ( closestPoint2.distanceTo( center ) <= radius ) return true;
-
-			lineTemp.start = b;
-			lineTemp.end = c;
-			const closestPoint3 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
-			if ( closestPoint3.distanceTo( center ) <= radius ) return true;
-
-			// phase 2
-			const plane = triangle.getPlane( planeTemp );
-			const dp = Math.abs( plane.distanceToPoint( center ) );
-			if ( dp <= radius ) {
-
-				const pp = plane.projectPoint( center, projectedPointTemp );
-				const cp = triangle.containsPoint( pp );
-				if ( cp ) return true;
-
-			}
-
-			return false;
-
-		};
-
-	} )();
 
 	class SeparatingAxisBounds {
 
@@ -520,6 +475,52 @@
 				}
 
 			}
+
+		};
+
+	} )();
+
+
+	const sphereIntersectTriangle = ( function () {
+
+		// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
+		const closestPointTemp = new THREE.Vector3();
+		const projectedPointTemp = new THREE.Vector3();
+		const planeTemp = new THREE.Plane();
+		const lineTemp = new THREE.Line3();
+		return function sphereIntersectTriangle( sphere, triangle ) {
+
+			const { radius, center } = sphere;
+			const { a, b, c } = triangle;
+
+			// phase 1
+			lineTemp.start = a;
+			lineTemp.end = b;
+			const closestPoint1 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+			if ( closestPoint1.distanceTo( center ) <= radius ) return true;
+
+			lineTemp.start = a;
+			lineTemp.end = c;
+			const closestPoint2 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+			if ( closestPoint2.distanceTo( center ) <= radius ) return true;
+
+			lineTemp.start = b;
+			lineTemp.end = c;
+			const closestPoint3 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+			if ( closestPoint3.distanceTo( center ) <= radius ) return true;
+
+			// phase 2
+			const plane = triangle.getPlane( planeTemp );
+			const dp = Math.abs( plane.distanceToPoint( center ) );
+			if ( dp <= radius ) {
+
+				const pp = plane.projectPoint( center, projectedPointTemp );
+				const cp = triangle.containsPoint( pp );
+				if ( cp ) return true;
+
+			}
+
+			return false;
 
 		};
 
@@ -1375,7 +1376,7 @@
 
 	} )();
 
-	MeshBVHNode.prototype.geometrycast = ( function () {
+	MeshBVHNode.prototype.intersectsGeometry = ( function () {
 
 		const triangle = new SeparatingAxisTriangle();
 		const triangle2 = new SeparatingAxisTriangle();
@@ -1385,7 +1386,7 @@
 		const obb = new OrientedBox();
 		const obb2 = new OrientedBox();
 
-		return function geometrycast( mesh, geometry, geometryToBvh, cachedObb = null ) {
+		return function intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 			if ( cachedObb === null ) {
 
@@ -1490,7 +1491,7 @@
 				arrayToBox( left.boundingData, boundingBox );
 				const leftIntersection =
 					cachedObb.intersectsBox( boundingBox ) &&
-					left.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+					left.intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb );
 
 				if ( leftIntersection ) return true;
 
@@ -1498,7 +1499,7 @@
 				arrayToBox( right.boundingData, boundingBox );
 				const rightIntersection =
 					cachedObb.intersectsBox( boundingBox ) &&
-					right.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+					right.intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb );
 
 				if ( rightIntersection ) return true;
 
@@ -1510,11 +1511,11 @@
 
 	} )();
 
-	MeshBVHNode.prototype.boxcast = ( function () {
+	MeshBVHNode.prototype.intersectsBox = ( function () {
 
 		const obb = new OrientedBox();
 
-		return function boxcast( mesh, box, boxToBvh ) {
+		return function intersectsBox( mesh, box, boxToBvh ) {
 
 			obb.set( box.min, box.max, boxToBvh );
 			obb.update();
@@ -1529,9 +1530,9 @@
 
 	} )();
 
-	MeshBVHNode.prototype.spherecast = ( function () {
+	MeshBVHNode.prototype.intersectsSphere = ( function () {
 
-		return function spherecast( mesh, sphere ) {
+		return function intersectsSphere( mesh, sphere ) {
 
 			return this.shapecast(
 				mesh,
@@ -2243,11 +2244,11 @@
 
 		}
 
-		geometrycast( mesh, geometry, geomToMesh ) {
+		intersectsGeometry( mesh, geometry, geomToMesh ) {
 
 			for ( const root of this._roots ) {
 
-				if ( root.geometrycast( mesh, geometry, geomToMesh ) ) return true;
+				if ( root.intersectsGeometry( mesh, geometry, geomToMesh ) ) return true;
 
 			}
 
@@ -2267,11 +2268,11 @@
 
 		}
 
-		boxcast( mesh, box, boxToMesh ) {
+		intersectsBox( mesh, box, boxToMesh ) {
 
 			for ( const root of this._roots ) {
 
-				if ( root.boxcast( mesh, box, boxToMesh ) ) return true;
+				if ( root.intersectsBox( mesh, box, boxToMesh ) ) return true;
 
 			}
 
@@ -2279,11 +2280,11 @@
 
 		}
 
-		spherecast( mesh, sphere ) {
+		intersectsSphere( mesh, sphere ) {
 
 			for ( const root of this._roots ) {
 
-				if ( root.spherecast( mesh, sphere ) ) return true;
+				if ( root.intersectsSphere( mesh, sphere ) ) return true;
 
 			}
 
