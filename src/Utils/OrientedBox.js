@@ -1,7 +1,7 @@
 import { Box3, Vector3, Matrix4, Sphere, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
-import { closestPointsSegmentToSegment } from './DistanceUtilities.js';
+import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
 export class OrientedBox extends Box3 {
 

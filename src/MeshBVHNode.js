@@ -1,9 +1,10 @@
 
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
-import { arrayToBox, sphereIntersectTriangle } from './BoundsUtilities.js';
+import { arrayToBox } from './BoundsUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
+import { sphereIntersectTriangle } from './Utils/MathUtilities.js';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();

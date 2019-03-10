@@ -1,4 +1,4 @@
-import { Vector3, Vector2 } from 'three';
+import { Vector3, Vector2, Plane, Line3 } from 'three';
 export const closestPointLineToLine = ( function () {
 
 	// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Line.cpp#L56
@@ -150,6 +150,52 @@ export const closestPointsSegmentToSegment = ( function () {
 			}
 
 		}
+
+	};
+
+} )();
+
+
+export const sphereIntersectTriangle = ( function () {
+
+	// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
+	const closestPointTemp = new Vector3();
+	const projectedPointTemp = new Vector3();
+	const planeTemp = new Plane();
+	const lineTemp = new Line3();
+	return function sphereIntersectTriangle( sphere, triangle ) {
+
+		const { radius, center } = sphere;
+		const { a, b, c } = triangle;
+
+		// phase 1
+		lineTemp.start = a;
+		lineTemp.end = b;
+		const closestPoint1 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+		if ( closestPoint1.distanceTo( center ) <= radius ) return true;
+
+		lineTemp.start = a;
+		lineTemp.end = c;
+		const closestPoint2 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+		if ( closestPoint2.distanceTo( center ) <= radius ) return true;
+
+		lineTemp.start = b;
+		lineTemp.end = c;
+		const closestPoint3 = lineTemp.closestPointToPoint( center, true, closestPointTemp );
+		if ( closestPoint3.distanceTo( center ) <= radius ) return true;
+
+		// phase 2
+		const plane = triangle.getPlane( planeTemp );
+		const dp = Math.abs( plane.distanceToPoint( center ) );
+		if ( dp <= radius ) {
+
+			const pp = plane.projectPoint( center, projectedPointTemp );
+			const cp = triangle.containsPoint( pp );
+			if ( cp ) return true;
+
+		}
+
+		return false;
 
 	};
 

@@ -1,6 +1,6 @@
 import { Triangle, Vector3, Line3, Sphere } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
-import { closestPointsSegmentToSegment } from './DistanceUtilities.js';
+import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
 export class SeparatingAxisTriangle extends Triangle {
 
