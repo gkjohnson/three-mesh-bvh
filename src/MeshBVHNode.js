@@ -239,7 +239,7 @@ MeshBVHNode.prototype.shapecast = ( function () {
 
 } )();
 
-MeshBVHNode.prototype.geometrycast = ( function () {
+MeshBVHNode.prototype.intersectsGeometry = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
@@ -249,7 +249,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();
 
-	return function geometrycast( mesh, geometry, geometryToBvh, cachedObb = null ) {
+	return function intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 		if ( cachedObb === null ) {
 
@@ -354,7 +354,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 			arrayToBox( left.boundingData, boundingBox );
 			const leftIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				left.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+				left.intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
@@ -362,7 +362,7 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 			arrayToBox( right.boundingData, boundingBox );
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				right.geometrycast( mesh, geometry, geometryToBvh, cachedObb );
+				right.intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
 
@@ -374,11 +374,11 @@ MeshBVHNode.prototype.geometrycast = ( function () {
 
 } )();
 
-MeshBVHNode.prototype.boxcast = ( function () {
+MeshBVHNode.prototype.intersectsBox = ( function () {
 
 	const obb = new OrientedBox();
 
-	return function boxcast( mesh, box, boxToBvh ) {
+	return function intersectsBox( mesh, box, boxToBvh ) {
 
 		obb.set( box.min, box.max, boxToBvh );
 		obb.update();
@@ -393,9 +393,9 @@ MeshBVHNode.prototype.boxcast = ( function () {
 
 } )();
 
-MeshBVHNode.prototype.spherecast = ( function () {
+MeshBVHNode.prototype.intersectsSphere = ( function () {
 
-	return function spherecast( mesh, sphere ) {
+	return function intersectsSphere( mesh, sphere ) {
 
 		return this.shapecast(
 			mesh,

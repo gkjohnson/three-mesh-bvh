@@ -71,8 +71,8 @@ runBenchmark(
 geometry.computeBoundsTree();
 runBenchmark(
 
-	'Spherecast',
-	() => mesh.geometry.boundsTree.spherecast( mesh, sphere ),
+	'IntersectsSphere',
+	() => mesh.geometry.boundsTree.intersectsSphere( mesh, sphere ),
 	3000
 
 );
@@ -81,8 +81,8 @@ runBenchmark(
 geometry.computeBoundsTree();
 runBenchmark(
 
-	'Boxcast',
-	() => mesh.geometry.boundsTree.boxcast( mesh, box, boxMat ),
+	'IntersectsBox',
+	() => mesh.geometry.boundsTree.intersectsBox( mesh, box, boxMat ),
 	3000
 
 );
@@ -92,8 +92,8 @@ geometry.computeBoundsTree();
 intersectGeometry.disposeBoundsTree();
 runBenchmark(
 
-	'Geometrycast without BVH',
-	() => mesh.geometry.boundsTree.geometrycast( mesh, intersectGeometry, geomMat ),
+	'IntersectsGeometry without BVH',
+	() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 	3000
 
 );
@@ -103,8 +103,8 @@ geometry.computeBoundsTree();
 intersectGeometry.computeBoundsTree();
 runBenchmark(
 
-	'Geometrycast with BVH',
-	() => mesh.geometry.boundsTree.geometrycast( mesh, intersectGeometry, geomMat ),
+	'IntersectsGeometry with BVH',
+	() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 	3000
 
 );
