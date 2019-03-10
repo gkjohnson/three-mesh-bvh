@@ -1,6 +1,6 @@
 
 import * as THREE from 'three';
-import { intersectTris, intersectClosestTri } from './GeometryUtilities.js';
+import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
