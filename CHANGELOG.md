@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
-- API for performing geometry, box, and sphere casting.
+- API for performing intersecting boxes, spheres, and geometry.
+- API for checking the distance to geometry and points.
 
 ## [0.1.0] - 2019-02-28
 ### Added
