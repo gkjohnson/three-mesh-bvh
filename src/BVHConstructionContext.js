@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { arrayToBox, getLongestEdgeIndex } from './BoundsUtilities.js';
+import { arrayToBox, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];

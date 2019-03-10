@@ -1,7 +1,5 @@
-import { Vector3, Line3, Plane } from 'three';
-
 // Returns a Float32Array representing the bounds data for box.
-function boxToArray( bx ) {
+export function boxToArray( bx ) {
 
 	const arr = new Float32Array( 6 );
 
@@ -17,7 +15,7 @@ function boxToArray( bx ) {
 
 }
 
-function arrayToBox( arr, target ) {
+export function arrayToBox( arr, target ) {
 
 	target.min.x = arr[ 0 ];
 	target.min.y = arr[ 1 ];
@@ -31,7 +29,7 @@ function arrayToBox( arr, target ) {
 
 }
 
-function getLongestEdgeIndex( bounds ) {
+export function getLongestEdgeIndex( bounds ) {
 
 	let splitDimIdx = - 1;
 	let splitDist = - Infinity;
@@ -51,7 +49,3 @@ function getLongestEdgeIndex( bounds ) {
 	return splitDimIdx;
 
 }
-
-export {
-	boxToArray, arrayToBox, getLongestEdgeIndex
-};

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { arrayToBox } from './BoundsUtilities.js';
+import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
 const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
 const boxGeom = new THREE.Box3Helper().geometry;
