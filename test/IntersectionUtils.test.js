@@ -3,7 +3,7 @@
 */
 
 import * as THREE from 'three';
-import { sphereIntersectTriangle, boxToObbPlanes, boxIntersectsTriangle, boxToObbPoints, triangleIntersectsTriangle } from '../src/BoundsUtilities.js';
+import { sphereIntersectTriangle } from '../src/Utils/MathUtilities.js';
 import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';
 import { OrientedBox } from '../src/Utils/OrientedBox.js';
 

@@ -150,7 +150,7 @@ describe( 'Bounds Tree', () => {
 } );
 
 
-describe( 'Geometrycast with BVH', () => {
+describe( 'IntersectsGeometry with BVH', () => {
 
 	let mesh = null;
 	let bvh = null;
@@ -175,7 +175,7 @@ describe( 'Geometrycast with BVH', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
 	} );
 
@@ -188,7 +188,7 @@ describe( 'Geometrycast with BVH', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
 	} );
 
@@ -201,7 +201,7 @@ describe( 'Geometrycast with BVH', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.5, 0.5, 0.5 ) );
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
 	} );
 
@@ -209,14 +209,14 @@ describe( 'Geometrycast with BVH', () => {
 
 		const geomToWorld = new THREE.Matrix4().identity();
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
 	} );
 
 } );
 
 
-describe( 'Geometrycast', () => {
+describe( 'IntersectsGeometry', () => {
 
 	let mesh = null;
 	let bvh = null;
@@ -240,7 +240,7 @@ describe( 'Geometrycast', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
 	} );
 
@@ -253,7 +253,7 @@ describe( 'Geometrycast', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
 	} );
 
@@ -266,7 +266,7 @@ describe( 'Geometrycast', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.5, 0.5, 0.5 ) );
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
 	} );
 
@@ -274,13 +274,13 @@ describe( 'Geometrycast', () => {
 
 		const geomToWorld = new THREE.Matrix4().identity();
 
-		expect( bvh.geometrycast( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+		expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
 	} );
 
 } );
 
-describe( 'Spherecast', () => {
+describe( 'IntersectsSphere', () => {
 
 	let mesh = null;
 	let bvh = null;
@@ -298,7 +298,7 @@ describe( 'Spherecast', () => {
 		const sphere = new THREE.Sphere();
 		sphere.radius = .01;
 		sphere.center.set( 0, 1, 0 );
-		expect( bvh.spherecast( mesh, sphere ) ).toBe( true );
+		expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( true );
 
 	} );
 
@@ -307,7 +307,7 @@ describe( 'Spherecast', () => {
 		const sphere = new THREE.Sphere();
 		sphere.radius = 0.9;
 		sphere.center.set( 0, 0, 0 );
-		expect( bvh.spherecast( mesh, sphere ) ).toBe( false );
+		expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( false );
 
 	} );
 
@@ -316,13 +316,13 @@ describe( 'Spherecast', () => {
 		const sphere = new THREE.Sphere();
 		sphere.radius = 0.9;
 		sphere.center.set( 0, 2.01, 0 );
-		expect( bvh.spherecast( mesh, sphere ) ).toBe( false );
+		expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( false );
 
 	} );
 
 } );
 
-describe( 'Boxcast', () => {
+describe( 'IntersectsBox', () => {
 
 	let mesh = null;
 	let bvh = null;
@@ -348,7 +348,7 @@ describe( 'Boxcast', () => {
 				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 				new THREE.Vector3( 1, 1, 1 ) );
 
-		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( false );
+		expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( false );
 
 	} );
 
@@ -365,7 +365,7 @@ describe( 'Boxcast', () => {
 				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 				new THREE.Vector3( 1, 1, 1 ) );
 
-		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( true );
+		expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
 
 	} );
 
@@ -382,7 +382,7 @@ describe( 'Boxcast', () => {
 				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 				new THREE.Vector3( 1, 1, 1 ) );
 
-		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( true );
+		expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
 
 	} );
 
@@ -399,7 +399,7 @@ describe( 'Boxcast', () => {
 				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 				new THREE.Vector3( 1, 1, 1 ) );
 
-		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( false );
+		expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( false );
 
 	} );
 
@@ -416,7 +416,7 @@ describe( 'Boxcast', () => {
 				new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 				new THREE.Vector3( 1, 1, 1 ) );
 
-		expect( bvh.boxcast( mesh, box, boxToWorld ) ).toBe( true );
+		expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
 
 	} );
 

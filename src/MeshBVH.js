@@ -217,11 +217,11 @@ export default class MeshBVH {
 
 	}
 
-	geometrycast( mesh, geometry, geomToMesh ) {
+	intersectsGeometry( mesh, geometry, geomToMesh ) {
 
 		for ( const root of this._roots ) {
 
-			if ( root.geometrycast( mesh, geometry, geomToMesh ) ) return true;
+			if ( root.intersectsGeometry( mesh, geometry, geomToMesh ) ) return true;
 
 		}
 
@@ -241,11 +241,11 @@ export default class MeshBVH {
 
 	}
 
-	boxcast( mesh, box, boxToMesh ) {
+	intersectsBox( mesh, box, boxToMesh ) {
 
 		for ( const root of this._roots ) {
 
-			if ( root.boxcast( mesh, box, boxToMesh ) ) return true;
+			if ( root.intersectsBox( mesh, box, boxToMesh ) ) return true;
 
 		}
 
@@ -253,11 +253,11 @@ export default class MeshBVH {
 
 	}
 
-	spherecast( mesh, sphere ) {
+	intersectsSphere( mesh, sphere ) {
 
 		for ( const root of this._roots ) {
 
-			if ( root.spherecast( mesh, sphere ) ) return true;
+			if ( root.intersectsSphere( mesh, sphere ) ) return true;
 
 		}
 
