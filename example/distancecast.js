@@ -19,12 +19,13 @@ const params = {
 	visualBoundsDepth: 10,
 
 	volume: {
+		hide: false,
+		hideWhileGenerating: false,
+		alwaysShowDistance: true,
+		surfaceOnly: false,
 		distance: 1,
 		resolution: 100,
 		radius: 4,
-		hideWhileGenerating: false,
-		fieldSize: 10,
-		display: true,
 	},
 	displayClosestPoint: true,
 
@@ -32,7 +33,7 @@ const params = {
 
 let stats;
 let scene, camera, renderer, controls, boundsViz;
-let terrain, target, transformControls;
+let terrain, target, targetMesh, transformControls;
 let marchingCubes, marchingCubesMesh, marchingCubesMeshBack, marchingCubesContainer;
 let sphere1, sphere2, line;
 
@@ -102,16 +103,28 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	const shapeMaterial = new THREE.MeshStandardMaterial( { roughness: 0.75, metalness: 0.1 } );
-	target = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.5, 0.25, 1, 20, 1 ), shapeMaterial );
-	target.castShadow = true;
-	target.receiveShadow = true;
+	target = new THREE.Group();
 	scene.add( target );
+
+	targetMesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.5, 0.25, 1, 20, 1 ), shapeMaterial );
+	targetMesh.castShadow = true;
+	targetMesh.receiveShadow = true;
+	target.add( targetMesh );
 
 	controls = new OrbitControls( camera, renderer.domElement );
 	transformControls = new TransformControls( camera, renderer.domElement );
 	transformControls.attach( target );
-	transformControls.addEventListener( 'dragging-changed', e => controls.enabled = ! e.value );
-	transformControls.addEventListener( 'changed', e => controls.enabled = ! e.value );
+	transformControls.addEventListener( 'dragging-changed', e => {
+
+		controls.enabled = ! e.value;
+		if ( ! e.value ) updateDistanceCheck( false );
+
+	} );
+	transformControls.addEventListener( 'objectChange', e => {
+
+		updateDistanceCheck( ! params.volume.alwaysShowDistance );
+
+	} );
 	scene.add( transformControls );
 
 	const cubeMat = new THREE.MeshStandardMaterial( {
@@ -156,12 +169,15 @@ function init() {
 		new THREE.MeshBasicMaterial( {
 			color: 0xE91E63,
 		} ) );
+	sphere1.castShadow = true;
 	scene.add( sphere1 );
 
 	sphere2 = sphere1.clone();
+	sphere2.castShadow = true;
 	scene.add( sphere2 );
 
 	const lineCube = new THREE.Mesh( new THREE.BoxBufferGeometry(), sphere1.material );
+	lineCube.castShadow = true;
 	lineCube.position.z = 0.5;
 
 	line = new THREE.Object3D();
@@ -170,37 +186,40 @@ function init() {
 
 	scene.updateMatrixWorld( true );
 
-	const gui = new dat.GUI();
+	const gui = new dat.GUI( { width: 300 } );
 	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 
-	const mcFolder = gui.addFolder( 'distanceVolume' );
-	mcFolder.add( params.volume, 'display' );
+	const mcFolder = gui.addFolder( 'distanceVisualization' );
+	mcFolder.add( params.volume, 'hide' );
+	mcFolder.add( params.volume, 'hideWhileGenerating' );
+	mcFolder.add( params.volume, 'alwaysShowDistance' );
+	mcFolder.add( params.volume, 'surfaceOnly' ).onChange( () => regenerate = true );
 	mcFolder.add( params.volume, 'distance' ).min( 0 ).max( 2 ).step( 0.01 ).onChange( () => regenerate = true );
 	mcFolder.add( params.volume, 'radius' ).min( 1 ).max( 20 ).onChange( () => regenerate = true );
 	mcFolder.add( params.volume, 'resolution', 5, 200, 1 ).onChange( () => regenerate = true );
-	mcFolder.add( params.volume, 'fieldSize', 3, 20, 1 ).onChange( () => regenerate = true );
-	mcFolder.add( params.volume, 'hideWhileGenerating' );
 	mcFolder.open();
 
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
 
 	const posFolder = gui.addFolder( 'position' );
-	posFolder.add( target.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
-	posFolder.add( target.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
-	posFolder.add( target.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( targetMesh.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( targetMesh.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( targetMesh.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 
 	const rotFolder = gui.addFolder( 'rotation' );
-	rotFolder.add( target.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	rotFolder.add( target.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	rotFolder.add( target.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( targetMesh.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( targetMesh.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( targetMesh.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 
 	const scaleFolder = gui.addFolder( 'scale' );
-	scaleFolder.add( target.scale, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	scaleFolder.add( target.scale, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	scaleFolder.add( target.scale, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	scaleFolder.add( targetMesh.scale, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	scaleFolder.add( targetMesh.scale, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	scaleFolder.add( targetMesh.scale, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 
 	gui.open();
+
+	updateDistanceCheck();
 
 }
 
@@ -228,6 +247,39 @@ function updateFromOptions() {
 
 }
 
+function updateDistanceCheck( fastCheck ) {
+
+	target.updateMatrixWorld();
+	const targetToBvh =
+		new THREE.Matrix4()
+			.getInverse( terrain.matrixWorld )
+			.multiply( target.matrixWorld );
+
+	// get the closest point
+	const distance = params.volume.distance;
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, fastCheck ? distance : 0, distance );
+	const hit = dist < params.volume.distance;
+	targetMesh.material.color.set( hit ? 0xE91E63 : 0x666666 );
+	targetMesh.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
+
+	// update the line indicating closest point
+	sphere1.position.applyMatrix4( terrain.matrixWorld );
+	sphere2.position.applyMatrix4( terrain.matrixWorld );
+
+	line.position.copy( sphere1.position );
+	line.lookAt( sphere2.position );
+	line.scale.set(
+		0.01,
+		0.01,
+		sphere1.position.distanceTo( sphere2.position )
+	);
+
+	line.visible = hit && ! fastCheck;
+	sphere1.visible = hit && ! fastCheck;
+	sphere2.visible = hit && ! fastCheck;
+
+}
+
 function regenerateMesh() {
 
 	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
@@ -237,11 +289,16 @@ function regenerateMesh() {
 
 function* updateMarchingCubes() {
 
-	marchingCubesContainer.scale.set( params.volume.fieldSize / 2, params.volume.fieldSize / 2, params.volume.fieldSize / 2 );
+	const surfaceOnly = params.volume.surfaceOnly;
+	const resolution = params.volume.resolution;
+	const distance = params.volume.distance;
+	const radius = params.volume.radius;
+	const fieldSize = ( radius + 4 * radius / resolution ) * 2;
+	marchingCubesContainer.scale.set( fieldSize / 2, fieldSize / 2, fieldSize / 2 );
 	marchingCubesContainer.updateMatrixWorld();
 
 	marchingCubesContainer.remove( marchingCubes );
-	const newMarchingCubes = new MarchingCubes( params.volume.resolution, marchingCubes.material, false, false );
+	const newMarchingCubes = new MarchingCubes( resolution, marchingCubes.material, false, false );
 	newMarchingCubes.isolation = 0;
 	marchingCubes = newMarchingCubes;
 	marchingCubesContainer.add( marchingCubes );
@@ -264,8 +321,6 @@ function* updateMarchingCubes() {
 	// get the world
 	const pos = new THREE.Vector3();
 	const worldToBvh = new THREE.Matrix4().getInverse( terrain.matrixWorld );
-	const distance = params.volume.distance;
-	const radius = params.volume.radius;
 	let count = 0;
 
 	for ( let y = 0; y < size; y ++ ) {
@@ -279,7 +334,7 @@ function* updateMarchingCubes() {
 				pos.z = min + cellWidth2 + z * cellWidth;
 
 
-				if ( pos.length() < radius ) {
+				if ( surfaceOnly || pos.length() < radius ) {
 
 					pos.applyMatrix4( worldToBvh );
 
@@ -333,7 +388,7 @@ function render() {
 		marchingCubesMeshBack.visible = false;
 
 		let startTime = window.performance.now();
-		marchingCubes.visible = ! params.volume.hideWhileGenerating && params.volume.display;
+		marchingCubes.visible = ! params.volume.hideWhileGenerating && ! params.volume.hide;
 		while ( window.performance.now() - startTime < 15 ) {
 
 			const res = currentTask.next();
@@ -354,41 +409,13 @@ function render() {
 	// Update visibility of marching cubes mesh
 	if ( ! currentTask ) {
 
-		marchingCubesMesh.visible = params.volume.display;
-		marchingCubesMeshBack.visible = params.volume.display;
+		marchingCubesMesh.visible = ! params.volume.hide;
+		marchingCubesMeshBack.visible = ! params.volume.hide;
 
 	}
 
 	// update loading bar
 	document.getElementById( 'loader' ).setAttribute( 'style', `width: ${ percentage * 100 }%` );
-
-	target.updateMatrixWorld();
-	const targetToBvh =
-		new THREE.Matrix4()
-			.getInverse( terrain.matrixWorld )
-			.multiply( target.matrixWorld );
-
-	// get the closest point
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, target.geometry, targetToBvh, sphere1.position, sphere2.position, 0, params.volume.distance );
-	const hit = dist < params.volume.distance;
-	target.material.color.set( hit ? 0xE91E63 : 0x666666 );
-	target.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	// update the line indicating closest point
-	sphere1.position.applyMatrix4( terrain.matrixWorld );
-	sphere2.position.applyMatrix4( terrain.matrixWorld );
-
-	line.position.copy( sphere1.position );
-	line.lookAt( sphere2.position );
-	line.scale.set(
-		0.01,
-		0.01,
-		sphere1.position.distanceTo( sphere2.position )
-	);
-
-	line.visible = hit;
-	sphere1.visible = hit;
-	sphere2.visible = hit;
 
 	// render
 	renderer.render( scene, camera );
