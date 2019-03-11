@@ -1642,7 +1642,7 @@
 					return false;
 
 				},
-				box => obb.distanceToBox( box, closestDistance )
+				box => obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) )
 
 			);
 
