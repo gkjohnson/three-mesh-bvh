@@ -1274,7 +1274,7 @@
 				const offset = this.offset;
 				const count = this.count;
 
-				for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
 					setTriangle( triangle, i, index, pos );
 					triangle.update();
@@ -1413,7 +1413,7 @@
 						tri.c.applyMatrix4( geometryToBvh );
 						tri.update();
 
-						for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+						for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
 							// this triangle needs to be transformed into the current BVH coordinate frame
 							setTriangle( triangle2, i, thisIndex, thisPos );
