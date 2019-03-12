@@ -201,22 +201,17 @@ function init() {
 	mcFolder.add( params.volume, 'resolution', 5, 200, 1 ).onChange( () => regenerate = true );
 	mcFolder.open();
 
-	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
+	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
 
 	const posFolder = gui.addFolder( 'position' );
-	posFolder.add( targetMesh.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
-	posFolder.add( targetMesh.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
-	posFolder.add( targetMesh.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( targetContainer.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( targetContainer.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
+	posFolder.add( targetContainer.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 
 	const rotFolder = gui.addFolder( 'rotation' );
-	rotFolder.add( targetMesh.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	rotFolder.add( targetMesh.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	rotFolder.add( targetMesh.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-
-	const scaleFolder = gui.addFolder( 'scale' );
-	scaleFolder.add( targetMesh.scale, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	scaleFolder.add( targetMesh.scale, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
-	scaleFolder.add( targetMesh.scale, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( targetContainer.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( targetContainer.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
+	rotFolder.add( targetContainer.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 
 	gui.open();
 
@@ -412,11 +407,7 @@ function render() {
 	let percentage = 0;
 	if ( currentTask ) {
 
-		marchingCubesMesh.visible = false;
-		marchingCubesMeshBack.visible = false;
-
 		let startTime = window.performance.now();
-		marchingCubes.visible = ! params.volume.hideWhileGenerating && params.volume.display != 0;
 		while ( window.performance.now() - startTime < 15 ) {
 
 			const res = currentTask.next();
@@ -431,6 +422,10 @@ function render() {
 			}
 
 		}
+
+		marchingCubes.visible = ! params.volume.hideWhileGenerating && params.volume.display != 0;
+		marchingCubesMesh.visible = false;
+		marchingCubesMeshBack.visible = false;
 
 	}
 
