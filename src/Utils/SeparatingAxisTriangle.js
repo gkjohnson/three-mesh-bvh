@@ -212,8 +212,8 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 			line1.set( this[ f11 ], this[ f12 ] );
 			for ( let i2 = 0; i2 < 3; i2 ++ ) {
 
-				const f21 = cornerFields[ i ];
-				const f22 = cornerFields[ ( i + 1 ) % 3 ];
+				const f21 = cornerFields[ i2 ];
+				const f22 = cornerFields[ ( i2 + 1 ) % 3 ];
 				line2.set( other[ f21 ], other[ f22 ] );
 
 				closestPointsSegmentToSegment( line1, line2, point, point2 );

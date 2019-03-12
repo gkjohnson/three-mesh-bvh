@@ -69,7 +69,7 @@ export const closestPointsSegmentToSegment = ( function () {
 		if ( d >= 0 && d <= 1 && d2 >= 0 && d2 <= 1 ) {
 
 			l1.at( d, target1 );
-			l1.at( d2, target2 );
+			l2.at( d2, target2 );
 
 			return;
 
