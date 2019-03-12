@@ -19,7 +19,7 @@ const params = {
 	visualBoundsDepth: 10,
 
 	volume: {
-		hide: false,
+		display: 1,
 		hideWhileGenerating: false,
 		alwaysShowDistance: true,
 		surfaceOnly: false,
@@ -33,7 +33,7 @@ const params = {
 
 let stats;
 let scene, camera, renderer, controls, boundsViz;
-let terrain, target, targetMesh, transformControls;
+let terrain, targetContainer, targetMesh, transformControls;
 let marchingCubes, marchingCubesMesh, marchingCubesMeshBack, marchingCubesContainer;
 let sphere1, sphere2, line;
 
@@ -73,7 +73,6 @@ function init() {
 	const posAttr = planeGeom.attributes.position;
 
 	const seed = ~ ~ ( Math.random() * 100 );
-	console.log( 'noise seed: ', seed );
 	const noise = new SimplexNoise( seed );
 	for ( let i = 0; i < dim * dim; i ++ ) {
 
@@ -103,17 +102,19 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	const shapeMaterial = new THREE.MeshStandardMaterial( { roughness: 0.75, metalness: 0.1 } );
-	target = new THREE.Group();
-	scene.add( target );
+	targetContainer = new THREE.Group();
+	scene.add( targetContainer );
 
 	targetMesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.5, 0.25, 1, 20, 1 ), shapeMaterial );
 	targetMesh.castShadow = true;
 	targetMesh.receiveShadow = true;
-	target.add( targetMesh );
+	targetMesh.geometry.computeBoundsTree();
+	targetMesh.geometry.computeBoundingSphere();
+	targetContainer.add( targetMesh );
 
 	controls = new OrbitControls( camera, renderer.domElement );
 	transformControls = new TransformControls( camera, renderer.domElement );
-	transformControls.attach( target );
+	transformControls.attach( targetContainer );
 	transformControls.addEventListener( 'dragging-changed', e => {
 
 		controls.enabled = ! e.value;
@@ -191,7 +192,7 @@ function init() {
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 
 	const mcFolder = gui.addFolder( 'distanceVisualization' );
-	mcFolder.add( params.volume, 'hide' );
+	mcFolder.add( params.volume, 'display', { 'hide': 0, 'distance to terrain': 1, 'distance to mesh': 2 } ).onChange( () => regenerate = true );
 	mcFolder.add( params.volume, 'hideWhileGenerating' );
 	mcFolder.add( params.volume, 'alwaysShowDistance' );
 	mcFolder.add( params.volume, 'surfaceOnly' ).onChange( () => regenerate = true );
@@ -249,16 +250,18 @@ function updateFromOptions() {
 
 function updateDistanceCheck( fastCheck ) {
 
-	target.updateMatrixWorld();
+	targetContainer.updateMatrixWorld();
 	const targetToBvh =
 		new THREE.Matrix4()
 			.getInverse( terrain.matrixWorld )
-			.multiply( target.matrixWorld );
+			.multiply( targetContainer.matrixWorld );
 
 	// get the closest point
 	const distance = params.volume.distance;
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, fastCheck ? distance : 0, distance );
-	const hit = dist < params.volume.distance;
+	const maxDistance = distance;
+	const minDistance = fastCheck ? distance : 0;
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, minDistance, maxDistance );
+	const hit = dist < distance;
 	targetMesh.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	targetMesh.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
@@ -274,9 +277,10 @@ function updateDistanceCheck( fastCheck ) {
 		sphere1.position.distanceTo( sphere2.position )
 	);
 
-	line.visible = hit && ! fastCheck;
-	sphere1.visible = hit && ! fastCheck;
-	sphere2.visible = hit && ! fastCheck;
+	const areVisible = hit && ! fastCheck;
+	line.visible = areVisible;
+	sphere1.visible = areVisible;
+	sphere2.visible = areVisible;
 
 }
 
@@ -289,14 +293,41 @@ function regenerateMesh() {
 
 function* updateMarchingCubes() {
 
+	if ( params.volume.display == 0 ) return;
+
+	updateDistanceCheck();
+
+	const isDistanceToTarget = params.volume.display == 2;
+
+	const pos = new THREE.Vector3();
 	const surfaceOnly = params.volume.surfaceOnly;
 	const resolution = params.volume.resolution;
 	const distance = params.volume.distance;
 	const radius = params.volume.radius;
-	const fieldSize = ( radius + 4 * radius / resolution ) * 2;
+	let fieldSize;
+	let worldToBvh;
+	let distanceMesh;
+
+	if ( isDistanceToTarget ) {
+
+		targetContainer.add( marchingCubesContainer );
+		worldToBvh = new THREE.Matrix4().identity();
+		fieldSize = ( targetMesh.geometry.boundingSphere.radius + distance ) * 2;
+		distanceMesh = targetMesh;
+
+	} else {
+
+		scene.add( marchingCubesContainer );
+		fieldSize = ( radius + 4 * radius / resolution ) * 2;
+		worldToBvh = new THREE.Matrix4().getInverse( terrain.matrixWorld );
+		distanceMesh = terrain;
+
+	}
+
 	marchingCubesContainer.scale.set( fieldSize / 2, fieldSize / 2, fieldSize / 2 );
 	marchingCubesContainer.updateMatrixWorld();
 
+	// Create a new marching cubes container to update the resolution
 	marchingCubesContainer.remove( marchingCubes );
 	const newMarchingCubes = new MarchingCubes( resolution, marchingCubes.material, false, false );
 	newMarchingCubes.isolation = 0;
@@ -319,8 +350,6 @@ function* updateMarchingCubes() {
 	marchingCubes.reset();
 
 	// get the world
-	const pos = new THREE.Vector3();
-	const worldToBvh = new THREE.Matrix4().getInverse( terrain.matrixWorld );
 	let count = 0;
 
 	for ( let y = 0; y < size; y ++ ) {
@@ -333,12 +362,11 @@ function* updateMarchingCubes() {
 				pos.y = min + cellWidth2 + y * cellWidth;
 				pos.z = min + cellWidth2 + z * cellWidth;
 
-
-				if ( surfaceOnly || pos.length() < radius ) {
+				if ( isDistanceToTarget || surfaceOnly || pos.length() < radius && ! isDistanceToTarget ) {
 
 					pos.applyMatrix4( worldToBvh );
 
-					const dist = terrain.geometry.boundsTree.distanceToPoint( terrain, pos, distance, distance );
+					const dist = distanceMesh.geometry.boundsTree.distanceToPoint( distanceMesh, pos, distance, distance );
 					const result = dist < distance;
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 
@@ -388,7 +416,7 @@ function render() {
 		marchingCubesMeshBack.visible = false;
 
 		let startTime = window.performance.now();
-		marchingCubes.visible = ! params.volume.hideWhileGenerating && ! params.volume.hide;
+		marchingCubes.visible = ! params.volume.hideWhileGenerating && params.volume.display != 0;
 		while ( window.performance.now() - startTime < 15 ) {
 
 			const res = currentTask.next();
@@ -409,8 +437,8 @@ function render() {
 	// Update visibility of marching cubes mesh
 	if ( ! currentTask ) {
 
-		marchingCubesMesh.visible = ! params.volume.hide;
-		marchingCubesMeshBack.visible = ! params.volume.hide;
+		marchingCubesMesh.visible = params.volume.display != 0;
+		marchingCubesMeshBack.visible = params.volume.display != 0;
 
 	}
 
