@@ -10,23 +10,8 @@ var uvA = new Vector2();
 var uvB = new Vector2();
 var uvC = new Vector2();
 
-var barycoord = new Vector3();
 var intersectionPoint = new Vector3();
 var intersectionPointWorld = new Vector3();
-
-function uvIntersection( point, p1, p2, p3, uv1, uv2, uv3 ) {
-
-	Triangle.getBarycoord( point, p1, p2, p3, barycoord );
-
-	uv1.multiplyScalar( barycoord.x );
-	uv2.multiplyScalar( barycoord.y );
-	uv3.multiplyScalar( barycoord.z );
-
-	uv1.add( uv2 ).add( uv3 );
-
-	return uv1.clone();
-
-}
 
 function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point ) {
 
@@ -74,7 +59,7 @@ function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, 
 			uvB.fromBufferAttribute( uv, b );
 			uvC.fromBufferAttribute( uv, c );
 
-			intersection.uv = uvIntersection( intersectionPoint, vA, vB, vC, uvA, uvB, uvC );
+			intersection.uv = Triangle.getUV( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new Vector2( ) );
 
 		}
 
