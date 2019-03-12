@@ -432,6 +432,7 @@ function render() {
 	// Update visibility of marching cubes mesh
 	if ( ! currentTask ) {
 
+		marchingCubes.visible = false;
 		marchingCubesMesh.visible = params.volume.display != 0;
 		marchingCubesMeshBack.visible = params.volume.display != 0;
 
