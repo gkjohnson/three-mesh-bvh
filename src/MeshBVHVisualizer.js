@@ -75,10 +75,6 @@ class MeshBVHRootVisualizer extends THREE.Object3D {
 
 		}
 
-		this.position.copy( this._mesh.position );
-		this.rotation.copy( this._mesh.rotation );
-		this.scale.copy( this._mesh.scale );
-
 	}
 
 }
@@ -93,11 +89,13 @@ class MeshBVHVisualizer extends THREE.Object3D {
 		this._mesh = mesh;
 		this._roots = [];
 
+		this.update();
+
 	}
 
 	update() {
 
-		const bvh = this._mesh.boundsTree;
+		const bvh = this._mesh.geometry.boundsTree;
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
@@ -110,6 +108,7 @@ class MeshBVHVisualizer extends THREE.Object3D {
 			if ( i >= this._roots.length ) {
 
 				const root = new MeshBVHRootVisualizer( this._mesh, this.depth, i );
+				this.add( root );
 				this._roots.push( root );
 
 			} else {
@@ -121,6 +120,10 @@ class MeshBVHVisualizer extends THREE.Object3D {
 			}
 
 		}
+
+		this.position.copy( this._mesh.position );
+		this.rotation.copy( this._mesh.rotation );
+		this.scale.copy( this._mesh.scale );
 
 	}
 
