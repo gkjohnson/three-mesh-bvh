@@ -5,16 +5,17 @@ const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: tru
 const boxGeom = new THREE.Box3Helper().geometry;
 let boundingBox = new THREE.Box3();
 
-class MeshBVHVisualizer extends THREE.Object3D {
+class MeshBVHRootVisualizer extends THREE.Object3D {
 
-	constructor( mesh, depth = 10 ) {
+	constructor( mesh, depth = 10, group = 0 ) {
 
-		super();
+		super( 'MeshBVHRootVisualizer' );
 
 		this.depth = depth;
 		this._oldDepth = - 1;
 		this._mesh = mesh;
 		this._boundsTree = null;
+		this._group = group;
 
 		this.update();
 
@@ -66,12 +67,57 @@ class MeshBVHVisualizer extends THREE.Object3D {
 
 				};
 
-				// TODO: Fix this so it visualizes all the roots
-				recurse( this._boundsTree._roots[ 0 ], 0 );
+				recurse( this._boundsTree._roots[ this._group ], 0 );
 
 			}
 
 			while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
+
+		}
+
+	}
+
+}
+
+class MeshBVHVisualizer extends THREE.Object3D {
+
+	constructor( mesh, depth = 10 ) {
+
+		super( 'MeshBVHVisualizer' );
+
+		this.depth = depth;
+		this._mesh = mesh;
+		this._roots = [];
+
+		this.update();
+
+	}
+
+	update() {
+
+		const bvh = this._mesh.geometry.boundsTree;
+		const totalRoots = bvh ? bvh._roots.length : 0;
+		while ( this._roots.length > totalRoots ) {
+
+			this._roots.pop();
+
+		}
+
+		for ( let i = 0; i < totalRoots; i ++ ) {
+
+			if ( i >= this._roots.length ) {
+
+				const root = new MeshBVHRootVisualizer( this._mesh, this.depth, i );
+				this.add( root );
+				this._roots.push( root );
+
+			} else {
+
+				let root = this._roots[ i ];
+				root.depth = this.depth;
+				root.update();
+
+			}
 
 		}
 
@@ -82,5 +128,6 @@ class MeshBVHVisualizer extends THREE.Object3D {
 	}
 
 }
+
 
 export default MeshBVHVisualizer;

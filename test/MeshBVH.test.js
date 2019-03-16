@@ -147,6 +147,29 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should create a correctly sized and typed index if one does not exist', () => {
+
+		const geom = new THREE.BufferGeometry();
+		const smallPosAttr = new THREE.BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) - 3 ), 3, false );
+		const largePosAttr = new THREE.BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) + 3 ), 3, false );
+
+		geom.addAttribute( 'position', smallPosAttr );
+
+		expect( geom.index ).toBe( null );
+		new MeshBVH( geom );
+		expect( geom.index ).not.toBe( null );
+		expect( geom.index.count ).toBe( smallPosAttr.count );
+		expect( geom.index.array.BYTES_PER_ELEMENT ).toBe( 2 );
+
+		geom.index = null;
+		geom.addAttribute( 'position', largePosAttr );
+		new MeshBVH( geom );
+		expect( geom.index ).not.toBe( null );
+		expect( geom.index.count ).toBe( largePosAttr.count );
+		expect( geom.index.array.BYTES_PER_ELEMENT ).toBe( 4 );
+
+	} );
+
 } );
 
 
