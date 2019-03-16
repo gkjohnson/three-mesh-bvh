@@ -114,6 +114,24 @@ Adds all raycast triangle hits in unsorted order to the `intersects` array. It i
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits.
 
+#### intersectsSphere(mesh : Mesh, sphere : Sphere) : Boolean
+
+Returns whether or not the mesh instersects the given sphere.
+
+#### intersectsBox(mesh : Mesh, box : Box3, boxToBvh : Matrix4) : Boolean
+
+Returns whether or not the mesh intersects the given box.
+
+The `boxToBvh` parameter is the transform of the box in the meshs frame.
+
+#### intersectsGeometry(mesh : Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4) : Boolean
+
+Returns whether or not the mesh intersects the given geometry.
+
+The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+
+Performance improve considerably if the provided geometry _also_ has a `boundsTree`.
+
 ### Extension Functions
 #### computeBoundsTree(options : Object)
 
