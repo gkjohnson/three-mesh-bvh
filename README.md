@@ -130,7 +130,7 @@ Returns whether or not the mesh intersects the given geometry.
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
-Performance improve considerably if the provided geometry _also_ has a `boundsTree`.
+Performance improves considerably if the provided geometry _also_ has a `boundsTree`.
 
 #### closestPointToPoint(mesh: Mesh, point: Vector3, target: Vector3) : Number
 
