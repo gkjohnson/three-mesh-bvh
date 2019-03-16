@@ -44,11 +44,10 @@ export default class MeshBVH {
 		if ( ! geo.index ) {
 
 			const vertexCount = geo.attributes.position.count;
-			const indexCount = vertexCount;
-			const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( indexCount );
+			const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( vertexCount );
 			geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
 
-			for ( let i = 0; i < indexCount; i ++ ) {
+			for ( let i = 0; i < vertexCount; i ++ ) {
 
 				index[ i ] = i;
 
