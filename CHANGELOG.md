@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - API for performing intersecting boxes, spheres, and geometry.
 - API for checking the distance to geometry and points.
 
+### Fixed
+- Fixed issue where an index buffer of the incorrect type was created if there were more than 2^16 vertices.
+- Fixed MeshBVHVisualizer not visualizing all the groups in the bvh.
+
 ## [0.1.0] - 2019-02-28
 ### Added
 - Error conditions when using `InterleavedAttributeBuffers` for both index and position geometry attributes.
