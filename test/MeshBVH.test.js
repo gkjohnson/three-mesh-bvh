@@ -532,8 +532,7 @@ describe( 'Distance To Geometry', () => {
 
 	} );
 
-	// TODO: fix this
-	it.only( 'should return 0 if intersecting the geometry', () => {
+	it( 'should return 0 if intersecting the geometry', () => {
 
 		const matrix = new THREE.Matrix4()
 			.compose(
