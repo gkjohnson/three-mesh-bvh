@@ -77,11 +77,11 @@ This is the slowest construction option.
 
 ### MeshBVH
 
-#### index : AttributeBuffer
+#### index: AttributeBuffer
 
 The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH will no longer work correctly if this buffer is modified.
 
-#### constructor(geometry : BufferGeometry, options : Object)
+#### constructor(geometry: BufferGeometry, options: Object)
 
 Constructs the bounds tree for the given geometry and produces a new index attribute buffer. The available options are
 
@@ -106,31 +106,41 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
 *NOTE: The geometry's index attribute array is modified in order to build the bounds tree. If the geometry has no index then one is added.*
 
-#### raycast(mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array)
+#### raycast(mesh: Mesh, raycaster: Raycaster, ray: Ray, intersects: Array)
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
 
-#### raycastFirst(mesh : Mesh, raycaster : Raycaster, ray : Ray) : RaycastHit
+#### raycastFirst(mesh: Mesh, raycaster: Raycaster, ray: Ray) : RaycastHit
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits.
 
-#### intersectsSphere(mesh : Mesh, sphere : Sphere) : Boolean
+#### intersectsSphere(mesh: Mesh, sphere: Sphere) : Boolean
 
 Returns whether or not the mesh instersects the given sphere.
 
-#### intersectsBox(mesh : Mesh, box : Box3, boxToBvh : Matrix4) : Boolean
+#### intersectsBox(mesh: Mesh, box: Box3, boxToBvh: Matrix4) : Boolean
 
 Returns whether or not the mesh intersects the given box.
 
 The `boxToBvh` parameter is the transform of the box in the meshs frame.
 
-#### intersectsGeometry(mesh : Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4) : Boolean
+#### intersectsGeometry(mesh: Mesh, geometry: BufferGeometry, geometryToBvh: Matrix4) : Boolean
 
 Returns whether or not the mesh intersects the given geometry.
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
 Performance improve considerably if the provided geometry _also_ has a `boundsTree`.
+
+#### closestPointToPoint(mesh: Mesh, point: Vector3, target: Vector3) : Number
+
+Returns the closest distance from the point to the mesh and puts the closest point on the mesh in `target`.
+
+#### closestPointToGeometry(mesh: Mesh, geometry: BufferGeometry, geometryToBvh: Matrix4, target1: Vector3, target2: Vector3) : Number
+
+Returns the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` and the closest point on the other geometry in `target2` in the frame of the BVH.
+
+The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
 ### Extension Functions
 #### computeBoundsTree(options : Object)
