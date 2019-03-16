@@ -491,6 +491,8 @@ MeshBVHNode.prototype.closestPointToGeometry = ( function () {
 					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
 					if ( sphereDist > closestDistance ) continue;
 
+					tri2.update();
+
 					const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
 					if ( dist < closestDistance ) {
 
