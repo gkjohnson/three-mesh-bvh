@@ -445,6 +445,141 @@ describe( 'IntersectsBox', () => {
 
 } );
 
+describe( 'Distance To Point', () => {
+
+	// error to account for the geometry
+	// not being perfectly round
+	const EPSILON = 0.001;
+	let mesh = null;
+	let bvh = null;
+
+	beforeAll( () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 200, 200 );
+		mesh = new THREE.Mesh( geom );
+		bvh = new MeshBVH( geom, { verbose: false } );
+
+	} );
+
+	it( 'should return the radius if at the center of the geometry', () => {
+
+		const dist = bvh.distanceToPoint( mesh, new THREE.Vector3() );
+		expect( dist ).toBeLessThanOrEqual( 1 );
+		expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
+
+	} );
+
+	it( 'should return 0 if on the surface of the geometry', () => {
+
+		const dist = bvh.distanceToPoint( mesh, new THREE.Vector3( 0, 1, 0 ) );
+		expect( dist ).toBe( 0 );
+
+	} );
+
+	it( 'should return the distance to the surface', () => {
+
+		const vec = new THREE.Vector3();
+		for ( let i = 0; i < 100; i ++ ) {
+
+			vec.x = Math.random() - 0.5;
+			vec.y = Math.random() - 0.5;
+			vec.z = Math.random() - 0.5;
+
+			const length = Math.random() * 3;
+			vec.normalize().multiplyScalar( length );
+
+			const expectedDist = Math.abs( 1 - length );
+			const dist = bvh.distanceToPoint( mesh, vec );
+			expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
+			expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
+
+		}
+
+	} );
+
+} );
+
+describe( 'Distance To Geometry', () => {
+
+	let mesh = null;
+	let geometry = null;
+	let bvh = null;
+
+	beforeAll( () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
+		mesh = new THREE.Mesh( geom );
+		bvh = new MeshBVH( geom, { verbose: false } );
+
+		geometry = new THREE.SphereBufferGeometry( 1, 5, 5 );
+
+	} );
+
+	it( 'should return the radius if reduced to a point at the center of the geometry', () => {
+
+		// error to account for neither geometries
+		// being perfectly round
+		const EPSILON = 0.01;
+		const matrix = new THREE.Matrix4()
+			.compose(
+				new THREE.Vector3(),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.001, 0.001, 0.001 )
+			);
+		const dist = bvh.distanceToGeometry( mesh, geometry, matrix );
+		expect( dist ).toBeLessThanOrEqual( 1 );
+		expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
+
+	} );
+
+	// TODO: fix this
+	it.only( 'should return 0 if intersecting the geometry', () => {
+
+		const matrix = new THREE.Matrix4()
+			.compose(
+				new THREE.Vector3( 0, 1, 0 ),
+				new THREE.Quaternion(),
+				new THREE.Vector3( 0.1, 0.1, 0.1 )
+			);
+		const dist = bvh.distanceToGeometry( mesh, geometry, matrix );
+		expect( dist ).toBe( 0 );
+
+	} );
+
+
+	it( 'should return the distance to the surface', () => {
+
+		// error to account for neither geometries
+		// being perfectly round
+		const EPSILON = 0.1;
+		const radius = 0.1;
+		const pos = new THREE.Vector3();
+		const quat = new THREE.Quaternion();
+		const sca = new THREE.Vector3( radius, radius, radius );
+		const matrix = new THREE.Matrix4();
+
+		for ( let i = 0; i < 100; i ++ ) {
+
+			pos.x = Math.random() - 0.5;
+			pos.y = Math.random() - 0.5;
+			pos.z = Math.random() - 0.5;
+
+			const length = Math.random() * 3;
+			pos.normalize().multiplyScalar( length );
+
+			matrix.compose( pos, quat, sca );
+
+			const distToCenter = Math.abs( 1 - length );
+			const expectedDist = distToCenter < radius ? 0 : distToCenter - radius;
+			const dist = bvh.distanceToGeometry( mesh, geometry, matrix );
+			expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
+			expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
+
+		}
+
+	} );
+
+} );
 
 describe( 'Options', () => {
 
