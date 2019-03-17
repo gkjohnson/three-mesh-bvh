@@ -663,9 +663,11 @@
 
 			if ( this.intersectsTriangle( other ) ) {
 
+				// TODO: This will not result in a point that lies on
+				// the intersection line of the triangles
 				if ( target1 || target2 ) {
 
-					this.getMidPoint( point );
+					this.getMidpoint( point );
 					other.closestPointToPoint( point, point2 );
 					this.closestPointToPoint( point2, point );
 
