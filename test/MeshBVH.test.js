@@ -452,18 +452,20 @@ describe( 'Distance To Point', () => {
 	const EPSILON = 0.001;
 	let mesh = null;
 	let bvh = null;
+	let target = null;
 
 	beforeAll( () => {
 
 		const geom = new THREE.SphereBufferGeometry( 1, 200, 200 );
 		mesh = new THREE.Mesh( geom );
 		bvh = new MeshBVH( geom, { verbose: false } );
+		target = new THREE.Vector3();
 
 	} );
 
 	it( 'should return the radius if at the center of the geometry', () => {
 
-		const dist = bvh.distanceToPoint( mesh, new THREE.Vector3() );
+		const dist = bvh.closestPointToPoint( mesh, new THREE.Vector3(), target );
 		expect( dist ).toBeLessThanOrEqual( 1 );
 		expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -471,7 +473,7 @@ describe( 'Distance To Point', () => {
 
 	it( 'should return 0 if on the surface of the geometry', () => {
 
-		const dist = bvh.distanceToPoint( mesh, new THREE.Vector3( 0, 1, 0 ) );
+		const dist = bvh.closestPointToPoint( mesh, new THREE.Vector3( 0, 1, 0 ), target );
 		expect( dist ).toBe( 0 );
 
 	} );
@@ -489,7 +491,7 @@ describe( 'Distance To Point', () => {
 			vec.normalize().multiplyScalar( length );
 
 			const expectedDist = Math.abs( 1 - length );
-			const dist = bvh.distanceToPoint( mesh, vec );
+			const dist = bvh.closestPointToPoint( mesh, vec, target );
 			expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 			expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 
@@ -504,12 +506,17 @@ describe( 'Distance To Geometry', () => {
 	let mesh = null;
 	let geometry = null;
 	let bvh = null;
+	let target1 = null;
+	let target2 = null;
 
 	beforeAll( () => {
 
 		const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
 		mesh = new THREE.Mesh( geom );
 		bvh = new MeshBVH( geom, { verbose: false } );
+
+		target1 = new THREE.Vector3();
+		target2 = new THREE.Vector3();
 
 		geometry = new THREE.SphereBufferGeometry( 1, 5, 5 );
 
@@ -526,7 +533,7 @@ describe( 'Distance To Geometry', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.001, 0.001, 0.001 )
 			);
-		const dist = bvh.distanceToGeometry( mesh, geometry, matrix );
+		const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
 		expect( dist ).toBeLessThanOrEqual( 1 );
 		expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -540,7 +547,7 @@ describe( 'Distance To Geometry', () => {
 				new THREE.Quaternion(),
 				new THREE.Vector3( 0.1, 0.1, 0.1 )
 			);
-		const dist = bvh.distanceToGeometry( mesh, geometry, matrix );
+		const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
 		expect( dist ).toBe( 0 );
 
 	} );
@@ -570,7 +577,7 @@ describe( 'Distance To Geometry', () => {
 
 			const distToCenter = Math.abs( 1 - length );
 			const expectedDist = distToCenter < radius ? 0 : distToCenter - radius;
-			const dist = bvh.distanceToGeometry( mesh, geometry, matrix );
+			const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
 			expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 			expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 
