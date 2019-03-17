@@ -156,7 +156,7 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 			if ( target1 || target2 ) {
 
-				this.getMidPoint( point );
+				this.getMidpoint( point );
 				other.closestPointToPoint( point, point2 );
 				this.closestPointToPoint( point2, point );
 
