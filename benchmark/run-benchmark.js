@@ -114,8 +114,8 @@ geometry.computeBoundsTree();
 intersectGeometry.computeBoundsTree();
 runBenchmark(
 
-	'Distance cast',
-	() => mesh.geometry.boundsTree.distanceToGeometry( mesh, intersectGeometry, geomMat, 1, 1 ),
+	'DistanceToGeometry',
+	() => mesh.geometry.boundsTree.distanceToGeometry( mesh, intersectGeometry, geomMat ),
 	3000
 
 );
@@ -125,8 +125,8 @@ geometry.computeBoundsTree();
 intersectGeometry.computeBoundsTree();
 runBenchmark(
 
-	'Distance To Point',
-	() => mesh.geometry.boundsTree.distanceToPoint( mesh, vec, 1, 1 ),
+	'DistanceToPoint',
+	() => mesh.geometry.boundsTree.distanceToPoint( mesh, vec ),
 	3000
 
 );
