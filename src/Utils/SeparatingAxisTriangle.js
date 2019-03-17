@@ -154,6 +154,8 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 		if ( this.intersectsTriangle( other ) ) {
 
+			// TODO: This will not result in a point that lies on
+			// the intersection line of the triangles
 			if ( target1 || target2 ) {
 
 				this.getMidpoint( point );
