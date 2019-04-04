@@ -15,6 +15,22 @@
     "src/*",
     "umd/*"
   ],
+	"keywords": [
+    "graphics",
+    "raycast",
+    "tree",
+    "bounds",
+    "threejs",
+    "three-js",
+    "bounds-hierarchy",
+    "performance",
+    "geometry",
+    "mesh",
+    "distance",
+    "intersection",
+    "acceleration",
+    "bvh"
+	],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/three-mesh-bvh.git"
