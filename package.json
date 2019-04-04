@@ -15,7 +15,7 @@
     "src/*",
     "umd/*"
   ],
-	"keywords": [
+  "keywords": [
     "graphics",
     "raycast",
     "tree",
@@ -30,7 +30,7 @@
     "intersection",
     "acceleration",
     "bvh"
-	],
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gkjohnson/three-mesh-bvh.git"
