@@ -195,14 +195,14 @@ export default class MeshBVH {
 				splitNode( root, range.offset, range.count );
 				roots.push( root );
 
-				if ( reachedMaxDepth && options.verbose ) {
-
-					console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-					console.warn( this, geo );
-
-				}
-
 			}
+
+		}
+
+		if ( reachedMaxDepth && options.verbose ) {
+
+			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+			console.warn( this, geo );
 
 		}
 
