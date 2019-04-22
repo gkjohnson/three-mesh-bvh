@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
+import { arrayToBox, boxToArray } from './Utils/ArrayBoxUtilities.js';
 import { CENTER } from './Constants.js';
 
 export default class MeshBVH {
@@ -167,17 +168,55 @@ export default class MeshBVH {
 		const roots = [];
 		const ranges = this._getRootIndexRanges( geo );
 
-		for ( let range of ranges ) {
+		if ( ranges.length === 1 ) {
 
 			const root = new MeshBVHNode();
-			root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+			const range = ranges[ 0 ];
+
+			if ( geo.boundingBox != null ) {
+
+				root.boundingData = boxToArray( geo.boundingBox );
+
+			} else {
+
+				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+
+			}
+
 			splitNode( root, range.offset, range.count );
 			roots.push( root );
 
-			if ( reachedMaxDepth && options.verbose ) {
+		} else {
 
-				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( this, geo );
+			for ( let range of ranges ) {
+
+				const root = new MeshBVHNode();
+				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+				splitNode( root, range.offset, range.count );
+				roots.push( root );
+
+			}
+
+		}
+
+		if ( reachedMaxDepth && options.verbose ) {
+
+			console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+			console.warn( this, geo );
+
+		}
+
+		// if the geometry doesn't have a bounding box, then let's politely populate it using
+		// the work we did to determine the BVH root bounds
+
+		if ( geo.boundingBox == null ) {
+
+			const rootBox = new THREE.Box3();
+			geo.boundingBox = new THREE.Box3();
+
+			for ( let root of roots ) {
+
+				geo.boundingBox.union( arrayToBox( root.boundingData, rootBox ) );
 
 			}
 
