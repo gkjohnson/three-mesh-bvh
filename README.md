@@ -79,7 +79,7 @@ This is the slowest construction option.
 
 #### index: AttributeBuffer
 
-The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH will no longer work correctly if this buffer is modified.
+The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if this buffer is modified.
 
 #### constructor(geometry: BufferGeometry, options: Object)
 
