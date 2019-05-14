@@ -1,7 +1,8 @@
 import Stats from 'stats.js/src/Stats';
 import * as dat from 'dat.gui';
-import * as THREE from 'three/build/three.module';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import * as THREE from 'three/build/three.module.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from './lib/TransformControls.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import "@babel/polyfill";
@@ -18,11 +19,11 @@ const params = {
 	shape: 'sphere',
 	position: new THREE.Vector3(),
 	rotation: new THREE.Euler(),
-	scale: 1,
+	scale: new THREE.Vector3( 1, 1, 1 ),
 };
 
 let stats;
-let scene, camera, renderer, controls, boundsViz;
+let scene, camera, renderer, orbitControls, boundsViz, transformControls;
 let targetMesh;
 let shapes = {};
 
@@ -60,11 +61,14 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.z = 5;
+	camera.position.set( 3, 3, 3 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	controls = new OrbitControls( camera, renderer.domElement );
+	transformControls = new TransformControls( camera, renderer.domElement );
+	scene.add( transformControls );
+
+	orbitControls = new OrbitControls( camera, renderer.domElement );
 
 	// stats setup
 	stats = new Stats();
@@ -115,12 +119,13 @@ function init() {
 
 	// 	targetMesh.visible = false;
 
-
 	const gui = new dat.GUI();
 	gui.add( params, 'speed' ).min( 0 ).max( 10 );
 	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 	gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
+
+	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
 
 	const posFolder = gui.addFolder( 'position' );
 	posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
@@ -134,9 +139,46 @@ function init() {
 	rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
 	rotFolder.open();
 
-	gui.add( params, 'scale' ).min( 0.1 ).max( 2 ).step( 0.001 );
+	const scaFolder = gui.addFolder( 'scale' );
+	scaFolder.add( params.scale, 'x' ).min( 0.1 ).max( 2 ).step( 0.001 );
+	scaFolder.add( params.scale, 'y' ).min( 0.1 ).max( 2 ).step( 0.001 );
+	scaFolder.add( params.scale, 'z' ).min( 0.1 ).max( 2 ).step( 0.001 );
+	scaFolder.open();
 
 	gui.open();
+
+	transformControls.addEventListener( 'change', function () {
+
+		params.position.copy( shapes[ params.shape ].position );
+		params.rotation.copy( shapes[ params.shape ].rotation );
+		params.scale.copy( shapes[ params.shape ].scale );
+		gui.updateDisplay();
+
+	} );
+
+	transformControls.addEventListener( 'mouseDown', function () {
+
+		orbitControls.enabled = false;
+
+	} );
+
+	transformControls.addEventListener( 'mouseUp', function () {
+
+		orbitControls.enabled = true;
+
+	} );
+
+	orbitControls.addEventListener( 'start', function () {
+
+		transformControls.enabled = false;
+
+	} );
+
+	orbitControls.addEventListener( 'end', function () {
+
+		transformControls.enabled = true;
+
+	} );
 
 	window.addEventListener( 'resize', function () {
 
@@ -146,6 +188,27 @@ function init() {
 		renderer.setSize( window.innerWidth, window.innerHeight );
 
 	}, false );
+
+	window.addEventListener( 'keydown', function ( e ) {
+
+		switch ( e.key ) {
+
+			case 'w':
+				transformControls.mode = 'translate';
+				break;
+			case 'e':
+				transformControls.mode = 'rotate';
+				break;
+			case 'r':
+				transformControls.mode = 'scale';
+				break;
+
+
+		}
+
+		gui.updateDisplay();
+
+	} );
 
 }
 
@@ -197,7 +260,7 @@ function render() {
 	shape.visible = true;
 	shape.position.copy( params.position );
 	shape.rotation.copy( params.rotation );
-	shape.scale.set( params.scale, params.scale, params.scale );
+	shape.scale.copy( params.scale );
 
 	const transformMatrix =
 		new THREE.Matrix4()
@@ -228,6 +291,12 @@ function render() {
 		const hit = targetMesh.geometry.boundsTree.intersectsGeometry( targetMesh, shape.geometry, transformMatrix );
 		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
 		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
+
+	}
+
+	if ( transformControls.object !== shape ) {
+
+		transformControls.attach( shape );
 
 	}
 
