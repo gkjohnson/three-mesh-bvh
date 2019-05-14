@@ -1335,8 +1335,9 @@
 
 				}
 
+				const isC1Leaf = ! ! c1.count;
 				const c1Intersection =
-					intersectsBoundsFunc( box1, ! ! c1.count, score1 ) &&
+					intersectsBoundsFunc( box1, isC1Leaf, score1, this ) &&
 					c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 				if ( c1Intersection ) return true;
@@ -1349,8 +1350,9 @@
 
 				}
 
+				const isC2Leaf = ! ! c2.count;
 				const c2Intersection =
-					intersectsBoundsFunc( box2, ! ! c2.count, score2 ) &&
+					intersectsBoundsFunc( box2, isC2Leaf, score2, this ) &&
 					c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 				if ( c2Intersection ) return true;
@@ -2183,17 +2185,55 @@
 			const roots = [];
 			const ranges = this._getRootIndexRanges( geo );
 
-			for ( let range of ranges ) {
+			if ( ranges.length === 1 ) {
 
 				const root = new MeshBVHNode();
-				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+				const range = ranges[ 0 ];
+
+				if ( geo.boundingBox != null ) {
+
+					root.boundingData = boxToArray( geo.boundingBox );
+
+				} else {
+
+					root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+
+				}
+
 				splitNode( root, range.offset, range.count );
 				roots.push( root );
 
-				if ( reachedMaxDepth && options.verbose ) {
+			} else {
 
-					console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-					console.warn( this, geo );
+				for ( let range of ranges ) {
+
+					const root = new MeshBVHNode();
+					root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+					splitNode( root, range.offset, range.count );
+					roots.push( root );
+
+				}
+
+			}
+
+			if ( reachedMaxDepth && options.verbose ) {
+
+				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+				console.warn( this, geo );
+
+			}
+
+			// if the geometry doesn't have a bounding box, then let's politely populate it using
+			// the work we did to determine the BVH root bounds
+
+			if ( geo.boundingBox == null ) {
+
+				const rootBox = new THREE.Box3();
+				geo.boundingBox = new THREE.Box3();
+
+				for ( let root of roots ) {
+
+					geo.boundingBox.union( arrayToBox( root.boundingData, rootBox ) );
 
 				}
 
