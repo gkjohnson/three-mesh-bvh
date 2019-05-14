@@ -44,8 +44,8 @@ function init() {
 	// geometry setup
 	const radius = 1;
 	const tube = 0.4;
-	const tubularSegments = 400;
-	const radialSegments = 100;
+	const tubularSegments = 800;
+	const radialSegments = 400;
 
 	const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments ).toNonIndexed();
 	const colorArray = new Uint8Array( knotGeometry.attributes.position.count * 3 );
@@ -53,7 +53,6 @@ function init() {
 	const colorAttr = new THREE.BufferAttribute( colorArray, 3, true );
 	colorAttr.dynamic = true;
 	knotGeometry.addAttribute( 'color', colorAttr );
-
 
 	const knotMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, roughness: 0.3, metalness: 0, vertexColors: true } );
 	targetMesh = new THREE.Mesh( knotGeometry, knotMaterial );
@@ -208,6 +207,7 @@ function render() {
 
 				}
 			);
+
 			if ( mouseType === 0 || mouseType === 2 ) {
 
 				let r = 255, g = 255, b = 255;
