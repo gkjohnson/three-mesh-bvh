@@ -214,7 +214,7 @@ MeshBVHNode.prototype.shapecast = ( function () {
 
 			const isC1Leaf = ! ! c1.count;
 			const c1Intersection =
-				intersectsBoundsFunc( box1, isC1Leaf, score1, this ) &&
+				intersectsBoundsFunc( box1, isC1Leaf, score1, c1 ) &&
 				c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c1Intersection ) return true;
@@ -229,7 +229,7 @@ MeshBVHNode.prototype.shapecast = ( function () {
 
 			const isC2Leaf = ! ! c2.count;
 			const c2Intersection =
-				intersectsBoundsFunc( box2, isC2Leaf, score2, this ) &&
+				intersectsBoundsFunc( box2, isC2Leaf, score2, c2 ) &&
 				c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c2Intersection ) return true;
