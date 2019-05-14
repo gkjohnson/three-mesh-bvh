@@ -1,9 +1,10 @@
+import Stats from 'stats.js/src/Stats';
+import * as dat from 'dat.gui';
 import * as THREE from 'three/build/three.module';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import * as dat from 'dat.gui';
-import Stats from 'stats.js/src/Stats';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -85,7 +86,6 @@ function init() {
 	shapes.geometry.geometry.computeBoundsTree();
 	scene.add( shapes.geometry );
 
-
 	// Code for debugging triangle intersection
 	// const t1 = new THREE.Triangle();
 	// const t2 = new THREE.Triangle();
@@ -116,6 +116,36 @@ function init() {
 	// 	targetMesh.visible = false;
 
 
+	const gui = new dat.GUI();
+	gui.add( params, 'speed' ).min( 0 ).max( 10 );
+	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
+	gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
+
+	const posFolder = gui.addFolder( 'position' );
+	posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.add( params.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.add( params.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.open();
+
+	const rotFolder = gui.addFolder( 'rotation' );
+	rotFolder.add( params.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.add( params.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.open();
+
+	gui.add( params, 'scale' ).min( 0.1 ).max( 2 ).step( 0.001 );
+
+	gui.open();
+
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
 
 }
 
@@ -205,56 +235,7 @@ function render() {
 
 }
 
-const gui = new dat.GUI();
-gui.add( params, 'speed' ).min( 0 ).max( 10 );
-gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
-gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
-
-const posFolder = gui.addFolder( 'position' );
-posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
-posFolder.add( params.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
-posFolder.add( params.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
-posFolder.open();
-
-const rotFolder = gui.addFolder( 'rotation' );
-rotFolder.add( params.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-rotFolder.add( params.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-rotFolder.open();
-
-gui.add( params, 'scale' ).min( 0.1 ).max( 2 ).step( 0.001 );
-
-gui.open();
-
-window.addEventListener( 'resize', function () {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-}, false );
 
 init();
 updateFromOptions();
-
-
-// // const sphereMesh = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 20, 20 ) );
-// // scene.add( sphereMesh );
-
-// // const sphere = new THREE.Sphere( undefined, 0.5 );
-// // sphere.center.y = -0.9;
-// // window.sphere = sphere;
-
-// const boxMesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ) );
-// scene.add( boxMesh );
-// // boxMesh.rotation.set( Math.PI / 4, Math.PI / 4, 0 );
-// // boxMesh.position.y = 1.2;
-
-// const box = new THREE.Box3();
-// box.min.set( 1, 1, 1 ).multiplyScalar( - 0.5 );
-// box.max.set( 1, 1, 1 ).multiplyScalar( 0.5 );
-// window.box = boxMesh;
-
 render();

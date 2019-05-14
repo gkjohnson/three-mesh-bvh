@@ -1,8 +1,9 @@
-import * as THREE from '../node_modules/three/build/three.module.js';
-import * as dat from 'dat.gui';
 import Stats from '../node_modules/stats.js/src/Stats.js';
+import * as dat from 'dat.gui';
+import * as THREE from '../node_modules/three/build/three.module.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -57,7 +58,7 @@ const cylinder = new THREE.CylinderGeometry( 0.02, 0.02 );
 const pointDist = 25;
 
 const knots = [];
-const options = {
+const params = {
 	raycasters: {
 		count: 150,
 		speed: 1
@@ -109,21 +110,21 @@ const addRaycaster = () => {
 	obj.rotation.y = Math.random() * 10;
 
 	// reusable vectors
-	const origvec = new THREE.Vector3();
-	const dirvec = new THREE.Vector3();
-	const xdir = ( Math.random() - 0.5 );
-	const ydir = ( Math.random() - 0.5 );
+	const origVec = new THREE.Vector3();
+	const dirVec = new THREE.Vector3();
+	const xDir = ( Math.random() - 0.5 );
+	const yDir = ( Math.random() - 0.5 );
 	rayCasterObjects.push( {
 		update: () => {
 
-			obj.rotation.x += xdir * 0.0001 * options.raycasters.speed * deltaTime;
-			obj.rotation.y += ydir * 0.0001 * options.raycasters.speed * deltaTime;
+			obj.rotation.x += xDir * 0.0001 * params.raycasters.speed * deltaTime;
+			obj.rotation.y += yDir * 0.0001 * params.raycasters.speed * deltaTime;
 
 			origMesh.updateMatrixWorld();
-			origvec.setFromMatrixPosition( origMesh.matrixWorld );
-			dirvec.copy( origvec ).multiplyScalar( - 1 ).normalize();
+			origVec.setFromMatrixPosition( origMesh.matrixWorld );
+			dirVec.copy( origVec ).multiplyScalar( - 1 ).normalize();
 
-			raycaster.set( origvec, dirvec );
+			raycaster.set( origVec, dirVec );
 			raycaster.firstHitOnly = true;
 			const res = raycaster.intersectObject( containerObj, true );
 			const length = res.length ? res[ 0 ].distance : pointDist;
@@ -149,12 +150,12 @@ const addRaycaster = () => {
 const updateFromOptions = () => {
 
 	// Update raycaster count
-	while ( rayCasterObjects.length > options.raycasters.count ) rayCasterObjects.pop().remove();
-	while ( rayCasterObjects.length < options.raycasters.count ) addRaycaster();
+	while ( rayCasterObjects.length > params.raycasters.count ) rayCasterObjects.pop().remove();
+	while ( rayCasterObjects.length < params.raycasters.count ) addRaycaster();
 
 	// Update whether or not to use the bounds tree
-	if ( ! options.mesh.useBoundsTree && knotGeometry.boundsTree ) knotGeometry.disposeBoundsTree();
-	if ( options.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
+	if ( ! params.mesh.useBoundsTree && knotGeometry.boundsTree ) knotGeometry.disposeBoundsTree();
+	if ( params.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
 		knotGeometry.computeBoundsTree();
@@ -164,12 +165,12 @@ const updateFromOptions = () => {
 
 	// Update knot count
 	const oldLen = knots.length;
-	while ( knots.length > options.mesh.count ) {
+	while ( knots.length > params.mesh.count ) {
 
 		containerObj.remove( knots.pop() );
 
 	}
-	while ( knots.length < options.mesh.count ) {
+	while ( knots.length < params.mesh.count ) {
 
 		addKnot();
 
@@ -198,20 +199,20 @@ const updateFromOptions = () => {
 	}
 
 	// Update bounds viz
-	if ( boundsViz && ! options.mesh.visualizeBounds ) {
+	if ( boundsViz && ! params.mesh.visualizeBounds ) {
 
 		containerObj.remove( boundsViz );
 		boundsViz = null;
 
 	}
-	if ( ! boundsViz && options.mesh.visualizeBounds ) {
+	if ( ! boundsViz && params.mesh.visualizeBounds ) {
 
 		boundsViz = new MeshBVHVisualizer( knots[ 0 ] );
 		containerObj.add( boundsViz );
 
 	}
 
-	if ( boundsViz ) boundsViz.depth = options.mesh.visualBoundsDepth;
+	if ( boundsViz ) boundsViz.depth = params.mesh.visualBoundsDepth;
 
 };
 
@@ -225,12 +226,12 @@ const render = () => {
 	lastFrameTime = lastFrameTime || currTime;
 	deltaTime = currTime - lastFrameTime;
 
-	containerObj.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
-	containerObj.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
+	containerObj.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
+	containerObj.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
 	containerObj.children.forEach( c => {
 
-		c.rotation.x += 0.0001 * options.mesh.speed * deltaTime;
-		c.rotation.y += 0.0001 * options.mesh.speed * deltaTime;
+		c.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
+		c.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
 
 	} );
 	containerObj.updateMatrixWorld();
@@ -251,18 +252,18 @@ const render = () => {
 
 // Run
 const gui = new dat.GUI();
-const rcfolder = gui.addFolder( 'Raycasters' );
-rcfolder.add( options.raycasters, 'count' ).min( 1 ).max( 500 ).step( 1 ).onChange( () => updateFromOptions() );
-rcfolder.add( options.raycasters, 'speed' ).min( 0 ).max( 20 );
-rcfolder.open();
+const rcFolder = gui.addFolder( 'Raycasters' );
+rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 500 ).step( 1 ).onChange( () => updateFromOptions() );
+rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
+rcFolder.open();
 
-const meshfolder = gui.addFolder( 'Mesh' );
-meshfolder.add( options.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
-meshfolder.add( options.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
-meshfolder.add( options.mesh, 'speed' ).min( 0 ).max( 20 );
-meshfolder.add( options.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-meshfolder.add( options.mesh, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
-meshfolder.open();
+const meshFolder = gui.addFolder( 'Mesh' );
+meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
+meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
+meshFolder.open();
 
 window.addEventListener( 'resize', function () {
 

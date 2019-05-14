@@ -1,9 +1,9 @@
+import Stats from 'stats.js/src/Stats';
+import * as dat from 'dat.gui';
 import * as THREE from 'three/build/three.module';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { TransformControls } from './lib/TransformControls.js';
 import { MarchingCubes } from './lib/MarchingCubes.js';
-import * as dat from 'dat.gui';
-import Stats from 'stats.js/src/Stats';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import SimplexNoise from 'simplex-noise';
@@ -216,6 +216,32 @@ function init() {
 	gui.open();
 
 	updateDistanceCheck();
+
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
+
+	window.addEventListener( 'keydown', function ( e ) {
+
+		switch ( e.key ) {
+
+			case 'w':
+				transformControls.mode = 'translate';
+				break;
+			case 'e':
+				transformControls.mode = 'rotate';
+				break;
+
+		}
+
+		gui.updateDisplay();
+
+	} );
 
 }
 
@@ -448,15 +474,6 @@ function render() {
 	requestAnimationFrame( render );
 
 }
-
-window.addEventListener( 'resize', function () {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-}, false );
 
 init();
 updateFromOptions();
