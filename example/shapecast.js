@@ -125,7 +125,7 @@ function init() {
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 	gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
 
-	gui.add( transformControls, 'mode', [ 'translate', 'rotate', 'scale' ] );
+	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
 
 	const posFolder = gui.addFolder( 'position' );
 	posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
@@ -138,12 +138,6 @@ function init() {
 	rotFolder.add( params.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
 	rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
 	rotFolder.open();
-
-	const scaFolder = gui.addFolder( 'scale' );
-	scaFolder.add( params.scale, 'x' ).min( 0.1 ).max( 2 ).step( 0.001 );
-	scaFolder.add( params.scale, 'y' ).min( 0.1 ).max( 2 ).step( 0.001 );
-	scaFolder.add( params.scale, 'z' ).min( 0.1 ).max( 2 ).step( 0.001 );
-	scaFolder.open();
 
 	gui.open();
 
@@ -199,10 +193,6 @@ function init() {
 			case 'e':
 				transformControls.mode = 'rotate';
 				break;
-			case 'r':
-				transformControls.mode = 'scale';
-				break;
-
 
 		}
 
