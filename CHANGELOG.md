@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Use the BufferGeometry bounding box if it exists and set it if it does not.
 
+### Changed
+- Use the center of the triangles bounding box instead of the average of the vertices as the triangles center when binning the polygons.
+
 ## [0.1.2] - 2019-03-17
 ### Fixed
 - Bug where `closestPointToGeometry` would throw an error when target vectors were provided because a function name was misspelled.
