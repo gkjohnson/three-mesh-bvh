@@ -6,11 +6,15 @@
 
 A BVH implementation to speed up raycasting against three.js meshes.
 
-[Demo Here!](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
-
 ![screenshot](./docs/example-sm.gif)
 
 Casting 500 rays against an 80,000 polygon model at 60fps!
+
+[Raycasting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html).
+
+[Shape intersection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html).
+
+[Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html).
 
 ## Use
 
