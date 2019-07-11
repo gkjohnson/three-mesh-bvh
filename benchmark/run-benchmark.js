@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getSize, pad, runBenchmark } from './utils.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -26,10 +26,10 @@ raycaster.ray.direction.set( 0, 0, 1 );
 
 runBenchmark(
 
-	'Compute Bounds Tree',
+	'Compute BVH (CENTER)',
 	() => {
 
-		geometry.computeBoundsTree();
+		geometry.computeBoundsTree( { strategy: CENTER } );
 		geometry.boundsTree = null;
 
 	},
@@ -38,6 +38,19 @@ runBenchmark(
 
 );
 
+runBenchmark(
+
+	'Compute BVH (AVERAGE)',
+	() => {
+
+		geometry.computeBoundsTree( { strategy: AVERAGE } );
+		geometry.boundsTree = null;
+
+	},
+	3000,
+	50
+
+);
 
 geometry.boundsTree = null;
 raycaster.firstHitOnly = false;
