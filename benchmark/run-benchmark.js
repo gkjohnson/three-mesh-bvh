@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getSize, pad, runBenchmark } from './utils.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -44,6 +44,20 @@ runBenchmark(
 	() => {
 
 		geometry.computeBoundsTree( { strategy: AVERAGE } );
+		geometry.boundsTree = null;
+
+	},
+	3000,
+	50
+
+);
+
+runBenchmark(
+
+	'Compute BVH (SAH)',
+	() => {
+
+		geometry.computeBoundsTree( { strategy: SAH } );
 		geometry.boundsTree = null;
 
 	},
