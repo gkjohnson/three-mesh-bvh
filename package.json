@@ -42,7 +42,7 @@
   },
   "homepage": "https://github.com/gkjohnson/three-mesh-bvh#readme",
   "peerDependencies": {
-    "three": "^0.102.1"
+    "three": ">= 0.102.1"
   },
   "devDependencies": {
     "@babel/core": "^7.3.4",
