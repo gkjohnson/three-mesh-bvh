@@ -2,7 +2,7 @@ import Stats from '../node_modules/stats.js/src/Stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from '../node_modules/three/build/three.module.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -65,6 +65,7 @@ const params = {
 	},
 
 	mesh: {
+		splitStrategy: CENTER,
 		count: 1,
 		useBoundsTree: true,
 		visualizeBounds: false,
@@ -150,16 +151,40 @@ const addRaycaster = () => {
 const updateFromOptions = () => {
 
 	// Update raycaster count
-	while ( rayCasterObjects.length > params.raycasters.count ) rayCasterObjects.pop().remove();
-	while ( rayCasterObjects.length < params.raycasters.count ) addRaycaster();
+	while ( rayCasterObjects.length > params.raycasters.count ) {
+
+		rayCasterObjects.pop().remove();
+
+	}
+
+	while ( rayCasterObjects.length < params.raycasters.count ) {
+
+		addRaycaster();
+
+	}
 
 	// Update whether or not to use the bounds tree
-	if ( ! params.mesh.useBoundsTree && knotGeometry.boundsTree ) knotGeometry.disposeBoundsTree();
+	if (
+		! params.mesh.useBoundsTree && knotGeometry.boundsTree ||
+		knotGeometry.boundsTree && params.mesh.splitStrategy !== knotGeometry.boundsTree.splitStrategy
+	) {
+
+		knotGeometry.disposeBoundsTree();
+
+	}
+
 	if ( params.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
-		knotGeometry.computeBoundsTree();
+		knotGeometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
+		knotGeometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
+
+		if ( boundsViz ) {
+
+			boundsViz.update();
+
+		}
 
 	}
 
@@ -199,20 +224,26 @@ const updateFromOptions = () => {
 	}
 
 	// Update bounds viz
-	if ( boundsViz && ! params.mesh.visualizeBounds ) {
+	const shouldDisplayBounds = params.mesh.visualizeBounds && knotGeometry.boundsTree;
+	if ( boundsViz && ! shouldDisplayBounds ) {
 
 		containerObj.remove( boundsViz );
 		boundsViz = null;
 
 	}
-	if ( ! boundsViz && params.mesh.visualizeBounds ) {
+
+	if ( ! boundsViz && shouldDisplayBounds ) {
 
 		boundsViz = new MeshBVHVisualizer( knots[ 0 ] );
 		containerObj.add( boundsViz );
 
 	}
 
-	if ( boundsViz ) boundsViz.depth = params.mesh.visualBoundsDepth;
+	if ( boundsViz ) {
+
+		boundsViz.depth = params.mesh.visualBoundsDepth;
+
+	}
 
 };
 
@@ -258,6 +289,7 @@ rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
 rcFolder.open();
 
 const meshFolder = gui.addFolder( 'Mesh' );
+meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
