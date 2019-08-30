@@ -16,7 +16,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html).
 
-## Use
+# Use
 
 Using pre-made functions
 
@@ -61,31 +61,41 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 geom.boundsTree = new MeshBVH(geom);
 ```
 
-## Exports
-### Split Strategy Constants
-#### CENTER
+# Exports
+
+## Split Strategy Constants
+
+### CENTER
 
 Option for splitting each BVH node down the center of the longest axis of the bounds.
 
 This is the fastest construction option but will yield a less optimal hierarchy.
 
-#### AVERAGE
+### AVERAGE
 
 Option for splitting each BVH node at the average point along the longest axis for all triangle centroids in the bounds.
 
-#### SAH
+### SAH
 
 Option to use a Surface Area Heuristic to split the bounds optimally.
 
 This is the slowest construction option.
 
-### MeshBVH
+## MeshBVH
 
-#### index: AttributeBuffer
+### .index
+
+```js
+index : AttributeBuffer
+```
 
 The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if this buffer is modified.
 
-#### constructor(geometry: BufferGeometry, options: Object)
+### constructor
+
+```js
+constructor( geometry : BufferGeometry, options : Object )
+```
 
 Constructs the bounds tree for the given geometry and produces a new index attribute buffer. The available options are
 
@@ -110,25 +120,45 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
 *NOTE: The geometry's index attribute array is modified in order to build the bounds tree. If the geometry has no index then one is added.*
 
-#### raycast(mesh: Mesh, raycaster: Raycaster, ray: Ray, intersects: Array)
+### raycast
+
+```js
+raycast ( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array) : Array<RaycastHit>
+```
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
 
-#### raycastFirst(mesh: Mesh, raycaster: Raycaster, ray: Ray) : RaycastHit
+#### raycastFirst
+
+```js
+raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray) : RaycastHit
+```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits.
 
-#### intersectsSphere(mesh: Mesh, sphere: Sphere) : Boolean
+#### intersectsSphere
+
+```js
+intersectsSphere( mesh : Mesh, sphere : Sphere ) : Boolean
+```
 
 Returns whether or not the mesh instersects the given sphere.
 
-#### intersectsBox(mesh: Mesh, box: Box3, boxToBvh: Matrix4) : Boolean
+#### intersectsBox
+
+```js
+intersectsBox( mesh : Mesh, box : Box3, boxToBvh : Matrix4 ) : Boolean
+```
 
 Returns whether or not the mesh intersects the given box.
 
 The `boxToBvh` parameter is the transform of the box in the meshs frame.
 
-#### intersectsGeometry(mesh: Mesh, geometry: BufferGeometry, geometryToBvh: Matrix4) : Boolean
+#### intersectsGeometry
+
+```js
+intersectsGeometry( mesh : Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boolean
+```
 
 Returns whether or not the mesh intersects the given geometry.
 
@@ -136,18 +166,31 @@ The `geometryToBvh` parameter is the transform of the geometry in the mesh's fra
 
 Performance improves considerably if the provided geometry _also_ has a `boundsTree`.
 
-#### closestPointToPoint(mesh: Mesh, point: Vector3, target: Vector3) : Number
+#### closestPointToPoint
+
+```js
+closestPointToPoint( mesh : Mesh, point : Vector3, target : Vector3 ) : Number
+```
 
 Returns the closest distance from the point to the mesh and puts the closest point on the mesh in `target`.
 
-#### closestPointToGeometry(mesh: Mesh, geometry: BufferGeometry, geometryToBvh: Matrix4, target1: Vector3, target2: Vector3) : Number
+#### closestPointToGeometry
+
+```js
+closestPointToGeometry( mesh: Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4, target1 : Vector3, target2 : Vector3 ) : Number
+```
 
 Returns the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` and the closest point on the other geometry in `target2` in the frame of the BVH.
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
-### Extension Functions
-#### computeBoundsTree(options : Object)
+## Extension Functions
+
+### computeBoundsTree
+
+```js
+computeBoundsTree( options : Object ) : void
+```
 
 A pre-made BufferGeometry extension function that builds a new BVH, assigns it to `boundsTree`, and applies the new index buffer to the geometry. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
 
@@ -155,7 +198,11 @@ A pre-made BufferGeometry extension function that builds a new BVH, assigns it t
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 ```
 
-#### disposeBoundsTree()
+### disposeBoundsTree
+
+```js
+disposeBoundsTree() : void
+```
 
 A BufferGeometry extension function that disposes of the BVH.
 
@@ -163,7 +210,11 @@ A BufferGeometry extension function that disposes of the BVH.
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 ```
 
-#### acceleratedRaycast(...)
+### acceleratedRaycast
+
+```js
+acceleratedRaycast(...)
+```
 
 An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach.
 
