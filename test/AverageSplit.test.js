@@ -24,11 +24,10 @@ describe( 'AVERAGE Points Raycast', () => {
 
 		mesh = new THREE.Mesh( geometry );
 
-		raycaster = new THREE.Raycaster();
-		raycaster.firstHitOnly = true;
-
 		const x = 101086.2438562272;
 		const y = 99421.40510391879;
+		raycaster = new THREE.Raycaster();
+		raycaster.firstHitOnly = true;
 		raycaster.set( new THREE.Vector3( x, y, - 1000 ), new THREE.Vector3( 0, 0, 1 ) );
 
 	} );
