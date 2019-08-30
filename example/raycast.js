@@ -176,7 +176,7 @@ const updateFromOptions = () => {
 	if ( params.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
-		knotGeometry.computeBoundsTree( { splitStrategy: params.mesh.splitStrategy } );
+		knotGeometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
 		knotGeometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
