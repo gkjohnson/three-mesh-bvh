@@ -24,7 +24,8 @@ describe( 'AVERAGE Points Raycast', () => {
 
 		mesh = new THREE.Mesh( geometry );
 
-
+		// NOTE: If the geometry is not centered then the AVERAGE split strategy
+		// case fails.
 		geometry.computeBoundingBox();
 		const center = new THREE.Vector3();
 		geometry.boundingBox.getCenter( center );
