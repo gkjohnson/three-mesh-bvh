@@ -177,7 +177,13 @@ Returns the closest distance from the point to the mesh and puts the closest poi
 ### closestPointToGeometry
 
 ```js
-closestPointToGeometry( mesh: Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4, target1 : Vector3, target2 : Vector3 ) : Number
+closestPointToGeometry(
+	mesh : Mesh,
+	geometry : BufferGeometry,
+	geometryToBvh : Matrix4,
+	target1 : Vector3,
+	target2 : Vector3
+) : Number
 ```
 
 Returns the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` and the closest point on the other geometry in `target2` in the frame of the BVH.
