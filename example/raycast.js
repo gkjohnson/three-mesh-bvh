@@ -180,6 +180,12 @@ const updateFromOptions = () => {
 		knotGeometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
+		if ( boundsViz ) {
+
+			boundsViz.update();
+
+		}
+
 	}
 
 	// Update knot count
@@ -225,6 +231,7 @@ const updateFromOptions = () => {
 		boundsViz = null;
 
 	}
+
 	if ( ! boundsViz && shouldDisplayBounds ) {
 
 		boundsViz = new MeshBVHVisualizer( knots[ 0 ] );
@@ -232,7 +239,11 @@ const updateFromOptions = () => {
 
 	}
 
-	if ( boundsViz ) boundsViz.depth = params.mesh.visualBoundsDepth;
+	if ( boundsViz ) {
+
+		boundsViz.depth = params.mesh.visualBoundsDepth;
+
+	}
 
 };
 
