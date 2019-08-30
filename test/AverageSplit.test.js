@@ -19,7 +19,7 @@ describe( 'AVERAGE Points Raycast', () => {
 	beforeEach( () => {
 
 		geometry = new THREE.BufferGeometry();
-		geometry.addAttribute( 'position', new THREE.BufferAttribute( points, 3 ) );
+		geometry.addAttribute( 'position', new THREE.BufferAttribute( points.slice(), 3 ) );
 		geometry.computeVertexNormals();
 
 		mesh = new THREE.Mesh( geometry );
