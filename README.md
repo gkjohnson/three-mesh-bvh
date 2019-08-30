@@ -91,7 +91,7 @@ index : AttributeBuffer
 
 The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if this buffer is modified.
 
-### constructor
+### .constructor
 
 ```js
 constructor( geometry : BufferGeometry, options : Object )
@@ -120,7 +120,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
 *NOTE: The geometry's index attribute array is modified in order to build the bounds tree. If the geometry has no index then one is added.*
 
-### raycast
+### .raycast
 
 ```js
 raycast ( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array) : Array<RaycastHit>
@@ -128,7 +128,7 @@ raycast ( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array) : A
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
 
-### raycastFirst
+### .raycastFirst
 
 ```js
 raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray) : RaycastHit
@@ -136,7 +136,7 @@ raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray) : RaycastHit
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits.
 
-### intersectsSphere
+### .intersectsSphere
 
 ```js
 intersectsSphere( mesh : Mesh, sphere : Sphere ) : Boolean
@@ -144,7 +144,7 @@ intersectsSphere( mesh : Mesh, sphere : Sphere ) : Boolean
 
 Returns whether or not the mesh instersects the given sphere.
 
-### intersectsBox
+### .intersectsBox
 
 ```js
 intersectsBox( mesh : Mesh, box : Box3, boxToBvh : Matrix4 ) : Boolean
@@ -154,7 +154,7 @@ Returns whether or not the mesh intersects the given box.
 
 The `boxToBvh` parameter is the transform of the box in the meshs frame.
 
-### intersectsGeometry
+### .intersectsGeometry
 
 ```js
 intersectsGeometry( mesh : Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boolean
@@ -166,7 +166,7 @@ The `geometryToBvh` parameter is the transform of the geometry in the mesh's fra
 
 Performance improves considerably if the provided geometry _also_ has a `boundsTree`.
 
-### closestPointToPoint
+### .closestPointToPoint
 
 ```js
 closestPointToPoint( mesh : Mesh, point : Vector3, target : Vector3 ) : Number
@@ -174,7 +174,7 @@ closestPointToPoint( mesh : Mesh, point : Vector3, target : Vector3 ) : Number
 
 Returns the closest distance from the point to the mesh and puts the closest point on the mesh in `target`.
 
-### closestPointToGeometry
+### .closestPointToGeometry
 
 ```js
 closestPointToGeometry(
@@ -192,7 +192,7 @@ The `geometryToBvh` parameter is the transform of the geometry in the mesh's fra
 
 ## Extension Functions
 
-### computeBoundsTree
+### .computeBoundsTree
 
 ```js
 computeBoundsTree( options : Object ) : void
@@ -204,7 +204,7 @@ A pre-made BufferGeometry extension function that builds a new BVH, assigns it t
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 ```
 
-### disposeBoundsTree
+### .disposeBoundsTree
 
 ```js
 disposeBoundsTree() : void
@@ -216,7 +216,7 @@ A BufferGeometry extension function that disposes of the BVH.
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 ```
 
-### acceleratedRaycast
+### .acceleratedRaycast
 
 ```js
 acceleratedRaycast( ... )
