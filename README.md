@@ -123,7 +123,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 ### .raycast
 
 ```js
-raycast ( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array) : Array<RaycastHit>
+raycast( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array) : Array<RaycastHit>
 ```
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
