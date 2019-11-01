@@ -61,6 +61,16 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 geom.boundsTree = new MeshBVH(geom);
 ```
 
+And then raycasting
+
+```js
+// Setting "firstHitOnly" to true means the Mesh.raycast function will use the
+// bvh "raycastFirst" function to return a result more quickly.
+const raycaster = new THREE.Raycaster();
+raycaster.firstHitOnly = true;
+raycaster.intersectObjects( [ mesh ] );
+```
+
 # Exports
 
 ## Split Strategy Constants
