@@ -292,7 +292,7 @@ MeshBVHNode.prototype.intersectsGeometry = ( function () {
 				obb2.update();
 
 				cachedMesh.geometry = geometry;
-				const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function triangleCallback( tri ) {
+				const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
 
 					tri.a.applyMatrix4( geometryToBvh );
 					tri.b.applyMatrix4( geometryToBvh );
