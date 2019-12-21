@@ -251,3 +251,4 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported on the geometry index or position attributes.
 - A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in poorer raycast performance on geometry with lots of groups.
 - Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center.
+- Geometry with a lot of particularly long triangles on one axis can lead to a less than optimal bounds tree (see [#121](https://github.com/gkjohnson/three-mesh-bvh/issues/121)).
