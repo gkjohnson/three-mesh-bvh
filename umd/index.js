@@ -1410,7 +1410,12 @@
 
 				if ( geometry.boundsTree ) {
 
-					function triangleCallback( tri ) {
+					arrayToBox( this.boundingData, obb2 );
+					obb2.matrix.copy( invertedMat );
+					obb2.update();
+
+					cachedMesh.geometry = geometry;
+					const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
 
 						tri.a.applyMatrix4( geometryToBvh );
 						tri.b.applyMatrix4( geometryToBvh );
@@ -1432,14 +1437,7 @@
 
 						return false;
 
-					}
-
-					arrayToBox( this.boundingData, obb2 );
-					obb2.matrix.copy( invertedMat );
-					obb2.update();
-
-					cachedMesh.geometry = geometry;
-					const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), triangleCallback );
+					} );
 					cachedMesh.geometry = null;
 
 					return res;
