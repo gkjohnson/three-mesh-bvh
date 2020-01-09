@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getSize, pad, runBenchmark } from './utils.js';
+import { getSize, pad, runBenchmark, getExtremes } from './utils.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -66,6 +66,8 @@ runBenchmark(
 
 );
 
+console.log( '' );
+
 geometry.boundsTree = null;
 raycaster.firstHitOnly = false;
 runBenchmark(
@@ -97,6 +99,7 @@ runBenchmark(
 
 );
 
+console.log( '' );
 
 geometry.computeBoundsTree();
 runBenchmark(
@@ -160,6 +163,42 @@ runBenchmark(
 	3000
 
 );
+
+console.log( '' );
+
+console.log( 'Extreme Case: Tower Geometry' );
+
+const towerGeometry = new THREE.PlaneBufferGeometry( 10, 10, 400, 400 );
+const posAttr = towerGeometry.getAttribute( 'position' );
+for ( let x = 0; x <= 100; x ++ ) {
+
+	for ( let y = 0; y <= 100; y ++ ) {
+
+		const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
+		const i = x * 100 + y;
+		const z = inCenter ? 50 : - 50;
+		posAttr.setZ( i, z + x * 0.01 );
+
+	}
+
+}
+towerGeometry.computeBoundsTree();
+
+raycaster.firstHitOnly = false;
+raycaster.ray.origin.set( 100, 100, 100 );
+raycaster.ray.direction.set( - 1, - 1, - 1 );
+mesh.geometry = towerGeometry;
+runBenchmark(
+
+	'raycast',
+	() => mesh.raycast( raycaster ),
+	3000
+
+);
+
+const towerExtremes = getExtremes( towerGeometry.boundsTree._roots[ 0 ] );
+console.log( towerExtremes.splits );
+console.log( towerExtremes.depth );
 
 
 console.log( '' );

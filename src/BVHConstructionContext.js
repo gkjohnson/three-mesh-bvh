@@ -207,7 +207,43 @@ export default class BVHConstructionContext {
 		// Center
 		if ( strategy === CENTER ) {
 
-			axis = getLongestEdgeIndex( bounds );
+			// axis = getLongestEdgeIndex( bounds );
+			// if ( axis !== - 1 ) {
+
+			// 	pos = ( bounds[ axis + 3 ] + bounds[ axis ] ) / 2;
+
+			// }
+
+			const triBounds = this.bounds;
+			const minSpread = new Array( 3 ).fill( Infinity );
+			const maxSpread = new Array( 3 ).fill( - Infinity );
+
+			for ( let n = 0; n < 3; n ++ ) {
+
+				for ( let i = offset * 6, l = ( offset + count ) * 6; i < l; i += 6 ) {
+
+					const axisBound = triBounds[ i + n * 2 ];
+					minSpread[ n ] = Math.min( minSpread[ n ], axisBound );
+					maxSpread[ n ] = Math.max( maxSpread[ n ], axisBound );
+
+				}
+
+			}
+
+			let curr = - Infinity;
+			for ( let i = 0; i < 3; i ++ ) {
+
+				let dist = maxSpread[ i ] - minSpread[ i ];
+				dist = dist / ( ( bounds[ i ] + bounds[ i + 3 ] ) / 2 );
+				if ( dist > curr ) {
+
+					curr = dist;
+					axis = i;
+
+				}
+
+			}
+
 			if ( axis !== - 1 ) {
 
 				pos = ( bounds[ axis + 3 ] + bounds[ axis ] ) / 2;

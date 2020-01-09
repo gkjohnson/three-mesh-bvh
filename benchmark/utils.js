@@ -92,12 +92,13 @@ function getExtremes( node, depth = 0, result = null ) {
 			},
 			tris: {
 				min: Infinity, max: - Infinity
-			}
+			},
+			splits: [ 0, 0, 0 ]
 		};
 
 	}
 
-	if ( ! node.children ) {
+	if ( ! node.left && ! node.right ) {
 
 		result.depth.min = Math.min( depth, result.depth.min );
 		result.depth.max = Math.max( depth, result.depth.max );
@@ -107,7 +108,9 @@ function getExtremes( node, depth = 0, result = null ) {
 
 	} else {
 
-		node.children.forEach( c => getExtremes( c, depth + 1, result ) );
+		result.splits[ node.splitAxis ] ++;
+		getExtremes( node.left, depth + 1, result );
+		getExtremes( node.right, depth + 1, result );
 
 	}
 
