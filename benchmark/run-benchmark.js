@@ -38,6 +38,10 @@ runBenchmark(
 
 );
 
+geometry.computeBoundsTree( { strategy: CENTER } );
+console.log( getExtremes( geometry.boundsTree._roots[ 0 ] ) );
+
+
 runBenchmark(
 
 	'Compute BVH (AVERAGE)',
@@ -197,8 +201,7 @@ runBenchmark(
 );
 
 const towerExtremes = getExtremes( towerGeometry.boundsTree._roots[ 0 ] );
-console.log( towerExtremes.splits );
-console.log( towerExtremes.depth );
+console.log( towerExtremes );
 
 
 console.log( '' );
