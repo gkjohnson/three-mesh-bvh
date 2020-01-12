@@ -240,6 +240,32 @@ If the raycaster object being used has a property `firstHitOnly` set to `true`, 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 ```
 
+## Debug Functions
+
+### .estimateMemoryInBytes
+
+```js
+estimateMemoryInBytes( bvh : MeshBVH ) : Number
+```
+
+Roughly estimates the amount of memory in bytes a BVH is using.
+
+### .getBVHExtremes
+
+```js
+getBVHExtremes( bvh : MeshBVH ) : Array< Object >
+```
+
+Measures the min and max extremes of the tree including node depth, leaf triangle count, and number of splits on different axes to show how well a tree is structured. Returns an array of extremes for each group root for the bvh. The objects are structured like so:
+
+```js
+{
+	depth: { min: Number, max: Number },
+	tris: { min: Number, max: Number },
+	splits: [ Number, Number, Number ]
+}
+```
+
 ## Gotchas
 
 - This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
