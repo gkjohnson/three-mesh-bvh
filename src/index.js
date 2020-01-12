@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import MeshBVH from './MeshBVH.js';
 import Visualizer from './MeshBVHVisualizer.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
+import { getBVHExtremes, estimateMemoryInBytes } from './Utils/Debug.js';
 
 const ray = new THREE.Ray();
 const tmpInverseMatrix = new THREE.Matrix4();
@@ -51,5 +52,6 @@ function disposeBoundsTree() {
 export {
 	MeshBVH, Visualizer,
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
-	CENTER, AVERAGE, SAH
+	CENTER, AVERAGE, SAH,
+	estimateMemoryInBytes, getBVHExtremes
 };
