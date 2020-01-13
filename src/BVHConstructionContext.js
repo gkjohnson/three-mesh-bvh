@@ -97,20 +97,28 @@ export default class BVHConstructionContext {
 		let maxz = - Infinity;
 		const bounds = this.bounds;
 
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
-			const cx = bounds[ i * 6 + 0 ];
-			const hx = bounds[ i * 6 + 1 ];
-			minx = Math.min( minx, cx - hx );
-			maxx = Math.max( maxx, cx + hx );
-			const cy = bounds[ i * 6 + 2 ];
-			const hy = bounds[ i * 6 + 3 ];
-			miny = Math.min( miny, cy - hy );
-			maxy = Math.max( maxy, cy + hy );
-			const cz = bounds[ i * 6 + 4 ];
-			const hz = bounds[ i * 6 + 5 ];
-			minz = Math.min( minz, cz - hz );
-			maxz = Math.max( maxz, cz + hz );
+			const cx = bounds[ i + 0 ];
+			const hx = bounds[ i + 1 ];
+			const lx = cx - hx;
+			const rx = cx + hx;
+			if ( lx < minx ) minx = lx;
+			if ( rx > maxx ) maxx = rx;
+
+			const cy = bounds[ i + 2 ];
+			const hy = bounds[ i + 3 ];
+			const ly = cy - hy;
+			const ry = cy + hy;
+			if ( ly < miny ) miny = ly;
+			if ( ry > maxy ) maxy = ry;
+
+			const cz = bounds[ i + 4 ];
+			const hz = bounds[ i + 5 ];
+			const lz = cz - hz;
+			const rz = cz + hz;
+			if ( lz < minz ) minz = lz;
+			if ( rz > maxz ) maxz = rz;
 
 		}
 
