@@ -216,8 +216,12 @@ export default class BVHConstructionContext {
 		if ( strategy === CENTER ) {
 
 			const triBounds = this.bounds;
-			const minSpread = new Float32Array( 3 ).fill( Infinity );
-			const maxSpread = new Float32Array( 3 ).fill( - Infinity );
+			let minx = Infinity;
+			let miny = Infinity;
+			let minz = Infinity;
+			let maxx = - Infinity;
+			let maxy = - Infinity;
+			let maxz = - Infinity;
 
 			for ( let i = offset * 6, l = ( offset + count ) * 6; i < l; i += 6 ) {
 
@@ -225,33 +229,37 @@ export default class BVHConstructionContext {
 				const cy = triBounds[ i + 2 ];
 				const cz = triBounds[ i + 4 ];
 
-				if ( cx < minSpread[ 0 ] ) minSpread[ 0 ] = cx;
-				if ( cx > maxSpread[ 0 ] ) maxSpread[ 0 ] = cx;
+				if ( cx < minx ) minx = cx;
+				if ( cx > maxx ) maxx = cx;
 
-				if ( cy < minSpread[ 1 ] ) minSpread[ 1 ] = cy;
-				if ( cy > maxSpread[ 1 ] ) maxSpread[ 1 ] = cy;
+				if ( cy < miny ) miny = cy;
+				if ( cy > maxy ) maxy = cy;
 
-				if ( cz < minSpread[ 2 ] ) minSpread[ 2 ] = cz;
-				if ( cz > maxSpread[ 2 ] ) maxSpread[ 2 ] = cz;
-
-			}
-
-			let curr = - Infinity;
-			for ( let i = 0; i < 3; i ++ ) {
-
-				let dist = maxSpread[ i ] - minSpread[ i ];
-				if ( dist > curr ) {
-
-					curr = dist;
-					axis = i;
-
-				}
+				if ( cz < minz ) minz = cz;
+				if ( cz > maxz ) maxz = cz;
 
 			}
 
-			if ( axis !== - 1 ) {
+			const widthx = maxx - minx;
+			const widthy = maxy - miny;
+			const widthz = maxz - minz;
+			let curr = widthx;
+			axis = 0;
+			pos = ( maxx + minx ) / 2;
 
-				pos = ( maxSpread[ axis ] + minSpread[ axis ] ) / 2;
+			if ( widthy > curr ) {
+
+				curr = widthy;
+				axis = 1;
+				pos = ( maxy + miny ) / 2;
+
+			}
+
+			if ( widthz > curr ) {
+
+				curr = widthz;
+				axis = 2;
+				pos = ( maxz + minz ) / 2;
 
 			}
 
