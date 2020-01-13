@@ -87,7 +87,7 @@ export default class BVHConstructionContext {
 	}
 
 	// computes the union of the bounds of all of the given triangles and puts the resulting box in target
-	getBounds( offset, count, target ) {
+	getBounds( offset, count, target, centroidTarget = null ) {
 
 		let minx = Infinity;
 		let miny = Infinity;
@@ -95,8 +95,16 @@ export default class BVHConstructionContext {
 		let maxx = - Infinity;
 		let maxy = - Infinity;
 		let maxz = - Infinity;
-		const bounds = this.bounds;
 
+		let cminx = Infinity;
+		let cminy = Infinity;
+		let cminz = Infinity;
+		let cmaxx = - Infinity;
+		let cmaxy = - Infinity;
+		let cmaxz = - Infinity;
+
+		const bounds = this.bounds;
+		const includeCentroids = centroidTarget !== null;
 		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
 			const cx = bounds[ i + 0 ];
@@ -105,6 +113,8 @@ export default class BVHConstructionContext {
 			const rx = cx + hx;
 			if ( lx < minx ) minx = lx;
 			if ( rx > maxx ) maxx = rx;
+			if ( includeCentroids && cx < cminx ) cminx = cx;
+			if ( includeCentroids && cx > cmaxx ) cmaxx = cx;
 
 			const cy = bounds[ i + 2 ];
 			const hy = bounds[ i + 3 ];
@@ -112,6 +122,8 @@ export default class BVHConstructionContext {
 			const ry = cy + hy;
 			if ( ly < miny ) miny = ly;
 			if ( ry > maxy ) maxy = ry;
+			if ( includeCentroids && cy < cminy ) cminy = cy;
+			if ( includeCentroids && cy > cmaxy ) cmaxy = cy;
 
 			const cz = bounds[ i + 4 ];
 			const hz = bounds[ i + 5 ];
@@ -119,6 +131,8 @@ export default class BVHConstructionContext {
 			const rz = cz + hz;
 			if ( lz < minz ) minz = lz;
 			if ( rz > maxz ) maxz = rz;
+			if ( includeCentroids && cz < cminz ) cminz = cz;
+			if ( includeCentroids && cz > cmaxz ) cmaxz = cz;
 
 		}
 
@@ -129,6 +143,18 @@ export default class BVHConstructionContext {
 		target[ 3 ] = maxx;
 		target[ 4 ] = maxy;
 		target[ 5 ] = maxz;
+
+		if ( includeCentroids ) {
+
+			centroidTarget[ 0 ] = cminx;
+			centroidTarget[ 1 ] = cminy;
+			centroidTarget[ 2 ] = cminz;
+
+			centroidTarget[ 3 ] = cmaxx;
+			centroidTarget[ 4 ] = cmaxy;
+			centroidTarget[ 5 ] = cmaxz;
+
+		}
 
 	}
 
