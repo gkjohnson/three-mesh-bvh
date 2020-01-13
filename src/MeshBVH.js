@@ -150,13 +150,17 @@ export default class MeshBVH {
 				// create the left child and compute its bounding box
 				const left = node.left = new MeshBVHNode();
 				const lstart = offset, lcount = splitOffset - offset;
-				left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
+				left.boundingData = new Float32Array( 6 );
+				ctx.getBounds( lstart, lcount, left.boundingData );
+
 				splitNode( left, lstart, lcount, depth + 1 );
 
 				// repeat for right
 				const right = node.right = new MeshBVHNode();
 				const rstart = splitOffset, rcount = count - lcount;
-				right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
+				right.boundingData = new Float32Array( 6 );
+				ctx.getBounds( rstart, rcount, right.boundingData );
+
 				splitNode( right, rstart, rcount, depth + 1 );
 
 			}
@@ -179,7 +183,8 @@ export default class MeshBVH {
 
 			} else {
 
-				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+				root.boundingData = new Float32Array( 6 );
+				ctx.getBounds( range.offset, range.count, root.boundingData );
 
 			}
 
@@ -191,7 +196,9 @@ export default class MeshBVH {
 			for ( let range of ranges ) {
 
 				const root = new MeshBVHNode();
-				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+				root.boundingData = new Float32Array( 6 );
+				ctx.getBounds( range.offset, range.count, root.boundingData );
+
 				splitNode( root, range.offset, range.count );
 				roots.push( root );
 

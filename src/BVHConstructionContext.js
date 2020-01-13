@@ -130,8 +130,6 @@ export default class BVHConstructionContext {
 		target[ 4 ] = maxy;
 		target[ 5 ] = maxz;
 
-		return target;
-
 	}
 
 	// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
