@@ -89,38 +89,34 @@ export default class BVHConstructionContext {
 	// computes the union of the bounds of all of the given triangles and puts the resulting box in target
 	getBounds( offset, count, target ) {
 
-		let minx = Infinity;
-		let miny = Infinity;
-		let minz = Infinity;
-		let maxx = - Infinity;
-		let maxy = - Infinity;
-		let maxz = - Infinity;
+		target[ 0 ] = target[ 1 ] = target[ 2 ] = Infinity;
+		target[ 3 ] = target[ 4 ] = target[ 5 ] = - Infinity;
 		const bounds = this.bounds;
 
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+		for ( let i = offset, end = offset + count; i < end; i += 6 ) {
 
 			const cx = bounds[ i * 6 + 0 ];
 			const hx = bounds[ i * 6 + 1 ];
-			minx = Math.min( minx, cx - hx );
-			maxx = Math.max( maxx, cx + hx );
+			const lx = cx - hx;
+			const rx = cx + hx;
+			if ( lx < target[ 0 ] ) target[ 0 ] = lx;
+			if ( rx > target[ 3 ] ) target[ 3 ] = rx;
+
 			const cy = bounds[ i * 6 + 2 ];
 			const hy = bounds[ i * 6 + 3 ];
-			miny = Math.min( miny, cy - hy );
-			maxy = Math.max( maxy, cy + hy );
+			const ly = cy - hy;
+			const ry = cy + hy;
+			if ( ly < target[ 1 ] ) target[ 1 ] = ly;
+			if ( ry > target[ 4 ] ) target[ 4 ] = ry;
+
 			const cz = bounds[ i * 6 + 4 ];
 			const hz = bounds[ i * 6 + 5 ];
-			minz = Math.min( minz, cz - hz );
-			maxz = Math.max( maxz, cz + hz );
+			const lz = cz - hz;
+			const rz = cz + hz;
+			if ( lz < target[ 2 ] ) target[ 2 ] = lz;
+			if ( rz > target[ 5 ] ) target[ 5 ] = rz;
 
 		}
-
-		target[ 0 ] = minx;
-		target[ 1 ] = miny;
-		target[ 2 ] = minz;
-
-		target[ 3 ] = maxx;
-		target[ 4 ] = maxy;
-		target[ 5 ] = maxz;
 
 		return target;
 
