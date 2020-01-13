@@ -278,33 +278,10 @@ export default class BVHConstructionContext {
 		// Center
 		if ( strategy === CENTER ) {
 
-			const minx = centroidBounds[ 0 ];
-			const miny = centroidBounds[ 1 ];
-			const minz = centroidBounds[ 2 ];
-			const maxx = centroidBounds[ 3 ];
-			const maxy = centroidBounds[ 4 ];
-			const maxz = centroidBounds[ 5 ];
+			axis = getLongestEdgeIndex( centroidBounds );
+			if ( axis !== - 1 ) {
 
-			const widthx = maxx - minx;
-			const widthy = maxy - miny;
-			const widthz = maxz - minz;
-			let curr = widthx;
-			axis = 0;
-			pos = ( maxx + minx ) / 2;
-
-			if ( widthy > curr ) {
-
-				curr = widthy;
-				axis = 1;
-				pos = ( maxy + miny ) / 2;
-
-			}
-
-			if ( widthz > curr ) {
-
-				curr = widthz;
-				axis = 2;
-				pos = ( maxz + minz ) / 2;
+				pos = ( centroidBounds[ axis ] + centroidBounds[ axis + 3 ] ) / 2;
 
 			}
 
