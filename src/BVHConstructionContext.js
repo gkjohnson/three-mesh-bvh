@@ -86,8 +86,10 @@ export default class BVHConstructionContext {
 
 	}
 
-	// computes the union of the bounds of all of the given triangles and puts the resulting box in target
-	getBounds( offset, count, target ) {
+	// computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
+	// centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
+	// These are computed together to avoid redundant accesses to bounds array.
+	getBounds( offset, count, target, centroidTarget = null ) {
 
 		let minx = Infinity;
 		let miny = Infinity;
@@ -95,8 +97,16 @@ export default class BVHConstructionContext {
 		let maxx = - Infinity;
 		let maxy = - Infinity;
 		let maxz = - Infinity;
-		const bounds = this.bounds;
 
+		let cminx = Infinity;
+		let cminy = Infinity;
+		let cminz = Infinity;
+		let cmaxx = - Infinity;
+		let cmaxy = - Infinity;
+		let cmaxz = - Infinity;
+
+		const includeCentroid = centroidTarget !== null;
+		const bounds = this.bounds;
 		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
 			const cx = bounds[ i + 0 ];
@@ -105,6 +115,8 @@ export default class BVHConstructionContext {
 			const rx = cx + hx;
 			if ( lx < minx ) minx = lx;
 			if ( rx > maxx ) maxx = rx;
+			if ( includeCentroid && cx < cminx ) cminx = cx;
+			if ( includeCentroid && cx > cmaxx ) cmaxx = cx;
 
 			const cy = bounds[ i + 2 ];
 			const hy = bounds[ i + 3 ];
@@ -112,6 +124,8 @@ export default class BVHConstructionContext {
 			const ry = cy + hy;
 			if ( ly < miny ) miny = ly;
 			if ( ry > maxy ) maxy = ry;
+			if ( includeCentroid && cy < cminy ) cminy = cy;
+			if ( includeCentroid && cy > cmaxy ) cmaxy = cy;
 
 			const cz = bounds[ i + 4 ];
 			const hz = bounds[ i + 5 ];
@@ -119,6 +133,8 @@ export default class BVHConstructionContext {
 			const rz = cz + hz;
 			if ( lz < minz ) minz = lz;
 			if ( rz > maxz ) maxz = rz;
+			if ( includeCentroid && cz < cminz ) cminz = cz;
+			if ( includeCentroid && cz > cmaxz ) cmaxz = cz;
 
 		}
 
@@ -130,7 +146,54 @@ export default class BVHConstructionContext {
 		target[ 4 ] = maxy;
 		target[ 5 ] = maxz;
 
-		return target;
+		if ( includeCentroid ) {
+
+			centroidTarget[ 0 ] = cminx;
+			centroidTarget[ 1 ] = cminy;
+			centroidTarget[ 2 ] = cminz;
+
+			centroidTarget[ 3 ] = cmaxx;
+			centroidTarget[ 4 ] = cmaxy;
+			centroidTarget[ 5 ] = cmaxz;
+
+		}
+
+	}
+
+	// A stand alone function for retrieving the centroid bounds.
+	getCentroidBounds( offset, count, centroidTarget ) {
+
+		let cminx = Infinity;
+		let cminy = Infinity;
+		let cminz = Infinity;
+		let cmaxx = - Infinity;
+		let cmaxy = - Infinity;
+		let cmaxz = - Infinity;
+
+		const bounds = this.bounds;
+		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
+
+			const cx = bounds[ i + 0 ];
+			if ( cx < cminx ) cminx = cx;
+			if ( cx > cmaxx ) cmaxx = cx;
+
+			const cy = bounds[ i + 2 ];
+			if ( cy < cminy ) cminy = cy;
+			if ( cy > cmaxy ) cmaxy = cy;
+
+			const cz = bounds[ i + 4 ];
+			if ( cz < cminz ) cminz = cz;
+			if ( cz > cmaxz ) cmaxz = cz;
+
+		}
+
+		centroidTarget[ 0 ] = cminx;
+		centroidTarget[ 1 ] = cminy;
+		centroidTarget[ 2 ] = cminz;
+
+		centroidTarget[ 3 ] = cmaxx;
+		centroidTarget[ 4 ] = cmaxy;
+		centroidTarget[ 5 ] = cmaxz;
 
 	}
 
@@ -207,7 +270,7 @@ export default class BVHConstructionContext {
 
 	}
 
-	getOptimalSplit( bounds, offset, count, strategy ) {
+	getOptimalSplit( bounds, centroidBounds, offset, count, strategy ) {
 
 		let axis = - 1;
 		let pos = 0;
@@ -215,10 +278,10 @@ export default class BVHConstructionContext {
 		// Center
 		if ( strategy === CENTER ) {
 
-			axis = getLongestEdgeIndex( bounds );
+			axis = getLongestEdgeIndex( centroidBounds );
 			if ( axis !== - 1 ) {
 
-				pos = ( bounds[ axis + 3 ] + bounds[ axis ] ) / 2;
+				pos = ( centroidBounds[ axis ] + centroidBounds[ axis + 3 ] ) / 2;
 
 			}
 

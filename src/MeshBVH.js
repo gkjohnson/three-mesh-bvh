@@ -104,11 +104,12 @@ export default class MeshBVH {
 		this._ensureIndex( geo );
 
 		const ctx = new BVHConstructionContext( geo, options );
+		const cacheCentroidBounds = new Float32Array( 6 );
 		let reachedMaxDepth = false;
 
 		// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 		// recording the offset and count of its triangles and writing them into the reordered geometry index.
-		const splitNode = ( node, offset, count, depth = 0 ) => {
+		const splitNode = ( node, offset, count, centroidBounds = null, depth = 0 ) => {
 
 			if ( depth >= options.maxDepth ) {
 
@@ -126,7 +127,7 @@ export default class MeshBVH {
 			}
 
 			// Find where to split the volume
-			const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
+			const split = ctx.getOptimalSplit( node.boundingData, centroidBounds, offset, count, options.strategy );
 			if ( split.axis === - 1 ) {
 
 				node.offset = offset;
@@ -150,14 +151,18 @@ export default class MeshBVH {
 				// create the left child and compute its bounding box
 				const left = node.left = new MeshBVHNode();
 				const lstart = offset, lcount = splitOffset - offset;
-				left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
-				splitNode( left, lstart, lcount, depth + 1 );
+				left.boundingData = new Float32Array( 6 );
+				ctx.getBounds( lstart, lcount, left.boundingData, cacheCentroidBounds );
+
+				splitNode( left, lstart, lcount, cacheCentroidBounds, depth + 1 );
 
 				// repeat for right
 				const right = node.right = new MeshBVHNode();
 				const rstart = splitOffset, rcount = count - lcount;
-				right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
-				splitNode( right, rstart, rcount, depth + 1 );
+				right.boundingData = new Float32Array( 6 );
+				ctx.getBounds( rstart, rcount, right.boundingData, cacheCentroidBounds );
+
+				splitNode( right, rstart, rcount, cacheCentroidBounds, depth + 1 );
 
 			}
 
@@ -176,14 +181,16 @@ export default class MeshBVH {
 			if ( geo.boundingBox != null ) {
 
 				root.boundingData = boxToArray( geo.boundingBox );
+				ctx.getCentroidBounds( range.offset, range.count, cacheCentroidBounds );
 
 			} else {
 
-				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
+				root.boundingData = new Float32Array( 6 );
+				ctx.getBounds( range.offset, range.count, root.boundingData, cacheCentroidBounds );
 
 			}
 
-			splitNode( root, range.offset, range.count );
+			splitNode( root, range.offset, range.count, cacheCentroidBounds );
 			roots.push( root );
 
 		} else {
@@ -191,8 +198,10 @@ export default class MeshBVH {
 			for ( let range of ranges ) {
 
 				const root = new MeshBVHNode();
-				root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
-				splitNode( root, range.offset, range.count );
+				root.boundingData = new Float32Array( 6 );
+				ctx.getBounds( range.offset, range.count, root.boundingData, cacheCentroidBounds );
+
+				splitNode( root, range.offset, range.count, cacheCentroidBounds );
 				roots.push( root );
 
 			}
