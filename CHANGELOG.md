@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Added
+- MeshBVH.serialize and deserialize functions so the bvh can be computed and transferred from a webworker.
+
 ### Changed
 - CENTER tree computation to improve raycast performance and create more balanced trees.
 
