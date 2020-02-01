@@ -515,7 +515,8 @@ export default class MeshBVH {
 			const indexAttribute = geometry.getIndex();
 			if ( indexAttribute.array !== index ) {
 
-				indexAttribute.set( index );
+				indexAttribute.array.set( index );
+				indexAttribute.needsUpdate = true;
 
 			}
 
