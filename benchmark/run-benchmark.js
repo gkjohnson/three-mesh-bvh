@@ -26,11 +26,14 @@ raycaster.ray.direction.set( 0, 0, 1 );
 
 function logExtremes( bvh ) {
 
-	const bvhSize = estimateMemoryInBytes( bvh );
+	const bvhSize = estimateMemoryInBytes( bvh._roots );
+	const serializedSize = estimateMemoryInBytes( bvh.serialize().roots );
+
 	const extremes = getBVHExtremes( bvh )[ 0 ];
 	console.log(
 		`\tExtremes:\n` +
 		`\t\tmemory: ${ bvhSize / 1000 } kb\n` +
+		`\t\tserialized: ${ serializedSize / 1000 } kb\n` +
 		`\t\ttris: ${extremes.tris.min}, ${extremes.tris.max}\n` +
 		`\t\tdepth: ${extremes.depth.min}, ${extremes.depth.max}\n` +
 		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n`
@@ -50,6 +53,34 @@ function runSuite( strategy ) {
 
 			geometry.computeBoundsTree( { strategy: strategy } );
 			geometry.boundsTree = null;
+
+		},
+		3000,
+		50
+
+	);
+
+	geometry.computeBoundsTree( { strategy: strategy } );
+	runBenchmark(
+
+		'Serialize',
+		() => {
+
+			geometry.boundsTree.serialize();
+
+		},
+		3000,
+		50
+
+	);
+
+	const serialized = geometry.boundsTree.serialize();
+	runBenchmark(
+
+		'Deserialize',
+		() => {
+
+			geometry.boundsTree.deserialize( serialized );
 
 		},
 		3000,
