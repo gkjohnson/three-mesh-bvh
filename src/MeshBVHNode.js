@@ -53,13 +53,23 @@ class MeshBVHNode {
 
 	raycast( mesh, raycaster, ray, intersects ) {
 
-		if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
-		else {
+		if ( this.count ) {
 
-			if ( this.left.intersectRay( ray, boxIntersection ) )
+			intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
+
+		} else {
+
+			if ( this.left.intersectRay( ray, boxIntersection ) ) {
+
 				this.left.raycast( mesh, raycaster, ray, intersects );
-			if ( this.right.intersectRay( ray, boxIntersection ) )
+
+			}
+
+			if ( this.right.intersectRay( ray, boxIntersection ) ) {
+
 				this.right.raycast( mesh, raycaster, ray, intersects );
+
+			}
 
 		}
 

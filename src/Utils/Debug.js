@@ -67,19 +67,27 @@ function getBVHExtremes( bvh ) {
 
 function estimateMemoryInBytes( obj ) {
 
-	const traversed = [ ];
+	const traversed = new Set();
 	const stack = [ obj ];
 	let bytes = 0;
 
 	while ( stack.length ) {
 
 		const curr = stack.pop();
-		if ( traversed.includes( curr ) ) continue;
-		traversed.push( curr );
+		if ( traversed.has( curr ) ) {
+
+			continue;
+
+		}
+		traversed.add( curr );
 
 		for ( let key in curr ) {
 
-			if ( ! curr.hasOwnProperty( key ) ) continue;
+			if ( ! curr.hasOwnProperty( key ) ) {
+
+				continue;
+
+			}
 
 			bytes += getPrimitiveSize( key );
 
@@ -87,6 +95,10 @@ function estimateMemoryInBytes( obj ) {
 			if ( value && ( typeof value === 'object' || typeof value === 'function' ) ) {
 
 				if ( isTypedArray( value ) ) {
+
+					bytes += value.byteLength;
+
+				} else if ( value instanceof ArrayBuffer ) {
 
 					bytes += value.byteLength;
 

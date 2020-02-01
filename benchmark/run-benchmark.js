@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { runBenchmark } from './utils.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH, estimateMemoryInBytes, getBVHExtremes } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH, estimateMemoryInBytes, getBVHExtremes, MeshBVH } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -24,13 +24,16 @@ const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 0, 0, - 10 );
 raycaster.ray.direction.set( 0, 0, 1 );
 
-function logExtremes( bvh ) {
+function logExtremes( bvh, geometry ) {
 
-	const bvhSize = estimateMemoryInBytes( bvh );
+	const bvhSize = estimateMemoryInBytes( bvh._roots );
+	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh, geometry ).roots );
+
 	const extremes = getBVHExtremes( bvh )[ 0 ];
 	console.log(
 		`\tExtremes:\n` +
 		`\t\tmemory: ${ bvhSize / 1000 } kb\n` +
+		`\t\tserialized: ${ serializedSize / 1000 } kb\n` +
 		`\t\ttris: ${extremes.tris.min}, ${extremes.tris.max}\n` +
 		`\t\tdepth: ${extremes.depth.min}, ${extremes.depth.max}\n` +
 		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n`
@@ -41,7 +44,7 @@ function logExtremes( bvh ) {
 function runSuite( strategy ) {
 
 	geometry.computeBoundsTree( { strategy: strategy } );
-	logExtremes( geometry.boundsTree );
+	logExtremes( geometry.boundsTree, geometry );
 
 	runBenchmark(
 
@@ -50,6 +53,34 @@ function runSuite( strategy ) {
 
 			geometry.computeBoundsTree( { strategy: strategy } );
 			geometry.boundsTree = null;
+
+		},
+		3000,
+		50
+
+	);
+
+	geometry.computeBoundsTree( { strategy: strategy } );
+	runBenchmark(
+
+		'Serialize',
+		() => {
+
+			MeshBVH.serialize( geometry.boundsTree, geometry );
+
+		},
+		3000,
+		50
+
+	);
+
+	const serialized = MeshBVH.serialize( geometry.boundsTree, geometry );
+	runBenchmark(
+
+		'Deserialize',
+		() => {
+
+			MeshBVH.deserialize( serialized, geometry );
 
 		},
 		3000,
@@ -194,7 +225,7 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree );
+logExtremes( towerGeometry.boundsTree, towerGeometry );
 
 towerGeometry.computeBoundsTree( { strategy: AVERAGE } );
 runBenchmark(
@@ -204,7 +235,7 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree );
+logExtremes( towerGeometry.boundsTree, towerGeometry );
 
 towerGeometry.computeBoundsTree( { strategy: SAH } );
 runBenchmark(
@@ -214,4 +245,4 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree );
+logExtremes( towerGeometry.boundsTree, towerGeometry );
