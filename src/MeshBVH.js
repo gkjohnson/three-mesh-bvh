@@ -14,10 +14,148 @@ const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 export default class MeshBVH {
 
-	static deserialize( geo, data, setIndex ) {
+	static serialize( bvh, geometry, copyIndexBuffer = true ) {
 
-		const bvh = new MeshBVH( geo, { [ SKIP_GENERATION ]: true } );
-		bvh.deserialize( data, setIndex );
+		function countNodes( node ) {
+
+			if ( node.count ) {
+
+				return 1;
+
+			} else {
+
+				return 1 + countNodes( node.left ) + countNodes( node.right );
+
+			}
+
+		}
+
+		function populateBuffer( arrayOffset, float32Array, uint32Array, node ) {
+
+			const isLeaf = ! ! node.count;
+			const boundingData = node.boundingData;
+			for ( let i = 0; i < 6; i ++ ) {
+
+				float32Array[ arrayOffset + i ] = boundingData[ i ];
+
+			}
+
+			if ( isLeaf ) {
+
+				const offset = node.offset;
+				const count = node.count;
+				uint32Array[ arrayOffset + 6 ] = offset;
+				uint32Array[ arrayOffset + 7 ] = count;
+				uint32Array[ arrayOffset + 8 ] = IS_LEAFNODE_FLAG;
+				return arrayOffset + BYTES_PER_NODE / 4;
+
+			} else {
+
+				const left = node.left;
+				const right = node.right;
+				const splitAxis = node.splitAxis;
+
+				let nextUnusedPointer;
+
+				uint32Array[ arrayOffset + 6 ] = arrayOffset + BYTES_PER_NODE / 4;
+				nextUnusedPointer = populateBuffer( arrayOffset + BYTES_PER_NODE / 4, float32Array, uint32Array, left );
+
+				uint32Array[ arrayOffset + 7 ] = nextUnusedPointer;
+				nextUnusedPointer = populateBuffer( nextUnusedPointer, float32Array, uint32Array, right );
+
+				uint32Array[ arrayOffset + 8 ] = splitAxis;
+				return nextUnusedPointer;
+
+			}
+
+		}
+
+		const roots = bvh._roots;
+		const rootData = [];
+		for ( let i = 0; i < roots.length; i ++ ) {
+
+			const root = roots[ i ];
+			let nodeCount = countNodes( root );
+
+			const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+			const float32Array = new Float32Array( buffer );
+			const uint32Array = new Uint32Array( buffer );
+			rootData.push( buffer );
+			populateBuffer( 0, float32Array, uint32Array, root );
+
+		}
+
+		const indexAttribute = geometry.getIndex();
+		const result = {
+			roots: rootData,
+			index: copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
+		};
+
+		return result;
+
+	}
+
+	static deserialize( data, geometry, setIndex = true ) {
+
+		function setData( arrayOffset, float32Array, uint32Array, node ) {
+
+			const boundingData = new Float32Array( 6 );
+			for ( let i = 0; i < 6; i ++ ) {
+
+				boundingData[ i ] = float32Array[ arrayOffset + i ];
+
+			}
+			node.boundingData = boundingData;
+
+			const isLeaf = uint32Array[ arrayOffset + 8 ] === IS_LEAFNODE_FLAG;
+			if ( isLeaf ) {
+
+				node.offset = uint32Array[ arrayOffset + 6 ];
+				node.count = uint32Array[ arrayOffset + 7 ];
+
+			} else {
+
+				const left = new MeshBVHNode();
+				const right = new MeshBVHNode();
+				const leftOffset = uint32Array[ arrayOffset + 6 ];
+				const rightOffset = uint32Array[ arrayOffset + 7 ];
+
+				setData( leftOffset, float32Array, uint32Array, left );
+				setData( rightOffset, float32Array, uint32Array, right );
+
+				node.left = left;
+				node.right = right;
+				node.splitAxis = uint32Array[ arrayOffset + 8 ];
+
+			}
+
+		}
+
+		const { index, roots } = data;
+		const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+		bvh._roots = roots.map( buffer => {
+
+			const float32Array = new Float32Array( buffer );
+			const uint32Array = new Uint32Array( buffer );
+
+			const root = new MeshBVHNode();
+			setData( 0, float32Array, uint32Array, root );
+			return root;
+
+		} );
+
+		if ( setIndex ) {
+
+			const indexAttribute = geometry.getIndex();
+			if ( indexAttribute.array !== index ) {
+
+				indexAttribute.array.set( index );
+				indexAttribute.needsUpdate = true;
+
+			}
+
+		}
+
 		return bvh;
 
 	}
@@ -50,7 +188,6 @@ export default class MeshBVH {
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
 
-		this.geometry = geo;
 		if ( options[ SKIP_GENERATION ] ) {
 
 			this._roots = null;
@@ -376,151 +513,6 @@ export default class MeshBVH {
 	distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
 
 		return this.closestPointToPoint( mesh, point, null, minThreshold, maxThreshold );
-
-	}
-
-	serialize( copyIndexBuffer = true ) {
-
-		function countNodes( node ) {
-
-			if ( node.count ) {
-
-				return 1;
-
-			} else {
-
-				return 1 + countNodes( node.left ) + countNodes( node.right );
-
-			}
-
-		}
-
-		function populateBuffer( arrayOffset, float32Array, uint32Array, node ) {
-
-			const isLeaf = ! ! node.count;
-			const boundingData = node.boundingData;
-			for ( let i = 0; i < 6; i ++ ) {
-
-				float32Array[ arrayOffset + i ] = boundingData[ i ];
-
-			}
-
-			if ( isLeaf ) {
-
-				const offset = node.offset;
-				const count = node.count;
-				uint32Array[ arrayOffset + 6 ] = offset;
-				uint32Array[ arrayOffset + 7 ] = count;
-				uint32Array[ arrayOffset + 8 ] = IS_LEAFNODE_FLAG;
-				return arrayOffset + BYTES_PER_NODE / 4;
-
-			} else {
-
-				const left = node.left;
-				const right = node.right;
-				const splitAxis = node.splitAxis;
-
-				let nextUnusedPointer;
-
-				uint32Array[ arrayOffset + 6 ] = arrayOffset + BYTES_PER_NODE / 4;
-				nextUnusedPointer = populateBuffer( arrayOffset + BYTES_PER_NODE / 4, float32Array, uint32Array, left );
-
-				uint32Array[ arrayOffset + 7 ] = nextUnusedPointer;
-				nextUnusedPointer = populateBuffer( nextUnusedPointer, float32Array, uint32Array, right );
-
-				uint32Array[ arrayOffset + 8 ] = splitAxis;
-				return nextUnusedPointer;
-
-			}
-
-		}
-
-		const roots = this._roots;
-		const rootData = [];
-		for ( let i = 0; i < roots.length; i ++ ) {
-
-			const root = roots[ i ];
-			let nodeCount = countNodes( root );
-
-			const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
-			const float32Array = new Float32Array( buffer );
-			const uint32Array = new Uint32Array( buffer );
-			rootData.push( buffer );
-			populateBuffer( 0, float32Array, uint32Array, root );
-
-		}
-
-		const geometry = this.geometry;
-		const indexAttribute = geometry.getIndex();
-		const result = {
-			roots: rootData,
-			index: copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
-		};
-
-		return result;
-
-	}
-
-	deserialize( data, setIndex = true ) {
-
-		function setData( arrayOffset, float32Array, uint32Array, node ) {
-
-			const boundingData = new Float32Array( 6 );
-			for ( let i = 0; i < 6; i ++ ) {
-
-				boundingData[ i ] = float32Array[ arrayOffset + i ];
-
-			}
-			node.boundingData = boundingData;
-
-			const isLeaf = uint32Array[ arrayOffset + 8 ] === IS_LEAFNODE_FLAG;
-			if ( isLeaf ) {
-
-				node.offset = uint32Array[ arrayOffset + 6 ];
-				node.count = uint32Array[ arrayOffset + 7 ];
-
-			} else {
-
-				const left = new MeshBVHNode();
-				const right = new MeshBVHNode();
-				const leftOffset = uint32Array[ arrayOffset + 6 ];
-				const rightOffset = uint32Array[ arrayOffset + 7 ];
-
-				setData( leftOffset, float32Array, uint32Array, left );
-				setData( rightOffset, float32Array, uint32Array, right );
-
-				node.left = left;
-				node.right = right;
-				node.splitAxis = uint32Array[ arrayOffset + 8 ];
-
-			}
-
-		}
-
-		const { index, roots } = data;
-		this._roots = roots.map( buffer => {
-
-			const float32Array = new Float32Array( buffer );
-			const uint32Array = new Uint32Array( buffer );
-
-			const root = new MeshBVHNode();
-			setData( 0, float32Array, uint32Array, root );
-			return root;
-
-		} );
-
-		if ( setIndex ) {
-
-			const geometry = this.geometry;
-			const indexAttribute = geometry.getIndex();
-			if ( indexAttribute.array !== index ) {
-
-				indexAttribute.array.set( index );
-				indexAttribute.needsUpdate = true;
-
-			}
-
-		}
 
 	}
 

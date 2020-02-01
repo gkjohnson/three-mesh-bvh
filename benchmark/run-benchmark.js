@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { runBenchmark } from './utils.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH, estimateMemoryInBytes, getBVHExtremes } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH, estimateMemoryInBytes, getBVHExtremes, MeshBVH } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -24,10 +24,10 @@ const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 0, 0, - 10 );
 raycaster.ray.direction.set( 0, 0, 1 );
 
-function logExtremes( bvh ) {
+function logExtremes( bvh, geometry ) {
 
 	const bvhSize = estimateMemoryInBytes( bvh._roots );
-	const serializedSize = estimateMemoryInBytes( bvh.serialize().roots );
+	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh, geometry ).roots );
 
 	const extremes = getBVHExtremes( bvh )[ 0 ];
 	console.log(
@@ -44,7 +44,7 @@ function logExtremes( bvh ) {
 function runSuite( strategy ) {
 
 	geometry.computeBoundsTree( { strategy: strategy } );
-	logExtremes( geometry.boundsTree );
+	logExtremes( geometry.boundsTree, geometry );
 
 	runBenchmark(
 
@@ -66,7 +66,7 @@ function runSuite( strategy ) {
 		'Serialize',
 		() => {
 
-			geometry.boundsTree.serialize();
+			MeshBVH.serialize( geometry.boundsTree, geometry );
 
 		},
 		3000,
@@ -74,13 +74,13 @@ function runSuite( strategy ) {
 
 	);
 
-	const serialized = geometry.boundsTree.serialize();
+	const serialized = MeshBVH.serialize( geometry.boundsTree, geometry );
 	runBenchmark(
 
 		'Deserialize',
 		() => {
 
-			geometry.boundsTree.deserialize( serialized );
+			MeshBVH.deserialize( serialized, geometry );
 
 		},
 		3000,
@@ -225,7 +225,7 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree );
+logExtremes( towerGeometry.boundsTree, towerGeometry );
 
 towerGeometry.computeBoundsTree( { strategy: AVERAGE } );
 runBenchmark(
@@ -235,7 +235,7 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree );
+logExtremes( towerGeometry.boundsTree, towerGeometry );
 
 towerGeometry.computeBoundsTree( { strategy: SAH } );
 runBenchmark(
@@ -245,4 +245,4 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree );
+logExtremes( towerGeometry.boundsTree, towerGeometry );

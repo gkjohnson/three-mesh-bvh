@@ -178,9 +178,9 @@ describe( 'Serialization', () => {
 
 		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
-		const serialized = bvh.serialize();
+		const serialized = MeshBVH.serialize( bvh, geom );
 
-		const deserializedBVH = MeshBVH.deserialize( geom, serialized );
+		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
 		expect( deserializedBVH ).toEqual( bvh );
 
 	} );
@@ -190,8 +190,8 @@ describe( 'Serialization', () => {
 		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 
-		expect( geom.index.array ).not.toBe( bvh.serialize().index );
-		expect( geom.index.array ).toBe( bvh.serialize( false ).index );
+		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh, geom ).index );
+		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, geom, false ).index );
 
 	} );
 
@@ -200,15 +200,15 @@ describe( 'Serialization', () => {
 		const geom1 = new THREE.SphereBufferGeometry( 1, 10, 10 );
 		const geom2 = new THREE.SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom1 );
-		const serialized = bvh.serialize();
+		const serialized = MeshBVH.serialize( bvh, geom1 );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( geom2, serialized, false );
+		MeshBVH.deserialize( serialized, geom2, false );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( geom2, serialized, true );
+		MeshBVH.deserialize( serialized, geom2, true );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).toEqual( serialized.index );
