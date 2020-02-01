@@ -1,44 +1,9 @@
 import * as THREE from 'three';
 import { arrayToBox, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
+import { computeBounds, getAverage } from './buildFunctions.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
-
-// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
-// result is an array of size tris.length * 6 where triangle i maps to a
-// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
-// representing the center and half-extent in each dimension of triangle i
-function computeBounds( geo ) {
-
-	const verts = geo.attributes.position.array;
-	const index = geo.index.array;
-	const triCount = index.length / 3;
-	const bounds = new Float32Array( triCount * 6 );
-
-	for ( let tri = 0; tri < triCount; tri ++ ) {
-
-		const ai = index[ 3 * tri + 0 ] * 3;
-		const bi = index[ 3 * tri + 1 ] * 3;
-		const ci = index[ 3 * tri + 2 ] * 3;
-
-		for ( let el = 0; el < 3; el ++ ) {
-
-			const a = verts[ ai + el ];
-			const b = verts[ bi + el ];
-			const c = verts[ ci + el ];
-			const min = Math.min( a, b, c );
-			const max = Math.max( a, b, c );
-			const halfExtents = ( max - min ) / 2;
-			bounds[ tri * 6 + el * 2 + 0 ] = min + halfExtents;
-			bounds[ tri * 6 + el * 2 + 1 ] = halfExtents;
-
-		}
-
-	}
-
-	return bounds;
-
-}
 
 const boxtemp = new THREE.Box3();
 
@@ -67,133 +32,6 @@ export default class BVHConstructionContext {
 			}
 
 		}
-
-	}
-
-	// returns the average coordinate on the specified axis of the all the provided triangles
-	getAverage( offset, count, axis ) {
-
-		let avg = 0;
-		const bounds = this.bounds;
-
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-			avg += bounds[ i * 6 + axis * 2 ];
-
-		}
-
-		return avg / count;
-
-	}
-
-	// computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
-	// centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
-	// These are computed together to avoid redundant accesses to bounds array.
-	getBounds( offset, count, target, centroidTarget = null ) {
-
-		let minx = Infinity;
-		let miny = Infinity;
-		let minz = Infinity;
-		let maxx = - Infinity;
-		let maxy = - Infinity;
-		let maxz = - Infinity;
-
-		let cminx = Infinity;
-		let cminy = Infinity;
-		let cminz = Infinity;
-		let cmaxx = - Infinity;
-		let cmaxy = - Infinity;
-		let cmaxz = - Infinity;
-
-		const includeCentroid = centroidTarget !== null;
-		const bounds = this.bounds;
-		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
-
-			const cx = bounds[ i + 0 ];
-			const hx = bounds[ i + 1 ];
-			const lx = cx - hx;
-			const rx = cx + hx;
-			if ( lx < minx ) minx = lx;
-			if ( rx > maxx ) maxx = rx;
-			if ( includeCentroid && cx < cminx ) cminx = cx;
-			if ( includeCentroid && cx > cmaxx ) cmaxx = cx;
-
-			const cy = bounds[ i + 2 ];
-			const hy = bounds[ i + 3 ];
-			const ly = cy - hy;
-			const ry = cy + hy;
-			if ( ly < miny ) miny = ly;
-			if ( ry > maxy ) maxy = ry;
-			if ( includeCentroid && cy < cminy ) cminy = cy;
-			if ( includeCentroid && cy > cmaxy ) cmaxy = cy;
-
-			const cz = bounds[ i + 4 ];
-			const hz = bounds[ i + 5 ];
-			const lz = cz - hz;
-			const rz = cz + hz;
-			if ( lz < minz ) minz = lz;
-			if ( rz > maxz ) maxz = rz;
-			if ( includeCentroid && cz < cminz ) cminz = cz;
-			if ( includeCentroid && cz > cmaxz ) cmaxz = cz;
-
-		}
-
-		target[ 0 ] = minx;
-		target[ 1 ] = miny;
-		target[ 2 ] = minz;
-
-		target[ 3 ] = maxx;
-		target[ 4 ] = maxy;
-		target[ 5 ] = maxz;
-
-		if ( includeCentroid ) {
-
-			centroidTarget[ 0 ] = cminx;
-			centroidTarget[ 1 ] = cminy;
-			centroidTarget[ 2 ] = cminz;
-
-			centroidTarget[ 3 ] = cmaxx;
-			centroidTarget[ 4 ] = cmaxy;
-			centroidTarget[ 5 ] = cmaxz;
-
-		}
-
-	}
-
-	// A stand alone function for retrieving the centroid bounds.
-	getCentroidBounds( offset, count, centroidTarget ) {
-
-		let cminx = Infinity;
-		let cminy = Infinity;
-		let cminz = Infinity;
-		let cmaxx = - Infinity;
-		let cmaxy = - Infinity;
-		let cmaxz = - Infinity;
-
-		const bounds = this.bounds;
-		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
-
-			const cx = bounds[ i + 0 ];
-			if ( cx < cminx ) cminx = cx;
-			if ( cx > cmaxx ) cmaxx = cx;
-
-			const cy = bounds[ i + 2 ];
-			if ( cy < cminy ) cminy = cy;
-			if ( cy > cmaxy ) cmaxy = cy;
-
-			const cz = bounds[ i + 4 ];
-			if ( cz < cminz ) cminz = cz;
-			if ( cz > cmaxz ) cmaxz = cz;
-
-		}
-
-		centroidTarget[ 0 ] = cminx;
-		centroidTarget[ 1 ] = cminy;
-		centroidTarget[ 2 ] = cminz;
-
-		centroidTarget[ 3 ] = cmaxx;
-		centroidTarget[ 4 ] = cmaxy;
-		centroidTarget[ 5 ] = cmaxz;
 
 	}
 
@@ -290,7 +128,7 @@ export default class BVHConstructionContext {
 			axis = getLongestEdgeIndex( bounds );
 			if ( axis !== - 1 ) {
 
-				pos = this.getAverage( offset, count, axis );
+				pos = getAverage( this.bounds, offset, count, axis );
 
 			}
 
