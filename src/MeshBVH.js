@@ -3,6 +3,17 @@ import MeshBVHNode from './MeshBVHNode.js';
 import BVHConstructionContext from './BVHConstructionContext.js';
 import { arrayToBox, boxToArray } from './Utils/ArrayBoxUtilities.js';
 import { CENTER } from './Constants.js';
+import {
+	intersectRay,
+	raycast,
+	raycastFirst,
+	shapecast,
+	intersectsGeometry,
+	intersectsBox,
+	intersectsSphere,
+	closestPointToPoint,
+	closestPointToGeometry,
+} from './castFunctions.js';
 
 // boundingData  		: 6 float32
 // left / offset 		: 1 uint32
@@ -401,7 +412,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			root.raycast( mesh, raycaster, ray, intersects );
+			raycast( root, mesh, raycaster, ray, intersects );
 
 		}
 
@@ -413,7 +424,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			const result = root.raycastFirst( mesh, raycaster, ray );
+			const result = raycastFirst( root, mesh, raycaster, ray );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
@@ -430,7 +441,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			if ( root.intersectsGeometry( mesh, geometry, geomToMesh ) ) return true;
+			if ( intersectsGeometry( root, mesh, geometry, geomToMesh ) ) return true;
 
 		}
 
@@ -442,7 +453,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			if ( root.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
+			if ( shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
 
 		}
 
@@ -454,7 +465,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			if ( root.intersectsBox( mesh, box, boxToMesh ) ) return true;
+			if ( intersectsBox( root, mesh, box, boxToMesh ) ) return true;
 
 		}
 
@@ -466,7 +477,7 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			if ( root.intersectsSphere( mesh, sphere ) ) return true;
+			if ( intersectsSphere( root, mesh, sphere ) ) return true;
 
 		}
 
@@ -479,7 +490,7 @@ export default class MeshBVH {
 		let closestDistance = Infinity;
 		for ( const root of this._roots ) {
 
-			const dist = root.closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold );
+			const dist = closestPointToGeometry( root, mesh, geom, matrix, target1, target2, minThreshold, maxThreshold );
 			if ( dist < closestDistance ) closestDistance = dist;
 			if ( dist < minThreshold ) return dist;
 
@@ -500,7 +511,7 @@ export default class MeshBVH {
 		let closestDistance = Infinity;
 		for ( const root of this._roots ) {
 
-			const dist = root.closestPointToPoint( mesh, point, target, minThreshold, maxThreshold );
+			const dist = closestPointToPoint( root, mesh, point, target, minThreshold, maxThreshold );
 			if ( dist < closestDistance ) closestDistance = dist;
 			if ( dist < minThreshold ) return dist;
 
