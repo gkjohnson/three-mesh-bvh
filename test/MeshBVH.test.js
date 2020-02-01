@@ -172,6 +172,50 @@ describe( 'Bounds Tree', () => {
 
 } );
 
+describe( 'Serialization', () => {
+
+	it( 'should serialize then deserialize to the same structure.', () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const bvh = new MeshBVH( geom );
+		const serialized = bvh.serialize();
+
+		const deserializedBVH = MeshBVH.deserialize( geom, serialized );
+		expect( deserializedBVH ).toEqual( bvh );
+
+	} );
+
+	it( 'should copy the index buffer from the target geometry unless copyIndex is set to false', () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const bvh = new MeshBVH( geom );
+
+		expect( geom.index.array ).not.toBe( bvh.serialize().index );
+		expect( geom.index.array ).toBe( bvh.serialize( false ).index );
+
+	} );
+
+	it( 'should copy the index buffer onto the target geometry unless setIndex is set to false.', () => {
+
+		const geom1 = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom2 = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const bvh = new MeshBVH( geom1 );
+		const serialized = bvh.serialize();
+
+		expect( geom2.index.array ).not.toBe( serialized.index );
+		expect( geom2.index.array ).not.toEqual( serialized.index );
+		MeshBVH.deserialize( geom2, serialized, false );
+
+		expect( geom2.index.array ).not.toBe( serialized.index );
+		expect( geom2.index.array ).not.toEqual( serialized.index );
+		MeshBVH.deserialize( geom2, serialized, true );
+
+		expect( geom2.index.array ).not.toBe( serialized.index );
+		expect( geom2.index.array ).toEqual( serialized.index );
+
+	} );
+
+} );
 
 describe( 'IntersectsGeometry with BVH', () => {
 

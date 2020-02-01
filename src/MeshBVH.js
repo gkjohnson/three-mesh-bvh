@@ -14,10 +14,10 @@ const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 export default class MeshBVH {
 
-	static deserialize( geo, data ) {
+	static deserialize( geo, data, setIndex ) {
 
 		const bvh = new MeshBVH( geo, { [ SKIP_GENERATION ]: true } );
-		bvh.deserialize( data );
+		bvh.deserialize( data, setIndex );
 		return bvh;
 
 	}
