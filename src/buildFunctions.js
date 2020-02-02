@@ -209,9 +209,11 @@ function partition( index, triangleBounds, sahPlanes, offset, count, split ) {
 				let t0 = index[ left * 3 + i ];
 				index[ left * 3 + i ] = index[ right * 3 + i ];
 				index[ right * 3 + i ] = t0;
+
 				let t1 = triangleBounds[ left * 6 + i * 2 + 0 ];
 				triangleBounds[ left * 6 + i * 2 + 0 ] = triangleBounds[ right * 6 + i * 2 + 0 ];
 				triangleBounds[ right * 6 + i * 2 + 0 ] = t1;
+
 				let t2 = triangleBounds[ left * 6 + i * 2 + 1 ];
 				triangleBounds[ left * 6 + i * 2 + 1 ] = triangleBounds[ right * 6 + i * 2 + 1 ];
 				triangleBounds[ right * 6 + i * 2 + 1 ] = t2;
@@ -299,6 +301,9 @@ export function buildTree( geo, options ) {
 
 	const ctx = new BVHConstructionContext( geo, options );
 	const cacheCentroidBounds = new Float32Array( 6 );
+	const triangleBounds = ctx.bounds;
+	const sahPlanes = ctx.sahplanes;
+	const indexArray = geo.index.array;
 	let reachedMaxDepth = false;
 
 	// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
@@ -330,7 +335,7 @@ export function buildTree( geo, options ) {
 
 		}
 
-		const splitOffset = partition( ctx.geo.index.array, ctx.bounds, ctx.sahPlanes, offset, count, split );
+		const splitOffset = partition( indexArray, triangleBounds, sahPlanes, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
@@ -346,7 +351,7 @@ export function buildTree( geo, options ) {
 			const left = node.left = new MeshBVHNode();
 			const lstart = offset, lcount = splitOffset - offset;
 			left.boundingData = new Float32Array( 6 );
-			getBounds( ctx.bounds, lstart, lcount, left.boundingData, cacheCentroidBounds );
+			getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBounds );
 
 			splitNode( left, lstart, lcount, cacheCentroidBounds, depth + 1 );
 
@@ -354,7 +359,7 @@ export function buildTree( geo, options ) {
 			const right = node.right = new MeshBVHNode();
 			const rstart = splitOffset, rcount = count - lcount;
 			right.boundingData = new Float32Array( 6 );
-			getBounds( ctx.bounds, rstart, rcount, right.boundingData, cacheCentroidBounds );
+			getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBounds );
 
 			splitNode( right, rstart, rcount, cacheCentroidBounds, depth + 1 );
 
@@ -375,12 +380,12 @@ export function buildTree( geo, options ) {
 		if ( geo.boundingBox != null ) {
 
 			root.boundingData = boxToArray( geo.boundingBox );
-			getCentroidBounds( ctx.bounds, range.offset, range.count, cacheCentroidBounds );
+			getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBounds );
 
 		} else {
 
 			root.boundingData = new Float32Array( 6 );
-			getBounds( ctx.bounds, range.offset, range.count, root.boundingData, cacheCentroidBounds );
+			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBounds );
 
 		}
 
@@ -393,7 +398,7 @@ export function buildTree( geo, options ) {
 
 			const root = new MeshBVHNode();
 			root.boundingData = new Float32Array( 6 );
-			getBounds( ctx.bounds, range.offset, range.count, root.boundingData, cacheCentroidBounds );
+			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBounds );
 
 			splitNode( root, range.offset, range.count, cacheCentroidBounds );
 			roots.push( root );
