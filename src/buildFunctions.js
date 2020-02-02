@@ -498,12 +498,12 @@ export function buildTree( geo, options ) {
 	// recording the offset and count of its triangles and writing them into the reordered geometry index.
 	function splitNode( node, offset, count, centroidBoundingData = null, depth = 0 ) {
 
-		if ( ! reachedMaxDepth && depth >= options.maxDepth ) {
+		if ( ! reachedMaxDepth && depth >= maxDepth ) {
 
 			reachedMaxDepth = true;
-			if ( options.verbose ) {
+			if ( verbose ) {
 
-				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+				console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
 				console.warn( this, geo );
 
 			}
@@ -511,7 +511,7 @@ export function buildTree( geo, options ) {
 		}
 
 		// early out if we've met our capacity
-		if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
+		if ( count <= maxLeafTris || depth >= maxDepth ) {
 
 			node.offset = offset;
 			node.count = count;
@@ -520,7 +520,7 @@ export function buildTree( geo, options ) {
 		}
 
 		// Find where to split the volume
-		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, sahPlanes, offset, count, options.strategy );
+		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, sahPlanes, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
 			node.offset = offset;
@@ -569,6 +569,10 @@ export function buildTree( geo, options ) {
 	const triangleBounds = computeTriangleBounds( geo );
 	const sahPlanes = options.strategy === SAH ? computeSAHPlanes( triangleBounds ) : null;
 	const indexArray = geo.index.array;
+	const maxDepth = options.maxDepth;
+	const verbose = options.verbose;
+	const maxLeafTris = options.maxLeafTris;
+	const strategy = options.strategy;
 	let reachedMaxDepth = false;
 
 	const roots = [];
