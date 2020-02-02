@@ -139,7 +139,7 @@ function getBounds( triangleBounds, offset, count, target, centroidTarget = null
 }
 
 // A stand alone function for retrieving the centroid bounds.
-function getCentroidBounds( triangleCentroids, offset, count, centroidTarget ) {
+function getCentroidBounds( triangleBounds, offset, count, centroidTarget ) {
 
 	let cminx = Infinity;
 	let cminy = Infinity;
@@ -150,15 +150,15 @@ function getCentroidBounds( triangleCentroids, offset, count, centroidTarget ) {
 
 	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
-		const cx = triangleCentroids[ i + 0 ];
+		const cx = triangleBounds[ i + 0 ];
 		if ( cx < cminx ) cminx = cx;
 		if ( cx > cmaxx ) cmaxx = cx;
 
-		const cy = triangleCentroids[ i + 2 ];
+		const cy = triangleBounds[ i + 2 ];
 		if ( cy < cminy ) cminy = cy;
 		if ( cy > cmaxy ) cmaxy = cy;
 
-		const cz = triangleCentroids[ i + 4 ];
+		const cz = triangleBounds[ i + 4 ];
 		if ( cz < cminz ) cminz = cz;
 		if ( cz > cmaxz ) cmaxz = cz;
 
