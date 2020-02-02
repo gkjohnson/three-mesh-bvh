@@ -1,5 +1,4 @@
-export default
-{
+export default {
 	input: './src/index.js',
 	treeshake: false,
 	external: p => /^three/.test( p ),
