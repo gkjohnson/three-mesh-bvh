@@ -1,11 +1,10 @@
 import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
-import BVHConstructionContext from './BVHConstructionContext.js';
 import { arrayToBox, boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
-const boxtemp = new THREE.Box3();
+const boxTemp = new THREE.Box3();
 
 function ensureIndex( geo ) {
 
@@ -285,7 +284,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 		// the cost of traversing one more layer is more than intersecting a triangle.
 		const TRAVERSAL_COST = 3;
 		const INTERSECTION_COST = 1;
-		const bb = arrayToBox( nodeBoundingData, boxtemp );
+		const bb = arrayToBox( nodeBoundingData, boxTemp );
 
 		// Define the width, height, and depth of the bounds as a box
 		const dim = [
@@ -430,6 +429,24 @@ export function getAverage( triangleBounds, offset, count, axis ) {
 
 }
 
+function computeSAHPlanes( triangleBounds ) {
+
+	const triCount = triangleBounds.length / 6;
+	const sahPlanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
+	for ( let tri = 0; tri < triCount; tri ++ ) {
+
+		for ( let el = 0; el < 3; el ++ ) {
+
+			sahPlanes[ el ][ tri ] = { p: triangleBounds[ tri * 6 + el * 2 ], tri };
+
+		}
+
+	}
+
+	return sahPlanes;
+
+}
+
 // precomputes the bounding box for each triangle; required for quickly calculating tree splits.
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
@@ -439,7 +456,7 @@ export function computeTriangleBounds( geo ) {
 	const verts = geo.attributes.position.array;
 	const index = geo.index.array;
 	const triCount = index.length / 3;
-	const bounds = new Float32Array( triCount * 6 );
+	const triangleBounds = new Float32Array( triCount * 6 );
 
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
@@ -455,14 +472,14 @@ export function computeTriangleBounds( geo ) {
 			const min = Math.min( a, b, c );
 			const max = Math.max( a, b, c );
 			const halfExtents = ( max - min ) / 2;
-			bounds[ tri * 6 + el * 2 + 0 ] = min + halfExtents;
-			bounds[ tri * 6 + el * 2 + 1 ] = halfExtents;
+			triangleBounds[ tri * 6 + el * 2 + 0 ] = min + halfExtents;
+			triangleBounds[ tri * 6 + el * 2 + 1 ] = halfExtents;
 
 		}
 
 	}
 
-	return bounds;
+	return triangleBounds;
 
 }
 
@@ -470,10 +487,9 @@ export function buildTree( geo, options ) {
 
 	ensureIndex( geo );
 
-	const ctx = new BVHConstructionContext( geo, options );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = ctx.bounds;
-	const sahPlanes = ctx.sahplanes;
+	const triangleBounds = computeTriangleBounds( geo );
+	const sahPlanes = options.strategy === SAH ? computeSAHPlanes( triangleBounds ) : null;
 	const indexArray = geo.index.array;
 	let reachedMaxDepth = false;
 
