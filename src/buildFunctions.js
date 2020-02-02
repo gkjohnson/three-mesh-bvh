@@ -494,17 +494,9 @@ function computeTriangleBounds( geo ) {
 
 export function buildTree( geo, options ) {
 
-	ensureIndex( geo );
-
-	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geo );
-	const sahPlanes = options.strategy === SAH ? computeSAHPlanes( triangleBounds ) : null;
-	const indexArray = geo.index.array;
-	let reachedMaxDepth = false;
-
 	// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 	// recording the offset and count of its triangles and writing them into the reordered geometry index.
-	const splitNode = ( node, offset, count, centroidBoundingData = null, depth = 0 ) => {
+	function splitNode( node, offset, count, centroidBoundingData = null, depth = 0 ) {
 
 		if ( ! reachedMaxDepth && depth >= options.maxDepth ) {
 
@@ -570,6 +562,14 @@ export function buildTree( geo, options ) {
 		return node;
 
 	};
+
+	ensureIndex( geo );
+
+	const cacheCentroidBoundingData = new Float32Array( 6 );
+	const triangleBounds = computeTriangleBounds( geo );
+	const sahPlanes = options.strategy === SAH ? computeSAHPlanes( triangleBounds ) : null;
+	const indexArray = geo.index.array;
+	let reachedMaxDepth = false;
 
 	const roots = [];
 	const ranges = getRootIndexRanges( geo );
