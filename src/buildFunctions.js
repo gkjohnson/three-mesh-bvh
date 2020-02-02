@@ -595,7 +595,7 @@ export function buildTree( geo, options ) {
 
 		return node;
 
-	};
+	}
 
 	ensureIndex( geo );
 
