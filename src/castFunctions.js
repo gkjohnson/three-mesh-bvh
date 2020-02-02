@@ -41,7 +41,14 @@ function intersectRay( node, ray, target ) {
 
 }
 
+
 export function raycast( node, mesh, raycaster, ray, intersects ) {
+
+	if ( node.continueGeneration ) {
+
+		node.continueGeneration();
+
+	}
 
 	if ( node.count ) {
 
@@ -66,6 +73,12 @@ export function raycast( node, mesh, raycaster, ray, intersects ) {
 }
 
 export function raycastFirst( node, mesh, raycaster, ray ) {
+
+	if ( node.continueGeneration ) {
+
+		node.continueGeneration();
+
+	}
 
 	if ( node.count ) {
 
@@ -142,6 +155,12 @@ export const shapecast = ( function () {
 	const cachedBox1 = new THREE.Box3();
 	const cachedBox2 = new THREE.Box3();
 	return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+
+		if ( node.continueGeneration ) {
+
+			node.continueGeneration();
+
+		}
 
 		if ( node.count && intersectsTriangleFunc ) {
 
@@ -251,6 +270,12 @@ export const intersectsGeometry = ( function () {
 	const obb2 = new OrientedBox();
 
 	return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+		if ( node.continueGeneration ) {
+
+			node.continueGeneration();
+
+		}
 
 		if ( cachedObb === null ) {
 

@@ -542,20 +542,54 @@ export function buildTree( geo, options ) {
 			node.splitAxis = split.axis;
 
 			// create the left child and compute its bounding box
-			const left = node.left = new MeshBVHNode();
-			const lstart = offset, lcount = splitOffset - offset;
+			const left = new MeshBVHNode();
+			const lstart = offset;
+			const lcount = splitOffset - offset;
+			node.left = left;
 			left.boundingData = new Float32Array( 6 );
-			getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
 
-			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
+			if ( lazyGeneration ) {
+
+				getBounds( triangleBounds, lstart, lcount, left.boundingData );
+				left.continueGeneration = function () {
+
+					delete this.continueGeneration;
+					getCentroidBounds( triangleBounds, lstart, lcount, cacheCentroidBoundingData );
+					splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
+
+				};
+
+			} else {
+
+				getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
+				splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
+
+			}
 
 			// repeat for right
-			const right = node.right = new MeshBVHNode();
-			const rstart = splitOffset, rcount = count - lcount;
+			const right = new MeshBVHNode();
+			const rstart = splitOffset;
+			const rcount = count - lcount;
+			node.right = right;
 			right.boundingData = new Float32Array( 6 );
-			getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
 
-			splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
+			if ( lazyGeneration ) {
+
+				getBounds( triangleBounds, rstart, rcount, right.boundingData );
+				right.continueGeneration = function () {
+
+					delete this.continueGeneration;
+					getCentroidBounds( triangleBounds, rstart, rcount, cacheCentroidBoundingData );
+					splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
+
+				};
+
+			} else {
+
+				getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
+				splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
+
+			}
 
 		}
 
@@ -573,6 +607,7 @@ export function buildTree( geo, options ) {
 	const verbose = options.verbose;
 	const maxLeafTris = options.maxLeafTris;
 	const strategy = options.strategy;
+	const lazyGeneration = options.lazyGeneration;
 	let reachedMaxDepth = false;
 
 	const roots = [];
