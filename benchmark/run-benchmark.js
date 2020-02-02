@@ -26,10 +26,10 @@ raycaster.ray.direction.set( 0, 0, 1 );
 
 function logExtremes( bvh, geometry ) {
 
+	const extremes = getBVHExtremes( bvh )[ 0 ];
 	const bvhSize = estimateMemoryInBytes( bvh._roots );
 	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh, geometry ).roots );
 
-	const extremes = getBVHExtremes( bvh )[ 0 ];
 	console.log(
 		`\tExtremes:\n` +
 		`\t\tmemory: ${ bvhSize / 1000 } kb\n` +
@@ -41,17 +41,21 @@ function logExtremes( bvh, geometry ) {
 
 }
 
-function runSuite( strategy ) {
+function runSuite( strategy, lazyGeneration = false ) {
 
-	geometry.computeBoundsTree( { strategy: strategy } );
+	const options = { lazyGeneration, strategy };
+	let preFunc = lazyGeneration ? () => geometry.computeBoundsTree( options ) : null;
+
+	geometry.computeBoundsTree( options );
 	logExtremes( geometry.boundsTree, geometry );
 
 	runBenchmark(
 
 		'Compute BVH',
+		null,
 		() => {
 
-			geometry.computeBoundsTree( { strategy: strategy } );
+			geometry.computeBoundsTree( options );
 			geometry.boundsTree = null;
 
 		},
@@ -60,10 +64,11 @@ function runSuite( strategy ) {
 
 	);
 
-	geometry.computeBoundsTree( { strategy: strategy } );
+	geometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'Serialize',
+		preFunc,
 		() => {
 
 			MeshBVH.serialize( geometry.boundsTree, geometry );
@@ -78,6 +83,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'Deserialize',
+		preFunc,
 		() => {
 
 			MeshBVH.deserialize( serialized, geometry );
@@ -88,11 +94,12 @@ function runSuite( strategy ) {
 
 	);
 
-	geometry.computeBoundsTree( { strategy: strategy } );
+	geometry.computeBoundsTree( options );
 	raycaster.firstHitOnly = false;
 	runBenchmark(
 
 		'BVH Raycast',
+		preFunc,
 		() => mesh.raycast( raycaster, [] ),
 		3000
 
@@ -102,6 +109,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'First Hit Raycast',
+		preFunc,
 		() => mesh.raycast( raycaster, [] ),
 		3000
 
@@ -112,6 +120,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'IntersectsSphere',
+		preFunc,
 		() => mesh.geometry.boundsTree.intersectsSphere( mesh, sphere ),
 		3000
 
@@ -120,6 +129,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'IntersectsBox',
+		preFunc,
 		() => mesh.geometry.boundsTree.intersectsBox( mesh, box, boxMat ),
 		3000
 
@@ -128,6 +138,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'DistanceToGeometry',
+		preFunc,
 		() => mesh.geometry.boundsTree.closestPointToGeometry( mesh, intersectGeometry, geomMat, target1, target2 ),
 		3000
 
@@ -137,6 +148,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'DistanceToPoint',
+		preFunc,
 		() => mesh.geometry.boundsTree.closestPointToPoint( mesh, vec, target1 ),
 		3000
 
@@ -144,10 +156,11 @@ function runSuite( strategy ) {
 
 	console.log( '' );
 
-	intersectGeometry.computeBoundsTree( { strategy: strategy } );
+	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'IntersectsGeometry with BVH',
+		preFunc,
 		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 		3000
 
@@ -158,6 +171,7 @@ function runSuite( strategy ) {
 	runBenchmark(
 
 		'IntersectsGeometry without BVH',
+		preFunc,
 		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 		3000
 
@@ -168,6 +182,10 @@ function runSuite( strategy ) {
 
 console.log( '*Strategy: CENTER*' );
 runSuite( CENTER );
+
+console.log( '' );
+console.log( '*Strategy: Lazy CENTER*' );
+runSuite( CENTER, true );
 
 console.log( '' );
 console.log( '*Strategy: AVERAGE*' );
@@ -187,6 +205,7 @@ raycaster.firstHitOnly = false;
 runBenchmark(
 
 	'Default Raycast',
+	null,
 	() => mesh.raycast( raycaster, [] ),
 	3000
 
@@ -221,6 +240,7 @@ towerGeometry.computeBoundsTree( { strategy: CENTER } );
 runBenchmark(
 
 	'CENTER raycast',
+	null,
 	() => mesh.raycast( raycaster ),
 	3000
 
@@ -231,6 +251,7 @@ towerGeometry.computeBoundsTree( { strategy: AVERAGE } );
 runBenchmark(
 
 	'AVERAGE raycast',
+	null,
 	() => mesh.raycast( raycaster ),
 	3000
 
@@ -241,6 +262,7 @@ towerGeometry.computeBoundsTree( { strategy: SAH } );
 runBenchmark(
 
 	'SAH raycast',
+	null,
 	() => mesh.raycast( raycaster ),
 	3000
 
