@@ -23,57 +23,53 @@ class MeshBVHRootVisualizer extends THREE.Object3D {
 
 	update() {
 
-		if ( this._mesh.geometry.boundsTree !== this._boundsTree || this._oldDepth !== this.depth ) {
+		this._oldDepth = this.depth;
+		this._boundsTree = this._mesh.geometry.boundsTree;
 
-			this._oldDepth = this.depth;
-			this._boundsTree = this._mesh.geometry.boundsTree;
+		let requiredChildren = 0;
+		if ( this._boundsTree ) {
 
-			let requiredChildren = 0;
-			if ( this._boundsTree ) {
+			const recurse = ( n, d ) => {
 
-				const recurse = ( n, d ) => {
+				let isLeaf = 'count' in n || 'continueGeneration' in n;
 
-					let isLeaf = 'count' in n;
+				if ( d === this.depth ) return;
 
-					if ( d === this.depth ) return;
+				if ( d === this.depth - 1 || isLeaf ) {
 
-					if ( d === this.depth - 1 || isLeaf ) {
+					let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
+					if ( ! m ) {
 
-						let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
-						if ( ! m ) {
-
-							m = new THREE.LineSegments( boxGeom, wiremat );
-							m.raycast = () => [];
-							this.add( m );
-
-						}
-						requiredChildren ++;
-						arrayToBox( n.boundingData, boundingBox );
-						boundingBox.getCenter( m.position );
-						m.scale.subVectors( boundingBox.max, boundingBox.min ).multiplyScalar( 0.5 );
-
-						if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
-						if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
-						if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
+						m = new THREE.LineSegments( boxGeom, wiremat );
+						m.raycast = () => [];
+						this.add( m );
 
 					}
+					requiredChildren ++;
+					arrayToBox( n.boundingData, boundingBox );
+					boundingBox.getCenter( m.position );
+					m.scale.subVectors( boundingBox.max, boundingBox.min ).multiplyScalar( 0.5 );
 
-					if ( ! isLeaf ) {
+					if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
+					if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
+					if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
 
-						recurse( n.left, d + 1 );
-						recurse( n.right, d + 1 );
+				}
 
-					}
+				if ( ! isLeaf ) {
 
-				};
+					recurse( n.left, d + 1 );
+					recurse( n.right, d + 1 );
 
-				recurse( this._boundsTree._roots[ this._group ], 0 );
+				}
 
-			}
+			};
 
-			while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
+			recurse( this._boundsTree._roots[ this._group ], 0 );
 
 		}
+
+		while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
 
 	}
 
