@@ -35,7 +35,6 @@ function ensureIndex( geo ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-//
 function getRootIndexRanges( geo ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
@@ -416,7 +415,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 }
 
 // returns the average coordinate on the specified axis of the all the provided triangles
-export function getAverage( triangleBounds, offset, count, axis ) {
+function getAverage( triangleBounds, offset, count, axis ) {
 
 	let avg = 0;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
@@ -451,7 +450,7 @@ function computeSAHPlanes( triangleBounds ) {
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo ) {
+function computeTriangleBounds( geo ) {
 
 	const verts = geo.attributes.position.array;
 	const index = geo.index.array;
@@ -497,9 +496,15 @@ export function buildTree( geo, options ) {
 	// recording the offset and count of its triangles and writing them into the reordered geometry index.
 	const splitNode = ( node, offset, count, centroidBoundingData = null, depth = 0 ) => {
 
-		if ( depth >= options.maxDepth ) {
+		if ( ! reachedMaxDepth && depth >= options.maxDepth ) {
 
 			reachedMaxDepth = true;
+			if ( options.verbose ) {
+
+				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+				console.warn( this, geo );
+
+			}
 
 		}
 
@@ -594,16 +599,8 @@ export function buildTree( geo, options ) {
 
 	}
 
-	if ( reachedMaxDepth && options.verbose ) {
-
-		console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-		console.warn( this, geo );
-
-	}
-
 	// if the geometry doesn't have a bounding box, then let's politely populate it using
 	// the work we did to determine the BVH root bounds
-
 	if ( geo.boundingBox == null ) {
 
 		const rootBox = new THREE.Box3();
