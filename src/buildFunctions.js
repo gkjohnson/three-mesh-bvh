@@ -66,7 +66,7 @@ function getRootIndexRanges( geo ) {
 // computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
 // centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
 // These are computed together to avoid redundant accesses to bounds array.
-function getBounds( bounds, offset, count, target, centroidTarget = null ) {
+function getBounds( triangleBounds, offset, count, target, centroidTarget = null ) {
 
 	let minx = Infinity;
 	let miny = Infinity;
@@ -85,8 +85,8 @@ function getBounds( bounds, offset, count, target, centroidTarget = null ) {
 	const includeCentroid = centroidTarget !== null;
 	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
-		const cx = bounds[ i + 0 ];
-		const hx = bounds[ i + 1 ];
+		const cx = triangleBounds[ i + 0 ];
+		const hx = triangleBounds[ i + 1 ];
 		const lx = cx - hx;
 		const rx = cx + hx;
 		if ( lx < minx ) minx = lx;
@@ -94,8 +94,8 @@ function getBounds( bounds, offset, count, target, centroidTarget = null ) {
 		if ( includeCentroid && cx < cminx ) cminx = cx;
 		if ( includeCentroid && cx > cmaxx ) cmaxx = cx;
 
-		const cy = bounds[ i + 2 ];
-		const hy = bounds[ i + 3 ];
+		const cy = triangleBounds[ i + 2 ];
+		const hy = triangleBounds[ i + 3 ];
 		const ly = cy - hy;
 		const ry = cy + hy;
 		if ( ly < miny ) miny = ly;
@@ -103,8 +103,8 @@ function getBounds( bounds, offset, count, target, centroidTarget = null ) {
 		if ( includeCentroid && cy < cminy ) cminy = cy;
 		if ( includeCentroid && cy > cmaxy ) cmaxy = cy;
 
-		const cz = bounds[ i + 4 ];
-		const hz = bounds[ i + 5 ];
+		const cz = triangleBounds[ i + 4 ];
+		const hz = triangleBounds[ i + 5 ];
 		const lz = cz - hz;
 		const rz = cz + hz;
 		if ( lz < minz ) minz = lz;
@@ -137,7 +137,7 @@ function getBounds( bounds, offset, count, target, centroidTarget = null ) {
 }
 
 // A stand alone function for retrieving the centroid bounds.
-function getCentroidBounds( bounds, offset, count, centroidTarget ) {
+function getCentroidBounds( triangleCentroids, offset, count, centroidTarget ) {
 
 	let cminx = Infinity;
 	let cminy = Infinity;
@@ -148,15 +148,15 @@ function getCentroidBounds( bounds, offset, count, centroidTarget ) {
 
 	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
-		const cx = bounds[ i + 0 ];
+		const cx = triangleCentroids[ i + 0 ];
 		if ( cx < cminx ) cminx = cx;
 		if ( cx > cmaxx ) cmaxx = cx;
 
-		const cy = bounds[ i + 2 ];
+		const cy = triangleCentroids[ i + 2 ];
 		if ( cy < cminy ) cminy = cy;
 		if ( cy > cmaxy ) cmaxy = cy;
 
-		const cz = bounds[ i + 4 ];
+		const cz = triangleCentroids[ i + 4 ];
 		if ( cz < cminz ) cminz = cz;
 		if ( cz > cmaxz ) cmaxz = cz;
 
@@ -173,12 +173,12 @@ function getCentroidBounds( bounds, offset, count, centroidTarget ) {
 }
 
 // returns the average coordinate on the specified axis of the all the provided triangles
-export function getAverage( bounds, offset, count, axis ) {
+export function getAverage( triangleBounds, offset, count, axis ) {
 
 	let avg = 0;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		avg += bounds[ i * 6 + axis * 2 ];
+		avg += triangleBounds[ i * 6 + axis * 2 ];
 
 	}
 
@@ -190,7 +190,7 @@ export function getAverage( bounds, offset, count, axis ) {
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeBounds( geo ) {
+export function computeTriangleBounds( geo ) {
 
 	const verts = geo.attributes.position.array;
 	const index = geo.index.array;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { arrayToBox, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
-import { computeBounds, getAverage } from './buildFunctions.js';
+import { computeTriangleBounds, getAverage } from './buildFunctions.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
 
@@ -13,7 +13,7 @@ export default class BVHConstructionContext {
 
 		this.geo = geo;
 		this.options = options;
-		this.bounds = computeBounds( geo );
+		this.bounds = computeTriangleBounds( geo );
 
 		// SAH Initialization
 		this.sahplanes = null;
@@ -108,7 +108,7 @@ export default class BVHConstructionContext {
 
 	}
 
-	getOptimalSplit( bounds, centroidBounds, offset, count, strategy ) {
+	getOptimalSplit( nodeBoundingData, centroidBoundingData, offset, count, strategy ) {
 
 		let axis = - 1;
 		let pos = 0;
@@ -116,16 +116,16 @@ export default class BVHConstructionContext {
 		// Center
 		if ( strategy === CENTER ) {
 
-			axis = getLongestEdgeIndex( centroidBounds );
+			axis = getLongestEdgeIndex( centroidBoundingData );
 			if ( axis !== - 1 ) {
 
-				pos = ( centroidBounds[ axis ] + centroidBounds[ axis + 3 ] ) / 2;
+				pos = ( centroidBoundingData[ axis ] + centroidBoundingData[ axis + 3 ] ) / 2;
 
 			}
 
 		} else if ( strategy === AVERAGE ) {
 
-			axis = getLongestEdgeIndex( bounds );
+			axis = getLongestEdgeIndex( nodeBoundingData );
 			if ( axis !== - 1 ) {
 
 				pos = getAverage( this.bounds, offset, count, axis );
@@ -144,7 +144,7 @@ export default class BVHConstructionContext {
 			// the cost of traversing one more layer is more than intersecting a triangle.
 			const TRAVERSAL_COST = 3;
 			const INTERSECTION_COST = 1;
-			const bb = arrayToBox( bounds, boxtemp );
+			const bb = arrayToBox( nodeBoundingData, boxtemp );
 
 			// Define the width, height, and depth of the bounds as a box
 			const dim = [
