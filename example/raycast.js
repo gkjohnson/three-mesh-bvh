@@ -242,6 +242,7 @@ const updateFromOptions = () => {
 	if ( boundsViz ) {
 
 		boundsViz.depth = params.mesh.visualBoundsDepth;
+		boundsViz.update();
 
 	}
 
@@ -267,7 +268,6 @@ const render = () => {
 	} );
 	containerObj.updateMatrixWorld();
 
-	if ( boundsViz ) boundsViz.update();
 
 	rayCasterObjects.forEach( f => f.update() );
 
