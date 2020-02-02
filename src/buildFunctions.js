@@ -459,20 +459,30 @@ function computeTriangleBounds( geo ) {
 
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
-		const ai = index[ 3 * tri + 0 ] * 3;
-		const bi = index[ 3 * tri + 1 ] * 3;
-		const ci = index[ 3 * tri + 2 ] * 3;
+		const tri3 = tri * 3;
+		const tri6 = tri * 6;
+		const ai = index[ tri3 + 0 ] * 3;
+		const bi = index[ tri3 + 1 ] * 3;
+		const ci = index[ tri3 + 2 ] * 3;
 
 		for ( let el = 0; el < 3; el ++ ) {
 
 			const a = verts[ ai + el ];
 			const b = verts[ bi + el ];
 			const c = verts[ ci + el ];
-			const min = Math.min( a, b, c );
-			const max = Math.max( a, b, c );
+
+			let min = a;
+			if ( b < min ) min = b;
+			if ( c < min ) min = c;
+
+			let max = a;
+			if ( b > max ) max = b;
+			if ( c > max ) max = c;
+
 			const halfExtents = ( max - min ) / 2;
-			triangleBounds[ tri * 6 + el * 2 + 0 ] = min + halfExtents;
-			triangleBounds[ tri * 6 + el * 2 + 1 ] = halfExtents;
+			const el2 = el * 2;
+			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
+			triangleBounds[ tri6 + el2 + 1 ] = halfExtents;
 
 		}
 
