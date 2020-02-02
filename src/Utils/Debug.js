@@ -39,7 +39,7 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 
 	}
 
-	if ( ! node.left && ! node.right ) {
+	if ( node.count ) {
 
 		result.depth.min = Math.min( depth, result.depth.min );
 		result.depth.max = Math.max( depth, result.depth.max );
@@ -47,11 +47,25 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 		result.tris.min = Math.min( node.count, result.tris.min );
 		result.tris.max = Math.max( node.count, result.tris.max );
 
-	} else {
+	} else if ( node.left && node.right ) {
 
 		result.splits[ node.splitAxis ] ++;
 		getNodeExtremes( node.left, depth + 1, result );
 		getNodeExtremes( node.right, depth + 1, result );
+
+	}
+
+	if ( result.tris.min === Infinity ) {
+
+		result.tris.min = 0;
+		result.tris.max = 0;
+
+	}
+
+	if ( result.depth.min === Infinity ) {
+
+		result.depth.min = 0;
+		result.depth.max = 0;
 
 	}
 
