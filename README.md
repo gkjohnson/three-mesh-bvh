@@ -203,7 +203,15 @@ Returns the closest distance from the geometry to the mesh and puts the closest 
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
-## Extension Functions
+## Extensions
+
+### Raycaster.firstHitOnly
+
+```js
+firstHitOnly = false : Boolean
+```
+
+The the `Raycaster` member `firstHitOnly` is set to true then the [acceleratedRaycast](#.acceleratedRaycast) function will call the [.raycastFirst](#.raycastFirst) function to retrieve hits which is generally faster.
 
 ### .computeBoundsTree
 
