@@ -41,7 +41,6 @@ function intersectRay( node, ray, target ) {
 
 }
 
-
 export function raycast( node, mesh, raycaster, ray, intersects ) {
 
 	if ( node.continueGeneration ) {
