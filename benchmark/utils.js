@@ -11,18 +11,21 @@ function pad( str, len ) {
 
 }
 
-function runBenchmark( name, func, maxTime, maxIterations = Infinity ) {
+function runBenchmark( name, preFunc, func, maxTime, maxIterations = Infinity ) {
 
 	let iterations = 0;
-	let start = Date.now();
-	while ( Date.now() - start < maxTime ) {
+	let elapsed = 0;
+	while ( elapsed < maxTime ) {
 
+		if ( preFunc ) preFunc;
+		let start = Date.now();
 		func();
+		elapsed += Date.now() - start;
+
 		iterations ++;
 		if ( iterations >= maxIterations ) break;
 
 	}
-	const elapsed = Date.now() - start;
 
 	console.log( `\t${ pad( name, 25 ) }: ${ parseFloat( ( elapsed / iterations ).toFixed( 6 ) ) } ms` );
 

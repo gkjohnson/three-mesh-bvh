@@ -66,6 +66,7 @@ const params = {
 
 	mesh: {
 		splitStrategy: CENTER,
+		lazyGeneration: false,
 		count: 1,
 		useBoundsTree: true,
 		visualizeBounds: false,
@@ -176,7 +177,7 @@ const updateFromOptions = () => {
 	if ( params.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
-		knotGeometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
+		knotGeometry.computeBoundsTree( { strategy: params.mesh.splitStrategy, lazyGeneration: params.mesh.lazyGeneration } );
 		knotGeometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
@@ -242,6 +243,7 @@ const updateFromOptions = () => {
 	if ( boundsViz ) {
 
 		boundsViz.depth = params.mesh.visualBoundsDepth;
+		boundsViz.update();
 
 	}
 
@@ -267,7 +269,11 @@ const render = () => {
 	} );
 	containerObj.updateMatrixWorld();
 
-	if ( boundsViz ) boundsViz.update();
+	if ( boundsViz && params.mesh.lazyGeneration ) {
+
+		boundsViz.update();
+
+	}
 
 	rayCasterObjects.forEach( f => f.update() );
 
@@ -289,9 +295,15 @@ rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
 rcFolder.open();
 
 const meshFolder = gui.addFolder( 'Mesh' );
+meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'lazyGeneration' ).onChange( () => {
+
+	knotGeometry.disposeBoundsTree();
+	updateFromOptions();
+
+} );
 meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
 meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );

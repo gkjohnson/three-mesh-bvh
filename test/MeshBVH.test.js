@@ -816,11 +816,16 @@ describe( 'Random intersections comparison', () => {
 	let groupedGeometry = null;
 	let groupedBvh = null;
 
-	describe( 'CENTER split', () => runRandomTests( CENTER ) );
-	describe( 'AVERAGE split', () => runRandomTests( AVERAGE ) );
-	describe( 'SAH split', () => runRandomTests( SAH ) );
+	describe( 'CENTER split', () => runRandomTests( { strategy: CENTER } ) );
+	describe( 'Lazy CENTER split', () => runRandomTests( { strategy: CENTER, lazyGeneration: true } ) );
 
-	function runRandomTests( strategy ) {
+	describe( 'AVERAGE split', () => runRandomTests( { strategy: AVERAGE } ) );
+	describe( 'Lazy AVERAGE split', () => runRandomTests( { strategy: AVERAGE, lazyGeneration: true } ) );
+
+	describe( 'SAH split', () => runRandomTests( { strategy: SAH } ) );
+	describe( 'Lazy SAH split', () => runRandomTests( { strategy: SAH, lazyGeneration: true } ) );
+
+	function runRandomTests( options ) {
 
 		beforeAll( () => {
 
@@ -836,8 +841,8 @@ describe( 'Random intersections comparison', () => {
 
 			}
 
-			groupedGeometry.computeBoundsTree( { strategy } );
-			ungroupedGeometry.computeBoundsTree( { strategy } );
+			groupedGeometry.computeBoundsTree( options );
+			ungroupedGeometry.computeBoundsTree( options );
 
 			ungroupedBvh = ungroupedGeometry.boundsTree;
 			groupedBvh = groupedGeometry.boundsTree;
@@ -873,16 +878,19 @@ describe( 'Random intersections comparison', () => {
 				raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
 				raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
-				ungroupedGeometry.boundsTree = null;
-				groupedGeometry.boundsTree = null;
-				const ogHits = raycaster.intersectObject( scene, true );
-
 				ungroupedGeometry.boundsTree = ungroupedBvh;
 				groupedGeometry.boundsTree = groupedBvh;
 				const bvhHits = raycaster.intersectObject( scene, true );
 
 				raycaster.firstHitOnly = true;
 				const firstHit = raycaster.intersectObject( scene, true );
+
+				// run the og hits _after_ because in the lazy generation case
+				// the indices will be changing as the tree is generated and make
+				// the results will look different.
+				ungroupedGeometry.boundsTree = null;
+				groupedGeometry.boundsTree = null;
+				const ogHits = raycaster.intersectObject( scene, true );
 
 				expect( ogHits ).toEqual( bvhHits );
 				expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );

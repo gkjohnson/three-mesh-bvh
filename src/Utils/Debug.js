@@ -28,6 +28,7 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 	if ( ! result ) {
 
 		result = {
+			total: 0,
 			depth: {
 				min: Infinity, max: - Infinity
 			},
@@ -39,7 +40,11 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 
 	}
 
-	if ( ! node.left && ! node.right ) {
+	// we need to check if the node is a leaf and if it has "left" or "right"
+	// because we now have a state where it's in an intermediate state during
+	// lazy generation.
+	result.total ++;
+	if ( node.count ) {
 
 		result.depth.min = Math.min( depth, result.depth.min );
 		result.depth.max = Math.max( depth, result.depth.max );
@@ -47,11 +52,26 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 		result.tris.min = Math.min( node.count, result.tris.min );
 		result.tris.max = Math.max( node.count, result.tris.max );
 
-	} else {
+	} else if ( node.left && node.right ) {
 
 		result.splits[ node.splitAxis ] ++;
 		getNodeExtremes( node.left, depth + 1, result );
 		getNodeExtremes( node.right, depth + 1, result );
+
+	}
+
+	// If there are no leaf nodes because the tree hasn't finished generating yet.
+	if ( result.tris.min === Infinity ) {
+
+		result.tris.min = 0;
+		result.tris.max = 0;
+
+	}
+
+	if ( result.depth.min === Infinity ) {
+
+		result.depth.min = 0;
+		result.depth.max = 0;
 
 	}
 

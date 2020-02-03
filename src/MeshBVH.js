@@ -24,6 +24,23 @@ export default class MeshBVH {
 
 	static serialize( bvh, geometry, copyIndexBuffer = true ) {
 
+		function finishTree( node ) {
+
+			if ( node.continueGeneration ) {
+
+				node.continueGeneration();
+
+			}
+
+			if ( ! node.count ) {
+
+				finishTree( node.left );
+				finishTree( node.right );
+
+			}
+
+		}
+
 		function countNodes( node ) {
 
 			if ( node.count ) {
@@ -83,6 +100,7 @@ export default class MeshBVH {
 		for ( let i = 0; i < roots.length; i ++ ) {
 
 			const root = roots[ i ];
+			finishTree( root );
 			let nodeCount = countNodes( root );
 
 			const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
@@ -191,6 +209,7 @@ export default class MeshBVH {
 			maxDepth: 40,
 			maxLeafTris: 10,
 			verbose: true,
+			lazyGeneration: false,
 			[ SKIP_GENERATION ]: false
 
 		}, options );
@@ -222,7 +241,6 @@ export default class MeshBVH {
 	raycastFirst( mesh, raycaster, ray ) {
 
 		let closestResult = null;
-
 		for ( const root of this._roots ) {
 
 			const result = raycastFirst( root, mesh, raycaster, ray );
