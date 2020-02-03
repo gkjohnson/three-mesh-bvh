@@ -211,7 +211,7 @@ The `geometryToBvh` parameter is the transform of the geometry in the mesh's fra
 firstHitOnly = false : Boolean
 ```
 
-The the `Raycaster` member `firstHitOnly` is set to true then the [acceleratedRaycast](#.acceleratedRaycast) function will call the [.raycastFirst](#.raycastFirst) function to retrieve hits which is generally faster.
+The the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRaycast](#.acceleratedRaycast) function will call the [.raycastFirst](#raycastFirst) function to retrieve hits which is generally faster.
 
 ### .computeBoundsTree
 
