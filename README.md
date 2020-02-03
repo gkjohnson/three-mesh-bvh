@@ -122,11 +122,11 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // The number of triangles to aim for in a leaf node
     maxLeafTris: 10,
 
-	// Whether to generate the tree nodes progressively during casts
-	lazyGeneration: false,
+    // Whether to generate the tree nodes progressively during casts
+    lazyGeneration: false,
 
     // Print out warnings encountered during tree construction
-	verbose: true,
+    verbose: true,
 
 }
 ```
