@@ -5,7 +5,7 @@ const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: tru
 const boxGeom = new THREE.Box3Helper().geometry;
 let boundingBox = new THREE.Box3();
 
-class MeshBVHRootVisualizer extends THREE.Object3D {
+class MeshBVHRootVisualizer extends THREE.Group {
 
 	constructor( mesh, depth = 10, group = 0 ) {
 
@@ -75,7 +75,7 @@ class MeshBVHRootVisualizer extends THREE.Object3D {
 
 }
 
-class MeshBVHVisualizer extends THREE.Object3D {
+class MeshBVHVisualizer extends THREE.Group {
 
 	constructor( mesh, depth = 10 ) {
 
