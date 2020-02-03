@@ -12,12 +12,11 @@ import {
 	closestPointToGeometry,
 } from './castFunctions.js';
 
-// boundingData  		: 6 float32
-// left / offset 		: 1 uint32
-// right / count 		: 1 uint32
-// splitAxis / isLeaf 	: 1 uint32
-const BYTES_PER_NODE = 6 * 4 + 4 + 4 + 4;
-const IS_LEAFNODE_FLAG = 0xFFFFFFFF;
+// boundingData  				: 6 float32
+// right / offset 				: 1 uint32
+// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
+const BYTES_PER_NODE = 6 * 4 + 4 + 4;
+const IS_LEAFNODE_FLAG = 0xFFFF;
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 export default class MeshBVH {
@@ -55,13 +54,15 @@ export default class MeshBVH {
 
 		}
 
-		function populateBuffer( arrayOffset, float32Array, uint32Array, node ) {
+		function populateBuffer( byteOffset, node ) {
 
+			const stride4Offset = byteOffset / 4;
+			const stride2Offset = byteOffset / 2;
 			const isLeaf = ! ! node.count;
 			const boundingData = node.boundingData;
 			for ( let i = 0; i < 6; i ++ ) {
 
-				float32Array[ arrayOffset + i ] = boundingData[ i ];
+				float32Array[ stride4Offset + i ] = boundingData[ i ];
 
 			}
 
@@ -69,10 +70,10 @@ export default class MeshBVH {
 
 				const offset = node.offset;
 				const count = node.count;
-				uint32Array[ arrayOffset + 6 ] = offset;
-				uint32Array[ arrayOffset + 7 ] = count;
-				uint32Array[ arrayOffset + 8 ] = IS_LEAFNODE_FLAG;
-				return arrayOffset + BYTES_PER_NODE / 4;
+				uint32Array[ stride4Offset + 6 ] = offset;
+				uint16Array[ stride2Offset + 14 ] = count;
+				uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
+				return byteOffset + BYTES_PER_NODE;
 
 			} else {
 
@@ -82,18 +83,22 @@ export default class MeshBVH {
 
 				let nextUnusedPointer;
 
-				uint32Array[ arrayOffset + 6 ] = arrayOffset + BYTES_PER_NODE / 4;
-				nextUnusedPointer = populateBuffer( arrayOffset + BYTES_PER_NODE / 4, float32Array, uint32Array, left );
+				// uint32Array[ stride4Offset + 6 ] = stride4Offset + BYTES_PER_NODE / 4;
+				nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
 
-				uint32Array[ arrayOffset + 7 ] = nextUnusedPointer;
-				nextUnusedPointer = populateBuffer( nextUnusedPointer, float32Array, uint32Array, right );
+				uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
+				nextUnusedPointer = populateBuffer( nextUnusedPointer, right );
 
-				uint32Array[ arrayOffset + 8 ] = splitAxis;
+				uint32Array[ stride4Offset + 7 ] = splitAxis;
 				return nextUnusedPointer;
 
 			}
 
 		}
+
+		let float32Array;
+		let uint32Array;
+		let uint16Array;
 
 		const roots = bvh._roots;
 		const rootData = [];
@@ -104,10 +109,11 @@ export default class MeshBVH {
 			let nodeCount = countNodes( root );
 
 			const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
-			const float32Array = new Float32Array( buffer );
-			const uint32Array = new Uint32Array( buffer );
+			float32Array = new Float32Array( buffer );
+			uint32Array = new Uint32Array( buffer );
+			uint16Array = new Uint16Array( buffer );
+			populateBuffer( 0, root );
 			rootData.push( buffer );
-			populateBuffer( 0, float32Array, uint32Array, root );
 
 		}
 
@@ -123,52 +129,61 @@ export default class MeshBVH {
 
 	static deserialize( data, geometry, setIndex = true ) {
 
-		function setData( arrayOffset, float32Array, uint32Array, node ) {
+		function setData( byteOffset, node ) {
 
+			const stride4Offset = byteOffset / 4;
+			const stride2Offset = byteOffset / 2;
 			const boundingData = new Float32Array( 6 );
 			for ( let i = 0; i < 6; i ++ ) {
 
-				boundingData[ i ] = float32Array[ arrayOffset + i ];
+				boundingData[ i ] = float32Array[ stride4Offset + i ];
 
 			}
 			node.boundingData = boundingData;
 
-			const isLeaf = uint32Array[ arrayOffset + 8 ] === IS_LEAFNODE_FLAG;
+			const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
 			if ( isLeaf ) {
 
-				node.offset = uint32Array[ arrayOffset + 6 ];
-				node.count = uint32Array[ arrayOffset + 7 ];
+				node.offset = uint32Array[ stride4Offset + 6 ];
+				node.count = uint16Array[ stride2Offset + 14 ];
 
 			} else {
 
 				const left = new MeshBVHNode();
 				const right = new MeshBVHNode();
-				const leftOffset = uint32Array[ arrayOffset + 6 ];
-				const rightOffset = uint32Array[ arrayOffset + 7 ];
+				const leftOffset = stride4Offset + BYTES_PER_NODE / 4;
+				const rightOffset = uint32Array[ stride4Offset + 6 ];
 
-				setData( leftOffset, float32Array, uint32Array, left );
-				setData( rightOffset, float32Array, uint32Array, right );
+				setData( leftOffset * 4, left );
+				setData( rightOffset * 4, right );
 
 				node.left = left;
 				node.right = right;
-				node.splitAxis = uint32Array[ arrayOffset + 8 ];
+				node.splitAxis = uint32Array[ stride4Offset + 7 ];
 
 			}
 
 		}
 
+		let float32Array;
+		let uint32Array;
+		let uint16Array;
+
 		const { index, roots } = data;
 		const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
-		bvh._roots = roots.map( buffer => {
+		bvh._roots = [];
+		for ( let i = 0; i < roots.length; i ++ ) {
 
-			const float32Array = new Float32Array( buffer );
-			const uint32Array = new Uint32Array( buffer );
+			const buffer = roots[ i ];
+			float32Array = new Float32Array( buffer );
+			uint32Array = new Uint32Array( buffer );
+			uint16Array = new Uint16Array( buffer );
 
 			const root = new MeshBVHNode();
-			setData( 0, float32Array, uint32Array, root );
-			return root;
+			setData( 0, root );
+			bvh._roots.push( root );
 
-		} );
+		}
 
 		if ( setIndex ) {
 
