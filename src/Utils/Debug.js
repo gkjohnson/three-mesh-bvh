@@ -28,6 +28,7 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 	if ( ! result ) {
 
 		result = {
+			total: 0,
 			depth: {
 				min: Infinity, max: - Infinity
 			},
@@ -39,6 +40,7 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 
 	}
 
+	result.total ++;
 	if ( node.count ) {
 
 		result.depth.min = Math.min( depth, result.depth.min );
