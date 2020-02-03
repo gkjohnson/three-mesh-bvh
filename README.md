@@ -203,6 +203,36 @@ Returns the closest distance from the geometry to the mesh and puts the closest 
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
+## MeshBVHVisualizer
+
+Displays a view of the bounds tree up to the given depth of the tree.
+
+_Note: The visualizer is expected to be a sibling of the mesh being visualized._
+
+### .depth
+
+```js
+depth : Number
+```
+
+The depth to traverse and visualize the tree to.
+
+### .constructor
+
+```js
+constructor( mesh: THREE.Mesh, depth = 10 : Number )
+```
+
+Instantiates the helper with a depth and mesh to visualize.
+
+### .update
+
+```js
+update() : void
+```
+
+Updates the display of the bounds tree in the case that the bounds tree has changed or the depth parameter has changed.
+
 ## Extensions
 
 ### Raycaster.firstHitOnly
