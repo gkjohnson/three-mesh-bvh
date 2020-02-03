@@ -40,6 +40,9 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 
 	}
 
+	// we need to check if the node is a leaf and if it has "left" or "right"
+	// because we now have a state where it's in an intermediate state during
+	// lazy generation.
 	result.total ++;
 	if ( node.count ) {
 
@@ -57,6 +60,7 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 
 	}
 
+	// If there are no leaf nodes because the tree hasn't finished generating yet.
 	if ( result.tris.min === Infinity ) {
 
 		result.tris.min = 0;
