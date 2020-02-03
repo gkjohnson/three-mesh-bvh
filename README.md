@@ -93,13 +93,7 @@ This is the slowest construction option.
 
 ## MeshBVH
 
-### .index
-
-```js
-index : AttributeBuffer
-```
-
-The generated attribute buffer based on the original mesh index in an order sorted for storing bounds triangles. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if this buffer is modified.
+The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
 
 ### .constructor
 
