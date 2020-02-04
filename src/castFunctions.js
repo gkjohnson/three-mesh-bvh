@@ -4,13 +4,12 @@ import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlit
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
-import { sphereIntersectTriangle } from './Utils/MathUtilities.js';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
-function setTriangle( tri, i, index, pos ) {
+export function setTriangle( tri, i, index, pos ) {
 
 	const ta = tri.a;
 	const tb = tri.b;
@@ -395,153 +394,6 @@ export const intersectsGeometry = ( function () {
 			return false;
 
 		}
-
-	};
-
-} )();
-
-export const intersectsBox = ( function () {
-
-	const obb = new OrientedBox();
-
-	return function intersectsBox( node, mesh, box, boxToBvh ) {
-
-		obb.set( box.min, box.max, boxToBvh );
-		obb.update();
-
-		return shapecast(
-			node,
-			mesh,
-			box => obb.intersectsBox( box ),
-			tri => obb.intersectsTriangle( tri )
-		);
-
-	};
-
-} )();
-
-export const intersectsSphere = ( function () {
-
-	return function intersectsSphere( node, mesh, sphere ) {
-
-		return shapecast(
-			node,
-			mesh,
-			box => sphere.intersectsBox( box ),
-			tri => sphereIntersectTriangle( sphere, tri )
-		);
-
-	};
-
-} )();
-
-export const closestPointToPoint = ( function () {
-
-	// early out if under minThreshold
-	// skip checking if over maxThreshold
-	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-	// returns Infinity if no value found
-
-	const temp = new THREE.Vector3();
-	return function closestPointToPoint( node, mesh, point, target = null, minThreshold = 0, maxThreshold = Infinity ) {
-
-		let closestDistance = Infinity;
-		shapecast(
-
-			node,
-			mesh,
-			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
-			tri => {
-
-				tri.closestPointToPoint( point, temp );
-				const dist = point.distanceTo( temp );
-				if ( dist < closestDistance ) {
-
-					if ( target ) target.copy( temp );
-					closestDistance = dist;
-
-				}
-				if ( dist < minThreshold ) return true;
-				return false;
-
-			},
-			box => box.distanceToPoint( point )
-
-		);
-
-		return closestDistance;
-
-	};
-
-} )();
-
-export const closestPointToGeometry = ( function () {
-
-	// early out if under minThreshold
-	// skip checking if over maxThreshold
-	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-	// returns Infinity if no value found
-
-	const tri2 = new SeparatingAxisTriangle();
-	const obb = new OrientedBox();
-
-	const temp1 = new THREE.Vector3();
-	const temp2 = new THREE.Vector3();
-	return function closestPointToGeometry( node, mesh, geometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
-
-		if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
-		obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
-		obb.update();
-
-		const pos = geometry.attributes.position;
-		const index = geometry.index;
-
-		let tempTarget1, tempTarget2;
-		if ( target1 ) tempTarget1 = temp1;
-		if ( target2 ) tempTarget2 = temp2;
-
-		let closestDistance = Infinity;
-		shapecast(
-			node,
-			mesh,
-			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
-			tri => {
-
-				const sphere1 = tri.sphere;
-				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
-
-					setTriangle( tri2, i2, index, pos );
-					tri2.a.applyMatrix4( geometryToBvh );
-					tri2.b.applyMatrix4( geometryToBvh );
-					tri2.c.applyMatrix4( geometryToBvh );
-					tri2.sphere.setFromPoints( tri2.points );
-
-					const sphere2 = tri2.sphere;
-					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
-					if ( sphereDist > closestDistance ) continue;
-
-					tri2.update();
-
-					const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
-					if ( dist < closestDistance ) {
-
-						if ( target1 ) target1.copy( tempTarget1 );
-						if ( target2 ) target2.copy( tempTarget2 );
-						closestDistance = dist;
-
-					}
-					if ( dist < minThreshold ) return true;
-
-				}
-
-				return false;
-
-			},
-			box => obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) )
-
-		);
-
-		return closestDistance;
 
 	};
 

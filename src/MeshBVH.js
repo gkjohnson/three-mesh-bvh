@@ -1,16 +1,29 @@
+import * as THREE from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import { CENTER } from './Constants.js';
 import { buildTree } from './buildFunctions.js';
+import { OrientedBox } from './Utils/OrientedBox.js';
+import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
+import { sphereIntersectTriangle } from './Utils/MathUtilities.js';
 import {
 	raycast,
 	raycastFirst,
 	shapecast,
 	intersectsGeometry,
-	intersectsBox,
-	intersectsSphere,
-	closestPointToPoint,
-	closestPointToGeometry,
+	setTriangle,
 } from './castFunctions.js';
+
+import {
+	raycastBuffer,
+	raycastFirstBuffer,
+	shapecastBuffer,
+	intersectsGeometryBuffer,
+	// intersectsBoxBuffer,
+	// intersectsSphereBuffer,
+	// closestPointToPointBuffer,
+	// closestPointToGeometryBuffer,
+} from './castFunctionsBuffer.js';
+
 
 // boundingData  				: 6 float32
 // right / offset 				: 1 uint32
@@ -18,6 +31,12 @@ import {
 const BYTES_PER_NODE = 6 * 4 + 4 + 4;
 const IS_LEAFNODE_FLAG = 0xFFFF;
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
+
+const obb = new OrientedBox();
+const temp = new THREE.Vector3();
+const tri2 = new SeparatingAxisTriangle();
+const temp1 = new THREE.Vector3();
+const temp2 = new THREE.Vector3();
 
 export default class MeshBVH {
 
@@ -245,7 +264,7 @@ export default class MeshBVH {
 
 	}
 
-	/* Public Functions */
+	/* Core Cast Functions */
 	raycast( mesh, raycaster, ray, intersects ) {
 
 		for ( const root of this._roots ) {
@@ -278,7 +297,11 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			if ( intersectsGeometry( root, mesh, geometry, geomToMesh ) ) return true;
+			if ( intersectsGeometry( root, mesh, geometry, geomToMesh ) ) {
+
+				return true;
+
+			}
 
 		}
 
@@ -290,7 +313,11 @@ export default class MeshBVH {
 
 		for ( const root of this._roots ) {
 
-			if ( shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
+			if ( shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) {
+
+				return true;
+
+			}
 
 		}
 
@@ -298,40 +325,111 @@ export default class MeshBVH {
 
 	}
 
+	/* Derived Cast Functions */
 	intersectsBox( mesh, box, boxToMesh ) {
 
-		for ( const root of this._roots ) {
+		obb.set( box.min, box.max, boxToMesh );
+		obb.update();
 
-			if ( intersectsBox( root, mesh, box, boxToMesh ) ) return true;
-
-		}
-
-		return false;
+		return this.shapecast(
+			mesh,
+			box => obb.intersectsBox( box ),
+			tri => obb.intersectsTriangle( tri )
+		);
 
 	}
 
 	intersectsSphere( mesh, sphere ) {
 
-		for ( const root of this._roots ) {
-
-			if ( intersectsSphere( root, mesh, sphere ) ) return true;
-
-		}
-
-		return false;
+		return this.shapecast(
+			mesh,
+			box => sphere.intersectsBox( box ),
+			tri => sphereIntersectTriangle( sphere, tri )
+		);
 
 	}
 
-	closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold ) {
+	closestPointToGeometry( mesh, geom, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
 
-		let closestDistance = Infinity;
-		for ( const root of this._roots ) {
+		if ( ! geom.boundingBox ) {
 
-			const dist = closestPointToGeometry( root, mesh, geom, matrix, target1, target2, minThreshold, maxThreshold );
-			if ( dist < closestDistance ) closestDistance = dist;
-			if ( dist < minThreshold ) return dist;
+			geom.computeBoundingBox();
 
 		}
+
+		obb.set( geom.boundingBox.min, geom.boundingBox.max, geometryToBvh );
+		obb.update();
+
+		const pos = geom.attributes.position;
+		const index = geom.index;
+
+		let tempTarget1 = null;
+		let tempTarget2 = null;
+		if ( target1 ) {
+
+			tempTarget1 = temp1;
+
+		}
+
+		if ( target2 ) {
+
+			tempTarget2 = temp2;
+
+		}
+
+		let closestDistance = Infinity;
+		this.shapecast(
+			mesh,
+			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+			tri => {
+
+				const sphere1 = tri.sphere;
+				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+					setTriangle( tri2, i2, index, pos );
+					tri2.a.applyMatrix4( geometryToBvh );
+					tri2.b.applyMatrix4( geometryToBvh );
+					tri2.c.applyMatrix4( geometryToBvh );
+					tri2.sphere.setFromPoints( tri2.points );
+
+					const sphere2 = tri2.sphere;
+					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
+					if ( sphereDist > closestDistance ) {
+
+						continue;
+
+					}
+
+					tri2.update();
+
+					const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
+					if ( dist < closestDistance ) {
+
+						if ( target1 ) {
+
+							target1.copy( tempTarget1 );
+
+						}
+
+						if ( target2 ) {
+
+							target2.copy( tempTarget2 );
+
+						}
+
+						closestDistance = dist;
+
+					}
+					if ( dist < minThreshold ) return true;
+
+				}
+
+				return false;
+
+			},
+			box => obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) )
+
+		);
 
 		return closestDistance;
 
@@ -343,16 +441,46 @@ export default class MeshBVH {
 
 	}
 
-	closestPointToPoint( mesh, point, target, minThreshold, maxThreshold ) {
+	closestPointToPoint( mesh, point, target, minThreshold = 0, maxThreshold = Infinity ) {
 
+		// early out if under minThreshold
+		// skip checking if over maxThreshold
+		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+		// returns Infinity if no value found
 		let closestDistance = Infinity;
-		for ( const root of this._roots ) {
+		this.shapecast(
 
-			const dist = closestPointToPoint( root, mesh, point, target, minThreshold, maxThreshold );
-			if ( dist < closestDistance ) closestDistance = dist;
-			if ( dist < minThreshold ) return dist;
+			mesh,
+			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+			tri => {
 
-		}
+				tri.closestPointToPoint( point, temp );
+				const dist = point.distanceTo( temp );
+				if ( dist < closestDistance ) {
+
+					if ( target ) {
+
+						target.copy( temp );
+
+					}
+					closestDistance = dist;
+
+				}
+
+				if ( dist < minThreshold ) {
+
+					return true;
+
+				} else {
+
+					return false;
+
+				}
+
+			},
+			box => box.distanceToPoint( point )
+
+		);
 
 		return closestDistance;
 
