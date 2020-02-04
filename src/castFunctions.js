@@ -3,34 +3,12 @@ import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
+import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 
 const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-
-export function setTriangle( tri, i, index, pos ) {
-
-	const ta = tri.a;
-	const tb = tri.b;
-	const tc = tri.c;
-
-	let i3 = index.getX( i );
-	ta.x = pos.getX( i3 );
-	ta.y = pos.getY( i3 );
-	ta.z = pos.getZ( i3 );
-
-	i3 = index.getX( i + 1 );
-	tb.x = pos.getX( i3 );
-	tb.y = pos.getY( i3 );
-	tb.z = pos.getZ( i3 );
-
-	i3 = index.getX( i + 2 );
-	tc.x = pos.getX( i3 );
-	tc.y = pos.getY( i3 );
-	tc.z = pos.getZ( i3 );
-
-}
 
 function intersectRay( node, ray, target ) {
 
