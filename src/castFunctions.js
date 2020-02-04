@@ -140,7 +140,8 @@ export const shapecast = ( function () {
 
 		}
 
-		if ( node.count && intersectsTriangleFunc ) {
+		const isLeaf = ! ! node.count;
+		if ( isLeaf && intersectsTriangleFunc ) {
 
 			const geometry = mesh.geometry;
 			const index = geometry.index;
@@ -209,7 +210,7 @@ export const shapecast = ( function () {
 
 			const isC1Leaf = ! ! c1.count;
 			const c1Intersection =
-				intersectsBoundsFunc( box1, isC1Leaf, score1, c1 ) &&
+				intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
 				shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c1Intersection ) return true;
@@ -224,7 +225,7 @@ export const shapecast = ( function () {
 
 			const isC2Leaf = ! ! c2.count;
 			const c2Intersection =
-				intersectsBoundsFunc( box2, isC2Leaf, score2, c2 ) &&
+				intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
 				shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c2Intersection ) return true;
