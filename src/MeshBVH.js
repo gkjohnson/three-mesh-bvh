@@ -225,18 +225,23 @@ export default class MeshBVH {
 			maxLeafTris: 10,
 			verbose: true,
 			lazyGeneration: false,
+			packData: false,
 			[ SKIP_GENERATION ]: false
 
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
 
-		if ( options[ SKIP_GENERATION ] ) {
-
-			this._roots = null;
-
-		} else {
+		this._isPacked = false;
+		this._roots = null;
+		if ( ! options[ SKIP_GENERATION ] ) {
 
 			this._roots = buildTree( geo, options );
+			if ( options.packData ) {
+
+				this._roots = MeshBVH.serialize( this, geo, false ).roots;
+				this._isPacked = true;
+
+			}
 
 		}
 
