@@ -82,8 +82,6 @@ export default class MeshBVH {
 				const splitAxis = node.splitAxis;
 
 				let nextUnusedPointer;
-
-				// uint32Array[ stride4Offset + 6 ] = stride4Offset + BYTES_PER_NODE / 4;
 				nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
 
 				uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;

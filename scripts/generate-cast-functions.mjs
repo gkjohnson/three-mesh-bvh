@@ -56,23 +56,21 @@ function replaceFunctionNames( str ) {
 
 	const arr = [
 
-		'raycast',
-		'raycastFirst',
-		'shapecast',
-		'intersectsGeometry',
-		'intersectsBox',
-		'closestPointToPoint',
-		'closestPointToGeometry',
+		'\\sraycast',
+		'\\sraycastFirst',
+		'\\sshapecast',
+		'\\sintersectsGeometry'
 
 	];
 
 	const defRegexp = new RegExp( '(' + arr.join( '|' ) + ')\\((\\s|\\n)?node', 'gm' );
 	const callRegexp = new RegExp( '(' + arr.join( '|' ) + ')\\(', 'gm' );
-	const constRegexp = new RegExp( 'const (' + arr.join( '|' ) + ')', 'gm' );
+	const constRegexp = new RegExp( 'const(' + arr.join( '|' ) + ')', 'gm' );
+
 	return str
 		.replace( defRegexp, ( match, funcName ) => `${ funcName }Buffer( stride4Offset` )
 		.replace( callRegexp, ( match, funcName ) => `${ funcName }Buffer(` )
-		.replace( constRegexp, ( match, funcName ) => `const ${ funcName }Buffer` );
+		.replace( constRegexp, ( match, funcName ) => `const${ funcName }Buffer` );
 
 }
 
