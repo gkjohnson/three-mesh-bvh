@@ -49,7 +49,8 @@ export function raycast( node, mesh, raycaster, ray, intersects ) {
 
 	}
 
-	if ( node.count ) {
+	const isLeaf = ! ! node.count;
+	if ( isLeaf ) {
 
 		intersectTris( mesh, mesh.geometry, raycaster, ray, node.offset, node.count, intersects );
 
@@ -79,7 +80,8 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 
 	}
 
-	if ( node.count ) {
+	const isLeaf = ! ! node.count;
+	if ( isLeaf ) {
 
 		return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, node.offset, node.count );
 
@@ -290,7 +292,8 @@ export const intersectsGeometry = ( function () {
 
 		}
 
-		if ( node.count ) {
+		const isLeaf = ! ! node.count;
+		if ( isLeaf ) {
 
 			const thisGeometry = mesh.geometry;
 			const thisIndex = thisGeometry.index;
