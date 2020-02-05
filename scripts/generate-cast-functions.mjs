@@ -1,134 +1,151 @@
 import fs from 'fs';
 import path from 'path';
 
-function addHeaderComment( str ) {
+// Replace unneeded function definitions and checks. The `continueGeneration` block is always at the top of
+// a function definition so we can replace that with local variable definitions we need.
+function replaceUnneededCode( str ) {
 
-	return `
-/**************************************************************************************************
- *
- * This file is generated from castFunctions.js and scripts/generate-cast-function.mjs. Do not edit.
- *
- *************************************************************************************************/
-` + str;
+	str = str.replace(
+		/if \( node.continueGeneration \)(.|\n)*?}\n/mg,
+		'const stride2Offset = stride4Offset * 2, ' +
+		'float32Array = _float32Array, ' +
+		'uint16Array = _uint16Array, ' +
+		'uint32Array = _uint32Array;'
+	);
+
+	str = str.replace( /function intersectRay\((.|\n)*?}\n/mg, '' );
+
+	str = str.replace( /import { arrayToBox.*?;\n/, '' );
+
+	return str;
+
+}
+
+// Replace function calls with buffer variants defined in the added functions.
+function replaceFunctionCalls( str ) {
+
+	str = str.replace( /arrayToBox\((.*?),/g, ( match, arg ) => {
+
+		return `arrayToBoxBuffer(${ arg }, float32Array,`;
+
+	} );
+
+	str = str.replace( /intersectRay\((.*?),/g, ( match, arg ) => {
+
+		return `intersectRayBuffer(${ arg }, float32Array,`;
+
+	} );
+
+	return str;
 
 }
 
 function replaceNodeNames( str ) {
 
-	const coerce = ( name, count = 4 ) => {
+	const convertName = ( name, count = 4 ) => {
 
 		return name === 'node' ? `stride${ count }Offset` : name;
 
 	};
 
-	const map = {
+	const names = 'c1|c2|left|right|node';
 
-		'(\\w+)\\.boundingData': name => coerce( name ),
-		'(\\w+)\\.offset': name => `uint32Array[ ${ coerce( name ) } + 6 ]`,
 
-		'! ! (\\w+)\\.count': name => `uint16Array[ ${ coerce( name, 2 ) } + 15 ] === 0xffff`,
-		'(\\w+)\\.count': name => `uint16Array[ ${ coerce( name, 2 ) } + 14 ]`,
+	str = str.replace(
+		new RegExp( `(${ names })\\.boundingData\\[(.*)\\]\\[(.*)\\]`, 'g' ),
+		( match, name, index, index2 ) => `float32Array[ ${ convertName( name ) } +${ index }+${ index2 }]`
+	);
 
-		'(\\w+)\\.left': name => `${ coerce( name ) } + 8`,
-		'(\\w+)\\.right': name => `uint32Array[ ${ coerce( name ) } + 6 ]`,
-		'(\\w+)\\.splitAxis': name => `uint32Array[ ${ coerce( name ) } + 7 ]`,
+	str = str.replace(
+		new RegExp( `(${ names })\\.boundingData\\[(.*)\\]`, 'g' ),
+		( match, name, index ) => `float32Array[ ${ convertName( name ) } +${ index }]`
+	);
 
-	};
-	const validNames = [ 'c1', 'c2', 'left', 'right', 'node' ];
+	str = str.replace(
+		new RegExp( `(${ names })\\.boundingData`, 'g' ),
+		( match, name ) => convertName( name )
+	);
 
-	str = str.replace( /(\w+)\.boundingData\[(.*)\]/g, ( match, name, index ) => {
+	str = str.replace(
+		new RegExp( `(${ names })\\.offset`, 'g' ),
+		( match, name ) => `uint32Array[ ${ convertName( name ) } + 6 ]`
+	);
 
-		if ( validNames.includes( name ) ) {
+	str = str.replace(
+		new RegExp( `! ! (${ names })\\.count`, 'g' ),
+		( match, name ) => `uint16Array[ ${ convertName( name, 2 ) } + 15 ] === 0xffff`
+	);
 
-			return `float32Array[ ${ name } +${ index }]`;
+	str = str.replace(
+		new RegExp( `(${ names })\\.count`, 'g' ),
+		( match, name ) => `uint16Array[ ${ convertName( name, 2 ) } + 14 ]`
+	);
 
-		} else {
+	str = str.replace(
+		new RegExp( `(${ names })\\.left`, 'g' ),
+		( match, name ) => `${ convertName( name ) } + 8`
+	);
 
-			return match;
+	str = str.replace(
+		new RegExp( `(${ names })\\.right`, 'g' ),
+		( match, name ) => `uint32Array[ ${ convertName( name ) } + 6 ]`
+	);
 
-		}
+	str = str.replace(
+		new RegExp( `(${ names })\\.splitAxis`, 'g' ),
+		( match, name ) => `uint32Array[ ${ convertName( name ) } + 7 ]`
+	);
 
-	} );
-
-	Object.entries( map ).forEach( ( [ key, value ] ) => {
-
-		str = str.replace(
-			new RegExp( key, 'g' ),
-			( match, name ) => {
-
-				if ( validNames.includes( name ) ) {
-
-					return `/* ${ match.replace( '.', ' ' ) } */ ` + value( name );
-
-				} else {
-
-					return match;
-
-				}
-
-			}
-		);
-
-	} );
-
-	return str.replace( /\]\[/g, '+' );
+	return str;
 
 }
 
 function replaceFunctionNames( str ) {
 
-	const arr = [
+	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry)';
 
-		'\\sraycast',
-		'\\sraycastFirst',
-		'\\sshapecast',
-		'\\sintersectsGeometry'
+	str = str.replace(
+		new RegExp( `(${ orNames })\\((\\s|\\n)?node`, 'gm' ),
+		( match, funcName ) => {
 
-	];
+			return `${ funcName }Buffer( stride4Offset`;
 
-	const defRegexp = new RegExp( '(' + arr.join( '|' ) + ')\\((\\s|\\n)?node', 'gm' );
-	const callRegexp = new RegExp( '(' + arr.join( '|' ) + ')\\(', 'gm' );
-	const constRegexp = new RegExp( 'const(' + arr.join( '|' ) + ')', 'gm' );
+		}
+	);
 
-	return str
-		.replace( defRegexp, ( match, funcName ) => `${ funcName }Buffer( stride4Offset` )
-		.replace( callRegexp, ( match, funcName ) => `${ funcName }Buffer(` )
-		.replace( constRegexp, ( match, funcName ) => `const${ funcName }Buffer` );
+	str = str.replace(
+		new RegExp( `(${ orNames })\\(`, 'gm' ),
+		( match, funcName ) => {
 
-}
+			return `${ funcName }Buffer(`;
 
-function replaceFunctionCalls( str ) {
+		}
+	);
 
-	return str
-		.replace( /arrayToBox\((.*?),/g, ( match, arg ) => `arrayToBoxBuffer(${ arg }, float32Array,` )
-		.replace( /intersectRay\((.*?),/g, ( match, arg ) => `intersectRayBuffer(${ arg }, float32Array,` );
+	str = str.replace(
+		new RegExp( `const(${ orNames })`, 'gm' ),
+		( match, funcName ) => {
 
-}
+			return `const${ funcName }Buffer`;
 
-function removeUnneededCode( str ) {
+		}
+	);
 
-	const replacement = 'const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;';
-	const continueGenerationRegexp = new RegExp( 'if \\( node.continueGeneration \\)(.|\n)*?}\n', 'mg' );
-	const intersectRayRegexp = new RegExp( 'function intersectRay\\((.|\n)*?}\n', 'mg' );
-	return str
-		.replace( continueGenerationRegexp, replacement )
-		.replace( intersectRayRegexp, '' );
+	return str;
 
 }
 
 function addFunctions( str ) {
 
-	const instersectsRayBuffer =
-`
+	str = str + `
+
 function intersectRayBuffer( stride4Offset, array, ray, target ) {
 
 	arrayToBoxBuffer( stride4Offset, array, boundingBox );
 	return ray.intersectBox( boundingBox, target );
 
-}`;
+}
 
-	const setBuffer =
-`
 const bufferStack = [];
 let _prevBuffer;
 let _float32Array;
@@ -163,10 +180,7 @@ export function clearBuffer() {
 	}
 
 }
-`;
 
-	const arrayToBoxBuffer =
-`
 function arrayToBoxBuffer( stride4Offset, array, target ) {
 
 	target.min.x = array[ stride4Offset ];
@@ -180,18 +194,30 @@ function arrayToBoxBuffer( stride4Offset, array, target ) {
 }
 `;
 
-	return str + arrayToBoxBuffer + instersectsRayBuffer + setBuffer;
-
+	return str;
 
 }
 
+function addHeaderComment( str ) {
+
+	str = `
+/**************************************************************************************************
+ *
+ * This file is generated from castFunctions.js and scripts/generate-cast-function.mjs. Do not edit.
+ *
+ *************************************************************************************************/
+` + str;
+
+	return str;
+
+}
 
 const templatePath = path.resolve( './src/castFunctions.js' );
 const bufferFilePath = path.resolve( './src/castFunctionsBuffer.js' );
 const str = fs.readFileSync( templatePath, { encoding: 'utf8' } );
 
 let result = str;
-result = removeUnneededCode( result );
+result = replaceUnneededCode( result );
 result = replaceFunctionCalls( result );
 result = replaceNodeNames( result );
 result = replaceFunctionNames( result );
