@@ -18,12 +18,9 @@ import {
 	raycastFirstBuffer,
 	shapecastBuffer,
 	intersectsGeometryBuffer,
-	// intersectsBoxBuffer,
-	// intersectsSphereBuffer,
-	// closestPointToPointBuffer,
-	// closestPointToGeometryBuffer,
+	setBuffer,
+	clearBuffer,
 } from './castFunctionsBuffer.js';
-
 
 // boundingData  				: 6 float32
 // right / offset 				: 1 uint32
@@ -118,19 +115,29 @@ export default class MeshBVH {
 		let uint16Array;
 
 		const roots = bvh._roots;
-		const rootData = [];
-		for ( let i = 0; i < roots.length; i ++ ) {
+		let rootData;
 
-			const root = roots[ i ];
-			finishTree( root );
-			let nodeCount = countNodes( root );
+		if ( bvh._isPacked ) {
 
-			const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
-			float32Array = new Float32Array( buffer );
-			uint32Array = new Uint32Array( buffer );
-			uint16Array = new Uint16Array( buffer );
-			populateBuffer( 0, root );
-			rootData.push( buffer );
+			rootData = roots;
+
+		} else {
+
+			rootData = [];
+			for ( let i = 0; i < roots.length; i ++ ) {
+
+				const root = roots[ i ];
+				finishTree( root );
+				let nodeCount = countNodes( root );
+
+				const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+				float32Array = new Float32Array( buffer );
+				uint32Array = new Uint32Array( buffer );
+				uint16Array = new Uint16Array( buffer );
+				populateBuffer( 0, root );
+				rootData.push( buffer );
+
+			}
 
 		}
 
@@ -242,7 +249,7 @@ export default class MeshBVH {
 			maxLeafTris: 10,
 			verbose: true,
 			lazyGeneration: false,
-			packData: false,
+			packData: true,
 			[ SKIP_GENERATION ]: false
 
 		}, options );
@@ -267,20 +274,44 @@ export default class MeshBVH {
 	/* Core Cast Functions */
 	raycast( mesh, raycaster, ray, intersects ) {
 
+		const isPacked = this._isPacked;
 		for ( const root of this._roots ) {
 
-			raycast( root, mesh, raycaster, ray, intersects );
+			if ( isPacked ) {
+
+				setBuffer( root );
+				raycastBuffer( 0, mesh, raycaster, ray, intersects );
+
+			} else {
+
+				raycast( root, mesh, raycaster, ray, intersects );
+
+			}
 
 		}
+
+		isPacked && clearBuffer();
 
 	}
 
 	raycastFirst( mesh, raycaster, ray ) {
 
+		const isPacked = this._isPacked;
 		let closestResult = null;
 		for ( const root of this._roots ) {
 
-			const result = raycastFirst( root, mesh, raycaster, ray );
+			let result;
+			if ( isPacked ) {
+
+				setBuffer( root );
+				result = raycastFirstBuffer( 0, mesh, raycaster, ray );
+
+			} else {
+
+				result = raycastFirst( root, mesh, raycaster, ray );
+
+			}
+
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
@@ -289,39 +320,71 @@ export default class MeshBVH {
 
 		}
 
+		isPacked && clearBuffer();
+
 		return closestResult;
 
 	}
 
 	intersectsGeometry( mesh, geometry, geomToMesh ) {
 
+		const isPacked = this._isPacked;
+		let result = false;
 		for ( const root of this._roots ) {
 
-			if ( intersectsGeometry( root, mesh, geometry, geomToMesh ) ) {
+			if ( isPacked ) {
 
-				return true;
+				setBuffer( root );
+				result = intersectsGeometryBuffer( 0, mesh, geometry, geomToMesh );
+
+			} else {
+
+				result = intersectsGeometry( root, mesh, geometry, geomToMesh );
+
+			}
+
+			if ( result ) {
+
+				break;
 
 			}
 
 		}
 
-		return false;
+		isPacked && clearBuffer();
+
+		return result;
 
 	}
 
 	shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
 
+		const isPacked = this._isPacked;
+		let result = false;
 		for ( const root of this._roots ) {
 
-			if ( shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) {
+			if ( isPacked ) {
 
-				return true;
+				setBuffer( root );
+				result = shapecastBuffer( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+
+			} else {
+
+				result = shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+
+			}
+
+			if ( result ) {
+
+				break;
 
 			}
 
 		}
 
-		return false;
+		isPacked && clearBuffer();
+
+		return result;
 
 	}
 

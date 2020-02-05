@@ -23,10 +23,10 @@ function replaceNodeNames( str ) {
 
 	const map = {
 
-		'(\\w+)\\.boundingData': name => `float32Array[ ${ coerce( name ) } ]`,
+		'(\\w+)\\.boundingData': name => coerce( name ),
 		'(\\w+)\\.offset': name => `uint32Array[ ${ coerce( name ) } + 6 ]`,
 
-		'! ! (\\w+)\\.count': name => `uint16Array[ ${ coerce( name, 2 ) } ] === 0xffff`,
+		'! ! (\\w+)\\.count': name => `uint16Array[ ${ coerce( name, 2 ) } + 15 ] === 0xffff`,
 		'(\\w+)\\.count': name => `uint16Array[ ${ coerce( name, 2 ) } + 14 ]`,
 
 		'(\\w+)\\.left': name => `${ coerce( name ) } + 8`,
@@ -48,7 +48,7 @@ function replaceNodeNames( str ) {
 
 	} );
 
-	return str;
+	return str.replace( /\]\[/g, '+' );
 
 }
 
@@ -77,17 +77,18 @@ function replaceFunctionNames( str ) {
 function replaceFunctionCalls( str ) {
 
 	return str
-		.replace( /arrayToBox\(/g, 'arrayToBoxBuffer(' )
-		.replace( /intersectRay\(/g, 'intersectRayBuffer(' );
+		.replace( /arrayToBox\((.*?),/g, ( match, arg ) => `arrayToBoxBuffer(${ arg }, float32Array,` )
+		.replace( /intersectRay\((.*?),/g, ( match, arg ) => `intersectRayBuffer(${ arg }, float32Array,` );
 
 }
 
 function removeUnneededCode( str ) {
 
+	const replacement = 'const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;';
 	const continueGenerationRegexp = new RegExp( 'if \\( node.continueGeneration \\)(.|\n)*?}\n', 'mg' );
 	const intersectRayRegexp = new RegExp( 'function intersectRay\\((.|\n)*?}\n', 'mg' );
 	return str
-		.replace( continueGenerationRegexp, 'const stride2Offset = stride4Offset * 2;' )
+		.replace( continueGenerationRegexp, replacement )
 		.replace( intersectRayRegexp, '' );
 
 }
@@ -96,46 +97,62 @@ function addFunctions( str ) {
 
 	const instersectsRayBuffer =
 `
-function intersectRayBuffer( stride4Offset, ray, target ) {
+function intersectRayBuffer( stride4Offset, array, ray, target ) {
 
-	arrayToBoxBuffer( stride4Offset, boundingBox );
+	arrayToBoxBuffer( stride4Offset, array, boundingBox );
 	return ray.intersectBox( boundingBox, target );
 
 }`;
 
 	const setBuffer =
 `
-let float32Array;
-let uint16Array;
-let uint32Array;
+const bufferStack = [];
+let _prevBuffer;
+let _float32Array;
+let _uint16Array;
+let _uint32Array;
 export function setBuffer( buffer ) {
 
-	float32Array = new Float32Array( buffer );
-	uint16Array = new Uint16Array( buffer );
-	uint32Array = new Uint32Array( buffer );
+	if ( _prevBuffer ) {
+
+		bufferStack.push( _prevBuffer );
+
+	}
+
+	_prevBuffer = buffer;
+	_float32Array = new Float32Array( buffer );
+	_uint16Array = new Uint16Array( buffer );
+	_uint32Array = new Uint32Array( buffer );
 
 }
 
 export function clearBuffer() {
 
-	float32Array = null;
-	uint16Array = null;
-	uint32Array = null;
+	_prevBuffer = null;
+	_float32Array = null;
+	_uint16Array = null;
+	_uint32Array = null;
+
+	if ( bufferStack.length ) {
+
+		setBuffer( bufferStack.pop() );
+
+	}
 
 }
 `;
 
 	const arrayToBoxBuffer =
 `
-function arrayToBoxBuffer( stride4Offset, target ) {
+function arrayToBoxBuffer( stride4Offset, array, target ) {
 
-	target.min.x = float32Array[ stride4Offset ];
-	target.min.y = float32Array[ stride4Offset + 1 ];
-	target.min.z = float32Array[ stride4Offset + 2 ];
+	target.min.x = array[ stride4Offset ];
+	target.min.y = array[ stride4Offset + 1 ];
+	target.min.z = array[ stride4Offset + 2 ];
 
-	target.max.x = float32Array[ stride4Offset + 3 ];
-	target.max.y = float32Array[ stride4Offset + 4 ];
-	target.max.z = float32Array[ stride4Offset + 5 ];
+	target.max.x = array[ stride4Offset + 3 ];
+	target.max.y = array[ stride4Offset + 4 ];
+	target.max.z = array[ stride4Offset + 5 ];
 
 }
 `;
@@ -151,10 +168,10 @@ const bufferFilePath = path.resolve( './src/castFunctionsBuffer.js' );
 const str = fs.readFileSync( templatePath, { encoding: 'utf8' } );
 
 let result = str;
-result = replaceNodeNames( result );
 result = removeUnneededCode( result );
+result = replaceFunctionCalls( result );
+result = replaceNodeNames( result );
 result = replaceFunctionNames( result );
 result = addFunctions( result );
-result = replaceFunctionCalls( result );
 result = addHeaderComment( result );
 fs.writeFileSync( bufferFilePath, result );
