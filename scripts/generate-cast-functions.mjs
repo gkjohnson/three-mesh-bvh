@@ -34,10 +34,19 @@ function replaceNodeNames( str ) {
 		'(\\w+)\\.splitAxis': name => `uint32Array[ ${ coerce( name ) } + 7 ]`,
 
 	};
+	const validNames = [ 'c1', 'c2', 'left', 'right', 'node' ];
 
 	str = str.replace( /(\w+)\.boundingData\[(.*)\]/g, ( match, name, index ) => {
 
-		return `float32Array[ ${ name } +${ index }]`;
+		if ( validNames.includes( name ) ) {
+
+			return `float32Array[ ${ name } +${ index }]`;
+
+		} else {
+
+			return match;
+
+		}
 
 	} );
 
@@ -47,7 +56,15 @@ function replaceNodeNames( str ) {
 			new RegExp( key, 'g' ),
 			( match, name ) => {
 
-				return `/* ${ match.replace( '.', ' ' ) } */ ` + value( name );
+				if ( validNames.includes( name ) ) {
+
+					return `/* ${ match.replace( '.', ' ' ) } */ ` + value( name );
+
+				} else {
+
+					return match;
+
+				}
 
 			}
 		);

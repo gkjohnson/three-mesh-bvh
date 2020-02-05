@@ -1,3 +1,4 @@
+// sets the vertices of triangle `tri` with the 3 vertices after i
 export function setTriangle( tri, i, index, pos ) {
 
 	const ta = tri.a;

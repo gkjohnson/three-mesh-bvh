@@ -312,7 +312,7 @@ export const intersectsGeometryBuffer = ( function () {
 					triangle.c.applyMatrix4( invertedMat );
 					triangle.update();
 
-					for ( let i2 = 0, l2 = /* index count */ uint16Array[ index + 14 ]; i2 < l2; i2 += 3 ) {
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
 						setTriangle( triangle2, i2, index, pos );
 						triangle2.update();
