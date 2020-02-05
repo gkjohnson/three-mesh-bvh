@@ -1,7 +1,3 @@
-/* global
-    describe it beforeEach expect
-*/
-
 import * as THREE from 'three';
 import { sphereIntersectTriangle } from '../src/Utils/MathUtilities.js';
 import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';

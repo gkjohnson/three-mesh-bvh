@@ -1,7 +1,3 @@
-/* global
-    describe it beforeAll beforeEach afterEach expect
-*/
-
 import * as THREE from 'three';
 import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes } from '../src/index.js';
 
@@ -692,7 +688,7 @@ describe( 'Options', () => {
 
 	describe( 'strategy', () => {
 
-		it.skip( 'should set the split strategy', () => {} );
+		it.todo( 'should set the split strategy' );
 
 	} );
 
@@ -742,7 +738,7 @@ describe( 'Raycaster', () => {
 
 			const arr = [];
 			mesh.raycast( raycaster, arr );
-			expect( arr.length ).toBe( 10 );
+			expect( arr ).toHaveLength( 10 );
 
 		} );
 
@@ -752,14 +748,14 @@ describe( 'Raycaster', () => {
 
 			const arr = [];
 			mesh.raycast( raycaster, arr );
-			expect( arr.length ).toBe( 10 );
+			expect( arr ).toHaveLength( 10 );
 
 		} );
 
 		it( 'should yield all hits in a scene', () => {
 
 			const res = raycaster.intersectObject( scene, true );
-			expect( res.length ).toBe( 110 );
+			expect( res ).toHaveLength( 110 );
 
 		} );
 
@@ -777,8 +773,8 @@ describe( 'Raycaster', () => {
 			raycaster.firstHitOnly = true;
 			const bvhHits = raycaster.intersectObject( mesh, true );
 
-			expect( allHits.length ).toEqual( 10 );
-			expect( bvhHits.length ).toEqual( 1 );
+			expect( allHits ).toHaveLength( 10 );
+			expect( bvhHits ).toHaveLength( 1 );
 
 			expect( bvhHits[ 0 ] ).toEqual( allHits[ 0 ] );
 
@@ -790,6 +786,6 @@ describe( 'Raycaster', () => {
 
 describe( 'BoundsTree API', () => {
 
-	it.skip( 'test bounds tree and node apis directly', () => {} );
+	it.todo( 'test bounds tree and node apis directly' );
 
 } );
