@@ -3,8 +3,11 @@
 */
 
 import * as THREE from 'three';
-import { CENTER, SAH, AVERAGE } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 function runRandomTests( options ) {
 
@@ -89,18 +92,26 @@ function runRandomTests( options ) {
 
 }
 
-describe( 'Random intersections comparison', () => {
+describe( 'Random CENTER intersections', () => {
 
-	describe( 'CENTER split', () => runRandomTests( { strategy: CENTER, packData: false } ) );
-	describe( 'Lazy CENTER split', () => runRandomTests( { strategy: CENTER, lazyGeneration: true } ) );
-	describe( 'Packed CENTER split', () => runRandomTests( { strategy: CENTER } ) );
+	describe( 'split', () => runRandomTests( { strategy: CENTER, packData: false } ) );
+	describe( 'Lazy split', () => runRandomTests( { strategy: CENTER, lazyGeneration: true } ) );
+	describe( 'Packed split', () => runRandomTests( { strategy: CENTER } ) );
 
-	describe( 'AVERAGE split', () => runRandomTests( { strategy: AVERAGE, packData: false } ) );
-	describe( 'Lazy AVERAGE split', () => runRandomTests( { strategy: AVERAGE, lazyGeneration: true } ) );
-	describe( 'Packed CENTER split', () => runRandomTests( { strategy: AVERAGE } ) );
+} );
 
-	describe( 'SAH split', () => runRandomTests( { strategy: SAH, packData: false } ) );
-	describe( 'Lazy SAH split', () => runRandomTests( { strategy: SAH, lazyGeneration: true } ) );
-	describe( 'Packed SAH split', () => runRandomTests( { strategy: SAH } ) );
+describe( 'Random AVERAGE intersections', () => {
+
+	describe( 'split', () => runRandomTests( { strategy: AVERAGE, packData: false } ) );
+	describe( 'Lazy split', () => runRandomTests( { strategy: AVERAGE, lazyGeneration: true } ) );
+	describe( 'Packed split', () => runRandomTests( { strategy: AVERAGE } ) );
+
+} );
+
+describe( 'Random SAH intersections', () => {
+
+	describe( 'split', () => runRandomTests( { strategy: SAH, packData: false } ) );
+	describe( 'Lazy split', () => runRandomTests( { strategy: SAH, lazyGeneration: true } ) );
+	describe( 'Packed split', () => runRandomTests( { strategy: SAH } ) );
 
 } );
