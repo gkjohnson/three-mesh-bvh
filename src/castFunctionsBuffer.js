@@ -85,8 +85,8 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 			// check only along the split axis
 			const rayOrig = ray.origin[ xyzAxis ];
 			const toPoint = rayOrig - c1Result.point[ xyzAxis ];
-			const toChild1 = rayOrig - /* c2 boundingData */ c2[ splitAxis ];
-			const toChild2 = rayOrig - /* c2 boundingData */ c2[ splitAxis + 3 ];
+			const toChild1 = rayOrig - float32Array[ c2 + splitAxis ];
+			const toChild2 = rayOrig - float32Array[ c2 + splitAxis + 3 ];
 
 			const toPointSq = toPoint * toPoint;
 			if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {

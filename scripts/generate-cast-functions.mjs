@@ -35,6 +35,12 @@ function replaceNodeNames( str ) {
 
 	};
 
+	str = str.replace( /(\w+)\.boundingData\[(.*)\]/g, ( match, name, index ) => {
+
+		return `float32Array[ ${ name } +${ index }]`;
+
+	} );
+
 	Object.entries( map ).forEach( ( [ key, value ] ) => {
 
 		str = str.replace(
