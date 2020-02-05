@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require( 'fs' );
+const path = require( 'path' );
 
 // Replace unneeded function definitions and checks. The `continueGeneration` block is always at the top of
 // a function definition so we can replace that with local variable definitions we need.
@@ -53,47 +53,47 @@ function replaceNodeNames( str ) {
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.boundingData\\[(.*)\\]\\[(.*)\\]`, 'g' ),
-		( match, name, index, index2 ) => `float32Array[ ${ convertName( name ) } +${ index }+${ index2 }]`
+		( match, name, index, index2 ) => `/* ${ name } boundingData */ float32Array[ ${ convertName( name ) } +${ index }+${ index2 }]`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.boundingData\\[(.*)\\]`, 'g' ),
-		( match, name, index ) => `float32Array[ ${ convertName( name ) } +${ index }]`
+		( match, name, index ) => `/* ${ name } boundingData */ float32Array[ ${ convertName( name ) } +${ index }]`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.boundingData`, 'g' ),
-		( match, name ) => convertName( name )
+		( match, name ) => `/* ${ name } boundingData */ ${ convertName( name ) }`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.offset`, 'g' ),
-		( match, name ) => `uint32Array[ ${ convertName( name ) } + 6 ]`
+		( match, name ) => `/* ${ name } offset */ uint32Array[ ${ convertName( name ) } + 6 ]`
 	);
 
 	str = str.replace(
 		new RegExp( `! ! (${ names })\\.count`, 'g' ),
-		( match, name ) => `uint16Array[ ${ convertName( name, 2 ) } + 15 ] === 0xffff`
+		( match, name ) => `/* ${ name } count */ uint16Array[ ${ convertName( name, 2 ) } + 15 ] === 0xffff`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.count`, 'g' ),
-		( match, name ) => `uint16Array[ ${ convertName( name, 2 ) } + 14 ]`
+		( match, name ) => `/* ${ name } count */ uint16Array[ ${ convertName( name, 2 ) } + 14 ]`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.left`, 'g' ),
-		( match, name ) => `${ convertName( name ) } + 8`
+		( match, name ) => `/* ${ name } left */ ${ convertName( name ) } + 8`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.right`, 'g' ),
-		( match, name ) => `uint32Array[ ${ convertName( name ) } + 6 ]`
+		( match, name ) => `/* ${ name } right */ uint32Array[ ${ convertName( name ) } + 6 ]`
 	);
 
 	str = str.replace(
 		new RegExp( `(${ names })\\.splitAxis`, 'g' ),
-		( match, name ) => `uint32Array[ ${ convertName( name ) } + 7 ]`
+		( match, name ) => `/* ${ name } splitAxis */ uint32Array[ ${ convertName( name ) } + 7 ]`
 	);
 
 	return str;
