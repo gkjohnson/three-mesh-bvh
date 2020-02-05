@@ -64,7 +64,6 @@ function getRootIndexRanges( geo ) {
 
 }
 
-
 // computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
 // centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
 // These are computed together to avoid redundant accesses to bounds array.

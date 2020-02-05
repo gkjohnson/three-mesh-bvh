@@ -3,7 +3,7 @@
 */
 
 import * as THREE from 'three';
-import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
+import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE, getBVHExtremes } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -646,20 +646,7 @@ describe( 'Options', () => {
 		// Returns the max tree depth of the BVH
 		function getMaxDepth( bvh ) {
 
-			function getMaxDepthFrom( node ) {
-
-				const isLeaf = 'count' in node;
-
-				if ( isLeaf ) return 0;
-
-				return 1 + Math.max(
-					getMaxDepthFrom( node.left ),
-					getMaxDepthFrom( node.right )
-				);
-
-			}
-
-			return Math.max.apply( null, bvh._roots.map( getMaxDepthFrom ) );
+			return getBVHExtremes( bvh )[ 0 ].depth.max;
 
 		}
 

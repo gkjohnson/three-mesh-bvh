@@ -153,61 +153,66 @@ export default class MeshBVH {
 
 	static deserialize( data, geometry, setIndex = true ) {
 
-		function setData( byteOffset, node ) {
+		// function setData( byteOffset, node ) {
 
-			const stride4Offset = byteOffset / 4;
-			const stride2Offset = byteOffset / 2;
-			const boundingData = new Float32Array( 6 );
-			for ( let i = 0; i < 6; i ++ ) {
+		// 	const stride4Offset = byteOffset / 4;
+		// 	const stride2Offset = byteOffset / 2;
+		// 	const boundingData = new Float32Array( 6 );
+		// 	for ( let i = 0; i < 6; i ++ ) {
 
-				boundingData[ i ] = float32Array[ stride4Offset + i ];
+		// 		boundingData[ i ] = float32Array[ stride4Offset + i ];
 
-			}
-			node.boundingData = boundingData;
+		// 	}
+		// 	node.boundingData = boundingData;
 
-			const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
-			if ( isLeaf ) {
+		// 	const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
+		// 	if ( isLeaf ) {
 
-				node.offset = uint32Array[ stride4Offset + 6 ];
-				node.count = uint16Array[ stride2Offset + 14 ];
+		// 		node.offset = uint32Array[ stride4Offset + 6 ];
+		// 		node.count = uint16Array[ stride2Offset + 14 ];
 
-			} else {
+		// 	} else {
 
-				const left = new MeshBVHNode();
-				const right = new MeshBVHNode();
-				const leftOffset = stride4Offset + BYTES_PER_NODE / 4;
-				const rightOffset = uint32Array[ stride4Offset + 6 ];
+		// 		const left = new MeshBVHNode();
+		// 		const right = new MeshBVHNode();
+		// 		const leftOffset = stride4Offset + BYTES_PER_NODE / 4;
+		// 		const rightOffset = uint32Array[ stride4Offset + 6 ];
 
-				setData( leftOffset * 4, left );
-				setData( rightOffset * 4, right );
+		// 		setData( leftOffset * 4, left );
+		// 		setData( rightOffset * 4, right );
 
-				node.left = left;
-				node.right = right;
-				node.splitAxis = uint32Array[ stride4Offset + 7 ];
+		// 		node.left = left;
+		// 		node.right = right;
+		// 		node.splitAxis = uint32Array[ stride4Offset + 7 ];
 
-			}
+		// 	}
 
-		}
+		// }
 
-		let float32Array;
-		let uint32Array;
-		let uint16Array;
+		// let float32Array;
+		// let uint32Array;
+		// let uint16Array;
+
+		// const { index, roots } = data;
+		// const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+		// bvh._roots = [];
+		// for ( let i = 0; i < roots.length; i ++ ) {
+
+		// 	const buffer = roots[ i ];
+		// 	float32Array = new Float32Array( buffer );
+		// 	uint32Array = new Uint32Array( buffer );
+		// 	uint16Array = new Uint16Array( buffer );
+
+		// 	const root = new MeshBVHNode();
+		// 	setData( 0, root );
+		// 	bvh._roots.push( root );
+
+		// }
 
 		const { index, roots } = data;
 		const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
-		bvh._roots = [];
-		for ( let i = 0; i < roots.length; i ++ ) {
-
-			const buffer = roots[ i ];
-			float32Array = new Float32Array( buffer );
-			uint32Array = new Uint32Array( buffer );
-			uint16Array = new Uint16Array( buffer );
-
-			const root = new MeshBVHNode();
-			setData( 0, root );
-			bvh._roots.push( root );
-
-		}
+		bvh._roots = roots;
+		bvh._isPacked = true;
 
 		if ( setIndex ) {
 
@@ -260,10 +265,68 @@ export default class MeshBVH {
 		if ( ! options[ SKIP_GENERATION ] ) {
 
 			this._roots = buildTree( geo, options );
-			if ( options.packData ) {
+			if ( ! options.lazyGeneration && options.packData ) {
 
 				this._roots = MeshBVH.serialize( this, geo, false ).roots;
 				this._isPacked = true;
+
+			}
+
+		}
+
+	}
+
+	traverse( callback, rootIndex = 0 ) {
+
+		if ( this._isPacked ) {
+
+			const buffer = this._roots[ rootIndex ];
+			const uint32Array = new Uint32Array( buffer );
+			const uint16Array = new Uint16Array( buffer );
+			_traverse( 0 );
+
+			function _traverse( stride4Offset, depth = 0 ) {
+
+				const stride2Offset = stride4Offset * 2;
+				const isLeaf = uint16Array[ stride2Offset + 15 ];
+				if ( isLeaf ) {
+
+					const offset = uint32Array[ stride4Offset + 6 ];
+					const count = uint16Array[ stride2Offset + 14 ];
+					callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), offset, count );
+
+				} else {
+
+					const left = stride4Offset + BYTES_PER_NODE / 4;
+					const right = uint32Array[ stride4Offset + 6 ];
+					const splitAxis = uint32Array[ stride4Offset + 7 ];
+					callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
+
+					_traverse( left, depth + 1 );
+					_traverse( right, depth + 1 );
+
+				}
+
+			}
+
+		} else {
+
+			_traverse( this._roots[ rootIndex ] );
+
+			function _traverse( node, depth = 0 ) {
+
+				const isLeaf = ! ! node.count;
+				if ( isLeaf ) {
+
+					callback( depth, isLeaf, node.boundingData, node.offset, node.count );
+
+				} else {
+
+					callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
+					if ( node.left ) _traverse( node.left, depth + 1 );
+					if ( node.right ) _traverse( node.right, depth + 1 );
+
+				}
 
 			}
 
