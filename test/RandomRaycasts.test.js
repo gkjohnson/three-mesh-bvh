@@ -1,7 +1,3 @@
-/* global
-    describe it beforeAll expect
-*/
-
 import * as THREE from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 

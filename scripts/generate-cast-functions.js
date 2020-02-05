@@ -6,16 +6,16 @@ const path = require( 'path' );
 function replaceUnneededCode( str ) {
 
 	str = str.replace(
-		/if \( node.continueGeneration \)(.|\n|\r)*?}(\n|\r)+/mg,
+		/if \( node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
 		'const stride2Offset = stride4Offset * 2, ' +
 		'float32Array = _float32Array, ' +
 		'uint16Array = _uint16Array, ' +
 		'uint32Array = _uint32Array;'
 	);
 
-	str = str.replace( /function intersectRay\((.|\n|\r)*?}(\n|\r)+/mg, '' );
+	str = str.replace( /function intersectRay\((.|[\r|\n])*?}[\r|\n]/mg, '' );
 
-	str = str.replace( /import { arrayToBox.*?;(\n|\r)+/g, '' );
+	str = str.replace( /import { arrayToBox.*?;[\r|\n]/g, '' );
 
 	return str;
 
@@ -105,7 +105,7 @@ function replaceFunctionNames( str ) {
 	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry)';
 
 	str = str.replace(
-		new RegExp( `(${ orNames })\\((\\s|\\n|\\r)?node`, 'gm' ),
+		new RegExp( `(${ orNames })\\((\\s|[\\r|\\n])?node`, 'gm' ),
 		( match, funcName ) => {
 
 			return `${ funcName }Buffer( stride4Offset`;
