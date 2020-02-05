@@ -73,7 +73,6 @@ function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, 
 
 }
 
-
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
 function intersectTri( mesh, geo, raycaster, ray, tri, intersections ) {
 
@@ -94,6 +93,6 @@ function intersectTri( mesh, geo, raycaster, ray, tri, intersections ) {
 
 	return null;
 
-};
+}
 
 export { intersectTri };
