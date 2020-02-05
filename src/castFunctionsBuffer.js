@@ -1,7 +1,12 @@
 
+/**************************************************************************************************
+ *
+ * This file is generated from castFunctions.js and scripts/generate-cast-function.mjs. Do not edit.
+ *
+ *************************************************************************************************/
+
 import * as THREE from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
-import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
@@ -10,38 +15,26 @@ const boundingBox = new THREE.Box3();
 const boxIntersection = new THREE.Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
-function intersectRay( node, ray, target ) {
 
-	arrayToBox( node.boundingData, boundingBox );
+export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
-	return ray.intersectBox( boundingBox, target );
-
-}
-
-export function raycast( node, mesh, raycaster, ray, intersects ) {
-
-	if ( node.continueGeneration ) {
-
-		node.continueGeneration();
-
-	}
-
-	const isLeaf = ! ! node.count;
+	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
-		intersectTris( mesh, mesh.geometry, raycaster, ray, node.offset, node.count, intersects );
+		intersectTris( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ], intersects );
 
 	} else {
 
-		if ( intersectRay( node.left, ray, boxIntersection ) ) {
+		if ( intersectRayBuffer( /* node left */ stride4Offset + 8, float32Array, ray, boxIntersection ) ) {
 
-			raycast( node.left, mesh, raycaster, ray, intersects );
+			raycastBuffer( /* node left */ stride4Offset + 8, mesh, raycaster, ray, intersects );
 
 		}
 
-		if ( intersectRay( node.right, ray, boxIntersection ) ) {
+		if ( intersectRayBuffer( /* node right */ uint32Array[ stride4Offset + 6 ], float32Array, ray, boxIntersection ) ) {
 
-			raycast( node.right, mesh, raycaster, ray, intersects );
+			raycastBuffer( /* node right */ uint32Array[ stride4Offset + 6 ], mesh, raycaster, ray, intersects );
 
 		}
 
@@ -49,25 +42,20 @@ export function raycast( node, mesh, raycaster, ray, intersects ) {
 
 }
 
-export function raycastFirst( node, mesh, raycaster, ray ) {
+export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
-	if ( node.continueGeneration ) {
-
-		node.continueGeneration();
-
-	}
-
-	const isLeaf = ! ! node.count;
+	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
-		return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, node.offset, node.count );
+		return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ] );
 
 	} else {
 
 
 		// consider the position of the split plane with respect to the oncoming ray; whichever direction
 		// the ray is coming from, look for an intersection among that side of the tree first
-		const splitAxis = node.splitAxis;
+		const splitAxis = /* node splitAxis */ uint32Array[ stride4Offset + 7 ];
 		const xyzAxis = xyzFields[ splitAxis ];
 		const rayDir = ray.direction[ xyzAxis ];
 		const leftToRight = rayDir >= 0;
@@ -76,18 +64,18 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 		let c1, c2;
 		if ( leftToRight ) {
 
-			c1 = node.left;
-			c2 = node.right;
+			c1 = /* node left */ stride4Offset + 8;
+			c2 = /* node right */ uint32Array[ stride4Offset + 6 ];
 
 		} else {
 
-			c1 = node.right;
-			c2 = node.left;
+			c1 = /* node right */ uint32Array[ stride4Offset + 6 ];
+			c2 = /* node left */ stride4Offset + 8;
 
 		}
 
-		const c1Intersection = intersectRay( c1, ray, boxIntersection );
-		const c1Result = c1Intersection ? raycastFirst( c1, mesh, raycaster, ray ) : null;
+		const c1Intersection = intersectRayBuffer( c1, float32Array, ray, boxIntersection );
+		const c1Result = c1Intersection ? raycastFirstBuffer( c1, mesh, raycaster, ray ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -96,8 +84,8 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 			// check only along the split axis
 			const rayOrig = ray.origin[ xyzAxis ];
 			const toPoint = rayOrig - c1Result.point[ xyzAxis ];
-			const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
-			const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
+			const toChild1 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis ];
+			const toChild2 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis + 3 ];
 
 			const toPointSq = toPoint * toPoint;
 			if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
@@ -110,8 +98,8 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
-		const c2Intersection = intersectRay( c2, ray, boxIntersection );
-		const c2Result = c2Intersection ? raycastFirst( c2, mesh, raycaster, ray ) : null;
+		const c2Intersection = intersectRayBuffer( c2, float32Array, ray, boxIntersection );
+		const c2Result = c2Intersection ? raycastFirstBuffer( c2, mesh, raycaster, ray ) : null;
 
 		if ( c1Result && c2Result ) {
 
@@ -127,27 +115,22 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 
 }
 
-export const shapecast = ( function () {
+export const shapecastBuffer = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const cachedBox1 = new THREE.Box3();
 	const cachedBox2 = new THREE.Box3();
-	return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+	return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
-		if ( node.continueGeneration ) {
-
-			node.continueGeneration();
-
-		}
-
-		const isLeaf = ! ! node.count;
+		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf && intersectsTriangleFunc ) {
 
 			const geometry = mesh.geometry;
 			const index = geometry.index;
 			const pos = geometry.attributes.position;
-			const offset = node.offset;
-			const count = node.count;
+			const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
+			const count = /* node count */ uint16Array[ stride2Offset + 14 ];
 
 			for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
@@ -166,8 +149,8 @@ export const shapecast = ( function () {
 
 		} else {
 
-			const left = node.left;
-			const right = node.right;
+			const left = /* node left */ stride4Offset + 8;
+			const right = /* node right */ uint32Array[ stride4Offset + 6 ];
 			let c1 = left;
 			let c2 = right;
 
@@ -178,8 +161,8 @@ export const shapecast = ( function () {
 				box1 = cachedBox1;
 				box2 = cachedBox2;
 
-				arrayToBox( c1.boundingData, box1 );
-				arrayToBox( c2.boundingData, box2 );
+				arrayToBoxBuffer( /* c1 boundingData */ c1, float32Array, box1 );
+				arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
 				score1 = nodeScoreFunc( box1 );
 				score2 = nodeScoreFunc( box2 );
@@ -204,14 +187,14 @@ export const shapecast = ( function () {
 			if ( ! box1 ) {
 
 				box1 = cachedBox1;
-				arrayToBox( c1.boundingData, box1 );
+				arrayToBoxBuffer( /* c1 boundingData */ c1, float32Array, box1 );
 
 			}
 
-			const isC1Leaf = ! ! c1.count;
+			const isC1Leaf = /* c1 count */ uint16Array[ c1 + 15 ] === 0xffff;
 			const c1Intersection =
 				intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
-				shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c1Intersection ) return true;
 
@@ -219,14 +202,14 @@ export const shapecast = ( function () {
 			if ( ! box2 ) {
 
 				box2 = cachedBox2;
-				arrayToBox( c2.boundingData, box2 );
+				arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
 			}
 
-			const isC2Leaf = ! ! c2.count;
+			const isC2Leaf = /* c2 count */ uint16Array[ c2 + 15 ] === 0xffff;
 			const c2Intersection =
 				intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
-				shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			if ( c2Intersection ) return true;
 
@@ -238,7 +221,7 @@ export const shapecast = ( function () {
 
 } )();
 
-export const intersectsGeometry = ( function () {
+export const intersectsGeometryBuffer = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
@@ -248,14 +231,9 @@ export const intersectsGeometry = ( function () {
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();
 
-	return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
+	return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
-		if ( node.continueGeneration ) {
-
-			node.continueGeneration();
-
-		}
-
+		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 		if ( cachedObb === null ) {
 
 			if ( ! geometry.boundingBox ) {
@@ -270,7 +248,7 @@ export const intersectsGeometry = ( function () {
 
 		}
 
-		const isLeaf = ! ! node.count;
+		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
 			const thisGeometry = mesh.geometry;
@@ -280,8 +258,8 @@ export const intersectsGeometry = ( function () {
 			const index = geometry.index;
 			const pos = geometry.attributes.position;
 
-			const offset = node.offset;
-			const count = node.count;
+			const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
+			const count = /* node count */ uint16Array[ stride2Offset + 14 ];
 
 			// get the inverse of the geometry matrix so we can transform our triangles into the
 			// geometry space we're trying to test. We assume there are fewer triangles being checked
@@ -290,7 +268,7 @@ export const intersectsGeometry = ( function () {
 
 			if ( geometry.boundsTree ) {
 
-				arrayToBox( node.boundingData, obb2 );
+				arrayToBoxBuffer( /* node boundingData */ stride4Offset, float32Array, obb2 );
 				obb2.matrix.copy( invertedMat );
 				obb2.update();
 
@@ -352,21 +330,21 @@ export const intersectsGeometry = ( function () {
 
 		} else {
 
-			const left = node.left;
-			const right = node.right;
+			const left = /* node left */ stride4Offset + 8;
+			const right = /* node right */ uint32Array[ stride4Offset + 6 ];
 
-			arrayToBox( left.boundingData, boundingBox );
+			arrayToBoxBuffer( /* left boundingData */ left, float32Array, boundingBox );
 			const leftIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( left, mesh, geometry, geometryToBvh, cachedObb );
+				intersectsGeometryBuffer( left, mesh, geometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
 
-			arrayToBox( right.boundingData, boundingBox );
+			arrayToBoxBuffer( /* right boundingData */ right, float32Array, boundingBox );
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( right, mesh, geometry, geometryToBvh, cachedObb );
+				intersectsGeometryBuffer( right, mesh, geometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
 
@@ -377,3 +355,58 @@ export const intersectsGeometry = ( function () {
 	};
 
 } )();
+
+
+function intersectRayBuffer( stride4Offset, array, ray, target ) {
+
+	arrayToBoxBuffer( stride4Offset, array, boundingBox );
+	return ray.intersectBox( boundingBox, target );
+
+}
+
+const bufferStack = [];
+let _prevBuffer;
+let _float32Array;
+let _uint16Array;
+let _uint32Array;
+export function setBuffer( buffer ) {
+
+	if ( _prevBuffer ) {
+
+		bufferStack.push( _prevBuffer );
+
+	}
+
+	_prevBuffer = buffer;
+	_float32Array = new Float32Array( buffer );
+	_uint16Array = new Uint16Array( buffer );
+	_uint32Array = new Uint32Array( buffer );
+
+}
+
+export function clearBuffer() {
+
+	_prevBuffer = null;
+	_float32Array = null;
+	_uint16Array = null;
+	_uint32Array = null;
+
+	if ( bufferStack.length ) {
+
+		setBuffer( bufferStack.pop() );
+
+	}
+
+}
+
+function arrayToBoxBuffer( stride4Offset, array, target ) {
+
+	target.min.x = array[ stride4Offset ];
+	target.min.y = array[ stride4Offset + 1 ];
+	target.min.z = array[ stride4Offset + 2 ];
+
+	target.max.x = array[ stride4Offset + 3 ];
+	target.max.y = array[ stride4Offset + 4 ];
+	target.max.z = array[ stride4Offset + 5 ];
+
+}

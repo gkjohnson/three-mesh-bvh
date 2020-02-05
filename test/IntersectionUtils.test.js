@@ -1,5 +1,5 @@
 /* global
-    describe it beforeAll beforeEach afterEach expect
+    describe it beforeEach expect
 */
 
 import * as THREE from 'three';
@@ -343,9 +343,6 @@ describe( 'Sphere Intersections', () => {
 } );
 
 describe( 'Box Intersections', () => {
-
-	const obbPlanes = new Array( 6 ).fill().map( () => new THREE.Plane() );
-	const obbPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 
 	let box, center;
 	beforeEach( () => {

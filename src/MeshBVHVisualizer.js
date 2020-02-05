@@ -29,13 +29,13 @@ class MeshBVHRootVisualizer extends THREE.Group {
 		let requiredChildren = 0;
 		if ( this._boundsTree ) {
 
-			const recurse = ( n, d ) => {
+			this._boundsTree.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
 
-				let isLeaf = 'count' in n || 'continueGeneration' in n;
+				let isTerminal = isLeaf || countOrIsUnfinished;
 
-				if ( d === this.depth ) return;
+				if ( depth >= this.depth ) return;
 
-				if ( d === this.depth - 1 || isLeaf ) {
+				if ( depth === this.depth - 1 || isTerminal ) {
 
 					let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
 					if ( ! m ) {
@@ -46,7 +46,7 @@ class MeshBVHRootVisualizer extends THREE.Group {
 
 					}
 					requiredChildren ++;
-					arrayToBox( n.boundingData, boundingBox );
+					arrayToBox( boundingData, boundingBox );
 					boundingBox.getCenter( m.position );
 					m.scale.subVectors( boundingBox.max, boundingBox.min ).multiplyScalar( 0.5 );
 
@@ -56,16 +56,7 @@ class MeshBVHRootVisualizer extends THREE.Group {
 
 				}
 
-				if ( ! isLeaf ) {
-
-					recurse( n.left, d + 1 );
-					recurse( n.right, d + 1 );
-
-				}
-
-			};
-
-			recurse( this._boundsTree._roots[ this._group ], 0 );
+			} );
 
 		}
 

@@ -6,10 +6,11 @@
   "main": "umd/index.js",
   "scripts": {
     "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
-    "build": "rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
-    "test": "jest",
-    "lint": "eslint ./src/*.js ./test/*.js",
-    "benchmark": "node benchmark/index.js"
+    "generate-cast-functions": "node ./scripts/generate-cast-functions.js",
+    "build": "npm run generate-cast-functions && rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "test": "npm run generate-cast-functions && jest",
+    "lint": "npm run generate-cast-functions && eslint ./src/*.js ./test/*.js",
+    "benchmark": "npm run generate-cast-functions && node benchmark/index.js"
   },
   "files": [
     "src/*",

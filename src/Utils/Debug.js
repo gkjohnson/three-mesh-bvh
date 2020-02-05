@@ -23,42 +23,37 @@ function isTypedArray( arr ) {
 
 }
 
-function getNodeExtremes( node, depth = 0, result = null ) {
+function getRootExtremes( bvh, group ) {
 
-	if ( ! result ) {
+	const result = {
+		total: 0,
+		depth: {
+			min: Infinity, max: - Infinity
+		},
+		tris: {
+			min: Infinity, max: - Infinity
+		},
+		splits: [ 0, 0, 0 ]
+	};
 
-		result = {
-			total: 0,
-			depth: {
-				min: Infinity, max: - Infinity
-			},
-			tris: {
-				min: Infinity, max: - Infinity
-			},
-			splits: [ 0, 0, 0 ]
-		};
+	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
 
-	}
+		result.total ++;
+		if ( isLeaf ) {
 
-	// we need to check if the node is a leaf and if it has "left" or "right"
-	// because we now have a state where it's in an intermediate state during
-	// lazy generation.
-	result.total ++;
-	if ( node.count ) {
+			result.depth.min = Math.min( depth, result.depth.min );
+			result.depth.max = Math.max( depth, result.depth.max );
 
-		result.depth.min = Math.min( depth, result.depth.min );
-		result.depth.max = Math.max( depth, result.depth.max );
+			result.tris.min = Math.min( countOrIsUnfinished, result.tris.min );
+			result.tris.max = Math.max( countOrIsUnfinished, result.tris.max );
 
-		result.tris.min = Math.min( node.count, result.tris.min );
-		result.tris.max = Math.max( node.count, result.tris.max );
+		} else {
 
-	} else if ( node.left && node.right ) {
+			result.splits[ offsetOrSplit ] ++;
 
-		result.splits[ node.splitAxis ] ++;
-		getNodeExtremes( node.left, depth + 1, result );
-		getNodeExtremes( node.right, depth + 1, result );
+		}
 
-	}
+	}, group );
 
 	// If there are no leaf nodes because the tree hasn't finished generating yet.
 	if ( result.tris.min === Infinity ) {
@@ -81,7 +76,7 @@ function getNodeExtremes( node, depth = 0, result = null ) {
 
 function getBVHExtremes( bvh ) {
 
-	return bvh._roots.map( root => getNodeExtremes( root ) );
+	return bvh._roots.map( ( root, i ) => getRootExtremes( bvh, i ) );
 
 }
 
