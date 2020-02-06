@@ -4,131 +4,21 @@
 	(global = global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
 }(this, function (exports, THREE) { 'use strict';
 
-	// Ripped and modified From THREE.js Mesh raycast
-	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
-	var vA = new THREE.Vector3();
-	var vB = new THREE.Vector3();
-	var vC = new THREE.Vector3();
+	class MeshBVHNode {
 
-	var uvA = new THREE.Vector2();
-	var uvB = new THREE.Vector2();
-	var uvC = new THREE.Vector2();
+		constructor() {
 
-	var intersectionPoint = new THREE.Vector3();
-	var intersectionPointWorld = new THREE.Vector3();
-
-	function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point ) {
-
-		var intersect;
-		if ( material.side === THREE.BackSide ) {
-
-			intersect = ray.intersectTriangle( pC, pB, pA, true, point );
-
-		} else {
-
-			intersect = ray.intersectTriangle( pA, pB, pC, material.side !== THREE.DoubleSide, point );
-
-		}
-
-		if ( intersect === null ) return null;
-
-		intersectionPointWorld.copy( point );
-		intersectionPointWorld.applyMatrix4( object.matrixWorld );
-
-		var distance = raycaster.ray.origin.distanceTo( intersectionPointWorld );
-
-		if ( distance < raycaster.near || distance > raycaster.far ) return null;
-
-		return {
-			distance: distance,
-			point: intersectionPointWorld.clone(),
-			object: object
-		};
-
-	}
-
-	function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, a, b, c ) {
-
-		vA.fromBufferAttribute( position, a );
-		vB.fromBufferAttribute( position, b );
-		vC.fromBufferAttribute( position, c );
-
-		var intersection = checkIntersection( object, object.material, raycaster, ray, vA, vB, vC, intersectionPoint );
-
-		if ( intersection ) {
-
-			if ( uv ) {
-
-				uvA.fromBufferAttribute( uv, a );
-				uvB.fromBufferAttribute( uv, b );
-				uvC.fromBufferAttribute( uv, c );
-
-				intersection.uv = THREE.Triangle.getUV( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new THREE.Vector2( ) );
-
-			}
-
-			var normal = new THREE.Vector3();
-			intersection.face = new THREE.Face3( a, b, c, THREE.Triangle.getNormal( vA, vB, vC, normal ) );
-			intersection.faceIndex = a;
-
-		}
-
-		return intersection;
-
-	}
-
-
-	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
-	function intersectTri( mesh, geo, raycaster, ray, tri, intersections ) {
-
-		const triOffset = tri * 3;
-		const a = geo.index.getX( triOffset );
-		const b = geo.index.getX( triOffset + 1 );
-		const c = geo.index.getX( triOffset + 2 );
-
-		const intersection = checkBufferGeometryIntersection( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
-
-		if ( intersection ) {
-
-			intersection.faceIndex = tri;
-			if ( intersections ) intersections.push( intersection );
-			return intersection;
-
-		}
-
-		return null;
-
-	}
-
-	function intersectTris( mesh, geo, raycaster, ray, offset, count, intersections ) {
-
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-			intersectTri( mesh, geo, raycaster, ray, i, intersections );
+			// internal nodes have boundingData, left, right, and splitAxis
+			// leaf nodes have offset and count (referring to primitives in the mesh geometry)
 
 		}
 
 	}
 
-	function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
-
-		let dist = Infinity;
-		let res = null;
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-			const intersection = intersectTri( mesh, geo, raycaster, ray, i );
-			if ( intersection && intersection.distance < dist ) {
-
-				res = intersection;
-				dist = intersection.distance;
-
-			}
-
-		}
-
-		return res;
-
-	}
+	// Split strategy constants
+	const CENTER = 0;
+	const AVERAGE = 1;
+	const SAH = 2;
 
 	// Returns a Float32Array representing the bounds data for box.
 	function boxToArray( bx ) {
@@ -179,6 +69,669 @@
 		}
 
 		return splitDimIdx;
+
+	}
+
+	const xyzFields = [ 'x', 'y', 'z' ];
+	const boxTemp = new THREE.Box3();
+
+	function ensureIndex( geo ) {
+
+		if ( ! geo.index ) {
+
+			const vertexCount = geo.attributes.position.count;
+			const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( vertexCount );
+			geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
+
+			for ( let i = 0; i < vertexCount; i ++ ) {
+
+				index[ i ] = i;
+
+			}
+
+		}
+
+	}
+
+	// Computes the set of { offset, count } ranges which need independent BVH roots. Each
+	// region in the geometry index that belongs to a different set of material groups requires
+	// a separate BVH root, so that triangles indices belonging to one group never get swapped
+	// with triangle indices belongs to another group. For example, if the groups were like this:
+	//
+	// [-------------------------------------------------------------]
+	// |__________________|
+	//   g0 = [0, 20]  |______________________||_____________________|
+	//                      g1 = [16, 40]           g2 = [41, 60]
+	//
+	// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
+	function getRootIndexRanges( geo ) {
+
+		if ( ! geo.groups || ! geo.groups.length ) {
+
+			return [ { offset: 0, count: geo.index.count / 3 } ];
+
+		}
+
+		const ranges = [];
+		const rangeBoundaries = new Set();
+		for ( const group of geo.groups ) {
+
+			rangeBoundaries.add( group.start );
+			rangeBoundaries.add( group.start + group.count );
+
+		}
+
+		// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
+		const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
+		for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
+
+			const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
+			ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+
+		}
+		return ranges;
+
+	}
+
+	// computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
+	// centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
+	// These are computed together to avoid redundant accesses to bounds array.
+	function getBounds( triangleBounds, offset, count, target, centroidTarget = null ) {
+
+		let minx = Infinity;
+		let miny = Infinity;
+		let minz = Infinity;
+		let maxx = - Infinity;
+		let maxy = - Infinity;
+		let maxz = - Infinity;
+
+		let cminx = Infinity;
+		let cminy = Infinity;
+		let cminz = Infinity;
+		let cmaxx = - Infinity;
+		let cmaxy = - Infinity;
+		let cmaxz = - Infinity;
+
+		const includeCentroid = centroidTarget !== null;
+		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
+
+			const cx = triangleBounds[ i + 0 ];
+			const hx = triangleBounds[ i + 1 ];
+			const lx = cx - hx;
+			const rx = cx + hx;
+			if ( lx < minx ) minx = lx;
+			if ( rx > maxx ) maxx = rx;
+			if ( includeCentroid && cx < cminx ) cminx = cx;
+			if ( includeCentroid && cx > cmaxx ) cmaxx = cx;
+
+			const cy = triangleBounds[ i + 2 ];
+			const hy = triangleBounds[ i + 3 ];
+			const ly = cy - hy;
+			const ry = cy + hy;
+			if ( ly < miny ) miny = ly;
+			if ( ry > maxy ) maxy = ry;
+			if ( includeCentroid && cy < cminy ) cminy = cy;
+			if ( includeCentroid && cy > cmaxy ) cmaxy = cy;
+
+			const cz = triangleBounds[ i + 4 ];
+			const hz = triangleBounds[ i + 5 ];
+			const lz = cz - hz;
+			const rz = cz + hz;
+			if ( lz < minz ) minz = lz;
+			if ( rz > maxz ) maxz = rz;
+			if ( includeCentroid && cz < cminz ) cminz = cz;
+			if ( includeCentroid && cz > cmaxz ) cmaxz = cz;
+
+		}
+
+		target[ 0 ] = minx;
+		target[ 1 ] = miny;
+		target[ 2 ] = minz;
+
+		target[ 3 ] = maxx;
+		target[ 4 ] = maxy;
+		target[ 5 ] = maxz;
+
+		if ( includeCentroid ) {
+
+			centroidTarget[ 0 ] = cminx;
+			centroidTarget[ 1 ] = cminy;
+			centroidTarget[ 2 ] = cminz;
+
+			centroidTarget[ 3 ] = cmaxx;
+			centroidTarget[ 4 ] = cmaxy;
+			centroidTarget[ 5 ] = cmaxz;
+
+		}
+
+	}
+
+	// A stand alone function for retrieving the centroid bounds.
+	function getCentroidBounds( triangleBounds, offset, count, centroidTarget ) {
+
+		let cminx = Infinity;
+		let cminy = Infinity;
+		let cminz = Infinity;
+		let cmaxx = - Infinity;
+		let cmaxy = - Infinity;
+		let cmaxz = - Infinity;
+
+		for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
+
+			const cx = triangleBounds[ i + 0 ];
+			if ( cx < cminx ) cminx = cx;
+			if ( cx > cmaxx ) cmaxx = cx;
+
+			const cy = triangleBounds[ i + 2 ];
+			if ( cy < cminy ) cminy = cy;
+			if ( cy > cmaxy ) cmaxy = cy;
+
+			const cz = triangleBounds[ i + 4 ];
+			if ( cz < cminz ) cminz = cz;
+			if ( cz > cmaxz ) cmaxz = cz;
+
+		}
+
+		centroidTarget[ 0 ] = cminx;
+		centroidTarget[ 1 ] = cminy;
+		centroidTarget[ 2 ] = cminz;
+
+		centroidTarget[ 3 ] = cmaxx;
+		centroidTarget[ 4 ] = cmaxy;
+		centroidTarget[ 5 ] = cmaxz;
+
+	}
+
+
+	// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
+	// will be on the left and elements on the right side of the split will be on the right. returns the index
+	// of the first element on the right side, or offset + count if there are no elements on the right side.
+	function partition( index, triangleBounds, sahPlanes, offset, count, split ) {
+
+		let left = offset;
+		let right = offset + count - 1;
+		const pos = split.pos;
+		const axisOffset = split.axis * 2;
+
+		// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
+		while ( true ) {
+
+			while ( left <= right && triangleBounds[ left * 6 + axisOffset ] < pos ) {
+
+				left ++;
+
+			}
+
+			while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
+
+				right --;
+
+			}
+
+			if ( left < right ) {
+
+				// we need to swap all of the information associated with the triangles at index
+				// left and right; that's the verts in the geometry index, the bounds,
+				// and perhaps the SAH planes
+
+				for ( let i = 0; i < 3; i ++ ) {
+
+					let t0 = index[ left * 3 + i ];
+					index[ left * 3 + i ] = index[ right * 3 + i ];
+					index[ right * 3 + i ] = t0;
+
+					let t1 = triangleBounds[ left * 6 + i * 2 + 0 ];
+					triangleBounds[ left * 6 + i * 2 + 0 ] = triangleBounds[ right * 6 + i * 2 + 0 ];
+					triangleBounds[ right * 6 + i * 2 + 0 ] = t1;
+
+					let t2 = triangleBounds[ left * 6 + i * 2 + 1 ];
+					triangleBounds[ left * 6 + i * 2 + 1 ] = triangleBounds[ right * 6 + i * 2 + 1 ];
+					triangleBounds[ right * 6 + i * 2 + 1 ] = t2;
+
+				}
+
+				if ( sahPlanes ) {
+
+					for ( let i = 0; i < 3; i ++ ) {
+
+						let t = sahPlanes[ i ][ left ];
+						sahPlanes[ i ][ left ] = sahPlanes[ i ][ right ];
+						sahPlanes[ i ][ right ] = t;
+
+					}
+
+				}
+
+				left ++;
+				right --;
+
+			} else {
+
+				return left;
+
+			}
+
+		}
+
+	}
+
+	function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, sahPlanes, offset, count, strategy ) {
+
+		let axis = - 1;
+		let pos = 0;
+
+		// Center
+		if ( strategy === CENTER ) {
+
+			axis = getLongestEdgeIndex( centroidBoundingData );
+			if ( axis !== - 1 ) {
+
+				pos = ( centroidBoundingData[ axis ] + centroidBoundingData[ axis + 3 ] ) / 2;
+
+			}
+
+		} else if ( strategy === AVERAGE ) {
+
+			axis = getLongestEdgeIndex( nodeBoundingData );
+			if ( axis !== - 1 ) {
+
+				pos = getAverage( triangleBounds, offset, count, axis );
+
+			}
+
+		} else if ( strategy === SAH ) {
+
+			// Surface Area Heuristic
+			// In order to make this code more terse, the x, y, and z
+			// variables of various structures have been stuffed into
+			// 0, 1, and 2 array indices so they can be easily computed
+			// and accessed within array iteration
+
+			// Cost values defineed for operations. We're using bounds for traversal, so
+			// the cost of traversing one more layer is more than intersecting a triangle.
+			const TRAVERSAL_COST = 3;
+			const INTERSECTION_COST = 1;
+			const bb = arrayToBox( nodeBoundingData, boxTemp );
+
+			// Define the width, height, and depth of the bounds as a box
+			const dim = [
+				bb.max.x - bb.min.x,
+				bb.max.y - bb.min.y,
+				bb.max.z - bb.min.z
+			];
+			const sa = 2 * ( dim[ 0 ] * dim[ 1 ] + dim[ 0 ] * dim[ 2 ] + dim[ 1 ] * dim[ 2 ] );
+
+			// Get the precalculated planes based for the triangles we're
+			// testing here
+			const filteredLists = [[], [], []];
+			for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+				for ( let v = 0; v < 3; v ++ ) {
+
+					filteredLists[ v ].push( sahPlanes[ v ][ i ] );
+
+				}
+
+			}
+			filteredLists.forEach( planes => planes.sort( ( a, b ) => a.p - b.p ) );
+
+			// this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
+			const getCost = ( sa, sal, nl, sar, nr ) =>
+				  TRAVERSAL_COST + INTERSECTION_COST * ( ( sal / sa ) * nl + ( sar / sa ) * nr );
+
+			// the cost of _not_ splitting into smaller bounds
+			const noSplitCost = INTERSECTION_COST * count;
+
+			axis = - 1;
+			let bestCost = noSplitCost;
+			for ( let i = 0; i < 3; i ++ ) {
+
+				// o1 and o2 represent the _other_ two axes in the
+				// the space. So if we're checking the x (0) dimension,
+				// then o1 and o2 would be y and z (1 and 2)
+				const o1 = ( i + 1 ) % 3;
+				const o2 = ( i + 2 ) % 3;
+
+				const bmin = bb.min[ xyzFields[ i ] ];
+				const bmax = bb.max[ xyzFields[ i ] ];
+				const planes = filteredLists[ i ];
+
+				// The number of left and right triangles on either side
+				// given the current split
+				let nl = 0;
+				let nr = count;
+				for ( let p = 0; p < planes.length; p ++ ) {
+
+					const pinfo = planes[ p ];
+
+					// As the plane moves, we have to increment or decrement the
+					// number of triangles on either side of the plane
+					nl ++;
+					nr --;
+
+					// the distance from the plane to the edge of the broader bounds
+					const ldim = pinfo.p - bmin;
+					const rdim = bmax - pinfo.p;
+
+					// same for the other two dimensions
+					let ldimo1 = dim[ o1 ], rdimo1 = dim[ o1 ];
+					let ldimo2 = dim[ o2 ], rdimo2 = dim[ o2 ];
+
+					/*
+					// compute the other bounding planes for the box
+					// if only the current triangles are considered to
+					// be in the box
+					// This is really slow and probably not really worth it
+					const o1planes = sahPlanes[o1];
+					const o2planes = sahPlanes[o2];
+					let lmin = Infinity, lmax = -Infinity;
+					let rmin = Infinity, rmax = -Infinity;
+					planes.forEach((p, i) => {
+					const tri2 = p.tri * 2;
+					const inf1 = o1planes[tri2 + 0];
+					const inf2 = o1planes[tri2 + 1];
+					if (i <= nl) {
+					lmin = Math.min(inf1.p, inf2.p, lmin);
+					lmax = Math.max(inf1.p, inf2.p, lmax);
+					}
+					if (i >= nr) {
+					rmin = Math.min(inf1.p, inf2.p, rmin);
+					rmax = Math.max(inf1.p, inf2.p, rmax);
+					}
+					})
+					ldimo1 = Math.min(lmax - lmin, ldimo1);
+					rdimo1 = Math.min(rmax - rmin, rdimo1);
+
+					planes.forEach((p, i) => {
+					const tri2 = p.tri * 2;
+					const inf1 = o2planes[tri2 + 0];
+					const inf2 = o2planes[tri2 + 1];
+					if (i <= nl) {
+					lmin = Math.min(inf1.p, inf2.p, lmin);
+					lmax = Math.max(inf1.p, inf2.p, lmax);
+					}
+					if (i >= nr) {
+					rmin = Math.min(inf1.p, inf2.p, rmin);
+					rmax = Math.max(inf1.p, inf2.p, rmax);
+					}
+					})
+					ldimo2 = Math.min(lmax - lmin, ldimo2);
+					rdimo2 = Math.min(rmax - rmin, rdimo2);
+					*/
+
+					// surface areas and cost
+					const sal = 2 * ( ldimo1 * ldimo2 + ldimo1 * ldim + ldimo2 * ldim );
+					const sar = 2 * ( rdimo1 * rdimo2 + rdimo1 * rdim + rdimo2 * rdim );
+					const cost = getCost( sa, sal, nl, sar, nr );
+
+					if ( cost < bestCost ) {
+
+						axis = i;
+						pos = pinfo.p;
+						bestCost = cost;
+
+					}
+
+				}
+
+			}
+
+		}
+
+		return { axis, pos };
+
+	}
+
+	// returns the average coordinate on the specified axis of the all the provided triangles
+	function getAverage( triangleBounds, offset, count, axis ) {
+
+		let avg = 0;
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			avg += triangleBounds[ i * 6 + axis * 2 ];
+
+		}
+
+		return avg / count;
+
+	}
+
+	function computeSAHPlanes( triangleBounds ) {
+
+		const triCount = triangleBounds.length / 6;
+		const sahPlanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
+		for ( let tri = 0; tri < triCount; tri ++ ) {
+
+			for ( let el = 0; el < 3; el ++ ) {
+
+				sahPlanes[ el ][ tri ] = { p: triangleBounds[ tri * 6 + el * 2 ], tri };
+
+			}
+
+		}
+
+		return sahPlanes;
+
+	}
+
+	// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
+	// result is an array of size tris.length * 6 where triangle i maps to a
+	// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
+	// representing the center and half-extent in each dimension of triangle i
+	function computeTriangleBounds( geo ) {
+
+		const verts = geo.attributes.position.array;
+		const index = geo.index.array;
+		const triCount = index.length / 3;
+		const triangleBounds = new Float32Array( triCount * 6 );
+
+		for ( let tri = 0; tri < triCount; tri ++ ) {
+
+			const tri3 = tri * 3;
+			const tri6 = tri * 6;
+			const ai = index[ tri3 + 0 ] * 3;
+			const bi = index[ tri3 + 1 ] * 3;
+			const ci = index[ tri3 + 2 ] * 3;
+
+			for ( let el = 0; el < 3; el ++ ) {
+
+				const a = verts[ ai + el ];
+				const b = verts[ bi + el ];
+				const c = verts[ ci + el ];
+
+				let min = a;
+				if ( b < min ) min = b;
+				if ( c < min ) min = c;
+
+				let max = a;
+				if ( b > max ) max = b;
+				if ( c > max ) max = c;
+
+				const halfExtents = ( max - min ) / 2;
+				const el2 = el * 2;
+				triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
+				triangleBounds[ tri6 + el2 + 1 ] = halfExtents;
+
+			}
+
+		}
+
+		return triangleBounds;
+
+	}
+
+	function buildTree( geo, options ) {
+
+		// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
+		// recording the offset and count of its triangles and writing them into the reordered geometry index.
+		function splitNode( node, offset, count, centroidBoundingData = null, depth = 0 ) {
+
+			if ( ! reachedMaxDepth && depth >= maxDepth ) {
+
+				reachedMaxDepth = true;
+				if ( verbose ) {
+
+					console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
+					console.warn( this, geo );
+
+				}
+
+			}
+
+			// early out if we've met our capacity
+			if ( count <= maxLeafTris || depth >= maxDepth ) {
+
+				node.offset = offset;
+				node.count = count;
+				return node;
+
+			}
+
+			// Find where to split the volume
+			const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, sahPlanes, offset, count, strategy );
+			if ( split.axis === - 1 ) {
+
+				node.offset = offset;
+				node.count = count;
+				return node;
+
+			}
+
+			const splitOffset = partition( indexArray, triangleBounds, sahPlanes, offset, count, split );
+
+			// create the two new child nodes
+			if ( splitOffset === offset || splitOffset === offset + count ) {
+
+				node.offset = offset;
+				node.count = count;
+
+			} else {
+
+				node.splitAxis = split.axis;
+
+				// create the left child and compute its bounding box
+				const left = new MeshBVHNode();
+				const lstart = offset;
+				const lcount = splitOffset - offset;
+				node.left = left;
+				left.boundingData = new Float32Array( 6 );
+
+				if ( lazyGeneration ) {
+
+					getBounds( triangleBounds, lstart, lcount, left.boundingData );
+					left.continueGeneration = function () {
+
+						delete this.continueGeneration;
+						getCentroidBounds( triangleBounds, lstart, lcount, cacheCentroidBoundingData );
+						splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
+
+					};
+
+				} else {
+
+					getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
+					splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
+
+				}
+
+				// repeat for right
+				const right = new MeshBVHNode();
+				const rstart = splitOffset;
+				const rcount = count - lcount;
+				node.right = right;
+				right.boundingData = new Float32Array( 6 );
+
+				if ( lazyGeneration ) {
+
+					getBounds( triangleBounds, rstart, rcount, right.boundingData );
+					right.continueGeneration = function () {
+
+						delete this.continueGeneration;
+						getCentroidBounds( triangleBounds, rstart, rcount, cacheCentroidBoundingData );
+						splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
+
+					};
+
+				} else {
+
+					getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
+					splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
+
+				}
+
+			}
+
+			return node;
+
+		}
+
+		ensureIndex( geo );
+
+		const cacheCentroidBoundingData = new Float32Array( 6 );
+		const triangleBounds = computeTriangleBounds( geo );
+		const sahPlanes = options.strategy === SAH ? computeSAHPlanes( triangleBounds ) : null;
+		const indexArray = geo.index.array;
+		const maxDepth = options.maxDepth;
+		const verbose = options.verbose;
+		const maxLeafTris = options.maxLeafTris;
+		const strategy = options.strategy;
+		const lazyGeneration = options.lazyGeneration;
+		let reachedMaxDepth = false;
+
+		const roots = [];
+		const ranges = getRootIndexRanges( geo );
+
+		if ( ranges.length === 1 ) {
+
+			const root = new MeshBVHNode();
+			const range = ranges[ 0 ];
+
+			if ( geo.boundingBox != null ) {
+
+				root.boundingData = boxToArray( geo.boundingBox );
+				getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
+
+			} else {
+
+				root.boundingData = new Float32Array( 6 );
+				getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
+
+			}
+
+			splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
+			roots.push( root );
+
+		} else {
+
+			for ( let range of ranges ) {
+
+				const root = new MeshBVHNode();
+				root.boundingData = new Float32Array( 6 );
+				getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
+
+				splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
+				roots.push( root );
+
+			}
+
+		}
+
+		// if the geometry doesn't have a bounding box, then let's politely populate it using
+		// the work we did to determine the BVH root bounds
+		if ( geo.boundingBox == null ) {
+
+			const rootBox = new THREE.Box3();
+			geo.boundingBox = new THREE.Box3();
+
+			for ( let root of roots ) {
+
+				geo.boundingBox.union( arrayToBox( root.boundingData, rootBox ) );
+
+			}
+
+		}
+
+		return roots;
 
 	}
 
@@ -1130,10 +1683,7 @@
 
 	} )();
 
-	const boundingBox = new THREE.Box3();
-	const boxIntersection = new THREE.Vector3();
-	const xyzFields = [ 'x', 'y', 'z' ];
-
+	// sets the vertices of triangle `tri` with the 3 vertices after i
 	function setTriangle( tri, i, index, pos ) {
 
 		const ta = tri.a;
@@ -1157,103 +1707,167 @@
 
 	}
 
-	class MeshBVHNode {
+	// Ripped and modified From THREE.js Mesh raycast
+	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
+	var vA = new THREE.Vector3();
+	var vB = new THREE.Vector3();
+	var vC = new THREE.Vector3();
 
-		constructor() {
+	var uvA = new THREE.Vector2();
+	var uvB = new THREE.Vector2();
+	var uvC = new THREE.Vector2();
 
-			// internal nodes have boundingData, left, right, and splitAxis
-			// leaf nodes have offset and count (referring to primitives in the mesh geometry)
+	var intersectionPoint = new THREE.Vector3();
+	var intersectionPointWorld = new THREE.Vector3();
+
+	function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point ) {
+
+		var intersect;
+		if ( material.side === THREE.BackSide ) {
+
+			intersect = ray.intersectTriangle( pC, pB, pA, true, point );
+
+		} else {
+
+			intersect = ray.intersectTriangle( pA, pB, pC, material.side !== THREE.DoubleSide, point );
 
 		}
 
-		intersectRay( ray, target ) {
+		if ( intersect === null ) return null;
 
-			arrayToBox( this.boundingData, boundingBox );
+		intersectionPointWorld.copy( point );
+		intersectionPointWorld.applyMatrix4( object.matrixWorld );
 
-			return ray.intersectBox( boundingBox, target );
+		var distance = raycaster.ray.origin.distanceTo( intersectionPointWorld );
+
+		if ( distance < raycaster.near || distance > raycaster.far ) return null;
+
+		return {
+			distance: distance,
+			point: intersectionPointWorld.clone(),
+			object: object
+		};
+
+	}
+
+	function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, a, b, c ) {
+
+		vA.fromBufferAttribute( position, a );
+		vB.fromBufferAttribute( position, b );
+		vC.fromBufferAttribute( position, c );
+
+		var intersection = checkIntersection( object, object.material, raycaster, ray, vA, vB, vC, intersectionPoint );
+
+		if ( intersection ) {
+
+			if ( uv ) {
+
+				uvA.fromBufferAttribute( uv, a );
+				uvB.fromBufferAttribute( uv, b );
+				uvC.fromBufferAttribute( uv, c );
+
+				intersection.uv = THREE.Triangle.getUV( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new THREE.Vector2( ) );
+
+			}
+
+			var normal = new THREE.Vector3();
+			intersection.face = new THREE.Face3( a, b, c, THREE.Triangle.getNormal( vA, vB, vC, normal ) );
+			intersection.faceIndex = a;
 
 		}
 
-		raycast( mesh, raycaster, ray, intersects ) {
+		return intersection;
 
-			if ( this.count ) intersectTris( mesh, mesh.geometry, raycaster, ray, this.offset, this.count, intersects );
-			else {
+	}
 
-				if ( this.left.intersectRay( ray, boxIntersection ) )
-					this.left.raycast( mesh, raycaster, ray, intersects );
-				if ( this.right.intersectRay( ray, boxIntersection ) )
-					this.right.raycast( mesh, raycaster, ray, intersects );
+	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
+	function intersectTri( mesh, geo, raycaster, ray, tri, intersections ) {
+
+		const triOffset = tri * 3;
+		const a = geo.index.getX( triOffset );
+		const b = geo.index.getX( triOffset + 1 );
+		const c = geo.index.getX( triOffset + 2 );
+
+		const intersection = checkBufferGeometryIntersection( mesh, raycaster, ray, geo.attributes.position, geo.attributes.uv, a, b, c );
+
+		if ( intersection ) {
+
+			intersection.faceIndex = tri;
+			if ( intersections ) intersections.push( intersection );
+			return intersection;
+
+		}
+
+		return null;
+
+	}
+
+	function intersectTris( mesh, geo, raycaster, ray, offset, count, intersections ) {
+
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			intersectTri( mesh, geo, raycaster, ray, i, intersections );
+
+		}
+
+	}
+
+	function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
+
+		let dist = Infinity;
+		let res = null;
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			const intersection = intersectTri( mesh, geo, raycaster, ray, i );
+			if ( intersection && intersection.distance < dist ) {
+
+				res = intersection;
+				dist = intersection.distance;
 
 			}
 
 		}
 
-		raycastFirst( mesh, raycaster, ray ) {
+		return res;
 
-			if ( this.count ) {
+	}
 
-				return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, this.offset, this.count );
+	const boundingBox = new THREE.Box3();
+	const boxIntersection = new THREE.Vector3();
+	const xyzFields$1 = [ 'x', 'y', 'z' ];
 
-			} else {
+	function intersectRay( node, ray, target ) {
 
+		arrayToBox( node.boundingData, boundingBox );
 
-				// consider the position of the split plane with respect to the oncoming ray; whichever direction
-				// the ray is coming from, look for an intersection among that side of the tree first
-				const splitAxis = this.splitAxis;
-				const xyzAxis = xyzFields[ splitAxis ];
-				const rayDir = ray.direction[ xyzAxis ];
-				const leftToRight = rayDir >= 0;
+		return ray.intersectBox( boundingBox, target );
 
-				// c1 is the child to check first
-				let c1, c2;
-				if ( leftToRight ) {
+	}
 
-					c1 = this.left;
-					c2 = this.right;
+	function raycast( node, mesh, raycaster, ray, intersects ) {
 
-				} else {
+		if ( node.continueGeneration ) {
 
-					c1 = this.right;
-					c2 = this.left;
+			node.continueGeneration();
 
-				}
+		}
 
-				const c1Intersection = c1.intersectRay( ray, boxIntersection );
-				const c1Result = c1Intersection ? c1.raycastFirst( mesh, raycaster, ray ) : null;
+		const isLeaf = ! ! node.count;
+		if ( isLeaf ) {
 
-				// if we got an intersection in the first node and it's closer than the second node's bounding
-				// box, we don't need to consider the second node because it couldn't possibly be a better result
-				if ( c1Result ) {
+			intersectTris( mesh, mesh.geometry, raycaster, ray, node.offset, node.count, intersects );
 
-					// check only along the split axis
-					const rayOrig = ray.origin[ xyzAxis ];
-					const toPoint = rayOrig - c1Result.point[ xyzAxis ];
-					const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
-					const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
+		} else {
 
-					const toPointSq = toPoint * toPoint;
-					if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
+			if ( intersectRay( node.left, ray, boxIntersection ) ) {
 
-						return c1Result;
+				raycast( node.left, mesh, raycaster, ray, intersects );
 
-					}
+			}
 
-				}
+			if ( intersectRay( node.right, ray, boxIntersection ) ) {
 
-				// either there was no intersection in the first node, or there could still be a closer
-				// intersection in the second, so check the second node and then take the better of the two
-				const c2Intersection = c2.intersectRay( ray, boxIntersection );
-				const c2Result = c2Intersection ? c2.raycastFirst( mesh, raycaster, ray ) : null;
-
-				if ( c1Result && c2Result ) {
-
-					return c1Result.distance <= c2Result.distance ? c1Result : c2Result;
-
-				} else {
-
-					return c1Result || c2Result || null;
-
-				}
+				raycast( node.right, mesh, raycaster, ray, intersects );
 
 			}
 
@@ -1261,20 +1875,105 @@
 
 	}
 
-	MeshBVHNode.prototype.shapecast = ( function () {
+	function raycastFirst( node, mesh, raycaster, ray ) {
+
+		if ( node.continueGeneration ) {
+
+			node.continueGeneration();
+
+		}
+
+		const isLeaf = ! ! node.count;
+		if ( isLeaf ) {
+
+			return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, node.offset, node.count );
+
+		} else {
+
+
+			// consider the position of the split plane with respect to the oncoming ray; whichever direction
+			// the ray is coming from, look for an intersection among that side of the tree first
+			const splitAxis = node.splitAxis;
+			const xyzAxis = xyzFields$1[ splitAxis ];
+			const rayDir = ray.direction[ xyzAxis ];
+			const leftToRight = rayDir >= 0;
+
+			// c1 is the child to check first
+			let c1, c2;
+			if ( leftToRight ) {
+
+				c1 = node.left;
+				c2 = node.right;
+
+			} else {
+
+				c1 = node.right;
+				c2 = node.left;
+
+			}
+
+			const c1Intersection = intersectRay( c1, ray, boxIntersection );
+			const c1Result = c1Intersection ? raycastFirst( c1, mesh, raycaster, ray ) : null;
+
+			// if we got an intersection in the first node and it's closer than the second node's bounding
+			// box, we don't need to consider the second node because it couldn't possibly be a better result
+			if ( c1Result ) {
+
+				// check only along the split axis
+				const rayOrig = ray.origin[ xyzAxis ];
+				const toPoint = rayOrig - c1Result.point[ xyzAxis ];
+				const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
+				const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
+
+				const toPointSq = toPoint * toPoint;
+				if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
+
+					return c1Result;
+
+				}
+
+			}
+
+			// either there was no intersection in the first node, or there could still be a closer
+			// intersection in the second, so check the second node and then take the better of the two
+			const c2Intersection = intersectRay( c2, ray, boxIntersection );
+			const c2Result = c2Intersection ? raycastFirst( c2, mesh, raycaster, ray ) : null;
+
+			if ( c1Result && c2Result ) {
+
+				return c1Result.distance <= c2Result.distance ? c1Result : c2Result;
+
+			} else {
+
+				return c1Result || c2Result || null;
+
+			}
+
+		}
+
+	}
+
+	const shapecast = ( function () {
 
 		const triangle = new SeparatingAxisTriangle();
 		const cachedBox1 = new THREE.Box3();
 		const cachedBox2 = new THREE.Box3();
-		return function shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+		return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
-			if ( this.count && intersectsTriangleFunc ) {
+			if ( node.continueGeneration ) {
+
+				node.continueGeneration();
+
+			}
+
+			const isLeaf = ! ! node.count;
+			if ( isLeaf && intersectsTriangleFunc ) {
 
 				const geometry = mesh.geometry;
 				const index = geometry.index;
 				const pos = geometry.attributes.position;
-				const offset = this.offset;
-				const count = this.count;
+				const offset = node.offset;
+				const count = node.count;
 
 				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
@@ -1293,8 +1992,8 @@
 
 			} else {
 
-				const left = this.left;
-				const right = this.right;
+				const left = node.left;
+				const right = node.right;
 				let c1 = left;
 				let c2 = right;
 
@@ -1337,8 +2036,8 @@
 
 				const isC1Leaf = ! ! c1.count;
 				const c1Intersection =
-					intersectsBoundsFunc( box1, isC1Leaf, score1, c1 ) &&
-					c1.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+					intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
+					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 				if ( c1Intersection ) return true;
 
@@ -1352,8 +2051,8 @@
 
 				const isC2Leaf = ! ! c2.count;
 				const c2Intersection =
-					intersectsBoundsFunc( box2, isC2Leaf, score2, c2 ) &&
-					c2.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+					intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
+					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 				if ( c2Intersection ) return true;
 
@@ -1365,7 +2064,7 @@
 
 	} )();
 
-	MeshBVHNode.prototype.intersectsGeometry = ( function () {
+	const intersectsGeometry = ( function () {
 
 		const triangle = new SeparatingAxisTriangle();
 		const triangle2 = new SeparatingAxisTriangle();
@@ -1375,7 +2074,13 @@
 		const obb = new OrientedBox();
 		const obb2 = new OrientedBox();
 
-		return function intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb = null ) {
+		return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+			if ( node.continueGeneration ) {
+
+				node.continueGeneration();
+
+			}
 
 			if ( cachedObb === null ) {
 
@@ -1391,7 +2096,8 @@
 
 			}
 
-			if ( this.count ) {
+			const isLeaf = ! ! node.count;
+			if ( isLeaf ) {
 
 				const thisGeometry = mesh.geometry;
 				const thisIndex = thisGeometry.index;
@@ -1400,8 +2106,8 @@
 				const index = geometry.index;
 				const pos = geometry.attributes.position;
 
-				const offset = this.offset;
-				const count = this.count;
+				const offset = node.offset;
+				const count = node.count;
 
 				// get the inverse of the geometry matrix so we can transform our triangles into the
 				// geometry space we're trying to test. We assume there are fewer triangles being checked
@@ -1410,7 +2116,7 @@
 
 				if ( geometry.boundsTree ) {
 
-					arrayToBox( this.boundingData, obb2 );
+					arrayToBox( node.boundingData, obb2 );
 					obb2.matrix.copy( invertedMat );
 					obb2.update();
 
@@ -1472,13 +2178,13 @@
 
 			} else {
 
-				const left = this.left;
-				const right = this.right;
+				const left = node.left;
+				const right = node.right;
 
 				arrayToBox( left.boundingData, boundingBox );
 				const leftIntersection =
 					cachedObb.intersectsBox( boundingBox ) &&
-					left.intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb );
+					intersectsGeometry( left, mesh, geometry, geometryToBvh, cachedObb );
 
 				if ( leftIntersection ) return true;
 
@@ -1486,7 +2192,7 @@
 				arrayToBox( right.boundingData, boundingBox );
 				const rightIntersection =
 					cachedObb.intersectsBox( boundingBox ) &&
-					right.intersectsGeometry( mesh, geometry, geometryToBvh, cachedObb );
+					intersectsGeometry( right, mesh, geometry, geometryToBvh, cachedObb );
 
 				if ( rightIntersection ) return true;
 
@@ -1498,521 +2204,618 @@
 
 	} )();
 
-	MeshBVHNode.prototype.intersectsBox = ( function () {
+	const boundingBox$1 = new THREE.Box3();
+	const boxIntersection$1 = new THREE.Vector3();
+	const xyzFields$2 = [ 'x', 'y', 'z' ];
 
-		const obb = new OrientedBox();
 
-		return function intersectsBox( mesh, box, boxToBvh ) {
 
-			obb.set( box.min, box.max, boxToBvh );
-			obb.update();
+	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
-			return this.shapecast(
-				mesh,
-				box => obb.intersectsBox( box ),
-				tri => obb.intersectsTriangle( tri )
-			);
+		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-		};
+		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+		if ( isLeaf ) {
 
-	} )();
+			intersectTris( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ], intersects );
 
-	MeshBVHNode.prototype.intersectsSphere = ( function () {
+		} else {
 
-		return function intersectsSphere( mesh, sphere ) {
+			if ( intersectRayBuffer( /* node left */ stride4Offset + 8, float32Array, ray, boxIntersection$1 ) ) {
 
-			return this.shapecast(
-				mesh,
-				box => sphere.intersectsBox( box ),
-				tri => sphereIntersectTriangle( sphere, tri )
-			);
+				raycastBuffer( /* node left */ stride4Offset + 8, mesh, raycaster, ray, intersects );
 
-		};
+			}
 
-	} )();
+			if ( intersectRayBuffer( /* node right */ uint32Array[ stride4Offset + 6 ], float32Array, ray, boxIntersection$1 ) ) {
 
-	MeshBVHNode.prototype.closestPointToPoint = ( function () {
-
-		// early out if under minThreshold
-		// skip checking if over maxThreshold
-		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-		// returns Infinity if no value found
-
-		const temp = new THREE.Vector3();
-		return function closestPointToPoint( mesh, point, target = null, minThreshold = 0, maxThreshold = Infinity ) {
-
-			let closestDistance = Infinity;
-			this.shapecast(
-
-				mesh,
-				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
-				tri => {
-
-					tri.closestPointToPoint( point, temp );
-					const dist = point.distanceTo( temp );
-					if ( dist < closestDistance ) {
-
-						if ( target ) target.copy( temp );
-						closestDistance = dist;
-
-					}
-					if ( dist < minThreshold ) return true;
-					return false;
-
-				},
-				box => box.distanceToPoint( point )
-
-			);
-
-			return closestDistance;
-
-		};
-
-	} )();
-
-	MeshBVHNode.prototype.closestPointToGeometry = ( function () {
-
-		// early out if under minThreshold
-		// skip checking if over maxThreshold
-		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-		// returns Infinity if no value found
-
-		const tri2 = new SeparatingAxisTriangle();
-		const obb = new OrientedBox();
-
-		const temp1 = new THREE.Vector3();
-		const temp2 = new THREE.Vector3();
-		return function closestPointToGeometry( mesh, geometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
-
-			if ( ! geometry.boundingBox ) geometry.computeBoundingBox();
-			obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
-			obb.update();
-
-			const pos = geometry.attributes.position;
-			const index = geometry.index;
-
-			let tempTarget1, tempTarget2;
-			if ( target1 ) tempTarget1 = temp1;
-			if ( target2 ) tempTarget2 = temp2;
-
-			let closestDistance = Infinity;
-			this.shapecast(
-				mesh,
-				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
-				tri => {
-
-					const sphere1 = tri.sphere;
-					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
-
-						setTriangle( tri2, i2, index, pos );
-						tri2.a.applyMatrix4( geometryToBvh );
-						tri2.b.applyMatrix4( geometryToBvh );
-						tri2.c.applyMatrix4( geometryToBvh );
-						tri2.sphere.setFromPoints( tri2.points );
-
-						const sphere2 = tri2.sphere;
-						const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
-						if ( sphereDist > closestDistance ) continue;
-
-						tri2.update();
-
-						const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
-						if ( dist < closestDistance ) {
-
-							if ( target1 ) target1.copy( tempTarget1 );
-							if ( target2 ) target2.copy( tempTarget2 );
-							closestDistance = dist;
-
-						}
-						if ( dist < minThreshold ) return true;
-
-					}
-
-					return false;
-
-				},
-				box => obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) )
-
-			);
-
-			return closestDistance;
-
-		};
-
-	} )();
-
-	// Split strategy constants
-	const CENTER = 0;
-	const AVERAGE = 1;
-	const SAH = 2;
-
-	const xyzFields$1 = [ 'x', 'y', 'z' ];
-
-	// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
-	// result is an array of size tris.length * 6 where triangle i maps to a
-	// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
-	// representing the center and half-extent in each dimension of triangle i
-	function computeBounds( geo ) {
-
-		const verts = geo.attributes.position.array;
-		const index = geo.index.array;
-		const triCount = index.length / 3;
-		const bounds = new Float32Array( triCount * 6 );
-
-		for ( let tri = 0; tri < triCount; tri ++ ) {
-
-			const ai = index[ 3 * tri + 0 ] * 3;
-			const bi = index[ 3 * tri + 1 ] * 3;
-			const ci = index[ 3 * tri + 2 ] * 3;
-
-			for ( let el = 0; el < 3; el ++ ) {
-
-				const a = verts[ ai + el ];
-				const b = verts[ bi + el ];
-				const c = verts[ ci + el ];
-				const min = Math.min( a, b, c );
-				const max = Math.max( a, b, c );
-				const halfExtents = ( max - min ) / 2;
-				bounds[ tri * 6 + el * 2 + 0 ] = min + halfExtents;
-				bounds[ tri * 6 + el * 2 + 1 ] = halfExtents;
+				raycastBuffer( /* node right */ uint32Array[ stride4Offset + 6 ], mesh, raycaster, ray, intersects );
 
 			}
 
 		}
-
-		return bounds;
 
 	}
 
-	const boxtemp = new THREE.Box3();
+	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
-	class BVHConstructionContext {
+		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-		constructor( geo, options ) {
+		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+		if ( isLeaf ) {
 
-			this.geo = geo;
-			this.options = options;
-			this.bounds = computeBounds( geo );
+			return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ] );
 
-			// SAH Initialization
-			this.sahplanes = null;
-			if ( options.strategy === SAH ) {
+		} else {
 
-				const triCount = geo.index.count / 3;
-				this.sahplanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
-				for ( let tri = 0; tri < triCount; tri ++ ) {
 
-					for ( let el = 0; el < 3; el ++ ) {
+			// consider the position of the split plane with respect to the oncoming ray; whichever direction
+			// the ray is coming from, look for an intersection among that side of the tree first
+			const splitAxis = /* node splitAxis */ uint32Array[ stride4Offset + 7 ];
+			const xyzAxis = xyzFields$2[ splitAxis ];
+			const rayDir = ray.direction[ xyzAxis ];
+			const leftToRight = rayDir >= 0;
 
-						this.sahplanes[ el ][ tri ] = { p: this.bounds[ tri * 6 + el * 2 ], tri };
+			// c1 is the child to check first
+			let c1, c2;
+			if ( leftToRight ) {
+
+				c1 = /* node left */ stride4Offset + 8;
+				c2 = /* node right */ uint32Array[ stride4Offset + 6 ];
+
+			} else {
+
+				c1 = /* node right */ uint32Array[ stride4Offset + 6 ];
+				c2 = /* node left */ stride4Offset + 8;
+
+			}
+
+			const c1Intersection = intersectRayBuffer( c1, float32Array, ray, boxIntersection$1 );
+			const c1Result = c1Intersection ? raycastFirstBuffer( c1, mesh, raycaster, ray ) : null;
+
+			// if we got an intersection in the first node and it's closer than the second node's bounding
+			// box, we don't need to consider the second node because it couldn't possibly be a better result
+			if ( c1Result ) {
+
+				// check only along the split axis
+				const rayOrig = ray.origin[ xyzAxis ];
+				const toPoint = rayOrig - c1Result.point[ xyzAxis ];
+				const toChild1 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis ];
+				const toChild2 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis + 3 ];
+
+				const toPointSq = toPoint * toPoint;
+				if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
+
+					return c1Result;
+
+				}
+
+			}
+
+			// either there was no intersection in the first node, or there could still be a closer
+			// intersection in the second, so check the second node and then take the better of the two
+			const c2Intersection = intersectRayBuffer( c2, float32Array, ray, boxIntersection$1 );
+			const c2Result = c2Intersection ? raycastFirstBuffer( c2, mesh, raycaster, ray ) : null;
+
+			if ( c1Result && c2Result ) {
+
+				return c1Result.distance <= c2Result.distance ? c1Result : c2Result;
+
+			} else {
+
+				return c1Result || c2Result || null;
+
+			}
+
+		}
+
+	}
+
+	const shapecastBuffer = ( function () {
+
+		const triangle = new SeparatingAxisTriangle();
+		const cachedBox1 = new THREE.Box3();
+		const cachedBox2 = new THREE.Box3();
+		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+
+			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
+			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+			if ( isLeaf && intersectsTriangleFunc ) {
+
+				const geometry = mesh.geometry;
+				const index = geometry.index;
+				const pos = geometry.attributes.position;
+				const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
+				const count = /* node count */ uint16Array[ stride2Offset + 14 ];
+
+				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+
+					setTriangle( triangle, i, index, pos );
+					triangle.update();
+
+					if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
+
+						return true;
 
 					}
 
 				}
 
-			}
+				return false;
 
-		}
+			} else {
 
-		// returns the average coordinate on the specified axis of the all the provided triangles
-		getAverage( offset, count, axis ) {
+				const left = /* node left */ stride4Offset + 8;
+				const right = /* node right */ uint32Array[ stride4Offset + 6 ];
+				let c1 = left;
+				let c2 = right;
 
-			let avg = 0;
-			const bounds = this.bounds;
+				let score1, score2;
+				let box1, box2;
+				if ( nodeScoreFunc ) {
 
-			for ( let i = offset, end = offset + count; i < end; i ++ ) {
+					box1 = cachedBox1;
+					box2 = cachedBox2;
 
-				avg += bounds[ i * 6 + axis * 2 ];
+					arrayToBoxBuffer( /* c1 boundingData */ c1, float32Array, box1 );
+					arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
-			}
+					score1 = nodeScoreFunc( box1 );
+					score2 = nodeScoreFunc( box2 );
 
-			return avg / count;
+					if ( score2 < score1 ) {
 
-		}
+						c1 = right;
+						c2 = left;
 
-		// computes the union of the bounds of all of the given triangles and puts the resulting box in target
-		getBounds( offset, count, target ) {
+						const temp = score1;
+						score1 = score2;
+						score2 = temp;
 
-			let minx = Infinity;
-			let miny = Infinity;
-			let minz = Infinity;
-			let maxx = - Infinity;
-			let maxy = - Infinity;
-			let maxz = - Infinity;
-			const bounds = this.bounds;
-
-			for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-				const cx = bounds[ i * 6 + 0 ];
-				const hx = bounds[ i * 6 + 1 ];
-				minx = Math.min( minx, cx - hx );
-				maxx = Math.max( maxx, cx + hx );
-				const cy = bounds[ i * 6 + 2 ];
-				const hy = bounds[ i * 6 + 3 ];
-				miny = Math.min( miny, cy - hy );
-				maxy = Math.max( maxy, cy + hy );
-				const cz = bounds[ i * 6 + 4 ];
-				const hz = bounds[ i * 6 + 5 ];
-				minz = Math.min( minz, cz - hz );
-				maxz = Math.max( maxz, cz + hz );
-
-			}
-
-			target[ 0 ] = minx;
-			target[ 1 ] = miny;
-			target[ 2 ] = minz;
-
-			target[ 3 ] = maxx;
-			target[ 4 ] = maxy;
-			target[ 5 ] = maxz;
-
-			return target;
-
-		}
-
-		// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
-		// will be on the left and elements on the right side of the split will be on the right. returns the index
-		// of the first element on the right side, or offset + count if there are no elements on the right side.
-		partition( offset, count, split ) {
-
-			let left = offset;
-			let right = offset + count - 1;
-			const pos = split.pos;
-			const axisOffset = split.axis * 2;
-			const index = this.geo.index.array;
-			const bounds = this.bounds;
-			const sahplanes = this.sahplanes;
-
-			// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
-			while ( true ) {
-
-				while ( left <= right && bounds[ left * 6 + axisOffset ] < pos ) {
-
-					left ++;
-
-				}
-
-				while ( left <= right && bounds[ right * 6 + axisOffset ] >= pos ) {
-
-					right --;
-
-				}
-
-				if ( left < right ) {
-
-					// we need to swap all of the information associated with the triangles at index
-					// left and right; that's the verts in the geometry index, the bounds,
-					// and perhaps the SAH planes
-
-					for ( let i = 0; i < 3; i ++ ) {
-
-						let t0 = index[ left * 3 + i ];
-						index[ left * 3 + i ] = index[ right * 3 + i ];
-						index[ right * 3 + i ] = t0;
-						let t1 = bounds[ left * 6 + i * 2 + 0 ];
-						bounds[ left * 6 + i * 2 + 0 ] = bounds[ right * 6 + i * 2 + 0 ];
-						bounds[ right * 6 + i * 2 + 0 ] = t1;
-						let t2 = bounds[ left * 6 + i * 2 + 1 ];
-						bounds[ left * 6 + i * 2 + 1 ] = bounds[ right * 6 + i * 2 + 1 ];
-						bounds[ right * 6 + i * 2 + 1 ] = t2;
+						const tempBox = box1;
+						box1 = box2;
+						box2 = tempBox;
 
 					}
 
-					if ( sahplanes ) {
+				}
 
-						for ( let i = 0; i < 3; i ++ ) {
+				if ( ! box1 ) {
 
-							let t = sahplanes[ i ][ left ];
-							sahplanes[ i ][ left ] = sahplanes[ i ][ right ];
-							sahplanes[ i ][ right ] = t;
+					box1 = cachedBox1;
+					arrayToBoxBuffer( /* c1 boundingData */ c1, float32Array, box1 );
+
+				}
+
+				const isC1Leaf = /* c1 count */ uint16Array[ c1 + 15 ] === 0xffff;
+				const c1Intersection =
+					intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
+					shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				if ( c1Intersection ) return true;
+
+
+				if ( ! box2 ) {
+
+					box2 = cachedBox2;
+					arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
+
+				}
+
+				const isC2Leaf = /* c2 count */ uint16Array[ c2 + 15 ] === 0xffff;
+				const c2Intersection =
+					intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
+					shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				if ( c2Intersection ) return true;
+
+				return false;
+
+			}
+
+		};
+
+	} )();
+
+	const intersectsGeometryBuffer = ( function () {
+
+		const triangle = new SeparatingAxisTriangle();
+		const triangle2 = new SeparatingAxisTriangle();
+		const cachedMesh = new THREE.Mesh();
+		const invertedMat = new THREE.Matrix4();
+
+		const obb = new OrientedBox();
+		const obb2 = new OrientedBox();
+
+		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
+			if ( cachedObb === null ) {
+
+				if ( ! geometry.boundingBox ) {
+
+					geometry.computeBoundingBox();
+
+				}
+
+				obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+				obb.update();
+				cachedObb = obb;
+
+			}
+
+			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+			if ( isLeaf ) {
+
+				const thisGeometry = mesh.geometry;
+				const thisIndex = thisGeometry.index;
+				const thisPos = thisGeometry.attributes.position;
+
+				const index = geometry.index;
+				const pos = geometry.attributes.position;
+
+				const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
+				const count = /* node count */ uint16Array[ stride2Offset + 14 ];
+
+				// get the inverse of the geometry matrix so we can transform our triangles into the
+				// geometry space we're trying to test. We assume there are fewer triangles being checked
+				// here.
+				invertedMat.getInverse( geometryToBvh );
+
+				if ( geometry.boundsTree ) {
+
+					arrayToBoxBuffer( /* node boundingData */ stride4Offset, float32Array, obb2 );
+					obb2.matrix.copy( invertedMat );
+					obb2.update();
+
+					cachedMesh.geometry = geometry;
+					const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
+
+						tri.a.applyMatrix4( geometryToBvh );
+						tri.b.applyMatrix4( geometryToBvh );
+						tri.c.applyMatrix4( geometryToBvh );
+						tri.update();
+
+						for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+
+							// this triangle needs to be transformed into the current BVH coordinate frame
+							setTriangle( triangle2, i, thisIndex, thisPos );
+							triangle2.update();
+							if ( tri.intersectsTriangle( triangle2 ) ) {
+
+								return true;
+
+							}
 
 						}
 
-					}
+						return false;
 
-					left ++;
-					right --;
+					} );
+					cachedMesh.geometry = null;
+
+					return res;
 
 				} else {
 
-					return left;
+					for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+						// this triangle needs to be transformed into the current BVH coordinate frame
+						setTriangle( triangle, i, thisIndex, thisPos );
+						triangle.a.applyMatrix4( invertedMat );
+						triangle.b.applyMatrix4( invertedMat );
+						triangle.c.applyMatrix4( invertedMat );
+						triangle.update();
+
+						for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+							setTriangle( triangle2, i2, index, pos );
+							triangle2.update();
+
+							if ( triangle.intersectsTriangle( triangle2 ) ) {
+
+								return true;
+
+							}
+
+						}
+
+					}
 
 				}
 
+			} else {
+
+				const left = /* node left */ stride4Offset + 8;
+				const right = /* node right */ uint32Array[ stride4Offset + 6 ];
+
+				arrayToBoxBuffer( /* left boundingData */ left, float32Array, boundingBox$1 );
+				const leftIntersection =
+					cachedObb.intersectsBox( boundingBox$1 ) &&
+					intersectsGeometryBuffer( left, mesh, geometry, geometryToBvh, cachedObb );
+
+				if ( leftIntersection ) return true;
+
+
+				arrayToBoxBuffer( /* right boundingData */ right, float32Array, boundingBox$1 );
+				const rightIntersection =
+					cachedObb.intersectsBox( boundingBox$1 ) &&
+					intersectsGeometryBuffer( right, mesh, geometry, geometryToBvh, cachedObb );
+
+				if ( rightIntersection ) return true;
+
+				return false;
+
 			}
+
+		};
+
+	} )();
+
+
+	function intersectRayBuffer( stride4Offset, array, ray, target ) {
+
+		arrayToBoxBuffer( stride4Offset, array, boundingBox$1 );
+		return ray.intersectBox( boundingBox$1, target );
+
+	}
+
+	const bufferStack = [];
+	let _prevBuffer;
+	let _float32Array;
+	let _uint16Array;
+	let _uint32Array;
+	function setBuffer( buffer ) {
+
+		if ( _prevBuffer ) {
+
+			bufferStack.push( _prevBuffer );
 
 		}
 
-		getOptimalSplit( bounds, offset, count, strategy ) {
+		_prevBuffer = buffer;
+		_float32Array = new Float32Array( buffer );
+		_uint16Array = new Uint16Array( buffer );
+		_uint32Array = new Uint32Array( buffer );
 
-			let axis = - 1;
-			let pos = 0;
+	}
 
-			// Center
-			if ( strategy === CENTER ) {
+	function clearBuffer() {
 
-				axis = getLongestEdgeIndex( bounds );
-				if ( axis !== - 1 ) {
+		_prevBuffer = null;
+		_float32Array = null;
+		_uint16Array = null;
+		_uint32Array = null;
 
-					pos = ( bounds[ axis + 3 ] + bounds[ axis ] ) / 2;
+		if ( bufferStack.length ) {
 
-				}
-
-			} else if ( strategy === AVERAGE ) {
-
-				axis = getLongestEdgeIndex( bounds );
-				if ( axis !== - 1 ) {
-
-					pos = this.getAverage( offset, count, axis );
-
-				}
-
-			} else if ( strategy === SAH ) {
-
-				// Surface Area Heuristic
-				// In order to make this code more terse, the x, y, and z
-				// variables of various structures have been stuffed into
-				// 0, 1, and 2 array indices so they can be easily computed
-				// and accessed within array iteration
-
-				// Cost values defineed for operations. We're using bounds for traversal, so
-				// the cost of traversing one more layer is more than intersecting a triangle.
-				const TRAVERSAL_COST = 3;
-				const INTERSECTION_COST = 1;
-				const bb = arrayToBox( bounds, boxtemp );
-
-				// Define the width, height, and depth of the bounds as a box
-				const dim = [
-					bb.max.x - bb.min.x,
-					bb.max.y - bb.min.y,
-					bb.max.z - bb.min.z
-				];
-				const sa = 2 * ( dim[ 0 ] * dim[ 1 ] + dim[ 0 ] * dim[ 2 ] + dim[ 1 ] * dim[ 2 ] );
-
-				// Get the precalculated planes based for the triangles we're
-				// testing here
-				const filteredLists = [[], [], []];
-				for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-					for ( let v = 0; v < 3; v ++ ) {
-
-						filteredLists[ v ].push( this.sahplanes[ v ][ i ] );
-
-					}
-
-				}
-				filteredLists.forEach( planes => planes.sort( ( a, b ) => a.p - b.p ) );
-
-				// this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
-				const getCost = ( sa, sal, nl, sar, nr ) =>
-					  TRAVERSAL_COST + INTERSECTION_COST * ( ( sal / sa ) * nl + ( sar / sa ) * nr );
-
-				// the cost of _not_ splitting into smaller bounds
-				const noSplitCost = INTERSECTION_COST * count;
-
-				axis = - 1;
-				let bestCost = noSplitCost;
-				for ( let i = 0; i < 3; i ++ ) {
-
-					// o1 and o2 represent the _other_ two axes in the
-					// the space. So if we're checking the x (0) dimension,
-					// then o1 and o2 would be y and z (1 and 2)
-					const o1 = ( i + 1 ) % 3;
-					const o2 = ( i + 2 ) % 3;
-
-					const bmin = bb.min[ xyzFields$1[ i ] ];
-					const bmax = bb.max[ xyzFields$1[ i ] ];
-					const planes = filteredLists[ i ];
-
-					// The number of left and right triangles on either side
-					// given the current split
-					let nl = 0;
-					let nr = count;
-					for ( let p = 0; p < planes.length; p ++ ) {
-
-						const pinfo = planes[ p ];
-
-						// As the plane moves, we have to increment or decrement the
-						// number of triangles on either side of the plane
-						nl ++;
-						nr --;
-
-						// the distance from the plane to the edge of the broader bounds
-						const ldim = pinfo.p - bmin;
-						const rdim = bmax - pinfo.p;
-
-						// same for the other two dimensions
-						let ldimo1 = dim[ o1 ], rdimo1 = dim[ o1 ];
-						let ldimo2 = dim[ o2 ], rdimo2 = dim[ o2 ];
-
-						/*
-						// compute the other bounding planes for the box
-						// if only the current triangles are considered to
-						// be in the box
-						// This is really slow and probably not really worth it
-						const o1planes = this.sahplanes[o1];
-						const o2planes = this.sahplanes[o2];
-						let lmin = Infinity, lmax = -Infinity;
-						let rmin = Infinity, rmax = -Infinity;
-						planes.forEach((p, i) => {
-						const tri2 = p.tri * 2;
-						const inf1 = o1planes[tri2 + 0];
-						const inf2 = o1planes[tri2 + 1];
-						if (i <= nl) {
-						lmin = Math.min(inf1.p, inf2.p, lmin);
-						lmax = Math.max(inf1.p, inf2.p, lmax);
-						}
-						if (i >= nr) {
-						rmin = Math.min(inf1.p, inf2.p, rmin);
-						rmax = Math.max(inf1.p, inf2.p, rmax);
-						}
-						})
-						ldimo1 = Math.min(lmax - lmin, ldimo1);
-						rdimo1 = Math.min(rmax - rmin, rdimo1);
-
-						planes.forEach((p, i) => {
-						const tri2 = p.tri * 2;
-						const inf1 = o2planes[tri2 + 0];
-						const inf2 = o2planes[tri2 + 1];
-						if (i <= nl) {
-						lmin = Math.min(inf1.p, inf2.p, lmin);
-						lmax = Math.max(inf1.p, inf2.p, lmax);
-						}
-						if (i >= nr) {
-						rmin = Math.min(inf1.p, inf2.p, rmin);
-						rmax = Math.max(inf1.p, inf2.p, rmax);
-						}
-						})
-						ldimo2 = Math.min(lmax - lmin, ldimo2);
-						rdimo2 = Math.min(rmax - rmin, rdimo2);
-						*/
-
-						// surface areas and cost
-						const sal = 2 * ( ldimo1 * ldimo2 + ldimo1 * ldim + ldimo2 * ldim );
-						const sar = 2 * ( rdimo1 * rdimo2 + rdimo1 * rdim + rdimo2 * rdim );
-						const cost = getCost( sa, sal, nl, sar, nr );
-
-						if ( cost < bestCost ) {
-
-							axis = i;
-							pos = pinfo.p;
-							bestCost = cost;
-
-						}
-
-					}
-
-				}
-
-			}
-
-			return { axis, pos };
+			setBuffer( bufferStack.pop() );
 
 		}
 
 	}
 
+	function arrayToBoxBuffer( stride4Offset, array, target ) {
+
+		target.min.x = array[ stride4Offset ];
+		target.min.y = array[ stride4Offset + 1 ];
+		target.min.z = array[ stride4Offset + 2 ];
+
+		target.max.x = array[ stride4Offset + 3 ];
+		target.max.y = array[ stride4Offset + 4 ];
+		target.max.z = array[ stride4Offset + 5 ];
+
+	}
+
+	// boundingData  				: 6 float32
+	// right / offset 				: 1 uint32
+	// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
+	const BYTES_PER_NODE = 6 * 4 + 4 + 4;
+	const IS_LEAFNODE_FLAG = 0xFFFF;
+	const SKIP_GENERATION = Symbol( 'skip tree generation' );
+
+	const obb = new OrientedBox();
+	const temp = new THREE.Vector3();
+	const tri2 = new SeparatingAxisTriangle();
+	const temp1 = new THREE.Vector3();
+	const temp2 = new THREE.Vector3();
+
 	class MeshBVH {
+
+		static serialize( bvh, geometry, copyIndexBuffer = true ) {
+
+			function finishTree( node ) {
+
+				if ( node.continueGeneration ) {
+
+					node.continueGeneration();
+
+				}
+
+				if ( ! node.count ) {
+
+					finishTree( node.left );
+					finishTree( node.right );
+
+				}
+
+			}
+
+			function countNodes( node ) {
+
+				if ( node.count ) {
+
+					return 1;
+
+				} else {
+
+					return 1 + countNodes( node.left ) + countNodes( node.right );
+
+				}
+
+			}
+
+			function populateBuffer( byteOffset, node ) {
+
+				const stride4Offset = byteOffset / 4;
+				const stride2Offset = byteOffset / 2;
+				const isLeaf = ! ! node.count;
+				const boundingData = node.boundingData;
+				for ( let i = 0; i < 6; i ++ ) {
+
+					float32Array[ stride4Offset + i ] = boundingData[ i ];
+
+				}
+
+				if ( isLeaf ) {
+
+					const offset = node.offset;
+					const count = node.count;
+					uint32Array[ stride4Offset + 6 ] = offset;
+					uint16Array[ stride2Offset + 14 ] = count;
+					uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
+					return byteOffset + BYTES_PER_NODE;
+
+				} else {
+
+					const left = node.left;
+					const right = node.right;
+					const splitAxis = node.splitAxis;
+
+					let nextUnusedPointer;
+					nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
+
+					uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
+					nextUnusedPointer = populateBuffer( nextUnusedPointer, right );
+
+					uint32Array[ stride4Offset + 7 ] = splitAxis;
+					return nextUnusedPointer;
+
+				}
+
+			}
+
+			let float32Array;
+			let uint32Array;
+			let uint16Array;
+
+			const roots = bvh._roots;
+			let rootData;
+
+			if ( bvh._isPacked ) {
+
+				rootData = roots;
+
+			} else {
+
+				rootData = [];
+				for ( let i = 0; i < roots.length; i ++ ) {
+
+					const root = roots[ i ];
+					finishTree( root );
+					let nodeCount = countNodes( root );
+
+					const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+					float32Array = new Float32Array( buffer );
+					uint32Array = new Uint32Array( buffer );
+					uint16Array = new Uint16Array( buffer );
+					populateBuffer( 0, root );
+					rootData.push( buffer );
+
+				}
+
+			}
+
+			const indexAttribute = geometry.getIndex();
+			const result = {
+				roots: rootData,
+				index: copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
+			};
+
+			return result;
+
+		}
+
+		static deserialize( data, geometry, setIndex = true ) {
+
+			// function setData( byteOffset, node ) {
+
+			// 	const stride4Offset = byteOffset / 4;
+			// 	const stride2Offset = byteOffset / 2;
+			// 	const boundingData = new Float32Array( 6 );
+			// 	for ( let i = 0; i < 6; i ++ ) {
+
+			// 		boundingData[ i ] = float32Array[ stride4Offset + i ];
+
+			// 	}
+			// 	node.boundingData = boundingData;
+
+			// 	const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
+			// 	if ( isLeaf ) {
+
+			// 		node.offset = uint32Array[ stride4Offset + 6 ];
+			// 		node.count = uint16Array[ stride2Offset + 14 ];
+
+			// 	} else {
+
+			// 		const left = new MeshBVHNode();
+			// 		const right = new MeshBVHNode();
+			// 		const leftOffset = stride4Offset + BYTES_PER_NODE / 4;
+			// 		const rightOffset = uint32Array[ stride4Offset + 6 ];
+
+			// 		setData( leftOffset * 4, left );
+			// 		setData( rightOffset * 4, right );
+
+			// 		node.left = left;
+			// 		node.right = right;
+			// 		node.splitAxis = uint32Array[ stride4Offset + 7 ];
+
+			// 	}
+
+			// }
+
+			// let float32Array;
+			// let uint32Array;
+			// let uint16Array;
+
+			// const { index, roots } = data;
+			// const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+			// bvh._roots = [];
+			// for ( let i = 0; i < roots.length; i ++ ) {
+
+			// 	const buffer = roots[ i ];
+			// 	float32Array = new Float32Array( buffer );
+			// 	uint32Array = new Uint32Array( buffer );
+			// 	uint16Array = new Uint16Array( buffer );
+
+			// 	const root = new MeshBVHNode();
+			// 	setData( 0, root );
+			// 	bvh._roots.push( root );
+
+			// }
+
+			const { index, roots } = data;
+			const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+			bvh._roots = roots;
+			bvh._isPacked = true;
+
+			if ( setIndex ) {
+
+				const indexAttribute = geometry.getIndex();
+				if ( indexAttribute.array !== index ) {
+
+					indexAttribute.array.set( index );
+					indexAttribute.needsUpdate = true;
+
+				}
+
+			}
+
+			return bvh;
+
+		}
 
 		constructor( geo, options = {} ) {
 
@@ -2036,29 +2839,31 @@
 				strategy: CENTER,
 				maxDepth: 40,
 				maxLeafTris: 10,
-				verbose: true
+				verbose: true,
+
+				// undocumented options
+				// progressively generate tree as nodes when raycasting
+				lazyGeneration: true,
+
+				// whether to the pack the data as a buffer or not. The data
+				// will not be packed if lazyGeneration is true.
+				packData: true,
+
+				// Whether to skip generating the tree. Used for deserialization.
+				[ SKIP_GENERATION ]: false
 
 			}, options );
 			options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
 
-			this._roots = this._buildTree( geo, options );
+			this._isPacked = false;
+			this._roots = null;
+			if ( ! options[ SKIP_GENERATION ] ) {
 
+				this._roots = buildTree( geo, options );
+				if ( ! options.lazyGeneration && options.packData ) {
 
-		}
-
-		/* Private Functions */
-
-		_ensureIndex( geo ) {
-
-			if ( ! geo.index ) {
-
-				const vertexCount = geo.attributes.position.count;
-				const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( vertexCount );
-				geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
-
-				for ( let i = 0; i < vertexCount; i ++ ) {
-
-					index[ i ] = i;
+					this._roots = MeshBVH.serialize( this, geo, false ).roots;
+					this._isPacked = true;
 
 				}
 
@@ -2066,191 +2871,105 @@
 
 		}
 
-		// Computes the set of { offset, count } ranges which need independent BVH roots. Each
-		// region in the geometry index that belongs to a different set of material groups requires
-		// a separate BVH root, so that triangles indices belonging to one group never get swapped
-		// with triangle indices belongs to another group. For example, if the groups were like this:
-		//
-		// [-------------------------------------------------------------]
-		// |__________________|
-		//   g0 = [0, 20]  |______________________||_____________________|
-		//                      g1 = [16, 40]           g2 = [41, 60]
-		//
-		// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-		//
-		_getRootIndexRanges( geo ) {
+		traverse( callback, rootIndex = 0 ) {
 
-			if ( ! geo.groups || ! geo.groups.length ) {
+			if ( this._isPacked ) {
 
-				return [ { offset: 0, count: geo.index.count / 3 } ];
+				const buffer = this._roots[ rootIndex ];
+				const uint32Array = new Uint32Array( buffer );
+				const uint16Array = new Uint16Array( buffer );
+				_traverse( 0 );
 
-			}
+				function _traverse( stride4Offset, depth = 0 ) {
 
-			const ranges = [];
-			const rangeBoundaries = new Set();
-			for ( const group of geo.groups ) {
+					const stride2Offset = stride4Offset * 2;
+					const isLeaf = uint16Array[ stride2Offset + 15 ];
+					if ( isLeaf ) {
 
-				rangeBoundaries.add( group.start );
-				rangeBoundaries.add( group.start + group.count );
+						const offset = uint32Array[ stride4Offset + 6 ];
+						const count = uint16Array[ stride2Offset + 14 ];
+						callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), offset, count );
 
-			}
+					} else {
 
-			// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
-			const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
-			for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
+						const left = stride4Offset + BYTES_PER_NODE / 4;
+						const right = uint32Array[ stride4Offset + 6 ];
+						const splitAxis = uint32Array[ stride4Offset + 7 ];
+						callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
 
-				const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
-				ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+						_traverse( left, depth + 1 );
+						_traverse( right, depth + 1 );
 
-			}
-			return ranges;
-
-		}
-
-		_buildTree( geo, options ) {
-
-			this._ensureIndex( geo );
-
-			const ctx = new BVHConstructionContext( geo, options );
-			let reachedMaxDepth = false;
-
-			// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
-			// recording the offset and count of its triangles and writing them into the reordered geometry index.
-			const splitNode = ( node, offset, count, depth = 0 ) => {
-
-				if ( depth >= options.maxDepth ) {
-
-					reachedMaxDepth = true;
+					}
 
 				}
-
-				// early out if we've met our capacity
-				if ( count <= options.maxLeafTris || depth >= options.maxDepth ) {
-
-					node.offset = offset;
-					node.count = count;
-					return node;
-
-				}
-
-				// Find where to split the volume
-				const split = ctx.getOptimalSplit( node.boundingData, offset, count, options.strategy );
-				if ( split.axis === - 1 ) {
-
-					node.offset = offset;
-					node.count = count;
-					return node;
-
-				}
-
-				const splitOffset = ctx.partition( offset, count, split );
-
-				// create the two new child nodes
-				if ( splitOffset === offset || splitOffset === offset + count ) {
-
-					node.offset = offset;
-					node.count = count;
-
-				} else {
-
-					node.splitAxis = split.axis;
-
-					// create the left child and compute its bounding box
-					const left = node.left = new MeshBVHNode();
-					const lstart = offset, lcount = splitOffset - offset;
-					left.boundingData = ctx.getBounds( lstart, lcount, new Float32Array( 6 ) );
-					splitNode( left, lstart, lcount, depth + 1 );
-
-					// repeat for right
-					const right = node.right = new MeshBVHNode();
-					const rstart = splitOffset, rcount = count - lcount;
-					right.boundingData = ctx.getBounds( rstart, rcount, new Float32Array( 6 ) );
-					splitNode( right, rstart, rcount, depth + 1 );
-
-				}
-
-				return node;
-
-			};
-
-			const roots = [];
-			const ranges = this._getRootIndexRanges( geo );
-
-			if ( ranges.length === 1 ) {
-
-				const root = new MeshBVHNode();
-				const range = ranges[ 0 ];
-
-				if ( geo.boundingBox != null ) {
-
-					root.boundingData = boxToArray( geo.boundingBox );
-
-				} else {
-
-					root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
-
-				}
-
-				splitNode( root, range.offset, range.count );
-				roots.push( root );
 
 			} else {
 
-				for ( let range of ranges ) {
+				_traverse( this._roots[ rootIndex ] );
 
-					const root = new MeshBVHNode();
-					root.boundingData = ctx.getBounds( range.offset, range.count, new Float32Array( 6 ) );
-					splitNode( root, range.offset, range.count );
-					roots.push( root );
+				function _traverse( node, depth = 0 ) {
 
-				}
+					const isLeaf = ! ! node.count;
+					if ( isLeaf ) {
 
-			}
+						callback( depth, isLeaf, node.boundingData, node.offset, node.count );
 
-			if ( reachedMaxDepth && options.verbose ) {
+					} else {
 
-				console.warn( `MeshBVH: Max depth of ${ options.maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( this, geo );
+						callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
+						if ( node.left ) _traverse( node.left, depth + 1 );
+						if ( node.right ) _traverse( node.right, depth + 1 );
 
-			}
-
-			// if the geometry doesn't have a bounding box, then let's politely populate it using
-			// the work we did to determine the BVH root bounds
-
-			if ( geo.boundingBox == null ) {
-
-				const rootBox = new THREE.Box3();
-				geo.boundingBox = new THREE.Box3();
-
-				for ( let root of roots ) {
-
-					geo.boundingBox.union( arrayToBox( root.boundingData, rootBox ) );
+					}
 
 				}
 
 			}
-
-			return roots;
 
 		}
 
+		/* Core Cast Functions */
 		raycast( mesh, raycaster, ray, intersects ) {
 
+			const isPacked = this._isPacked;
 			for ( const root of this._roots ) {
 
-				root.raycast( mesh, raycaster, ray, intersects );
+				if ( isPacked ) {
+
+					setBuffer( root );
+					raycastBuffer( 0, mesh, raycaster, ray, intersects );
+
+				} else {
+
+					raycast( root, mesh, raycaster, ray, intersects );
+
+				}
 
 			}
+
+			isPacked && clearBuffer();
 
 		}
 
 		raycastFirst( mesh, raycaster, ray ) {
 
+			const isPacked = this._isPacked;
 			let closestResult = null;
-
 			for ( const root of this._roots ) {
 
-				const result = root.raycastFirst( mesh, raycaster, ray );
+				let result;
+				if ( isPacked ) {
+
+					setBuffer( root );
+					result = raycastFirstBuffer( 0, mesh, raycaster, ray );
+
+				} else {
+
+					result = raycastFirst( root, mesh, raycaster, ray );
+
+				}
+
 				if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 					closestResult = result;
@@ -2259,68 +2978,179 @@
 
 			}
 
+			isPacked && clearBuffer();
+
 			return closestResult;
 
 		}
 
 		intersectsGeometry( mesh, geometry, geomToMesh ) {
 
+			const isPacked = this._isPacked;
+			let result = false;
 			for ( const root of this._roots ) {
 
-				if ( root.intersectsGeometry( mesh, geometry, geomToMesh ) ) return true;
+				if ( isPacked ) {
+
+					setBuffer( root );
+					result = intersectsGeometryBuffer( 0, mesh, geometry, geomToMesh );
+
+				} else {
+
+					result = intersectsGeometry( root, mesh, geometry, geomToMesh );
+
+				}
+
+				if ( result ) {
+
+					break;
+
+				}
 
 			}
 
-			return false;
+			isPacked && clearBuffer();
+
+			return result;
 
 		}
 
 		shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
 
+			const isPacked = this._isPacked;
+			let result = false;
 			for ( const root of this._roots ) {
 
-				if ( root.shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc ) ) return true;
+				if ( isPacked ) {
+
+					setBuffer( root );
+					result = shapecastBuffer( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+
+				} else {
+
+					result = shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+
+				}
+
+				if ( result ) {
+
+					break;
+
+				}
 
 			}
 
-			return false;
+			isPacked && clearBuffer();
+
+			return result;
 
 		}
 
+		/* Derived Cast Functions */
 		intersectsBox( mesh, box, boxToMesh ) {
 
-			for ( const root of this._roots ) {
+			obb.set( box.min, box.max, boxToMesh );
+			obb.update();
 
-				if ( root.intersectsBox( mesh, box, boxToMesh ) ) return true;
-
-			}
-
-			return false;
+			return this.shapecast(
+				mesh,
+				box => obb.intersectsBox( box ),
+				tri => obb.intersectsTriangle( tri )
+			);
 
 		}
 
 		intersectsSphere( mesh, sphere ) {
 
-			for ( const root of this._roots ) {
-
-				if ( root.intersectsSphere( mesh, sphere ) ) return true;
-
-			}
-
-			return false;
+			return this.shapecast(
+				mesh,
+				box => sphere.intersectsBox( box ),
+				tri => sphereIntersectTriangle( sphere, tri )
+			);
 
 		}
 
-		closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold ) {
+		closestPointToGeometry( mesh, geom, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
 
-			let closestDistance = Infinity;
-			for ( const root of this._roots ) {
+			if ( ! geom.boundingBox ) {
 
-				const dist = root.closestPointToGeometry( mesh, geom, matrix, target1, target2, minThreshold, maxThreshold );
-				if ( dist < closestDistance ) closestDistance = dist;
-				if ( dist < minThreshold ) return dist;
+				geom.computeBoundingBox();
 
 			}
+
+			obb.set( geom.boundingBox.min, geom.boundingBox.max, geometryToBvh );
+			obb.update();
+
+			const pos = geom.attributes.position;
+			const index = geom.index;
+
+			let tempTarget1 = null;
+			let tempTarget2 = null;
+			if ( target1 ) {
+
+				tempTarget1 = temp1;
+
+			}
+
+			if ( target2 ) {
+
+				tempTarget2 = temp2;
+
+			}
+
+			let closestDistance = Infinity;
+			this.shapecast(
+				mesh,
+				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+				tri => {
+
+					const sphere1 = tri.sphere;
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+
+						setTriangle( tri2, i2, index, pos );
+						tri2.a.applyMatrix4( geometryToBvh );
+						tri2.b.applyMatrix4( geometryToBvh );
+						tri2.c.applyMatrix4( geometryToBvh );
+						tri2.sphere.setFromPoints( tri2.points );
+
+						const sphere2 = tri2.sphere;
+						const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
+						if ( sphereDist > closestDistance ) {
+
+							continue;
+
+						}
+
+						tri2.update();
+
+						const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
+						if ( dist < closestDistance ) {
+
+							if ( target1 ) {
+
+								target1.copy( tempTarget1 );
+
+							}
+
+							if ( target2 ) {
+
+								target2.copy( tempTarget2 );
+
+							}
+
+							closestDistance = dist;
+
+						}
+						if ( dist < minThreshold ) return true;
+
+					}
+
+					return false;
+
+				},
+				box => obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) )
+
+			);
 
 			return closestDistance;
 
@@ -2332,16 +3162,46 @@
 
 		}
 
-		closestPointToPoint( mesh, point, target, minThreshold, maxThreshold ) {
+		closestPointToPoint( mesh, point, target, minThreshold = 0, maxThreshold = Infinity ) {
 
+			// early out if under minThreshold
+			// skip checking if over maxThreshold
+			// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+			// returns Infinity if no value found
 			let closestDistance = Infinity;
-			for ( const root of this._roots ) {
+			this.shapecast(
 
-				const dist = root.closestPointToPoint( mesh, point, target, minThreshold, maxThreshold );
-				if ( dist < closestDistance ) closestDistance = dist;
-				if ( dist < minThreshold ) return dist;
+				mesh,
+				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
+				tri => {
 
-			}
+					tri.closestPointToPoint( point, temp );
+					const dist = point.distanceTo( temp );
+					if ( dist < closestDistance ) {
+
+						if ( target ) {
+
+							target.copy( temp );
+
+						}
+						closestDistance = dist;
+
+					}
+
+					if ( dist < minThreshold ) {
+
+						return true;
+
+					} else {
+
+						return false;
+
+					}
+
+				},
+				box => box.distanceToPoint( point )
+
+			);
 
 			return closestDistance;
 
@@ -2357,9 +3217,9 @@
 
 	const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
 	const boxGeom = new THREE.Box3Helper().geometry;
-	let boundingBox$1 = new THREE.Box3();
+	let boundingBox$2 = new THREE.Box3();
 
-	class MeshBVHRootVisualizer extends THREE.Object3D {
+	class MeshBVHRootVisualizer extends THREE.Group {
 
 		constructor( mesh, depth = 10, group = 0 ) {
 
@@ -2377,63 +3237,50 @@
 
 		update() {
 
-			if ( this._mesh.geometry.boundsTree !== this._boundsTree || this._oldDepth !== this.depth ) {
+			this._oldDepth = this.depth;
+			this._boundsTree = this._mesh.geometry.boundsTree;
 
-				this._oldDepth = this.depth;
-				this._boundsTree = this._mesh.geometry.boundsTree;
+			let requiredChildren = 0;
+			if ( this._boundsTree ) {
 
-				let requiredChildren = 0;
-				if ( this._boundsTree ) {
+				this._boundsTree.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
 
-					const recurse = ( n, d ) => {
+					let isTerminal = isLeaf || countOrIsUnfinished;
 
-						let isLeaf = 'count' in n;
+					if ( depth >= this.depth ) return;
 
-						if ( d === this.depth ) return;
+					if ( depth === this.depth - 1 || isTerminal ) {
 
-						if ( d === this.depth - 1 || isLeaf ) {
+						let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
+						if ( ! m ) {
 
-							let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
-							if ( ! m ) {
-
-								m = new THREE.LineSegments( boxGeom, wiremat );
-								m.raycast = () => [];
-								this.add( m );
-
-							}
-							requiredChildren ++;
-							arrayToBox( n.boundingData, boundingBox$1 );
-							boundingBox$1.getCenter( m.position );
-							m.scale.subVectors( boundingBox$1.max, boundingBox$1.min ).multiplyScalar( 0.5 );
-
-							if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
-							if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
-							if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
+							m = new THREE.LineSegments( boxGeom, wiremat );
+							m.raycast = () => [];
+							this.add( m );
 
 						}
+						requiredChildren ++;
+						arrayToBox( boundingData, boundingBox$2 );
+						boundingBox$2.getCenter( m.position );
+						m.scale.subVectors( boundingBox$2.max, boundingBox$2.min ).multiplyScalar( 0.5 );
 
-						if ( ! isLeaf ) {
+						if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
+						if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
+						if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
 
-							recurse( n.left, d + 1 );
-							recurse( n.right, d + 1 );
+					}
 
-						}
-
-					};
-
-					recurse( this._boundsTree._roots[ this._group ], 0 );
-
-				}
-
-				while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
+				} );
 
 			}
+
+			while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
 
 		}
 
 	}
 
-	class MeshBVHVisualizer extends THREE.Object3D {
+	class MeshBVHVisualizer extends THREE.Group {
 
 		constructor( mesh, depth = 10 ) {
 
@@ -2480,6 +3327,146 @@
 			this.scale.copy( this._mesh.scale );
 
 		}
+
+	}
+
+	// https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
+	function getPrimitiveSize( el ) {
+
+		switch ( typeof el ) {
+
+			case 'number':
+				return 8;
+			case 'string':
+				return el.length * 2;
+			case 'boolean':
+				return 4;
+			default:
+				return 0;
+
+		}
+
+	}
+
+	function isTypedArray( arr ) {
+
+		const regex = /(Uint|Int|Float)(8|16|32)Array/;
+		return regex.test( arr.constructor.name );
+
+	}
+
+	function getRootExtremes( bvh, group ) {
+
+		const result = {
+			total: 0,
+			depth: {
+				min: Infinity, max: - Infinity
+			},
+			tris: {
+				min: Infinity, max: - Infinity
+			},
+			splits: [ 0, 0, 0 ]
+		};
+
+		bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
+
+			result.total ++;
+			if ( isLeaf ) {
+
+				result.depth.min = Math.min( depth, result.depth.min );
+				result.depth.max = Math.max( depth, result.depth.max );
+
+				result.tris.min = Math.min( countOrIsUnfinished, result.tris.min );
+				result.tris.max = Math.max( countOrIsUnfinished, result.tris.max );
+
+			} else {
+
+				result.splits[ offsetOrSplit ] ++;
+
+			}
+
+		}, group );
+
+		// If there are no leaf nodes because the tree hasn't finished generating yet.
+		if ( result.tris.min === Infinity ) {
+
+			result.tris.min = 0;
+			result.tris.max = 0;
+
+		}
+
+		if ( result.depth.min === Infinity ) {
+
+			result.depth.min = 0;
+			result.depth.max = 0;
+
+		}
+
+		return result;
+
+	}
+
+	function getBVHExtremes( bvh ) {
+
+		return bvh._roots.map( ( root, i ) => getRootExtremes( bvh, i ) );
+
+	}
+
+	function estimateMemoryInBytes( obj ) {
+
+		const traversed = new Set();
+		const stack = [ obj ];
+		let bytes = 0;
+
+		while ( stack.length ) {
+
+			const curr = stack.pop();
+			if ( traversed.has( curr ) ) {
+
+				continue;
+
+			}
+			traversed.add( curr );
+
+			for ( let key in curr ) {
+
+				if ( ! curr.hasOwnProperty( key ) ) {
+
+					continue;
+
+				}
+
+				bytes += getPrimitiveSize( key );
+
+				const value = curr[ key ];
+				if ( value && ( typeof value === 'object' || typeof value === 'function' ) ) {
+
+					if ( isTypedArray( value ) ) {
+
+						bytes += value.byteLength;
+
+					} else if ( value instanceof ArrayBuffer ) {
+
+						bytes += value.byteLength;
+
+					} else {
+
+						stack.push( value );
+
+					}
+
+				} else {
+
+					bytes += getPrimitiveSize( value );
+
+				}
+
+
+			}
+
+		}
+
+		return bytes;
 
 	}
 
@@ -2536,6 +3523,8 @@
 	exports.CENTER = CENTER;
 	exports.AVERAGE = AVERAGE;
 	exports.SAH = SAH;
+	exports.estimateMemoryInBytes = estimateMemoryInBytes;
+	exports.getBVHExtremes = getBVHExtremes;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 
