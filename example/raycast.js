@@ -66,7 +66,7 @@ const params = {
 
 	mesh: {
 		splitStrategy: CENTER,
-		lazyGeneration: false,
+		lazyGeneration: true,
 		count: 1,
 		useBoundsTree: true,
 		visualizeBounds: false,

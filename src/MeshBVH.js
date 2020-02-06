@@ -253,7 +253,7 @@ export default class MeshBVH {
 			maxDepth: 40,
 			maxLeafTris: 10,
 			verbose: true,
-			lazyGeneration: false,
+			lazyGeneration: true,
 			packData: true,
 			[ SKIP_GENERATION ]: false
 
