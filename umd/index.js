@@ -4,6 +4,11 @@
 	(global = global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
 }(this, function (exports, THREE) { 'use strict';
 
+	// Split strategy constants
+	const CENTER = 0;
+	const AVERAGE = 1;
+	const SAH = 2;
+
 	class MeshBVHNode {
 
 		constructor() {
@@ -14,11 +19,6 @@
 		}
 
 	}
-
-	// Split strategy constants
-	const CENTER = 0;
-	const AVERAGE = 1;
-	const SAH = 2;
 
 	// Returns a Float32Array representing the bounds data for box.
 	function boxToArray( bx ) {
@@ -2804,7 +2804,12 @@
 			if ( setIndex ) {
 
 				const indexAttribute = geometry.getIndex();
-				if ( indexAttribute.array !== index ) {
+				if ( indexAttribute === null ) {
+
+					const newIndex = new THREE.BufferAttribute( data.index, 1, false );
+					geometry.setIndex( newIndex );
+
+				} else if ( indexAttribute.array !== index ) {
 
 					indexAttribute.array.set( index );
 					indexAttribute.needsUpdate = true;
@@ -2840,10 +2845,9 @@
 				maxDepth: 40,
 				maxLeafTris: 10,
 				verbose: true,
+				lazyGeneration: true,
 
 				// undocumented options
-				// progressively generate tree as nodes when raycasting
-				lazyGeneration: true,
 
 				// whether to the pack the data as a buffer or not. The data
 				// will not be packed if lazyGeneration is true.
@@ -2878,9 +2882,9 @@
 				const buffer = this._roots[ rootIndex ];
 				const uint32Array = new Uint32Array( buffer );
 				const uint16Array = new Uint16Array( buffer );
-				_traverse( 0 );
+				_traverseBuffer( 0 );
 
-				function _traverse( stride4Offset, depth = 0 ) {
+				function _traverseBuffer( stride4Offset, depth = 0 ) {
 
 					const stride2Offset = stride4Offset * 2;
 					const isLeaf = uint16Array[ stride2Offset + 15 ];
@@ -2897,8 +2901,8 @@
 						const splitAxis = uint32Array[ stride4Offset + 7 ];
 						callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
 
-						_traverse( left, depth + 1 );
-						_traverse( right, depth + 1 );
+						_traverseBuffer( left, depth + 1 );
+						_traverseBuffer( right, depth + 1 );
 
 					}
 
@@ -2906,9 +2910,9 @@
 
 			} else {
 
-				_traverse( this._roots[ rootIndex ] );
+				_traverseNode( this._roots[ rootIndex ] );
 
-				function _traverse( node, depth = 0 ) {
+				function _traverseNode( node, depth = 0 ) {
 
 					const isLeaf = ! ! node.count;
 					if ( isLeaf ) {
@@ -2918,8 +2922,8 @@
 					} else {
 
 						callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
-						if ( node.left ) _traverse( node.left, depth + 1 );
-						if ( node.right ) _traverse( node.right, depth + 1 );
+						if ( node.left ) _traverseNode( node.left, depth + 1 );
+						if ( node.right ) _traverseNode( node.right, depth + 1 );
 
 					}
 
