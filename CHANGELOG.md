@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - MeshBVH.serialize and deserialize functions so the bvh can be computed and transferred from a webworker.
-- `lazyGeneration` option for faster tree initialization.
+- `lazyGeneration` (defaults to true) option for faster tree initialization.
+- Support for a buffer-packed tree if `lazyGeneration` is false or a tree has been deserialized for a more smaller memory footprint.
 
 ### Changed
 - CENTER tree computation to improve raycast performance and create more balanced trees.
