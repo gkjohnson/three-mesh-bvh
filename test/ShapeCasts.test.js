@@ -507,12 +507,15 @@ function runSuiteWithOptions( defaultOptions ) {
 			it( 'should yield closest hit only with a bounds tree', () => {
 
 				const bvh = new MeshBVH( geometry );
-				raycaster.firstHitOnly = false;
-				const allHits = raycaster.intersectObject( mesh, true );
 
+				// Run the bvh raycast before the builtin raycast because the bvh
+				// lazy raycast will rearrange the index.
 				geometry.boundsTree = bvh;
 				raycaster.firstHitOnly = true;
 				const bvhHits = raycaster.intersectObject( mesh, true );
+
+				raycaster.firstHitOnly = false;
+				const allHits = raycaster.intersectObject( mesh, true );
 
 				expect( allHits ).toHaveLength( 10 );
 				expect( bvhHits ).toHaveLength( 1 );
