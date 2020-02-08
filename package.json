@@ -1,6 +1,6 @@
 {
   "name": "three-mesh-bvh",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "A BVH implementation to speed up raycasting against three.js meshes.",
   "module": "src/index.js",
   "main": "umd/index.js",
