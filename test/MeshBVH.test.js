@@ -251,7 +251,7 @@ describe( 'Options', () => {
 
 		it( 'should not be limited by default', () => {
 
-			mesh.geometry.computeBoundsTree();
+			mesh.geometry.computeBoundsTree( { lazyGeneration: false } );
 
 			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toBeGreaterThan( 10 );
@@ -260,7 +260,7 @@ describe( 'Options', () => {
 
 		it( 'should cap the depth of the bounds tree', () => {
 
-			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
+			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false, lazyGeneration: false } );
 
 			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toEqual( 10 );
