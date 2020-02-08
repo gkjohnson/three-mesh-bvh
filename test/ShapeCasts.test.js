@@ -59,8 +59,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if the geometry is intersecting the mesh', () => {
 
-			const geomToWorld = new THREE
-				.Matrix4()
+			const geomToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 1, 0 ),
 					new Quaternion(),
@@ -72,8 +71,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the geometry is not intersecting the mesh', () => {
 
-			const geomToWorld = new THREE
-				.Matrix4()
+			const geomToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 1.2, 0 ),
 					new Quaternion(),
@@ -85,8 +83,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the geometry is contained by the mesh entirely', () => {
 
-			const geomToWorld = new THREE
-				.Matrix4()
+			const geomToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 0, 0 ),
 					new Quaternion(),
@@ -124,8 +121,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if the geometry is intersecting the mesh', () => {
 
-			const geomToWorld = new THREE
-				.Matrix4()
+			const geomToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 1, 0 ),
 					new Quaternion(),
@@ -137,8 +133,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the geometry is not intersecting the mesh', () => {
 
-			const geomToWorld = new THREE
-				.Matrix4()
+			const geomToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 1.2, 0 ),
 					new Quaternion(),
@@ -150,8 +145,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the geometry is contained by the mesh entirely', () => {
 
-			const geomToWorld = new THREE
-				.Matrix4()
+			const geomToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 0, 0 ),
 					new Quaternion(),
@@ -232,8 +226,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			box.min.set( - 1, - 1, - 1 );
 			box.max.set( 1, 1, 1 );
 
-			const boxToWorld = new THREE
-				.Matrix4()
+			const boxToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 3, 0 ),
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
@@ -249,8 +242,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			box.min.set( - 1, - 1, - 1 );
 			box.max.set( 1, 1, 1 );
 
-			const boxToWorld = new THREE
-				.Matrix4()
+			const boxToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 2, 0 ),
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
@@ -266,8 +258,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			box.min.set( - 10, - 10, - 10 );
 			box.max.set( 10, 10, 10 );
 
-			const boxToWorld = new THREE
-				.Matrix4()
+			const boxToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 0, 0 ),
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
@@ -283,8 +274,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			box.min.set( - .5, - .5, - .5 );
 			box.max.set( .5, .5, .5 );
 
-			const boxToWorld = new THREE
-				.Matrix4()
+			const boxToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 0, 0 ),
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
@@ -300,8 +290,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			box.min.set( - 10, 0, - 10 );
 			box.max.set( 10, 10, 10 );
 
-			const boxToWorld = new THREE
-				.Matrix4()
+			const boxToWorld = new Matrix4()
 				.compose(
 					new Vector3( 0, 0, 0 ),
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
