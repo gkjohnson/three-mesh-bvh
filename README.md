@@ -105,19 +105,26 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
 ```js
 {
-    // Which split strategy to use when constructing the BVH
+    // Which split strategy to use when constructing the BVH.
     strategy: CENTER,
 
-    // The maximum depth to allow the tree to build to
+    // The maximum depth to allow the tree to build to.
     // Setting this to a smaller trades raycast speed for better construction
-    // time and less memory allocation
+    // time and less memory allocation.
     maxDepth: 40,
 
-    // The number of triangles to aim for in a leaf node
+    // The number of triangles to aim for in a leaf node.
     maxLeafTris: 10,
 
-    // Print out warnings encountered during tree construction
+    // Print out warnings encountered during tree construction.
     verbose: true,
+    
+    // If true the bounds tree is generated progressively as the tree is used allowing
+    // for a fast initialization time and memory allocation as needed but a higher memory
+    // footprint once the tree is completed.
+    // If false then the bounds tree will be completely generated up front and packed into
+    // an array buffer for a lower final memory footprint and long initialization time.
+    lazyGeneration: true
 
 }
 ```
