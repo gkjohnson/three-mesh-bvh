@@ -71,6 +71,19 @@ raycaster.firstHitOnly = true;
 raycaster.intersectObjects( [ mesh ] );
 ```
 
+## Serialization and Deserialization
+
+```js
+const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
+const bvh = new MeshBVH( geometry );
+const serialized = MeshBVH.serialize( bvh, geometry );
+
+// ...
+
+const deserializedBVH = MeshBVH.deserialize( serialized, geometry );
+geometry.boundsTree = deserializedBVH;
+```
+
 # Exports
 
 ## Split Strategy Constants
@@ -94,6 +107,30 @@ This is the slowest construction option.
 ## MeshBVH
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
+
+### static .serialize
+
+```js
+static serialize( bvh : MeshBVH, geometry : BufferGeometry, copyIndexBuffer = true : Boolean ) : SerializedBVH
+```
+
+Generates a representation of the complete bounds tree and the geometry index buffer which can be used to recreate a bounds tree using the [deserialize](#static-deserialize) function. The `serialize` and `deserialize` functions can be used to generate a MeshBVH asynchronously in a background web worker to prevent the main thread from stuttering.
+
+`bvh` is the MeshBVH to be serialized and `geometry` is the bufferGeometry used to generate and raycast against using the `bvh`.
+
+If `copyIndexBuffer` is true then a copy of the `geometry.index.array` is made which is slower but useful is the geometry index is intended to be modified.
+
+### static .deserialize
+
+```js
+static deserialize( data : SerializedBVH, geometry : BufferGeometry, setIndex = true : Boolean ) : MeshBVH
+```
+
+Returns a new MeshBVH instance from the serialized data. `geometry` is the geometry used to generate the original bvh `data` was derived from. If `setIndex` is true then the buffer for the `geometry.index` attribute is set from the serialized data attribute or created if an index does not exist.
+
+_NOTE: In order for the bounds tree to be used for casts the geometry index attribute must be replaced by the data in the SeralizedMeshBVH object._
+
+_NOTE: The returned MeshBVH is a fully generated, buffer packed BVH instance to improve memory footprint and uses the same buffers passed in on the `data.root` property._
 
 ### .constructor
 
@@ -200,6 +237,20 @@ closestPointToGeometry(
 Returns the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` and the closest point on the other geometry in `target2` in the frame of the BVH.
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+
+## SerializedBVH
+
+### .roots
+
+```js
+roots : Array< ArrayBuffer >
+```
+
+### .index
+
+```js
+index : TypedArray
+```
 
 ## MeshBVHVisualizer
 
