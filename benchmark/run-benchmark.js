@@ -42,7 +42,7 @@ function logExtremes( bvh, geometry ) {
 
 }
 
-function runSuite( strategy, lazyGeneration = false ) {
+function runSuite( strategy, lazyGeneration = true ) {
 
 	const options = { lazyGeneration, strategy };
 	let preFunc = lazyGeneration ? () => geometry.computeBoundsTree( options ) : null;
@@ -185,8 +185,8 @@ console.log( '*Strategy: CENTER*' );
 runSuite( CENTER );
 
 console.log( '' );
-console.log( '*Strategy: Lazy CENTER*' );
-runSuite( CENTER, true );
+console.log( '*Strategy: Non-Lazy CENTER*' );
+runSuite( CENTER, false );
 
 console.log( '' );
 console.log( '*Strategy: AVERAGE*' );
