@@ -257,10 +257,9 @@ export default class MeshBVH {
 			maxDepth: 40,
 			maxLeafTris: 10,
 			verbose: true,
+			lazyGeneration: true,
 
 			// undocumented options
-			// progressively generate tree as nodes when raycasting
-			lazyGeneration: true,
 
 			// whether to the pack the data as a buffer or not. The data
 			// will not be packed if lazyGeneration is true.
