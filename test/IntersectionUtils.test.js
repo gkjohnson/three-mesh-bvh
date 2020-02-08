@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { Vector3, Quaternion, Euler, Triangle, Sphere, Plane } from 'three';
 import { sphereIntersectTriangle } from '../src/Utils/MathUtilities.js';
 import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';
 import { OrientedBox } from '../src/Utils/OrientedBox.js';
@@ -20,12 +20,12 @@ function setRandomVector( vector, length ) {
 
 function getRandomOrientation( matrix, range ) {
 
-	const pos = new THREE.Vector3();
-	const quat = new THREE.Quaternion();
-	const sca = new THREE.Vector3( 1, 1, 1 );
+	const pos = new Vector3();
+	const quat = new Quaternion();
+	const sca = new Vector3( 1, 1, 1 );
 
 	setRandomVector( pos, range );
-	quat.setFromEuler( new THREE.Euler( Math.random() * 180, Math.random() * 180, Math.random() * 180 ) );
+	quat.setFromEuler( new Euler( Math.random() * 180, Math.random() * 180, Math.random() * 180 ) );
 	matrix.compose( pos, quat, sca );
 	return matrix;
 
@@ -34,7 +34,7 @@ function getRandomOrientation( matrix, range ) {
 describe( 'Triangle Intersections', () => {
 
 	const t1 = new SeparatingAxisTriangle();
-	const t2 = new THREE.Triangle();
+	const t2 = new Triangle();
 
 	it( 'should return false if they are at different angles but not intersecting', () => {
 
@@ -178,11 +178,11 @@ describe( 'Sphere Intersections', () => {
 
 	it( 'should intersect triangles with a vertex inside', () => {
 
-		const sphere = new THREE.Sphere();
+		const sphere = new Sphere();
 		sphere.radius = 1;
 		setRandomVector( sphere.center, 10 );
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -207,11 +207,11 @@ describe( 'Sphere Intersections', () => {
 
 	it( 'should intersect triangles with two vertices inside', () => {
 
-		const sphere = new THREE.Sphere();
+		const sphere = new Sphere();
 		sphere.radius = 1;
 		setRandomVector( sphere.center, 10 );
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -236,11 +236,11 @@ describe( 'Sphere Intersections', () => {
 
 	it( 'should intersect triangles with all vertices inside', () => {
 
-		const sphere = new THREE.Sphere();
+		const sphere = new Sphere();
 		sphere.radius = 1;
 		setRandomVector( sphere.center, 10 );
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -265,11 +265,11 @@ describe( 'Sphere Intersections', () => {
 
 	it( 'should intersect triangles that only intersect the middle', () => {
 
-		const sphere = new THREE.Sphere();
+		const sphere = new Sphere();
 		sphere.radius = 1;
 		setRandomVector( sphere.center, 10 );
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -298,14 +298,14 @@ describe( 'Sphere Intersections', () => {
 
 	it( 'should not intersect triangles outside sphere', () => {
 
-		const sphere = new THREE.Sphere();
+		const sphere = new Sphere();
 		sphere.radius = 1;
 		setRandomVector( sphere.center, 10 );
 
-		const plane = new THREE.Plane();
-		const vec = new THREE.Vector3();
+		const plane = new Plane();
+		const vec = new Vector3();
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			// project the triangle out onto a plane
@@ -349,14 +349,14 @@ describe( 'Box Intersections', () => {
 		getRandomOrientation( box.matrix, 10 );
 		box.update();
 
-		center = new THREE.Vector3();
+		center = new Vector3();
 		center.setFromMatrixPosition( box.matrix );
 
 	} );
 
 	it( 'should intersect triangles with a vertex inside', () => {
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -381,7 +381,7 @@ describe( 'Box Intersections', () => {
 
 	it( 'should intersect triangles with two vertices inside', () => {
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -406,7 +406,7 @@ describe( 'Box Intersections', () => {
 
 	it( 'should intersect triangles with all vertices inside', () => {
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -432,7 +432,7 @@ describe( 'Box Intersections', () => {
 
 	it( 'should intersect triangles that cut across', () => {
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const fields = [ 'a', 'b', 'c' ];
@@ -461,10 +461,10 @@ describe( 'Box Intersections', () => {
 
 	it( 'should not intersect triangles outside sphere', () => {
 
-		const plane = new THREE.Plane();
-		const vec = new THREE.Vector3();
+		const plane = new Plane();
+		const vec = new Vector3();
 
-		const triangle = new THREE.Triangle();
+		const triangle = new Triangle();
 		for ( let i = 0; i < 100; i ++ ) {
 
 			// project the triangle out onto a plane

@@ -1,9 +1,21 @@
-import * as THREE from 'three';
+import {
+	Mesh,
+	BufferGeometry,
+	SphereBufferGeometry,
+	SphereGeometry,
+	InterleavedBufferAttribute,
+	InterleavedBuffer,
+	BoxBufferGeometry,
+	Raycaster,
+	MeshBasicMaterial,
+	TorusBufferGeometry,
+	BufferAttribute
+} from 'three';
 import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes } from '../src/index.js';
 
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
-THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+Mesh.prototype.raycast = acceleratedRaycast;
+BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 // Returns the max tree depth of the BVH
 function getMaxDepth( bvh ) {
@@ -16,7 +28,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should be generated when calling BufferGeometry.computeBoundsTree', () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 1, 1 );
+		const geom = new SphereBufferGeometry( 1, 1, 1 );
 		expect( geom.boundsTree ).not.toBeDefined();
 
 		geom.computeBoundsTree();
@@ -24,9 +36,9 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
-	it( 'should throw an error if THREE.Geometry is used', () => {
+	it( 'should throw an error if Geometry is used', () => {
 
-		const geom = new THREE.SphereGeometry( 1, 1, 1 );
+		const geom = new SphereGeometry( 1, 1, 1 );
 		let errorThrown = false;
 		try {
 
@@ -44,14 +56,14 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should throw an error if InterleavedBufferAttributes are used', () => {
 
-		const indexAttr = new THREE.InterleavedBufferAttribute( new THREE.InterleavedBuffer( new Uint32Array( [ 1, 2, 3 ] ), 1 ), 4, 0, false );
-		const posAttr = new THREE.InterleavedBufferAttribute( new THREE.InterleavedBuffer( new Float32Array( [ 1, 2, 3 ] ), 3 ), 4, 0, false );
+		const indexAttr = new InterleavedBufferAttribute( new InterleavedBuffer( new Uint32Array( [ 1, 2, 3 ] ), 1 ), 4, 0, false );
+		const posAttr = new InterleavedBufferAttribute( new InterleavedBuffer( new Float32Array( [ 1, 2, 3 ] ), 3 ), 4, 0, false );
 
 		let geometry;
 		let posErrorThrown = false;
 		let indexErrorThrown = false;
 
-		geometry = new THREE.BoxBufferGeometry();
+		geometry = new BoxBufferGeometry();
 		geometry.addAttribute( 'position', posAttr );
 		try {
 
@@ -64,7 +76,7 @@ describe( 'Bounds Tree', () => {
 		}
 		expect( posErrorThrown ).toBe( true );
 
-		geometry = new THREE.BoxBufferGeometry();
+		geometry = new BoxBufferGeometry();
 		geometry.setIndex( indexAttr );
 		try {
 
@@ -81,9 +93,9 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should use the boundsTree when raycasting if available', () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 1, 1 );
-		const mesh = new THREE.Mesh( geom, new THREE.MeshBasicMaterial() );
-		const raycaster = new THREE.Raycaster();
+		const geom = new SphereBufferGeometry( 1, 1, 1 );
+		const mesh = new Mesh( geom, new MeshBasicMaterial() );
+		const raycaster = new Raycaster();
 
 		raycaster.ray.origin.set( 0, 0, 10 );
 		raycaster.ray.direction.set( 0, 0, - 1 );
@@ -108,7 +120,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should respect index group invariants', () => {
 
-		const geo = new THREE.TorusBufferGeometry( 5, 5, 400, 100 );
+		const geo = new TorusBufferGeometry( 5, 5, 400, 100 );
 		const groupCount = 10;
 		const groupSize = geo.index.array.length / groupCount;
 
@@ -152,9 +164,9 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should create a correctly sized and typed index if one does not exist', () => {
 
-		const geom = new THREE.BufferGeometry();
-		const smallPosAttr = new THREE.BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) - 3 ), 3, false );
-		const largePosAttr = new THREE.BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) + 3 ), 3, false );
+		const geom = new BufferGeometry();
+		const smallPosAttr = new BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) - 3 ), 3, false );
+		const largePosAttr = new BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) + 3 ), 3, false );
 
 		geom.addAttribute( 'position', smallPosAttr );
 
@@ -179,7 +191,7 @@ describe( 'Serialization', () => {
 
 	it( 'should serialize then deserialize to the same structure.', () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom, { packData: true, lazyGeneration: false } );
 		const serialized = MeshBVH.serialize( bvh, geom );
 
@@ -190,7 +202,7 @@ describe( 'Serialization', () => {
 
 	it( 'should copy the index buffer from the target geometry unless copyIndex is set to false', () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom, { packData: true, lazyGeneration: false } );
 
 		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh, geom ).index );
@@ -200,8 +212,8 @@ describe( 'Serialization', () => {
 
 	it( 'should copy the index buffer onto the target geometry unless setIndex is set to false.', () => {
 
-		const geom1 = new THREE.SphereBufferGeometry( 1, 10, 10 );
-		const geom2 = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom1 = new SphereBufferGeometry( 1, 10, 10 );
+		const geom2 = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom1, { packData: true, lazyGeneration: false } );
 		const serialized = MeshBVH.serialize( bvh, geom1 );
 
@@ -220,7 +232,7 @@ describe( 'Serialization', () => {
 
 	it( 'should complete the tree and then deserialize to packed buffer data if original tree is lazily constructed.', () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom, { packData: false, lazyGeneration: true } );
 
 		expect( getMaxDepth( bvh ) ).toBe( 0 );
@@ -237,7 +249,7 @@ describe( 'Serialization', () => {
 
 	it( 'should create a new index if one does not exist when deserializing', () => {
 
-		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 		const serialized = MeshBVH.serialize( bvh, geom );
 
@@ -256,8 +268,8 @@ describe( 'Options', () => {
 	let mesh = null;
 	beforeAll( () => {
 
-		const geometry = new THREE.TorusBufferGeometry( 5, 5, 400, 100 );
-		mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
+		const geometry = new TorusBufferGeometry( 5, 5, 400, 100 );
+		mesh = new Mesh( geometry, new MeshBasicMaterial() );
 
 	} );
 
@@ -283,7 +295,7 @@ describe( 'Options', () => {
 
 		it( 'successfully raycast', () => {
 
-			const raycaster = new THREE.Raycaster();
+			const raycaster = new Raycaster();
 			raycaster.ray.origin.set( 0, 0, 10 );
 			raycaster.ray.direction.set( 0, 0, - 1 );
 

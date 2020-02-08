@@ -1,9 +1,9 @@
-import * as THREE from 'three';
+import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
-THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+Mesh.prototype.raycast = acceleratedRaycast;
+BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 function runRandomTests( options ) {
 
@@ -16,8 +16,8 @@ function runRandomTests( options ) {
 
 	beforeAll( () => {
 
-		ungroupedGeometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
-		groupedGeometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+		ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+		groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 		const groupCount = 10;
 		const groupSize = groupedGeometry.index.array.length / groupCount;
 
@@ -34,13 +34,13 @@ function runRandomTests( options ) {
 		ungroupedBvh = ungroupedGeometry.boundsTree;
 		groupedBvh = groupedGeometry.boundsTree;
 
-		scene = new THREE.Scene();
-		raycaster = new THREE.Raycaster();
+		scene = new Scene();
+		raycaster = new Raycaster();
 
 		for ( var i = 0; i < 10; i ++ ) {
 
 			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
-			let mesh = new THREE.Mesh( geo, new THREE.MeshBasicMaterial() );
+			let mesh = new Mesh( geo, new MeshBasicMaterial() );
 			mesh.rotation.x = Math.random() * 10;
 			mesh.rotation.y = Math.random() * 10;
 			mesh.rotation.z = Math.random() * 10;

@@ -1,10 +1,24 @@
 
-import * as THREE from 'three';
+import {
+	Mesh,
+	BufferGeometry,
+	SphereBufferGeometry,
+	Vector3,
+	Quaternion,
+	Matrix4,
+	Sphere,
+	Box3,
+	Euler,
+	Raycaster,
+	Scene,
+	TorusBufferGeometry,
+	MeshBasicMaterial,
+} from 'three';
 import { MeshBVH as _MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
-THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+Mesh.prototype.raycast = acceleratedRaycast;
+BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 describe( 'Shape Casts', () => {
 
@@ -35,10 +49,10 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
-			mesh = new THREE.Mesh( geom );
+			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			intersectGeometry = new THREE.SphereBufferGeometry( 1, 50, 50 );
+			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 			intersectGeometry.computeBoundsTree();
 
 		} );
@@ -48,9 +62,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			const geomToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 1, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+					new Vector3( 0, 1, 0 ),
+					new Quaternion(),
+					new Vector3( 0.1, 0.1, 0.1 ) );
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
@@ -61,9 +75,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			const geomToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 1.2, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+					new Vector3( 0, 1.2, 0 ),
+					new Quaternion(),
+					new Vector3( 0.1, 0.1, 0.1 ) );
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
@@ -74,9 +88,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			const geomToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 0, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.5, 0.5, 0.5 ) );
+					new Vector3( 0, 0, 0 ),
+					new Quaternion(),
+					new Vector3( 0.5, 0.5, 0.5 ) );
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
@@ -84,7 +98,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if the geometry overlaps exactly', () => {
 
-			const geomToWorld = new THREE.Matrix4().identity();
+			const geomToWorld = new Matrix4().identity();
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
@@ -101,10 +115,10 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
-			mesh = new THREE.Mesh( geom );
+			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			intersectGeometry = new THREE.SphereBufferGeometry( 1, 50, 50 );
+			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 
 		} );
 
@@ -113,9 +127,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			const geomToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 1, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+					new Vector3( 0, 1, 0 ),
+					new Quaternion(),
+					new Vector3( 0.1, 0.1, 0.1 ) );
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
@@ -126,9 +140,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			const geomToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 1.2, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.1, 0.1, 0.1 ) );
+					new Vector3( 0, 1.2, 0 ),
+					new Quaternion(),
+					new Vector3( 0.1, 0.1, 0.1 ) );
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
@@ -139,9 +153,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			const geomToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 0, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.5, 0.5, 0.5 ) );
+					new Vector3( 0, 0, 0 ),
+					new Quaternion(),
+					new Vector3( 0.5, 0.5, 0.5 ) );
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
 
@@ -149,7 +163,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if the geometry overlaps exactly', () => {
 
-			const geomToWorld = new THREE.Matrix4().identity();
+			const geomToWorld = new Matrix4().identity();
 
 			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
 
@@ -164,15 +178,15 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
-			mesh = new THREE.Mesh( geom );
+			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
 
 		it( 'should return true if the sphere is intersecting the mesh', () => {
 
-			const sphere = new THREE.Sphere();
+			const sphere = new Sphere();
 			sphere.radius = .01;
 			sphere.center.set( 0, 1, 0 );
 			expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( true );
@@ -181,7 +195,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the sphere is inside the mesh', () => {
 
-			const sphere = new THREE.Sphere();
+			const sphere = new Sphere();
 			sphere.radius = 0.9;
 			sphere.center.set( 0, 0, 0 );
 			expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( false );
@@ -190,7 +204,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the sphere is outside the mesh', () => {
 
-			const sphere = new THREE.Sphere();
+			const sphere = new Sphere();
 			sphere.radius = 0.9;
 			sphere.center.set( 0, 2.01, 0 );
 			expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( false );
@@ -206,24 +220,24 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
-			mesh = new THREE.Mesh( geom );
+			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
 
 		it( 'should return false if the box is outside the mesh', () => {
 
-			const box = new THREE.Box3();
+			const box = new Box3();
 			box.min.set( - 1, - 1, - 1 );
 			box.max.set( 1, 1, 1 );
 
 			const boxToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 3, 0 ),
-					new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
-					new THREE.Vector3( 1, 1, 1 ) );
+					new Vector3( 0, 3, 0 ),
+					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+					new Vector3( 1, 1, 1 ) );
 
 			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( false );
 
@@ -231,16 +245,16 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if one corner is inside the mesh', () => {
 
-			const box = new THREE.Box3();
+			const box = new Box3();
 			box.min.set( - 1, - 1, - 1 );
 			box.max.set( 1, 1, 1 );
 
 			const boxToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 2, 0 ),
-					new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
-					new THREE.Vector3( 1, 1, 1 ) );
+					new Vector3( 0, 2, 0 ),
+					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+					new Vector3( 1, 1, 1 ) );
 
 			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
 
@@ -248,16 +262,16 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if the box encapsulates the mesh entirely', () => {
 
-			const box = new THREE.Box3();
+			const box = new Box3();
 			box.min.set( - 10, - 10, - 10 );
 			box.max.set( 10, 10, 10 );
 
 			const boxToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 0, 0 ),
-					new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
-					new THREE.Vector3( 1, 1, 1 ) );
+					new Vector3( 0, 0, 0 ),
+					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+					new Vector3( 1, 1, 1 ) );
 
 			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
 
@@ -265,16 +279,16 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return false if the box inside the mesh entirely', () => {
 
-			const box = new THREE.Box3();
+			const box = new Box3();
 			box.min.set( - .5, - .5, - .5 );
 			box.max.set( .5, .5, .5 );
 
 			const boxToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 0, 0 ),
-					new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
-					new THREE.Vector3( 1, 1, 1 ) );
+					new Vector3( 0, 0, 0 ),
+					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+					new Vector3( 1, 1, 1 ) );
 
 			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( false );
 
@@ -282,16 +296,16 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return true if the box intersects it with a side only', () => {
 
-			const box = new THREE.Box3();
+			const box = new Box3();
 			box.min.set( - 10, 0, - 10 );
 			box.max.set( 10, 10, 10 );
 
 			const boxToWorld = new THREE
 				.Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 0, 0 ),
-					new THREE.Quaternion().setFromEuler( new THREE.Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
-					new THREE.Vector3( 1, 1, 1 ) );
+					new Vector3( 0, 0, 0 ),
+					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
+					new Vector3( 1, 1, 1 ) );
 
 			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
 
@@ -310,16 +324,16 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 200, 200 );
-			mesh = new THREE.Mesh( geom );
+			const geom = new SphereBufferGeometry( 1, 200, 200 );
+			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			target = new THREE.Vector3();
+			target = new Vector3();
 
 		} );
 
 		it( 'should return the radius if at the center of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( mesh, new THREE.Vector3(), target );
+			const dist = bvh.closestPointToPoint( mesh, new Vector3(), target );
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -327,14 +341,14 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return 0 if on the surface of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( mesh, new THREE.Vector3( 0, 1, 0 ), target );
+			const dist = bvh.closestPointToPoint( mesh, new Vector3( 0, 1, 0 ), target );
 			expect( dist ).toBe( 0 );
 
 		} );
 
 		it( 'should return the distance to the surface', () => {
 
-			const vec = new THREE.Vector3();
+			const vec = new Vector3();
 			for ( let i = 0; i < 100; i ++ ) {
 
 				vec.x = Math.random() - 0.5;
@@ -365,14 +379,14 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeEach( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 20, 20 );
-			mesh = new THREE.Mesh( geom );
+			const geom = new SphereBufferGeometry( 1, 20, 20 );
+			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
-			target1 = new THREE.Vector3();
-			target2 = new THREE.Vector3();
+			target1 = new Vector3();
+			target2 = new Vector3();
 
-			geometry = new THREE.SphereBufferGeometry( 1, 5, 5 );
+			geometry = new SphereBufferGeometry( 1, 5, 5 );
 
 		} );
 
@@ -381,11 +395,11 @@ function runSuiteWithOptions( defaultOptions ) {
 			// error to account for neither geometries
 			// being perfectly round
 			const EPSILON = 0.05;
-			const matrix = new THREE.Matrix4()
+			const matrix = new Matrix4()
 				.compose(
-					new THREE.Vector3(),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.001, 0.001, 0.001 )
+					new Vector3(),
+					new Quaternion(),
+					new Vector3( 0.001, 0.001, 0.001 )
 				);
 			const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
 			expect( dist ).toBeLessThanOrEqual( 1 );
@@ -395,11 +409,11 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return 0 if intersecting the geometry', () => {
 
-			const matrix = new THREE.Matrix4()
+			const matrix = new Matrix4()
 				.compose(
-					new THREE.Vector3( 0, 1, 0 ),
-					new THREE.Quaternion(),
-					new THREE.Vector3( 0.1, 0.1, 0.1 )
+					new Vector3( 0, 1, 0 ),
+					new Quaternion(),
+					new Vector3( 0.1, 0.1, 0.1 )
 				);
 			const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
 			expect( dist ).toBe( 0 );
@@ -413,10 +427,10 @@ function runSuiteWithOptions( defaultOptions ) {
 			// being perfectly round
 			const EPSILON = 0.1;
 			const radius = 0.1;
-			const pos = new THREE.Vector3();
-			const quat = new THREE.Quaternion();
-			const sca = new THREE.Vector3( radius, radius, radius );
-			const matrix = new THREE.Matrix4();
+			const pos = new Vector3();
+			const quat = new Quaternion();
+			const sca = new Vector3( radius, radius, radius );
+			const matrix = new Matrix4();
 
 			for ( let i = 0; i < 10; i ++ ) {
 
@@ -449,13 +463,13 @@ function runSuiteWithOptions( defaultOptions ) {
 		let raycaster = null;
 		beforeEach( () => {
 
-			raycaster = new THREE.Raycaster();
+			raycaster = new Raycaster();
 			raycaster.ray.origin.set( 0, 0, - 10 );
 			raycaster.ray.direction.set( 0, 0, 1 );
 
-			scene = new THREE.Scene();
-			geometry = new THREE.TorusBufferGeometry( 5, 5, 40, 10 );
-			mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
+			scene = new Scene();
+			geometry = new TorusBufferGeometry( 5, 5, 40, 10 );
+			mesh = new Mesh( geometry, new MeshBasicMaterial() );
 
 			scene.add( mesh );
 

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { Mesh, BufferGeometry, BufferAttribute, Vector3, Raycaster } from 'three';
 import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 import fs from 'fs';
 import path from 'path';
@@ -7,9 +7,9 @@ const dataPath = path.resolve( __dirname, './data/points.bin' );
 const buffer = fs.readFileSync( dataPath );
 const points = new Float32Array( buffer.buffer, buffer.byteOffset, buffer.byteLength / 4 );
 
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
-THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+Mesh.prototype.raycast = acceleratedRaycast;
+BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 describe( 'AVERAGE Points Raycast', () => {
 
@@ -18,16 +18,16 @@ describe( 'AVERAGE Points Raycast', () => {
 	let raycaster = null;
 	beforeEach( () => {
 
-		geometry = new THREE.BufferGeometry();
-		geometry.addAttribute( 'position', new THREE.BufferAttribute( points.slice(), 3 ) );
+		geometry = new BufferGeometry();
+		geometry.addAttribute( 'position', new BufferAttribute( points.slice(), 3 ) );
 		geometry.computeVertexNormals();
 
-		mesh = new THREE.Mesh( geometry );
+		mesh = new Mesh( geometry );
 
 		// NOTE: If the geometry is not centered then the AVERAGE split strategy
 		// case fails.
 		geometry.computeBoundingBox();
-		const center = new THREE.Vector3();
+		const center = new Vector3();
 		geometry.boundingBox.getCenter( center );
 
 		const x = 101086.2438562272 - center.x;
@@ -36,9 +36,9 @@ describe( 'AVERAGE Points Raycast', () => {
 		geometry.center();
 
 
-		raycaster = new THREE.Raycaster();
+		raycaster = new Raycaster();
 		raycaster.firstHitOnly = true;
-		raycaster.set( new THREE.Vector3( x, y, - 1000 ), new THREE.Vector3( 0, 0, 1 ) );
+		raycaster.set( new Vector3( x, y, - 1000 ), new Vector3( 0, 0, 1 ) );
 
 	} );
 
