@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import MeshBVHNode from './MeshBVHNode.js';
 import { CENTER } from './Constants.js';
 import { buildTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
@@ -291,9 +290,9 @@ export default class MeshBVH {
 			const buffer = this._roots[ rootIndex ];
 			const uint32Array = new Uint32Array( buffer );
 			const uint16Array = new Uint16Array( buffer );
-			_traverse( 0 );
+			_traverseBuffer( 0 );
 
-			function _traverse( stride4Offset, depth = 0 ) {
+			function _traverseBuffer( stride4Offset, depth = 0 ) {
 
 				const stride2Offset = stride4Offset * 2;
 				const isLeaf = uint16Array[ stride2Offset + 15 ];
@@ -310,8 +309,8 @@ export default class MeshBVH {
 					const splitAxis = uint32Array[ stride4Offset + 7 ];
 					callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
 
-					_traverse( left, depth + 1 );
-					_traverse( right, depth + 1 );
+					_traverseBuffer( left, depth + 1 );
+					_traverseBuffer( right, depth + 1 );
 
 				}
 
@@ -319,9 +318,9 @@ export default class MeshBVH {
 
 		} else {
 
-			_traverse( this._roots[ rootIndex ] );
+			_traverseNode( this._roots[ rootIndex ] );
 
-			function _traverse( node, depth = 0 ) {
+			function _traverseNode( node, depth = 0 ) {
 
 				const isLeaf = ! ! node.count;
 				if ( isLeaf ) {
@@ -331,8 +330,8 @@ export default class MeshBVH {
 				} else {
 
 					callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
-					if ( node.left ) _traverse( node.left, depth + 1 );
-					if ( node.right ) _traverse( node.right, depth + 1 );
+					if ( node.left ) _traverseNode( node.left, depth + 1 );
+					if ( node.right ) _traverseNode( node.right, depth + 1 );
 
 				}
 
