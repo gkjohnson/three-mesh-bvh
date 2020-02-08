@@ -20,7 +20,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		constructor( geometry, options ) {
 
-			super( geometry, Object.assign( {}, { defaultOptions }, { options } ) );
+			super( geometry, Object.assign( {}, defaultOptions, options ) );
 
 		}
 

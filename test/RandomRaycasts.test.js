@@ -90,24 +90,24 @@ function runRandomTests( options ) {
 
 describe( 'Random CENTER intersections', () => {
 
-	describe( 'split', () => runRandomTests( { strategy: CENTER, packData: false } ) );
-	describe( 'Lazy split', () => runRandomTests( { strategy: CENTER, lazyGeneration: true } ) );
-	describe( 'Packed split', () => runRandomTests( { strategy: CENTER } ) );
+	describe( 'split', () => runRandomTests( { strategy: CENTER, packData: false, lazyGeneration: false } ) );
+	describe( 'Lazy split', () => runRandomTests( { strategy: CENTER, packData: false, lazyGeneration: true } ) );
+	describe( 'Packed split', () => runRandomTests( { strategy: CENTER, packData: true, lazyGeneration: false } ) );
 
 } );
 
 describe( 'Random AVERAGE intersections', () => {
 
-	describe( 'split', () => runRandomTests( { strategy: AVERAGE, packData: false } ) );
-	describe( 'Lazy split', () => runRandomTests( { strategy: AVERAGE, lazyGeneration: true } ) );
-	describe( 'Packed split', () => runRandomTests( { strategy: AVERAGE } ) );
+	describe( 'split', () => runRandomTests( { strategy: AVERAGE, packData: false, lazyGeneration: false } ) );
+	describe( 'Lazy split', () => runRandomTests( { strategy: AVERAGE, packData: false, lazyGeneration: true } ) );
+	describe( 'Packed split', () => runRandomTests( { strategy: AVERAGE, packData: true, lazyGeneration: false } ) );
 
 } );
 
 describe( 'Random SAH intersections', () => {
 
-	describe( 'split', () => runRandomTests( { strategy: SAH, packData: false } ) );
-	describe( 'Lazy split', () => runRandomTests( { strategy: SAH, lazyGeneration: true } ) );
-	describe( 'Packed split', () => runRandomTests( { strategy: SAH } ) );
+	describe( 'split', () => runRandomTests( { strategy: SAH, packData: false, lazyGeneration: false } ) );
+	describe( 'Lazy split', () => runRandomTests( { strategy: SAH, packData: false, lazyGeneration: true } ) );
+	describe( 'Packed split', () => runRandomTests( { strategy: SAH, packData: true, lazyGeneration: false } ) );
 
 } );
