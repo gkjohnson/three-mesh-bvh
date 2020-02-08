@@ -235,6 +235,20 @@ describe( 'Serialization', () => {
 
 	} );
 
+	it( 'should create a new index if one does not exist when deserializing', () => {
+
+		const geom = new THREE.SphereBufferGeometry( 1, 10, 10 );
+		const bvh = new MeshBVH( geom );
+		const serialized = MeshBVH.serialize( bvh, geom );
+
+		geom.index = null;
+
+		MeshBVH.deserialize( serialized, geom );
+
+		expect( geom.index ).toBeTruthy();
+
+	} );
+
 } );
 
 describe( 'Options', () => {

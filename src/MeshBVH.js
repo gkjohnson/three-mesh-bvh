@@ -216,7 +216,12 @@ export default class MeshBVH {
 		if ( setIndex ) {
 
 			const indexAttribute = geometry.getIndex();
-			if ( indexAttribute.array !== index ) {
+			if ( indexAttribute === null ) {
+
+				const newIndex = new THREE.BufferAttribute( data.index, 1, false );
+				geometry.setIndex( newIndex );
+
+			} else if ( indexAttribute.array !== index ) {
 
 				indexAttribute.array.set( index );
 				indexAttribute.needsUpdate = true;
