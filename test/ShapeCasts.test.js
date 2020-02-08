@@ -363,9 +363,9 @@ function runSuiteWithOptions( defaultOptions ) {
 		let target1 = null;
 		let target2 = null;
 
-		beforeAll( () => {
+		beforeEach( () => {
 
-			const geom = new THREE.SphereBufferGeometry( 1, 50, 50 );
+			const geom = new THREE.SphereBufferGeometry( 1, 20, 20 );
 			mesh = new THREE.Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
@@ -380,7 +380,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			// error to account for neither geometries
 			// being perfectly round
-			const EPSILON = 0.01;
+			const EPSILON = 0.05;
 			const matrix = new THREE.Matrix4()
 				.compose(
 					new THREE.Vector3(),
@@ -418,7 +418,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			const sca = new THREE.Vector3( radius, radius, radius );
 			const matrix = new THREE.Matrix4();
 
-			for ( let i = 0; i < 100; i ++ ) {
+			for ( let i = 0; i < 10; i ++ ) {
 
 				pos.x = Math.random() - 0.5;
 				pos.y = Math.random() - 0.5;
