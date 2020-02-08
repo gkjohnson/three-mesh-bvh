@@ -5,23 +5,20 @@
  *
  *************************************************************************************************/
 
-import * as THREE from 'three';
+import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
-
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 
-const boundingBox = new THREE.Box3();
-const boxIntersection = new THREE.Vector3();
+const boundingBox = new Box3();
+const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-
 
 
 export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -48,7 +45,6 @@ export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects )
 export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -122,12 +118,11 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 export const shapecastBuffer = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
-	const cachedBox1 = new THREE.Box3();
-	const cachedBox2 = new THREE.Box3();
+	const cachedBox1 = new Box3();
+	const cachedBox2 = new Box3();
 	return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -230,8 +225,8 @@ export const intersectsGeometryBuffer = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
-	const cachedMesh = new THREE.Mesh();
-	const invertedMat = new THREE.Matrix4();
+	const cachedMesh = new Mesh();
+	const invertedMat = new Matrix4();
 
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();
@@ -239,7 +234,6 @@ export const intersectsGeometryBuffer = ( function () {
 	return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		if ( cachedObb === null ) {
 
 			if ( ! geometry.boundingBox ) {

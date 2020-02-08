@@ -1,13 +1,13 @@
 
-import * as THREE from 'three';
+import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 
-const boundingBox = new THREE.Box3();
-const boxIntersection = new THREE.Vector3();
+const boundingBox = new Box3();
+const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
 function intersectRay( node, ray, target ) {
@@ -130,8 +130,8 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 export const shapecast = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
-	const cachedBox1 = new THREE.Box3();
-	const cachedBox2 = new THREE.Box3();
+	const cachedBox1 = new Box3();
+	const cachedBox2 = new Box3();
 	return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 		if ( node.continueGeneration ) {
@@ -242,8 +242,8 @@ export const intersectsGeometry = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
-	const cachedMesh = new THREE.Mesh();
-	const invertedMat = new THREE.Matrix4();
+	const cachedMesh = new Mesh();
+	const invertedMat = new Matrix4();
 
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();

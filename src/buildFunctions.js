@@ -1,10 +1,10 @@
-import * as THREE from 'three';
+import { Box3, BufferAttribute } from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import { arrayToBox, boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 const xyzFields = [ 'x', 'y', 'z' ];
-const boxTemp = new THREE.Box3();
+const boxTemp = new Box3();
 
 function ensureIndex( geo ) {
 
@@ -12,7 +12,7 @@ function ensureIndex( geo ) {
 
 		const vertexCount = geo.attributes.position.count;
 		const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( vertexCount );
-		geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
+		geo.setIndex( new BufferAttribute( index, 1 ) );
 
 		for ( let i = 0; i < vertexCount; i ++ ) {
 
@@ -651,8 +651,8 @@ export function buildTree( geo, options ) {
 	// the work we did to determine the BVH root bounds
 	if ( geo.boundingBox == null ) {
 
-		const rootBox = new THREE.Box3();
-		geo.boundingBox = new THREE.Box3();
+		const rootBox = new Box3();
+		geo.boundingBox = new Box3();
 
 		for ( let root of roots ) {
 

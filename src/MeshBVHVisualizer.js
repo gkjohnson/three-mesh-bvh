@@ -1,11 +1,11 @@
-import * as THREE from 'three';
+import { LineBasicMaterial, Box3Helper, Box3, Group, LineSegments } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
-const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
-const boxGeom = new THREE.Box3Helper().geometry;
-let boundingBox = new THREE.Box3();
+const wiremat = new LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
+const boxGeom = new Box3Helper().geometry;
+let boundingBox = new Box3();
 
-class MeshBVHRootVisualizer extends THREE.Group {
+class MeshBVHRootVisualizer extends Group {
 
 	constructor( mesh, depth = 10, group = 0 ) {
 
@@ -40,7 +40,7 @@ class MeshBVHRootVisualizer extends THREE.Group {
 					let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
 					if ( ! m ) {
 
-						m = new THREE.LineSegments( boxGeom, wiremat );
+						m = new LineSegments( boxGeom, wiremat );
 						m.raycast = () => [];
 						this.add( m );
 
@@ -66,7 +66,7 @@ class MeshBVHRootVisualizer extends THREE.Group {
 
 }
 
-class MeshBVHVisualizer extends THREE.Group {
+class MeshBVHVisualizer extends Group {
 
 	constructor( mesh, depth = 10 ) {
 

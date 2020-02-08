@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { Vector3, BufferAttribute } from 'three';
 import { CENTER } from './Constants.js';
 import { buildTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
@@ -29,10 +29,10 @@ const IS_LEAFNODE_FLAG = 0xFFFF;
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 const obb = new OrientedBox();
-const temp = new THREE.Vector3();
+const temp = new Vector3();
 const tri2 = new SeparatingAxisTriangle();
-const temp1 = new THREE.Vector3();
-const temp2 = new THREE.Vector3();
+const temp1 = new Vector3();
+const temp2 = new Vector3();
 
 export default class MeshBVH {
 
@@ -218,7 +218,7 @@ export default class MeshBVH {
 			const indexAttribute = geometry.getIndex();
 			if ( indexAttribute === null ) {
 
-				const newIndex = new THREE.BufferAttribute( data.index, 1, false );
+				const newIndex = new BufferAttribute( data.index, 1, false );
 				geometry.setIndex( newIndex );
 
 			} else if ( indexAttribute.array !== index ) {
