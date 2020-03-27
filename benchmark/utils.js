@@ -11,13 +11,13 @@ function pad( str, len ) {
 
 }
 
-function runBenchmark( name, preFunc, func, maxTime, maxIterations = Infinity ) {
+function runBenchmark( name, preFunc, func, maxTime, maxIterations = 100 ) {
 
 	let iterations = 0;
 	let elapsed = 0;
 	while ( elapsed < maxTime ) {
 
-		if ( preFunc ) preFunc;
+		if ( preFunc ) preFunc();
 		let start = Date.now();
 		func();
 		elapsed += Date.now() - start;
