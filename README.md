@@ -84,6 +84,17 @@ const deserializedBVH = MeshBVH.deserialize( serialized, geometry );
 geometry.boundsTree = deserializedBVH;
 ```
 
+## Asynchronous Generation
+
+```js
+const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
+MeshBVH.generateAsync( bvh => {
+
+    geometry.boundsTree = bvh;
+
+} );
+```
+
 # Exports
 
 ## Split Strategy Constants
@@ -107,6 +118,14 @@ This is the slowest construction option.
 ## MeshBVH
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
+
+### static .generateAsync
+
+```js
+generateAsync( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+```
+
+Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back. 
 
 ### static .serialize
 
