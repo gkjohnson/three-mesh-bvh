@@ -55,7 +55,7 @@ export default class MeshBVH {
 					
 				}
 
-			} );
+			};
 			
 			const index = geometry.index ? geometry.index.array : null;
 			const position = geometry.attributes.position.array;
