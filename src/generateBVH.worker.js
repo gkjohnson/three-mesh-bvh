@@ -20,23 +20,23 @@ global.onmessage = function ( { data } ) {
 		}
 
 		const bvh = new MeshBVH( geometry, options );
-		const serialized = MeshBVH.serialize( bvh, geometry, copyIndexBuffer = false );
+		const serialized = MeshBVH.serialize( bvh, geometry, false );
 		global.postMessage( {
-			
+
 			error: null,
 			serialized,
-			
-		}, [ result.index, position ] );
-		
+
+		}, [ serialized.index, position ] );
+
 	} catch ( error ) {
-		
+
 		global.postMessage( {
-		
+
 			error,
-			serialized: null
-			
+			serialized: null,
+
 		} );
-		
+
 	}
 
 };
