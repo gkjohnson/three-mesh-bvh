@@ -43,14 +43,15 @@ export default class MeshBVH {
 			const worker = new Worker( './generateBVH.worker.js' );
 			worker.onMessage = e => {
 
-				const { result, error } = e;
+				const { serialized, error } = e;
+				worker.terminate();
 				if ( error ) {
 				
 					reject( new Error( error ) );
 					
 				} else {
 					
-					resolve( MeshBVH.deserialize( result, geometry ) );
+					resolve( MeshBVH.deserialize( serialized, geometry ) );
 					
 				}
 
