@@ -36,6 +36,41 @@ const temp2 = new Vector3();
 
 export default class MeshBVH {
 
+	static generateAsync( geometry, options ) {
+	
+		return new Promise( ( resolve, reject ) => {
+		
+			const worker = new Worker( './generateBVH.worker.js' );
+			worker.onMessage = e => {
+
+				const { result, error } = e;
+				if ( error ) {
+				
+					reject( new Error( error ) );
+					
+				} else {
+					
+					resolve( MeshBVH.deserialize( result, geometry ) );
+					
+				}
+
+			} );
+			
+			const index = geometry.index ? geometry.index.array : null;
+			const position = geometry.attributes.position.array;
+			
+			worker.postMessage( {
+			
+				index,
+				position,
+				options,
+			
+			}, [ index, position ] );
+			
+		} );
+		
+	}
+
 	static serialize( bvh, geometry, copyIndexBuffer = true ) {
 
 		function finishTree( node ) {
