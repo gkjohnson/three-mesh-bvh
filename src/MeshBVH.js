@@ -41,7 +41,7 @@ export default class MeshBVH {
 		return new Promise( ( resolve, reject ) => {
 		
 			const worker = new Worker( './generateBVH.worker.js' );
-			worker.onMessage = e => {
+			worker.onmessage = e => {
 
 				const { serialized, error } = e;
 				worker.terminate();
