@@ -14,7 +14,8 @@
   },
   "files": [
     "src/*",
-    "umd/*"
+    "umd/*",
+    "extra/*"
   ],
   "keywords": [
     "graphics",

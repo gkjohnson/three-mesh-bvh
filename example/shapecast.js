@@ -1,6 +1,6 @@
-import Stats from 'stats.js/src/Stats';
+import Stats from 'stats.js';
 import * as dat from 'dat.gui';
-import * as THREE from 'three/build/three.module.js';
+import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from './lib/TransformControls.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
