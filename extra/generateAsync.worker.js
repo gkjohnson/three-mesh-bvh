@@ -19,12 +19,14 @@ global.onmessage = function ( { data } ) {
 
 		const bvh = new MeshBVH( geometry, options );
 		const serialized = MeshBVH.serialize( bvh, geometry, false );
+
 		global.postMessage( {
 
 			error: null,
 			serialized,
+			position,
 
-		}, [ serialized.index, position ] );
+		}, [ serialized.index.buffer, position.buffer ] );
 
 	} catch ( error ) {
 
