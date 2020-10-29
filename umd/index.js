@@ -2,7 +2,7 @@
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'three'], factory) :
 	(global = global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
-}(this, function (exports, THREE) { 'use strict';
+}(this, function (exports, three) { 'use strict';
 
 	// Split strategy constants
 	const CENTER = 0;
@@ -73,7 +73,7 @@
 	}
 
 	const xyzFields = [ 'x', 'y', 'z' ];
-	const boxTemp = new THREE.Box3();
+	const boxTemp = new three.Box3();
 
 	function ensureIndex( geo ) {
 
@@ -81,7 +81,7 @@
 
 			const vertexCount = geo.attributes.position.count;
 			const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( vertexCount );
-			geo.setIndex( new THREE.BufferAttribute( index, 1 ) );
+			geo.setIndex( new three.BufferAttribute( index, 1 ) );
 
 			for ( let i = 0; i < vertexCount; i ++ ) {
 
@@ -720,8 +720,8 @@
 		// the work we did to determine the BVH root bounds
 		if ( geo.boundingBox == null ) {
 
-			const rootBox = new THREE.Box3();
-			geo.boundingBox = new THREE.Box3();
+			const rootBox = new three.Box3();
+			geo.boundingBox = new three.Box3();
 
 			for ( let root of roots ) {
 
@@ -791,7 +791,7 @@
 
 	SeparatingAxisBounds.prototype.setFromBox = ( function () {
 
-		const p = new THREE.Vector3();
+		const p = new three.Vector3();
 		return function setFromBox( axis, box ) {
 
 			const boxMin = box.min;
@@ -865,9 +865,9 @@
 	const closestPointLineToLine = ( function () {
 
 		// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Line.cpp#L56
-		const dir1 = new THREE.Vector3();
-		const dir2 = new THREE.Vector3();
-		const v02 = new THREE.Vector3();
+		const dir1 = new three.Vector3();
+		const dir2 = new three.Vector3();
+		const v02 = new three.Vector3();
 		return function closestPointLineToLine( l1, l2, result ) {
 
 			const v0 = l1.start;
@@ -920,9 +920,9 @@
 	const closestPointsSegmentToSegment = ( function () {
 
 		// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/LineSegment.cpp#L187
-		const paramResult = new THREE.Vector2();
-		const temp1 = new THREE.Vector3();
-		const temp2 = new THREE.Vector3();
+		const paramResult = new three.Vector2();
+		const temp1 = new three.Vector3();
+		const temp2 = new three.Vector3();
 		return function closestPointsSegmentToSegment( l1, l2, target1, target2 ) {
 
 			closestPointLineToLine( l1, l2, paramResult );
@@ -1022,10 +1022,10 @@
 	const sphereIntersectTriangle = ( function () {
 
 		// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
-		const closestPointTemp = new THREE.Vector3();
-		const projectedPointTemp = new THREE.Vector3();
-		const planeTemp = new THREE.Plane();
-		const lineTemp = new THREE.Line3();
+		const closestPointTemp = new three.Vector3();
+		const projectedPointTemp = new three.Vector3();
+		const planeTemp = new three.Plane();
+		const lineTemp = new three.Line3();
 		return function sphereIntersectTriangle( sphere, triangle ) {
 
 			const { radius, center } = sphere;
@@ -1064,17 +1064,17 @@
 
 	} )();
 
-	class SeparatingAxisTriangle extends THREE.Triangle {
+	class SeparatingAxisTriangle extends three.Triangle {
 
 		constructor( ...args ) {
 
 			super( ...args );
 
 			this.isSeparatingAxisTriangle = true;
-			this.satAxes = new Array( 4 ).fill().map( () => new THREE.Vector3() );
+			this.satAxes = new Array( 4 ).fill().map( () => new three.Vector3() );
 			this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 			this.points = [ this.a, this.b, this.c ];
-			this.sphere = new THREE.Sphere();
+			this.sphere = new three.Sphere();
 
 		}
 
@@ -1129,7 +1129,7 @@
 		const arr2 = new Array( 3 );
 		const cachedSatBounds = new SeparatingAxisBounds();
 		const cachedSatBounds2 = new SeparatingAxisBounds();
-		const cachedAxis = new THREE.Vector3();
+		const cachedAxis = new three.Vector3();
 		return function intersectsTriangle( other ) {
 
 			if ( ! other.isSeparatingAxisTriangle ) {
@@ -1193,7 +1193,7 @@
 
 	SeparatingAxisTriangle.prototype.distanceToPoint = ( function () {
 
-		const target = new THREE.Vector3();
+		const target = new three.Vector3();
 		return function distanceToPoint( point ) {
 
 			this.closestPointToPoint( point, target );
@@ -1206,11 +1206,11 @@
 
 	SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
-		const point = new THREE.Vector3();
-		const point2 = new THREE.Vector3();
+		const point = new three.Vector3();
+		const point2 = new three.Vector3();
 		const cornerFields = [ 'a', 'b', 'c' ];
-		const line1 = new THREE.Line3();
-		const line2 = new THREE.Line3();
+		const line1 = new three.Line3();
+		const line2 = new three.Line3();
 
 		return function distanceToTriangle( other, target1 = null, target2 = null ) {
 
@@ -1301,20 +1301,20 @@
 
 	} )();
 
-	class OrientedBox extends THREE.Box3 {
+	class OrientedBox extends three.Box3 {
 
 		constructor( ...args ) {
 
 			super( ...args );
 
 			this.isOrientedBox = true;
-			this.matrix = new THREE.Matrix4();
-			this.invMatrix = new THREE.Matrix4();
-			this.points = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-			this.satAxes = new Array( 3 ).fill().map( () => new THREE.Vector3() );
+			this.matrix = new three.Matrix4();
+			this.invMatrix = new three.Matrix4();
+			this.points = new Array( 8 ).fill().map( () => new three.Vector3() );
+			this.satAxes = new Array( 3 ).fill().map( () => new three.Vector3() );
 			this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 			this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
-			this.sphere = new THREE.Sphere();
+			this.sphere = new three.Sphere();
 
 		}
 
@@ -1437,7 +1437,7 @@
 		const pointsArr = new Array( 3 );
 		const cachedSatBounds = new SeparatingAxisBounds();
 		const cachedSatBounds2 = new SeparatingAxisBounds();
-		const cachedAxis = new THREE.Vector3();
+		const cachedAxis = new three.Vector3();
 		return function intersectsTriangle( triangle ) {
 
 			if ( ! triangle.isSeparatingAxisTriangle ) {
@@ -1516,7 +1516,7 @@
 
 	OrientedBox.prototype.distanceToPoint = ( function () {
 
-		const target = new THREE.Vector3();
+		const target = new three.Vector3();
 		return function distanceToPoint( point ) {
 
 			this.closestPointToPoint( point, target );
@@ -1530,11 +1530,11 @@
 	OrientedBox.prototype.distanceToBox = ( function () {
 
 		const xyzFields = [ 'x', 'y', 'z' ];
-		const segments1 = new Array( 12 ).fill().map( () => new THREE.Line3() );
-		const segments2 = new Array( 12 ).fill().map( () => new THREE.Line3() );
+		const segments1 = new Array( 12 ).fill().map( () => new three.Line3() );
+		const segments2 = new Array( 12 ).fill().map( () => new three.Line3() );
 
-		const point1 = new THREE.Vector3();
-		const point2 = new THREE.Vector3();
+		const point1 = new three.Vector3();
+		const point2 = new three.Vector3();
 
 		return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
 
@@ -1709,27 +1709,27 @@
 
 	// Ripped and modified From THREE.js Mesh raycast
 	// https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
-	var vA = new THREE.Vector3();
-	var vB = new THREE.Vector3();
-	var vC = new THREE.Vector3();
+	var vA = new three.Vector3();
+	var vB = new three.Vector3();
+	var vC = new three.Vector3();
 
-	var uvA = new THREE.Vector2();
-	var uvB = new THREE.Vector2();
-	var uvC = new THREE.Vector2();
+	var uvA = new three.Vector2();
+	var uvB = new three.Vector2();
+	var uvC = new three.Vector2();
 
-	var intersectionPoint = new THREE.Vector3();
-	var intersectionPointWorld = new THREE.Vector3();
+	var intersectionPoint = new three.Vector3();
+	var intersectionPointWorld = new three.Vector3();
 
 	function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point ) {
 
 		var intersect;
-		if ( material.side === THREE.BackSide ) {
+		if ( material.side === three.BackSide ) {
 
 			intersect = ray.intersectTriangle( pC, pB, pA, true, point );
 
 		} else {
 
-			intersect = ray.intersectTriangle( pA, pB, pC, material.side !== THREE.DoubleSide, point );
+			intersect = ray.intersectTriangle( pA, pB, pC, material.side !== three.DoubleSide, point );
 
 		}
 
@@ -1766,12 +1766,12 @@
 				uvB.fromBufferAttribute( uv, b );
 				uvC.fromBufferAttribute( uv, c );
 
-				intersection.uv = THREE.Triangle.getUV( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new THREE.Vector2( ) );
+				intersection.uv = three.Triangle.getUV( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new three.Vector2( ) );
 
 			}
 
-			var normal = new THREE.Vector3();
-			intersection.face = new THREE.Face3( a, b, c, THREE.Triangle.getNormal( vA, vB, vC, normal ) );
+			var normal = new three.Vector3();
+			intersection.face = new three.Face3( a, b, c, three.Triangle.getNormal( vA, vB, vC, normal ) );
 			intersection.faceIndex = a;
 
 		}
@@ -1832,8 +1832,8 @@
 
 	}
 
-	const boundingBox = new THREE.Box3();
-	const boxIntersection = new THREE.Vector3();
+	const boundingBox = new three.Box3();
+	const boxIntersection = new three.Vector3();
 	const xyzFields$1 = [ 'x', 'y', 'z' ];
 
 	function intersectRay( node, ray, target ) {
@@ -1956,8 +1956,8 @@
 	const shapecast = ( function () {
 
 		const triangle = new SeparatingAxisTriangle();
-		const cachedBox1 = new THREE.Box3();
-		const cachedBox2 = new THREE.Box3();
+		const cachedBox1 = new three.Box3();
+		const cachedBox2 = new three.Box3();
 		return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 			if ( node.continueGeneration ) {
@@ -2068,8 +2068,8 @@
 
 		const triangle = new SeparatingAxisTriangle();
 		const triangle2 = new SeparatingAxisTriangle();
-		const cachedMesh = new THREE.Mesh();
-		const invertedMat = new THREE.Matrix4();
+		const cachedMesh = new three.Mesh();
+		const invertedMat = new three.Matrix4();
 
 		const obb = new OrientedBox();
 		const obb2 = new OrientedBox();
@@ -2204,16 +2204,14 @@
 
 	} )();
 
-	const boundingBox$1 = new THREE.Box3();
-	const boxIntersection$1 = new THREE.Vector3();
+	const boundingBox$1 = new three.Box3();
+	const boxIntersection$1 = new three.Vector3();
 	const xyzFields$2 = [ 'x', 'y', 'z' ];
-
 
 
 	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2240,7 +2238,6 @@
 	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2314,12 +2311,11 @@
 	const shapecastBuffer = ( function () {
 
 		const triangle = new SeparatingAxisTriangle();
-		const cachedBox1 = new THREE.Box3();
-		const cachedBox2 = new THREE.Box3();
+		const cachedBox1 = new three.Box3();
+		const cachedBox2 = new three.Box3();
 		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 			if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -2422,8 +2418,8 @@
 
 		const triangle = new SeparatingAxisTriangle();
 		const triangle2 = new SeparatingAxisTriangle();
-		const cachedMesh = new THREE.Mesh();
-		const invertedMat = new THREE.Matrix4();
+		const cachedMesh = new three.Mesh();
+		const invertedMat = new three.Matrix4();
 
 		const obb = new OrientedBox();
 		const obb2 = new OrientedBox();
@@ -2431,7 +2427,6 @@
 		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 			if ( cachedObb === null ) {
 
 				if ( ! geometry.boundingBox ) {
@@ -2617,10 +2612,10 @@
 	const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 	const obb = new OrientedBox();
-	const temp = new THREE.Vector3();
+	const temp = new three.Vector3();
 	const tri2 = new SeparatingAxisTriangle();
-	const temp1 = new THREE.Vector3();
-	const temp2 = new THREE.Vector3();
+	const temp1 = new three.Vector3();
+	const temp2 = new three.Vector3();
 
 	class MeshBVH {
 
@@ -2806,7 +2801,7 @@
 				const indexAttribute = geometry.getIndex();
 				if ( indexAttribute === null ) {
 
-					const newIndex = new THREE.BufferAttribute( data.index, 1, false );
+					const newIndex = new three.BufferAttribute( data.index, 1, false );
 					geometry.setIndex( newIndex );
 
 				} else if ( indexAttribute.array !== index ) {
@@ -3219,11 +3214,11 @@
 
 	}
 
-	const wiremat = new THREE.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
-	const boxGeom = new THREE.Box3Helper().geometry;
-	let boundingBox$2 = new THREE.Box3();
+	const wiremat = new three.LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
+	const boxGeom = new three.Box3Helper().geometry;
+	let boundingBox$2 = new three.Box3();
 
-	class MeshBVHRootVisualizer extends THREE.Group {
+	class MeshBVHRootVisualizer extends three.Group {
 
 		constructor( mesh, depth = 10, group = 0 ) {
 
@@ -3258,7 +3253,7 @@
 						let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
 						if ( ! m ) {
 
-							m = new THREE.LineSegments( boxGeom, wiremat );
+							m = new three.LineSegments( boxGeom, wiremat );
 							m.raycast = () => [];
 							this.add( m );
 
@@ -3284,7 +3279,7 @@
 
 	}
 
-	class MeshBVHVisualizer extends THREE.Group {
+	class MeshBVHVisualizer extends three.Group {
 
 		constructor( mesh, depth = 10 ) {
 
@@ -3474,9 +3469,9 @@
 
 	}
 
-	const ray = new THREE.Ray();
-	const tmpInverseMatrix = new THREE.Matrix4();
-	const origMeshRaycastFunc = THREE.Mesh.prototype.raycast;
+	const ray = new three.Ray();
+	const tmpInverseMatrix = new three.Matrix4();
+	const origMeshRaycastFunc = three.Mesh.prototype.raycast;
 
 	function acceleratedRaycast( raycaster, intersects ) {
 
