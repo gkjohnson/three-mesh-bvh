@@ -16,6 +16,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
+[WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
+
 # Use
 
 Using pre-made functions
