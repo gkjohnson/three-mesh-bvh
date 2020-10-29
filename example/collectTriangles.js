@@ -1,6 +1,6 @@
 import Stats from 'stats.js/src/Stats';
 import * as dat from 'dat.gui';
-import * as THREE from 'three/build/three.module.js';
+import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import { sphereIntersectTriangle } from '../src/Utils/MathUtilities.js';
@@ -74,8 +74,6 @@ function init() {
 	brushMesh = new THREE.Mesh( brushGeometry, brushMaterial );
 	scene.add( brushMesh );
 
-
-	window.scene = scene;
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
 	camera.position.set( 3, 3, 3 );

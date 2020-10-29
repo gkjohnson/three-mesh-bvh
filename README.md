@@ -16,6 +16,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
+[WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
+
 # Use
 
 Using pre-made functions
@@ -82,6 +84,21 @@ const serialized = MeshBVH.serialize( bvh, geometry );
 
 const deserializedBVH = MeshBVH.deserialize( serialized, geometry );
 geometry.boundsTree = deserializedBVH;
+```
+
+## Asynchronous Generation
+
+```js
+import { generateAsync } from 'three-mesh-bvh/extra/generateAsync.js';
+
+// ...
+
+const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
+generateAsync( geometry ).then( bvh => {
+
+    geometry.boundsTree = bvh;
+
+} );
 ```
 
 # Exports
@@ -155,7 +172,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
     // Print out warnings encountered during tree construction.
     verbose: true,
-    
+
     // If true the bounds tree is generated progressively as the tree is used allowing
     // for a fast initialization time and memory allocation as needed but a higher memory
     // footprint once the tree is completed. The initial raycasts are also slower until the
@@ -333,7 +350,7 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 ## Debug Functions
 
-### .estimateMemoryInBytes
+### estimateMemoryInBytes
 
 ```js
 estimateMemoryInBytes( bvh : MeshBVH ) : Number
@@ -341,7 +358,7 @@ estimateMemoryInBytes( bvh : MeshBVH ) : Number
 
 Roughly estimates the amount of memory in bytes a BVH is using.
 
-### .getBVHExtremes
+### getBVHExtremes
 
 ```js
 getBVHExtremes( bvh : MeshBVH ) : Array< Object >
@@ -356,6 +373,18 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 	splits: [ Number, Number, Number ]
 }
 ```
+
+## Extra Functions
+
+List of functions stored in the `extra/` because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
+
+### generateAsync
+
+```js
+generateAsync( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+```
+
+Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
 
 ## Gotchas
 

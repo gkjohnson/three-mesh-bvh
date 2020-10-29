@@ -9,12 +9,13 @@
     "generate-cast-functions": "node ./scripts/generate-cast-functions.js",
     "build": "npm run generate-cast-functions && rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "npm run generate-cast-functions && jest",
-    "lint": "npm run generate-cast-functions && eslint ./src/*.js ./test/*.js",
+    "lint": "npm run generate-cast-functions && eslint \"./src/*.js\" \"./test/*.js\" \"./extra/*.js\"",
     "benchmark": "npm run generate-cast-functions && node benchmark/index.js"
   },
   "files": [
     "src/*",
-    "umd/*"
+    "umd/*",
+    "extra/*"
   ],
   "keywords": [
     "graphics",

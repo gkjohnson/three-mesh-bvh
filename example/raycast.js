@@ -1,6 +1,6 @@
-import Stats from '../node_modules/stats.js/src/Stats.js';
+import Stats from 'stats.js';
 import * as dat from 'dat.gui';
-import * as THREE from '../node_modules/three/build/three.module.js';
+import * as THREE from 'three';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 import "@babel/polyfill";
