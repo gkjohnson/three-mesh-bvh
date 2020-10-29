@@ -37,7 +37,7 @@ export function generateAsync( geometry, options = {} ) {
 
 		if ( position.isInterleavedBufferAttribute || index && index.isInterleavedBufferAttribute ) {
 
-			throw new Error( 'MeshBVH: InterleavedBufferAttribute are not supported for the geometry attributes.');
+			throw new Error( 'MeshBVH: InterleavedBufferAttribute are not supported for the geometry attributes.' );
 
 		}
 
