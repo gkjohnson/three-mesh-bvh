@@ -2894,10 +2894,14 @@
 						const left = stride4Offset + BYTES_PER_NODE / 4;
 						const right = uint32Array[ stride4Offset + 6 ];
 						const splitAxis = uint32Array[ stride4Offset + 7 ];
-						callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
+						const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
 
-						_traverseBuffer( left, depth + 1 );
-						_traverseBuffer( right, depth + 1 );
+						if ( ! stopTraversal ) {
+
+							_traverseBuffer( left, depth + 1 );
+							_traverseBuffer( right, depth + 1 );
+
+						}
 
 					}
 
@@ -2916,9 +2920,14 @@
 
 					} else {
 
-						callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
-						if ( node.left ) _traverseNode( node.left, depth + 1 );
-						if ( node.right ) _traverseNode( node.right, depth + 1 );
+						const stopTraversal = callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
+
+						if ( ! stopTraversal ) {
+
+							if ( node.left ) _traverseNode( node.left, depth + 1 );
+							if ( node.right ) _traverseNode( node.right, depth + 1 );
+
+						}
 
 					}
 
@@ -3246,7 +3255,12 @@
 
 					let isTerminal = isLeaf || countOrIsUnfinished;
 
-					if ( depth >= this.depth ) return;
+					// Stop traversal
+					if ( depth >= this.depth ) {
+
+						return true;
+
+					}
 
 					if ( depth === this.depth - 1 || isTerminal ) {
 
