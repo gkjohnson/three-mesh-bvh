@@ -35,6 +35,12 @@ export function generateAsync( geometry, options = {} ) {
 		const index = geometry.index ? geometry.index.array : null;
 		const position = geometry.attributes.position.array;
 
+		if ( position.isInterleavedBufferAttribute || index && index.isInterleavedBufferAttribute ) {
+
+			throw new Error( 'MeshBVH: InterleavedBufferAttribute are not supported for the geometry attributes.')
+
+		}
+
 		const transferrables = [ position ];
 		if ( index ) {
 
