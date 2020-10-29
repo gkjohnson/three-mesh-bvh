@@ -31,9 +31,9 @@ render();
 
 function init() {
 
-	const bgColor = 0xffca28;// / 2;
+	const bgColor = 0xffca28;
 
-	outputContainer = document.getElementById( 'info' );
+	outputContainer = document.getElementById( 'output' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
