@@ -4,11 +4,13 @@ import { GUI } from 'dat.gui';
 import { generateAsync } from '../extra/generateAsync.js';
 import { acceleratedRaycast } from '../src/index.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
+import MeshBVH from '../src/MeshBVH.js';
 
 THREE.Mesh.raycast = acceleratedRaycast;
 
 const params = {
 
+	useWebWorker: true,
 	radius: 1,
 	tube: 0.3,
 	tubularSegments: 250,
@@ -84,7 +86,15 @@ function init() {
 
 	gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
-	helperFolder.add( params, 'displayHelper' ).name( 'enabled' );
+	helperFolder.add( params, 'displayHelper' ).name( 'enabled' ).onChange( v => {
+
+		if ( v && helper ) {
+
+			helper.update();
+
+		}
+
+	} );
 	helperFolder.add( params, 'helperDepth', 1, 50, 1 ).onChange( v => {
 
 		if ( helper ) {
@@ -98,10 +108,11 @@ function init() {
 	helperFolder.open();
 
 	const knotFolder = gui.addFolder( 'knot' );
+	knotFolder.add( params, 'useWebWorker' );
 	knotFolder.add( params, 'radius', 0.5, 2, 0.01 );
 	knotFolder.add( params, 'tube', 0.2, 1.2, 0.01 );
-	knotFolder.add( params, 'tubularSegments', 50, 500, 1 );
-	knotFolder.add( params, 'radialSegments', 5, 500, 1 );
+	knotFolder.add( params, 'tubularSegments', 50, 1000, 1 );
+	knotFolder.add( params, 'radialSegments', 5, 1000, 1 );
 	knotFolder.add( params, 'p', 1, 10, 1 );
 	knotFolder.add( params, 'q', 1, 10, 1 );
 	knotFolder.add( { regenerateKnot }, 'regenerateKnot' ).name( 'regenerate' );
@@ -158,24 +169,51 @@ function regenerateKnot() {
 	const geomTime = window.performance.now() - startTime;
 
 	startTime = window.performance.now();
-	generateAsync( knot.geometry ).then( bvh => {
+	if ( params.useWebWorker ) {
 
-		knot.geometry.boundsTree = bvh;
+		generateAsync( knot.geometry ).then( bvh => {
+
+			knot.geometry.boundsTree = bvh;
+			group.add( knot );
+
+			const deltaTime = window.performance.now() - startTime;
+			generating = false;
+
+			helper = new MeshBVHVisualizer( knot, 0 );
+			helper.depth = params.helperDepth;
+
+			console.log( params.displayHelper );
+			if ( params.displayHelper ) {
+
+				helper.update();
+
+			}
+			group.add( helper );
+
+			outputContainer.textContent =
+				`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
+				`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms`;
+
+		} );
+
+	} else {
+
+		knot.geometry.boundsTree = new MeshBVH( knot.geometry, { lazyGeneration: false } );
 		group.add( knot );
+
+		const deltaTime = window.performance.now() - startTime;
+		generating = false;
 
 		helper = new MeshBVHVisualizer( knot );
 		helper.depth = params.helperDepth;
 		helper.update();
 		group.add( helper );
 
-		generating = false;
-
-		const deltaTime = window.performance.now() - startTime;
 		outputContainer.textContent =
 			`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
 			`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms`;
 
-	} );
+	}
 
 }
 

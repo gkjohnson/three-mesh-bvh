@@ -33,7 +33,12 @@ class MeshBVHRootVisualizer extends Group {
 
 				let isTerminal = isLeaf || countOrIsUnfinished;
 
-				if ( depth >= this.depth ) return;
+				// Stop traversal
+				if ( depth >= this.depth ) {
+
+					return true;
+
+				}
 
 				if ( depth === this.depth - 1 || isTerminal ) {
 
