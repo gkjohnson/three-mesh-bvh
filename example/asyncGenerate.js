@@ -69,12 +69,12 @@ function init() {
 
 		const sphere = new THREE.Mesh(
 			new THREE.SphereBufferGeometry( 1, 32, 32 ),
-			new THREE.MeshBasicMaterial(),
+			new THREE.MeshBasicMaterial()
 		);
 		sphere.position.set(
 			Math.random() - 0.5,
 			Math.random() - 0.5,
-			Math.random() - 0.5,
+			Math.random() - 0.5
 		).multiplyScalar( 70 );
 		sphere.scale.setScalar( Math.random() * 0.3 + 0.1 );
 		group.add( sphere );
@@ -147,13 +147,13 @@ function regenerateKnot() {
 			params.tubularSegments,
 			params.radialSegments,
 			params.p,
-			params.q,
+			params.q
 		),
 		new THREE.MeshStandardMaterial( {
 			color: new THREE.Color( 0x4db6ac ).convertSRGBToLinear(),
 			roughness: 0.75
 
-		} ),
+		} )
 	);
 	const geomTime = window.performance.now() - startTime;
 
