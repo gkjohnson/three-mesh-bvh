@@ -74,8 +74,6 @@ function init() {
 	brushMesh = new THREE.Mesh( brushGeometry, brushMaterial );
 	scene.add( brushMesh );
 
-
-	window.scene = scene;
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
 	camera.position.set( 3, 3, 3 );
