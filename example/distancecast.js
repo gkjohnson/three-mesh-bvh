@@ -274,7 +274,7 @@ function updateDistanceCheck( fastCheck ) {
 	targetContainer.updateMatrixWorld();
 	const targetToBvh =
 		new THREE.Matrix4()
-			.getInverse( terrain.matrixWorld )
+		    .copy( terrain.matrixWorld ).invert()
 			.multiply( targetContainer.matrixWorld );
 
 	// get the closest point
@@ -340,7 +340,7 @@ function* updateMarchingCubes() {
 
 		scene.add( marchingCubesContainer );
 		fieldSize = ( radius + 4 * radius / resolution ) * 2;
-		worldToBvh = new THREE.Matrix4().getInverse( terrain.matrixWorld );
+		worldToBvh = new THREE.Matrix4().copy(  terrain.matrixWorld ).invert();
 		distanceMesh = terrain;
 
 	}
