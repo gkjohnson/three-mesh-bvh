@@ -44,7 +44,7 @@
   },
   "homepage": "https://github.com/gkjohnson/three-mesh-bvh#readme",
   "peerDependencies": {
-    "three": ">= 0.102.1"
+    "three": ">= 0.123.0"
   },
   "devDependencies": {
     "@babel/core": "^7.3.4",
@@ -64,7 +64,7 @@
     "simplex-noise": "^2.4.0",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
-    "three": "^0.104.0"
+    "three": "^0.123.0"
   },
   "dependencies": {}
 }
