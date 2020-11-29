@@ -340,7 +340,7 @@ function* updateMarchingCubes() {
 
 		scene.add( marchingCubesContainer );
 		fieldSize = ( radius + 4 * radius / resolution ) * 2;
-		worldToBvh = new THREE.Matrix4().copy(  terrain.matrixWorld ).invert();
+		worldToBvh = new THREE.Matrix4().copy( terrain.matrixWorld ).invert();
 		distanceMesh = terrain;
 
 	}
