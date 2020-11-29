@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
-- `generateAsync` function in the `/extra` folder to help generate BVHs asynchronously with WebWorkers.
+- `generateAsync` function in the `/src/worker` folder to help generate BVHs asynchronously with WebWorkers.
+
+### Changed
+- three.js version to use v0.123.0, change `Matrix4.getInverse` to `Matrix4.invert`.
 
 ## [0.2.0] - 2020-02-07
 ### Added
