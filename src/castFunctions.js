@@ -286,7 +286,7 @@ export const intersectsGeometry = ( function () {
 			// get the inverse of the geometry matrix so we can transform our triangles into the
 			// geometry space we're trying to test. We assume there are fewer triangles being checked
 			// here.
-			invertedMat.getInverse( geometryToBvh );
+			invertedMat.copy( geometryToBvh ).invert();
 
 			if ( geometry.boundsTree ) {
 

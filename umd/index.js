@@ -1385,7 +1385,7 @@
 			alignedSatBounds[ 1 ].setFromPointsField( points, 'y' );
 			alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
 
-			this.invMatrix.getInverse( this.matrix );
+			this.invMatrix.copy( this.matrix ).invert();
 
 		};
 
@@ -2112,7 +2112,7 @@
 				// get the inverse of the geometry matrix so we can transform our triangles into the
 				// geometry space we're trying to test. We assume there are fewer triangles being checked
 				// here.
-				invertedMat.getInverse( geometryToBvh );
+				invertedMat.copy( geometryToBvh ).invert();
 
 				if ( geometry.boundsTree ) {
 
@@ -2457,7 +2457,7 @@
 				// get the inverse of the geometry matrix so we can transform our triangles into the
 				// geometry space we're trying to test. We assume there are fewer triangles being checked
 				// here.
-				invertedMat.getInverse( geometryToBvh );
+				invertedMat.copy( geometryToBvh ).invert();
 
 				if ( geometry.boundsTree ) {
 
@@ -3493,7 +3493,7 @@
 
 			if ( this.material === undefined ) return;
 
-			tmpInverseMatrix.getInverse( this.matrixWorld );
+			tmpInverseMatrix.copy( this.matrixWorld ).invert();
 			ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
 			if ( raycaster.firstHitOnly === true ) {

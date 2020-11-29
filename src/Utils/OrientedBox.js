@@ -87,7 +87,7 @@ OrientedBox.prototype.update = ( function () {
 		alignedSatBounds[ 1 ].setFromPointsField( points, 'y' );
 		alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
 
-		this.invMatrix.getInverse( this.matrix );
+		this.invMatrix.copy( this.matrix ).invert();
 
 	};
 

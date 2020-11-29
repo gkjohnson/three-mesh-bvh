@@ -14,7 +14,7 @@ function acceleratedRaycast( raycaster, intersects ) {
 
 		if ( this.material === undefined ) return;
 
-		tmpInverseMatrix.getInverse( this.matrixWorld );
+		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
 		if ( raycaster.firstHitOnly === true ) {
