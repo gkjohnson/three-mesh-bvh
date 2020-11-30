@@ -64,7 +64,7 @@ describe( 'Bounds Tree', () => {
 		let indexErrorThrown = false;
 
 		geometry = new BoxBufferGeometry();
-		geometry.addAttribute( 'position', posAttr );
+		geometry.setAttribute( 'position', posAttr );
 		try {
 
 			new MeshBVH( geometry, { verbose: false } );
@@ -168,7 +168,7 @@ describe( 'Bounds Tree', () => {
 		const smallPosAttr = new BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) - 3 ), 3, false );
 		const largePosAttr = new BufferAttribute( new Float32Array( 3 * Math.pow( 2, 16 ) + 3 ), 3, false );
 
-		geom.addAttribute( 'position', smallPosAttr );
+		geom.setAttribute( 'position', smallPosAttr );
 
 		expect( geom.index ).toBe( null );
 		new MeshBVH( geom );
@@ -177,7 +177,7 @@ describe( 'Bounds Tree', () => {
 		expect( geom.index.array.BYTES_PER_ELEMENT ).toBe( 2 );
 
 		geom.index = null;
-		geom.addAttribute( 'position', largePosAttr );
+		geom.setAttribute( 'position', largePosAttr );
 		new MeshBVH( geom );
 		expect( geom.index ).not.toBe( null );
 		expect( geom.index.count ).toBe( largePosAttr.count );

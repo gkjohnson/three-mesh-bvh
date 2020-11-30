@@ -19,7 +19,7 @@ describe( 'AVERAGE Points Raycast', () => {
 	beforeEach( () => {
 
 		geometry = new BufferGeometry();
-		geometry.addAttribute( 'position', new BufferAttribute( points.slice(), 3 ) );
+		geometry.setAttribute( 'position', new BufferAttribute( points.slice(), 3 ) );
 		geometry.computeVertexNormals();
 
 		mesh = new Mesh( geometry );

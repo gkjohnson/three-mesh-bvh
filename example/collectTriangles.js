@@ -52,7 +52,7 @@ function init() {
 	colorArray.fill( 255 );
 	const colorAttr = new THREE.BufferAttribute( colorArray, 3, true );
 	colorAttr.dynamic = true;
-	knotGeometry.addAttribute( 'color', colorAttr );
+	knotGeometry.setAttribute( 'color', colorAttr );
 
 	const knotMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, roughness: 0.3, metalness: 0, vertexColors: true } );
 	targetMesh = new THREE.Mesh( knotGeometry, knotMaterial );
