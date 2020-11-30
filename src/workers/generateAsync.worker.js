@@ -10,7 +10,7 @@ global.onmessage = function ( { data } ) {
 	try {
 
 		const geometry = new BufferGeometry();
-		geometry.addAttribute( 'position', new BufferAttribute( position, 3, false ) );
+		geometry.setAttribute( 'position', new BufferAttribute( position, 3, false ) );
 		if ( index ) {
 
 			geometry.setIndex( new BufferAttribute( index, 1, false ) );
