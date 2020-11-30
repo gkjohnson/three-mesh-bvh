@@ -2,7 +2,7 @@ import {
 	BufferGeometry,
 	BufferAttribute,
 } from 'three';
-import MeshBVH from '../src/MeshBVH.js';
+import MeshBVH from '../MeshBVH.js';
 
 global.onmessage = function ( { data } ) {
 

@@ -1,4 +1,4 @@
-import MeshBVH from '../src/MeshBVH.js';
+import MeshBVH from '../MeshBVH.js';
 
 export function generateAsync( geometry, options = {} ) {
 
