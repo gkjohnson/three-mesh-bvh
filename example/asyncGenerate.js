@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { generateAsync } from '../extra/generateAsync.js';
+import { generateAsync } from '../src/workers/generateAsync.js';
 import { acceleratedRaycast } from '../src/index.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import MeshBVH from '../src/MeshBVH.js';
