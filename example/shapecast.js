@@ -2,7 +2,7 @@ import Stats from 'stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TransformControls } from './lib/TransformControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import "@babel/polyfill";

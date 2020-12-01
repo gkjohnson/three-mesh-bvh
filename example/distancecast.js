@@ -2,8 +2,8 @@ import Stats from 'stats.js/src/Stats';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TransformControls } from './lib/TransformControls.js';
-import { MarchingCubes } from './lib/MarchingCubes.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { MarchingCubes } from 'three/examples/jsm/objects/MarchingCubes.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
 import SimplexNoise from 'simplex-noise';
@@ -36,6 +36,7 @@ let scene, camera, renderer, controls, boundsViz;
 let terrain, targetContainer, targetMesh, transformControls;
 let marchingCubes, marchingCubesMesh, marchingCubesMeshBack, marchingCubesContainer;
 let sphere1, sphere2, line;
+let needsUpdate = false;
 
 function init() {
 
@@ -118,12 +119,12 @@ function init() {
 	transformControls.addEventListener( 'dragging-changed', e => {
 
 		controls.enabled = ! e.value;
-		if ( ! e.value ) updateDistanceCheck( false );
+		if ( ! e.value ) needsUpdate = true;
 
 	} );
 	transformControls.addEventListener( 'objectChange', e => {
 
-		updateDistanceCheck( ! params.volume.alwaysShowDistance );
+		needsUpdate = true;
 
 	} );
 	scene.add( transformControls );
@@ -414,6 +415,13 @@ let regenerate = true;
 function render() {
 
 	stats.begin();
+
+	if ( needsUpdate ) {
+
+		updateDistanceCheck( ! params.volume.alwaysShowDistance );
+		needsUpdate = false;
+
+	}
 
 	if ( boundsViz ) {
 
