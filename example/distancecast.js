@@ -48,6 +48,7 @@ function init() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -57,7 +58,7 @@ function init() {
 	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
 	light.position.set( 20, 20, 20 );
 	light.castShadow = true;
-	light.shadow.mapSize.set( 1024, 1024 );
+	light.shadow.mapSize.set( 2048, 2048 );
 
 	const shadowCam = light.shadow.camera;
 	shadowCam.left = shadowCam.bottom = - 15;
@@ -83,7 +84,7 @@ function init() {
 
 	}
 	planeGeom.computeVertexNormals();
-	planeGeom.computeBoundsTree();
+	planeGeom.computeBoundsTree( { lazyGeneration: false } );
 
 	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { color: 0xFFFFFF, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
 	terrain.rotation.x = - Math.PI / 2;
