@@ -490,7 +490,7 @@ export default class MeshBVH {
 		return this.shapecast(
 			mesh,
 			box => sphere.intersectsBox( box ),
-			tri => sphereIntersectTriangle( sphere, tri )
+			tri => tri.intersectsSphere( sphere )
 		);
 
 	}

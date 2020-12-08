@@ -281,7 +281,7 @@ shapecast(
 	) => Boolean,
 
 	intersectsTriangleFunc : (
-		triangle : SeparatingAxisTriangle,
+		triangle : Triangle,
 		index1 : Number,
 		index2 : Number,
 		index3 : Number
@@ -294,11 +294,15 @@ shapecast(
 ) : Boolean
 ```
 
-A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere).
+A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected.
 
-`mesh` is the is the object this BVH is representing. `intersectsBoundsFunc` takes a axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `order
+`mesh` is the is the object this BVH is representing.
 
+`intersectsBoundsFunc` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a boolean indicating whether or not the bounds is intersected and traversal should continue.
 
+`intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array.
+
+`orderNodesFunc` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score or distance representing the distance to the shape being intersected with. The shape with the lowest score is traversed first.
 
 ## SerializedBVH
 

@@ -1,6 +1,6 @@
 import { Triangle, Vector3, Line3, Sphere } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
-import { closestPointsSegmentToSegment } from './MathUtilities.js';
+import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
 export class SeparatingAxisTriangle extends Triangle {
 
@@ -13,6 +13,12 @@ export class SeparatingAxisTriangle extends Triangle {
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
 		this.sphere = new Sphere();
+
+	}
+
+	intersectsSphere( sphere ) {
+
+		return sphereIntersectTriangle( sphere, this );
 
 	}
 

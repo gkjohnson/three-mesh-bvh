@@ -1078,6 +1078,12 @@
 
 		}
 
+		intersectsSphere( sphere ) {
+
+			return sphereIntersectTriangle( sphere, this );
+
+		}
+
 	}
 
 	SeparatingAxisTriangle.prototype.update = ( function () {
@@ -3078,7 +3084,7 @@
 			return this.shapecast(
 				mesh,
 				box => sphere.intersectsBox( box ),
-				tri => sphereIntersectTriangle( sphere, tri )
+				tri => tri.intersectsSphere( sphere )
 			);
 
 		}

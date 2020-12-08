@@ -209,7 +209,7 @@ function render() {
 				box => sphere.intersectsBox( box ),
 				( tri, a, b, c ) => {
 
-					if ( sphereIntersectTriangle( sphere, tri ) ) {
+					if ( tri.intersectsSphere( sphere ) ) {
 
 						indices.push( a, b, c );
 
