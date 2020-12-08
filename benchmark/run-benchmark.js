@@ -116,7 +116,22 @@ function runSuite( strategy, lazyGeneration = true ) {
 
 	);
 
-	console.log( '' );
+	runBenchmark(
+
+		'Sphere Shapecast',
+		preFunc,
+		() => {
+
+			mesh.geometry.boundsTree.shapecast( mesh, box => sphere.intersectsBox( box ), tri => {
+
+				tri.intersectsSphere( sphere );
+
+			} );
+
+		},
+		3000
+
+	);
 
 	runBenchmark(
 

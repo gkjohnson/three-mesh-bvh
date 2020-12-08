@@ -4,7 +4,6 @@ import { buildTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
-import { sphereIntersectTriangle } from './Utils/MathUtilities.js';
 import {
 	raycast,
 	raycastFirst,

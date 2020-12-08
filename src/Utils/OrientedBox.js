@@ -148,6 +148,10 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 			saTri.update();
 			triangle = saTri;
 
+		} else if ( triangle.needsUpdate ) {
+
+			triangle.update();
+
 		}
 
 		const satBounds = this.satBounds;

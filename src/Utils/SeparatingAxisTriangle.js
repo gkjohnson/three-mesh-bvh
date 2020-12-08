@@ -13,6 +13,7 @@ export class SeparatingAxisTriangle extends Triangle {
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
 		this.sphere = new Sphere();
+		this.needsUpdate = false;
 
 	}
 
@@ -27,7 +28,7 @@ export class SeparatingAxisTriangle extends Triangle {
 SeparatingAxisTriangle.prototype.update = ( function () {
 
 	const arr = new Array( 3 );
-	return function update( ) {
+	return function update() {
 
 		const a = this.a;
 		const b = this.b;
@@ -61,6 +62,7 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 		sab3.setFromPoints( axis3, arr );
 
 		this.sphere.setFromPoints( this.points );
+		this.needsUpdate = false;
 
 	};
 
@@ -75,6 +77,12 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 	const cachedSatBounds2 = new SeparatingAxisBounds();
 	const cachedAxis = new Vector3();
 	return function intersectsTriangle( other ) {
+
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
 
 		if ( ! other.isSeparatingAxisTriangle ) {
 
@@ -157,6 +165,18 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 	const line2 = new Line3();
 
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
+
+		if ( other.needsUpdate ) {
+
+			other.update();
+
+		}
+
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
 
 		if ( this.intersectsTriangle( other ) ) {
 

@@ -152,7 +152,7 @@ export const shapecast = ( function () {
 			for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
 				setTriangle( triangle, i, index, pos );
-				triangle.update();
+				triangle.needsUpdate = true;
 
 				if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
 
