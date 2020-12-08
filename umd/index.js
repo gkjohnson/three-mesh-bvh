@@ -1075,6 +1075,7 @@
 			this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 			this.points = [ this.a, this.b, this.c ];
 			this.sphere = new three.Sphere();
+			this.needsUpdate = false;
 
 		}
 
@@ -1089,7 +1090,7 @@
 	SeparatingAxisTriangle.prototype.update = ( function () {
 
 		const arr = new Array( 3 );
-		return function update( ) {
+		return function update() {
 
 			const a = this.a;
 			const b = this.b;
@@ -1123,6 +1124,7 @@
 			sab3.setFromPoints( axis3, arr );
 
 			this.sphere.setFromPoints( this.points );
+			this.needsUpdate = false;
 
 		};
 
@@ -1137,6 +1139,12 @@
 		const cachedSatBounds2 = new SeparatingAxisBounds();
 		const cachedAxis = new three.Vector3();
 		return function intersectsTriangle( other ) {
+
+			if ( this.needsUpdate ) {
+
+				this.update();
+
+			}
 
 			if ( ! other.isSeparatingAxisTriangle ) {
 
@@ -1219,6 +1227,18 @@
 		const line2 = new three.Line3();
 
 		return function distanceToTriangle( other, target1 = null, target2 = null ) {
+
+			if ( other.needsUpdate ) {
+
+				other.update();
+
+			}
+
+			if ( this.needsUpdate ) {
+
+				this.update();
+
+			}
 
 			if ( this.intersectsTriangle( other ) ) {
 
@@ -1451,6 +1471,10 @@
 				saTri.copy( triangle );
 				saTri.update();
 				triangle = saTri;
+
+			} else if ( triangle.needsUpdate ) {
+
+				triangle.update();
 
 			}
 
@@ -1984,7 +2008,7 @@
 				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
 					setTriangle( triangle, i, index, pos );
-					triangle.update();
+					triangle.needsUpdate = true;
 
 					if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
 
@@ -2215,11 +2239,9 @@
 	const xyzFields$2 = [ 'x', 'y', 'z' ];
 
 
-
 	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2246,7 +2268,6 @@
 	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2325,7 +2346,6 @@
 		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 			if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -2338,7 +2358,7 @@
 				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
 					setTriangle( triangle, i, index, pos );
-					triangle.update();
+					triangle.needsUpdate = true;
 
 					if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
 
@@ -2437,7 +2457,6 @@
 		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 			if ( cachedObb === null ) {
 
 				if ( ! geometry.boundingBox ) {
