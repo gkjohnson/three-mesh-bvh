@@ -113,16 +113,28 @@ class MeshBVHVisualizer extends Group {
 
 		}
 
+	}
+
+	updateMatrixWorld( ...args ) {
+
 		this.position.copy( this.mesh.position );
 		this.rotation.copy( this.mesh.rotation );
 		this.scale.copy( this.mesh.scale );
+
+		super.updateMatrixWorld( ...args );
 
 	}
 
 	copy( source ) {
 
 		this.depth = source.depth;
-		this.mesh
+		this.mesh = source.mesh;
+
+	}
+
+	clone() {
+
+		return new MeshBVHVisualizer( this.mesh, this.depth );
 
 	}
 
