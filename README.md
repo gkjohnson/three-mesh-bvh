@@ -235,10 +235,18 @@ Performance improves considerably if the provided geometry _also_ has a `boundsT
 ### .closestPointToPoint
 
 ```js
-closestPointToPoint( mesh : Mesh, point : Vector3, target : Vector3 ) : Number
+closestPointToPoint(
+	mesh : Mesh,
+	point : Vector3,
+	target : Vector3,
+	minThreshold : Number = 0,
+	maxThreshold : Number = Infinity
+) : Number
 ```
 
 Returns the closest distance from the point to the mesh and puts the closest point on the mesh in `target`.
+
+If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
 ### .closestPointToGeometry
 
@@ -247,14 +255,50 @@ closestPointToGeometry(
 	mesh : Mesh,
 	geometry : BufferGeometry,
 	geometryToBvh : Matrix4,
-	target1 : Vector3,
-	target2 : Vector3
+	target1 : Vector3 = null,
+	target2 : Vector3 = null,
+	minThreshold : Number = 0,
+	maxThreshold : Number = Infinity
 ) : Number
 ```
 
 Returns the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` and the closest point on the other geometry in `target2` in the frame of the BVH.
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+
+If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
+
+### .shapecast
+
+```js
+shapecast(
+	mesh : Mesh,
+
+	intersectsBoundsFunc : (
+		box : Box3,
+		isLeaf : Boolean,
+		score : Number | undefined
+	) => Boolean,
+
+	intersectsTriangleFunc : (
+		triangle : SeparatingAxisTriangle,
+		index1 : Number,
+		index2 : Number,
+		index3 : Number
+	) => Boolean = null,
+
+	orderNodesFunc : (
+		box: Box3
+	) => Number = null
+
+) : Boolean
+```
+
+A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere).
+
+`mesh` is the is the object this BVH is representing. `intersectsBoundsFunc` takes a axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `order
+
+
 
 ## SerializedBVH
 
