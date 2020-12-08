@@ -2239,9 +2239,11 @@
 	const xyzFields$2 = [ 'x', 'y', 'z' ];
 
 
+
 	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2268,6 +2270,7 @@
 	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2346,6 +2349,7 @@
 		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 			if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -2457,6 +2461,7 @@
 		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			if ( cachedObb === null ) {
 
 				if ( ! geometry.boundingBox ) {
@@ -2764,62 +2769,6 @@
 		}
 
 		static deserialize( data, geometry, setIndex = true ) {
-
-			// function setData( byteOffset, node ) {
-
-			// 	const stride4Offset = byteOffset / 4;
-			// 	const stride2Offset = byteOffset / 2;
-			// 	const boundingData = new Float32Array( 6 );
-			// 	for ( let i = 0; i < 6; i ++ ) {
-
-			// 		boundingData[ i ] = float32Array[ stride4Offset + i ];
-
-			// 	}
-			// 	node.boundingData = boundingData;
-
-			// 	const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
-			// 	if ( isLeaf ) {
-
-			// 		node.offset = uint32Array[ stride4Offset + 6 ];
-			// 		node.count = uint16Array[ stride2Offset + 14 ];
-
-			// 	} else {
-
-			// 		const left = new MeshBVHNode();
-			// 		const right = new MeshBVHNode();
-			// 		const leftOffset = stride4Offset + BYTES_PER_NODE / 4;
-			// 		const rightOffset = uint32Array[ stride4Offset + 6 ];
-
-			// 		setData( leftOffset * 4, left );
-			// 		setData( rightOffset * 4, right );
-
-			// 		node.left = left;
-			// 		node.right = right;
-			// 		node.splitAxis = uint32Array[ stride4Offset + 7 ];
-
-			// 	}
-
-			// }
-
-			// let float32Array;
-			// let uint32Array;
-			// let uint16Array;
-
-			// const { index, roots } = data;
-			// const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
-			// bvh._roots = [];
-			// for ( let i = 0; i < roots.length; i ++ ) {
-
-			// 	const buffer = roots[ i ];
-			// 	float32Array = new Float32Array( buffer );
-			// 	uint32Array = new Uint32Array( buffer );
-			// 	uint16Array = new Uint16Array( buffer );
-
-			// 	const root = new MeshBVHNode();
-			// 	setData( 0, root );
-			// 	bvh._roots.push( root );
-
-			// }
 
 			const { index, roots } = data;
 			const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
@@ -3141,6 +3090,12 @@
 				mesh,
 				( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
 				tri => {
+
+					if ( tri.needsUpdate ) {
+
+						tri.update();
+
+					}
 
 					const sphere1 = tri.sphere;
 					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {

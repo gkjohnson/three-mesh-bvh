@@ -472,6 +472,12 @@ export default class MeshBVH {
 			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
 			tri => {
 
+				if ( tri.needsUpdate ) {
+
+					tri.update();
+
+				}
+
 				const sphere1 = tri.sphere;
 				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
