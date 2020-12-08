@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Performance improvements when computing distance to geometry.
+- `shapecast` to the docs.
+
 ## [0.3.0] - 2020-12-01
 ### Added
 - `generateAsync` function in the `/src/worker` folder to help generate BVHs asynchronously with WebWorkers.
