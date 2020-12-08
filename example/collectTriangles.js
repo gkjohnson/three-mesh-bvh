@@ -12,6 +12,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
 	size: 0.1,
+	rotate: false,
 };
 
 let stats;
@@ -19,6 +20,7 @@ let scene, camera, renderer, controls;
 let targetMesh, brushMesh;
 let mouse = new THREE.Vector2();
 let mouseType = - 1;
+let lastTime;
 
 function init() {
 
@@ -88,6 +90,7 @@ function init() {
 
 	const gui = new dat.GUI();
 	gui.add( params, 'size' ).min( 0.1 ).max( 1 ).step( 0.1 );
+	gui.add( params, 'rotate' );
 	gui.open();
 
 	controls.addEventListener( 'start', function () {
@@ -159,9 +162,15 @@ function init() {
 
 	} );
 
+	lastTime = window.performance.now();
+
 }
 
 function render() {
+
+	requestAnimationFrame( render );
+
+	stats.begin();
 
 	const geometry = targetMesh.geometry;
 	const bvh = geometry.boundsTree;
@@ -187,7 +196,12 @@ function render() {
 			controls.enabled = false;
 			brushMesh.visible = true;
 
-			const sphere = new THREE.Sphere( brushMesh.position, params.size );
+			const inverseMatrix = new THREE.Matrix4();
+			inverseMatrix.copy( targetMesh.matrixWorld ).invert();
+
+			const sphere = new THREE.Sphere();
+			sphere.center.copy( brushMesh.position ).applyMatrix4( inverseMatrix );
+			sphere.radius = params.size;
 
 			const indices = [];
 			bvh.shapecast(
@@ -238,38 +252,17 @@ function render() {
 
 	}
 
-	// targetMesh.rotation.y += params.speed * delta * 0.001;
-	// targetMesh.updateMatrixWorld();
+	const currTime = window.performance.now();
+	if ( params.rotate ) {
 
-	stats.begin();
+		const delta = currTime - lastTime;
+		targetMesh.rotation.y += delta * 0.001;
+
+	}
+	lastTime = currTime;
 
 	renderer.render( scene, camera );
 	stats.end();
-
-	// const s = params.shape;
-	// const shape = shapes[ s ];
-	// shape.visible = true;
-	// shape.position.copy( params.position );
-	// shape.rotation.copy( params.rotation );
-	// shape.scale.copy( params.scale );
-
-	// const transformMatrix =
-	// 	new THREE.Matrix4()
-	// 		.getInverse( targetMesh.matrixWorld )
-	// 		.multiply( shape.matrixWorld );
-
-	// if ( s === 'sphere' ) {
-
-	// 	const sphere = new THREE.Sphere( undefined, 1 );
-	// 	sphere.applyMatrix4( transformMatrix );
-
-	// 	const hit = targetMesh.geometry.boundsTree.intersectsSphere( targetMesh, sphere );
-	// 	shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-	// 	shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	// }
-
-	requestAnimationFrame( render );
 
 }
 
