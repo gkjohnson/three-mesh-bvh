@@ -151,62 +151,6 @@ export default class MeshBVH {
 
 	static deserialize( data, geometry, setIndex = true ) {
 
-		// function setData( byteOffset, node ) {
-
-		// 	const stride4Offset = byteOffset / 4;
-		// 	const stride2Offset = byteOffset / 2;
-		// 	const boundingData = new Float32Array( 6 );
-		// 	for ( let i = 0; i < 6; i ++ ) {
-
-		// 		boundingData[ i ] = float32Array[ stride4Offset + i ];
-
-		// 	}
-		// 	node.boundingData = boundingData;
-
-		// 	const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
-		// 	if ( isLeaf ) {
-
-		// 		node.offset = uint32Array[ stride4Offset + 6 ];
-		// 		node.count = uint16Array[ stride2Offset + 14 ];
-
-		// 	} else {
-
-		// 		const left = new MeshBVHNode();
-		// 		const right = new MeshBVHNode();
-		// 		const leftOffset = stride4Offset + BYTES_PER_NODE / 4;
-		// 		const rightOffset = uint32Array[ stride4Offset + 6 ];
-
-		// 		setData( leftOffset * 4, left );
-		// 		setData( rightOffset * 4, right );
-
-		// 		node.left = left;
-		// 		node.right = right;
-		// 		node.splitAxis = uint32Array[ stride4Offset + 7 ];
-
-		// 	}
-
-		// }
-
-		// let float32Array;
-		// let uint32Array;
-		// let uint16Array;
-
-		// const { index, roots } = data;
-		// const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
-		// bvh._roots = [];
-		// for ( let i = 0; i < roots.length; i ++ ) {
-
-		// 	const buffer = roots[ i ];
-		// 	float32Array = new Float32Array( buffer );
-		// 	uint32Array = new Uint32Array( buffer );
-		// 	uint16Array = new Uint16Array( buffer );
-
-		// 	const root = new MeshBVHNode();
-		// 	setData( 0, root );
-		// 	bvh._roots.push( root );
-
-		// }
-
 		const { index, roots } = data;
 		const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
