@@ -3154,7 +3154,13 @@
 							closestDistance = dist;
 
 						}
-						if ( dist < minThreshold ) return true;
+
+						// stop traversal if we find a point that's under the given threshold
+						if ( dist < minThreshold ) {
+
+							return true;
+
+						}
 
 					}
 

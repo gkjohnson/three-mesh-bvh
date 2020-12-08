@@ -12,7 +12,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
 	size: 0.1,
-	rotate: false,
+	rotate: true,
 };
 
 let stats;
