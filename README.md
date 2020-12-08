@@ -424,7 +424,7 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 
 ## Extra Functions
 
-List of functions stored in the `extra/` because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
+List of functions stored in the `src/workers/` and are not exported via index.js because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
 
 ### generateAsync
 
