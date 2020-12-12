@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Performance improvements when computing distance to geometry.
 - `shapecast` to the docs.
 
+### Fixed
+- Cloning the bvh visualizer causing an error.
+
+### Changed
+- Change the bvh visualizer so it automatically copies the local position and rotation of the target mesh.
+
 ## [0.3.0] - 2020-12-01
 ### Added
 - `generateAsync` function in the `/src/worker` folder to help generate BVHs asynchronously with WebWorkers.
