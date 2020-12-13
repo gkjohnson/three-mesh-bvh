@@ -7,7 +7,6 @@
 
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
-
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
@@ -17,11 +16,9 @@ const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
 
-
 export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -48,7 +45,6 @@ export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects )
 export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -127,7 +123,6 @@ export const shapecastBuffer = ( function () {
 	return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -203,13 +198,9 @@ export const shapecastBuffer = ( function () {
 
 			if ( c1Intersection ) return true;
 
-
-			if ( ! box2 ) {
-
-				box2 = cachedBox2;
-				arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
-
-			}
+			// cached box2 will have been overwritten by previous traversal
+			box2 = cachedBox2;
+			arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
 			const isC2Leaf = /* c2 count */ uint16Array[ c2 + 15 ] === 0xffff;
 			const c2Intersection =
@@ -239,7 +230,6 @@ export const intersectsGeometryBuffer = ( function () {
 	return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		if ( cachedObb === null ) {
 
 			if ( ! geometry.boundingBox ) {

@@ -215,13 +215,9 @@ export const shapecast = ( function () {
 
 			if ( c1Intersection ) return true;
 
-
-			if ( ! box2 ) {
-
-				box2 = cachedBox2;
-				arrayToBox( c2.boundingData, box2 );
-
-			}
+			// cached box2 will have been overwritten by previous traversal
+			box2 = cachedBox2;
+			arrayToBox( c2.boundingData, box2 );
 
 			const isC2Leaf = ! ! c2.count;
 			const c2Intersection =

@@ -50,7 +50,7 @@ function disposeBoundsTree() {
 }
 
 export {
-	MeshBVH, Visualizer,
+	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer,
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	CENTER, AVERAGE, SAH,
 	estimateMemoryInBytes, getBVHExtremes
