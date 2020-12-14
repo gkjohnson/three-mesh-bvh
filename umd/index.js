@@ -2049,9 +2049,8 @@
 						score1 = score2;
 						score2 = temp;
 
-						const tempBox = box1;
 						box1 = box2;
-						box2 = tempBox;
+						// box2 is always set before use below
 
 					}
 
@@ -2071,13 +2070,9 @@
 
 				if ( c1Intersection ) return true;
 
-
-				if ( ! box2 ) {
-
-					box2 = cachedBox2;
-					arrayToBox( c2.boundingData, box2 );
-
-				}
+				// cached box2 will have been overwritten by previous traversal
+				box2 = cachedBox2;
+				arrayToBox( c2.boundingData, box2 );
 
 				const isC2Leaf = ! ! c2.count;
 				const c2Intersection =
@@ -2239,11 +2234,9 @@
 	const xyzFields$2 = [ 'x', 'y', 'z' ];
 
 
-
 	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2270,7 +2263,6 @@
 	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2349,7 +2341,6 @@
 		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 			if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -2403,9 +2394,8 @@
 						score1 = score2;
 						score2 = temp;
 
-						const tempBox = box1;
 						box1 = box2;
-						box2 = tempBox;
+						// box2 is always set before use below
 
 					}
 
@@ -2425,13 +2415,9 @@
 
 				if ( c1Intersection ) return true;
 
-
-				if ( ! box2 ) {
-
-					box2 = cachedBox2;
-					arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
-
-				}
+				// cached box2 will have been overwritten by previous traversal
+				box2 = cachedBox2;
+				arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
 				const isC2Leaf = /* c2 count */ uint16Array[ c2 + 15 ] === 0xffff;
 				const c2Intersection =
@@ -2461,7 +2447,6 @@
 		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 			if ( cachedObb === null ) {
 
 				if ( ! geometry.boundingBox ) {
@@ -3226,7 +3211,7 @@
 
 			this.depth = depth;
 			this._oldDepth = - 1;
-			this._mesh = mesh;
+			this.mesh = mesh;
 			this._boundsTree = null;
 			this._group = group;
 
@@ -3237,7 +3222,7 @@
 		update() {
 
 			this._oldDepth = this.depth;
-			this._boundsTree = this._mesh.geometry.boundsTree;
+			this._boundsTree = this.mesh.geometry.boundsTree;
 
 			let requiredChildren = 0;
 			if ( this._boundsTree ) {
@@ -3291,7 +3276,7 @@
 			super( 'MeshBVHVisualizer' );
 
 			this.depth = depth;
-			this._mesh = mesh;
+			this.mesh = mesh;
 			this._roots = [];
 
 			this.update();
@@ -3300,7 +3285,7 @@
 
 		update() {
 
-			const bvh = this._mesh.geometry.boundsTree;
+			const bvh = this.mesh.geometry.boundsTree;
 			const totalRoots = bvh ? bvh._roots.length : 0;
 			while ( this._roots.length > totalRoots ) {
 
@@ -3312,7 +3297,7 @@
 
 				if ( i >= this._roots.length ) {
 
-					const root = new MeshBVHRootVisualizer( this._mesh, this.depth, i );
+					const root = new MeshBVHRootVisualizer( this.mesh, this.depth, i );
 					this.add( root );
 					this._roots.push( root );
 
@@ -3326,9 +3311,28 @@
 
 			}
 
-			this.position.copy( this._mesh.position );
-			this.rotation.copy( this._mesh.rotation );
-			this.scale.copy( this._mesh.scale );
+		}
+
+		updateMatrixWorld( ...args ) {
+
+			this.position.copy( this.mesh.position );
+			this.rotation.copy( this.mesh.rotation );
+			this.scale.copy( this.mesh.scale );
+
+			super.updateMatrixWorld( ...args );
+
+		}
+
+		copy( source ) {
+
+			this.depth = source.depth;
+			this.mesh = source.mesh;
+
+		}
+
+		clone() {
+
+			return new MeshBVHVisualizer( this.mesh, this.depth );
 
 		}
 
@@ -3521,6 +3525,7 @@
 
 	exports.MeshBVH = MeshBVH;
 	exports.Visualizer = MeshBVHVisualizer;
+	exports.MeshBVHVisualizer = MeshBVHVisualizer;
 	exports.acceleratedRaycast = acceleratedRaycast;
 	exports.computeBoundsTree = computeBoundsTree;
 	exports.disposeBoundsTree = disposeBoundsTree;
