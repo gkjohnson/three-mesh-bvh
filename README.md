@@ -18,6 +18,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Distance comparison demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
 
+[Sphere physics collision demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
+
 [WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
 # Use

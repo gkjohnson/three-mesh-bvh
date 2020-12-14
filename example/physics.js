@@ -14,6 +14,7 @@ const params = {
 	visualizeDepth: 10,
 	gravity: - 9.8,
 	physicsSteps: 5,
+	// TODO: support steps based on given sphere velocity / radius
 	simulationSpeed: 1,
 	sphereSize: 1,
 	pause: false,
@@ -30,8 +31,6 @@ const params = {
 	explode: explodeSpheres,
 	reset: reset,
 
-	// first person
-
 };
 
 const models = {
@@ -40,7 +39,7 @@ const models = {
 };
 params.model = models[ 'jungle' ];
 
-let renderer, camera, scene, clock, gui, outputContainer, stats;
+let renderer, camera, scene, clock, gui, stats;
 let environment, collider, visualizer;
 const spheres = [];
 const hits = [];
@@ -56,8 +55,6 @@ function init() {
 
 	const bgColor = 0x263238 / 2;
 
-	outputContainer = document.getElementById( 'output' );
-
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
@@ -72,6 +69,7 @@ function init() {
 	scene = new THREE.Scene();
 	scene.fog = new THREE.Fog( bgColor, 30, 70 );
 
+	// lights
 	const light = new THREE.DirectionalLight( 0xaaccff, 1 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
 	light.shadow.normalBias = 1e-1;
@@ -104,8 +102,6 @@ function init() {
 	loadScene();
 
 	gui = new GUI();
-	// gui.add( params, 'model', models ).onChange( loadScene );
-
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayCollider' );
 	visFolder.add( params, 'displayBVH' );
@@ -222,29 +218,6 @@ function loadScene() {
 		box.setFromObject( environment );
 		box.getCenter( environment.position ).multiplyScalar( - 1 );
 
-
-		const toRemove = [];
-		environment.traverse( c => {
-
-			if (
-				c.name.includes( 'Enemie' ) ||
-				c.name.includes( 'Character' ) ||
-				c.name.includes( 'Gate' )
-			) {
-
-				toRemove.push( c );
-				return;
-
-			}
-
-		} );
-		toRemove.forEach( c => {
-
-			c.parent.remove( c );
-
-		} );
-
-
 		environment.updateMatrixWorld( true );
 		environment.traverse( c => {
 
@@ -266,7 +239,6 @@ function loadScene() {
 			}
 
 		} );
-
 
 		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
 		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
@@ -306,6 +278,7 @@ function onCollide( object1, object2, point, normal, velocity, offset = 0 ) {
 
 	}
 
+	// Create an animation when objects collide
 	const effectScale = Math.max( object2 ?
 		Math.max( object1.collider.radius, object2.collider.radius ) :
 		object1.collider.radius, 1 );
