@@ -8,6 +8,7 @@ import { MeshBVH, MeshBVHVisualizer } from '../src/index.js';
 
 const params = {
 
+	model: null,
 	displayCollider: false,
 	displayBVH: false,
 	visualizeDepth: 10,
@@ -31,6 +32,12 @@ const params = {
 	// first person
 
 };
+
+const models = {
+	'dungeon': '../models/dungeon_low_poly_game_level_challenge/scene.gltf',
+	'jungle': '../models/low_poly_environment_jungle_scene/scene.gltf',
+};
+params.model = models[ 'dungeon' ];
 
 let renderer, camera, scene, clock, gui, outputContainer, stats;
 let environment, collider, visualizer;
@@ -67,8 +74,8 @@ function init() {
 	light.castShadow = true;
 
 	const shadowCam = light.shadow.camera;
-	shadowCam.bottom = shadowCam.left = - 25;
-	shadowCam.top = shadowCam.right = 25;
+	shadowCam.bottom = shadowCam.left = - 30;
+	shadowCam.top = shadowCam.right = 35;
 
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0x4488ff, 0.3 ) );
@@ -84,70 +91,17 @@ function init() {
 
 	clock = new THREE.Clock();
 
-	new GLTFLoader().load( '../models/low_poly_environment_jungle_scene/scene.gltf', res => {
-
-		const geometries = [];
-		environment = res.scene;
-		environment.scale.setScalar( 0.1 );
-		environment.updateMatrixWorld( true );
-		environment.traverse( c => {
-
-			if ( c.geometry ) {
-
-				const cloned = c.geometry.clone();
-				cloned.applyMatrix4( c.matrixWorld );
-				for ( const key in cloned.attributes ) {
-
-					if ( key !== 'position' ) {
-
-						cloned.deleteAttribute( key );
-
-					}
-
-				}
-				geometries.push( cloned );
-
-			}
-
-		} );
-		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
-		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
-
-		collider = new THREE.Mesh( mergedGeometry );
-		collider.material.wireframe = true;
-		collider.material.opacity = 0.5;
-		collider.material.transparent = true;
-
-		scene.add( collider );
-
-		visualizer = new MeshBVHVisualizer( collider, params.visualizeDepth );
-		scene.add( visualizer );
-
-		window.visualizer = visualizer;
-
-		scene.add( res.scene );
-		res.scene.traverse( c => {
-
-			c.castShadow = true;
-			c.receiveShadow = true;
-			if ( c.material ) {
-
-				c.material.shadowSide = 2;
-
-			}
-
-		} );
-		window.res = res;
-
-	} );
-
 	new OrbitControls( camera, renderer.domElement );
 
 	// stats setup
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	loadScene();
+
 	gui = new GUI();
+	gui.add( params, 'model', models ).onChange( loadScene );
+
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayCollider' );
 	visFolder.add( params, 'displayBVH' );
@@ -215,9 +169,138 @@ function init() {
 
 }
 
+function loadScene() {
+
+	clearSpheres();
+	if ( collider ) {
+
+		collider.material.dispose();
+		collider.geometry.dispose();
+		collider.parent.remove( collider );
+		collider = null;
+
+		environment.traverse( c => {
+
+			if ( c.material ) {
+
+				for ( const key in c.material ) {
+
+					const value = c.material[ key ];
+					if ( value && value.isTexture ) {
+
+						value.dispose();
+
+					}
+
+
+				}
+				c.material.dispose();
+				c.geometry.dispose();
+
+			}
+
+		} );
+		environment.parent.remove( environment );
+		environment = null;
+
+	}
+
+	new GLTFLoader().load( params.model, res => {
+
+		const geometries = [];
+		environment = res.scene;
+		environment.scale.setScalar( params.model === models.dungeon ? 0.01 : 0.1 );
+
+		const box = new THREE.Box3();
+		box.setFromObject( environment );
+		box.getCenter( environment.position ).multiplyScalar( - 1 );
+
+
+		const toRemove = [];
+		environment.traverse( c => {
+
+			if (
+				c.name.includes( 'Enemie' ) ||
+				c.name.includes( 'Character' ) ||
+				c.name.includes( 'Gate' )
+			) {
+
+				toRemove.push( c );
+				return;
+
+			}
+
+		} );
+		toRemove.forEach( c => {
+
+			c.parent.remove( c );
+
+		} );
+
+
+		environment.updateMatrixWorld( true );
+		environment.traverse( c => {
+
+
+			if ( c.geometry ) {
+
+				const cloned = c.geometry.clone();
+				cloned.applyMatrix4( c.matrixWorld );
+				for ( const key in cloned.attributes ) {
+
+					if ( key !== 'position' ) {
+
+						cloned.deleteAttribute( key );
+
+					}
+
+				}
+				geometries.push( cloned );
+
+			}
+
+		} );
+
+
+		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
+		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
+
+		collider = new THREE.Mesh( mergedGeometry );
+		collider.material.wireframe = true;
+		collider.material.opacity = 0.5;
+		collider.material.transparent = true;
+
+		scene.add( collider );
+
+		visualizer = new MeshBVHVisualizer( collider, params.visualizeDepth );
+		scene.add( visualizer );
+
+		scene.add( environment );
+		environment.traverse( c => {
+
+			c.castShadow = true;
+			c.receiveShadow = true;
+			if ( c.material ) {
+
+				c.material.shadowSide = 2;
+
+			}
+
+		} );
+
+	} );
+
+}
+
+
 function createSphere() {
 
-	const sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 20, 20 ), new THREE.MeshStandardMaterial() );
+	const white = new THREE.Color( 0xffffff );
+	const color = new THREE.Color( 0x263238 / 2 ).lerp( white, Math.random() * 0.5 + 0.5 ).convertSRGBToLinear();
+	const sphere = new THREE.Mesh(
+		new THREE.SphereBufferGeometry( 1, 20, 20 ),
+		new THREE.MeshStandardMaterial( { color } )
+	);
 	scene.add( sphere );
 	sphere.castShadow = true;
 	sphere.receiveShadow = true;
@@ -351,6 +434,8 @@ function updateSpheres( deltaTime ) {
 				// we should account for it here. IE don't blindly reflect the vector
 				// we should shift the spheres and then split the energy between spheres
 				// accounting for both spheres velocity directions.
+				// TODO: reflecting both vectors here isn't right. We just want to impart
+				// the force from the collision.
 
 				// CONSOLE TEST CODE
 				// for ( let x = 0; x < 20; x ++ )
