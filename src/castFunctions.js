@@ -193,9 +193,8 @@ export const shapecast = ( function () {
 					score1 = score2;
 					score2 = temp;
 
-					const tempBox = box1;
 					box1 = box2;
-					box2 = tempBox;
+					// box2 is always set before use below
 
 				}
 

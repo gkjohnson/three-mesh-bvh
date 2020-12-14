@@ -3,7 +3,6 @@ import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
-import { sphereIntersectTriangle } from '../src/Utils/MathUtilities.js';
 import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
