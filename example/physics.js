@@ -197,7 +197,6 @@ function init() {
 
 		const sphere = createSphere();
 		sphere.position.copy( camera.position ).addScaledVector( raycaster.ray.direction, 3 );
-		sphere.scale.setScalar( Math.random() * .6 + 0.2 );
 		sphere
 			.velocity
 			.set( Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5 )
@@ -224,8 +223,11 @@ function createSphere() {
 	sphere.receiveShadow = true;
 	sphere.material.shadowSide = 2;
 
+	const radius = Math.random() * .6 + 0.2;
+	sphere.scale.setScalar( radius );
 	sphere.collider = new THREE.Sphere( new THREE.Vector3(), 1 );
 	sphere.velocity = new THREE.Vector3( 0, 0, 0 );
+	sphere.mass = Math.pow( radius, 3 ) * Math.PI * 4 / 3;
 
 	spheres.push( sphere );
 	return sphere;
@@ -233,10 +235,11 @@ function createSphere() {
 }
 
 const tempSphere = new THREE.Sphere();
+const tempSphere2 = new THREE.Sphere();
 const deltaVec = new THREE.Vector3();
 function updateSpheres( deltaTime ) {
 
-	// TODO: Add visualization for velocity vector
+	// TODO: Add visualization for velocity vector, collision vector, all intersection vectors
 	// TODO: Add smoke effect or similar if wall or other ball is hit at certain speed
 	const bvh = collider.geometry.boundsTree;
 	for ( let i = 0, l = spheres.length; i < l; i ++ ) {
@@ -248,9 +251,9 @@ function updateSpheres( deltaTime ) {
 		sphere.position.addScaledVector( sphere.velocity, deltaTime );
 		sphere.updateMatrixWorld();
 
+		// remove the spheres if they've left the world
 		if ( sphere.position.y < - 80 ) {
 
-			console.log( 'REMOVING' );
 			spheres.splice( i, 1 );
 			i --;
 			l --;
@@ -311,7 +314,60 @@ function updateSpheres( deltaTime ) {
 
 		}
 
-		// TODO: check all spheres against all others
+		sphere.updateMatrixWorld();
+
+	}
+
+	for ( let i = 0, l = spheres.length; i < l; i ++ ) {
+
+		const s1 = spheres[ i ];
+		const c1 = tempSphere.copy( s1.collider ).applyMatrix4( s1.matrixWorld );
+		for ( let j = i + 1; j < l; j ++ ) {
+
+			const s2 = spheres[ j ];
+			const c2 = tempSphere2.copy( s2.collider ).applyMatrix4( s2.matrixWorld );
+
+			deltaVec.subVectors( c1.center, c2.center );
+
+			const depth = deltaVec.length() - ( c1.radius + c2.radius );
+			if ( depth < 0 ) {
+
+				deltaVec.normalize();
+
+				// shift the spheres outside of each other
+				const c1dot = Math.max( - s1.velocity.dot( deltaVec ), 0.1 );
+				const c2dot = Math.max( s2.velocity.dot( deltaVec ), 0.1 );
+
+				const total = c1dot + c2dot;
+				const ratio1 = c1dot / total;
+				const ratio2 = c2dot / total;
+
+				c1.center.addScaledVector( deltaVec, - ratio1 * depth );
+				c2.center.addScaledVector( deltaVec, ratio2 * depth );
+
+				// TODO: apply velocities
+				// TODO: impart velocities onto the other sphere
+				// TODO: if one sphere is already moving in the appropriate direction
+				// we should account for it here. IE don't blindly reflect the vector
+				// we should shift the spheres and then split the energy between spheres
+				// accounting for both spheres velocity directions.
+
+				// CONSOLE TEST CODE
+				// for ( let x = 0; x < 20; x ++ )
+				// 		for ( let y = 0; y < 20; y ++ )
+				// 			createSphere().position.set( x - 15, y + 15, 0 )
+				s1.velocity.reflect( deltaVec ).addScaledVector( deltaVec, - s1.velocity.dot( deltaVec ));
+				s2.velocity.reflect( deltaVec ).addScaledVector( deltaVec, - s2.velocity.dot( deltaVec ));
+
+
+				s1.position.copy( c1.center );
+				s2.position.copy( c2.center );
+				s1.updateMatrixWorld();
+				s2.updateMatrixWorld();
+
+			}
+
+		}
 
 	}
 
