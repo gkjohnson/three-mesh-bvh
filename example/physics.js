@@ -21,7 +21,7 @@ const params = {
 		const steps = params.physicsSteps;
 		for ( let i = 0; i < steps; i ++ ) {
 
-			updateSpheres( 0.016 / steps );
+			update( 0.016 / steps );
 
 		}
 
@@ -37,11 +37,12 @@ const models = {
 	'dungeon': '../models/dungeon_low_poly_game_level_challenge/scene.gltf',
 	'jungle': '../models/low_poly_environment_jungle_scene/scene.gltf',
 };
-params.model = models[ 'dungeon' ];
+params.model = models[ 'jungle' ];
 
 let renderer, camera, scene, clock, gui, outputContainer, stats;
 let environment, collider, visualizer;
 let spheres = [];
+let hits = [];
 
 init();
 render();
@@ -79,8 +80,6 @@ function init() {
 
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0x4488ff, 0.3 ) );
-
-	window.light = light;
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -292,6 +291,31 @@ function loadScene() {
 
 }
 
+window.createSphere = createSphere;
+const forwardVector = new THREE.Vector3( 0, 0, 1 );
+function onCollide( point, normal, velocity, offset = 0 ) {
+
+	if ( velocity < Math.max( Math.abs( 0.04 * params.gravity ), 5 ) ) {
+
+		return;
+
+	}
+
+	const plane = new THREE.Mesh(
+		new THREE.RingBufferGeometry( 0, 1, 30 ),
+		new THREE.MeshBasicMaterial( { side: 2, transparent: true, depthWrite: false } ),
+	);
+	plane.lifetime = 0;
+	plane.maxLifetime = 0.4;
+	plane.maxScale = Math.max( Math.sin( Math.min( velocity / 300, 2 ) * Math.PI / 2 ), 0.5 );
+
+	plane.position.copy( point ).addScaledVector( normal, offset );
+	plane.quaternion.setFromUnitVectors( forwardVector, normal );
+	scene.add( plane );
+	hits.push( plane );
+
+
+}
 
 function createSphere() {
 
@@ -320,6 +344,7 @@ function createSphere() {
 const tempSphere = new THREE.Sphere();
 const tempSphere2 = new THREE.Sphere();
 const deltaVec = new THREE.Vector3();
+const tempVec = new THREE.Vector3();
 function updateSpheres( deltaTime ) {
 
 	// TODO: Add visualization for velocity vector, collision vector, all intersection vectors
@@ -390,10 +415,14 @@ function updateSpheres( deltaTime ) {
 			deltaVec.subVectors( tempSphere.center, sphere.position ).normalize();
 			sphere.velocity.reflect( deltaVec );
 
+			const ogVelocity = sphere.velocity.length();
 			const dot = sphere.velocity.dot( deltaVec );
 			sphere.velocity.addScaledVector( deltaVec, - dot * 0.5 );
 			sphere.position.copy( tempSphere.center );
 			sphere.velocity.multiplyScalar( Math.max( 1.0 - deltaTime, 0 ) );
+
+			tempVec.copy( tempSphere.center ).addScaledVector( deltaVec, - tempSphere.radius );
+			onCollide( tempVec, deltaVec, ogVelocity * dot, 0.05 );
 
 		}
 
@@ -418,37 +447,55 @@ function updateSpheres( deltaTime ) {
 				deltaVec.normalize();
 
 				// shift the spheres outside of each other
-				const c1dot = Math.max( - s1.velocity.dot( deltaVec ), 0.1 );
-				const c2dot = Math.max( s2.velocity.dot( deltaVec ), 0.1 );
+				const v1dot = s1.velocity.dot( deltaVec );
+				const v2dot = s2.velocity.dot( deltaVec );
 
-				const total = c1dot + c2dot;
-				const ratio1 = c1dot / total;
-				const ratio2 = c2dot / total;
+				const offsetRatio1 = Math.max( v1dot, 0.2 );
+				const offsetRatio2 = Math.max( v2dot, 0.2 );
 
+				const total = offsetRatio1 + offsetRatio2;
+				const ratio1 = offsetRatio1 / total;
+				const ratio2 = offsetRatio2 / total;
+
+				// correct the positioning of the spheres
 				c1.center.addScaledVector( deltaVec, - ratio1 * depth );
 				c2.center.addScaledVector( deltaVec, ratio2 * depth );
 
-				// TODO: apply velocities
-				// TODO: impart velocities onto the other sphere
-				// TODO: if one sphere is already moving in the appropriate direction
-				// we should account for it here. IE don't blindly reflect the vector
-				// we should shift the spheres and then split the energy between spheres
-				// accounting for both spheres velocity directions.
-				// TODO: reflecting both vectors here isn't right. We just want to impart
-				// the force from the collision.
+				// momentum
+				const velocityDifference = new THREE.Vector3();
+				velocityDifference
+					.addScaledVector( deltaVec, - v1dot )
+					.addScaledVector( deltaVec, v2dot );
 
-				// CONSOLE TEST CODE
-				// for ( let x = 0; x < 20; x ++ )
-				// 		for ( let y = 0; y < 20; y ++ )
-				// 			createSphere().position.set( x - 15, y + 15, 0 )
-				s1.velocity.reflect( deltaVec ).addScaledVector( deltaVec, - s1.velocity.dot( deltaVec ));
-				s2.velocity.reflect( deltaVec ).addScaledVector( deltaVec, - s2.velocity.dot( deltaVec ));
+				const velDiff = velocityDifference.length();
+				const m1 = s1.mass;
+				const m2 = s2.mass;
 
+				let newv1, newv2;
+				if ( velocityDifference.dot( s1.velocity ) > velocityDifference.dot( s2.velocity ) ) {
+
+					newv1 = 0.5 * velDiff * ( m1 - m2 ) / ( m1 + m2 ) - velDiff;
+					newv2 = 0.5 * velDiff * 2 * m1 / ( m1 + m2 );
+
+				} else {
+
+					newv1 = 0.5 * velDiff * 2 * m2 / ( m1 + m2 );
+					newv2 = 0.5 * velDiff * ( m2 - m1 ) / ( m1 + m2 ) - velDiff;
+
+				}
+
+				velocityDifference.normalize();
+				s1.velocity.addScaledVector( velocityDifference, newv1 );
+				s2.velocity.addScaledVector( velocityDifference, newv2 );
 
 				s1.position.copy( c1.center );
 				s2.position.copy( c2.center );
 				s1.updateMatrixWorld();
 				s2.updateMatrixWorld();
+
+				tempVec.copy( c1.center ).addScaledVector( deltaVec, - c1.radius );
+				onCollide( tempVec, deltaVec, total, 0 );
+
 
 			}
 
@@ -457,8 +504,6 @@ function updateSpheres( deltaTime ) {
 	}
 
 }
-
-window.createSphere = createSphere;
 
 function clearSpheres() {
 
@@ -487,12 +532,52 @@ function explodeSpheres() {
 
 }
 
+function update( delta ) {
+
+	if ( collider ) {
+
+		const steps = params.physicsSteps;
+		for ( let i = 0; i < steps; i ++ ) {
+
+			updateSpheres( delta / steps );
+
+		}
+
+	}
+
+	for ( let i = 0, l = hits.length; i < l; i ++ ) {
+
+		const hit = hits[ i ];
+		hit.lifetime += delta;
+
+		const ratio = hit.lifetime / hit.maxLifetime;
+		let scale = Math.sin( ratio * 4.5 * Math.PI / 4 );
+		scale = 1.0 - Math.pow( 1.0 - scale, 2 );
+		hit.scale.setScalar( scale * hit.maxScale );
+		hit.material.opacity = 1.0 - Math.sin( ratio * 2 * Math.PI / 4 );
+
+		if ( ratio >= 1 ) {
+
+			hits.splice( i, 1 );
+			hit.parent.remove( hit );
+			hit.geometry.dispose();
+			hit.material.dispose();
+			i --;
+			l --;
+
+		}
+
+	}
+
+}
+
 function render() {
 
 	stats.update();
 	requestAnimationFrame( render );
 
-	const delta = clock.getDelta();
+	const delta = Math.min( clock.getDelta(), 0.1 );
+
 	if ( collider ) {
 
 		collider.visible = params.displayCollider;
@@ -500,18 +585,11 @@ function render() {
 
 		if ( ! params.pause ) {
 
-			const steps = params.physicsSteps;
-			const speed = params.simulationSpeed;
-			for ( let i = 0; i < steps; i ++ ) {
-
-				updateSpheres( speed * delta / steps );
-
-			}
+			update( params.simulationSpeed * delta );
 
 		}
 
 	}
-
 
 	renderer.render( scene, camera );
 
