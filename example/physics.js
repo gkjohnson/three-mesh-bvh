@@ -35,7 +35,7 @@ const params = {
 };
 
 const models = {
-	'dungeon': '../models/dungeon_low_poly_game_level_challenge/scene.gltf',
+	// 'dungeon': '../models/dungeon_low_poly_game_level_challenge/scene.gltf',
 	'jungle': '../models/low_poly_environment_jungle_scene/scene.gltf',
 };
 params.model = models[ 'jungle' ];
@@ -104,7 +104,7 @@ function init() {
 	loadScene();
 
 	gui = new GUI();
-	gui.add( params, 'model', models ).onChange( loadScene );
+	// gui.add( params, 'model', models ).onChange( loadScene );
 
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayCollider' );
@@ -125,7 +125,7 @@ function init() {
 
 	} );
 	physicsFolder.add( params, 'simulationSpeed', 0, 5, 0.01 );
-	physicsFolder.add( params, 'sphereSize', 0.01, 5, 0.01 );
+	physicsFolder.add( params, 'sphereSize', 0.1, 5, 0.1 );
 	physicsFolder.add( params, 'pause' );
 	physicsFolder.add( params, 'step' );
 	physicsFolder.open();
@@ -171,6 +171,8 @@ function init() {
 		renderer.setSize( window.innerWidth, window.innerHeight );
 
 	}, false );
+
+	window.createSphere = createSphere;
 
 }
 
@@ -246,7 +248,6 @@ function loadScene() {
 		environment.updateMatrixWorld( true );
 		environment.traverse( c => {
 
-
 			if ( c.geometry ) {
 
 				const cloned = c.geometry.clone();
@@ -297,9 +298,7 @@ function loadScene() {
 
 }
 
-window.createSphere = createSphere;
-
-function onCollide( point, normal, velocity, offset = 0 ) {
+function onCollide( object1, object2, point, normal, velocity, offset = 0 ) {
 
 	if ( velocity < Math.max( Math.abs( 0.04 * params.gravity ), 5 ) ) {
 
@@ -307,19 +306,21 @@ function onCollide( point, normal, velocity, offset = 0 ) {
 
 	}
 
+	const effectScale = Math.max( object2 ?
+		Math.max( object1.collider.radius, object2.collider.radius ) :
+		object1.collider.radius, 1 );
 	const plane = new THREE.Mesh(
 		new THREE.RingBufferGeometry( 0, 1, 30 ),
 		new THREE.MeshBasicMaterial( { side: 2, transparent: true, depthWrite: false } )
 	);
 	plane.lifetime = 0;
 	plane.maxLifetime = 0.4;
-	plane.maxScale = Math.max( Math.sin( Math.min( velocity / 300, 1 ) * Math.PI / 2 ), 0.35 );
+	plane.maxScale = effectScale * Math.max( Math.sin( Math.min( velocity / 300, 1 ) * Math.PI / 2 ), 0.35 );
 
 	plane.position.copy( point ).addScaledVector( normal, offset );
 	plane.quaternion.setFromUnitVectors( forwardVector, normal );
 	scene.add( plane );
 	hits.push( plane );
-
 
 }
 
@@ -430,7 +431,7 @@ function updateSphereCollisions( deltaTime ) {
 			tempVec
 				.copy( tempSphere.center )
 				.addScaledVector( deltaVec, - tempSphere.radius );
-			onCollide( tempVec, deltaVec, ogVelocity * dot, 0.05 );
+			onCollide( sphere, null, tempVec, deltaVec, ogVelocity * dot, 0.05 );
 
 		}
 
@@ -510,7 +511,7 @@ function updateSphereCollisions( deltaTime ) {
 				s2.velocity.addScaledVector( velocityDifference, newVel2 );
 
 				tempVec.copy( c1.center ).addScaledVector( deltaVec, - c1.radius );
-				onCollide( tempVec, deltaVec, total, 0 );
+				onCollide( s1, s2, tempVec, deltaVec, velDiff, 0 );
 
 			}
 
