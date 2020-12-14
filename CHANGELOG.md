@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Performance improvements when computing distance to geometry.
 - `shapecast` to the docs.
+- `MeshBVHVisualizer` to exports.
 
 ### Fixed
 - Cloning the bvh visualizer causing an error.
+- Bug with shapecast function where one node would not be checked when using the node score function.
 
 ### Changed
 - Change the bvh visualizer so it automatically copies the local position and rotation of the target mesh.
