@@ -64,7 +64,7 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 // ...
 
 // Generate the BVH and use the newly generated index
-geom.boundsTree = new MeshBVH(geom);
+geom.boundsTree = new MeshBVH( geom );
 ```
 
 And then raycasting
@@ -75,6 +75,31 @@ And then raycasting
 const raycaster = new THREE.Raycaster();
 raycaster.firstHitOnly = true;
 raycaster.intersectObjects( [ mesh ] );
+```
+
+## Querying the BVH Directly
+
+```js
+import * as THREE from 'three';
+import { MeshBVH, acceleratedRaycast } 'three-mesh-bvh';
+
+let mesh, geometry;
+const invMat = new THREE.Matrix4();
+
+// instantiate the geometry
+
+const bvh = new MeshBVH( geometry, { lazyGeneration: false } );
+invMat.copy( mesh.matrixWorld ).invert();
+
+// raycasting
+// ensure the ray is in the local space of the geometry being cast against
+raycaster.ray.applyMatrix4( invMat );
+const hit = bvh.raycastFirst( mesh, raycaster, raycaster.ray );
+
+// spherecasting
+// ensure the sphere is in the lcoal space of hte geometry being cast against
+sphere.applyMatrix4( invMat );
+const intersects = bvh.intersectsSphere( mesh, sphere );
 ```
 
 ## Serialization and Deserialization
@@ -193,7 +218,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 ### .raycast
 
 ```js
-raycast( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array) : Array<RaycastHit>
+raycast( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array ) : Array<RaycastHit>
 ```
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
@@ -201,7 +226,7 @@ Adds all raycast triangle hits in unsorted order to the `intersects` array. It i
 ### .raycastFirst
 
 ```js
-raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray) : RaycastHit
+raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray ) : RaycastHit
 ```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits.
