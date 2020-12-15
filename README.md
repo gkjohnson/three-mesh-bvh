@@ -88,6 +88,8 @@ const invMat = new THREE.Matrix4();
 
 // instantiate the geometry
 
+// ...
+
 const bvh = new MeshBVH( geometry, { lazyGeneration: false } );
 invMat.copy( mesh.matrixWorld ).invert();
 
