@@ -2234,9 +2234,11 @@
 	const xyzFields$2 = [ 'x', 'y', 'z' ];
 
 
+
 	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2263,6 +2265,7 @@
 	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf ) {
 
@@ -2341,6 +2344,7 @@
 		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 			if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -2447,6 +2451,7 @@
 		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			if ( cachedObb === null ) {
 
 				if ( ! geometry.boundingBox ) {
