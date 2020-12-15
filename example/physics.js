@@ -8,7 +8,6 @@ import { MeshBVH, MeshBVHVisualizer } from '../src/index.js';
 
 const params = {
 
-	model: null,
 	displayCollider: false,
 	displayBVH: false,
 	visualizeDepth: 10,
@@ -32,12 +31,6 @@ const params = {
 	reset: reset,
 
 };
-
-const models = {
-	// 'dungeon': '../models/dungeon_low_poly_game_level_challenge/scene.gltf',
-	'jungle': '../models/low_poly_environment_jungle_scene/scene.gltf',
-};
-params.model = models[ 'jungle' ];
 
 let renderer, camera, scene, clock, gui, stats;
 let environment, collider, visualizer;
@@ -72,21 +65,19 @@ function init() {
 	// lights
 	const light = new THREE.DirectionalLight( 0xaaccff, 1 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
-	light.shadow.normalBias = 1e-1;
-	light.shadow.bias = - 1e-4;
-	light.shadow.mapSize.setScalar( 2048 );
-	light.castShadow = true;
+	light.intensity = 0.25;
 
 	const shadowCam = light.shadow.camera;
-	shadowCam.bottom = shadowCam.left = - 30;
-	shadowCam.top = shadowCam.right = 35;
+	shadowCam.bottom = shadowCam.left = - 10;
+	shadowCam.top = shadowCam.right = 10;
 
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0x4488ff, 0.3 ) );
+	// scene.add( new THREE.AmbientLight( 0x4488ff, 0.3 ) );
+	scene.add( new THREE.HemisphereLight( 0x4488ff, 0x223344, 0.3 ) )
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 20, 20, - 20 );
+	camera.position.set( 10, 10, - 10 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 	window.camera = camera;
@@ -99,8 +90,9 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	loadScene();
+	loadColliderEnvironment();
 
+	// dat.gui
 	gui = new GUI();
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayCollider' );
@@ -121,7 +113,7 @@ function init() {
 
 	} );
 	physicsFolder.add( params, 'simulationSpeed', 0, 5, 0.01 );
-	physicsFolder.add( params, 'sphereSize', 0.1, 5, 0.1 );
+	physicsFolder.add( params, 'sphereSize', 0.2, 5, 0.1 );
 	physicsFolder.add( params, 'pause' );
 	physicsFolder.add( params, 'step' );
 	physicsFolder.open();
@@ -155,7 +147,8 @@ function init() {
 		sphere
 			.velocity
 			.set( Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5 )
-			.addScaledVector( raycaster.ray.direction, 10 * Math.random() + 15 );
+			.addScaledVector( raycaster.ray.direction, 10 * Math.random() + 15 )
+			.multiplyScalar( 0.5 );
 
 	} );
 
@@ -172,52 +165,31 @@ function init() {
 
 }
 
-function loadScene() {
+function loadColliderEnvironment() {
 
-	reset();
-	if ( collider ) {
+	new GLTFLoader().load( '../models/low_poly_environment_jungle_scene/scene.gltf', res => {
 
-		collider.material.dispose();
-		collider.geometry.dispose();
-		collider.parent.remove( collider );
-		collider = null;
-
-		environment.traverse( c => {
-
-			if ( c.material ) {
-
-				for ( const key in c.material ) {
-
-					const value = c.material[ key ];
-					if ( value && value.isTexture ) {
-
-						value.dispose();
-
-					}
-
-
-				}
-				c.material.dispose();
-				c.geometry.dispose();
-
-			}
-
-		} );
-		environment.parent.remove( environment );
-		environment = null;
-
-	}
-
-	new GLTFLoader().load( params.model, res => {
-
-		const geometries = [];
 		environment = res.scene;
-		environment.scale.setScalar( params.model === models.dungeon ? 0.01 : 0.1 );
+		environment.scale.setScalar( 0.05 );
 
-		const box = new THREE.Box3();
-		box.setFromObject( environment );
-		box.getCenter( environment.position ).multiplyScalar( - 1 );
+		const pointLight = new THREE.PointLight( 0x00ffff );
+		pointLight.distance = 7;
+		pointLight.position.set( - 100, - 40, 100 );
+		environment.add( pointLight );
 
+		const porchLight = new THREE.PointLight( 0xffdd66 );
+		porchLight.distance = 15;
+		porchLight.intensity = 5;
+		porchLight.position.set( 80, 80, 135 );
+		porchLight.shadow.normalBias = 1e-2;
+		porchLight.shadow.bias = - 1e-3;
+		porchLight.shadow.mapSize.setScalar( 1024 );
+		porchLight.castShadow = true;
+
+		environment.add( porchLight );
+
+		// collect all geometries to merge
+		const geometries = [];
 		environment.updateMatrixWorld( true );
 		environment.traverse( c => {
 
@@ -240,6 +212,7 @@ function loadScene() {
 
 		} );
 
+		// create the merged geometry
 		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
 		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
 
@@ -248,18 +221,17 @@ function loadScene() {
 		collider.material.opacity = 0.5;
 		collider.material.transparent = true;
 
-		scene.add( collider );
-
 		visualizer = new MeshBVHVisualizer( collider, params.visualizeDepth );
 		scene.add( visualizer );
-
+		scene.add( collider );
 		scene.add( environment );
+
 		environment.traverse( c => {
 
-			c.castShadow = true;
-			c.receiveShadow = true;
 			if ( c.material ) {
 
+				c.castShadow = true;
+				c.receiveShadow = true;
 				c.material.shadowSide = 2;
 
 			}
@@ -279,9 +251,12 @@ function onCollide( object1, object2, point, normal, velocity, offset = 0 ) {
 	}
 
 	// Create an animation when objects collide
-	const effectScale = Math.max( object2 ?
-		Math.max( object1.collider.radius, object2.collider.radius ) :
-		object1.collider.radius, 1 );
+	const effectScale = Math.max(
+		object2 ?
+			Math.max( object1.collider.radius, object2.collider.radius ) :
+			object1.collider.radius,
+		1
+	);
 	const plane = new THREE.Mesh(
 		new THREE.RingBufferGeometry( 0, 1, 30 ),
 		new THREE.MeshBasicMaterial( { side: 2, transparent: true, depthWrite: false } )
@@ -310,7 +285,7 @@ function createSphere() {
 	sphere.receiveShadow = true;
 	sphere.material.shadowSide = 2;
 
-	const radius = params.sphereSize * ( Math.random() * .2 + 0.6 );
+	const radius = 0.5 * params.sphereSize * ( Math.random() * .2 + 0.6 );
 	sphere.scale.setScalar( radius );
 	sphere.collider = new THREE.Sphere( sphere.position, radius );
 	sphere.velocity = new THREE.Vector3( 0, 0, 0 );
