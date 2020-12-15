@@ -72,8 +72,7 @@ function init() {
 	shadowCam.top = shadowCam.right = 10;
 
 	scene.add( light );
-	// scene.add( new THREE.AmbientLight( 0x4488ff, 0.3 ) );
-	scene.add( new THREE.HemisphereLight( 0x4488ff, 0x223344, 0.3 ) )
+	scene.add( new THREE.HemisphereLight( 0x4488ff, 0x223344, 0.3 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
