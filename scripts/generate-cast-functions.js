@@ -13,9 +13,9 @@ function replaceUnneededCode( str ) {
 		'uint32Array = _uint32Array;'
 	);
 
-	str = str.replace( /function intersectRay\((.|[\r|\n])*?}[\r|\n]/mg, '' );
+	str = str.replace( /function intersectRay\((.|[\r\n])*?}[\r|\n]/mg, '' );
 
-	str = str.replace( /import { arrayToBox.*?;[\r|\n]/g, '' );
+	str = str.replace( /import { arrayToBox.*?;[\r\n]/g, '' );
 
 	return str;
 
