@@ -44,7 +44,7 @@ export class MeshBVHDebug {
 					const i1 = index.getX( i + 1 );
 					const i2 = index.getX( i + 2 );
 
-					let isContained = true;
+					let isContained;
 
 					vec.fromBufferAttribute( position, i0 );
 					isContained = box1.containsPoint( vec );
