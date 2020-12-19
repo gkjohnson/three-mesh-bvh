@@ -19,6 +19,7 @@ export class MeshBVHDebug {
 		const depthStack = [];
 		const index = geometry.index;
 		const position = geometry.getAttribute( 'position' );
+		let passes = true;
 
 		bvh.traverse( ( depth, isLeaf, boundingData, offset, count ) => {
 			const info = {
@@ -42,14 +43,19 @@ export class MeshBVHDebug {
 					const i1 = index.getX( i + 1 );
 					const i2 = index.getX( i + 2 );
 
+					let isContained = true;
+
 					vec.fromBufferAttribute( position, i0 );
-					console.assert( box1.containsPoint( vec ), 'Leaf bounds does not fully contain triangle.' );
+					isContained = isContained && box1.containsPoint( vec );
 
 					vec.fromBufferAttribute( position, i1 );
-					console.assert( box1.containsPoint( vec ), 'Leaf bounds does not fully contain triangle.' );
+					isContained = isContained && box1.containsPoint( vec );
 
 					vec.fromBufferAttribute( position, i2 );
-					console.assert( box1.containsPoint( vec ), 'Leaf bounds does not fully contain triangle.' );
+					isContained = isContained && box1.containsPoint( vec );
+
+					console.assert( isContained, 'Leaf bounds does not fully contain triangle.' );
+					passes = passes && isContained;
 
 				}
 
@@ -59,11 +65,16 @@ export class MeshBVHDebug {
 
 				// check if my bounds fit in my parents
 				arrayToBox( boundingData, box2 );
-				console.assert( box2.containsBox( box1 ), 'Parent bounds does not fully contain child.' );
+
+				const isContained = box2.containsBox( box1 );
+				console.assert( isContained, 'Parent bounds does not fully contain child.' );
+				passes = passes && isContained;
 
 			}
 
 		} );
+
+		return passes;
 
 	}
 

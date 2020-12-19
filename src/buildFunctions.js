@@ -480,8 +480,26 @@ function computeTriangleBounds( geo ) {
 
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ tri6 + el2 + 1 ] = halfExtents;
+			const center = min + halfExtents;
+
+			const centerIndex = tri6 + el2 + 0;
+			const extentsIndex = tri6 + el2 + 1;
+			triangleBounds[ centerIndex ] = center;
+			triangleBounds[ extentsIndex ] = halfExtents;
+
+			// Check if the float 32 conversion shrunk the bounds at all due
+			// to precision loss. If so then expand the bounds by that amount.
+			const halfExtents32 = triangleBounds[ extentsIndex ];
+			const center32 = triangleBounds[ centerIndex ];
+
+			const halfExtentsDelta = halfExtents32 - halfExtents;
+			const centerDelta = Math.abs( center32 - center );
+			if ( centerDelta > halfExtentsDelta ) {
+
+				const difference = centerDelta - halfExtentsDelta;
+				triangleBounds[ extentsIndex ] = halfExtents + difference;
+
+			}
 
 		}
 
