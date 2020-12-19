@@ -3,6 +3,8 @@ import MeshBVHNode from './MeshBVHNode.js';
 import { arrayToBox, boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
+// https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
+const FLOAT32_EPSILON = Math.pow( 2, - 23 );
 const xyzFields = [ 'x', 'y', 'z' ];
 const boxTemp = new Box3();
 
@@ -478,32 +480,12 @@ function computeTriangleBounds( geo ) {
 			if ( b > max ) max = b;
 			if ( c > max ) max = c;
 
-			let halfExtents = ( max - min ) / 2;
-			let center = min + halfExtents;
-
+			// Increase the bounds size by float32 epsilon to avoid precision errors
+			// when converting to 32 bit float.
+			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			const centerIndex = tri6 + el2 + 0;
-			const extentsIndex = tri6 + el2 + 1;
-
-			// Check if the float 32 conversion shrunk the bounds at all due
-			// to precision loss. If so then expand the bounds by that amount.
-			const halfExtents32 = Math.fround( halfExtents );
-			const center32 = Math.fround( center );
-
-			const halfExtentsDelta = halfExtents32 - halfExtents;
-			const centerDelta = Math.abs( center32 - center );
-			if ( centerDelta > halfExtentsDelta ) {
-
-				const difference = centerDelta - halfExtentsDelta;
-				triangleBounds[ extentsIndex ] = halfExtents + difference;
-
-			} else {
-
-				triangleBounds[ extentsIndex ] = halfExtents;
-
-			}
-
-			triangleBounds[ centerIndex ] = center;
+			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
+			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + FLOAT32_EPSILON;
 
 		}
 
