@@ -210,6 +210,8 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // tree is built up.
     // If false then the bounds tree will be completely generated up front and packed into
     // an array buffer for a lower final memory footprint and long initialization time.
+    // Note that this will keep intermediate buffers needed for generation in scope until
+    // the tree has been fully generated.
     lazyGeneration: true
 
 }
