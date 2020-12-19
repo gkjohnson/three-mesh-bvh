@@ -4,7 +4,7 @@ import { arrayToBox, boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUti
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
-const FLOAT32_EPSILON = Math.pow( 2, - 17 );
+const FLOAT32_EPSILON = Math.pow( 2, - 24 );
 const xyzFields = [ 'x', 'y', 'z' ];
 const boxTemp = new Box3();
 
@@ -480,12 +480,13 @@ function computeTriangleBounds( geo ) {
 			if ( b > max ) max = b;
 			if ( c > max ) max = c;
 
-			// Increase the bounds size by float32 epsilon to avoid precision errors
-			// when converting to 32 bit float.
+			// Increase the bounds size by float32 epsilon to avoid precision errors when
+			// converting to 32 bit float. Scale the epsilon by the size of the numbers being
+			// worked with.
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
 			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + FLOAT32_EPSILON;
+			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 
