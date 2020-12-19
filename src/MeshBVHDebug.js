@@ -22,6 +22,7 @@ export class MeshBVHDebug {
 		let passes = true;
 
 		bvh.traverse( ( depth, isLeaf, boundingData, offset, count ) => {
+
 			const info = {
 				depth,
 				isLeaf,
