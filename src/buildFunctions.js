@@ -4,7 +4,7 @@ import { arrayToBox, boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUti
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
-const FLOAT32_EPSILON = Math.pow( 2, - 23 );
+const FLOAT32_EPSILON = Math.pow( 2, - 17 );
 const xyzFields = [ 'x', 'y', 'z' ];
 const boxTemp = new Box3();
 
