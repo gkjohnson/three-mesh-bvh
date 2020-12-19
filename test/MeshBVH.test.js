@@ -11,7 +11,7 @@ import {
 	TorusBufferGeometry,
 	BufferAttribute
 } from 'three';
-import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes } from '../src/index.js';
+import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes, MeshBVHDebug } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -25,6 +25,16 @@ function getMaxDepth( bvh ) {
 }
 
 describe( 'Bounds Tree', () => {
+
+	it( 'should properly encapsulate all triangles and bounds.', () => {
+
+		const geom = new SphereBufferGeometry( 500, 50, 50 );
+		const bvh = new MeshBVH( geom, { lazyGeneration: false } );
+		const debug = new MeshBVHDebug( bvh, geom );
+
+		expect( debug.validateBounds() ).toBeTruthy();
+
+	} );
 
 	it( 'should be generated when calling BufferGeometry.computeBoundsTree', () => {
 
