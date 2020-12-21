@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Fixed
+- Case where float 32 rounding error could result in leaf bounds not completely containing the triangles by expanding the bounds by an estimation of the error.
+
 ## [0.3.1] - 2020-12-14
 ### Added
 - Performance improvements when computing distance to geometry.
