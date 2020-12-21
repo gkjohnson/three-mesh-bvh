@@ -170,7 +170,7 @@ export const shapecast = ( function () {
 			while ( ! node.count ) {
 
 				node = node.left;
-				if ( node.continueGeneration ) {
+				if ( /* skip */ node.continueGeneration ) {
 
 					node.continueGeneration();
 
@@ -193,7 +193,7 @@ export const shapecast = ( function () {
 			while ( ! node.count ) {
 
 				node = node.right;
-				if ( node.continueGeneration ) {
+				if ( /* skip */ node.continueGeneration ) {
 
 					node.continueGeneration();
 

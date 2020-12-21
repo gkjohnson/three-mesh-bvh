@@ -20,6 +20,7 @@ const xyzFields = [ 'x', 'y', 'z' ];
 export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -46,6 +47,7 @@ export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects )
 export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -122,7 +124,7 @@ export const shapecastBuffer = ( function () {
 	const cachedBox1 = new Box3();
 	const cachedBox2 = new Box3();
 
-	function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc ) {
+	function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, contained = false ) {
 
 		const index = geometry.index;
 		const pos = geometry.attributes.position;
@@ -131,7 +133,7 @@ export const shapecastBuffer = ( function () {
 			setTriangle( triangle, i, index, pos );
 			triangle.needsUpdate = true;
 
-			if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
+			if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2, contained ) ) {
 
 				return true;
 
@@ -149,10 +151,12 @@ export const shapecastBuffer = ( function () {
 		// when converting to the buffer equivalents
 		function getLeftOffsetBuffer( stride4Offset ) {
 
+			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
 
-				/* node */ stride4Offset = /* node left */ stride4Offset + 8;
-
+				/* node */ stride4Offset = /* node left */ stride4Offset + 8, stride2Offset = stride4Offset * 2;
+				
 			}
 
 			return /* node offset */ uint32Array[ stride4Offset + 6 ];
@@ -161,10 +165,12 @@ export const shapecastBuffer = ( function () {
 
 		function getRightEndOffsetBuffer( stride4Offset ) {
 
+			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
 
-				/* node */ stride4Offset = /* node right */ uint32Array[ stride4Offset + 6 ];
-
+				/* node */ stride4Offset = /* node right */ uint32Array[ stride4Offset + 6 ], stride2Offset = stride4Offset * 2;
+				
 			}
 
 			return /* node offset */ uint32Array[ stride4Offset + 6 ] + /* node count */ uint16Array[ stride2Offset + 14 ];
@@ -172,6 +178,7 @@ export const shapecastBuffer = ( function () {
 		}
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf && intersectsTriangleFunc ) {
 
@@ -235,7 +242,7 @@ export const shapecastBuffer = ( function () {
 				const end = getRightEndOffsetBuffer( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
+				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
 
 			} else {
 
@@ -263,7 +270,7 @@ export const shapecastBuffer = ( function () {
 				const end = getRightEndOffsetBuffer( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
+				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
 
 			} else {
 
@@ -294,6 +301,7 @@ export const intersectsGeometryBuffer = ( function () {
 	return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 		if ( cachedObb === null ) {
 
 			if ( ! geometry.boundingBox ) {
