@@ -152,6 +152,20 @@ Option to use a Surface Area Heuristic to split the bounds optimally.
 
 This is the slowest construction option.
 
+## Shapecast Intersection Constants
+
+### NOT_INTERSECTED
+
+Indicates the shape did not intersect the given bounding box.
+
+### INTERSECTED
+
+Indicates the shape did intersect the given bounding box.
+
+### CONTAINED
+
+Indicate the shape entirely contains the given bounding box.
+
 ## MeshBVH
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
@@ -311,7 +325,7 @@ shapecast(
 		box : Box3,
 		isLeaf : Boolean,
 		score : Number | undefined
-	) => Boolean,
+	) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
 
 	intersectsTriangleFunc : (
 		triangle : Triangle,
@@ -331,7 +345,7 @@ A generalized cast function that can be used to implement intersection logic for
 
 `mesh` is the is the object this BVH is representing.
 
-`intersectsBoundsFunc` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a boolean indicating whether or not the bounds is intersected and traversal should continue.
+`intersectsBoundsFunc` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a constant indicating whether or not the bounds is intersected or contained and traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing all child triangles to be checked immediately rather than traversing the rest of the child bounds.
 
 `intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array.
 
