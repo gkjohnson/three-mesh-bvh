@@ -9,6 +9,10 @@
 	const AVERAGE = 1;
 	const SAH = 2;
 
+	const NOT_INTERSECTED = 0;
+	const INTERSECTED = 1;
+	const CONTAINED = 2;
+
 	class MeshBVHNode {
 
 		constructor() {
@@ -72,6 +76,8 @@
 
 	}
 
+	// https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
+	const FLOAT32_EPSILON = Math.pow( 2, - 24 );
 	const xyzFields = [ 'x', 'y', 'z' ];
 	const boxTemp = new three.Box3();
 
@@ -547,10 +553,13 @@
 				if ( b > max ) max = b;
 				if ( c > max ) max = c;
 
+				// Increase the bounds size by float32 epsilon to avoid precision errors when
+				// converting to 32 bit float. Scale the epsilon by the size of the numbers being
+				// worked with.
 				const halfExtents = ( max - min ) / 2;
 				const el2 = el * 2;
 				triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
-				triangleBounds[ tri6 + el2 + 1 ] = halfExtents;
+				triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 			}
 
@@ -1988,7 +1997,77 @@
 		const triangle = new SeparatingAxisTriangle();
 		const cachedBox1 = new three.Box3();
 		const cachedBox2 = new three.Box3();
+
+		function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, contained = false ) {
+
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+			for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+
+				setTriangle( triangle, i, index, pos );
+				triangle.needsUpdate = true;
+
+				if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2, contained ) ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+		}
+
 		return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+
+			// Define these inside the function so it has access to the local variables needed
+			// when converting to the buffer equivalents
+			function getLeftOffset( node ) {
+
+				if ( node.continueGeneration ) {
+
+					node.continueGeneration();
+
+				}
+
+				while ( ! node.count ) {
+
+					node = node.left;
+					if ( /* skip */ node.continueGeneration ) {
+
+						node.continueGeneration();
+
+					}
+
+				}
+
+				return node.offset;
+
+			}
+
+			function getRightEndOffset( node ) {
+
+				if ( node.continueGeneration ) {
+
+					node.continueGeneration();
+
+				}
+
+				while ( ! node.count ) {
+
+					node = node.right;
+					if ( /* skip */ node.continueGeneration ) {
+
+						node.continueGeneration();
+
+					}
+
+				}
+
+				return node.offset + node.count;
+
+			}
 
 			if ( node.continueGeneration ) {
 
@@ -2000,25 +2079,9 @@
 			if ( isLeaf && intersectsTriangleFunc ) {
 
 				const geometry = mesh.geometry;
-				const index = geometry.index;
-				const pos = geometry.attributes.position;
 				const offset = node.offset;
 				const count = node.count;
-
-				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
-
-					setTriangle( triangle, i, index, pos );
-					triangle.needsUpdate = true;
-
-					if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
-
-						return true;
-
-					}
-
-				}
-
-				return false;
+				return iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc );
 
 			} else {
 
@@ -2056,6 +2119,7 @@
 
 				}
 
+				// Check box 1 intersection
 				if ( ! box1 ) {
 
 					box1 = cachedBox1;
@@ -2064,22 +2128,53 @@
 				}
 
 				const isC1Leaf = ! ! c1.count;
-				const c1Intersection =
-					intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
-					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1 );
 
-				if ( c1Intersection ) return true;
+				let c1StopTraversal;
+				if ( c1Intersection === CONTAINED ) {
 
+					const geometry = mesh.geometry;
+					const offset = getLeftOffset( c1 );
+					const end = getRightEndOffset( c1 );
+					const count = end - offset;
+
+					c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
+
+				} else {
+
+					c1StopTraversal =
+						c1Intersection &&
+						shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				}
+
+				if ( c1StopTraversal ) return true;
+
+				// Check box 2 intersection
 				// cached box2 will have been overwritten by previous traversal
 				box2 = cachedBox2;
 				arrayToBox( c2.boundingData, box2 );
 
 				const isC2Leaf = ! ! c2.count;
-				const c2Intersection =
-					intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
-					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2 );
 
-				if ( c2Intersection ) return true;
+				let c2StopTraversal;
+				if ( c2Intersection === CONTAINED ) {
+
+					const geometry = mesh.geometry;
+					const offset = getLeftOffset( c2 );
+					const end = getRightEndOffset( c2 );
+					const count = end - offset;
+
+					c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
+
+				} else {
+
+					c2StopTraversal = shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				}
+
+				if ( c2StopTraversal ) return true;
 
 				return false;
 
@@ -2233,13 +2328,11 @@
 	const boxIntersection$1 = new three.Vector3();
 	const xyzFields$2 = [ 'x', 'y', 'z' ];
 
-
-
 	function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
-		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+		const isLeaf = ! /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff );
 		if ( isLeaf ) {
 
 			intersectTris( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ], intersects );
@@ -2264,15 +2357,14 @@
 
 	function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
-		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+		const isLeaf = ! /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff );
 		if ( isLeaf ) {
 
 			return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ] );
 
 		} else {
-
 
 			// consider the position of the split plane with respect to the oncoming ray; whichever direction
 			// the ray is coming from, look for an intersection among that side of the tree first
@@ -2341,33 +2433,69 @@
 		const triangle = new SeparatingAxisTriangle();
 		const cachedBox1 = new three.Box3();
 		const cachedBox2 = new three.Box3();
-		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
-			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, contained = false ) {
 
-			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
-			if ( isLeaf && intersectsTriangleFunc ) {
+			const index = geometry.index;
+			const pos = geometry.attributes.position;
+			for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
-				const geometry = mesh.geometry;
-				const index = geometry.index;
-				const pos = geometry.attributes.position;
-				const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
-				const count = /* node count */ uint16Array[ stride2Offset + 14 ];
+				setTriangle( triangle, i, index, pos );
+				triangle.needsUpdate = true;
 
-				for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+				if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2, contained ) ) {
 
-					setTriangle( triangle, i, index, pos );
-					triangle.needsUpdate = true;
-
-					if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
-
-						return true;
-
-					}
+					return true;
 
 				}
 
-				return false;
+			}
+
+			return false;
+
+		}
+
+		return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+
+			// Define these inside the function so it has access to the local variables needed
+			// when converting to the buffer equivalents
+			function getLeftOffsetBuffer( stride4Offset ) {
+
+				let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
+				while ( /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff ) ) {
+
+					/* node */ stride4Offset = /* node left */ stride4Offset + 8, stride2Offset = stride4Offset * 2;
+
+				}
+
+				return /* node offset */ uint32Array[ stride4Offset + 6 ];
+
+			}
+
+			function getRightEndOffsetBuffer( stride4Offset ) {
+
+				let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
+				while ( /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff ) ) {
+
+					/* node */ stride4Offset = /* node right */ uint32Array[ stride4Offset + 6 ], stride2Offset = stride4Offset * 2;
+
+				}
+
+				return /* node offset */ uint32Array[ stride4Offset + 6 ] + /* node count */ uint16Array[ stride2Offset + 14 ];
+
+			}
+
+			let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
+			const isLeaf = ! /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff );
+			if ( isLeaf && intersectsTriangleFunc ) {
+
+				const geometry = mesh.geometry;
+				const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
+				const count = /* node count */ uint16Array[ stride2Offset + 14 ];
+				return iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc );
 
 			} else {
 
@@ -2405,6 +2533,7 @@
 
 				}
 
+				// Check box 1 intersection
 				if ( ! box1 ) {
 
 					box1 = cachedBox1;
@@ -2412,23 +2541,54 @@
 
 				}
 
-				const isC1Leaf = /* c1 count */ uint16Array[ c1 + 15 ] === 0xffff;
-				const c1Intersection =
-					intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
-					shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				const isC1Leaf = ! /* c1 count */ ( uint16Array[ c1 + 15 ] !== 0xffff );
+				const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1 );
 
-				if ( c1Intersection ) return true;
+				let c1StopTraversal;
+				if ( c1Intersection === CONTAINED ) {
 
+					const geometry = mesh.geometry;
+					const offset = getLeftOffsetBuffer( c1 );
+					const end = getRightEndOffsetBuffer( c1 );
+					const count = end - offset;
+
+					c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
+
+				} else {
+
+					c1StopTraversal =
+						c1Intersection &&
+						shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				}
+
+				if ( c1StopTraversal ) return true;
+
+				// Check box 2 intersection
 				// cached box2 will have been overwritten by previous traversal
 				box2 = cachedBox2;
 				arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
-				const isC2Leaf = /* c2 count */ uint16Array[ c2 + 15 ] === 0xffff;
-				const c2Intersection =
-					intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
-					shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				const isC2Leaf = ! /* c2 count */ ( uint16Array[ c2 + 15 ] !== 0xffff );
+				const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2 );
 
-				if ( c2Intersection ) return true;
+				let c2StopTraversal;
+				if ( c2Intersection === CONTAINED ) {
+
+					const geometry = mesh.geometry;
+					const offset = getLeftOffsetBuffer( c2 );
+					const end = getRightEndOffsetBuffer( c2 );
+					const count = end - offset;
+
+					c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
+
+				} else {
+
+					c2StopTraversal = shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+				}
+
+				if ( c2StopTraversal ) return true;
 
 				return false;
 
@@ -2450,7 +2610,7 @@
 
 		return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
-			const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+			let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			if ( cachedObb === null ) {
 
@@ -2466,7 +2626,7 @@
 
 			}
 
-			const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
+			const isLeaf = ! /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff );
 			if ( isLeaf ) {
 
 				const thisGeometry = mesh.geometry;
@@ -2558,7 +2718,6 @@
 
 				if ( leftIntersection ) return true;
 
-
 				arrayToBoxBuffer( /* right boundingData */ right, float32Array, boundingBox$1 );
 				const rightIntersection =
 					cachedObb.intersectsBox( boundingBox$1 ) &&
@@ -2573,7 +2732,6 @@
 		};
 
 	} )();
-
 
 	function intersectRayBuffer( stride4Offset, array, ray, target ) {
 
@@ -3483,6 +3641,87 @@
 
 	}
 
+	const box1 = new three.Box3();
+	const box2 = new three.Box3();
+	const vec = new three.Vector3();
+
+	class MeshBVHDebug {
+
+		constructor( bvh, geometry ) {
+
+			this.bvh = bvh;
+			this.geometry = geometry;
+
+		}
+
+		validateBounds() {
+
+			const { bvh, geometry } = this;
+			const depthStack = [];
+			const index = geometry.index;
+			const position = geometry.getAttribute( 'position' );
+			let passes = true;
+
+			bvh.traverse( ( depth, isLeaf, boundingData, offset, count ) => {
+
+				const info = {
+					depth,
+					isLeaf,
+					boundingData,
+					offset,
+					count,
+				};
+				depthStack[ depth ] = info;
+
+				arrayToBox( boundingData, box1 );
+				const parent = depthStack[ depth - 1 ];
+
+				if ( isLeaf ) {
+
+					// check triangles
+					for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+
+						const i0 = index.getX( i );
+						const i1 = index.getX( i + 1 );
+						const i2 = index.getX( i + 2 );
+
+						let isContained;
+
+						vec.fromBufferAttribute( position, i0 );
+						isContained = box1.containsPoint( vec );
+
+						vec.fromBufferAttribute( position, i1 );
+						isContained = isContained && box1.containsPoint( vec );
+
+						vec.fromBufferAttribute( position, i2 );
+						isContained = isContained && box1.containsPoint( vec );
+
+						console.assert( isContained, 'Leaf bounds does not fully contain triangle.' );
+						passes = passes && isContained;
+
+					}
+
+				}
+
+				if ( parent ) {
+
+					// check if my bounds fit in my parents
+					arrayToBox( boundingData, box2 );
+
+					const isContained = box2.containsBox( box1 );
+					console.assert( isContained, 'Parent bounds does not fully contain child.' );
+					passes = passes && isContained;
+
+				}
+
+			} );
+
+			return passes;
+
+		}
+
+	}
+
 	const ray = new three.Ray();
 	const tmpInverseMatrix = new three.Matrix4();
 	const origMeshRaycastFunc = three.Mesh.prototype.raycast;
@@ -3531,12 +3770,16 @@
 	exports.MeshBVH = MeshBVH;
 	exports.Visualizer = MeshBVHVisualizer;
 	exports.MeshBVHVisualizer = MeshBVHVisualizer;
+	exports.MeshBVHDebug = MeshBVHDebug;
 	exports.acceleratedRaycast = acceleratedRaycast;
 	exports.computeBoundsTree = computeBoundsTree;
 	exports.disposeBoundsTree = disposeBoundsTree;
 	exports.CENTER = CENTER;
 	exports.AVERAGE = AVERAGE;
 	exports.SAH = SAH;
+	exports.NOT_INTERSECTED = NOT_INTERSECTED;
+	exports.INTERSECTED = INTERSECTED;
+	exports.CONTAINED = CONTAINED;
 	exports.estimateMemoryInBytes = estimateMemoryInBytes;
 	exports.getBVHExtremes = getBVHExtremes;
 
