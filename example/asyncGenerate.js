@@ -149,8 +149,8 @@ function regenerateKnot() {
 
 	}
 
-	let startTime;
-	startTime = window.performance.now();
+	const stallStartTime = window.performance.now();
+	const geomStartTime = window.performance.now();
 	knot = new THREE.Mesh(
 		new THREE.TorusKnotBufferGeometry(
 			params.radius,
@@ -166,9 +166,9 @@ function regenerateKnot() {
 
 		} )
 	);
-	const geomTime = window.performance.now() - startTime;
-
-	startTime = window.performance.now();
+	const geomTime = window.performance.now() - geomStartTime;
+	const startTime = window.performance.now();
+	let totalStallTime;
 	if ( params.useWebWorker ) {
 
 		generateAsync( knot.geometry ).then( bvh => {
@@ -182,7 +182,6 @@ function regenerateKnot() {
 			helper = new MeshBVHVisualizer( knot, 0 );
 			helper.depth = params.helperDepth;
 
-			console.log( params.displayHelper );
 			if ( params.displayHelper ) {
 
 				helper.update();
@@ -192,13 +191,18 @@ function regenerateKnot() {
 
 			outputContainer.textContent =
 				`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
-				`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms`;
+				`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms\n` +
+				`Frame Stall Time : ${ totalStallTime.toFixed( 3 ) }`;
 
 		} );
+
+		totalStallTime = window.performance.now() - stallStartTime;
 
 	} else {
 
 		knot.geometry.boundsTree = new MeshBVH( knot.geometry, { lazyGeneration: false } );
+		totalStallTime = window.performance.now() - stallStartTime;
+
 		group.add( knot );
 
 		const deltaTime = window.performance.now() - startTime;
@@ -211,7 +215,8 @@ function regenerateKnot() {
 
 		outputContainer.textContent =
 			`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
-			`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms`;
+			`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms\n` +
+			`Frame Stall Time : ${ totalStallTime.toFixed( 3 ) }`;
 
 	}
 
