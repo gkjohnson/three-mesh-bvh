@@ -136,17 +136,17 @@ generateAsync( geometry ).then( bvh => {
 
 ## Split Strategy Constants
 
-### CENTER
+#### CENTER
 
 Option for splitting each BVH node down the center of the longest axis of the bounds.
 
 This is the fastest construction option but will yield a less optimal hierarchy.
 
-### AVERAGE
+#### AVERAGE
 
 Option for splitting each BVH node at the average point along the longest axis for all triangle centroids in the bounds.
 
-### SAH
+#### SAH
 
 Option to use a Surface Area Heuristic to split the bounds optimally.
 
@@ -154,15 +154,15 @@ This is the slowest construction option.
 
 ## Shapecast Intersection Constants
 
-### NOT_INTERSECTED
+#### NOT_INTERSECTED
 
 Indicates the shape did not intersect the given bounding box.
 
-### INTERSECTED
+#### INTERSECTED
 
 Indicates the shape did intersect the given bounding box.
 
-### CONTAINED
+#### CONTAINED
 
 Indicate the shape entirely contains the given bounding box.
 
