@@ -134,7 +134,7 @@ export const shapecast = ( function () {
 	const cachedBox1 = new Box3();
 	const cachedBox2 = new Box3();
 
-	function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc ) {
+	function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, contained = false ) {
 
 		const index = geometry.index;
 		const pos = geometry.attributes.position;
@@ -143,7 +143,7 @@ export const shapecast = ( function () {
 			setTriangle( triangle, i, index, pos );
 			triangle.needsUpdate = true;
 
-			if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
+			if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2, contained ) ) {
 
 				return true;
 
@@ -161,9 +161,20 @@ export const shapecast = ( function () {
 		// when converting to the buffer equivalents
 		function getLeftOffset( node ) {
 
+			if ( node.continueGeneration ) {
+
+				node.continueGeneration();
+
+			}
+
 			while ( ! node.count ) {
 
 				node = node.left;
+				if ( node.continueGeneration ) {
+
+					node.continueGeneration();
+
+				}
 
 			}
 
@@ -173,9 +184,20 @@ export const shapecast = ( function () {
 
 		function getRightEndOffset( node ) {
 
+			if ( node.continueGeneration ) {
+
+				node.continueGeneration();
+
+			}
+
 			while ( ! node.count ) {
 
 				node = node.right;
+				if ( node.continueGeneration ) {
+
+					node.continueGeneration();
+
+				}
 
 			}
 
@@ -252,7 +274,7 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
+				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
 
 			} else {
 
@@ -280,7 +302,7 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
+				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true );
 
 			} else {
 
