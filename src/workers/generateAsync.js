@@ -2,6 +2,8 @@ import MeshBVH from '../MeshBVH.js';
 
 export function generateAsync( geometry, options = {} ) {
 
+	console.warn( 'MeshBVH: "generateAsync" is deprecated. Use MeshBVHGenerationWorker instead.' );
+
 	return new Promise( ( resolve, reject ) => {
 
 		const worker = new Worker( './generateAsync.worker.js' );

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { generateAsync } from '../src/workers/generateAsync.js';
+import { MeshBVHGenerationWorker } from '../src/workers/MeshBVHGenerationWorker.js';
 import { acceleratedRaycast } from '../src/index.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import MeshBVH from '../src/MeshBVH.js';
@@ -24,6 +24,7 @@ const params = {
 };
 
 let renderer, camera, scene, knot, clock, gui, outputContainer, helper, group, stats;
+let bvhGenerationWorker;
 let generating = false;
 
 init();
@@ -83,6 +84,7 @@ function init() {
 
 	}
 
+	bvhGenerationWorker = new MeshBVHGenerationWorker();
 
 	gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
@@ -171,7 +173,7 @@ function regenerateKnot() {
 	let totalStallTime;
 	if ( params.useWebWorker ) {
 
-		generateAsync( knot.geometry ).then( bvh => {
+		bvhGenerationWorker.run( knot.geometry ).then( bvh => {
 
 			knot.geometry.boundsTree = bvh;
 			group.add( knot );
