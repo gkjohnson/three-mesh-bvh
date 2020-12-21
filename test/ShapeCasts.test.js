@@ -14,7 +14,15 @@ import {
 	TorusBufferGeometry,
 	MeshBasicMaterial,
 } from 'three';
-import { MeshBVH as _MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import {
+	MeshBVH as _MeshBVH,
+	acceleratedRaycast,
+	computeBoundsTree,
+	disposeBoundsTree,
+	CONTAINED,
+	INTERSECTED,
+	NOT_INTERSECTED,
+} from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -40,6 +48,144 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	};
 
+	describe( 'Shapecast containment', () => {
+
+		let mesh = null;
+		let bvh = null;
+		let intersectGeometry = null;
+
+		function getIntersectsBoxFunction( sphere ) {
+
+			const tempVec = new Vector3();
+			return box => {
+
+				const intersects = sphere.intersectsBox( box );
+				const { min, max } = box;
+				if ( intersects ) {
+
+					for ( let x = 0; x <= 1; x ++ ) {
+
+						for ( let y = 0; y <= 1; y ++ ) {
+
+							for ( let z = 0; z <= 1; z ++ ) {
+
+								tempVec.set(
+									x === 0 ? min.x : max.x,
+									y === 0 ? min.y : max.y,
+									z === 0 ? min.z : max.z
+								);
+								if ( ! sphere.containsPoint( tempVec ) ) {
+
+									return INTERSECTED;
+
+								}
+
+							}
+
+						}
+
+					}
+
+					return CONTAINED;
+
+				}
+
+				return intersects ? INTERSECTED : NOT_INTERSECTED;
+
+			};
+
+		}
+
+		beforeAll( () => {
+
+			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			mesh = new Mesh( geom );
+			bvh = new MeshBVH( geom, { verbose: false } );
+			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
+			intersectGeometry.computeBoundsTree();
+
+		} );
+
+		it( 'should return that all triangles are contained if the bounds are within the shape.', () => {
+
+			const sphere = new Sphere();
+			sphere.radius = 3;
+
+			let allContained = true;
+			let numContained = 0;
+			bvh.shapecast(
+				mesh,
+				getIntersectsBoxFunction( sphere ),
+				( tri, i0, i1, i2, contained ) => {
+
+					allContained = contained && allContained;
+					numContained ++;
+
+				}
+			);
+
+			expect( allContained ).toBeTruthy();
+			expect( numContained ).toEqual( 4900 );
+
+		} );
+
+		it( 'should return that all triangles are not contained within the bounds shape.', () => {
+
+			const sphere = new Sphere();
+			sphere.radius = 3;
+			sphere.center.x = 3;
+
+			let allContained = true;
+			let numContained = 0;
+			bvh.shapecast(
+				mesh,
+				getIntersectsBoxFunction( sphere ),
+				( tri, i0, i1, i2, contained ) => {
+
+					allContained = contained && allContained;
+					if ( contained ) {
+
+						numContained ++;
+
+					}
+
+				}
+			);
+
+			expect( allContained ).toBeFalsy();
+			expect( numContained ).toEqual( 1540 );
+
+		} );
+
+		it( 'should return that none triangles are contained within the bounds shape.', () => {
+
+			const sphere = new Sphere();
+			sphere.radius = 3;
+			sphere.center.x = 5.99;
+
+			let allContained = true;
+			let numContained = 0;
+			bvh.shapecast(
+				mesh,
+				getIntersectsBoxFunction( sphere ),
+				( tri, i0, i1, i2, contained ) => {
+
+					allContained = contained && allContained;
+					if ( contained ) {
+
+						numContained ++;
+
+					}
+
+				}
+			);
+
+			expect( allContained ).toBeFalsy();
+			expect( numContained ).toEqual( 0 );
+
+		} );
+
+	} );
 
 	describe( 'IntersectsGeometry with BVH', () => {
 

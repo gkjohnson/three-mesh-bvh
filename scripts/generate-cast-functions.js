@@ -6,11 +6,24 @@ const path = require( 'path' );
 function replaceUnneededCode( str ) {
 
 	str = str.replace(
-		/if \( node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
-		'const stride2Offset = stride4Offset * 2, ' +
-		'float32Array = _float32Array, ' +
-		'uint16Array = _uint16Array, ' +
-		'uint32Array = _uint32Array;'
+		/if \( [^)]*node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
+		match => {
+
+			if ( match.indexOf( '/* skip */' ) !== - 1 ) {
+
+				return '';
+
+			} else {
+
+				return 'let stride2Offset = stride4Offset * 2, ' +
+					'float32Array = _float32Array, ' +
+					'uint16Array = _uint16Array, ' +
+					'uint32Array = _uint32Array;\n';
+
+			}
+
+		}
+
 	);
 
 	str = str.replace( /function intersectRay\((.|[\r\n])*?}[\r|\n]/mg, '' );
@@ -50,7 +63,6 @@ function replaceNodeNames( str ) {
 
 	const names = 'c1|c2|left|right|node';
 
-
 	str = str.replace(
 		new RegExp( `(${ names })\\.boundingData\\[(.*)\\]\\[(.*)\\]`, 'g' ),
 		( match, name, index, index2 ) => `/* ${ name } boundingData */ float32Array[ ${ convertName( name ) } +${ index }+${ index2 }]`
@@ -72,8 +84,8 @@ function replaceNodeNames( str ) {
 	);
 
 	str = str.replace(
-		new RegExp( `! ! (${ names })\\.count`, 'g' ),
-		( match, name ) => `/* ${ name } count */ uint16Array[ ${ convertName( name, 2 ) } + 15 ] === 0xffff`
+		new RegExp( `! (${ names })\\.count`, 'g' ),
+		( match, name ) => `/* ${ name } count */ ( uint16Array[ ${ convertName( name, 2 ) } + 15 ] !== 0xffff )`
 	);
 
 	str = str.replace(
@@ -96,13 +108,22 @@ function replaceNodeNames( str ) {
 		( match, name ) => `/* ${ name } splitAxis */ uint32Array[ ${ convertName( name ) } + 7 ]`
 	);
 
+	str = str.replace(
+		new RegExp( `(node)\\s*=([^;]*);`, 'g' ),
+		( match, name, content ) => {
+
+			return `/* ${ name } */ stride4Offset =${ content }, stride2Offset = stride4Offset * 2;`;
+
+		}
+	);
+
 	return str;
 
 }
 
 function replaceFunctionNames( str ) {
 
-	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry)';
+	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry|getLeftOffset|getRightEndOffset)';
 
 	str = str.replace(
 		new RegExp( `(${ orNames })\\((\\s|[\\r|\\n])?node`, 'gm' ),
@@ -223,4 +244,5 @@ result = replaceNodeNames( result );
 result = replaceFunctionNames( result );
 result = addFunctions( result );
 result = addHeaderComment( result );
+result = result.replace( /^\s+$/gm, '' );
 fs.writeFileSync( bufferFilePath, result );
