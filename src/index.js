@@ -3,6 +3,7 @@ import MeshBVH from './MeshBVH.js';
 import Visualizer from './MeshBVHVisualizer.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 import { getBVHExtremes, estimateMemoryInBytes } from './Utils/Debug.js';
+import { MeshBVHDebug } from './MeshBVHDebug.js';
 
 const ray = new Ray();
 const tmpInverseMatrix = new Matrix4();
@@ -50,7 +51,7 @@ function disposeBoundsTree() {
 }
 
 export {
-	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer,
+	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer, MeshBVHDebug,
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	CENTER, AVERAGE, SAH,
 	estimateMemoryInBytes, getBVHExtremes
