@@ -173,7 +173,7 @@ function regenerateKnot() {
 	let totalStallTime;
 	if ( params.useWebWorker ) {
 
-		bvhGenerationWorker.run( knot.geometry ).then( bvh => {
+		bvhGenerationWorker.generate( knot.geometry ).then( bvh => {
 
 			knot.geometry.boundsTree = bvh;
 			group.add( knot );

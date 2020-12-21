@@ -9,7 +9,7 @@ export class GenerateMeshBVHWorker {
 
 	}
 
-	run( geometry, options = {} ) {
+	generate( geometry, options = {} ) {
 
 		if ( this.running ) {
 

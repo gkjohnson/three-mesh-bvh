@@ -120,12 +120,13 @@ geometry.boundsTree = deserializedBVH;
 ## Asynchronous Generation
 
 ```js
-import { generateAsync } from 'three-mesh-bvh/extra/generateAsync.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 
 // ...
 
 const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
-generateAsync( geometry ).then( bvh => {
+const worker = new GenerateMeshBVHWorker();
+worker.generate( geometry ).then( bvh => {
 
     geometry.boundsTree = bvh;
 
