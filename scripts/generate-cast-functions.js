@@ -6,11 +6,24 @@ const path = require( 'path' );
 function replaceUnneededCode( str ) {
 
 	str = str.replace(
-		/if \( node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
-		'const stride2Offset = stride4Offset * 2, ' +
-		'float32Array = _float32Array, ' +
-		'uint16Array = _uint16Array, ' +
-		'uint32Array = _uint32Array;'
+		/if \( [^)]*node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
+		match => {
+
+			if ( match.indexOf( '/* skip */' ) !== - 1 ) {
+
+				return '';
+
+			} else {
+
+				return 'const stride2Offset = stride4Offset * 2, ' +
+					'float32Array = _float32Array, ' +
+					'uint16Array = _uint16Array, ' +
+					'uint32Array = _uint32Array;\n'
+
+			}
+
+		}
+
 	);
 
 	str = str.replace( /function intersectRay\((.|[\r\n])*?}[\r|\n]/mg, '' );
@@ -96,8 +109,12 @@ function replaceNodeNames( str ) {
 	);
 
 	str = str.replace(
-		new RegExp( `(node)\\s*=`, 'g' ),
-		( match, name ) => `/* ${ name } */ ${ convertName( name ) } =`
+		new RegExp( `(node)\\s*=([^;]*);`, 'g' ),
+		( match, name, content ) => {
+
+			return `/* ${ name } */ stride4Offset =${ content }, stride2Offset = stride4Offset * 2;`;
+
+		}
 	);
 
 	return str;
