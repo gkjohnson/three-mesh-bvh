@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Case where float 32 rounding error could result in leaf bounds not completely containing the triangles by expanding the bounds by an estimation of the error.
 
+### Changed
+- `Shapecast` `intersectsBoundsFunc` to return one of the `NOT_INTERSECTED`, `INTERSECTED`, or `CONTAINED` constants. Returning `true` and `false` currently retains the old functionality.
+
 ## [0.3.1] - 2020-12-14
 ### Added
 - Performance improvements when computing distance to geometry.
