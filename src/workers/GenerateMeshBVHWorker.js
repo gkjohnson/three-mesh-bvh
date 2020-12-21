@@ -1,6 +1,6 @@
 import MeshBVH from '../MeshBVH.js';
 
-export class MeshBVHGenerationWorker {
+export class GenerateMeshBVHWorker {
 
 	constructor() {
 
@@ -13,7 +13,7 @@ export class MeshBVHGenerationWorker {
 
 		if ( this.running ) {
 
-			throw new Error( 'MeshBVHGenerationWorker: Already running job.' );
+			throw new Error( 'GenerateMeshBVHWorker: Already running job.' );
 
 		}
 
@@ -55,7 +55,7 @@ export class MeshBVHGenerationWorker {
 
 			if ( position.isInterleavedBufferAttribute || index && index.isInterleavedBufferAttribute ) {
 
-				throw new Error( 'MeshBVHGenerationWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
 
 			}
 

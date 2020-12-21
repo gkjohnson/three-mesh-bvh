@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { MeshBVHGenerationWorker } from '../src/workers/MeshBVHGenerationWorker.js';
+import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
 import { acceleratedRaycast } from '../src/index.js';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import MeshBVH from '../src/MeshBVH.js';
@@ -84,7 +84,7 @@ function init() {
 
 	}
 
-	bvhGenerationWorker = new MeshBVHGenerationWorker();
+	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
 	gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
