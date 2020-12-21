@@ -25,6 +25,7 @@ export class GenerateMeshBVHWorker {
 			worker.onmessage = e => {
 
 				this.running = false;
+				worker.onmessage = null;
 				const { serialized, position, error } = e.data;
 
 				if ( error ) {
