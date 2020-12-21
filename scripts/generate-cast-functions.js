@@ -15,10 +15,10 @@ function replaceUnneededCode( str ) {
 
 			} else {
 
-				return 'const stride2Offset = stride4Offset * 2, ' +
+				return 'let stride2Offset = stride4Offset * 2, ' +
 					'float32Array = _float32Array, ' +
 					'uint16Array = _uint16Array, ' +
-					'uint32Array = _uint32Array;\n'
+					'uint32Array = _uint32Array;\n';
 
 			}
 
@@ -84,8 +84,8 @@ function replaceNodeNames( str ) {
 	);
 
 	str = str.replace(
-		new RegExp( `! ! (${ names })\\.count`, 'g' ),
-		( match, name ) => `/* ${ name } count */ uint16Array[ ${ convertName( name, 2 ) } + 15 ] === 0xffff`
+		new RegExp( `! (${ names })\\.count`, 'g' ),
+		( match, name ) => `/* ${ name } count */ ( uint16Array[ ${ convertName( name, 2 ) } + 15 ] !== 0xffff )`
 	);
 
 	str = str.replace(
