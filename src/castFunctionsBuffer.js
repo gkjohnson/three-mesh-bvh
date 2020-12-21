@@ -7,21 +7,19 @@
 
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
-
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
+import { CONTAINED } from './Constants.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
 
-
 export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -48,7 +46,6 @@ export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects )
 export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 	const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 	if ( isLeaf ) {
 
@@ -124,33 +121,64 @@ export const shapecastBuffer = ( function () {
 	const triangle = new SeparatingAxisTriangle();
 	const cachedBox1 = new Box3();
 	const cachedBox2 = new Box3();
+
+	function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc ) {
+
+		const index = geometry.index;
+		const pos = geometry.attributes.position;
+		for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+
+			setTriangle( triangle, i, index, pos );
+			triangle.needsUpdate = true;
+
+			if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
+
+				return true;
+
+			}
+
+		}
+
+		return false;
+
+	}
+
 	return function shapecastBuffer( stride4Offset, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
 
-		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		// Define these inside the function so it has access to the local variables needed
+		// when converting to the buffer equivalents
+		function getLeftOffset( node ) {
 
+			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
+
+				node = /* node left */ stride4Offset + 8;
+
+			}
+
+			return /* node offset */ uint32Array[ stride4Offset + 6 ];
+
+		}
+
+		function getRightEndOffset( node ) {
+
+			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
+
+				node = /* node right */ uint32Array[ stride4Offset + 6 ];
+
+			}
+
+			return /* node offset */ uint32Array[ stride4Offset + 6 ] + /* node count */ uint16Array[ stride2Offset + 14 ];
+
+		}
+
+		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 		const isLeaf = /* node count */ uint16Array[ stride2Offset + 15 ] === 0xffff;
 		if ( isLeaf && intersectsTriangleFunc ) {
 
 			const geometry = mesh.geometry;
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
 			const offset = /* node offset */ uint32Array[ stride4Offset + 6 ];
 			const count = /* node count */ uint16Array[ stride2Offset + 14 ];
-
-			for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
-
-				setTriangle( triangle, i, index, pos );
-				triangle.needsUpdate = true;
-
-				if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2 ) ) {
-
-					return true;
-
-				}
-
-			}
-
-			return false;
+			return iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc );
 
 		} else {
 
@@ -188,6 +216,7 @@ export const shapecastBuffer = ( function () {
 
 			}
 
+			// Check box 1 intersection
 			if ( ! box1 ) {
 
 				box1 = cachedBox1;
@@ -196,22 +225,53 @@ export const shapecastBuffer = ( function () {
 			}
 
 			const isC1Leaf = /* c1 count */ uint16Array[ c1 + 15 ] === 0xffff;
-			const c1Intersection =
-				intersectsBoundsFunc( box1, isC1Leaf, score1 ) &&
-				shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1 );
 
-			if ( c1Intersection ) return true;
+			let c1StopTraversal;
+			if ( c1Intersection === CONTAINED ) {
 
+				const geometry = mesh.geometry;
+				const offset = getLeftOffset( c1 );
+				const end = getRightEndOffset( c1 );
+				const count = end - offset;
+
+				c1StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
+
+			} else {
+
+				c1StopTraversal =
+					c1Intersection &&
+					shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+			}
+
+			if ( c1StopTraversal ) return true;
+
+			// Check box 2 intersection
 			// cached box2 will have been overwritten by previous traversal
 			box2 = cachedBox2;
 			arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
 			const isC2Leaf = /* c2 count */ uint16Array[ c2 + 15 ] === 0xffff;
-			const c2Intersection =
-				intersectsBoundsFunc( box2, isC2Leaf, score2 ) &&
-				shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2 );
 
-			if ( c2Intersection ) return true;
+			let c2StopTraversal;
+			if ( c2Intersection === CONTAINED ) {
+
+				const geometry = mesh.geometry;
+				const offset = getLeftOffset( c2 );
+				const end = getRightEndOffset( c2 );
+				const count = end - offset;
+
+				c2StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
+
+			} else {
+
+				c2StopTraversal = shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+
+			}
+
+			if ( c2StopTraversal ) return true;
 
 			return false;
 
@@ -234,7 +294,6 @@ export const intersectsGeometryBuffer = ( function () {
 	return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
 		const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		if ( cachedObb === null ) {
 
 			if ( ! geometry.boundingBox ) {

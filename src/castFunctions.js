@@ -155,31 +155,33 @@ export const shapecast = ( function () {
 
 	}
 
-	function getLeftOffset( node ) {
-
-		while ( ! node.count ) {
-
-			node = node.left;
-
-		}
-
-		return node.offset;
-
-	}
-
-	function getRightEndOffset( node ) {
-
-		while ( ! node.count ) {
-
-			node = node.right;
-
-		}
-
-		return node.offset + node.count;
-
-	}
-
 	return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null ) {
+
+		// Define these inside the function so it has access to the local variables needed
+		// when converting to the buffer equivalents
+		function getLeftOffset( node ) {
+
+			while ( ! node.count ) {
+
+				node = node.left;
+
+			}
+
+			return node.offset;
+
+		}
+
+		function getRightEndOffset( node ) {
+
+			while ( ! node.count ) {
+
+				node = node.right;
+
+			}
+
+			return node.offset + node.count;
+
+		}
 
 		if ( node.continueGeneration ) {
 
