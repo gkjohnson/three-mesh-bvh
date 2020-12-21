@@ -244,4 +244,5 @@ result = replaceNodeNames( result );
 result = replaceFunctionNames( result );
 result = addFunctions( result );
 result = addHeaderComment( result );
+result = result.replace( /^\s+$/gm, '' );
 fs.writeFileSync( bufferFilePath, result );

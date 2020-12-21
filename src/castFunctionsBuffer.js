@@ -16,7 +16,6 @@ const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
-
 export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects ) {
 
 	const stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
@@ -54,7 +53,6 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 		return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, /* node offset */ uint32Array[ stride4Offset + 6 ], /* node count */ uint16Array[ stride2Offset + 14 ] );
 
 	} else {
-
 
 		// consider the position of the split plane with respect to the oncoming ray; whichever direction
 		// the ray is coming from, look for an intersection among that side of the tree first
@@ -156,7 +154,7 @@ export const shapecastBuffer = ( function () {
 			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
 
 				/* node */ stride4Offset = /* node left */ stride4Offset + 8, stride2Offset = stride4Offset * 2;
-				
+
 			}
 
 			return /* node offset */ uint32Array[ stride4Offset + 6 ];
@@ -170,7 +168,7 @@ export const shapecastBuffer = ( function () {
 			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
 
 				/* node */ stride4Offset = /* node right */ uint32Array[ stride4Offset + 6 ], stride2Offset = stride4Offset * 2;
-				
+
 			}
 
 			return /* node offset */ uint32Array[ stride4Offset + 6 ] + /* node count */ uint16Array[ stride2Offset + 14 ];
@@ -408,7 +406,6 @@ export const intersectsGeometryBuffer = ( function () {
 
 			if ( leftIntersection ) return true;
 
-
 			arrayToBoxBuffer( /* right boundingData */ right, float32Array, boundingBox );
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
@@ -423,7 +420,6 @@ export const intersectsGeometryBuffer = ( function () {
 	};
 
 } )();
-
 
 function intersectRayBuffer( stride4Offset, array, ray, target ) {
 
