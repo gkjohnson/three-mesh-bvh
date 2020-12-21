@@ -254,15 +254,15 @@ function onCollide( object1, object2, point, normal, velocity, offset = 0 ) {
 		object2 ?
 			Math.max( object1.collider.radius, object2.collider.radius ) :
 			object1.collider.radius,
-		1
-	);
+		0.4
+	) * 2.0;
 	const plane = new THREE.Mesh(
 		new THREE.RingBufferGeometry( 0, 1, 30 ),
 		new THREE.MeshBasicMaterial( { side: 2, transparent: true, depthWrite: false } )
 	);
 	plane.lifetime = 0;
 	plane.maxLifetime = 0.4;
-	plane.maxScale = effectScale * Math.max( Math.sin( Math.min( velocity / 300, 1 ) * Math.PI / 2 ), 0.35 );
+	plane.maxScale = effectScale * Math.max( Math.sin( Math.min( velocity / 200, 1 ) * Math.PI / 2 ), 0.35 );
 
 	plane.position.copy( point ).addScaledVector( normal, offset );
 	plane.quaternion.setFromUnitVectors( forwardVector, normal );
@@ -360,8 +360,6 @@ function updateSphereCollisions( deltaTime ) {
 
 		if ( collided ) {
 
-			const ogVelocity = sphere.velocity.length();
-
 			// get the delta direction and reflect the velocity across it
 			deltaVec.subVectors( tempSphere.center, sphereCollider.center ).normalize();
 			sphere.velocity.reflect( deltaVec );
@@ -378,7 +376,7 @@ function updateSphereCollisions( deltaTime ) {
 			tempVec
 				.copy( tempSphere.center )
 				.addScaledVector( deltaVec, - tempSphere.radius );
-			onCollide( sphere, null, tempVec, deltaVec, ogVelocity * dot, 0.05 );
+			onCollide( sphere, null, tempVec, deltaVec, dot, 0.05 );
 
 		}
 
