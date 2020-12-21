@@ -147,11 +147,11 @@ export const shapecastBuffer = ( function () {
 
 		// Define these inside the function so it has access to the local variables needed
 		// when converting to the buffer equivalents
-		function getLeftOffset( node ) {
+		function getLeftOffsetBuffer( stride4Offset ) {
 
 			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
 
-				node = /* node left */ stride4Offset + 8;
+				/* node */ stride4Offset = /* node left */ stride4Offset + 8;
 
 			}
 
@@ -159,11 +159,11 @@ export const shapecastBuffer = ( function () {
 
 		}
 
-		function getRightEndOffset( node ) {
+		function getRightEndOffsetBuffer( stride4Offset ) {
 
 			while ( ! /* node count */ uint16Array[ stride2Offset + 14 ] ) {
 
-				node = /* node right */ uint32Array[ stride4Offset + 6 ];
+				/* node */ stride4Offset = /* node right */ uint32Array[ stride4Offset + 6 ];
 
 			}
 
@@ -231,8 +231,8 @@ export const shapecastBuffer = ( function () {
 			if ( c1Intersection === CONTAINED ) {
 
 				const geometry = mesh.geometry;
-				const offset = getLeftOffset( c1 );
-				const end = getRightEndOffset( c1 );
+				const offset = getLeftOffsetBuffer( c1 );
+				const end = getRightEndOffsetBuffer( c1 );
 				const count = end - offset;
 
 				c1StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );
@@ -259,8 +259,8 @@ export const shapecastBuffer = ( function () {
 			if ( c2Intersection === CONTAINED ) {
 
 				const geometry = mesh.geometry;
-				const offset = getLeftOffset( c2 );
-				const end = getRightEndOffset( c2 );
+				const offset = getLeftOffsetBuffer( c2 );
+				const end = getRightEndOffsetBuffer( c2 );
 				const count = end - offset;
 
 				c2StopTraversal = intersectsTriangleFunc( offset, count, geometry, intersectsTriangleFunc );

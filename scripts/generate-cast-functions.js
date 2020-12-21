@@ -50,7 +50,6 @@ function replaceNodeNames( str ) {
 
 	const names = 'c1|c2|left|right|node';
 
-
 	str = str.replace(
 		new RegExp( `(${ names })\\.boundingData\\[(.*)\\]\\[(.*)\\]`, 'g' ),
 		( match, name, index, index2 ) => `/* ${ name } boundingData */ float32Array[ ${ convertName( name ) } +${ index }+${ index2 }]`
@@ -96,13 +95,18 @@ function replaceNodeNames( str ) {
 		( match, name ) => `/* ${ name } splitAxis */ uint32Array[ ${ convertName( name ) } + 7 ]`
 	);
 
+	str = str.replace(
+		new RegExp( `(node)\\s*=`, 'g' ),
+		( match, name ) => `/* ${ name } */ ${ convertName( name ) } =`
+	);
+
 	return str;
 
 }
 
 function replaceFunctionNames( str ) {
 
-	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry)';
+	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry|getLeftOffset|getRightEndOffset)';
 
 	str = str.replace(
 		new RegExp( `(${ orNames })\\((\\s|[\\r|\\n])?node`, 'gm' ),
