@@ -3,8 +3,13 @@ import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { acceleratedRaycast } from '../src/index.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import MeshBVH from '../src/MeshBVH.js';
+import {
+	MeshBVHVisualizer,
+	MeshBVH,
+	CONTAINED,
+	INTERSECTED,
+	NOT_INTERSECTED,
+} from '../src/index.js';
 
 THREE.Mesh.raycast = acceleratedRaycast;
 
@@ -12,6 +17,7 @@ const params = {
 
 	toolMode: 'lasso',
 	selectionMode: 'centroid',
+	liveUpdate: false,
 	wireframe: false,
 
 	displayHelper: false,
@@ -19,9 +25,9 @@ const params = {
 
 };
 
-let renderer, camera, scene, gui, stats, controls, selectionShape;
-const selectionPoints = [];
+let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
 const tempMatrix = new THREE.Matrix4();
+const selectionPoints = [];
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
 
@@ -51,7 +57,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 1, 2, 3 );
+	camera.position.set( 2, 4, 6 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 	scene.add( camera );
@@ -64,7 +70,20 @@ function init() {
 	selectionShape.scale.setScalar( 1 );
 	camera.add( selectionShape );
 
-	scene.add( new THREE.GridHelper() )
+	mesh = new THREE.Mesh(
+		new THREE.SphereBufferGeometry( 2.5, 1000, 1000 ).toNonIndexed(),
+		new THREE.MeshStandardMaterial( { vertexColors: true } )
+	);
+	mesh.geometry.boundsTree = new MeshBVH( mesh.geometry, { lazyGeneration: false } );
+	mesh.geometry.setAttribute( 'color', new THREE.Uint8BufferAttribute(
+		new Array( mesh.geometry.index.count * 3 ).fill( 255 ), 3, true
+	) );
+	scene.add( mesh );
+
+	helper = new MeshBVHVisualizer( mesh, 10 );
+	scene.add( helper );
+
+	scene.add( new THREE.GridHelper() );
 
 	// stats setup
 	stats = new Stats();
@@ -79,6 +98,16 @@ function init() {
 
 	gui = new GUI();
 	gui.add( params, 'toolMode', [ 'lasso', 'box' ] );
+	gui.add( params, 'liveUpdate' );
+
+	gui.add( params, 'wireframe' );
+	gui.add( params, 'displayHelper' );
+	gui.add( params, 'helperDepth', 1, 30 ).onChange( v => {
+
+		helper.depth = v;
+		helper.update();
+
+	} );
 	gui.open();
 
 	let startX = - Infinity;
@@ -105,10 +134,15 @@ function init() {
 
 	} );
 
-	document.addEventListener( 'pointerup', () => {
+	document.addEventListener( 'pointerup', e => {
 
 		selectionShape.visible = false;
-		selectionNeedsUpdate = true;
+
+		if ( selectionPoints.length ) {
+
+			selectionNeedsUpdate = true;
+
+		}
 
 	} );
 
@@ -159,6 +193,11 @@ function init() {
 			prevX = ex;
 			prevY = ey;
 			selectionShape.visible = true;
+			if ( params.liveUpdate ) {
+
+				selectionNeedsUpdate = true;
+
+			}
 
 		} else {
 
@@ -203,6 +242,12 @@ function init() {
 				prevX = ex;
 				prevY = ey;
 
+				if ( params.liveUpdate ) {
+
+					selectionNeedsUpdate = true;
+
+				}
+
 			}
 
 		}
@@ -220,10 +265,51 @@ function init() {
 
 }
 
+function pointRayCrossesLine( point, line ) {
+
+	const { start, end } = line;
+	const px = point.x;
+	const py = point.y;
+
+	const sy = start.y;
+	const ey = end.y;
+	if ( py > sy && py >= ey ) return false; // above
+	if ( py < sy && py <= ey ) return false; // below
+
+	const sx = start.x;
+	const ex = end.x;
+	if ( px > sx && px >= ex ) return false; // right
+
+	return true;
+
+}
+
+function lineCrossesLine( l1, l2 ) {
+
+	// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+	function ccw( A, B, C ) {
+
+		return ( C.y - A.y ) * ( B.x - A.x ) > ( B.y - A.y ) * ( C.x - A.x );
+
+	}
+
+	const A = l1.start;
+	const B = l1.end;
+
+	const C = l2.start;
+	const D = l2.end;
+
+	return ccw( A, C, D ) !== ccw( B, C, D ) && ccw( A, B, C ) !== ccw( A, B, D );
+
+}
+
 function render() {
 
 	stats.update();
 	requestAnimationFrame( render );
+
+	mesh.material.wireframe = params.wireframe;
+	helper.visible = params.displayHelper;
 
 	if ( selectionShapeNeedsUpdate ) {
 
@@ -258,33 +344,257 @@ function render() {
 
 	if ( selectionNeedsUpdate ) {
 
-		// TODO: run lasso selection
-		// tempMatrix
-		// 	.copy( mesh.matrixWorld )
-		// 	.premultiply( camera.matrixWorldInverse )
-		// 	.premultiply( camera.projectionMatrixInverse );
+		mesh.geometry.attributes.color.array.fill( 255 );
+		mesh.geometry.attributes.color.needsUpdate = true;
 
-		// mesh.geometry.shapecast(
-		// 	mesh,
-		// 	box => {
+		selectionNeedsUpdate = false;
+		tempMatrix
+			.copy( mesh.matrixWorld )
+			.premultiply( camera.matrixWorldInverse )
+			.premultiply( camera.projectionMatrix );
 
-		// 		// TODO:
-		// 		// - check if all box points are inside the lasso
-		// 		// - if they are not then it it does not intersect
-		// 		// - if the crossings do not match then it intersects
-		// 		// - check if any lasso and box lines intersect
-		// 		// - if they do then the box is intersected
+		const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector4() );
+		const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
+		const segmentLines = new Array( selectionPoints.length ).fill().map( () => new THREE.Line3() );
+		for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {
 
-		// 	},
-		// 	tri => {
+			const line = segmentLines[ s ];
+			const sNext = ( s + 3 ) % l;
+			line.start.x = selectionPoints[ s ];
+			line.start.y = selectionPoints[ s + 1 ];
 
-		// 		// TODO:
-		// 		// - check if the centroid or points are inside the lasso
-		// 		// - check if the triangle edges intersect the lasso edges
-		// 		// - if they are or do then the triangle is selected
+			line.end.x = selectionPoints[ sNext ];
+			line.end.y = selectionPoints[ sNext + 1 ];
 
-		// 	}
-		// );
+		}
+
+		const indices = [];
+		const selected =
+			mesh.geometry.boundsTree.shapecast(
+				mesh,
+				box => {
+
+					const { min, max } = box;
+					let i = 0;
+					for ( let x = 0; x <= 1; x ++ ) { // 4 stride
+
+						for ( let y = 0; y <= 1; y ++ ) { // 2 stride
+
+							for ( let z = 0; z <= 1; z ++ ) { // 1 stride
+
+								const v = boxPoints[ i ];
+								v.x = x === 0 ? min.x : max.x;
+								v.y = y === 0 ? min.y : max.y;
+								v.z = y === 0 ? min.z : max.z;
+								v.w = 1;
+								v.applyMatrix4( tempMatrix );
+								v.multiplyScalar( 1 / v.w );
+								i ++;
+
+							}
+
+						}
+
+					}
+
+					let crossings = 0;
+					for ( let p = 0; p < 8; p ++ ) {
+
+						let pCrossings = 0;
+						const v = boxPoints[ p ];
+						for ( let s = 0, l = segmentLines.length; s < l; s ++ ) {
+
+							const line = segmentLines[ s ];
+							if ( pointRayCrossesLine( v, line ) ) {
+
+								pCrossings ++;
+
+							}
+
+						}
+
+						if ( p === 0 ) {
+
+							crossings = pCrossings;
+
+						}
+
+						if ( crossings !== pCrossings ) {
+
+							return INTERSECTED;
+
+						}
+
+					}
+
+					if ( crossings % 2 === 1 ) {
+
+						return CONTAINED;
+
+					}
+
+					// X lines
+					// -X>+X -Y -Z
+					boxLines[ 0 ].start.copy( boxPoints[ 0 ] );
+					boxLines[ 0 ].end.copy( boxPoints[ 4 ] );
+
+					// -X>+X -Y +Z
+					boxLines[ 1 ].start.copy( boxPoints[ 1 ] );
+					boxLines[ 1 ].end.copy( boxPoints[ 5 ] );
+
+					// -X>+X +Y -Z
+					boxLines[ 2 ].start.copy( boxPoints[ 2 ] );
+					boxLines[ 2 ].end.copy( boxPoints[ 6 ] );
+
+					// -X>+X +Y +Z
+					boxLines[ 3 ].start.copy( boxPoints[ 3 ] );
+					boxLines[ 3 ].end.copy( boxPoints[ 7 ] );
+
+
+					// Y lines
+					// -X -Y>+Y -Z
+					boxLines[ 4 ].start.copy( boxPoints[ 0 ] );
+					boxLines[ 4 ].end.copy( boxPoints[ 2 ] );
+
+					// +X -Y>+Y -Z
+					boxLines[ 5 ].start.copy( boxPoints[ 4 ] );
+					boxLines[ 5 ].end.copy( boxPoints[ 6 ] );
+
+					// -X -Y>+Y +Z
+					boxLines[ 6 ].start.copy( boxPoints[ 1 ] );
+					boxLines[ 6 ].end.copy( boxPoints[ 3 ] );
+
+					// +X -Y>+Y +Z
+					boxLines[ 7 ].start.copy( boxPoints[ 5 ] );
+					boxLines[ 7 ].end.copy( boxPoints[ 7 ] );
+
+
+					// Z lines
+					// -X -Y -Z>+Z
+					boxLines[ 8 ].start.copy( boxPoints[ 0 ] );
+					boxLines[ 8 ].end.copy( boxPoints[ 1 ] );
+
+					// +X -Y -Z>+Z
+					boxLines[ 9 ].start.copy( boxPoints[ 4 ] );
+					boxLines[ 9 ].end.copy( boxPoints[ 5 ] );
+
+					// -X +Y -Z>+Z
+					boxLines[ 10 ].start.copy( boxPoints[ 2 ] );
+					boxLines[ 10 ].end.copy( boxPoints[ 3 ] );
+
+					// +X +Y -Z>+Z
+					boxLines[ 11 ].start.copy( boxPoints[ 5 ] );
+					boxLines[ 11 ].end.copy( boxPoints[ 6 ] );
+
+					for ( let li = 0, l = boxLines.length; li < l; li ++ ) {
+
+						const boxLine = boxLines[ li ];
+						for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
+
+							if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
+
+								return INTERSECTED;
+
+							}
+
+						}
+
+					}
+
+					return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
+
+				},
+				( tri, a, b, c, contained ) => {
+
+					if ( contained ) {
+
+						indices.push( a, b, c );
+						return false;
+
+					}
+
+					const vecs = [ tri.a, tri.b, tri.c ];
+
+					let crossings = 0;
+					for ( let j = 0; j < 3; j ++ ) {
+
+						const v = vecs[ j ];
+						v.applyMatrix4( tempMatrix );
+
+						let vCrossings = 0;
+						for ( let i = 0, l = segmentLines.length; i < l; i ++ ) {
+
+							if ( pointRayCrossesLine( v, segmentLines[ i ] ) ) {
+
+								vCrossings ++;
+
+							}
+
+						}
+
+						if ( j === 0 ) {
+
+							crossings = vCrossings;
+
+						}
+
+						if ( crossings !== vCrossings ) {
+
+							indices.push( a, b, c );
+							return false;
+
+						}
+
+					}
+
+					if ( crossings % 2 === 1 ) {
+
+						indices.push( a, b, c );
+						return false;
+
+					}
+
+					const lines = new Array( 3 ).fill().map( () => new THREE.Line3() );
+
+					lines[ 0 ].start.copy( tri.a );
+					lines[ 0 ].end.copy( tri.b );
+
+					lines[ 1 ].start.copy( tri.b );
+					lines[ 1 ].end.copy( tri.c );
+
+					lines[ 2 ].start.copy( tri.c );
+					lines[ 2 ].end.copy( tri.a );
+
+					for ( let i = 0; i < 3; i ++ ) {
+
+						const l = lines[ i ];
+						for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
+
+							if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
+
+								indices.push( a, b, c );
+								return false;
+
+							}
+
+						}
+
+					}
+
+				}
+			);
+
+		const colorAttr = mesh.geometry.attributes.color;
+		const indexAttr = mesh.geometry.index;
+		for ( let i = 0, l = indices.length; i < l; i ++ ) {
+
+			const i2 = indexAttr.getX( indices[ i ] );
+			colorAttr.setX( i2, 255 );
+			colorAttr.setY( i2, 0 );
+			colorAttr.setZ( i2, 0 );
+
+		}
+		colorAttr.needsUpdate = true;
 
 	}
 
