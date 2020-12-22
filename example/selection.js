@@ -10,15 +10,18 @@ THREE.Mesh.raycast = acceleratedRaycast;
 
 const params = {
 
-	mode: 'lasso',
+	toolMode: 'lasso',
+	selectionMode: 'centroid',
+	wireframe: false,
 
 	displayHelper: false,
 	helperDepth: 10,
 
 };
 
-let renderer, camera, scene, knot, clock, gui, outputContainer, stats, controls, selectionShape;
+let renderer, camera, scene, gui, stats, controls, selectionShape;
 const selectionPoints = [];
+const tempMatrix = new THREE.Matrix4();
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
 
@@ -28,8 +31,6 @@ render();
 function init() {
 
 	const bgColor = 0xffca28;
-
-	outputContainer = document.getElementById( 'output' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -61,16 +62,9 @@ function init() {
 	selectionShape.position.z = - .2;
 	selectionShape.depthTest = false;
 	selectionShape.scale.setScalar( 1 );
-
-
-	// selectionShape = new THREE.Mesh( new THREE.PlaneBufferGeometry() );
-	// selectionShape.material.side = 2;
-
 	camera.add( selectionShape );
 
 	scene.add( new THREE.GridHelper() )
-
-	clock = new THREE.Clock();
 
 	// stats setup
 	stats = new Stats();
@@ -84,7 +78,7 @@ function init() {
 	controls.enablePan = false;
 
 	gui = new GUI();
-	gui.add( params, 'mode', [ 'lasso', 'box' ] );
+	gui.add( params, 'toolMode', [ 'lasso', 'box' ] );
 	gui.open();
 
 	let startX = - Infinity;
@@ -103,7 +97,7 @@ function init() {
 		startX = ( e.clientX / window.innerWidth ) * 2 - 1;
 		startY = ( e.clientY / window.innerHeight ) * 2 - 1;
 
-		if ( params.mode === 'lasso' ) {
+		if ( params.toolMode === 'lasso' ) {
 
 			selectionPoints.length = 0;
 
@@ -132,7 +126,7 @@ function init() {
 		const nx = ( e.clientX / window.innerWidth ) * 2 - 1;
 		const ny = ( e.clientY / window.innerHeight ) * 2 - 1;
 
-		if ( params.mode === 'box' ) {
+		if ( params.toolMode === 'box' ) {
 
 			selectionPoints.length = 3 * 5;
 
@@ -233,7 +227,7 @@ function render() {
 
 	if ( selectionShapeNeedsUpdate ) {
 
-		if ( params.mode === 'lasso' ) {
+		if ( params.toolMode === 'lasso' ) {
 
 			const ogLength = selectionPoints.length;
 			selectionPoints.push(
@@ -265,9 +259,34 @@ function render() {
 	if ( selectionNeedsUpdate ) {
 
 		// TODO: run lasso selection
+		// tempMatrix
+		// 	.copy( mesh.matrixWorld )
+		// 	.premultiply( camera.matrixWorldInverse )
+		// 	.premultiply( camera.projectionMatrixInverse );
+
+		// mesh.geometry.shapecast(
+		// 	mesh,
+		// 	box => {
+
+		// 		// TODO:
+		// 		// - check if all box points are inside the lasso
+		// 		// - if they are not then it it does not intersect
+		// 		// - if the crossings do not match then it intersects
+		// 		// - check if any lasso and box lines intersect
+		// 		// - if they do then the box is intersected
+
+		// 	},
+		// 	tri => {
+
+		// 		// TODO:
+		// 		// - check if the centroid or points are inside the lasso
+		// 		// - check if the triangle edges intersect the lasso edges
+		// 		// - if they are or do then the triangle is selected
+
+		// 	}
+		// );
 
 	}
-
 
 	const yScale = Math.tan( THREE.MathUtils.DEG2RAD * camera.fov / 2 ) * selectionShape.position.z;
 	selectionShape.scale.set( - yScale * camera.aspect, yScale, 1 );
