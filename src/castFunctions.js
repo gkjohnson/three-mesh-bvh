@@ -306,7 +306,9 @@ export const shapecast = ( function () {
 
 			} else {
 
-				c2StopTraversal = shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				c2StopTraversal =
+					c2Intersection &&
+					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			}
 
