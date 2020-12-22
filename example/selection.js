@@ -19,6 +19,7 @@ const params = {
 	selectionMode: 'centroid',
 	liveUpdate: false,
 	wireframe: false,
+	useBoundsTree: true,
 
 	displayHelper: false,
 	helperDepth: 10,
@@ -64,6 +65,7 @@ function init() {
 
 	// selection shape
 	selectionShape = new THREE.Line();
+	selectionShape.material.color.set( 0x333333 );
 	selectionShape.renderOrder = 1;
 	selectionShape.position.z = - .2;
 	selectionShape.depthTest = false;
@@ -71,7 +73,7 @@ function init() {
 	camera.add( selectionShape );
 
 	mesh = new THREE.Mesh(
-		new THREE.SphereBufferGeometry( 2.5, 1000, 1000 ).toNonIndexed(),
+		new THREE.SphereBufferGeometry( 2.5, 5, 5 ).toNonIndexed(),
 		new THREE.MeshStandardMaterial( { vertexColors: true } )
 	);
 	mesh.geometry.boundsTree = new MeshBVH( mesh.geometry, { lazyGeneration: false } );
@@ -99,6 +101,7 @@ function init() {
 	gui = new GUI();
 	gui.add( params, 'toolMode', [ 'lasso', 'box' ] );
 	gui.add( params, 'liveUpdate' );
+	gui.add( params, 'useBoundsTree' );
 
 	gui.add( params, 'wireframe' );
 	gui.add( params, 'displayHelper' );
@@ -158,7 +161,7 @@ function init() {
 		const ey = e.clientY;
 
 		const nx = ( e.clientX / window.innerWidth ) * 2 - 1;
-		const ny = ( e.clientY / window.innerHeight ) * 2 - 1;
+		const ny = - ( ( e.clientY / window.innerHeight ) * 2 - 1 );
 
 		if ( params.toolMode === 'box' ) {
 
@@ -273,14 +276,35 @@ function pointRayCrossesLine( point, line ) {
 
 	const sy = start.y;
 	const ey = end.y;
-	if ( py > sy && py >= ey ) return false; // above
-	if ( py < sy && py <= ey ) return false; // below
+
+	if ( sy === ey ) return false;
+
+	if ( py > sy && py > ey ) return false; // above
+	if ( py < sy && py < ey ) return false; // below
 
 	const sx = start.x;
 	const ex = end.x;
-	if ( px > sx && px >= ex ) return false; // right
+	if ( px > sx && px > ex ) return false; // right
+	if ( px < sx && px < ex ) return true; // left
 
-	return true;
+	const dx = ex - sx;
+	const dy = ey - sy;
+	const perpx = dy;
+	const perpy = - dx;
+
+	const pdx = px - sx;
+	const pdy = py - sy;
+
+	const dot = perpx * pdx + perpy * pdy;
+
+	if ( Math.sign( dot ) !== Math.sign( perpx ) ) {
+
+		return true;
+
+	}
+
+
+	return false;
 
 }
 
@@ -344,6 +368,17 @@ function render() {
 
 	if ( selectionNeedsUpdate ) {
 
+		// TODO
+		// - not properly accounting for double counting the end point
+		// - line intersections may not be right
+		// - change background color
+		// - get interesting model
+		// - write custom shader for 'selection' color / separate mesh with a newly created index buffer (render tri outlines too)
+		// - render centroids as points if enabled
+		// - make a folder section for bounds tree
+		// - handle case where the bounds or triangles are clipped by the camera
+		// - might be best to treat the lasso as a box or the bounds as screen space boxes. Need to account
+		// for the case where the lasso is entirely within the box.
 		mesh.geometry.attributes.color.array.fill( 255 );
 		mesh.geometry.attributes.color.needsUpdate = true;
 
@@ -368,58 +403,140 @@ function render() {
 
 		}
 
+		const squarePoints = new Array( 4 ).fill().map( () => new THREE.Vector3() );
+		const squareLines = new Array( 4 ).fill().map( () => new THREE.Vector3() );
+
 		const indices = [];
-		const selected =
-			mesh.geometry.boundsTree.shapecast(
-				mesh,
-				box => {
+		mesh.geometry.boundsTree.shapecast(
+			mesh,
+			box => {
 
-					const { min, max } = box;
-					let i = 0;
-					for ( let x = 0; x <= 1; x ++ ) { // 4 stride
+				if ( ! params.useBoundsTree ) {
 
-						for ( let y = 0; y <= 1; y ++ ) { // 2 stride
+					return INTERSECTED;
 
-							for ( let z = 0; z <= 1; z ++ ) { // 1 stride
+				}
 
-								const v = boxPoints[ i ];
-								v.x = x === 0 ? min.x : max.x;
-								v.y = y === 0 ? min.y : max.y;
-								v.z = y === 0 ? min.z : max.z;
-								v.w = 1;
-								v.applyMatrix4( tempMatrix );
-								v.multiplyScalar( 1 / v.w );
-								i ++;
+				const { min, max } = box;
+				let i = 0;
+				for ( let x = 0; x <= 1; x ++ ) { // 4 stride
 
-							}
+					for ( let y = 0; y <= 1; y ++ ) { // 2 stride
+
+						for ( let z = 0; z <= 1; z ++ ) { // 1 stride
+
+							const v = boxPoints[ i ];
+							v.x = x === 0 ? min.x : max.x;
+							v.y = y === 0 ? min.y : max.y;
+							v.z = y === 0 ? min.z : max.z;
+							v.w = 1;
+							v.applyMatrix4( tempMatrix );
+							v.multiplyScalar( 1 / v.w );
+							i ++;
 
 						}
 
 					}
 
-					let crossings = 0;
-					for ( let p = 0; p < 8; p ++ ) {
+				}
 
-						let pCrossings = 0;
-						const v = boxPoints[ p ];
-						for ( let s = 0, l = segmentLines.length; s < l; s ++ ) {
+				let crossings = 0;
+				for ( let p = 0; p < 8; p ++ ) {
 
-							const line = segmentLines[ s ];
-							if ( pointRayCrossesLine( v, line ) ) {
+					let pCrossings = 0;
+					const v = boxPoints[ p ];
+					for ( let s = 0, l = segmentLines.length; s < l; s ++ ) {
 
-								pCrossings ++;
+						const line = segmentLines[ s ];
+						if ( pointRayCrossesLine( v, line ) ) {
 
-							}
-
-						}
-
-						if ( p === 0 ) {
-
-							crossings = pCrossings;
+							pCrossings ++;
 
 						}
 
-						if ( crossings !== pCrossings ) {
+					}
+
+					if ( p === 0 ) {
+
+						crossings = pCrossings;
+
+					}
+
+					if ( crossings !== pCrossings ) {
+
+						return INTERSECTED;
+
+					}
+
+				}
+
+				if ( crossings % 2 === 1 ) {
+
+					return CONTAINED;
+
+				}
+
+				return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
+
+				// X lines
+				// -X>+X -Y -Z
+				boxLines[ 0 ].start.copy( boxPoints[ 0 ] );
+				boxLines[ 0 ].end.copy( boxPoints[ 4 ] );
+
+				// -X>+X -Y +Z
+				boxLines[ 1 ].start.copy( boxPoints[ 1 ] );
+				boxLines[ 1 ].end.copy( boxPoints[ 5 ] );
+
+				// -X>+X +Y -Z
+				boxLines[ 2 ].start.copy( boxPoints[ 2 ] );
+				boxLines[ 2 ].end.copy( boxPoints[ 6 ] );
+
+				// -X>+X +Y +Z
+				boxLines[ 3 ].start.copy( boxPoints[ 3 ] );
+				boxLines[ 3 ].end.copy( boxPoints[ 7 ] );
+
+
+				// Y lines
+				// -X -Y>+Y -Z
+				boxLines[ 4 ].start.copy( boxPoints[ 0 ] );
+				boxLines[ 4 ].end.copy( boxPoints[ 2 ] );
+
+				// +X -Y>+Y -Z
+				boxLines[ 5 ].start.copy( boxPoints[ 4 ] );
+				boxLines[ 5 ].end.copy( boxPoints[ 6 ] );
+
+				// -X -Y>+Y +Z
+				boxLines[ 6 ].start.copy( boxPoints[ 1 ] );
+				boxLines[ 6 ].end.copy( boxPoints[ 3 ] );
+
+				// +X -Y>+Y +Z
+				boxLines[ 7 ].start.copy( boxPoints[ 5 ] );
+				boxLines[ 7 ].end.copy( boxPoints[ 7 ] );
+
+
+				// Z lines
+				// -X -Y -Z>+Z
+				boxLines[ 8 ].start.copy( boxPoints[ 0 ] );
+				boxLines[ 8 ].end.copy( boxPoints[ 1 ] );
+
+				// +X -Y -Z>+Z
+				boxLines[ 9 ].start.copy( boxPoints[ 4 ] );
+				boxLines[ 9 ].end.copy( boxPoints[ 5 ] );
+
+				// -X +Y -Z>+Z
+				boxLines[ 10 ].start.copy( boxPoints[ 2 ] );
+				boxLines[ 10 ].end.copy( boxPoints[ 3 ] );
+
+				// +X +Y -Z>+Z
+				boxLines[ 11 ].start.copy( boxPoints[ 5 ] );
+				boxLines[ 11 ].end.copy( boxPoints[ 6 ] );
+
+				for ( let li = 0, l = boxLines.length; li < l; li ++ ) {
+
+					const boxLine = boxLines[ li ];
+					for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
+
+						if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
 
 							return INTERSECTED;
 
@@ -427,118 +544,78 @@ function render() {
 
 					}
 
-					if ( crossings % 2 === 1 ) {
+				}
 
-						return CONTAINED;
+				return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
 
-					}
+			},
+			( tri, a, b, c, contained ) => {
 
-					// X lines
-					// -X>+X -Y -Z
-					boxLines[ 0 ].start.copy( boxPoints[ 0 ] );
-					boxLines[ 0 ].end.copy( boxPoints[ 4 ] );
+				if ( contained || true ) {
 
-					// -X>+X -Y +Z
-					boxLines[ 1 ].start.copy( boxPoints[ 1 ] );
-					boxLines[ 1 ].end.copy( boxPoints[ 5 ] );
+					indices.push( a, b, c );
+					return false;
 
-					// -X>+X +Y -Z
-					boxLines[ 2 ].start.copy( boxPoints[ 2 ] );
-					boxLines[ 2 ].end.copy( boxPoints[ 6 ] );
+				}
 
-					// -X>+X +Y +Z
-					boxLines[ 3 ].start.copy( boxPoints[ 3 ] );
-					boxLines[ 3 ].end.copy( boxPoints[ 7 ] );
+				const vecs = [ tri.a, tri.b, tri.c ];
 
+				let crossings = 0;
+				for ( let j = 0; j < 3; j ++ ) {
 
-					// Y lines
-					// -X -Y>+Y -Z
-					boxLines[ 4 ].start.copy( boxPoints[ 0 ] );
-					boxLines[ 4 ].end.copy( boxPoints[ 2 ] );
+					const v = vecs[ j ];
+					v.applyMatrix4( tempMatrix );
 
-					// +X -Y>+Y -Z
-					boxLines[ 5 ].start.copy( boxPoints[ 4 ] );
-					boxLines[ 5 ].end.copy( boxPoints[ 6 ] );
+					let vCrossings = 0;
+					for ( let i = 0, l = segmentLines.length; i < l; i ++ ) {
 
-					// -X -Y>+Y +Z
-					boxLines[ 6 ].start.copy( boxPoints[ 1 ] );
-					boxLines[ 6 ].end.copy( boxPoints[ 3 ] );
+						if ( pointRayCrossesLine( v, segmentLines[ i ] ) ) {
 
-					// +X -Y>+Y +Z
-					boxLines[ 7 ].start.copy( boxPoints[ 5 ] );
-					boxLines[ 7 ].end.copy( boxPoints[ 7 ] );
-
-
-					// Z lines
-					// -X -Y -Z>+Z
-					boxLines[ 8 ].start.copy( boxPoints[ 0 ] );
-					boxLines[ 8 ].end.copy( boxPoints[ 1 ] );
-
-					// +X -Y -Z>+Z
-					boxLines[ 9 ].start.copy( boxPoints[ 4 ] );
-					boxLines[ 9 ].end.copy( boxPoints[ 5 ] );
-
-					// -X +Y -Z>+Z
-					boxLines[ 10 ].start.copy( boxPoints[ 2 ] );
-					boxLines[ 10 ].end.copy( boxPoints[ 3 ] );
-
-					// +X +Y -Z>+Z
-					boxLines[ 11 ].start.copy( boxPoints[ 5 ] );
-					boxLines[ 11 ].end.copy( boxPoints[ 6 ] );
-
-					for ( let li = 0, l = boxLines.length; li < l; li ++ ) {
-
-						const boxLine = boxLines[ li ];
-						for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
-
-							if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
-
-								return INTERSECTED;
-
-							}
+							vCrossings ++;
 
 						}
 
 					}
 
-					return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
+					if ( j === 0 ) {
 
-				},
-				( tri, a, b, c, contained ) => {
+						crossings = vCrossings;
 
-					if ( contained ) {
+					}
+
+					if ( crossings !== vCrossings ) {
 
 						indices.push( a, b, c );
 						return false;
 
 					}
 
-					const vecs = [ tri.a, tri.b, tri.c ];
+				}
 
-					let crossings = 0;
-					for ( let j = 0; j < 3; j ++ ) {
+				if ( crossings % 2 === 1 ) {
 
-						const v = vecs[ j ];
-						v.applyMatrix4( tempMatrix );
+					indices.push( a, b, c );
+					return false;
 
-						let vCrossings = 0;
-						for ( let i = 0, l = segmentLines.length; i < l; i ++ ) {
+				}
 
-							if ( pointRayCrossesLine( v, segmentLines[ i ] ) ) {
+				const lines = new Array( 3 ).fill().map( () => new THREE.Line3() );
 
-								vCrossings ++;
+				lines[ 0 ].start.copy( tri.a );
+				lines[ 0 ].end.copy( tri.b );
 
-							}
+				lines[ 1 ].start.copy( tri.b );
+				lines[ 1 ].end.copy( tri.c );
 
-						}
+				lines[ 2 ].start.copy( tri.c );
+				lines[ 2 ].end.copy( tri.a );
 
-						if ( j === 0 ) {
+				for ( let i = 0; i < 3; i ++ ) {
 
-							crossings = vCrossings;
+					const l = lines[ i ];
+					for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
 
-						}
-
-						if ( crossings !== vCrossings ) {
+						if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
 
 							indices.push( a, b, c );
 							return false;
@@ -547,42 +624,10 @@ function render() {
 
 					}
 
-					if ( crossings % 2 === 1 ) {
-
-						indices.push( a, b, c );
-						return false;
-
-					}
-
-					const lines = new Array( 3 ).fill().map( () => new THREE.Line3() );
-
-					lines[ 0 ].start.copy( tri.a );
-					lines[ 0 ].end.copy( tri.b );
-
-					lines[ 1 ].start.copy( tri.b );
-					lines[ 1 ].end.copy( tri.c );
-
-					lines[ 2 ].start.copy( tri.c );
-					lines[ 2 ].end.copy( tri.a );
-
-					for ( let i = 0; i < 3; i ++ ) {
-
-						const l = lines[ i ];
-						for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
-
-							if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
-
-								indices.push( a, b, c );
-								return false;
-
-							}
-
-						}
-
-					}
-
 				}
-			);
+
+			}
+		);
 
 		const colorAttr = mesh.geometry.attributes.color;
 		const indexAttr = mesh.geometry.index;
@@ -599,7 +644,7 @@ function render() {
 	}
 
 	const yScale = Math.tan( THREE.MathUtils.DEG2RAD * camera.fov / 2 ) * selectionShape.position.z;
-	selectionShape.scale.set( - yScale * camera.aspect, yScale, 1 );
+	selectionShape.scale.set( - yScale * camera.aspect, - yScale, 1 );
 
 	renderer.render( scene, camera );
 
