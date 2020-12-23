@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { acceleratedRaycast } from '../src/index.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
 	MeshBVHVisualizer,
@@ -10,8 +9,6 @@ import {
 	INTERSECTED,
 	NOT_INTERSECTED,
 } from '../src/index.js';
-
-THREE.Mesh.raycast = acceleratedRaycast;
 
 const params = {
 
@@ -24,11 +21,12 @@ const params = {
 
 	displayHelper: false,
 	helperDepth: 10,
+	rotate: true,
 
 };
 
 let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
-let highlightMesh, highlightWireframeMesh, outputContainer;
+let highlightMesh, highlightWireframeMesh, outputContainer, group;
 const tempMatrix = new THREE.Matrix4();
 const selectionPoints = [];
 let selectionShapeNeedsUpdate = false;
@@ -48,6 +46,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.shadowMap.enabled = true;
 	renderer.gammaOutput = true;
 	document.body.appendChild( renderer.domElement );
 
@@ -55,7 +54,9 @@ function init() {
 	scene = new THREE.Scene();
 
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
-	light.position.set( 1, 1, 1 );
+	light.castShadow = true;
+	light.shadow.mapSize.set( 2048, 2048 );
+	light.position.set( 10, 10, 10 );
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
 
@@ -75,6 +76,11 @@ function init() {
 	selectionShape.scale.setScalar( 1 );
 	camera.add( selectionShape );
 
+	// group for rotation
+	group = new THREE.Group();
+	scene.add( group );
+
+	// base mesh
 	mesh = new THREE.Mesh(
 		new THREE.TorusKnotBufferGeometry( 1.5, 0.5, 500, 60 ).toNonIndexed(),
 		new THREE.MeshStandardMaterial( {
@@ -86,8 +92,14 @@ function init() {
 	mesh.geometry.setAttribute( 'color', new THREE.Uint8BufferAttribute(
 		new Array( mesh.geometry.index.count * 3 ).fill( 255 ), 3, true
 	) );
-	scene.add( mesh );
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	group.add( mesh );
 
+	helper = new MeshBVHVisualizer( mesh, 10 );
+	group.add( helper );
+
+	// meshes for selection highlights
 	highlightMesh = new THREE.Mesh();
 	highlightMesh.geometry = mesh.geometry.clone();
 	highlightMesh.geometry.drawRange.count = 0;
@@ -98,7 +110,7 @@ function init() {
 	} );
 	highlightMesh.material.color.set( 0xff9800 ).convertSRGBToLinear();
 	highlightMesh.renderOrder = 1;
-	scene.add( highlightMesh );
+	group.add( highlightMesh );
 
 	highlightWireframeMesh = new THREE.Mesh();
 	highlightWireframeMesh.geometry = highlightMesh.geometry;
@@ -110,17 +122,24 @@ function init() {
 	} );
 	highlightWireframeMesh.material.color.copy( highlightMesh.material.color );
 	highlightWireframeMesh.renderOrder = 2;
-	scene.add( highlightWireframeMesh );
-
-	helper = new MeshBVHVisualizer( mesh, 10 );
-	scene.add( helper );
+	group.add( highlightWireframeMesh );
 
 	const gridHelper = new THREE.GridHelper( 10, 10, 0xffffff, 0xffffff );
-	gridHelper.material.opacity = 0.5;
+	gridHelper.material.opacity = 0.2;
 	gridHelper.material.transparent = true;
-	gridHelper.position.y = - 2.5;
-
+	gridHelper.position.y = - 2.75;
 	scene.add( gridHelper );
+
+	const shadowPlane = new THREE.Mesh(
+		new THREE.PlaneBufferGeometry(),
+		new THREE.ShadowMaterial( { color: 0, opacity: 0.2, depthWrite: false } )
+	);
+	shadowPlane.position.y = - 2.74;
+	shadowPlane.rotation.x = - Math.PI / 2;
+	shadowPlane.scale.setScalar( 20 );
+	shadowPlane.renderOrder = 2;
+	shadowPlane.receiveShadow = true;
+	scene.add( shadowPlane );
 
 	// stats setup
 	stats = new Stats();
@@ -144,6 +163,7 @@ function init() {
 
 	const displayFolder = gui.addFolder( 'display' );
 	displayFolder.add( params, 'wireframe' );
+	displayFolder.add( params, 'rotate' );
 	displayFolder.add( params, 'displayHelper' );
 	displayFolder.add( params, 'helperDepth', 1, 30, 1 ).onChange( v => {
 
@@ -187,6 +207,7 @@ function init() {
 
 	renderer.domElement.addEventListener( 'pointermove', e => {
 
+		// If the left mouse button is not pressed
 		if ( ( 1 & e.buttons ) === 0 ) {
 
 			return;
@@ -201,6 +222,7 @@ function init() {
 
 		if ( params.toolMode === 'box' ) {
 
+			// set points for the corner of the box
 			selectionPoints.length = 3 * 5;
 
 			selectionPoints[ 0 ] = startX;
@@ -240,21 +262,25 @@ function init() {
 
 		} else {
 
+			// If the mouse hasn't moved a lot since the last point
 			if (
 				Math.abs( ex - prevX ) >= 3 ||
 				Math.abs( ey - prevY ) >= 3
 			) {
 
+				// Check if the mouse moved in roughly the same direction as the previous point
+				// and replace it if so.
 				const i = ( selectionPoints.length / 3 ) - 1;
 				const i3 = i * 3;
 				let doReplace = false;
 				if ( selectionPoints.length > 3 ) {
 
-					// prev segment
+					// prev segment direction
 					tempVec0.set( selectionPoints[ i3 - 3 ], selectionPoints[ i3 - 3 + 1 ] );
 					tempVec1.set( selectionPoints[ i3 ], selectionPoints[ i3 + 1 ] );
 					tempVec1.sub( tempVec0 ).normalize();
 
+					// this segment direction
 					tempVec0.set( selectionPoints[ i3 ], selectionPoints[ i3 + 1 ] );
 					tempVec2.set( nx, ny );
 					tempVec2.sub( tempVec0 ).normalize();
@@ -342,7 +368,7 @@ function getConvexHull( points ) {
 
 	}
 
-
+	// find the lowest point in 2d
 	let lowestY = Infinity;
 	let lowestIndex = - 1;
 	for ( let i = 0, l = points.length; i < l; i ++ ) {
@@ -357,13 +383,15 @@ function getConvexHull( points ) {
 
 	}
 
+	// sort the points
 	const p0 = points[ lowestIndex ];
 	points[ lowestIndex ] = points[ 0 ];
 	points[ 0 ] = p0;
 
 	points = points.sort( compare );
 
-	let m = 1; // Initialize size of modified array
+	// filter the points
+	let m = 1;
 	const n = points.length;
 	for ( let i = 1; i < n; i ++ ) {
 
@@ -378,10 +406,11 @@ function getConvexHull( points ) {
 
 	}
 
+	// early out if we don't have enough points for a hull
 	if ( m < 3 ) return null;
 
+	// generate the hull
 	const hull = [ points[ 0 ], points[ 1 ], points[ 2 ] ];
-
 	for ( let i = 3; i < m; i ++ ) {
 
 		while ( orientation( hull[ hull.length - 2 ], hull[ hull.length - 1 ], points[ i ] ) !== 2 ) {
@@ -397,7 +426,6 @@ function getConvexHull( points ) {
 	return hull;
 
 }
-
 
 function pointRayCrossesLine( point, line, prevDirection, thisDirection ) {
 
@@ -472,9 +500,9 @@ function pointRayCrossesSegments( point, segments ) {
 
 }
 
+// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
 function lineCrossesLine( l1, l2 ) {
 
-	// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
 	function ccw( A, B, C ) {
 
 		return ( C.y - A.y ) * ( B.x - A.x ) > ( B.y - A.y ) * ( C.x - A.x );
@@ -499,6 +527,7 @@ function render() {
 	mesh.material.wireframe = params.wireframe;
 	helper.visible = params.displayHelper;
 
+	// Update the selection lasso lines
 	if ( selectionShapeNeedsUpdate ) {
 
 		if ( params.toolMode === 'lasso' ) {
@@ -538,7 +567,8 @@ function render() {
 			.premultiply( camera.matrixWorldInverse )
 			.premultiply( camera.projectionMatrix );
 
-		const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector4() );
+		// create scratch points and lines to use for selection
+		const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 		const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
 		const segmentLines = new Array( selectionPoints.length ).fill().map( () => new THREE.Line3() );
 		for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {
@@ -553,31 +583,27 @@ function render() {
 
 		}
 
-		const squarePoints = new Array( 4 ).fill().map( () => new THREE.Vector3() );
-		const squareLines = new Array( 4 ).fill().map( () => new THREE.Line3() );
-
-		const minVec = new THREE.Vector3();
-		const maxVec = new THREE.Vector3();
-
 		const startTime = window.performance.now();
 		const indices = [];
 		mesh.geometry.boundsTree.shapecast(
 			mesh,
 			box => {
 
+				// check if bounds intersect or contain the lasso region
 				if ( ! params.useBoundsTree ) {
 
 					return INTERSECTED;
 
 				}
 
+				// Get the bounding box points
 				const { min, max } = box;
 				let index = 0;
-				for ( let x = 0; x <= 1; x ++ ) { // 4 stride
+				for ( let x = 0; x <= 1; x ++ ) {
 
-					for ( let y = 0; y <= 1; y ++ ) { // 2 stride
+					for ( let y = 0; y <= 1; y ++ ) {
 
-						for ( let z = 0; z <= 1; z ++ ) { // 1 stride
+						for ( let z = 0; z <= 1; z ++ ) {
 
 							const v = boxPoints[ index ];
 							v.x = x === 0 ? min.x : max.x;
@@ -585,7 +611,6 @@ function render() {
 							v.z = z === 0 ? min.z : max.z;
 							v.w = 1;
 							v.applyMatrix4( tempMatrix );
-							v.multiplyScalar( 1 / v.w );
 							index ++;
 
 						}
@@ -594,17 +619,17 @@ function render() {
 
 				}
 
+				// Get the screen space hull lines
 				const hull = getConvexHull( boxPoints );
 				const lines = hull.map( ( p, i ) => {
 
 					const nextP = hull[ ( i + 1 ) % hull.length ];
-					const line = new THREE.Line3();
+					const line = boxLines[ i ];
 					line.start.copy( p );
 					line.end.copy( nextP );
 					return line;
 
 				} );
-
 
 				// If a lasso point is inside the hull then it's intersected and cannot be contained
 				if ( pointRayCrossesSegments( segmentLines[ 0 ].start, lines ) % 2 === 1 ) {
@@ -666,25 +691,31 @@ function render() {
 
 				if ( params.selectionMode === 'centroid' ) {
 
+					// get the center of the triangle
 					const centroid = tri.a.add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
 					centroid.applyMatrix4( tempMatrix );
 
+					// counting the crossings
 					const crossings = pointRayCrossesSegments( centroid, segmentLines );
 					if ( crossings % 2 === 1 ) {
 
 						indices.push( a, b, c );
+						return params.selectModel;
 
 					}
 
-					return params.selectModel;
-
 				} else if ( params.selectionMode === 'intersection' ) {
 
-					const vecs = [ tri.a, tri.b, tri.c ];
+					// get the projected vertices
+					const vertices = [
+						tri.a,
+						tri.b,
+						tri.c,
+					];
 
 					for ( let j = 0; j < 3; j ++ ) {
 
-						const v = vecs[ j ];
+						const v = vertices[ j ];
 						v.applyMatrix4( tempMatrix );
 
 						const crossings = pointRayCrossesSegments( v, segmentLines );
@@ -697,7 +728,12 @@ function render() {
 
 					}
 
-					const lines = new Array( 3 ).fill().map( () => new THREE.Line3() );
+					// get the lines for the triangle
+					const lines = [
+						boxLines[ 0 ],
+						boxLines[ 1 ],
+						boxLines[ 2 ],
+					];
 
 					lines[ 0 ].start.copy( tri.a );
 					lines[ 0 ].end.copy( tri.b );
@@ -726,6 +762,8 @@ function render() {
 
 				}
 
+				return false;
+
 			}
 		);
 
@@ -736,6 +774,7 @@ function render() {
 		const newIndexAttr = highlightMesh.geometry.index;
 		if ( indices.length && params.selectModel ) {
 
+			// if we found indices and we want to select the whole model
 			for ( let i = 0, l = indexAttr.count; i < l; i ++ ) {
 
 				const i2 = indexAttr.getX( i );
@@ -748,6 +787,7 @@ function render() {
 
 		} else {
 
+			// update the highlight mesh
 			for ( let i = 0, l = indices.length; i < l; i ++ ) {
 
 				const i2 = indexAttr.getX( indices[ i ] );
@@ -766,5 +806,16 @@ function render() {
 	selectionShape.scale.set( - yScale * camera.aspect, - yScale, 1 );
 
 	renderer.render( scene, camera );
+
+	if ( params.rotate ) {
+
+		group.rotation.y += 0.01;
+		if ( params.liveUpdate && selectionPoints.length > 0 ) {
+
+			selectionNeedsUpdate = true;
+
+		}
+
+	}
 
 }
