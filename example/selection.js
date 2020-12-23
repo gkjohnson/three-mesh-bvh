@@ -18,6 +18,7 @@ const params = {
 	toolMode: 'lasso',
 	selectionMode: 'intersection',
 	liveUpdate: false,
+	selectModel: false,
 	wireframe: false,
 	useBoundsTree: true,
 
@@ -133,19 +134,24 @@ function init() {
 	controls.enablePan = false;
 
 	gui = new GUI();
-	gui.add( params, 'toolMode', [ 'lasso', 'box' ] );
-	gui.add( params, 'selectionMode', [ 'centroid', 'intersection' ] );
-	gui.add( params, 'liveUpdate' );
-	gui.add( params, 'useBoundsTree' );
+	const selectionFolder = gui.addFolder( 'selection' );
+	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] );
+	selectionFolder.add( params, 'selectionMode', [ 'centroid', 'intersection' ] );
+	selectionFolder.add( params, 'selectModel' );
+	selectionFolder.add( params, 'liveUpdate' );
+	selectionFolder.add( params, 'useBoundsTree' );
+	selectionFolder.open();
 
-	gui.add( params, 'wireframe' );
-	gui.add( params, 'displayHelper' );
-	gui.add( params, 'helperDepth', 1, 30, 1 ).onChange( v => {
+	const displayFolder = gui.addFolder( 'display' );
+	displayFolder.add( params, 'wireframe' );
+	displayFolder.add( params, 'displayHelper' );
+	displayFolder.add( params, 'helperDepth', 1, 30, 1 ).onChange( v => {
 
 		helper.depth = v;
 		helper.update();
 
 	} );
+	displayFolder.open();
 	gui.open();
 
 	let startX = - Infinity;
@@ -646,7 +652,7 @@ function render() {
 				if ( contained ) {
 
 					indices.push( a, b, c );
-					return false;
+					return params.selectModel;
 
 				}
 
@@ -662,7 +668,7 @@ function render() {
 
 					}
 
-					return false;
+					return params.selectModel;
 
 				} else if ( params.selectionMode === 'intersection' ) {
 
@@ -677,7 +683,7 @@ function render() {
 						if ( crossings % 2 === 1 ) {
 
 							indices.push( a, b, c );
-							return false;
+							return params.selectModel;
 
 						}
 
@@ -702,7 +708,7 @@ function render() {
 							if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
 
 								indices.push( a, b, c );
-								return false;
+								return params.selectModel;
 
 							}
 
@@ -720,15 +726,31 @@ function render() {
 
 		const indexAttr = mesh.geometry.index;
 		const newIndexAttr = highlightMesh.geometry.index;
-		for ( let i = 0, l = indices.length; i < l; i ++ ) {
+		if ( indices.length && params.selectModel ) {
 
-			const i2 = indexAttr.getX( indices[ i ] );
-			newIndexAttr.setX( i, i2 );
+			for ( let i = 0, l = indexAttr.count; i < l; i ++ ) {
+
+				const i2 = indexAttr.getX( i );
+				newIndexAttr.setX( i, i2 );
+
+			}
+
+			highlightMesh.geometry.drawRange.count = Infinity;
+			newIndexAttr.needsUpdate = true;
+
+		} else {
+
+			for ( let i = 0, l = indices.length; i < l; i ++ ) {
+
+				const i2 = indexAttr.getX( indices[ i ] );
+				newIndexAttr.setX( i, i2 );
+
+			}
+
+			highlightMesh.geometry.drawRange.count = indices.length;
+			newIndexAttr.needsUpdate = true;
 
 		}
-
-		highlightMesh.geometry.drawRange.count = indices.length;
-		newIndexAttr.needsUpdate = true;
 
 	}
 
