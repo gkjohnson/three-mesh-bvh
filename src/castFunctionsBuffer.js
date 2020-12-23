@@ -7,7 +7,6 @@
 
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
-
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
@@ -273,7 +272,9 @@ export const shapecastBuffer = ( function () {
 
 			} else {
 
-				c2StopTraversal = shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
+				c2StopTraversal =
+					c2Intersection &&
+					shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc );
 
 			}
 
