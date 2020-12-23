@@ -571,32 +571,22 @@ function render() {
 
 				}
 
-				// TODO: get the min and max bounds
-				minVec.setScalar( Infinity );
-				maxVec.setScalar( - Infinity );
-
 				const { min, max } = box;
-				let i = 0;
+				let index = 0;
 				for ( let x = 0; x <= 1; x ++ ) { // 4 stride
 
 					for ( let y = 0; y <= 1; y ++ ) { // 2 stride
 
 						for ( let z = 0; z <= 1; z ++ ) { // 1 stride
 
-							const v = boxPoints[ i ];
+							const v = boxPoints[ index ];
 							v.x = x === 0 ? min.x : max.x;
 							v.y = y === 0 ? min.y : max.y;
 							v.z = z === 0 ? min.z : max.z;
 							v.w = 1;
 							v.applyMatrix4( tempMatrix );
 							v.multiplyScalar( 1 / v.w );
-							i ++;
-
-							minVec.x = minVec.x > v.x ? v.x : minVec.x;
-							maxVec.x = maxVec.x < v.x ? v.x : maxVec.x;
-
-							minVec.y = minVec.y > v.y ? v.y : minVec.y;
-							maxVec.y = maxVec.y < v.y ? v.y : maxVec.y;
+							index ++;
 
 						}
 
@@ -604,24 +594,40 @@ function render() {
 
 				}
 
-				squarePoints[ 0 ].set( minVec.x, minVec.y );
-				squarePoints[ 1 ].set( maxVec.x, minVec.y );
-				squarePoints[ 2 ].set( maxVec.x, maxVec.y );
-				squarePoints[ 3 ].set( minVec.x, maxVec.y );
+				const hull = getConvexHull( boxPoints );
+				const lines = hull.map( ( p, i ) => {
 
-				// check if the screen space bb is in the lasso
+					const nextP = hull[ ( i + 1 ) % hull.length ];
+					const line = new THREE.Line3();
+					line.start.copy( p );
+					line.end.copy( nextP );
+					return line;
+
+				} );
+
+
+				// If a lasso point is inside the hull then it's intersected and cannot be contained
+				if ( pointRayCrossesSegments( segmentLines[ 0 ].start, lines ) % 2 === 1 ) {
+
+					return INTERSECTED;
+
+				}
+
+				// check if the screen space hull is in the lasso
 				let crossings = 0;
-				for ( let p = 0; p < 4; p ++ ) {
+				for ( let i = 0, l = hull.length; i < l; i ++ ) {
 
-					const v = squarePoints[ p ];
+					const v = hull[ i ];
 					const pCrossings = pointRayCrossesSegments( v, segmentLines );
 
-					if ( p === 0 ) {
+					if ( i === 0 ) {
 
 						crossings = pCrossings;
 
 					}
 
+					// if two points on the hull have different amounts of crossings then
+					// it can only be intersected
 					if ( crossings !== pCrossings ) {
 
 						return INTERSECTED;
@@ -630,33 +636,10 @@ function render() {
 
 				}
 
-				const sPoint = segmentLines[ 0 ].start;
-				if (
-					sPoint.x < maxVec.x && sPoint.x > minVec.x &&
-					sPoint.y < maxVec.y && sPoint.y > minVec.y
-				) {
+				// check if there are any intersections
+				for ( let i = 0, l = lines.length; i < l; i ++ ) {
 
-					return INTERSECTED;
-
-				}
-
-				// TODO: it would be best to use a convex hull out of the points here instead of using a square
-				// because if we use a square we can never return CONTAINED.
-				squareLines[ 0 ].start.copy( squarePoints[ 0 ] );
-				squareLines[ 0 ].end.copy( squarePoints[ 1 ] );
-
-				squareLines[ 1 ].start.copy( squarePoints[ 1 ] );
-				squareLines[ 1 ].end.copy( squarePoints[ 2 ] );
-
-				squareLines[ 2 ].start.copy( squarePoints[ 2 ] );
-				squareLines[ 2 ].end.copy( squarePoints[ 3 ] );
-
-				squareLines[ 3 ].start.copy( squarePoints[ 3 ] );
-				squareLines[ 3 ].end.copy( squarePoints[ 0 ] );
-
-				for ( let li = 0, l = squareLines.length; li < l; li ++ ) {
-
-					const boxLine = squareLines[ li ];
+					const boxLine = lines[ i ];
 					for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
 
 						if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
@@ -669,77 +652,7 @@ function render() {
 
 				}
 
-				return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
-
-				// X lines
-				// -X>+X -Y -Z
-				boxLines[ 0 ].start.copy( boxPoints[ 0 ] );
-				boxLines[ 0 ].end.copy( boxPoints[ 4 ] );
-
-				// -X>+X -Y +Z
-				boxLines[ 1 ].start.copy( boxPoints[ 1 ] );
-				boxLines[ 1 ].end.copy( boxPoints[ 5 ] );
-
-				// -X>+X +Y -Z
-				boxLines[ 2 ].start.copy( boxPoints[ 2 ] );
-				boxLines[ 2 ].end.copy( boxPoints[ 6 ] );
-
-				// -X>+X +Y +Z
-				boxLines[ 3 ].start.copy( boxPoints[ 3 ] );
-				boxLines[ 3 ].end.copy( boxPoints[ 7 ] );
-
-
-				// Y lines
-				// -X -Y>+Y -Z
-				boxLines[ 4 ].start.copy( boxPoints[ 0 ] );
-				boxLines[ 4 ].end.copy( boxPoints[ 2 ] );
-
-				// +X -Y>+Y -Z
-				boxLines[ 5 ].start.copy( boxPoints[ 4 ] );
-				boxLines[ 5 ].end.copy( boxPoints[ 6 ] );
-
-				// -X -Y>+Y +Z
-				boxLines[ 6 ].start.copy( boxPoints[ 1 ] );
-				boxLines[ 6 ].end.copy( boxPoints[ 3 ] );
-
-				// +X -Y>+Y +Z
-				boxLines[ 7 ].start.copy( boxPoints[ 5 ] );
-				boxLines[ 7 ].end.copy( boxPoints[ 7 ] );
-
-
-				// Z lines
-				// -X -Y -Z>+Z
-				boxLines[ 8 ].start.copy( boxPoints[ 0 ] );
-				boxLines[ 8 ].end.copy( boxPoints[ 1 ] );
-
-				// +X -Y -Z>+Z
-				boxLines[ 9 ].start.copy( boxPoints[ 4 ] );
-				boxLines[ 9 ].end.copy( boxPoints[ 5 ] );
-
-				// -X +Y -Z>+Z
-				boxLines[ 10 ].start.copy( boxPoints[ 2 ] );
-				boxLines[ 10 ].end.copy( boxPoints[ 3 ] );
-
-				// +X +Y -Z>+Z
-				boxLines[ 11 ].start.copy( boxPoints[ 5 ] );
-				boxLines[ 11 ].end.copy( boxPoints[ 6 ] );
-
-				for ( let li = 0, l = boxLines.length; li < l; li ++ ) {
-
-					const boxLine = boxLines[ li ];
-					for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
-
-						if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
-
-							return INTERSECTED;
-
-						}
-
-					}
-
-				}
-
-				return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
+				return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
 
 			},
 			( tri, a, b, c, contained ) => {
