@@ -28,6 +28,7 @@
 		#info {
 			top: 0;
 			width: 100%;
+			pointer-events: none;
 		}
 
 		#output {
@@ -39,7 +40,11 @@
     </style>
 </head>
 <body>
-	<div id="info">Right click rotate, left click drag selection</div>
+	<div id="info">
+		Right click rotate, left click drag selection
+		<br/>
+		NOTE: Triangles and bounds clipped by the camera not supported
+	</div>
 	<div id="output"></div>
     <script src="./selection.js"></script>
 </body>

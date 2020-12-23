@@ -27,7 +27,6 @@ const params = {
 
 let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
 let highlightMesh, highlightWireframeMesh, outputContainer, group;
-const tempMatrix = new THREE.Matrix4();
 const selectionPoints = [];
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
@@ -124,6 +123,7 @@ function init() {
 	highlightWireframeMesh.renderOrder = 2;
 	group.add( highlightWireframeMesh );
 
+	// add floor
 	const gridHelper = new THREE.GridHelper( 10, 10, 0xffffff, 0xffffff );
 	gridHelper.material.opacity = 0.2;
 	gridHelper.material.transparent = true;
@@ -145,13 +145,16 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	// controls
 	controls = new OrbitControls( camera, renderer.domElement );
+	controls.minDistance = 3;
 	controls.touches.ONE = THREE.TOUCH.PAN;
 	controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
 	controls.touches.TWO = THREE.TOUCH.ROTATE;
 	controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
 	controls.enablePan = false;
 
+	// gui
 	gui = new GUI();
 	const selectionFolder = gui.addFolder( 'selection' );
 	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] );
@@ -174,6 +177,7 @@ function init() {
 	displayFolder.open();
 	gui.open();
 
+	// handle building lasso shape
 	let startX = - Infinity;
 	let startY = - Infinity;
 
@@ -330,6 +334,323 @@ function init() {
 
 }
 
+function render() {
+
+	stats.update();
+	requestAnimationFrame( render );
+
+	mesh.material.wireframe = params.wireframe;
+	helper.visible = params.displayHelper;
+
+	// Update the selection lasso lines
+	if ( selectionShapeNeedsUpdate ) {
+
+		if ( params.toolMode === 'lasso' ) {
+
+			const ogLength = selectionPoints.length;
+			selectionPoints.push(
+				selectionPoints[ 0 ],
+				selectionPoints[ 1 ],
+				selectionPoints[ 2 ]
+			);
+
+			selectionShape.geometry.setAttribute(
+				'position',
+				new THREE.Float32BufferAttribute( selectionPoints, 3, false )
+			);
+
+			selectionPoints.length = ogLength;
+
+		} else {
+
+			selectionShape.geometry.setAttribute(
+				'position',
+				new THREE.Float32BufferAttribute( selectionPoints, 3, false )
+			);
+
+		}
+		selectionShape.frustumCulled = false;
+		selectionShapeNeedsUpdate = false;
+
+	}
+
+	if ( selectionNeedsUpdate ) {
+
+		selectionNeedsUpdate = false;
+		updateSelection();
+
+	}
+
+	const yScale = Math.tan( THREE.MathUtils.DEG2RAD * camera.fov / 2 ) * selectionShape.position.z;
+	selectionShape.scale.set( - yScale * camera.aspect, - yScale, 1 );
+
+	renderer.render( scene, camera );
+
+	if ( params.rotate ) {
+
+		group.rotation.y += 0.01;
+		if ( params.liveUpdate && selectionPoints.length > 0 ) {
+
+			selectionNeedsUpdate = true;
+
+		}
+
+	}
+
+}
+
+const toScreenSpaceMatrix = new THREE.Matrix4();
+const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
+const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
+const segmentLines = [];
+function updateSelection() {
+
+	toScreenSpaceMatrix
+		.copy( mesh.matrixWorld )
+		.premultiply( camera.matrixWorldInverse )
+		.premultiply( camera.projectionMatrix );
+
+	// create scratch points and lines to use for selection
+	while ( segmentLines.length < selectionPoints.length ) {
+
+		segmentLines.push( new THREE.Line3() );
+
+	}
+	segmentLines.length = selectionPoints.length;
+
+	for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {
+
+		const line = segmentLines[ s ];
+		const sNext = ( s + 3 ) % l;
+		line.start.x = selectionPoints[ s ];
+		line.start.y = selectionPoints[ s + 1 ];
+
+		line.end.x = selectionPoints[ sNext ];
+		line.end.y = selectionPoints[ sNext + 1 ];
+
+	}
+
+	const startTime = window.performance.now();
+	const indices = [];
+	mesh.geometry.boundsTree.shapecast(
+		mesh,
+		box => {
+
+			// check if bounds intersect or contain the lasso region
+			if ( ! params.useBoundsTree ) {
+
+				return INTERSECTED;
+
+			}
+
+			// Get the bounding box points
+			const { min, max } = box;
+			let index = 0;
+			for ( let x = 0; x <= 1; x ++ ) {
+
+				for ( let y = 0; y <= 1; y ++ ) {
+
+					for ( let z = 0; z <= 1; z ++ ) {
+
+						const v = boxPoints[ index ];
+						v.x = x === 0 ? min.x : max.x;
+						v.y = y === 0 ? min.y : max.y;
+						v.z = z === 0 ? min.z : max.z;
+						v.w = 1;
+						v.applyMatrix4( toScreenSpaceMatrix );
+						index ++;
+
+					}
+
+				}
+
+			}
+
+			// Get the screen space hull lines
+			const hull = getConvexHull( boxPoints );
+			const lines = hull.map( ( p, i ) => {
+
+				const nextP = hull[ ( i + 1 ) % hull.length ];
+				const line = boxLines[ i ];
+				line.start.copy( p );
+				line.end.copy( nextP );
+				return line;
+
+			} );
+
+			// If a lasso point is inside the hull then it's intersected and cannot be contained
+			if ( pointRayCrossesSegments( segmentLines[ 0 ].start, lines ) % 2 === 1 ) {
+
+				return INTERSECTED;
+
+			}
+
+			// check if the screen space hull is in the lasso
+			let crossings = 0;
+			for ( let i = 0, l = hull.length; i < l; i ++ ) {
+
+				const v = hull[ i ];
+				const pCrossings = pointRayCrossesSegments( v, segmentLines );
+
+				if ( i === 0 ) {
+
+					crossings = pCrossings;
+
+				}
+
+				// if two points on the hull have different amounts of crossings then
+				// it can only be intersected
+				if ( crossings !== pCrossings ) {
+
+					return INTERSECTED;
+
+				}
+
+			}
+
+			// check if there are any intersections
+			for ( let i = 0, l = lines.length; i < l; i ++ ) {
+
+				const boxLine = lines[ i ];
+				for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
+
+					if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
+
+						return INTERSECTED;
+
+					}
+
+				}
+
+			}
+
+			return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
+
+		},
+		( tri, a, b, c, contained ) => {
+
+			// if the parent bounds were marked as contained
+			if ( contained ) {
+
+				indices.push( a, b, c );
+				return params.selectModel;
+
+			}
+
+			if ( params.selectionMode === 'centroid' ) {
+
+				// get the center of the triangle
+				const centroid = tri.a.add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
+				centroid.applyMatrix4( toScreenSpaceMatrix );
+
+				// counting the crossings
+				const crossings = pointRayCrossesSegments( centroid, segmentLines );
+				if ( crossings % 2 === 1 ) {
+
+					indices.push( a, b, c );
+					return params.selectModel;
+
+				}
+
+			} else if ( params.selectionMode === 'intersection' ) {
+
+				// get the projected vertices
+				const vertices = [
+					tri.a,
+					tri.b,
+					tri.c,
+				];
+
+				for ( let j = 0; j < 3; j ++ ) {
+
+					const v = vertices[ j ];
+					v.applyMatrix4( toScreenSpaceMatrix );
+
+					const crossings = pointRayCrossesSegments( v, segmentLines );
+					if ( crossings % 2 === 1 ) {
+
+						indices.push( a, b, c );
+						return params.selectModel;
+
+					}
+
+				}
+
+				// get the lines for the triangle
+				const lines = [
+					boxLines[ 0 ],
+					boxLines[ 1 ],
+					boxLines[ 2 ],
+				];
+
+				lines[ 0 ].start.copy( tri.a );
+				lines[ 0 ].end.copy( tri.b );
+
+				lines[ 1 ].start.copy( tri.b );
+				lines[ 1 ].end.copy( tri.c );
+
+				lines[ 2 ].start.copy( tri.c );
+				lines[ 2 ].end.copy( tri.a );
+
+				for ( let i = 0; i < 3; i ++ ) {
+
+					const l = lines[ i ];
+					for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
+
+						if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
+
+							indices.push( a, b, c );
+							return params.selectModel;
+
+						}
+
+					}
+
+				}
+
+			}
+
+			return false;
+
+		}
+	);
+
+	const traverseTime = window.performance.now() - startTime;
+	outputContainer.innerText = `${ traverseTime.toFixed( 3 ) }ms`;
+
+	const indexAttr = mesh.geometry.index;
+	const newIndexAttr = highlightMesh.geometry.index;
+	if ( indices.length && params.selectModel ) {
+
+		// if we found indices and we want to select the whole model
+		for ( let i = 0, l = indexAttr.count; i < l; i ++ ) {
+
+			const i2 = indexAttr.getX( i );
+			newIndexAttr.setX( i, i2 );
+
+		}
+
+		highlightMesh.geometry.drawRange.count = Infinity;
+		newIndexAttr.needsUpdate = true;
+
+	} else {
+
+		// update the highlight mesh
+		for ( let i = 0, l = indices.length; i < l; i ++ ) {
+
+			const i2 = indexAttr.getX( indices[ i ] );
+			newIndexAttr.setX( i, i2 );
+
+		}
+
+		highlightMesh.geometry.drawRange.count = indices.length;
+		newIndexAttr.needsUpdate = true;
+
+	}
+
+}
+
+// Math Functions
 // https://www.geeksforgeeks.org/convex-hull-set-2-graham-scan/
 function getConvexHull( points ) {
 
@@ -516,306 +837,5 @@ function lineCrossesLine( l1, l2 ) {
 	const D = l2.end;
 
 	return ccw( A, C, D ) !== ccw( B, C, D ) && ccw( A, B, C ) !== ccw( A, B, D );
-
-}
-
-function render() {
-
-	stats.update();
-	requestAnimationFrame( render );
-
-	mesh.material.wireframe = params.wireframe;
-	helper.visible = params.displayHelper;
-
-	// Update the selection lasso lines
-	if ( selectionShapeNeedsUpdate ) {
-
-		if ( params.toolMode === 'lasso' ) {
-
-			const ogLength = selectionPoints.length;
-			selectionPoints.push(
-				selectionPoints[ 0 ],
-				selectionPoints[ 1 ],
-				selectionPoints[ 2 ]
-			);
-
-			selectionShape.geometry.setAttribute(
-				'position',
-				new THREE.Float32BufferAttribute( selectionPoints, 3, false )
-			);
-
-			selectionPoints.length = ogLength;
-
-		} else {
-
-			selectionShape.geometry.setAttribute(
-				'position',
-				new THREE.Float32BufferAttribute( selectionPoints, 3, false )
-			);
-
-		}
-		selectionShape.frustumCulled = false;
-		selectionShapeNeedsUpdate = false;
-
-	}
-
-	if ( selectionNeedsUpdate ) {
-
-		selectionNeedsUpdate = false;
-		tempMatrix
-			.copy( mesh.matrixWorld )
-			.premultiply( camera.matrixWorldInverse )
-			.premultiply( camera.projectionMatrix );
-
-		// create scratch points and lines to use for selection
-		const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
-		const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
-		const segmentLines = new Array( selectionPoints.length ).fill().map( () => new THREE.Line3() );
-		for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {
-
-			const line = segmentLines[ s ];
-			const sNext = ( s + 3 ) % l;
-			line.start.x = selectionPoints[ s ];
-			line.start.y = selectionPoints[ s + 1 ];
-
-			line.end.x = selectionPoints[ sNext ];
-			line.end.y = selectionPoints[ sNext + 1 ];
-
-		}
-
-		const startTime = window.performance.now();
-		const indices = [];
-		mesh.geometry.boundsTree.shapecast(
-			mesh,
-			box => {
-
-				// check if bounds intersect or contain the lasso region
-				if ( ! params.useBoundsTree ) {
-
-					return INTERSECTED;
-
-				}
-
-				// Get the bounding box points
-				const { min, max } = box;
-				let index = 0;
-				for ( let x = 0; x <= 1; x ++ ) {
-
-					for ( let y = 0; y <= 1; y ++ ) {
-
-						for ( let z = 0; z <= 1; z ++ ) {
-
-							const v = boxPoints[ index ];
-							v.x = x === 0 ? min.x : max.x;
-							v.y = y === 0 ? min.y : max.y;
-							v.z = z === 0 ? min.z : max.z;
-							v.w = 1;
-							v.applyMatrix4( tempMatrix );
-							index ++;
-
-						}
-
-					}
-
-				}
-
-				// Get the screen space hull lines
-				const hull = getConvexHull( boxPoints );
-				const lines = hull.map( ( p, i ) => {
-
-					const nextP = hull[ ( i + 1 ) % hull.length ];
-					const line = boxLines[ i ];
-					line.start.copy( p );
-					line.end.copy( nextP );
-					return line;
-
-				} );
-
-				// If a lasso point is inside the hull then it's intersected and cannot be contained
-				if ( pointRayCrossesSegments( segmentLines[ 0 ].start, lines ) % 2 === 1 ) {
-
-					return INTERSECTED;
-
-				}
-
-				// check if the screen space hull is in the lasso
-				let crossings = 0;
-				for ( let i = 0, l = hull.length; i < l; i ++ ) {
-
-					const v = hull[ i ];
-					const pCrossings = pointRayCrossesSegments( v, segmentLines );
-
-					if ( i === 0 ) {
-
-						crossings = pCrossings;
-
-					}
-
-					// if two points on the hull have different amounts of crossings then
-					// it can only be intersected
-					if ( crossings !== pCrossings ) {
-
-						return INTERSECTED;
-
-					}
-
-				}
-
-				// check if there are any intersections
-				for ( let i = 0, l = lines.length; i < l; i ++ ) {
-
-					const boxLine = lines[ i ];
-					for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
-
-						if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
-
-							return INTERSECTED;
-
-						}
-
-					}
-
-				}
-
-				return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
-
-			},
-			( tri, a, b, c, contained ) => {
-
-				if ( contained ) {
-
-					indices.push( a, b, c );
-					return params.selectModel;
-
-				}
-
-				if ( params.selectionMode === 'centroid' ) {
-
-					// get the center of the triangle
-					const centroid = tri.a.add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
-					centroid.applyMatrix4( tempMatrix );
-
-					// counting the crossings
-					const crossings = pointRayCrossesSegments( centroid, segmentLines );
-					if ( crossings % 2 === 1 ) {
-
-						indices.push( a, b, c );
-						return params.selectModel;
-
-					}
-
-				} else if ( params.selectionMode === 'intersection' ) {
-
-					// get the projected vertices
-					const vertices = [
-						tri.a,
-						tri.b,
-						tri.c,
-					];
-
-					for ( let j = 0; j < 3; j ++ ) {
-
-						const v = vertices[ j ];
-						v.applyMatrix4( tempMatrix );
-
-						const crossings = pointRayCrossesSegments( v, segmentLines );
-						if ( crossings % 2 === 1 ) {
-
-							indices.push( a, b, c );
-							return params.selectModel;
-
-						}
-
-					}
-
-					// get the lines for the triangle
-					const lines = [
-						boxLines[ 0 ],
-						boxLines[ 1 ],
-						boxLines[ 2 ],
-					];
-
-					lines[ 0 ].start.copy( tri.a );
-					lines[ 0 ].end.copy( tri.b );
-
-					lines[ 1 ].start.copy( tri.b );
-					lines[ 1 ].end.copy( tri.c );
-
-					lines[ 2 ].start.copy( tri.c );
-					lines[ 2 ].end.copy( tri.a );
-
-					for ( let i = 0; i < 3; i ++ ) {
-
-						const l = lines[ i ];
-						for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
-
-							if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
-
-								indices.push( a, b, c );
-								return params.selectModel;
-
-							}
-
-						}
-
-					}
-
-				}
-
-				return false;
-
-			}
-		);
-
-		const traverseTime = window.performance.now() - startTime;
-		outputContainer.innerText = `${ traverseTime.toFixed( 3 ) }ms`;
-
-		const indexAttr = mesh.geometry.index;
-		const newIndexAttr = highlightMesh.geometry.index;
-		if ( indices.length && params.selectModel ) {
-
-			// if we found indices and we want to select the whole model
-			for ( let i = 0, l = indexAttr.count; i < l; i ++ ) {
-
-				const i2 = indexAttr.getX( i );
-				newIndexAttr.setX( i, i2 );
-
-			}
-
-			highlightMesh.geometry.drawRange.count = Infinity;
-			newIndexAttr.needsUpdate = true;
-
-		} else {
-
-			// update the highlight mesh
-			for ( let i = 0, l = indices.length; i < l; i ++ ) {
-
-				const i2 = indexAttr.getX( indices[ i ] );
-				newIndexAttr.setX( i, i2 );
-
-			}
-
-			highlightMesh.geometry.drawRange.count = indices.length;
-			newIndexAttr.needsUpdate = true;
-
-		}
-
-	}
-
-	const yScale = Math.tan( THREE.MathUtils.DEG2RAD * camera.fov / 2 ) * selectionShape.position.z;
-	selectionShape.scale.set( - yScale * camera.aspect, - yScale, 1 );
-
-	renderer.render( scene, camera );
-
-	if ( params.rotate ) {
-
-		group.rotation.y += 0.01;
-		if ( params.liveUpdate && selectionPoints.length > 0 ) {
-
-			selectionNeedsUpdate = true;
-
-		}
-
-	}
 
 }
