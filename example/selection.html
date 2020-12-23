@@ -17,19 +17,30 @@
             height: 100%;
         }
 
-		#info {
+		#info, #output {
 			position: absolute;
-			top: 0;
-			width: 100%;
 			color: white;
 			font-family: monospace;
 			text-align: center;
 			padding: 5px 0;
 		}
+
+		#info {
+			top: 0;
+			width: 100%;
+		}
+
+		#output {
+			padding: 5px;
+			bottom: 0;
+			left: 0;
+			opacity: 0.5;
+		}
     </style>
 </head>
 <body>
 	<div id="info">Right click rotate, left click drag selection</div>
+	<div id="output"></div>
     <script src="./selection.js"></script>
 </body>
 </html>

@@ -16,7 +16,7 @@ THREE.Mesh.raycast = acceleratedRaycast;
 const params = {
 
 	toolMode: 'lasso',
-	selectionMode: 'centroid',
+	selectionMode: 'intersection',
 	liveUpdate: false,
 	wireframe: false,
 	useBoundsTree: true,
@@ -27,7 +27,7 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
-let highlightMesh, highlightWireframeMesh;
+let highlightMesh, highlightWireframeMesh, outputContainer;
 const tempMatrix = new THREE.Matrix4();
 const selectionPoints = [];
 let selectionShapeNeedsUpdate = false;
@@ -38,7 +38,9 @@ render();
 
 function init() {
 
-	const bgColor = 0xffca28;
+	outputContainer = document.getElementById( 'output' );
+
+	const bgColor = new THREE.Color( 0x263238 );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -50,7 +52,6 @@ function init() {
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0xffca28, 20, 60 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1, 1 );
@@ -66,7 +67,7 @@ function init() {
 
 	// selection shape
 	selectionShape = new THREE.Line();
-	selectionShape.material.color.set( 0x333333 );
+	selectionShape.material.color.set( 0xff9800 ).convertSRGBToLinear();
 	selectionShape.renderOrder = 1;
 	selectionShape.position.z = - .2;
 	selectionShape.depthTest = false;
@@ -74,7 +75,7 @@ function init() {
 	camera.add( selectionShape );
 
 	mesh = new THREE.Mesh(
-		new THREE.SphereBufferGeometry( 2.5, 50, 50 ).toNonIndexed(),
+		new THREE.TorusKnotBufferGeometry( 1.5, 0.5, 500, 60 ).toNonIndexed(),
 		new THREE.MeshStandardMaterial( {
 			polygonOffset: true,
 			polygonOffsetFactor: 1,
@@ -90,30 +91,35 @@ function init() {
 	highlightMesh.geometry = mesh.geometry.clone();
 	highlightMesh.geometry.drawRange.count = 0;
 	highlightMesh.material = new THREE.MeshBasicMaterial( {
-		color: 0xff0000,
 		opacity: 0.05,
 		transparent: true,
 		depthWrite: false,
 	} );
+	highlightMesh.material.color.set( 0xff9800 ).convertSRGBToLinear();
 	highlightMesh.renderOrder = 1;
 	scene.add( highlightMesh );
 
 	highlightWireframeMesh = new THREE.Mesh();
 	highlightWireframeMesh.geometry = highlightMesh.geometry;
 	highlightWireframeMesh.material = new THREE.MeshBasicMaterial( {
-		color: 0xff0000,
 		opacity: 0.25,
 		transparent: true,
 		wireframe: true,
 		depthWrite: false,
 	} );
+	highlightWireframeMesh.material.color.copy( highlightMesh.material.color );
 	highlightWireframeMesh.renderOrder = 2;
 	scene.add( highlightWireframeMesh );
 
 	helper = new MeshBVHVisualizer( mesh, 10 );
 	scene.add( helper );
 
-	scene.add( new THREE.GridHelper( 10, 10, 0xffffff, 0xffffff ) );
+	const gridHelper = new THREE.GridHelper( 10, 10, 0xffffff, 0xffffff );
+	gridHelper.material.opacity = 0.5;
+	gridHelper.material.transparent = true;
+	gridHelper.position.y = - 2.5;
+
+	scene.add( gridHelper );
 
 	// stats setup
 	stats = new Stats();
@@ -292,7 +298,7 @@ function init() {
 
 }
 
-function pointRayCrossesLine( point, line ) {
+function pointRayCrossesLine( point, line, prevDirection, thisDirection ) {
 
 	const { start, end } = line;
 	const px = point.x;
@@ -309,8 +315,19 @@ function pointRayCrossesLine( point, line ) {
 	const sx = start.x;
 	const ex = end.x;
 	if ( px > sx && px > ex ) return false; // right
-	if ( px < sx && px < ex ) return true; // left
+	if ( px < sx && px < ex ) { // left
 
+		if ( py === sy && prevDirection !== thisDirection ) {
+
+			return false;
+
+		}
+
+		return true;
+
+	}
+
+	// check the side
 	const dx = ex - sx;
 	const dy = ey - sy;
 	const perpx = dy;
@@ -334,14 +351,19 @@ function pointRayCrossesLine( point, line ) {
 function pointRayCrossesSegments( point, segments ) {
 
 	let crossings = 0;
+	const firstSeg = segments[ segments.length - 1 ];
+	let prevDirection = firstSeg.start.y > firstSeg.end.y;
 	for ( let s = 0, l = segments.length; s < l; s ++ ) {
 
 		const line = segments[ s ];
-		if ( pointRayCrossesLine( point, line ) ) {
+		const thisDirection = line.start.y > line.end.y;
+		if ( pointRayCrossesLine( point, line, prevDirection, thisDirection ) ) {
 
 			crossings ++;
 
 		}
+
+		prevDirection = thisDirection;
 
 	}
 
@@ -409,17 +431,6 @@ function render() {
 
 	if ( selectionNeedsUpdate ) {
 
-		// TODO
-		// - not properly accounting for double counting the end point
-		// - line intersections may not be right
-		// - change background color
-		// - get interesting model
-		// - write custom shader for 'selection' color / separate mesh with a newly created index buffer (render tri outlines too)
-		// - render centroids as points if enabled
-		// - make a folder section for bounds tree
-		// - handle case where the bounds or triangles are clipped by the camera
-		// - might be best to treat the lasso as a box or the bounds as screen space boxes. Need to account
-		// for the case where the lasso is entirely within the box.
 		selectionNeedsUpdate = false;
 		tempMatrix
 			.copy( mesh.matrixWorld )
@@ -459,6 +470,7 @@ function render() {
 
 				}
 
+				// TODO: get the min and max bounds
 				minVec.setScalar( Infinity );
 				maxVec.setScalar( - Infinity );
 
@@ -517,12 +529,6 @@ function render() {
 
 				}
 
-				if ( crossings % 2 === 1 ) {
-
-					return CONTAINED;
-
-				}
-
 				const sPoint = segmentLines[ 0 ].start;
 				if (
 					sPoint.x < maxVec.x && sPoint.x > minVec.x &&
@@ -533,7 +539,8 @@ function render() {
 
 				}
 
-				// TODO: it would be best to use a convex hull here.
+				// TODO: it would be best to use a convex hull out of the points here instead of using a square
+				// because if we use a square we can never return CONTAINED.
 				squareLines[ 0 ].start.copy( squarePoints[ 0 ] );
 				squareLines[ 0 ].end.copy( squarePoints[ 1 ] );
 
@@ -657,60 +664,47 @@ function render() {
 
 					return false;
 
-				}
+				} else if ( params.selectionMode === 'intersection' ) {
 
+					const vecs = [ tri.a, tri.b, tri.c ];
 
-				const vecs = [ tri.a, tri.b, tri.c ];
+					for ( let j = 0; j < 3; j ++ ) {
 
-				let crossings = 0;
-				for ( let j = 0; j < 3; j ++ ) {
+						const v = vecs[ j ];
+						v.applyMatrix4( tempMatrix );
 
-					const v = vecs[ j ];
-					v.applyMatrix4( tempMatrix );
-
-					const vCrossings = pointRayCrossesSegments( v, segmentLines );
-					if ( j === 0 ) {
-
-						crossings = vCrossings;
-
-					}
-
-					if ( crossings !== vCrossings ) {
-
-						indices.push( a, b, c );
-						return false;
-
-					}
-
-				}
-
-				if ( crossings % 2 === 1 ) {
-
-					indices.push( a, b, c );
-					return false;
-
-				}
-
-				const lines = new Array( 3 ).fill().map( () => new THREE.Line3() );
-
-				lines[ 0 ].start.copy( tri.a );
-				lines[ 0 ].end.copy( tri.b );
-
-				lines[ 1 ].start.copy( tri.b );
-				lines[ 1 ].end.copy( tri.c );
-
-				lines[ 2 ].start.copy( tri.c );
-				lines[ 2 ].end.copy( tri.a );
-
-				for ( let i = 0; i < 3; i ++ ) {
-
-					const l = lines[ i ];
-					for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
-
-						if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
+						const crossings = pointRayCrossesSegments( v, segmentLines );
+						if ( crossings % 2 === 1 ) {
 
 							indices.push( a, b, c );
 							return false;
+
+						}
+
+					}
+
+					const lines = new Array( 3 ).fill().map( () => new THREE.Line3() );
+
+					lines[ 0 ].start.copy( tri.a );
+					lines[ 0 ].end.copy( tri.b );
+
+					lines[ 1 ].start.copy( tri.b );
+					lines[ 1 ].end.copy( tri.c );
+
+					lines[ 2 ].start.copy( tri.c );
+					lines[ 2 ].end.copy( tri.a );
+
+					for ( let i = 0; i < 3; i ++ ) {
+
+						const l = lines[ i ];
+						for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
+
+							if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
+
+								indices.push( a, b, c );
+								return false;
+
+							}
 
 						}
 
@@ -720,8 +714,9 @@ function render() {
 
 			}
 		);
+
 		const traverseTime = window.performance.now() - startTime;
-		console.log( traverseTime );
+		outputContainer.innerText = `${ traverseTime.toFixed( 3 ) }ms`;
 
 		const indexAttr = mesh.geometry.index;
 		const newIndexAttr = highlightMesh.geometry.index;
