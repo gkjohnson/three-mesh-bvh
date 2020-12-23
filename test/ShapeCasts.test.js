@@ -157,31 +157,24 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
-		it( 'should return that none triangles are contained within the bounds shape.', () => {
+		it( 'should return that no triangles are contained within the bounds shape.', () => {
 
 			const sphere = new Sphere();
 			sphere.radius = 3;
 			sphere.center.x = 5.99;
 
-			let allContained = true;
-			let numContained = 0;
+			let trianglesIterated = 0;
 			bvh.shapecast(
 				mesh,
 				getIntersectsBoxFunction( sphere ),
 				( tri, i0, i1, i2, contained ) => {
 
-					allContained = contained && allContained;
-					if ( contained ) {
-
-						numContained ++;
-
-					}
+					trianglesIterated ++;
 
 				}
 			);
 
-			expect( allContained ).toBeFalsy();
-			expect( numContained ).toEqual( 0 );
+			expect( trianglesIterated ).toEqual( 0 );
 
 		} );
 
