@@ -416,6 +416,7 @@ function updateSelection() {
 	// - Filter the lasso segments to check by the the bounds range of the vertical range of the bounds
 	// - Correctly handle the camera near clip
 	// - Improve line line intersect performance?
+	// - Create quad tree of the lasso shape to improve ray cast / intersection performance
 
 	toScreenSpaceMatrix
 		.copy( mesh.matrixWorld )
