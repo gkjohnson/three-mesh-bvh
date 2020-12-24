@@ -412,6 +412,11 @@ const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
 const segmentLines = [];
 function updateSelection() {
 
+	// TODO: Possible improvements
+	// - Filter the lasso segments to check by the the bounds range of the vertical range of the bounds
+	// - Correctly handle the camera near clip
+	// - Improve line line intersect performance?
+
 	toScreenSpaceMatrix
 		.copy( mesh.matrixWorld )
 		.premultiply( camera.matrixWorldInverse )
