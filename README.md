@@ -21,6 +21,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Sphere physics collision demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
 
+[Lasso selection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
+
 [WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
 # Use
