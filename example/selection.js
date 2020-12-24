@@ -28,6 +28,7 @@ const params = {
 let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
 let highlightMesh, highlightWireframeMesh, outputContainer, group;
 const selectionPoints = [];
+let dragging = false;
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
 
@@ -194,13 +195,14 @@ function init() {
 		startX = ( e.clientX / window.innerWidth ) * 2 - 1;
 		startY = - ( ( e.clientY / window.innerHeight ) * 2 - 1 );
 		selectionPoints.length = 0;
+		dragging = true;
 
 	} );
 
 	renderer.domElement.addEventListener( 'pointerup', () => {
 
 		selectionShape.visible = false;
-
+		dragging = false;
 		if ( selectionPoints.length ) {
 
 			selectionNeedsUpdate = true;
@@ -377,7 +379,12 @@ function render() {
 	if ( selectionNeedsUpdate ) {
 
 		selectionNeedsUpdate = false;
-		updateSelection();
+
+		if ( selectionPoints.length > 0 ) {
+
+			updateSelection();
+
+		}
 
 	}
 
@@ -389,7 +396,7 @@ function render() {
 	if ( params.rotate ) {
 
 		group.rotation.y += 0.01;
-		if ( params.liveUpdate && selectionPoints.length > 0 ) {
+		if ( params.liveUpdate && dragging ) {
 
 			selectionNeedsUpdate = true;
 
