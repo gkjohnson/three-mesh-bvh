@@ -264,7 +264,7 @@ export const shapecast = ( function () {
 			}
 
 			const isC1Leaf = ! ! c1.count;
-			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth );
+			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1 );
 
 			let c1StopTraversal;
 			if ( c1Intersection === CONTAINED ) {
@@ -274,13 +274,13 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth );
+				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1 );
 
 			} else {
 
 				c1StopTraversal =
 					c1Intersection &&
-					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth );
+					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
 
 			}
 
@@ -292,7 +292,7 @@ export const shapecast = ( function () {
 			arrayToBox( c2.boundingData, box2 );
 
 			const isC2Leaf = ! ! c2.count;
-			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth );
+			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1 );
 
 			let c2StopTraversal;
 			if ( c2Intersection === CONTAINED ) {
@@ -302,13 +302,13 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth );
+				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1 );
 
 			} else {
 
 				c2StopTraversal =
 					c2Intersection &&
-					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth );
+					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
 
 			}
 

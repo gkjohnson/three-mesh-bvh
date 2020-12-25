@@ -230,7 +230,7 @@ export const shapecastBuffer = ( function () {
 			}
 
 			const isC1Leaf = ! /* c1 count */ ( uint16Array[ c1 + 15 ] !== 0xffff );
-			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth );
+			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1 );
 
 			let c1StopTraversal;
 			if ( c1Intersection === CONTAINED ) {
@@ -240,13 +240,13 @@ export const shapecastBuffer = ( function () {
 				const end = getRightEndOffsetBuffer( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth );
+				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1 );
 
 			} else {
 
 				c1StopTraversal =
 					c1Intersection &&
-					shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth );
+					shapecastBuffer( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
 
 			}
 
@@ -258,7 +258,7 @@ export const shapecastBuffer = ( function () {
 			arrayToBoxBuffer( /* c2 boundingData */ c2, float32Array, box2 );
 
 			const isC2Leaf = ! /* c2 count */ ( uint16Array[ c2 + 15 ] !== 0xffff );
-			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth );
+			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1 );
 
 			let c2StopTraversal;
 			if ( c2Intersection === CONTAINED ) {
@@ -268,13 +268,13 @@ export const shapecastBuffer = ( function () {
 				const end = getRightEndOffsetBuffer( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth );
+				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1 );
 
 			} else {
 
 				c2StopTraversal =
 					c2Intersection &&
-					shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth );
+					shapecastBuffer( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
 
 			}
 

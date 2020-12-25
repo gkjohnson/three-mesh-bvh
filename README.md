@@ -328,7 +328,8 @@ shapecast(
 	intersectsBoundsFunc : (
 		box : Box3,
 		isLeaf : Boolean,
-		score : Number | undefined
+		score : Number | undefined,
+		depth : Number
 	) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
 
 	intersectsTriangleFunc : (
@@ -336,7 +337,8 @@ shapecast(
 		index1 : Number,
 		index2 : Number,
 		index3 : Number,
-		contained : Boolean
+		contained : Boolean,
+		depth : Number
 	) => Boolean = null,
 
 	orderNodesFunc : (
@@ -346,7 +348,7 @@ shapecast(
 ) : Boolean
 ```
 
-A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected.
+A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `orderNodesFunc`, `intersectsBoundsFunc` and `intersectsTrianglesFunc` for each node and using the results to determine traversal depth. The `depth` value passed to `intersectsBoundsFunc` and `intersectsTriangleFunc` indicates the depth of the bounds the provided box or bounds belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. It can be used to precompute, cache, and then read information about a parent bound to improve performance while traversing.
 
 `mesh` is the is the object this BVH is representing.
 
