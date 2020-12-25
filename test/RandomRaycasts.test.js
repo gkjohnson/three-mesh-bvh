@@ -18,6 +18,10 @@ function runRandomTests( options ) {
 
 		ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 		groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+
+		ungroupedGeometry.GROUPED = false;
+		groupedGeometry.GROUPED = true;
+
 		const groupCount = 10;
 		const groupSize = groupedGeometry.index.array.length / groupCount;
 
@@ -41,13 +45,14 @@ function runRandomTests( options ) {
 
 			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
 			let mesh = new Mesh( geo, new MeshBasicMaterial() );
-			mesh.rotation.x = Math.random() * 10;
-			mesh.rotation.y = Math.random() * 10;
-			mesh.rotation.z = Math.random() * 10;
+			mesh.rotation.x = ( i % 3 ) * 10 / 2;
+			mesh.rotation.y = ( i % 5 ) * 10 / 4;
+			mesh.rotation.z = ( i % 4 ) * 10 / 3;
 
-			mesh.position.x = Math.random() * 1;
-			mesh.position.y = Math.random() * 1;
-			mesh.position.z = Math.random() * 1;
+			mesh.position.x = ( i % 3 ) / 2;
+			mesh.position.y = ( i % 5 ) / 4;
+			mesh.position.z = ( i % 4 ) / 3;
+
 
 			scene.add( mesh );
 			mesh.updateMatrix( true );
