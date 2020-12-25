@@ -335,7 +335,8 @@ shapecast(
 		triangle : Triangle,
 		index1 : Number,
 		index2 : Number,
-		index3 : Number
+		index3 : Number,
+		contained : Boolean
 	) => Boolean = null,
 
 	orderNodesFunc : (
@@ -351,7 +352,7 @@ A generalized cast function that can be used to implement intersection logic for
 
 `intersectsBoundsFunc` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a constant indicating whether or not the bounds is intersected or contained and traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing all child triangles to be checked immediately rather than traversing the rest of the child bounds.
 
-`intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array.
+`intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
 
 `orderNodesFunc` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score or distance representing the distance to the shape being intersected with. The shape with the lowest score is traversed first.
 
