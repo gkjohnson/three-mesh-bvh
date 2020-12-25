@@ -1,4 +1,4 @@
-import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
+import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial, Vector3 } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
@@ -59,11 +59,16 @@ function runRandomTests( options ) {
 
 	for ( let i = 0; i < 100; i ++ ) {
 
-		it( 'cast ' + i, () => {
+		const origin = new Vector3();
+		const direction = new Vector3();
+
+		origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
+		direction.copy( origin ).multiplyScalar( - 1 ).normalize();
+		it( `cast ${ i }: ${ origin.toArray().join() } : ${ direction.toArray().join() }`, () => {
 
 			raycaster.firstHitOnly = false;
-			raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
-			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
+			raycaster.ray.origin.copy( origin );
+			raycaster.ray.direction.copy( direction );
 
 			ungroupedGeometry.boundsTree = ungroupedBvh;
 			groupedGeometry.boundsTree = groupedBvh;
