@@ -280,7 +280,7 @@ export const shapecast = ( function () {
 
 				c1StopTraversal =
 					c1Intersection &&
-					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
+					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth );
 
 			}
 
@@ -308,7 +308,7 @@ export const shapecast = ( function () {
 
 				c2StopTraversal =
 					c2Intersection &&
-					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
+					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth );
 
 			}
 

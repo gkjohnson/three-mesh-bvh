@@ -409,7 +409,8 @@ function render() {
 const toScreenSpaceMatrix = new THREE.Matrix4();
 const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
-const segmentLines = [];
+const lassoSegments = [];
+const perBoundsSegments = [];
 function updateSelection() {
 
 	// TODO: Possible improvements
@@ -424,16 +425,16 @@ function updateSelection() {
 		.premultiply( camera.projectionMatrix );
 
 	// create scratch points and lines to use for selection
-	while ( segmentLines.length < selectionPoints.length ) {
+	while ( lassoSegments.length < selectionPoints.length ) {
 
-		segmentLines.push( new THREE.Line3() );
+		lassoSegments.push( new THREE.Line3() );
 
 	}
-	segmentLines.length = selectionPoints.length;
+	lassoSegments.length = selectionPoints.length;
 
 	for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {
 
-		const line = segmentLines[ s ];
+		const line = lassoSegments[ s ];
 		const sNext = ( s + 3 ) % l;
 		line.start.x = selectionPoints[ s ];
 		line.start.y = selectionPoints[ s + 1 ];
@@ -447,7 +448,7 @@ function updateSelection() {
 	const indices = [];
 	mesh.geometry.boundsTree.shapecast(
 		mesh,
-		box => {
+		( box, isLeaf, score, depth ) => {
 
 			// check if bounds intersect or contain the lasso region
 			if ( ! params.useBoundsTree ) {
@@ -459,6 +460,10 @@ function updateSelection() {
 			// Get the bounding box points
 			const { min, max } = box;
 			let index = 0;
+
+			let minY = Infinity;
+			let maxY = - Infinity;
+			let minX = Infinity;
 			for ( let x = 0; x <= 1; x ++ ) {
 
 				for ( let y = 0; y <= 1; y ++ ) {
@@ -473,9 +478,46 @@ function updateSelection() {
 						v.applyMatrix4( toScreenSpaceMatrix );
 						index ++;
 
+						if ( v.y < minY ) minY = v.y;
+						if ( v.y > maxY ) maxY = v.y;
+						if ( v.x < minX ) minX = v.x;
+
 					}
 
 				}
+
+			}
+
+			// Find all the relevant segments here and cache them in the above array for
+			// subsequent child checks to use.
+			const parentSegments = perBoundsSegments[ depth - 1 ] || lassoSegments;
+			const segmentsToCheck = perBoundsSegments[ depth ] || [];
+			segmentsToCheck.length = 0;
+			perBoundsSegments[ depth ] = segmentsToCheck;
+			for ( let i = 0, l = parentSegments.length; i < l; i ++ ) {
+
+				const line = parentSegments[ i ];
+				const sx = line.start.x;
+				const sy = line.start.y;
+				const ex = line.end.x;
+				const ey = line.end.y;
+				if ( sx < minX && ex < minX ) continue;
+
+				const startAbove = sy > maxY;
+				const endAbove = ey > maxY;
+				if ( startAbove && endAbove ) continue;
+
+				const startBelow = sy < minY;
+				const endBelow = ey < minY;
+				if ( startBelow && endBelow ) continue;
+
+				segmentsToCheck.push( line );
+
+			}
+
+			if ( segmentsToCheck.length === 0 ) {
+
+				return NOT_INTERSECTED;
 
 			}
 
@@ -492,7 +534,7 @@ function updateSelection() {
 			} );
 
 			// If a lasso point is inside the hull then it's intersected and cannot be contained
-			if ( pointRayCrossesSegments( segmentLines[ 0 ].start, lines ) % 2 === 1 ) {
+			if ( pointRayCrossesSegments( segmentsToCheck[ 0 ].start, lines ) % 2 === 1 ) {
 
 				return INTERSECTED;
 
@@ -503,7 +545,7 @@ function updateSelection() {
 			for ( let i = 0, l = hull.length; i < l; i ++ ) {
 
 				const v = hull[ i ];
-				const pCrossings = pointRayCrossesSegments( v, segmentLines );
+				const pCrossings = pointRayCrossesSegments( v, segmentsToCheck );
 
 				if ( i === 0 ) {
 
@@ -525,9 +567,9 @@ function updateSelection() {
 			for ( let i = 0, l = lines.length; i < l; i ++ ) {
 
 				const boxLine = lines[ i ];
-				for ( let s = 0, ls = segmentLines.length; s < ls; s ++ ) {
+				for ( let s = 0, ls = segmentsToCheck.length; s < ls; s ++ ) {
 
-					if ( lineCrossesLine( boxLine, segmentLines[ s ] ) ) {
+					if ( lineCrossesLine( boxLine, segmentsToCheck[ s ] ) ) {
 
 						return INTERSECTED;
 
@@ -540,7 +582,7 @@ function updateSelection() {
 			return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
 
 		},
-		( tri, a, b, c, contained ) => {
+		( tri, a, b, c, contained, depth ) => {
 
 			// if the parent bounds were marked as contained
 			if ( contained ) {
@@ -550,6 +592,8 @@ function updateSelection() {
 
 			}
 
+			// check all the segments if using no bounds tree
+			const segmentsToCheck = params.useBoundsTree ? perBoundsSegments[ depth ] : lassoSegments;
 			if ( params.selectionMode === 'centroid' ) {
 
 				// get the center of the triangle
@@ -557,7 +601,7 @@ function updateSelection() {
 				centroid.applyMatrix4( toScreenSpaceMatrix );
 
 				// counting the crossings
-				const crossings = pointRayCrossesSegments( centroid, segmentLines );
+				const crossings = pointRayCrossesSegments( centroid, segmentsToCheck );
 				if ( crossings % 2 === 1 ) {
 
 					indices.push( a, b, c );
@@ -579,7 +623,7 @@ function updateSelection() {
 					const v = vertices[ j ];
 					v.applyMatrix4( toScreenSpaceMatrix );
 
-					const crossings = pointRayCrossesSegments( v, segmentLines );
+					const crossings = pointRayCrossesSegments( v, segmentsToCheck );
 					if ( crossings % 2 === 1 ) {
 
 						indices.push( a, b, c );
@@ -608,9 +652,9 @@ function updateSelection() {
 				for ( let i = 0; i < 3; i ++ ) {
 
 					const l = lines[ i ];
-					for ( let s = 0, sl = segmentLines.length; s < sl; s ++ ) {
+					for ( let s = 0, sl = segmentsToCheck.length; s < sl; s ++ ) {
 
-						if ( lineCrossesLine( l, segmentLines[ s ] ) ) {
+						if ( lineCrossesLine( l, segmentsToCheck[ s ] ) ) {
 
 							indices.push( a, b, c );
 							return params.selectModel;
