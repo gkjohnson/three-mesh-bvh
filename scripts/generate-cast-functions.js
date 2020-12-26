@@ -126,7 +126,7 @@ function replaceFunctionNames( str ) {
 	const orNames = '\\s(raycast|raycastFirst|shapecast|intersectsGeometry|getLeftOffset|getRightEndOffset)';
 
 	str = str.replace(
-		new RegExp( `(${ orNames })\\((\\s|[\\r|\\n])?node`, 'gm' ),
+		new RegExp( `(${ orNames })\\(([\\s\\r\\n]+)?node`, 'gm' ),
 		( match, funcName ) => {
 
 			return `${ funcName }Buffer( stride4Offset`;
