@@ -362,15 +362,17 @@ export const shapecast = ( function () {
 
 export const intersectsGeometry = ( function () {
 
-	const triangle = new SeparatingAxisTriangle();
-	const triangle2 = new SeparatingAxisTriangle();
 	const cachedMesh = new Mesh();
-	const invertedMat = new Matrix4();
+	const bvhToGeometry = new Matrix4();
+	const geometryObb = new OrientedBox();
 
-	const obb = new OrientedBox();
-	const obb2 = new OrientedBox();
+	const _triangle = new SeparatingAxisTriangle();
+	const _triangle2 = new SeparatingAxisTriangle();
+	const _cachedBox1 = new OrientedBox();
+	const _cachedBox2 = new OrientedBox();
+	const _cachedBox3 = new OrientedBox();
 
-	return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
+	return function intersectsGeometry( node, mesh, geometry, geometryToBvh ) {
 
 		if ( node.continueGeneration ) {
 
@@ -378,123 +380,76 @@ export const intersectsGeometry = ( function () {
 
 		}
 
-		if ( cachedObb === null ) {
+		if ( ! geometry.boundingBox ) {
 
-			if ( ! geometry.boundingBox ) {
-
-				geometry.computeBoundingBox();
-
-			}
-
-			obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
-			obb.update();
-			cachedObb = obb;
+			geometry.computeBoundingBox();
 
 		}
 
-		const isLeaf = ! ! node.count;
-		if ( isLeaf ) {
+		const index = geometry.index;
+		const pos = geometry.attributes.position;
 
-			const thisGeometry = mesh.geometry;
-			const thisIndex = thisGeometry.index;
-			const thisPos = thisGeometry.attributes.position;
+		cachedMesh.geometry = geometry;
+		bvhToGeometry.copy( geometryToBvh ).invert();
+		geometryObb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+		geometryObb.update();
 
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
+		let total = 0;
+		const result =
+			shapecast(
+				node,
+				mesh,
+				box => geometryObb.intersectsBox( box ),
+				tri => {
 
-			const offset = node.offset;
-			const count = node.count;
-
-			// get the inverse of the geometry matrix so we can transform our triangles into the
-			// geometry space we're trying to test. We assume there are fewer triangles being checked
-			// here.
-			invertedMat.copy( geometryToBvh ).invert();
-
-			if ( geometry.boundsTree ) {
-
-				arrayToBox( node.boundingData, obb2 );
-				obb2.matrix.copy( invertedMat );
-				obb2.update();
-
-				cachedMesh.geometry = geometry;
-				const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
-
-					tri.a.applyMatrix4( geometryToBvh );
-					tri.b.applyMatrix4( geometryToBvh );
-					tri.c.applyMatrix4( geometryToBvh );
+					tri.a.applyMatrix4( bvhToGeometry );
+					tri.b.applyMatrix4( bvhToGeometry );
+					tri.c.applyMatrix4( bvhToGeometry );
 					tri.update();
 
-					for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+					if ( mesh.geometry.boundsTree ) {
 
-						// this triangle needs to be transformed into the current BVH coordinate frame
-						setTriangle( triangle2, i, thisIndex, thisPos );
-						triangle2.update();
-						if ( tri.intersectsTriangle( triangle2 ) ) {
+						return cachedMesh
+							.geometry
+							.boundsTree
+							.shapecast(
+								cachedMesh,
+								box => box.intersectsTriangle( tri ),
+								tri2 => tri2.intersectsTriangle( tri ),
+								box => Math.min(
+									box.distanceToPoint( tri.a ),
+									box.distanceToPoint( tri.b ),
+									box.distanceToPoint( tri.c )
+								)
+							);
 
-							return true;
+					} else {
 
-						}
+						for ( let i = 0, l = index.count; i < l; i += 3 ) {
 
-					}
+							setTriangle( _triangle2, i, index, pos );
+							_triangle2.update();
 
-					return false;
+							if ( tri.intersectsTriangle( _triangle2 ) ) {
 
-				} );
-				cachedMesh.geometry = null;
+								return true;
 
-				return res;
-
-			} else {
-
-				for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
-
-					// this triangle needs to be transformed into the current BVH coordinate frame
-					setTriangle( triangle, i, thisIndex, thisPos );
-					triangle.a.applyMatrix4( invertedMat );
-					triangle.b.applyMatrix4( invertedMat );
-					triangle.c.applyMatrix4( invertedMat );
-					triangle.update();
-
-					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
-
-						setTriangle( triangle2, i2, index, pos );
-						triangle2.update();
-
-						if ( triangle.intersectsTriangle( triangle2 ) ) {
-
-							return true;
+							}
 
 						}
 
 					}
 
-				}
+				},
+				undefined, //box => geometryObb.distanceToBox( box ),
+				0,
+				_triangle,
+				_cachedBox1,
+				_cachedBox2
+			);
 
-			}
-
-		} else {
-
-			const left = node.left;
-			const right = node.right;
-
-			arrayToBox( left.boundingData, boundingBox );
-			const leftIntersection =
-				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( left, mesh, geometry, geometryToBvh, cachedObb );
-
-			if ( leftIntersection ) return true;
-
-
-			arrayToBox( right.boundingData, boundingBox );
-			const rightIntersection =
-				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( right, mesh, geometry, geometryToBvh, cachedObb );
-
-			if ( rightIntersection ) return true;
-
-			return false;
-
-		}
+		cachedMesh.geometry = null;
+		return result;
 
 	};
 
