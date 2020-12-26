@@ -151,7 +151,8 @@ export const shapecastBuffer = ( function () {
 
 	}
 
-	return function shapecastBuffer( stride4Offset,
+	return function shapecastBuffer(
+		stride4Offset,
 		mesh,
 		intersectsBoundsFunc,
 		intersectsTriangleFunc = null,
@@ -425,7 +426,8 @@ export const intersectsGeometryBuffer = ( function () {
 		//    - TODO: setting a triangle may be a bit slow
 
 		const result =
-			shapecastBuffer( stride4Offset,
+			shapecastBuffer(
+				stride4Offset,
 				mesh,
 				box => geometryObb.intersectsBox( box ),
 				tri => {

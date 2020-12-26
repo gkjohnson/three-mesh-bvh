@@ -127,9 +127,9 @@ function replaceFunctionNames( str ) {
 
 	str = str.replace(
 		new RegExp( `(${ orNames })\\(([\\s\\r\\n]+)?node`, 'gm' ),
-		( match, funcName ) => {
+		( match, funcNameWithSpace, funcName, whitespace ) => {
 
-			return `${ funcName }Buffer( stride4Offset`;
+			return `${ funcNameWithSpace }Buffer(${ whitespace }stride4Offset`;
 
 		}
 	);
