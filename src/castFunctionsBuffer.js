@@ -435,10 +435,9 @@ export const intersectsGeometryBuffer = ( function () {
 					tri.c.applyMatrix4( bvhToGeometry );
 					tri.update();
 
-					if ( mesh.geometry.boundsTree ) {
+					if ( geometry.boundsTree ) {
 
-						return cachedMesh
-							.geometry
+						return geometry
 							.boundsTree
 							.shapecast(
 								cachedMesh,
