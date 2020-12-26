@@ -130,11 +130,19 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 
 export const shapecast = ( function () {
 
-	const triangle = new SeparatingAxisTriangle();
-	const cachedBox1 = new Box3();
-	const cachedBox2 = new Box3();
+	const _triangle = new SeparatingAxisTriangle();
+	const _cachedBox1 = new Box3();
+	const _cachedBox2 = new Box3();
 
-	function iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, contained = false, depth ) {
+	function iterateOverTriangles(
+		offset,
+		count,
+		geometry,
+		intersectsTriangleFunc,
+		contained,
+		depth,
+		triangle
+	) {
 
 		const index = geometry.index;
 		const pos = geometry.attributes.position;
@@ -155,7 +163,17 @@ export const shapecast = ( function () {
 
 	}
 
-	return function shapecast( node, mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, nodeScoreFunc = null, depth = 0 ) {
+	return function shapecast(
+		node,
+		mesh,
+		intersectsBoundsFunc,
+		intersectsTriangleFunc = null,
+		nodeScoreFunc = null,
+		depth = 0,
+		triangle = _triangle,
+		cachedBox1 = _cachedBox1,
+		cachedBox2 = _cachedBox2
+	) {
 
 		// Define these inside the function so it has access to the local variables needed
 		// when converting to the buffer equivalents
@@ -217,7 +235,7 @@ export const shapecast = ( function () {
 			const geometry = mesh.geometry;
 			const offset = node.offset;
 			const count = node.count;
-			return iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, false, depth );
+			return iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, false, depth, triangle );
 
 		} else {
 
@@ -274,13 +292,23 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1 );
+				c1StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1, triangle );
 
 			} else {
 
 				c1StopTraversal =
 					c1Intersection &&
-					shapecast( c1, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
+					shapecast(
+						c1,
+						mesh,
+						intersectsBoundsFunc,
+						intersectsTriangleFunc,
+						nodeScoreFunc,
+						depth + 1,
+						triangle,
+						cachedBox1,
+						cachedBox2
+					);
 
 			}
 
@@ -302,13 +330,23 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1 );
+				c2StopTraversal = iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, true, depth + 1, triangle );
 
 			} else {
 
 				c2StopTraversal =
 					c2Intersection &&
-					shapecast( c2, mesh, intersectsBoundsFunc, intersectsTriangleFunc, nodeScoreFunc, depth + 1 );
+					shapecast(
+						c2,
+						mesh,
+						intersectsBoundsFunc,
+						intersectsTriangleFunc,
+						nodeScoreFunc,
+						depth + 1,
+						triangle,
+						cachedBox1,
+						cachedBox2
+					);
 
 			}
 
