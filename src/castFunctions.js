@@ -371,7 +371,66 @@ export const intersectsGeometry = ( function () {
 	const _cachedBox1 = new OrientedBox();
 	const _cachedBox2 = new OrientedBox();
 
+	const _box1 = new Box3();
+	const _box2 = new Box3();
+
+	const _perBoundsInfo = [];
+
 	return function intersectsGeometry( node, mesh, geometry, geometryToBvh ) {
+
+		// Takes the other geometrys node and an obb from this bvh in the geometry frame
+		function findLowestIntersectingBox( node, obb, info, indexAttr, posAttr ) {
+
+			const isLeaf = ! ! node.count;
+			if ( isLeaf ) {
+
+				const count = node.count;
+				const offset = node.offset;
+				const tris = info.triangles;
+				tris.length = 0;
+				info.node = node;
+
+				for ( let i = offset, l = offset + count; i < l; i ++ ) {
+
+					setTriangle( _triangle, i, indexAttr, posAttr );
+					if ( obb.intersectsTriangle( _triangle ) ) {
+
+						tris.push( i );
+
+					}
+
+				}
+
+			} else {
+
+				const c1 = node.left;
+				const c2 = node.right;
+
+				arrayToBox( c1.boundingData, _box1 );
+				arrayToBox( c2.boundingData, _box2 );
+
+				const intersectsC1 = obb.intersectsBox( _box1 );
+				const intersectsC2 = obb.intersectsBox( _box2 );
+
+				info.triangles.length = 0;
+
+				if ( intersectsC1 && ! intersectsC2 ) {
+
+					findLowestIntersectingBox( c1, obb, info, indexAttr, posAttr );
+
+				} else if ( ! intersectsC1 && intersectsC2 ) {
+
+					findLowestIntersectingBox( c2, obb, info, indexAttr, posAttr );
+
+				} else if ( intersectsC1 && intersectsC2 ) {
+
+					info.node = node;
+
+				}
+
+			}
+
+		}
 
 		if ( node.continueGeneration ) {
 
@@ -392,6 +451,17 @@ export const intersectsGeometry = ( function () {
 		bvhToGeometry.copy( geometryToBvh ).invert();
 		geometryObb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
 		geometryObb.update();
+
+		// TODO
+		// - shapecast this bvh
+		// - on checking box
+		//    - convert box to obb in geometry frame
+		//    - traverse geometry bounds until both children are interesected
+		//    - if a leaf is found check all the triangles against the bounds and keep them
+		//    - start at the parents bounds if it's available. Propagate triangles forward if
+		//      they've already been iterated over
+		//    - just filter the existing set of triangles
+		//    - TODO: setting a triangle may be a bit slow
 
 		const result =
 			shapecast(
