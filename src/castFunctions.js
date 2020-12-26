@@ -462,6 +462,8 @@ export const intersectsGeometry = ( function () {
 		//      they've already been iterated over
 		//    - just filter the existing set of triangles
 		//    - TODO: setting a triangle may be a bit slow
+		//    - TODO: need to handle multiple roots in the other geometry
+		//    - TODO: need to handle packed vs not packed BVH
 
 		const result =
 			shapecast(
