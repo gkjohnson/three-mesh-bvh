@@ -335,7 +335,6 @@ export const intersectsGeometryBuffer = ( function () {
 	const _triangle2 = new SeparatingAxisTriangle();
 	const _cachedBox1 = new OrientedBox();
 	const _cachedBox2 = new OrientedBox();
-	const _cachedBox3 = new OrientedBox();
 
 	return function intersectsGeometryBuffer( stride4Offset, mesh, geometry, geometryToBvh ) {
 
@@ -355,7 +354,6 @@ export const intersectsGeometryBuffer = ( function () {
 		geometryObb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
 		geometryObb.update();
 
-		let total = 0;
 		const result =
 			shapecastBuffer( stride4Offset,
 				mesh,
@@ -401,7 +399,7 @@ export const intersectsGeometryBuffer = ( function () {
 					}
 
 				},
-				undefined, //box => geometryObb.distanceToBox( box ),
+				box => geometryObb.distanceToBox( box ),
 				0,
 				_triangle,
 				_cachedBox1,

@@ -370,7 +370,6 @@ export const intersectsGeometry = ( function () {
 	const _triangle2 = new SeparatingAxisTriangle();
 	const _cachedBox1 = new OrientedBox();
 	const _cachedBox2 = new OrientedBox();
-	const _cachedBox3 = new OrientedBox();
 
 	return function intersectsGeometry( node, mesh, geometry, geometryToBvh ) {
 
@@ -394,7 +393,6 @@ export const intersectsGeometry = ( function () {
 		geometryObb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
 		geometryObb.update();
 
-		let total = 0;
 		const result =
 			shapecast(
 				node,
@@ -441,7 +439,7 @@ export const intersectsGeometry = ( function () {
 					}
 
 				},
-				undefined, //box => geometryObb.distanceToBox( box ),
+				box => geometryObb.distanceToBox( box ),
 				0,
 				_triangle,
 				_cachedBox1,
