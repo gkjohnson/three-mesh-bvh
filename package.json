@@ -31,8 +31,8 @@
     "intersection",
     "acceleration",
     "bvh",
-		"webvr",
-		"webxr"
+    "webvr",
+    "webxr"
   ],
   "repository": {
     "type": "git",
