@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Added
 - `depth` argument to `intersectsBoundsFunc` and `intersectsTriangleFunc` of `shapecast`.
+- "webvr" and "webxr" tags.
 
 ## [0.3.2] - 2020-12-23
 ### Fixed
