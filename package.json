@@ -30,7 +30,9 @@
     "distance",
     "intersection",
     "acceleration",
-    "bvh"
+    "bvh",
+		"webvr",
+		"webxr"
   ],
   "repository": {
     "type": "git",
