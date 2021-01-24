@@ -9,14 +9,15 @@ import { MeshBVH, MeshBVHVisualizer } from '../src/index.js';
 
 const params = {
 
-	firstPerson: true,
+	firstPerson: false,
 
 	displayCollider: false,
 	displayBVH: false,
 	visualizeDepth: 10,
-	gravity: - 9.8,
+	gravity: - 2,
 	playerSpeed: 10,
 	physicsSteps: 5,
+
 	reset: reset,
 
 };
@@ -27,6 +28,11 @@ let playerVelocity = 0;
 let fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
 let upVector = new THREE.Vector3( 0, 1, 0 );
 let tempVector = new THREE.Vector3();
+let tempVector2 = new THREE.Vector3();
+let tempVector3 = new THREE.Vector3();
+let tempBox = new THREE.Box3();
+let tempMat = new THREE.Matrix4();
+let tempSegment = new THREE.Line3();
 
 init();
 render();
@@ -87,6 +93,11 @@ function init() {
 		new RoundedBoxBufferGeometry( 1.0, 2.0, 1.0, 10, 0.5 ),
 		new THREE.MeshStandardMaterial()
 	);
+	player.geometry.translate( 0, - 0.5, 0 );
+	player.capsuleInfo = {
+		radius: 0.5,
+		segment: new THREE.Line3( new THREE.Vector3(), new THREE.Vector3( 0, - 1.0, 0.0 ) )
+	};
 	player.castShadow = true;
 	player.receiveShadow = true;
 	scene.add( player );
@@ -141,6 +152,7 @@ function init() {
 			case 'KeyS': bkdPressed = true; break;
 			case 'KeyD': rgtPressed = true; break;
 			case 'KeyA': lftPressed = true; break;
+			case 'Space': playerVelocity = 0.3; break; // TODO: only jump if we're on the ground
 
 		}
 
@@ -235,7 +247,6 @@ function loadColliderEnvironment() {
 				newMesh.receiveShadow = true;
 				environment.add( newMesh );
 
-
 			}
 
 		}
@@ -284,6 +295,7 @@ function loadColliderEnvironment() {
 
 function reset() {
 
+	playerVelocity = 0;
 	player.position.set( 15.75, - 3, 30 );
 	camera.position.sub( controls.target );
 	controls.target.copy( player.position );
@@ -295,9 +307,7 @@ function reset() {
 function updatePlayer( delta ) {
 
 	playerVelocity += delta * params.gravity;
-	// player.position.y += playerVelocity;
-
-	window.controls = controls;
+	player.position.y += playerVelocity;
 
 	// move the player
 	const angle = controls.getAzimuthalAngle();
@@ -329,7 +339,60 @@ function updatePlayer( delta ) {
 
 	}
 
+	player.updateMatrixWorld();
+
 	// TODO: adjust player position based on collisions
+	const capsuleInfo = player.capsuleInfo;
+	tempBox.makeEmpty();
+	tempMat.copy( collider.matrixWorld ).invert();
+	tempSegment.copy( capsuleInfo.segment );
+
+	tempSegment.start.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
+	tempBox.expandByPoint( tempSegment.start );
+
+	tempSegment.end.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
+	tempBox.expandByPoint( tempSegment.end );
+
+	tempBox.min.addScalar( - capsuleInfo.radius );
+	tempBox.max.addScalar( capsuleInfo.radius );
+
+	const averageNormal = tempVector3;
+	let triangleCount = 0;
+	collider.geometry.boundsTree.shapecast(
+		collider,
+		box => box.intersectsBox( tempBox ),
+		tri => {
+
+			const triPoint = tempVector;
+			const capsulePoint = tempVector2;
+
+			const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
+			if ( distance < capsuleInfo.radius ) {
+
+				const depth = capsuleInfo.radius - distance;
+				const direction = capsulePoint.sub( triPoint ).normalize();
+
+				tempSegment.start.addScaledVector( direction, depth );
+				tempSegment.end.addScaledVector( direction, depth );
+
+				averageNormal.add( direction );
+				triangleCount ++;
+
+			}
+
+		}
+	);
+
+	// TODO: we need to adjust the velocity based on whether the user's on the ground
+	// TODO: we should not slide down stairs
+	player.position.copy( tempSegment.start ).applyMatrix4( collider.matrixWorld );
+
+	if ( triangleCount !== 0 ) {
+
+		playerVelocity = 0;
+
+	}
+
 	// TODO: detect if player is on ground and enable jump
 
 	// adjust the camera
@@ -337,6 +400,12 @@ function updatePlayer( delta ) {
 	controls.target.copy( player.position );
 	camera.position.add( player.position );
 	controls.update();
+
+	if ( player.position.y < - 25 ) {
+
+		reset();
+
+	}
 
 }
 
@@ -364,7 +433,14 @@ function render() {
 
 		collider.visible = params.displayCollider;
 		visualizer.visible = params.displayBVH;
-		updatePlayer( delta );
+
+		const physicsSteps = params.physicsSteps;
+
+		for ( let i = 0; i < physicsSteps; i ++ ) {
+
+			updatePlayer( delta / physicsSteps );
+
+		}
 
 	}
 
