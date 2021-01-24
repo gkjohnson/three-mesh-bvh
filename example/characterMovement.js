@@ -107,7 +107,16 @@ function init() {
 	gui = new GUI();
 	gui.add( params, 'firstPerson' ).onChange( v => {
 
-		// TODO: jump the camera back to a comfortable distance
+		if ( ! v ) {
+
+			camera
+				.position
+				.sub( controls.target )
+				.normalize()
+				.multiplyScalar( 10 )
+				.add( controls.target );
+
+		}
 
 	} );
 
@@ -411,7 +420,6 @@ function updatePlayer( delta ) {
 	camera.position.sub( controls.target );
 	controls.target.copy( player.position );
 	camera.position.add( player.position );
-	controls.update();
 
 	if ( player.position.y < - 25 ) {
 
@@ -456,7 +464,7 @@ function render() {
 
 	}
 
-
+	controls.update();
 
 	renderer.render( scene, camera );
 
