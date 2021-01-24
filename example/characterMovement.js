@@ -14,7 +14,7 @@ const params = {
 	displayCollider: false,
 	displayBVH: false,
 	visualizeDepth: 10,
-	gravity: - 2,
+	gravity: - 30,
 	playerSpeed: 10,
 	physicsSteps: 5,
 
@@ -24,12 +24,12 @@ const params = {
 
 let renderer, camera, scene, clock, gui, stats;
 let environment, collider, visualizer, player, controls;
-let playerVelocity = 0;
+let playerIsOnGround = false;
 let fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
+let playerVelocity = new THREE.Vector3();
 let upVector = new THREE.Vector3( 0, 1, 0 );
 let tempVector = new THREE.Vector3();
 let tempVector2 = new THREE.Vector3();
-let tempVector3 = new THREE.Vector3();
 let tempBox = new THREE.Box3();
 let tempMat = new THREE.Matrix4();
 let tempSegment = new THREE.Line3();
@@ -59,8 +59,8 @@ function init() {
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
 	light.shadow.mapSize.setScalar( 2048 );
-	light.shadow.bias = - 1e-4;
-	light.shadow.normalBias = 0.1;
+	light.shadow.bias = - 1e-5;
+	light.shadow.normalBias = 0.001;
 	light.castShadow = true;
 
 	const shadowCam = light.shadow.camera;
@@ -152,7 +152,13 @@ function init() {
 			case 'KeyS': bkdPressed = true; break;
 			case 'KeyD': rgtPressed = true; break;
 			case 'KeyA': lftPressed = true; break;
-			case 'Space': playerVelocity = 0.3; break; // TODO: only jump if we're on the ground
+			case 'Space':
+				if ( playerIsOnGround ) {
+
+					playerVelocity.y = 10.0;
+
+				}
+				break;
 
 		}
 
@@ -295,7 +301,7 @@ function loadColliderEnvironment() {
 
 function reset() {
 
-	playerVelocity = 0;
+	playerVelocity.set( 0, 0, 0 );
 	player.position.set( 15.75, - 3, 30 );
 	camera.position.sub( controls.target );
 	controls.target.copy( player.position );
@@ -306,8 +312,10 @@ function reset() {
 
 function updatePlayer( delta ) {
 
-	playerVelocity += delta * params.gravity;
-	player.position.y += playerVelocity;
+	window.playerVelocity = playerVelocity;
+
+	playerVelocity.y += delta * params.gravity;
+	player.position.addScaledVector( playerVelocity, delta );
 
 	// move the player
 	const angle = controls.getAzimuthalAngle();
@@ -341,23 +349,21 @@ function updatePlayer( delta ) {
 
 	player.updateMatrixWorld();
 
-	// TODO: adjust player position based on collisions
+	// adjust player position based on collisions
 	const capsuleInfo = player.capsuleInfo;
 	tempBox.makeEmpty();
 	tempMat.copy( collider.matrixWorld ).invert();
 	tempSegment.copy( capsuleInfo.segment );
 
 	tempSegment.start.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
-	tempBox.expandByPoint( tempSegment.start );
-
 	tempSegment.end.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
+
+	tempBox.expandByPoint( tempSegment.start );
 	tempBox.expandByPoint( tempSegment.end );
 
 	tempBox.min.addScalar( - capsuleInfo.radius );
 	tempBox.max.addScalar( capsuleInfo.radius );
 
-	const averageNormal = tempVector3;
-	let triangleCount = 0;
 	collider.geometry.boundsTree.shapecast(
 		collider,
 		box => box.intersectsBox( tempBox ),
@@ -375,25 +381,33 @@ function updatePlayer( delta ) {
 				tempSegment.start.addScaledVector( direction, depth );
 				tempSegment.end.addScaledVector( direction, depth );
 
-				averageNormal.add( direction );
-				triangleCount ++;
-
 			}
 
 		}
 	);
 
-	// TODO: we need to adjust the velocity based on whether the user's on the ground
-	// TODO: we should not slide down stairs
-	player.position.copy( tempSegment.start ).applyMatrix4( collider.matrixWorld );
+	const newPosition = tempVector;
+	newPosition.copy( tempSegment.start ).applyMatrix4( collider.matrixWorld );
 
-	if ( triangleCount !== 0 ) {
+	const deltaVector = tempVector2;
+	deltaVector.subVectors( newPosition, player.position );
 
-		playerVelocity = 0;
+	player.position.copy( newPosition );
+
+	deltaVector.normalize();
+	playerIsOnGround = deltaVector.y > 0.25;
+
+	// TODO: it would be best if we counted down since the last time we saw the player on the ground
+	// so there's some leeway (running into a wall stops jumping).
+	if ( ! playerIsOnGround ) {
+
+		playerVelocity.addScaledVector( deltaVector, - deltaVector.dot( playerVelocity ) );
+
+	} else {
+
+		playerVelocity.set( 0, 0, 0 );
 
 	}
-
-	// TODO: detect if player is on ground and enable jump
 
 	// adjust the camera
 	camera.position.sub( controls.target );
