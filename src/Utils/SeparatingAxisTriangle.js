@@ -132,7 +132,7 @@ SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
 
 	};
 
-} );
+} )();
 
 SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
