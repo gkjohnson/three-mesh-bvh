@@ -467,6 +467,9 @@ function render() {
 
 	}
 
+	// TODO: limit the camera movement based on the collider
+	// raycast in direction of camera and move it if it's further than the closest point
+	
 	controls.update();
 
 	renderer.render( scene, camera );
