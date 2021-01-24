@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - `depth` argument to `intersectsBoundsFunc` and `intersectsTriangleFunc` of `shapecast`.
 - "webvr" and "webxr" tags.
+- `closestPointToSegment` function to the triangle object used during shapecast which can be used for capsule intersection detection.
 
 ## [0.3.2] - 2020-12-23
 ### Fixed
