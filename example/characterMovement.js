@@ -59,8 +59,8 @@ function init() {
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
 	light.shadow.mapSize.setScalar( 2048 );
-	light.shadow.bias = - 1e-5;
-	light.shadow.normalBias = 0.001;
+	light.shadow.bias = - 1e-4;
+	light.shadow.normalBias = 0.05;
 	light.castShadow = true;
 
 	const shadowCam = light.shadow.camera;
@@ -100,6 +100,7 @@ function init() {
 	};
 	player.castShadow = true;
 	player.receiveShadow = true;
+	player.material.shadowSide = 2;
 	scene.add( player );
 	reset();
 
@@ -257,9 +258,11 @@ function loadColliderEnvironment() {
 			if ( visualGeometries.length ) {
 
 				const newGeom = BufferGeometryUtils.mergeBufferGeometries( visualGeometries );
-				const newMesh = new THREE.Mesh( newGeom, new THREE.MeshStandardMaterial( { color: parseInt( hex ) } ) );
+				const newMesh = new THREE.Mesh( newGeom, new THREE.MeshStandardMaterial( { color: parseInt( hex ), shadowSide: 2 } ) );
 				newMesh.castShadow = true;
 				newMesh.receiveShadow = true;
+				newMesh.material.shadowSide = 2;
+
 				environment.add( newMesh );
 
 			}
