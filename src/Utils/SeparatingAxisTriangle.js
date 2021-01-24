@@ -68,6 +68,72 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 
 } )();
 
+SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
+
+	const point1 = new Vector3();
+	const point2 = new Vector3();
+	const edge = new Line3();
+
+	return function distanceToSegment( segment, target1 = null, target2 = null ) {
+
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
+
+		const { start, end } = segment;
+		const points = this.points;
+		let distSq;
+		let closestDistanceSq = Infinity;
+
+		// check the triangle edges
+		for ( let i = 0; i < 3; i ++ ) {
+
+			const nexti = ( i + 1 ) % 3;
+			edge.start.copy( points[ i ] );
+			edge.end.copy( points[ nexti ] );
+
+			closestPointsSegmentToSegment( edge, segment, point1, point2 );
+
+			distSq = point1.distanceToSquared( point2 );
+			if ( distSq < closestDistanceSq ) {
+
+				closestDistanceSq = distSq;
+				if ( target1 ) target1.copy( point1 );
+				if ( target2 ) target2.copy( point2 );
+
+			}
+
+		}
+
+		// check end points
+		this.closestPointToPoint( start, point1 );
+		distSq = start.distanceToSquared( point1 );
+		if ( distSq < closestDistanceSq ) {
+
+			closestDistanceSq = distSq;
+			if ( target1 ) target1.copy( point1 );
+			if ( target2 ) target2.copy( start );
+
+		}
+
+		this.closestPointToPoint( end, point1 );
+		distSq = end.distanceToSquared( point1 );
+		if ( distSq < closestDistanceSq ) {
+
+			closestDistanceSq = distSq;
+			if ( target1 ) target1.copy( point1 );
+			if ( target2 ) target2.copy( end );
+
+		}
+
+		return Math.sqrt( closestDistanceSq );
+
+	};
+
+} )();
+
 SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 	const saTri2 = new SeparatingAxisTriangle();
