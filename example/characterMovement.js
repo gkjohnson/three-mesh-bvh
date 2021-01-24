@@ -394,13 +394,11 @@ function updatePlayer( delta ) {
 
 	player.position.copy( newPosition );
 
-	deltaVector.normalize();
-	playerIsOnGround = deltaVector.y > 0.25;
+	playerIsOnGround = deltaVector.y > Math.abs( delta * playerVelocity.y * 0.25 );
 
-	// TODO: it would be best if we counted down since the last time we saw the player on the ground
-	// so there's some leeway (running into a wall stops jumping).
 	if ( ! playerIsOnGround ) {
 
+		deltaVector.normalize();
 		playerVelocity.addScaledVector( deltaVector, - deltaVector.dot( playerVelocity ) );
 
 	} else {
