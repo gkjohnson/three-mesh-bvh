@@ -56,7 +56,7 @@ Or manually building the BVH
 ```js
 // Import via ES6 modules
 import * as THREE from 'three';
-import { MeshBVH, acceleratedRaycast } 'three-mesh-bvh';
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 
 // Or UMD
 const { MeshBVH, acceleratedRaycast } = window.MeshBVHLib;
@@ -86,7 +86,7 @@ raycaster.intersectObjects( [ mesh ] );
 
 ```js
 import * as THREE from 'three';
-import { MeshBVH, acceleratedRaycast } 'three-mesh-bvh';
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 
 let mesh, geometry;
 const invMat = new THREE.Matrix4();
