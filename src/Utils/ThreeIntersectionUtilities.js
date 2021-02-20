@@ -1,4 +1,4 @@
-import { Vector3, Vector2, Triangle, DoubleSide, BackSide, Face3 } from 'three';
+import { Vector3, Vector2, Triangle, DoubleSide, BackSide } from 'three';
 
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
