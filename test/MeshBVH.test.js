@@ -2,7 +2,6 @@ import {
 	Mesh,
 	BufferGeometry,
 	SphereBufferGeometry,
-	SphereGeometry,
 	InterleavedBufferAttribute,
 	InterleavedBuffer,
 	BoxBufferGeometry,
@@ -43,24 +42,6 @@ describe( 'Bounds Tree', () => {
 
 		geom.computeBoundsTree();
 		expect( geom.boundsTree ).toBeDefined();
-
-	} );
-
-	it( 'should throw an error if Geometry is used', () => {
-
-		const geom = new SphereGeometry( 1, 1, 1 );
-		let errorThrown = false;
-		try {
-
-			new MeshBVH( geom, { verbose: false } );
-
-		} catch ( e ) {
-
-			errorThrown = true;
-
-		}
-
-		expect( errorThrown ).toBe( true );
 
 	} );
 
