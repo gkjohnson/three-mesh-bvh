@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RoundedBoxBufferGeometry } from 'three/examples/jsm/geometries/RoundedBoxBufferGeometry.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -90,7 +90,7 @@ function init() {
 
 	// character
 	player = new THREE.Mesh(
-		new RoundedBoxBufferGeometry( 1.0, 2.0, 1.0, 10, 0.5 ),
+		new RoundedBoxGeometry( 1.0, 2.0, 1.0, 10, 0.5 ),
 		new THREE.MeshStandardMaterial()
 	);
 	player.geometry.translate( 0, - 0.5, 0 );
@@ -466,6 +466,9 @@ function render() {
 		}
 
 	}
+
+	// TODO: limit the camera movement based on the collider
+	// raycast in direction of camera and move it if it's further than the closest point
 
 	controls.update();
 
