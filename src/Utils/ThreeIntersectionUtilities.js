@@ -1,4 +1,4 @@
-import { Vector3, Vector2, Triangle, DoubleSide, BackSide, Face3 } from 'three';
+import { Vector3, Vector2, Triangle, DoubleSide, BackSide } from 'three';
 
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
@@ -63,8 +63,17 @@ function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, 
 
 		}
 
-		var normal = new Vector3();
-		intersection.face = new Face3( a, b, c, Triangle.getNormal( vA, vB, vC, normal ) );
+		const face = {
+			a: a,
+			b: a,
+			c: c,
+			normal: new Vector3( ),
+			materialIndex: 0
+		};
+		
+		Triangle.getNormal( vA, vB, vC, face.normal );
+		
+		intersection.face = face;
 		intersection.faceIndex = a;
 
 	}
