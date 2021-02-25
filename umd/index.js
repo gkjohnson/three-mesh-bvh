@@ -1875,8 +1875,17 @@
 
 			}
 
-			var normal = new three.Vector3();
-			intersection.face = new three.Face3( a, b, c, three.Triangle.getNormal( vA, vB, vC, normal ) );
+			const face = {
+				a: a,
+				b: a,
+				c: c,
+				normal: new three.Vector3( ),
+				materialIndex: 0
+			};
+			
+			three.Triangle.getNormal( vA, vB, vC, face.normal );
+			
+			intersection.face = face;
 			intersection.faceIndex = a;
 
 		}
