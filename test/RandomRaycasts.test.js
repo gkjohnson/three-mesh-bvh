@@ -16,7 +16,7 @@ function random() {
 	const m = 2e31;
 
 	_seed = ( a * _seed + c ) % m;
-	return _seed - Math.floor( _seed );
+	return _seed / m;
 
 }
 
