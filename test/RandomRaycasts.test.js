@@ -5,6 +5,21 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
+// https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
+let _seed = null;
+function random() {
+
+	if ( _seed === null ) throw new Error();
+
+	const a = 1103515245;
+	const c = 12345;
+	const m = 2e31;
+
+	_seed = ( a * _seed + c ) % m;
+	return _seed - Math.floor( _seed );
+
+}
+
 function runRandomTests( options ) {
 
 	let scene = null;
@@ -14,79 +29,89 @@ function runRandomTests( options ) {
 	let groupedGeometry = null;
 	let groupedBvh = null;
 
-	beforeAll( () => {
+	const transformSeed = Math.floor( Math.random() * 10 );
 
-		ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
-		groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+	describe( `Transform Seed : ${ transformSeed }`, () => {
 
-		const groupCount = 10;
-		const groupSize = groupedGeometry.index.array.length / groupCount;
+		beforeAll( () => {
 
-		for ( let g = 0; g < groupCount; g ++ ) {
+			ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+			groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 
-			const groupStart = g * groupSize;
-			groupedGeometry.addGroup( groupStart, groupSize, 0 );
+			const groupCount = 10;
+			const groupSize = groupedGeometry.index.array.length / groupCount;
 
-		}
+			for ( let g = 0; g < groupCount; g ++ ) {
 
-		groupedGeometry.computeBoundsTree( options );
-		ungroupedGeometry.computeBoundsTree( options );
+				const groupStart = g * groupSize;
+				groupedGeometry.addGroup( groupStart, groupSize, 0 );
 
-		ungroupedBvh = ungroupedGeometry.boundsTree;
-		groupedBvh = groupedGeometry.boundsTree;
+			}
 
-		scene = new Scene();
-		raycaster = new Raycaster();
+			groupedGeometry.computeBoundsTree( options );
+			ungroupedGeometry.computeBoundsTree( options );
 
-		for ( var i = 0; i < 10; i ++ ) {
+			ungroupedBvh = ungroupedGeometry.boundsTree;
+			groupedBvh = groupedGeometry.boundsTree;
 
-			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
-			let mesh = new Mesh( geo, new MeshBasicMaterial() );
-			mesh.rotation.x = Math.random() * 10;
-			mesh.rotation.y = Math.random() * 10;
-			mesh.rotation.z = Math.random() * 10;
+			scene = new Scene();
+			raycaster = new Raycaster();
 
-			mesh.position.x = Math.random();
-			mesh.position.y = Math.random();
-			mesh.position.z = Math.random();
+			_seed = transformSeed;
 
+			for ( var i = 0; i < 10; i ++ ) {
 
-			scene.add( mesh );
-			mesh.updateMatrix( true );
-			mesh.updateMatrixWorld( true );
+				let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
+				let mesh = new Mesh( geo, new MeshBasicMaterial() );
+				mesh.rotation.x = random() * 10;
+				mesh.rotation.y = random() * 10;
+				mesh.rotation.z = random() * 10;
+
+				mesh.position.x = random();
+				mesh.position.y = random();
+				mesh.position.z = random();
+
+				scene.add( mesh );
+				mesh.updateMatrix( true );
+				mesh.updateMatrixWorld( true );
+
+			}
+
+		} );
+
+		for ( let i = 0; i < 100; i ++ ) {
+
+			const raySeed = Math.floor( Math.random() * 10 );
+			it( `Cast ${ i } Seed: ${ raySeed }`, () => {
+
+				_seed = raySeed;
+
+				raycaster.firstHitOnly = false;
+				raycaster.ray.origin.set( random() * 10, random() * 10, random() * 10 );
+				raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
+
+				ungroupedGeometry.boundsTree = ungroupedBvh;
+				groupedGeometry.boundsTree = groupedBvh;
+				const bvhHits = raycaster.intersectObject( scene, true );
+
+				raycaster.firstHitOnly = true;
+				const firstHit = raycaster.intersectObject( scene, true );
+
+				// run the og hits _after_ because in the lazy generation case
+				// the indices will be changing as the tree is generated and make
+				// the results will look different.
+				ungroupedGeometry.boundsTree = null;
+				groupedGeometry.boundsTree = null;
+				const ogHits = raycaster.intersectObject( scene, true );
+
+				expect( ogHits ).toEqual( bvhHits );
+				expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
+
+			} );
 
 		}
 
 	} );
-
-	for ( let i = 0; i < 100; i ++ ) {
-
-		it( `cast ${ i }`, () => {
-
-			raycaster.firstHitOnly = false;
-			raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
-			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
-
-			ungroupedGeometry.boundsTree = ungroupedBvh;
-			groupedGeometry.boundsTree = groupedBvh;
-			const bvhHits = raycaster.intersectObject( scene, true );
-
-			raycaster.firstHitOnly = true;
-			const firstHit = raycaster.intersectObject( scene, true );
-
-			// run the og hits _after_ because in the lazy generation case
-			// the indices will be changing as the tree is generated and make
-			// the results will look different.
-			ungroupedGeometry.boundsTree = null;
-			groupedGeometry.boundsTree = null;
-			const ogHits = raycaster.intersectObject( scene, true );
-
-			expect( ogHits ).toEqual( bvhHits );
-			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
-
-		} );
-
-	}
 
 }
 
