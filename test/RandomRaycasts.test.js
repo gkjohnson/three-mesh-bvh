@@ -45,13 +45,13 @@ function runRandomTests( options ) {
 
 			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
 			let mesh = new Mesh( geo, new MeshBasicMaterial() );
-			mesh.rotation.x = ( i % 3 ) * 10 / 2;
-			mesh.rotation.y = ( i % 5 ) * 10 / 4;
-			mesh.rotation.z = ( i % 4 ) * 10 / 3;
+			mesh.rotation.x = Math.random() * 10;
+			mesh.rotation.y = Math.random() * 10;
+			mesh.rotation.z = Math.random() * 10;
 
-			mesh.position.x = ( i % 3 ) / 2;
-			mesh.position.y = ( i % 5 ) / 4;
-			mesh.position.z = ( i % 4 ) / 3;
+			mesh.position.x = Math.random();
+			mesh.position.y = Math.random();
+			mesh.position.z = Math.random();
 
 
 			scene.add( mesh );
@@ -64,16 +64,11 @@ function runRandomTests( options ) {
 
 	for ( let i = 0; i < 100; i ++ ) {
 
-		const origin = new Vector3();
-		const direction = new Vector3();
-
-		origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
-		direction.copy( origin ).multiplyScalar( - 1 ).normalize();
-		it( `cast ${ i }: ${ origin.toArray().join() } : ${ direction.toArray().join() }`, () => {
+		it( `cast ${ i }`, () => {
 
 			raycaster.firstHitOnly = false;
-			raycaster.ray.origin.copy( origin );
-			raycaster.ray.direction.copy( direction );
+			raycaster.ray.origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
+			raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
 			ungroupedGeometry.boundsTree = ungroupedBvh;
 			groupedGeometry.boundsTree = groupedBvh;
