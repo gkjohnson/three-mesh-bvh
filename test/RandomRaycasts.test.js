@@ -29,7 +29,7 @@ function runRandomTests( options ) {
 	let groupedGeometry = null;
 	let groupedBvh = null;
 
-	const transformSeed = Math.floor( Math.random() * 10 );
+	const transformSeed = Math.floor( Math.random() * 1e10 );
 
 	describe( `Transform Seed : ${ transformSeed }`, () => {
 
@@ -81,7 +81,7 @@ function runRandomTests( options ) {
 
 		for ( let i = 0; i < 100; i ++ ) {
 
-			const raySeed = Math.floor( Math.random() * 10 );
+			const raySeed = Math.floor( Math.random() * 1e10 );
 			it( `Cast ${ i } Seed: ${ raySeed }`, () => {
 
 				_seed = raySeed;
