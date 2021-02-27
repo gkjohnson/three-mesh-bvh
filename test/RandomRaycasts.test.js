@@ -58,7 +58,7 @@ function runRandomTests( options ) {
 			raycaster = new Raycaster();
 
 			_seed = transformSeed;
-			random();
+			random(); // call random() to seed with a larger value
 
 			for ( var i = 0; i < 10; i ++ ) {
 
@@ -83,10 +83,10 @@ function runRandomTests( options ) {
 		for ( let i = 0; i < 100; i ++ ) {
 
 			const raySeed = Math.floor( Math.random() * 1e10 );
-			it( `Cast ${ i } Seed: ${ raySeed }`, () => {
+			it( `Cast ${ i } Seed : ${ raySeed }`, () => {
 
 				_seed = raySeed;
-				random();
+				random(); // call random() to seed with a larger value
 
 				raycaster.firstHitOnly = false;
 				raycaster.ray.origin.set( random() * 10, random() * 10, random() * 10 );
