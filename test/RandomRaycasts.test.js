@@ -58,6 +58,7 @@ function runRandomTests( options ) {
 			raycaster = new Raycaster();
 
 			_seed = transformSeed;
+			random();
 
 			for ( var i = 0; i < 10; i ++ ) {
 
@@ -85,6 +86,7 @@ function runRandomTests( options ) {
 			it( `Cast ${ i } Seed: ${ raySeed }`, () => {
 
 				_seed = raySeed;
+				random();
 
 				raycaster.firstHitOnly = false;
 				raycaster.ray.origin.set( random() * 10, random() * 10, random() * 10 );
