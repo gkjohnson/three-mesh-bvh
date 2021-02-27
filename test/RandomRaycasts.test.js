@@ -1,9 +1,24 @@
-import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial, Vector3 } from 'three';
+import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+
+// https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
+let _seed = null;
+function random() {
+
+	if ( _seed === null ) throw new Error();
+
+	const a = 1103515245;
+	const c = 12345;
+	const m = 2e31;
+
+	_seed = ( a * _seed + c ) % m;
+	return _seed - Math.floor( _seed );
+
+}
 
 function runRandomTests( options ) {
 
@@ -14,87 +29,89 @@ function runRandomTests( options ) {
 	let groupedGeometry = null;
 	let groupedBvh = null;
 
-	beforeAll( () => {
+	const transformSeed = Math.floor( Math.random() * 1e10 );
 
-		ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
-		groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+	describe( `Transform Seed : ${ transformSeed }`, () => {
 
-		ungroupedGeometry.GROUPED = false;
-		groupedGeometry.GROUPED = true;
+		beforeAll( () => {
 
-		const groupCount = 10;
-		const groupSize = groupedGeometry.index.array.length / groupCount;
+			ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+			groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 
-		for ( let g = 0; g < groupCount; g ++ ) {
+			const groupCount = 10;
+			const groupSize = groupedGeometry.index.array.length / groupCount;
 
-			const groupStart = g * groupSize;
-			groupedGeometry.addGroup( groupStart, groupSize, 0 );
+			for ( let g = 0; g < groupCount; g ++ ) {
 
-		}
+				const groupStart = g * groupSize;
+				groupedGeometry.addGroup( groupStart, groupSize, 0 );
 
-		groupedGeometry.computeBoundsTree( options );
-		ungroupedGeometry.computeBoundsTree( options );
+			}
 
-		ungroupedBvh = ungroupedGeometry.boundsTree;
-		groupedBvh = groupedGeometry.boundsTree;
+			groupedGeometry.computeBoundsTree( options );
+			ungroupedGeometry.computeBoundsTree( options );
 
-		scene = new Scene();
-		raycaster = new Raycaster();
+			ungroupedBvh = ungroupedGeometry.boundsTree;
+			groupedBvh = groupedGeometry.boundsTree;
 
-		for ( var i = 0; i < 10; i ++ ) {
+			scene = new Scene();
+			raycaster = new Raycaster();
 
-			let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
-			let mesh = new Mesh( geo, new MeshBasicMaterial() );
-			mesh.rotation.x = ( i % 3 ) * 10 / 2;
-			mesh.rotation.y = ( i % 5 ) * 10 / 4;
-			mesh.rotation.z = ( i % 4 ) * 10 / 3;
+			_seed = transformSeed;
 
-			mesh.position.x = ( i % 3 ) / 2;
-			mesh.position.y = ( i % 5 ) / 4;
-			mesh.position.z = ( i % 4 ) / 3;
+			for ( var i = 0; i < 10; i ++ ) {
 
+				let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
+				let mesh = new Mesh( geo, new MeshBasicMaterial() );
+				mesh.rotation.x = random() * 10;
+				mesh.rotation.y = random() * 10;
+				mesh.rotation.z = random() * 10;
 
-			scene.add( mesh );
-			mesh.updateMatrix( true );
-			mesh.updateMatrixWorld( true );
+				mesh.position.x = random();
+				mesh.position.y = random();
+				mesh.position.z = random();
+
+				scene.add( mesh );
+				mesh.updateMatrix( true );
+				mesh.updateMatrixWorld( true );
+
+			}
+
+		} );
+
+		for ( let i = 0; i < 100; i ++ ) {
+
+			const raySeed = Math.floor( Math.random() * 1e10 );
+			it( `Cast ${ i } Seed: ${ raySeed }`, () => {
+
+				_seed = raySeed;
+
+				raycaster.firstHitOnly = false;
+				raycaster.ray.origin.set( random() * 10, random() * 10, random() * 10 );
+				raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
+
+				ungroupedGeometry.boundsTree = ungroupedBvh;
+				groupedGeometry.boundsTree = groupedBvh;
+				const bvhHits = raycaster.intersectObject( scene, true );
+
+				raycaster.firstHitOnly = true;
+				const firstHit = raycaster.intersectObject( scene, true );
+
+				// run the og hits _after_ because in the lazy generation case
+				// the indices will be changing as the tree is generated and make
+				// the results will look different.
+				ungroupedGeometry.boundsTree = null;
+				groupedGeometry.boundsTree = null;
+				const ogHits = raycaster.intersectObject( scene, true );
+
+				expect( ogHits ).toEqual( bvhHits );
+				expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
+
+			} );
 
 		}
 
 	} );
-
-	for ( let i = 0; i < 100; i ++ ) {
-
-		const origin = new Vector3();
-		const direction = new Vector3();
-
-		origin.set( Math.random() * 10, Math.random() * 10, Math.random() * 10 );
-		direction.copy( origin ).multiplyScalar( - 1 ).normalize();
-		it( `cast ${ i }: ${ origin.toArray().join() } : ${ direction.toArray().join() }`, () => {
-
-			raycaster.firstHitOnly = false;
-			raycaster.ray.origin.copy( origin );
-			raycaster.ray.direction.copy( direction );
-
-			ungroupedGeometry.boundsTree = ungroupedBvh;
-			groupedGeometry.boundsTree = groupedBvh;
-			const bvhHits = raycaster.intersectObject( scene, true );
-
-			raycaster.firstHitOnly = true;
-			const firstHit = raycaster.intersectObject( scene, true );
-
-			// run the og hits _after_ because in the lazy generation case
-			// the indices will be changing as the tree is generated and make
-			// the results will look different.
-			ungroupedGeometry.boundsTree = null;
-			groupedGeometry.boundsTree = null;
-			const ogHits = raycaster.intersectObject( scene, true );
-
-			expect( ogHits ).toEqual( bvhHits );
-			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
-
-		} );
-
-	}
 
 }
 
