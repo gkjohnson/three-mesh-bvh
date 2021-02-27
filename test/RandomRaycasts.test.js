@@ -19,9 +19,6 @@ function runRandomTests( options ) {
 		ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 		groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 
-		ungroupedGeometry.GROUPED = false;
-		groupedGeometry.GROUPED = true;
-
 		const groupCount = 10;
 		const groupSize = groupedGeometry.index.array.length / groupCount;
 
