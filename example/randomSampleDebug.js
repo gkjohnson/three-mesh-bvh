@@ -87,7 +87,7 @@ function init() {
 			scene.add( mesh );
 
 			const wireframe = mesh.clone();
-			wireframe.material = new THREE.MeshBasicMaterial( { wireframe: true, color: 0xff6666 });
+			wireframe.material = new THREE.MeshBasicMaterial( { wireframe: true, color: 0xff6666 } );
 			scene.add( wireframe );
 
 			const helper = new MeshBVHVisualizer( mesh, 10 );
