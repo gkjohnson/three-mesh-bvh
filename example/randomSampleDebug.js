@@ -56,7 +56,7 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	const controls = new OrbitControls( camera, renderer.domElement );
+	new OrbitControls( camera, renderer.domElement );
 
 	const transformSeed = 7830035629;
 	const raySeed = 4697211981;
@@ -165,12 +165,6 @@ function init() {
 function render() {
 
 	requestAnimationFrame( render );
-
-	if ( helper ) {
-
-		helper.visible = params.displayHelper;
-
-	}
 
 	renderer.render( scene, camera );
 
