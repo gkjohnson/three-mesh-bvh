@@ -21,8 +21,8 @@ const target2 = new THREE.Vector3();
 const geometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
 const raycaster = new THREE.Raycaster();
-raycaster.ray.origin.set( 0, 0, - 10 );
-raycaster.ray.direction.set( 0, 0, 1 );
+raycaster.ray.origin.set( 10, 10, 10 );
+raycaster.ray.direction.set( - 1, - 1, - 1 );
 
 function logExtremes( bvh, geometry ) {
 

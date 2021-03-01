@@ -7,7 +7,6 @@
 
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
-
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
@@ -83,14 +82,13 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
 		if ( c1Result ) {
 
-			// check only along the split axis
-			const rayOrig = ray.origin[ xyzAxis ];
-			const toPoint = rayOrig - c1Result.point[ xyzAxis ];
-			const toChild1 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis ];
-			const toChild2 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis + 3 ];
+			// check if the point is within the second bounds
+			const point = c1Result.point[ xyzAxis ];
+			const isOutside = leftToRight ?
+				point <= /* c2 boundingData */ float32Array[ c2 + splitAxis ] :
+				point >= /* c2 boundingData */ float32Array[ c2 + splitAxis + 3 ];
 
-			const toPointSq = toPoint * toPoint;
-			if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
+			if ( isOutside ) {
 
 				return c1Result;
 
