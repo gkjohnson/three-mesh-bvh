@@ -86,11 +86,19 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 			// check only along the split axis
 			const rayOrig = ray.origin[ xyzAxis ];
 			const toPoint = rayOrig - c1Result.point[ xyzAxis ];
+
 			const toChild1 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis ];
 			const toChild2 = rayOrig - /* c2 boundingData */ float32Array[ c2 + splitAxis + 3 ];
+			const toChild = leftToRight ? toChild1 : toChild2;
+			const toChildSq = toChild * toChild;
+			const toPointSq	= toPoint * toPoint;
 
-			const toPointSq = toPoint * toPoint;
-			if ( toPointSq <= toChild1 * toChild1 && toPointSq <= toChild2 * toChild2 ) {
+			// corner case where we must check if the ray origin happens to already
+			// be inside the bounds which could mean the hit result is closer
+			// to the origin than the edges of the bounds.
+			const startsOutsideBounds = ( toChild1 > 0 ) === ( toChild2 > 0 );
+
+			if ( toPointSq <= toChildSq && startsOutsideBounds ) {
 
 				return c1Result;
 
