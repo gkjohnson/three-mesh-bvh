@@ -8,9 +8,7 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-const params = {};
-
-let renderer, camera, scene, helper;
+let renderer, camera, scene;
 let meshes = [];
 
 let _seed = null;
