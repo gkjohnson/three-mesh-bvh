@@ -13,6 +13,54 @@ export class MeshBVHDebug {
 
 	}
 
+	// Returns a simple, human readable object that represents the BVH.
+	getJSONStructure() {
+
+		const { bvh } = this;
+		const depthStack = [];
+
+		bvh.traverse( ( depth, isLeaf, boundingData, offset, count ) => {
+
+			const info = {
+				bounds: arrayToBox( boundingData, new Box3() ),
+			};
+
+			if ( isLeaf ) {
+
+				info.count = count;
+				info.offset = offset;
+
+			} else {
+
+				info.left = null;
+				info.right = null;
+
+			}
+
+			depthStack[ depth ] = info;
+
+			// traversal hits the left then right node
+			const parent = depthStack[ depth - 1 ];
+			if ( parent ) {
+
+				if ( parent.left === null ) {
+
+					parent.left = info;
+
+				} else {
+
+					parent.right = info;
+
+				}
+
+			}
+
+		} );
+
+		return depthStack[ 0 ];
+
+	}
+
 	validateBounds() {
 
 		const { bvh, geometry } = this;
