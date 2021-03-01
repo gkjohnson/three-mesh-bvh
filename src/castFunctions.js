@@ -94,22 +94,13 @@ export function raycastFirst( node, mesh, raycaster, ray ) {
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
 		if ( c1Result ) {
 
-			// check only along the split axis
-			const rayOrig = ray.origin[ xyzAxis ];
-			const toPoint = rayOrig - c1Result.point[ xyzAxis ];
+			// check if the point is within the second bounds
+			const point = c1Result.point[ xyzAxis ];
+			const isOutside = leftToRight ?
+				point <= c2.boundingData[ splitAxis ] :
+				point >= c2.boundingData[ splitAxis + 3 ];
 
-			const toChild1 = rayOrig - c2.boundingData[ splitAxis ];
-			const toChild2 = rayOrig - c2.boundingData[ splitAxis + 3 ];
-			const toChild = leftToRight ? toChild1 : toChild2;
-			const toChildSq = toChild * toChild;
-			const toPointSq	= toPoint * toPoint;
-
-			// corner case where we must check if the ray origin happens to already
-			// be inside the bounds which could mean the hit result is closer
-			// to the origin than the edges of the bounds.
-			const startsOutsideBounds = ( toChild1 > 0 ) === ( toChild2 > 0 );
-
-			if ( toPointSq <= toChildSq && startsOutsideBounds ) {
+			if ( isOutside ) {
 
 				return c1Result;
 
