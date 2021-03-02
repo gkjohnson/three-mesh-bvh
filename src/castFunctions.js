@@ -21,12 +21,6 @@ function intersectRay( node, ray, target ) {
 
 export function raycast( node, mesh, raycaster, ray, intersects ) {
 
-	if ( node.continueGeneration ) {
-
-		node.continueGeneration();
-
-	}
-
 	const isLeaf = ! ! node.count;
 	if ( isLeaf ) {
 
@@ -51,12 +45,6 @@ export function raycast( node, mesh, raycaster, ray, intersects ) {
 }
 
 export function raycastFirst( node, mesh, raycaster, ray ) {
-
-	if ( node.continueGeneration ) {
-
-		node.continueGeneration();
-
-	}
 
 	const isLeaf = ! ! node.count;
 	if ( isLeaf ) {
@@ -178,20 +166,9 @@ export const shapecast = ( function () {
 		// when converting to the buffer equivalents
 		function getLeftOffset( node ) {
 
-			if ( node.continueGeneration ) {
-
-				node.continueGeneration();
-
-			}
-
 			while ( ! node.count ) {
 
 				node = node.left;
-				if ( /* skip */ node.continueGeneration ) {
-
-					node.continueGeneration();
-
-				}
 
 			}
 
@@ -201,30 +178,13 @@ export const shapecast = ( function () {
 
 		function getRightEndOffset( node ) {
 
-			if ( node.continueGeneration ) {
-
-				node.continueGeneration();
-
-			}
-
 			while ( ! node.count ) {
 
 				node = node.right;
-				if ( /* skip */ node.continueGeneration ) {
-
-					node.continueGeneration();
-
-				}
 
 			}
 
 			return node.offset + node.count;
-
-		}
-
-		if ( node.continueGeneration ) {
-
-			node.continueGeneration();
 
 		}
 
@@ -370,12 +330,6 @@ export const intersectsGeometry = ( function () {
 	const obb2 = new OrientedBox();
 
 	return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
-
-		if ( node.continueGeneration ) {
-
-			node.continueGeneration();
-
-		}
 
 		if ( cachedObb === null ) {
 
