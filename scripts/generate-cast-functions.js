@@ -1,5 +1,5 @@
-const fs = require( 'fs' );
-const path = require( 'path' );
+import fs from 'fs';
+import path from 'path';
 
 // Replace unneeded function definitions and checks. The `continueGeneration` block is always at the top of
 // a function definition so we can replace that with local variable definitions we need.
