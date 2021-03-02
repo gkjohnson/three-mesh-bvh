@@ -95,7 +95,7 @@ const invMat = new THREE.Matrix4();
 
 // ...
 
-const bvh = new MeshBVH( geometry, { lazyGeneration: false } );
+const bvh = new MeshBVH( geometry );
 invMat.copy( mesh.matrixWorld ).invert();
 
 // raycasting
@@ -223,16 +223,6 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
     // Print out warnings encountered during tree construction.
     verbose: true,
-
-    // If true the bounds tree is generated progressively as the tree is used allowing
-    // for a fast initialization time and memory allocation as needed but a higher memory
-    // footprint once the tree is completed. The initial raycasts are also slower until the
-    // tree is built up.
-    // If false then the bounds tree will be completely generated up front and packed into
-    // an array buffer for a lower final memory footprint and long initialization time.
-    // Note that this will keep intermediate buffers needed for generation in scope until
-    // the tree has been fully generated.
-    lazyGeneration: true
 
 }
 ```
