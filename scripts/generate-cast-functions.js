@@ -5,6 +5,27 @@ const path = require( 'path' );
 // a function definition so we can replace that with local variable definitions we need.
 function replaceUnneededCode( str ) {
 
+	str = str.replace(
+		/if \( [^)]*node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
+		match => {
+
+			if ( match.indexOf( '/* skip */' ) !== - 1 ) {
+
+				return '';
+
+			} else {
+
+				return 'let stride2Offset = stride4Offset * 2, ' +
+					'float32Array = _float32Array, ' +
+					'uint16Array = _uint16Array, ' +
+					'uint32Array = _uint32Array;\n';
+
+			}
+
+		}
+
+	);
+
 	str = str.replace( /function intersectRay\((.|[\r\n])*?}[\r|\n]/mg, '' );
 
 	str = str.replace( /import { arrayToBox.*?;[\r\n]/g, '' );
@@ -127,20 +148,6 @@ function replaceFunctionNames( str ) {
 		( match, funcName ) => {
 
 			return `const${ funcName }Buffer`;
-
-		}
-	);
-
-	str = str.replace(
-		new RegExp( `\n(.+?)${ orNames }.+? {`, 'gm' ),
-		match => {
-
-			const whitespace = match.match( /^\s+/ )[ 0 ];
-			return match + '\n' + whitespace + '\t' +
-				'let stride2Offset = stride4Offset * 2, ' +
-				'float32Array = _float32Array, ' +
-				'uint16Array = _uint16Array, ' +
-				'uint32Array = _uint32Array;\n';
 
 		}
 	);
