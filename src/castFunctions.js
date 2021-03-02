@@ -21,6 +21,8 @@ function intersectRay( node, ray, target ) {
 
 export function raycast( node, mesh, raycaster, ray, intersects ) {
 
+	/* INSERT_BUFFER_VARS */
+
 	const isLeaf = ! ! node.count;
 	if ( isLeaf ) {
 
@@ -45,6 +47,8 @@ export function raycast( node, mesh, raycaster, ray, intersects ) {
 }
 
 export function raycastFirst( node, mesh, raycaster, ray ) {
+
+	/* INSERT_BUFFER_VARS */
 
 	const isLeaf = ! ! node.count;
 	if ( isLeaf ) {
@@ -161,6 +165,8 @@ export const shapecast = ( function () {
 		cachedBox1 = _cachedBox1,
 		cachedBox2 = _cachedBox2
 	) {
+
+		/* INSERT_BUFFER_VARS */
 
 		// Define these inside the function so it has access to the local variables needed
 		// when converting to the buffer equivalents
@@ -330,6 +336,8 @@ export const intersectsGeometry = ( function () {
 	const obb2 = new OrientedBox();
 
 	return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
+
+		/* INSERT_BUFFER_VARS */
 
 		if ( cachedObb === null ) {
 

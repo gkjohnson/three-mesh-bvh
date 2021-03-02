@@ -6,7 +6,7 @@ const path = require( 'path' );
 function replaceUnneededCode( str ) {
 
 	str = str.replace(
-		/if \( [^)]*node.continueGeneration \)(.|\n|\r)*?}[\r|\n]/mg,
+		/\/\* INSERT_BUFFER_VARS \*\//mg,
 		match => {
 
 			if ( match.indexOf( '/* skip */' ) !== - 1 ) {
