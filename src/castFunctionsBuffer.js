@@ -161,11 +161,11 @@ export const shapecastBuffer = ( function () {
 		cachedBox2 = _cachedBox2
 	) {
 
-		let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
 		// Define these inside the function so it has access to the local variables needed
 		// when converting to the buffer equivalents
 		function getLeftOffsetBuffer( stride4Offset ) {
+
+			let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			while ( /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff ) ) {
 
@@ -179,6 +179,8 @@ export const shapecastBuffer = ( function () {
 
 		function getRightEndOffsetBuffer( stride4Offset ) {
 
+			let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 			while ( /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff ) ) {
 
 				/* node */ stride4Offset = /* node right */ uint32Array[ stride4Offset + 6 ], stride2Offset = stride4Offset * 2;
@@ -188,6 +190,8 @@ export const shapecastBuffer = ( function () {
 			return /* node offset */ uint32Array[ stride4Offset + 6 ] + /* node count */ uint16Array[ stride2Offset + 14 ];
 
 		}
+
+		let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 		const isLeaf = ! /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff );
 		if ( isLeaf && intersectsTriangleFunc ) {

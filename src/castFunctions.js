@@ -166,11 +166,11 @@ export const shapecast = ( function () {
 		cachedBox2 = _cachedBox2
 	) {
 
-		/* INSERT_BUFFER_VARS */
-
 		// Define these inside the function so it has access to the local variables needed
 		// when converting to the buffer equivalents
 		function getLeftOffset( node ) {
+
+			/* INSERT_BUFFER_VARS */
 
 			while ( ! node.count ) {
 
@@ -184,6 +184,8 @@ export const shapecast = ( function () {
 
 		function getRightEndOffset( node ) {
 
+			/* INSERT_BUFFER_VARS */
+
 			while ( ! node.count ) {
 
 				node = node.right;
@@ -193,6 +195,8 @@ export const shapecast = ( function () {
 			return node.offset + node.count;
 
 		}
+
+		/* INSERT_BUFFER_VARS */
 
 		const isLeaf = ! ! node.count;
 		if ( isLeaf && intersectsTriangleFunc ) {
