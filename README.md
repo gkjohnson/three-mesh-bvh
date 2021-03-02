@@ -46,8 +46,8 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // Generate geometry and associated BVH
-const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
-const mesh = new THREE.Mesh(geom, material);
+const geom = new THREE.TorusKnotBufferGeometry( 10, 3, 400, 100 );
+const mesh = new THREE.Mesh( geom, material );
 geom.computeBoundsTree();
 ```
 
