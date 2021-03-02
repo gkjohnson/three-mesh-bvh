@@ -124,6 +124,8 @@ geometry.boundsTree = deserializedBVH;
 
 ## Asynchronous Generation
 
+_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenereateMeshBVHWorker class is not exported from the package root. If needed the code from `src/worker` can be copied and modified to accomodate a particular build process._
+
 ```js
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 
@@ -451,6 +453,36 @@ If the raycaster object being used has a property `firstHitOnly` set to `true`, 
 ```js
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 ```
+
+## GenerateMeshBVHWorker
+
+Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while the BVH is being generated meaning the geometry will be unavailable to use while the BVH is being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when the MeshBVH is finished generating.
+
+_NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating a new Worker._
+
+### .running
+
+```js
+running : Boolean;
+```
+
+Flag indicating whether or not a BVH is already being generated in the worker.
+
+### .generate
+
+```js
+generate( geometry : BufferGeometry, options : Object ) : Promise< MeshBVH >;
+```
+
+Generates a MeshBVH instance for the given geometry with the given options in a WebWorker. Returns a promise that resolves with the generated MeshBVH. This function will throw an error if it is already running.
+
+### .terminate
+
+```js
+terminate() : Boolean;
+```
+
+Terminates the worker.
 
 ## Debug Functions
 
