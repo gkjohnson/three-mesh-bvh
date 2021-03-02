@@ -118,6 +118,8 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 export const shapecastBuffer = ( function () {
 
+	let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+
 	const _triangle = new SeparatingAxisTriangle();
 	const _cachedBox1 = new Box3();
 	const _cachedBox2 = new Box3();
@@ -191,8 +193,6 @@ export const shapecastBuffer = ( function () {
 			return /* node offset */ uint32Array[ stride4Offset + 6 ] + /* node count */ uint16Array[ stride2Offset + 14 ];
 
 		}
-
-		let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 		const isLeaf = ! /* node count */ ( uint16Array[ stride2Offset + 15 ] !== 0xffff );
 		if ( isLeaf && intersectsTriangleFunc ) {
@@ -326,6 +326,8 @@ export const shapecastBuffer = ( function () {
 } )();
 
 export const intersectsGeometryBuffer = ( function () {
+
+	let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
