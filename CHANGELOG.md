@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.
 - Use `type: module` in package.json to enable use of es6 modules in node.
+- Remove ability to generate an unpacked BVH.
 
 ## [0.3.5] - 2021-02-28
 ### Fixed
