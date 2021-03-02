@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Changed
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.
+- Use `type: module` in the package.json
 
 ## [0.3.5] - 2021-02-28
 ### Fixed
