@@ -1,6 +1,6 @@
 import { Vector3, BufferAttribute } from 'three';
 import { CENTER } from './Constants.js';
-import { buildTree } from './buildFunctions.js';
+import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
@@ -13,11 +13,6 @@ import {
 	clearBuffer,
 } from './castFunctionsBuffer.js';
 
-// boundingData  				: 6 float32
-// right / offset 				: 1 uint32
-// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
-const BYTES_PER_NODE = 6 * 4 + 4 + 4;
-const IS_LEAFNODE_FLAG = 0xFFFF;
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 const obb = new OrientedBox();
@@ -30,90 +25,7 @@ export default class MeshBVH {
 
 	static serialize( bvh, geometry, copyIndexBuffer = true ) {
 
-		function countNodes( node ) {
-
-			if ( node.count ) {
-
-				return 1;
-
-			} else {
-
-				return 1 + countNodes( node.left ) + countNodes( node.right );
-
-			}
-
-		}
-
-		function populateBuffer( byteOffset, node ) {
-
-			const stride4Offset = byteOffset / 4;
-			const stride2Offset = byteOffset / 2;
-			const isLeaf = ! ! node.count;
-			const boundingData = node.boundingData;
-			for ( let i = 0; i < 6; i ++ ) {
-
-				float32Array[ stride4Offset + i ] = boundingData[ i ];
-
-			}
-
-			if ( isLeaf ) {
-
-				const offset = node.offset;
-				const count = node.count;
-				uint32Array[ stride4Offset + 6 ] = offset;
-				uint16Array[ stride2Offset + 14 ] = count;
-				uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
-				return byteOffset + BYTES_PER_NODE;
-
-			} else {
-
-				const left = node.left;
-				const right = node.right;
-				const splitAxis = node.splitAxis;
-
-				let nextUnusedPointer;
-				nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
-
-				uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
-				nextUnusedPointer = populateBuffer( nextUnusedPointer, right );
-
-				uint32Array[ stride4Offset + 7 ] = splitAxis;
-				return nextUnusedPointer;
-
-			}
-
-		}
-
-		let float32Array;
-		let uint32Array;
-		let uint16Array;
-
-		const roots = bvh._roots;
-		let rootData;
-
-		if ( bvh._isPacked ) {
-
-			rootData = roots;
-
-		} else {
-
-			rootData = [];
-			for ( let i = 0; i < roots.length; i ++ ) {
-
-				const root = roots[ i ];
-				let nodeCount = countNodes( root );
-
-				const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
-				float32Array = new Float32Array( buffer );
-				uint32Array = new Uint32Array( buffer );
-				uint16Array = new Uint16Array( buffer );
-				populateBuffer( 0, root );
-				rootData.push( buffer );
-
-			}
-
-		}
-
+		const rootData = bvh._roots;
 		const indexAttribute = geometry.getIndex();
 		const result = {
 			roots: rootData,
@@ -186,9 +98,7 @@ export default class MeshBVH {
 		this._roots = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			// TODO: separate the buffer packing from the serialize function
-			this._roots = buildTree( geo, options );
-			this._roots = MeshBVH.serialize( this, geo, false ).roots;
+			this._roots = buildPackedTree( geo, options );
 
 		}
 
@@ -204,7 +114,7 @@ export default class MeshBVH {
 		function _traverseBuffer( stride4Offset, depth = 0 ) {
 
 			const stride2Offset = stride4Offset * 2;
-			const isLeaf = uint16Array[ stride2Offset + 15 ];
+			const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
 			if ( isLeaf ) {
 
 				const offset = uint32Array[ stride4Offset + 6 ];
