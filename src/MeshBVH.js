@@ -37,23 +37,6 @@ export default class MeshBVH {
 
 	static serialize( bvh, geometry, copyIndexBuffer = true ) {
 
-		function finishTree( node ) {
-
-			if ( node.continueGeneration ) {
-
-				node.continueGeneration();
-
-			}
-
-			if ( ! node.count ) {
-
-				finishTree( node.left );
-				finishTree( node.right );
-
-			}
-
-		}
-
 		function countNodes( node ) {
 
 			if ( node.count ) {
@@ -125,7 +108,6 @@ export default class MeshBVH {
 			for ( let i = 0; i < roots.length; i ++ ) {
 
 				const root = roots[ i ];
-				finishTree( root );
 				let nodeCount = countNodes( root );
 
 				const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
@@ -252,7 +234,7 @@ export default class MeshBVH {
 					const left = stride4Offset + BYTES_PER_NODE / 4;
 					const right = uint32Array[ stride4Offset + 6 ];
 					const splitAxis = uint32Array[ stride4Offset + 7 ];
-					const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis, false );
+					const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis );
 
 					if ( ! stopTraversal ) {
 
@@ -278,7 +260,7 @@ export default class MeshBVH {
 
 				} else {
 
-					const stopTraversal = callback( depth, isLeaf, node.boundingData, node.splitAxis, ! ! node.continueGeneration );
+					const stopTraversal = callback( depth, isLeaf, node.boundingData, node.splitAxis );
 
 					if ( ! stopTraversal ) {
 
