@@ -42,11 +42,9 @@ function logExtremes( bvh, geometry ) {
 
 }
 
-function runSuite( strategy, lazyGeneration = true ) {
+function runSuite( strategy ) {
 
-	const options = { lazyGeneration, strategy };
-	let preFunc = lazyGeneration ? () => geometry.computeBoundsTree( options ) : null;
-
+	const options = { strategy };
 	geometry.computeBoundsTree( options );
 	logExtremes( geometry.boundsTree, geometry );
 
@@ -69,7 +67,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'Serialize',
-		preFunc,
+		null,
 		() => {
 
 			MeshBVH.serialize( geometry.boundsTree, geometry );
@@ -84,7 +82,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'Deserialize',
-		preFunc,
+		null,
 		() => {
 
 			MeshBVH.deserialize( serialized, geometry );
@@ -100,7 +98,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'BVH Raycast',
-		preFunc,
+		null,
 		() => mesh.raycast( raycaster, [] ),
 		3000
 
@@ -110,7 +108,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'First Hit Raycast',
-		preFunc,
+		null,
 		() => mesh.raycast( raycaster, [] ),
 		3000
 
@@ -119,7 +117,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'Sphere Shapecast',
-		preFunc,
+		null,
 		() => {
 
 			mesh.geometry.boundsTree.shapecast( mesh, box => sphere.intersectsBox( box ), tri => {
@@ -136,7 +134,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'IntersectsSphere',
-		preFunc,
+		null,
 		() => mesh.geometry.boundsTree.intersectsSphere( mesh, sphere ),
 		3000
 
@@ -145,7 +143,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'IntersectsBox',
-		preFunc,
+		null,
 		() => mesh.geometry.boundsTree.intersectsBox( mesh, box, boxMat ),
 		3000
 
@@ -154,7 +152,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'DistanceToGeometry',
-		preFunc,
+		null,
 		() => mesh.geometry.boundsTree.closestPointToGeometry( mesh, intersectGeometry, geomMat, target1, target2 ),
 		3000
 
@@ -164,7 +162,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'DistanceToPoint',
-		preFunc,
+		null,
 		() => mesh.geometry.boundsTree.closestPointToPoint( mesh, vec, target1 ),
 		3000
 
@@ -176,7 +174,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'IntersectsGeometry with BVH',
-		preFunc,
+		null,
 		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 		3000
 
@@ -187,7 +185,7 @@ function runSuite( strategy, lazyGeneration = true ) {
 	runBenchmark(
 
 		'IntersectsGeometry without BVH',
-		preFunc,
+		null,
 		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 		3000
 
@@ -199,9 +197,6 @@ function runSuite( strategy, lazyGeneration = true ) {
 console.log( '*Strategy: CENTER*' );
 runSuite( CENTER );
 
-console.log( '' );
-console.log( '*Strategy: Non-Lazy CENTER*' );
-runSuite( CENTER, false );
 
 console.log( '' );
 console.log( '*Strategy: AVERAGE*' );

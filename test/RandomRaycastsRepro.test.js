@@ -95,9 +95,6 @@ function runRandomTest( options, transformSeed, raySeed ) {
 			raycaster.firstHitOnly = true;
 			const firstHit = raycaster.intersectObject( scene, true );
 
-			// run the og hits _after_ because in the lazy generation case
-			// the indices will be changing as the tree is generated and make
-			// the results will look different.
 			ungroupedGeometry.boundsTree = null;
 			groupedGeometry.boundsTree = null;
 			const ogHits = raycaster.intersectObject( scene, true );
@@ -112,6 +109,6 @@ function runRandomTest( options, transformSeed, raySeed ) {
 }
 
 
-runRandomTest( { strategy: AVERAGE, packData: true, lazyGeneration: false }, 7830035629, 4697211981 );
-runRandomTest( { strategy: AVERAGE, packData: true, lazyGeneration: false }, 8294928772, 1592666709 );
-runRandomTest( { strategy: SAH, packData: true, lazyGeneration: false }, 81992501, 8903271423 );
+runRandomTest( { strategy: AVERAGE, packData: true }, 7830035629, 4697211981 );
+runRandomTest( { strategy: AVERAGE, packData: true }, 8294928772, 1592666709 );
+runRandomTest( { strategy: SAH, packData: true }, 81992501, 8903271423 );

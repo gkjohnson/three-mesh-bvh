@@ -30,9 +30,8 @@ BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 describe( 'Shape Casts', () => {
 
-	describe( 'lazy: true, packed: false', () => runSuiteWithOptions( { lazyGeneration: true, packedData: false } ) );
-	describe( 'lazy: false, packed: false', () => runSuiteWithOptions( { lazyGeneration: false, packedData: false } ) );
-	describe( 'lazy: false, packed: true', () => runSuiteWithOptions( { lazyGeneration: false, packedData: true } ) );
+	describe( 'packed: false', () => runSuiteWithOptions( { packedData: false } ) );
+	describe( 'packed: true', () => runSuiteWithOptions( { packedData: true } ) );
 
 } );
 
@@ -650,8 +649,6 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const bvh = new MeshBVH( geometry );
 
-				// Run the bvh raycast before the builtin raycast because the bvh
-				// lazy raycast will rearrange the index.
 				geometry.boundsTree = bvh;
 				raycaster.firstHitOnly = true;
 				const bvhHits = raycaster.intersectObject( mesh, true );

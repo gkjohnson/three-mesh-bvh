@@ -36,7 +36,7 @@ function getRootExtremes( bvh, group ) {
 		splits: [ 0, 0, 0 ]
 	};
 
-	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
+	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, count ) => {
 
 		result.total ++;
 		if ( isLeaf ) {
@@ -44,8 +44,8 @@ function getRootExtremes( bvh, group ) {
 			result.depth.min = Math.min( depth, result.depth.min );
 			result.depth.max = Math.max( depth, result.depth.max );
 
-			result.tris.min = Math.min( countOrIsUnfinished, result.tris.min );
-			result.tris.max = Math.max( countOrIsUnfinished, result.tris.max );
+			result.tris.min = Math.min( count, result.tris.min );
+			result.tris.max = Math.max( count, result.tris.max );
 
 		} else {
 

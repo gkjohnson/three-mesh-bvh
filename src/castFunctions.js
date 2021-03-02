@@ -21,11 +21,7 @@ function intersectRay( node, ray, target ) {
 
 export function raycast( node, mesh, raycaster, ray, intersects ) {
 
-	if ( node.continueGeneration ) {
-
-		node.continueGeneration();
-
-	}
+	/* INSERT_BUFFER_VARS */
 
 	const isLeaf = ! ! node.count;
 	if ( isLeaf ) {
@@ -52,11 +48,7 @@ export function raycast( node, mesh, raycaster, ray, intersects ) {
 
 export function raycastFirst( node, mesh, raycaster, ray ) {
 
-	if ( node.continueGeneration ) {
-
-		node.continueGeneration();
-
-	}
+	/* INSERT_BUFFER_VARS */
 
 	const isLeaf = ! ! node.count;
 	if ( isLeaf ) {
@@ -178,20 +170,11 @@ export const shapecast = ( function () {
 		// when converting to the buffer equivalents
 		function getLeftOffset( node ) {
 
-			if ( node.continueGeneration ) {
-
-				node.continueGeneration();
-
-			}
+			/* INSERT_BUFFER_VARS */
 
 			while ( ! node.count ) {
 
 				node = node.left;
-				if ( /* skip */ node.continueGeneration ) {
-
-					node.continueGeneration();
-
-				}
 
 			}
 
@@ -201,20 +184,11 @@ export const shapecast = ( function () {
 
 		function getRightEndOffset( node ) {
 
-			if ( node.continueGeneration ) {
-
-				node.continueGeneration();
-
-			}
+			/* INSERT_BUFFER_VARS */
 
 			while ( ! node.count ) {
 
 				node = node.right;
-				if ( /* skip */ node.continueGeneration ) {
-
-					node.continueGeneration();
-
-				}
 
 			}
 
@@ -222,11 +196,7 @@ export const shapecast = ( function () {
 
 		}
 
-		if ( node.continueGeneration ) {
-
-			node.continueGeneration();
-
-		}
+		/* INSERT_BUFFER_VARS */
 
 		const isLeaf = ! ! node.count;
 		if ( isLeaf && intersectsTriangleFunc ) {
@@ -371,11 +341,7 @@ export const intersectsGeometry = ( function () {
 
 	return function intersectsGeometry( node, mesh, geometry, geometryToBvh, cachedObb = null ) {
 
-		if ( node.continueGeneration ) {
-
-			node.continueGeneration();
-
-		}
+		/* INSERT_BUFFER_VARS */
 
 		if ( cachedObb === null ) {
 

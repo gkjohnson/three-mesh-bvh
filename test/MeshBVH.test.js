@@ -28,7 +28,7 @@ describe( 'Bounds Tree', () => {
 	it( 'should properly encapsulate all triangles and bounds.', () => {
 
 		const geom = new SphereBufferGeometry( 500, 50, 50 );
-		const bvh = new MeshBVH( geom, { lazyGeneration: false } );
+		const bvh = new MeshBVH( geom );
 		const debug = new MeshBVHDebug( bvh, geom );
 
 		expect( debug.validateBounds() ).toBeTruthy();
@@ -183,7 +183,7 @@ describe( 'Serialization', () => {
 	it( 'should serialize then deserialize to the same structure.', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom, { packData: true, lazyGeneration: false } );
+		const bvh = new MeshBVH( geom, { packData: true } );
 		const serialized = MeshBVH.serialize( bvh, geom );
 
 		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
@@ -194,7 +194,7 @@ describe( 'Serialization', () => {
 	it( 'should copy the index buffer from the target geometry unless copyIndex is set to false', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom, { packData: true, lazyGeneration: false } );
+		const bvh = new MeshBVH( geom, { packData: true } );
 
 		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh, geom ).index );
 		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, geom, false ).index );
@@ -205,7 +205,7 @@ describe( 'Serialization', () => {
 
 		const geom1 = new SphereBufferGeometry( 1, 10, 10 );
 		const geom2 = new SphereBufferGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom1, { packData: true, lazyGeneration: false } );
+		const bvh = new MeshBVH( geom1, { packData: true } );
 		const serialized = MeshBVH.serialize( bvh, geom1 );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
@@ -218,23 +218,6 @@ describe( 'Serialization', () => {
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).toEqual( serialized.index );
-
-	} );
-
-	it( 'should complete the tree and then deserialize to packed buffer data if original tree is lazily constructed.', () => {
-
-		const geom = new SphereBufferGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom, { packData: false, lazyGeneration: true } );
-
-		expect( getMaxDepth( bvh ) ).toBe( 0 );
-
-		const serialized = MeshBVH.serialize( bvh, geom );
-
-		expect( getMaxDepth( bvh ) ).toBeGreaterThan( 0 );
-
-		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
-		expect( deserializedBVH._isPacked ).toBeTruthy();
-		expect( deserializedBVH._roots[ 0 ] instanceof ArrayBuffer ).toBeTruthy();
 
 	} );
 
@@ -268,7 +251,7 @@ describe( 'Options', () => {
 
 		it( 'should not be limited by default', () => {
 
-			mesh.geometry.computeBoundsTree( { lazyGeneration: false } );
+			mesh.geometry.computeBoundsTree();
 
 			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toBeGreaterThan( 10 );
@@ -277,7 +260,7 @@ describe( 'Options', () => {
 
 		it( 'should cap the depth of the bounds tree', () => {
 
-			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false, lazyGeneration: false } );
+			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
 
 			const depth = getMaxDepth( mesh.geometry.boundsTree );
 			expect( depth ).toEqual( 10 );
@@ -306,11 +289,11 @@ describe( 'Options', () => {
 
 	} );
 
-	describe( 'packData & lazyGeneration', () => {
+	describe( 'packData', () => {
 
-		it( 'should be constructed to array buffers if packData is true and lazyGeneration is false.', () => {
+		it( 'should be constructed to array buffers if packData is true', () => {
 
-			mesh.geometry.computeBoundsTree( { packData: true, lazyGeneration: false } );
+			mesh.geometry.computeBoundsTree( { packData: true } );
 
 			const bvh = mesh.geometry.boundsTree;
 			expect( bvh._isPacked ).toBeTruthy();
@@ -319,25 +302,14 @@ describe( 'Options', () => {
 
 		} );
 
-		it( 'should be fully constructed as nodes if packData and lazyGeneration are false.', () => {
+		it( 'should be fully constructed as nodes if packData is false.', () => {
 
-			mesh.geometry.computeBoundsTree( { packData: false, lazyGeneration: false } );
+			mesh.geometry.computeBoundsTree( { packData: false } );
 
 			const bvh = mesh.geometry.boundsTree;
 			expect( bvh._isPacked ).toBeFalsy();
 			expect( bvh._roots[ 0 ] instanceof ArrayBuffer ).toBeFalsy();
 			expect( getMaxDepth( bvh ) ).toBeGreaterThan( 0 );
-
-		} );
-
-		it( 'should be partially constructed as nodes if packData is false and lazyGeneration is true.', () => {
-
-			mesh.geometry.computeBoundsTree( { packData: false, lazyGeneration: true } );
-
-			const bvh = mesh.geometry.boundsTree;
-			expect( bvh._isPacked ).toBeFalsy();
-			expect( bvh._roots[ 0 ] instanceof ArrayBuffer ).toBeFalsy();
-			expect( getMaxDepth( bvh ) ).toBe( 0 );
 
 		} );
 
