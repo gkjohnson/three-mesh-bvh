@@ -221,23 +221,6 @@ describe( 'Serialization', () => {
 
 	} );
 
-	// it( 'should complete the tree and then deserialize to packed buffer data if original tree is lazily constructed.', () => {
-
-	// 	const geom = new SphereBufferGeometry( 1, 10, 10 );
-	// 	const bvh = new MeshBVH( geom, { packData: false, lazyGeneration: true } );
-
-	// 	expect( getMaxDepth( bvh ) ).toBe( 0 );
-
-	// 	const serialized = MeshBVH.serialize( bvh, geom );
-
-	// 	expect( getMaxDepth( bvh ) ).toBeGreaterThan( 0 );
-
-	// 	const deserializedBVH = MeshBVH.deserialize( serialized, geom );
-	// 	expect( deserializedBVH._isPacked ).toBeTruthy();
-	// 	expect( deserializedBVH._roots[ 0 ] instanceof ArrayBuffer ).toBeTruthy();
-
-	// } );
-
 	it( 'should create a new index if one does not exist when deserializing', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
@@ -306,7 +289,7 @@ describe( 'Options', () => {
 
 	} );
 
-	describe( 'packData & lazyGeneration', () => {
+	describe( 'packData', () => {
 
 		it( 'should be constructed to array buffers if packData is true', () => {
 
@@ -329,17 +312,6 @@ describe( 'Options', () => {
 			expect( getMaxDepth( bvh ) ).toBeGreaterThan( 0 );
 
 		} );
-
-		// it( 'should be partially constructed as nodes if packData is false and lazyGeneration is true.', () => {
-
-		// 	mesh.geometry.computeBoundsTree( { packData: false, lazyGeneration: true } );
-
-		// 	const bvh = mesh.geometry.boundsTree;
-		// 	expect( bvh._isPacked ).toBeFalsy();
-		// 	expect( bvh._roots[ 0 ] instanceof ArrayBuffer ).toBeFalsy();
-		// 	expect( getMaxDepth( bvh ) ).toBe( 0 );
-
-		// } );
 
 	} );
 
