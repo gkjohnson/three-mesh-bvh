@@ -5,13 +5,6 @@ import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import {
-	raycast,
-	raycastFirst,
-	shapecast,
-	intersectsGeometry,
-} from './castFunctions.js';
-
-import {
 	raycastBuffer,
 	raycastFirstBuffer,
 	shapecastBuffer,
@@ -136,7 +129,6 @@ export default class MeshBVH {
 		const { index, roots } = data;
 		const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
-		bvh._isPacked = true;
 
 		if ( setIndex ) {
 
@@ -185,26 +177,18 @@ export default class MeshBVH {
 
 			// undocumented options
 
-			// whether to the pack the data as a buffer or not.
-			packData: true,
-
 			// Whether to skip generating the tree. Used for deserialization.
 			[ SKIP_GENERATION ]: false
 
 		}, options );
 		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
 
-		this._isPacked = false;
 		this._roots = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
+			// TODO: separate the buffer packing from the serialize function
 			this._roots = buildTree( geo, options );
-			if ( options.packData ) {
-
-				this._roots = MeshBVH.serialize( this, geo, false ).roots;
-				this._isPacked = true;
-
-			}
+			this._roots = MeshBVH.serialize( this, geo, false ).roots;
 
 		}
 
@@ -212,62 +196,32 @@ export default class MeshBVH {
 
 	traverse( callback, rootIndex = 0 ) {
 
-		if ( this._isPacked ) {
+		const buffer = this._roots[ rootIndex ];
+		const uint32Array = new Uint32Array( buffer );
+		const uint16Array = new Uint16Array( buffer );
+		_traverseBuffer( 0 );
 
-			const buffer = this._roots[ rootIndex ];
-			const uint32Array = new Uint32Array( buffer );
-			const uint16Array = new Uint16Array( buffer );
-			_traverseBuffer( 0 );
+		function _traverseBuffer( stride4Offset, depth = 0 ) {
 
-			function _traverseBuffer( stride4Offset, depth = 0 ) {
+			const stride2Offset = stride4Offset * 2;
+			const isLeaf = uint16Array[ stride2Offset + 15 ];
+			if ( isLeaf ) {
 
-				const stride2Offset = stride4Offset * 2;
-				const isLeaf = uint16Array[ stride2Offset + 15 ];
-				if ( isLeaf ) {
+				const offset = uint32Array[ stride4Offset + 6 ];
+				const count = uint16Array[ stride2Offset + 14 ];
+				callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), offset, count );
 
-					const offset = uint32Array[ stride4Offset + 6 ];
-					const count = uint16Array[ stride2Offset + 14 ];
-					callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), offset, count );
+			} else {
 
-				} else {
+				const left = stride4Offset + BYTES_PER_NODE / 4;
+				const right = uint32Array[ stride4Offset + 6 ];
+				const splitAxis = uint32Array[ stride4Offset + 7 ];
+				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis );
 
-					const left = stride4Offset + BYTES_PER_NODE / 4;
-					const right = uint32Array[ stride4Offset + 6 ];
-					const splitAxis = uint32Array[ stride4Offset + 7 ];
-					const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis );
+				if ( ! stopTraversal ) {
 
-					if ( ! stopTraversal ) {
-
-						_traverseBuffer( left, depth + 1 );
-						_traverseBuffer( right, depth + 1 );
-
-					}
-
-				}
-
-			}
-
-		} else {
-
-			_traverseNode( this._roots[ rootIndex ] );
-
-			function _traverseNode( node, depth = 0 ) {
-
-				const isLeaf = ! ! node.count;
-				if ( isLeaf ) {
-
-					callback( depth, isLeaf, node.boundingData, node.offset, node.count );
-
-				} else {
-
-					const stopTraversal = callback( depth, isLeaf, node.boundingData, node.splitAxis );
-
-					if ( ! stopTraversal ) {
-
-						if ( node.left ) _traverseNode( node.left, depth + 1 );
-						if ( node.right ) _traverseNode( node.right, depth + 1 );
-
-					}
+					_traverseBuffer( left, depth + 1 );
+					_traverseBuffer( right, depth + 1 );
 
 				}
 
@@ -280,43 +234,24 @@ export default class MeshBVH {
 	/* Core Cast Functions */
 	raycast( mesh, raycaster, ray, intersects ) {
 
-		const isPacked = this._isPacked;
 		for ( const root of this._roots ) {
 
-			if ( isPacked ) {
-
-				setBuffer( root );
-				raycastBuffer( 0, mesh, raycaster, ray, intersects );
-
-			} else {
-
-				raycast( root, mesh, raycaster, ray, intersects );
-
-			}
+			setBuffer( root );
+			raycastBuffer( 0, mesh, raycaster, ray, intersects );
 
 		}
 
-		isPacked && clearBuffer();
+		clearBuffer();
 
 	}
 
 	raycastFirst( mesh, raycaster, ray ) {
 
-		const isPacked = this._isPacked;
 		let closestResult = null;
 		for ( const root of this._roots ) {
 
-			let result;
-			if ( isPacked ) {
-
-				setBuffer( root );
-				result = raycastFirstBuffer( 0, mesh, raycaster, ray );
-
-			} else {
-
-				result = raycastFirst( root, mesh, raycaster, ray );
-
-			}
+			setBuffer( root );
+			const result = raycastFirstBuffer( 0, mesh, raycaster, ray );
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
@@ -326,7 +261,7 @@ export default class MeshBVH {
 
 		}
 
-		isPacked && clearBuffer();
+		clearBuffer();
 
 		return closestResult;
 
@@ -334,20 +269,11 @@ export default class MeshBVH {
 
 	intersectsGeometry( mesh, geometry, geomToMesh ) {
 
-		const isPacked = this._isPacked;
 		let result = false;
 		for ( const root of this._roots ) {
 
-			if ( isPacked ) {
-
-				setBuffer( root );
-				result = intersectsGeometryBuffer( 0, mesh, geometry, geomToMesh );
-
-			} else {
-
-				result = intersectsGeometry( root, mesh, geometry, geomToMesh );
-
-			}
+			setBuffer( root );
+			result = intersectsGeometryBuffer( 0, mesh, geometry, geomToMesh );
 
 			if ( result ) {
 
@@ -357,7 +283,7 @@ export default class MeshBVH {
 
 		}
 
-		isPacked && clearBuffer();
+		clearBuffer();
 
 		return result;
 
@@ -365,20 +291,11 @@ export default class MeshBVH {
 
 	shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
 
-		const isPacked = this._isPacked;
 		let result = false;
 		for ( const root of this._roots ) {
 
-			if ( isPacked ) {
-
-				setBuffer( root );
-				result = shapecastBuffer( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
-
-			} else {
-
-				result = shapecast( root, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
-
-			}
+			setBuffer( root );
+			result = shapecastBuffer( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
 
 			if ( result ) {
 
@@ -388,7 +305,7 @@ export default class MeshBVH {
 
 		}
 
-		isPacked && clearBuffer();
+		clearBuffer();
 
 		return result;
 
