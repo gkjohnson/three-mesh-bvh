@@ -200,12 +200,10 @@ export default class MeshBVH {
 			maxDepth: 40,
 			maxLeafTris: 10,
 			verbose: true,
-			lazyGeneration: true,
 
 			// undocumented options
 
-			// whether to the pack the data as a buffer or not. The data
-			// will not be packed if lazyGeneration is true.
+			// whether to the pack the data as a buffer or not.
 			packData: true,
 
 			// Whether to skip generating the tree. Used for deserialization.
@@ -219,7 +217,7 @@ export default class MeshBVH {
 		if ( ! options[ SKIP_GENERATION ] ) {
 
 			this._roots = buildTree( geo, options );
-			if ( ! options.lazyGeneration && options.packData ) {
+			if ( options.packData ) {
 
 				this._roots = MeshBVH.serialize( this, geo, false ).roots;
 				this._isPacked = true;
