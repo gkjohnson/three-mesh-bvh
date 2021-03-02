@@ -289,32 +289,6 @@ describe( 'Options', () => {
 
 	} );
 
-	describe( 'packData', () => {
-
-		it( 'should be constructed to array buffers if packData is true', () => {
-
-			mesh.geometry.computeBoundsTree( { packData: true } );
-
-			const bvh = mesh.geometry.boundsTree;
-			expect( bvh._isPacked ).toBeTruthy();
-			expect( bvh._roots[ 0 ] instanceof ArrayBuffer ).toBeTruthy();
-			expect( getMaxDepth( bvh ) ).toBeGreaterThan( 0 );
-
-		} );
-
-		it( 'should be fully constructed as nodes if packData is false.', () => {
-
-			mesh.geometry.computeBoundsTree( { packData: false } );
-
-			const bvh = mesh.geometry.boundsTree;
-			expect( bvh._isPacked ).toBeFalsy();
-			expect( bvh._roots[ 0 ] instanceof ArrayBuffer ).toBeFalsy();
-			expect( getMaxDepth( bvh ) ).toBeGreaterThan( 0 );
-
-		} );
-
-	} );
-
 	describe( 'strategy', () => {
 
 		it.todo( 'should set the split strategy' );
