@@ -65,14 +65,14 @@ function checkBufferGeometryIntersection( object, raycaster, ray, position, uv, 
 
 		const face = {
 			a: a,
-			b: a,
+			b: b,
 			c: c,
 			normal: new Vector3( ),
 			materialIndex: 0
 		};
-		
+
 		Triangle.getNormal( vA, vB, vC, face.normal );
-		
+
 		intersection.face = face;
 		intersection.faceIndex = a;
 
