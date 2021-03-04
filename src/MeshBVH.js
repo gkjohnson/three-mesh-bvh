@@ -104,34 +104,119 @@ export default class MeshBVH {
 
 	}
 
+	refit( geometry ) {
+
+		const indexArr = geometry.index.array;
+		const posArr = geometry.attributes.position;
+		let buffer, uint32Array, uint16Array;
+		const roots = this._roots;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			buffer = roots[ i ];
+			uint32Array = new Uint32Array( buffer );
+			uint16Array = new Uint16Array( buffer );
+			_traverse( 0 );
+
+		}
+
+		function _traverse( node32Index ) {
+
+			const node16Index = node32Index * 2;
+			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
+			if ( isLeaf ) {
+
+				const offset = uint32Array[ node32Index + 6 ];
+				const count = uint16Array[ node16Index + 14 ];
+
+				let minx = Infinity;
+				let miny = Infinity;
+				let minz = Infinity;
+				let maxx = - Infinity;
+				let maxy = - Infinity;
+				let maxz = - Infinity;
+				for ( let i = offset, l = offset + count; i < l; i ++ ) {
+
+					const index3 = indexArr[ i ] * 3;
+					const x = posArr[ index3 + 0 ];
+					const y = posArr[ index3 + 1 ];
+					const z = posArr[ index3 + 2 ];
+
+					if ( x < minx ) minx = x;
+					if ( x > maxx ) maxx = x;
+
+					if ( y < miny ) miny = y;
+					if ( y > maxy ) maxy = y;
+
+					if ( z < minz ) minz = z;
+					if ( z > maxz ) maxz = z;
+
+				}
+				uint32Array[ node32Index + 0 ] = minx;
+				uint32Array[ node32Index + 1 ] = miny;
+				uint32Array[ node32Index + 2 ] = minz;
+
+				uint32Array[ node32Index + 3 ] = maxx;
+				uint32Array[ node32Index + 4 ] = maxy;
+				uint32Array[ node32Index + 5 ] = maxz;
+
+			} else {
+
+				const left = node32Index + BYTES_PER_NODE / 4;
+				const right = uint32Array[ node32Index + 6 ];
+
+				_traverse( left );
+				_traverse( right );
+
+				for ( let i = 0; i < 6; i ++ ) {
+
+					const lValue = uint32Array[ left + i ];
+					const rValue = uint32Array[ right + i ];
+					if ( i < 3 ) {
+
+						uint32Array[ node32Index + i ] = lValue < rValue ? lValue : rValue;
+
+					} else {
+
+						uint32Array[ node32Index + i ] = lValue > rValue ? lValue : rValue;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
 	traverse( callback, rootIndex = 0 ) {
 
 		const buffer = this._roots[ rootIndex ];
 		const uint32Array = new Uint32Array( buffer );
 		const uint16Array = new Uint16Array( buffer );
-		_traverseBuffer( 0 );
+		_traverse( 0 );
 
-		function _traverseBuffer( stride4Offset, depth = 0 ) {
+		function _traverse( node32Index, depth = 0 ) {
 
-			const stride2Offset = stride4Offset * 2;
-			const isLeaf = uint16Array[ stride2Offset + 15 ] === IS_LEAFNODE_FLAG;
+			const node16Index = node32Index * 2;
+			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
 			if ( isLeaf ) {
 
-				const offset = uint32Array[ stride4Offset + 6 ];
-				const count = uint16Array[ stride2Offset + 14 ];
-				callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), offset, count );
+				const offset = uint32Array[ node32Index + 6 ];
+				const count = uint16Array[ node16Index + 14 ];
+				callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), offset, count );
 
 			} else {
 
-				const left = stride4Offset + BYTES_PER_NODE / 4;
-				const right = uint32Array[ stride4Offset + 6 ];
-				const splitAxis = uint32Array[ stride4Offset + 7 ];
-				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, stride4Offset * 4, 6 ), splitAxis );
+				const left = node32Index + BYTES_PER_NODE / 4;
+				const right = uint32Array[ node32Index + 6 ];
+				const splitAxis = uint32Array[ node32Index + 7 ];
+				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
 
 				if ( ! stopTraversal ) {
 
-					_traverseBuffer( left, depth + 1 );
-					_traverseBuffer( right, depth + 1 );
+					_traverse( left, depth + 1 );
+					_traverse( right, depth + 1 );
 
 				}
 
