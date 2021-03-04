@@ -6,9 +6,10 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
-    "build": "rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
-    "test": "jest",
+    "generate-cast-functions": "node scripts/generate-cast-functions.js",
+    "start": "npm run generate-cast-functions & concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
+    "build": "npm run generate-cast-functions & rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "test": "npm run generate-cast-functions & jest",
     "lint": "eslint \"./src/*.js\" \"./test/*.js\" \"./example/*.js\"",
     "benchmark": "node benchmark/run-benchmark.js"
   },
