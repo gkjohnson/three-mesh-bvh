@@ -17,7 +17,7 @@ export function raycastBuffer( stride4Offset, mesh, raycaster, ray, intersects )
 
 	let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-	const isLeaf = uint16Array[	stride2Offset + 15 ] === 0xFFFF;
+	const isLeaf = ( uint16Array[ stride2Offset + 15 ] === 0xFFFF );
 	if ( isLeaf ) {
 
 		const offset = uint32Array[ stride4Offset + 6 ];
@@ -49,7 +49,7 @@ export function raycastFirstBuffer( stride4Offset, mesh, raycaster, ray ) {
 
 	let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-	const isLeaf = uint16Array[	stride2Offset + 15 ] === 0xFFFF;
+	const isLeaf = ( uint16Array[ stride2Offset + 15 ] === 0xFFFF );
 	if ( isLeaf ) {
 
 		const offset = uint32Array[ stride4Offset + 6 ];
@@ -172,7 +172,7 @@ export const shapecastBuffer = ( function () {
 			let stride2Offset = stride4Offset * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			// traverse until we find a leaf
-			while ( ! uint16Array[	stride2Offset + 15 ] === 0xFFFF ) {
+			while ( ! ( uint16Array[ stride2Offset + 15 ] === 0xFFFF ) ) {
 
 				stride4Offset = stride4Offset + 8;
 				stride2Offset = stride4Offset * 2;
@@ -188,7 +188,7 @@ export const shapecastBuffer = ( function () {
 			let stride2Offset = stride4Offset * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			// traverse until we find a leaf
-			while ( uint16Array[	stride2Offset + 15 ] === 0xFFFF ) {
+			while ( ! ( uint16Array[ stride2Offset + 15 ] === 0xFFFF ) ) {
 
 				// adjust offset to point to the right node
 				stride4Offset = uint32Array[ stride4Offset + 6 ];
@@ -203,7 +203,7 @@ export const shapecastBuffer = ( function () {
 
 		let stride2Offset = stride4Offset * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-		const isLeaf = uint16Array[	stride2Offset + 15 ] === 0xFFFF;
+		const isLeaf = ( uint16Array[ stride2Offset + 15 ] === 0xFFFF );
 		if ( isLeaf && intersectsTriangleFunc ) {
 
 			const geometry = mesh.geometry;
@@ -256,7 +256,7 @@ export const shapecastBuffer = ( function () {
 
 			}
 
-			const isC1Leaf = uint16Array[	c1 + 15 ] === 0xFFFF;
+			const isC1Leaf = ( uint16Array[ c1 + 15 ] === 0xFFFF );
 			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1 );
 
 			let c1StopTraversal;
@@ -294,7 +294,7 @@ export const shapecastBuffer = ( function () {
 			box2 = cachedBox2;
 			arrayToBoxBuffer( c2, float32Array, box2 );
 
-			const isC2Leaf = uint16Array[	c2 + 15 ] === 0xFFFF;
+			const isC2Leaf = ( uint16Array[ c2 + 15 ] === 0xFFFF );
 			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1 );
 
 			let c2StopTraversal;
@@ -363,7 +363,7 @@ export const intersectsGeometryBuffer = ( function () {
 
 		}
 
-		const isLeaf = uint16Array[	stride2Offset + 15 ] === 0xFFFF;
+		const isLeaf = ( uint16Array[ stride2Offset + 15 ] === 0xFFFF );
 		if ( isLeaf ) {
 
 			const thisGeometry = mesh.geometry;

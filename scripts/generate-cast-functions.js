@@ -8,7 +8,7 @@ const inputPath = path.resolve( __dirname, '../src/castFunctions.template.js' );
 const outputPath = path.resolve( __dirname, '../src/castFunctions.js' );
 let contents = fs.readFileSync( inputPath, { encoding: 'utf8' } );
 
-contents = replaceFunctionMacro( contents, 'IS_LEAF', 'uint16Array[	$1 + 15 ] === 0xFFFF' );
+contents = replaceFunctionMacro( contents, 'IS_LEAF', '( uint16Array[ $1 + 15 ] === 0xFFFF )' );
 contents = replaceFunctionMacro( contents, 'OFFSET', 'uint32Array[ $1 + 6 ]' );
 contents = replaceFunctionMacro( contents, 'COUNT', 'uint16Array[ $1 + 14 ]' );
 contents = replaceFunctionMacro( contents, 'LEFT_NODE', '$1 + 8' );

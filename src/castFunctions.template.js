@@ -188,7 +188,7 @@ export const shapecastBuffer = ( function () {
 			let stride2Offset = stride4Offset * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			// traverse until we find a leaf
-			while ( IS_LEAF( stride2Offset ) ) {
+			while ( ! IS_LEAF( stride2Offset ) ) {
 
 				// adjust offset to point to the right node
 				stride4Offset = RIGHT_NODE( stride4Offset );
