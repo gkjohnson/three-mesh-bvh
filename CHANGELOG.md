@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.
 - Use `type: module` in package.json to enable use of es6 modules in node.
 
+## [0.3.6] - 2021-03-03
+### Fixed
+- Incorrect face index would be returned from intersection (related to three.js bug fixed in v0.126.1).
+
 ## [0.3.5] - 2021-02-28
 ### Fixed
 - Case where `raycastFirst` failed to return a valid result.
