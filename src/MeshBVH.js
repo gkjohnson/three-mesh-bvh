@@ -11,7 +11,7 @@ import {
 	intersectsGeometryBuffer,
 	setBuffer,
 	clearBuffer,
-} from './castFunctionsBuffer.js';
+} from './castFunctions.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
