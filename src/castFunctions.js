@@ -1,6 +1,7 @@
-/* global
-	IS_LEAF, OFFSET, COUNT, RIGHT_NODE, LEFT_NODE, BOUNDING_DATA_INDEX,
-*/
+/* Generated from "castFunctions.template.js". Do not edit. */
+
+// For speed and readability this script is processed to replace the macro-like calls
+// with inline buffer reads. See generate-cast-functions.js.
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
 
