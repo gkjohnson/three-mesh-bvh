@@ -1,17 +1,17 @@
 {
   "name": "three-mesh-bvh",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "A BVH implementation to speed up raycasting against three.js meshes.",
   "module": "src/index.js",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
-    "generate-cast-functions": "node ./scripts/generate-cast-functions.js",
-    "build": "npm run generate-cast-functions && rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
-    "test": "npm run generate-cast-functions && jest",
-    "lint": "npm run generate-cast-functions && eslint \"./src/*.js\" \"./test/*.js\" \"./example/*.js\"",
-    "benchmark": "npm run generate-cast-functions && node benchmark/run-benchmark.js"
+    "generate-cast-functions": "node scripts/generate-cast-functions.js",
+    "start": "npm run generate-cast-functions & concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
+    "build": "npm run generate-cast-functions & rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "test": "npm run generate-cast-functions & jest",
+    "lint": "eslint \"./src/*.js\" \"./test/*.js\" \"./example/*.js\"",
+    "benchmark": "npm run generate-cast-functions & node benchmark/run-benchmark.js"
   },
   "files": [
     "src/*",
@@ -65,7 +65,7 @@
     "simplex-noise": "^2.4.0",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
-    "three": "^0.126.0"
+    "three": "^0.126.1"
   },
   "dependencies": {}
 }
