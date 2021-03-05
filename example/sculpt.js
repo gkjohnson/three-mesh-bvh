@@ -18,11 +18,6 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-// TODO:
-// - Average brush orientation from multiple points
-// - Better brush strokes
-// - Generate new BVH in background and do refit after transfer
-
 let stats;
 let scene, camera, renderer, controls;
 let targetMesh, brush, bvhHelper;
@@ -280,44 +275,41 @@ function render() {
 			brush.quaternion.setFromUnitVectors( normalZ, hit.face.normal );
 			controls.enabled = false;
 
-			if ( ( mouseState || lastMouseState ) && mouse.distanceTo( lastMouse ) > 0.001 ) {
 
-				const inverseMatrix = new THREE.Matrix4();
-				inverseMatrix.copy( targetMesh.matrixWorld ).invert();
+			const inverseMatrix = new THREE.Matrix4();
+			inverseMatrix.copy( targetMesh.matrixWorld ).invert();
 
-				const sphere = new THREE.Sphere();
-				sphere.center.copy( hit.point ).applyMatrix4( inverseMatrix );
-				sphere.radius = params.size;
+			const sphere = new THREE.Sphere();
+			sphere.center.copy( hit.point ).applyMatrix4( inverseMatrix );
+			sphere.radius = params.size;
 
-				const indices = [];
-				const tempVec = new THREE.Vector3();
-				const tempVec2 = new THREE.Vector3();
-				const tempVec3 = new THREE.Vector3();
-				const bvh = targetMesh.geometry.boundsTree;
-				bvh.shapecast(
-					targetMesh,
-					box => {
+			const indices = [];
+			const tempVec = new THREE.Vector3();
+			const tempVec2 = new THREE.Vector3();
+			const normal = new THREE.Vector3();
+			const bvh = targetMesh.geometry.boundsTree;
+			bvh.shapecast(
+				targetMesh,
+				box => {
 
-						const intersects = sphere.intersectsBox( box );
-						const { min, max } = box;
-						if ( intersects ) {
+					const intersects = sphere.intersectsBox( box );
+					const { min, max } = box;
+					if ( intersects ) {
 
-							for ( let x = 0; x <= 1; x ++ ) {
+						for ( let x = 0; x <= 1; x ++ ) {
 
-								for ( let y = 0; y <= 1; y ++ ) {
+							for ( let y = 0; y <= 1; y ++ ) {
 
-									for ( let z = 0; z <= 1; z ++ ) {
+								for ( let z = 0; z <= 1; z ++ ) {
 
-										tempVec.set(
-											x === 0 ? min.x : max.x,
-											y === 0 ? min.y : max.y,
-											z === 0 ? min.z : max.z
-										);
-										if ( ! sphere.containsPoint( tempVec ) ) {
+									tempVec.set(
+										x === 0 ? min.x : max.x,
+										y === 0 ? min.y : max.y,
+										z === 0 ? min.z : max.z
+									);
+									if ( ! sphere.containsPoint( tempVec ) ) {
 
-											return INTERSECTED;
-
-										}
+										return INTERSECTED;
 
 									}
 
@@ -325,34 +317,62 @@ function render() {
 
 							}
 
-							return CONTAINED;
-
 						}
 
-						return intersects ? INTERSECTED : NOT_INTERSECTED;
-
-					},
-					( tri, a, b, c, contained ) => {
-
-						if ( contained || tri.intersectsSphere( sphere ) ) {
-
-							indices.push( a, b, c );
-
-						}
-
-						return false;
+						return CONTAINED;
 
 					}
-				);
+
+					return intersects ? INTERSECTED : NOT_INTERSECTED;
+
+				},
+				( tri, a, b, c, contained ) => {
+
+					if ( contained || tri.intersectsSphere( sphere ) ) {
+
+						indices.push( a, b, c );
+
+					}
+
+					return false;
+
+				}
+			);
+			const indexAttr = targetMesh.geometry.index;
+			const posAttr = targetMesh.geometry.attributes.position;
+			const normalAttr = targetMesh.geometry.attributes.normal;
+			const indexSet = new Set( indices );
+			tempVec2.copy( hit.point ).applyMatrix4( inverseMatrix );
+			indexSet.forEach( i => {
+
+				const index = indexAttr.getX( i );
+				tempVec.fromBufferAttribute( posAttr, index );
+
+				const dist = tempVec.distanceTo( tempVec2 );
+				if ( dist > params.size ) {
+
+					return;
+
+				}
+
+				tempVec.fromBufferAttribute( normalAttr, index );
+				normal.add( tempVec );
+
+			} );
+			normal.normalize();
+			brush.quaternion.setFromUnitVectors( normalZ, normal );
+
+			const dx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
+			const dy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
+			const dist = Math.sqrt( dx * dx + dy * dy );
+
+			if ( ! ( mouseState || lastMouseState ) ) {
+
+				lastMouse.copy( mouse );
+
+			} else if ( dist > params.size * 50 ) {
 
 				const indexToTriangles = {};
-				const indexAttr = targetMesh.geometry.index;
-				const posAttr = targetMesh.geometry.attributes.position;
-				const normalAttr = targetMesh.geometry.attributes.normal;
-				const indexSet = new Set( indices );
-
-				tempVec2.copy( hit.point ).applyMatrix4( inverseMatrix );
-				tempVec3.copy( hit.face.normal ).transformDirection( targetMesh.matrixWorld );
 				indexSet.forEach( i => {
 
 					const index = indexAttr.getX( i );
@@ -371,9 +391,13 @@ function render() {
 
 						intensity = Math.min( intensity, 0.1 );
 
+					} else {
+
+						intensity *= 0.5;
+
 					}
 
-					tempVec.addScaledVector( tempVec3, intensity * params.intensity );
+					tempVec.addScaledVector( normal, intensity * params.intensity );
 					posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 
 					let arr = indexToTriangles[ index ];
@@ -421,7 +445,7 @@ function render() {
 					bvhHelper.update();
 
 				}
-
+				lastMouse.copy( mouse );
 
 			}
 
@@ -429,13 +453,13 @@ function render() {
 
 			controls.enabled = true;
 			brush.visible = false;
+			lastMouse.copy( mouse );
 
 		}
 
 	}
 
 	lastMouseState = mouseState;
-	lastMouse.copy( mouse );
 
 	renderer.render( scene, camera );
 	stats.end();
