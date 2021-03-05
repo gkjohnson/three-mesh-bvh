@@ -107,18 +107,18 @@ export default class MeshBVH {
 	refit( geometry ) {
 
 		const indexArr = geometry.index.array;
-		const posArr = geometry.attributes.position;
-		let buffer, uint32Array, uint16Array;
+		const posArr = geometry.attributes.position.array;
+		let buffer, uint32Array, uint16Array, float32Array;
 		const roots = this._roots;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			buffer = roots[ i ];
 			uint32Array = new Uint32Array( buffer );
 			uint16Array = new Uint16Array( buffer );
+			float32Array = new Float32Array( buffer );
 			_traverse( 0 );
 
 		}
-
 		function _traverse( node32Index ) {
 
 			const node16Index = node32Index * 2;
@@ -134,7 +134,7 @@ export default class MeshBVH {
 				let maxx = - Infinity;
 				let maxy = - Infinity;
 				let maxz = - Infinity;
-				for ( let i = offset, l = offset + count; i < l; i ++ ) {
+				for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
 
 					const index3 = indexArr[ i ] * 3;
 					const x = posArr[ index3 + 0 ];
@@ -151,37 +151,61 @@ export default class MeshBVH {
 					if ( z > maxz ) maxz = z;
 
 				}
-				uint32Array[ node32Index + 0 ] = minx;
-				uint32Array[ node32Index + 1 ] = miny;
-				uint32Array[ node32Index + 2 ] = minz;
 
-				uint32Array[ node32Index + 3 ] = maxx;
-				uint32Array[ node32Index + 4 ] = maxy;
-				uint32Array[ node32Index + 5 ] = maxz;
+				if (
+					float32Array[ node32Index + 0 ] !== minx ||
+					float32Array[ node32Index + 1 ] !== miny ||
+					float32Array[ node32Index + 2 ] !== minz ||
+
+					float32Array[ node32Index + 3 ] !== maxx ||
+					float32Array[ node32Index + 4 ] !== maxy ||
+					float32Array[ node32Index + 5 ] !== maxz
+				) {
+
+					float32Array[ node32Index + 0 ] = minx;
+					float32Array[ node32Index + 1 ] = miny;
+					float32Array[ node32Index + 2 ] = minz;
+
+					float32Array[ node32Index + 3 ] = maxx;
+					float32Array[ node32Index + 4 ] = maxy;
+					float32Array[ node32Index + 5 ] = maxz;
+
+					return true;
+
+				} else {
+
+					return false;
+
+				}
 
 			} else {
 
-				const left = node32Index + BYTES_PER_NODE / 4;
+				const left = node32Index + 8;
 				const right = uint32Array[ node32Index + 6 ];
 
-				_traverse( left );
-				_traverse( right );
+				const leftChange = _traverse( left );
+				const rightChange = _traverse( right );
+				const didChange = leftChange || rightChange;
 
-				for ( let i = 0; i < 6; i ++ ) {
+				if ( didChange ) {
 
-					const lValue = uint32Array[ left + i ];
-					const rValue = uint32Array[ right + i ];
-					if ( i < 3 ) {
+					for ( let i = 0; i < 3; i ++ ) {
 
-						uint32Array[ node32Index + i ] = lValue < rValue ? lValue : rValue;
+						const lefti = left + i;
+						const righti = right + i;
+						const minLeftValue = float32Array[ lefti ];
+						const maxLeftValue = float32Array[ lefti + 3 ];
+						const minRightValue = float32Array[ righti ];
+						const maxRightValue = float32Array[ righti + 3 ];
 
-					} else {
-
-						uint32Array[ node32Index + i ] = lValue > rValue ? lValue : rValue;
+						float32Array[ node32Index + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
+						float32Array[ node32Index + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
 
 					}
 
 				}
+
+				return didChange;
 
 			}
 
