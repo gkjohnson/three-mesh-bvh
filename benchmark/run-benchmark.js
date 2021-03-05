@@ -66,6 +66,20 @@ function runSuite( strategy ) {
 	geometry.computeBoundsTree( options );
 	runBenchmark(
 
+		'Refit',
+		null,
+		() => {
+
+			geometry.boundsTree.refit( geometry );
+
+		},
+		3000,
+		50
+
+	);
+
+	runBenchmark(
+
 		'Serialize',
 		null,
 		() => {
