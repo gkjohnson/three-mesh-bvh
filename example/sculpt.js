@@ -2,6 +2,7 @@ import Stats from 'stats.js/src/Stats';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
 	acceleratedRaycast,
 	computeBoundsTree,
@@ -18,24 +19,11 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 // TODO:
-// - Reset button
+// - Average brush orientation from multiple points
 // - Better brush shape
 // - Multiple brush types
-// - SculptGL credit
 // - Better brush strokes
-// - Refit based on index search
 // - Generate new BVH in background and do refit after transfer
-// - Fix normals
-// - Fix seam down the back of the sphere
-// - Simplify and tessellate buttons
-
-const params = {
-	size: 0.1,
-	intensity: 0.002,
-	flatShading: true,
-	depth: 10,
-	displayHelper: false,
-};
 
 let stats;
 let scene, camera, renderer, controls;
@@ -43,6 +31,59 @@ let targetMesh, brush, bvhHelper;
 let normalZ = new THREE.Vector3( 0, 0, 1 );
 let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2();
 let mouseState = false, lastMouseState = false;
+let matcap;
+
+const params = {
+	size: 0.1,
+	clayBrush: true,
+	intensity: 0.002,
+	flatShading: false,
+	depth: 10,
+	displayHelper: false,
+};
+
+function reset() {
+
+	if ( targetMesh ) {
+
+		targetMesh.geometry.dispose();
+		targetMesh.material.dispose();
+		scene.remove( targetMesh );
+
+	}
+
+	if ( ! matcap ) {
+
+		matcap = new THREE.TextureLoader().load( '../textures/skinHazardousarts2.jpg' );
+
+	}
+
+	let geometry = new THREE.IcosahedronBufferGeometry( 1, 100 );
+	geometry.deleteAttribute( 'uv' );
+	geometry = BufferGeometryUtils.mergeVertices( geometry );
+
+	geometry.computeBoundsTree();
+	geometry.attributes.position.setUsage( THREE.DynamicDrawUsage );
+	geometry.attributes.normal.setUsage( THREE.DynamicDrawUsage );
+
+	targetMesh = new THREE.Mesh(
+		geometry,
+		new THREE.MeshMatcapMaterial( {
+			wireframe: true,
+			flatShading: params.flatShading,
+			matcap
+		} )
+	);
+	targetMesh.material.matcap.encoding = THREE.sRGBEncoding;
+	scene.add( targetMesh );
+
+	if ( bvhHelper ) {
+
+		bvhHelper.update();
+
+	}
+
+}
 
 function init() {
 
@@ -66,17 +107,7 @@ function init() {
 	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 
 	// geometry setup
-	targetMesh = new THREE.Mesh(
-		new THREE.SphereBufferGeometry( 1, 1000, 1000 ),
-		new THREE.MeshMatcapMaterial( {
-			wireframe: true,
-			flatShading: params.flatShading,
-			matcap: new THREE.TextureLoader().load( '../textures/skinHazardousarts2.jpg' ),
-		} ) );
-
-	targetMesh.geometry.computeBoundsTree();
-	targetMesh.material.matcap.encoding = THREE.sRGBEncoding;
-	scene.add( targetMesh );
+	reset();
 
 	// initialize bvh helper
 	bvhHelper = new MeshBVHVisualizer( targetMesh, params.depth );
@@ -121,8 +152,9 @@ function init() {
 	const gui = new dat.GUI();
 
 	const sculptFolder = gui.addFolder( 'Sculpting' );
+	sculptFolder.add( params, 'clayBrush' );
 	sculptFolder.add( params, 'size' ).min( 0.05 ).max( 0.25 ).step( 0.01 );
-	sculptFolder.add( params, 'intensity' ).min( 0.001 ).max( 0.01 ).step( 0.001 );
+	sculptFolder.add( params, 'intensity' ).min( - 0.01 ).max( 0.01 ).step( 0.001 );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
 
 		targetMesh.material.flatShading = value;
@@ -145,7 +177,13 @@ function init() {
 	} );
 	helperFolder.open();
 
+	gui.add( { reset }, 'reset' );
+	gui.add( { rebuildBVH: () => {
 
+		targetMesh.geometry.computeBoundsTree();
+		bvhHelper.update();
+
+	} }, 'rebuildBVH' );
 	gui.open();
 
 	controls.addEventListener( 'start', function () {
@@ -244,7 +282,7 @@ function render() {
 			brush.quaternion.setFromUnitVectors( normalZ, hit.face.normal );
 			controls.enabled = false;
 
-			if ( mouseState || lastMouseState ) {
+			if ( ( mouseState || lastMouseState ) && mouse.distanceTo( lastMouse ) > 0.001 ) {
 
 				const inverseMatrix = new THREE.Matrix4();
 				inverseMatrix.copy( targetMesh.matrixWorld ).invert();
@@ -329,7 +367,14 @@ function render() {
 
 					}
 
-					const intensity = 1.0 - ( dist / params.size );
+					let intensity = 1.0 - ( dist / params.size );
+					intensity *= intensity;
+					if ( params.clayBrush ) {
+
+						intensity = Math.min( intensity, 0.1 );
+
+					}
+
 					tempVec.addScaledVector( tempVec3, intensity * params.intensity );
 					posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 
@@ -346,7 +391,7 @@ function render() {
 
 				if ( indices.length ) {
 
-					console.time('NORMALS');
+					// TODO: this can be improved
 					const triangle = new THREE.Triangle();
 					for ( const index in indexToTriangles ) {
 
@@ -355,7 +400,7 @@ function render() {
 						const arr = indexToTriangles[ index ];
 						for ( const tri in arr ) {
 
-							const i3 = tri * 3;
+							const i3 = arr[ tri ] * 3;
 							triangle.a.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 0 ) );
 							triangle.b.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 1 ) );
 							triangle.c.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 2 ) );
@@ -365,14 +410,17 @@ function render() {
 
 						}
 
-						tempVec.multiplyScalar( 1 / arr.length );
+						tempVec.normalize();
 						normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 
 					}
-					console.timeEnd('NORMALS');
 
 					posAttr.needsUpdate = true;
 					normalAttr.needsUpdate = true;
+
+					targetMesh.geometry.boundsTree.refit( targetMesh.geometry );
+
+					bvhHelper.update();
 
 				}
 
