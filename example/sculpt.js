@@ -20,8 +20,6 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 // TODO:
 // - Average brush orientation from multiple points
-// - Better brush shape
-// - Multiple brush types
 // - Better brush strokes
 // - Generate new BVH in background and do refit after transfer
 
