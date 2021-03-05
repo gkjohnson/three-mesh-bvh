@@ -12,9 +12,7 @@ class MeshBVHRootVisualizer extends Group {
 		super( 'MeshBVHRootVisualizer' );
 
 		this.depth = depth;
-		this._oldDepth = - 1;
 		this.mesh = mesh;
-		this._boundsTree = null;
 		this._group = group;
 
 		this.update();
@@ -23,13 +21,11 @@ class MeshBVHRootVisualizer extends Group {
 
 	update() {
 
-		this._oldDepth = this.depth;
-		this._boundsTree = this.mesh.geometry.boundsTree;
-
+		const boundsTree = this.mesh.geometry.boundsTree;
 		let requiredChildren = 0;
-		if ( this._boundsTree ) {
+		if ( boundsTree ) {
 
-			this._boundsTree.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
+			boundsTree.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
 
 				let isTerminal = isLeaf || countOrIsUnfinished;
 
@@ -107,6 +103,7 @@ class MeshBVHVisualizer extends Group {
 
 				let root = this._roots[ i ];
 				root.depth = this.depth;
+				root.mesh = this.mesh;
 				root.update();
 
 			}
