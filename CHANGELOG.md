@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- `MeshBVH.refit` function to refit the bounds to modified vertices.
+
 ### Changed
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.
 - Use `type: module` in package.json to enable use of es6 modules in node.
