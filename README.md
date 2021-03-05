@@ -15,6 +15,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Shape intersection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
+[Sculpting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
+
 [Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
 [Distance comparison demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
@@ -351,6 +353,14 @@ A generalized cast function that can be used to implement intersection logic for
 `intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
 
 `orderNodesFunc` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score or distance representing the distance to the shape being intersected with. The shape with the lowest score is traversed first.
+
+### .refit
+
+```js
+refit( geometry : BufferGeometry ) : void
+```
+
+Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertice.
 
 ## SerializedBVH
 
