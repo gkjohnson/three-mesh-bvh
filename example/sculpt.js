@@ -29,7 +29,8 @@ let matcap;
 const params = {
 	size: 0.1,
 	clayBrush: true,
-	intensity: 0.002,
+	intensity: 0.004,
+	invert: false,
 	flatShading: false,
 	depth: 10,
 	displayHelper: false,
@@ -71,6 +72,7 @@ function reset() {
 
 	if ( bvhHelper ) {
 
+		bvhHelper.mesh = targetMesh;
 		bvhHelper.update();
 
 	}
@@ -146,7 +148,8 @@ function init() {
 	const sculptFolder = gui.addFolder( 'Sculpting' );
 	sculptFolder.add( params, 'clayBrush' );
 	sculptFolder.add( params, 'size' ).min( 0.05 ).max( 0.25 ).step( 0.01 );
-	sculptFolder.add( params, 'intensity' ).min( - 0.01 ).max( 0.01 ).step( 0.001 );
+	sculptFolder.add( params, 'intensity' ).min( 0.002 ).max( 0.01 ).step( 0.001 );
+	sculptFolder.add( params, 'invert' );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
 
 		targetMesh.material.flatShading = value;
@@ -393,6 +396,12 @@ function render() {
 					} else {
 
 						intensity *= 0.5;
+
+					}
+
+					if ( params.invert ) {
+
+						intensity *= - 1;
 
 					}
 
