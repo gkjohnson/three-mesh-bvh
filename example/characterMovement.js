@@ -168,6 +168,7 @@ function init() {
 					playerVelocity.y = 10.0;
 
 				}
+
 				break;
 
 		}
@@ -287,6 +288,7 @@ function loadColliderEnvironment() {
 					}
 
 				}
+
 				geometries.push( cloned );
 
 			}

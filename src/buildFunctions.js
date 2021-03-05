@@ -62,6 +62,7 @@ function getRootIndexRanges( geo ) {
 		ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
 
 	}
+
 	return ranges;
 
 }
@@ -306,6 +307,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			}
 
 		}
+
 		filteredLists.forEach( planes => planes.sort( ( a, b ) => a.p - b.p ) );
 
 		// this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
