@@ -62,7 +62,6 @@ function reset() {
 	targetMesh = new THREE.Mesh(
 		geometry,
 		new THREE.MeshMatcapMaterial( {
-			wireframe: true,
 			flatShading: params.flatShading,
 			matcap
 		} )
