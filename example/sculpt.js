@@ -369,7 +369,7 @@ function render() {
 
 				lastMouse.copy( mouse );
 
-			} else if ( dist > params.size * 50 ) {
+			} else if ( dist > params.size * 200 / hit.distance ) {
 
 				const indexToTriangles = {};
 				indexSet.forEach( i => {
