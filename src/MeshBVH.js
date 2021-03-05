@@ -5,10 +5,10 @@ import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
 import {
-	raycastBuffer,
-	raycastFirstBuffer,
-	shapecastBuffer,
-	intersectsGeometryBuffer,
+	raycast,
+	raycastFirst,
+	shapecast,
+	intersectsGeometry,
 	setBuffer,
 	clearBuffer,
 } from './castFunctions.js';
@@ -256,7 +256,7 @@ export default class MeshBVH {
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			raycastBuffer( 0, mesh, raycaster, ray, intersects );
+			raycast( 0, mesh, raycaster, ray, intersects );
 
 		}
 
@@ -270,7 +270,7 @@ export default class MeshBVH {
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			const result = raycastFirstBuffer( 0, mesh, raycaster, ray );
+			const result = raycastFirst( 0, mesh, raycaster, ray );
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
@@ -292,7 +292,7 @@ export default class MeshBVH {
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = intersectsGeometryBuffer( 0, mesh, geometry, geomToMesh );
+			result = intersectsGeometry( 0, mesh, geometry, geomToMesh );
 
 			if ( result ) {
 
@@ -314,7 +314,7 @@ export default class MeshBVH {
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = shapecastBuffer( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+			result = shapecast( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
 
 			if ( result ) {
 
