@@ -715,6 +715,12 @@ export function buildPackedTree( geo, options ) {
 			let nextUnusedPointer;
 			nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
 
+			if ( ( nextUnusedPointer / 4 ) > Math.pow( 2, 32 ) ) {
+
+				throw new Error( 'MeshBVH: Cannot store child pointer greater than 32 bits.' );
+
+			}
+
 			uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
 			nextUnusedPointer = populateBuffer( nextUnusedPointer, right );
 
