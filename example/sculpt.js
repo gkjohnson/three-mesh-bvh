@@ -384,19 +384,22 @@ function performStroke( point, brushOnly = false ) {
 		const dist = tempVec.distanceTo( tempVec2 );
 		let intensity = 1.0 - ( dist / params.size );
 		intensity *= intensity;
-		if ( params.clayBrush ) {
-
-			intensity = Math.min( intensity, 0.1 );
-
-		} else {
-
-			intensity *= 0.5;
-
-		}
 
 		if ( params.invert ) {
 
 			intensity *= - 1;
+
+		}
+
+		if ( params.clayBrush ) {
+
+			intensity = Math.min( intensity, 0.1 );
+
+			// TODO: flatten along the plane defined by the offset normal and point
+
+		} else {
+
+			intensity *= 0.5;
 
 		}
 
