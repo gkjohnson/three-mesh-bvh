@@ -44,6 +44,7 @@ export class GenerateMeshBVHWorker {
 						geometry.index.array = serialized.index;
 
 					}
+
 					resolve( bvh );
 
 				}

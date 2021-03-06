@@ -371,6 +371,7 @@ function render() {
 			);
 
 		}
+
 		selectionShape.frustumCulled = false;
 		selectionShapeNeedsUpdate = false;
 
@@ -428,6 +429,7 @@ function updateSelection() {
 		lassoSegments.push( new THREE.Line3() );
 
 	}
+
 	lassoSegments.length = selectionPoints.length;
 
 	for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {

@@ -65,6 +65,7 @@ describe( 'Bounds Tree', () => {
 			posErrorThrown = true;
 
 		}
+
 		expect( posErrorThrown ).toBe( true );
 
 		geometry = new BoxBufferGeometry();
@@ -78,6 +79,7 @@ describe( 'Bounds Tree', () => {
 			indexErrorThrown = true;
 
 		}
+
 		expect( indexErrorThrown ).toBe( true );
 
 	} );
@@ -137,6 +139,7 @@ describe( 'Bounds Tree', () => {
 				}
 
 			}
+
 			return result;
 
 		};

@@ -205,6 +205,7 @@ function loadColliderEnvironment() {
 					}
 
 				}
+
 				geometries.push( cloned );
 
 			}

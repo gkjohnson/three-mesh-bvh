@@ -211,6 +211,7 @@ function updateFromOptions() {
 		boundsViz = null;
 
 	}
+
 	if ( ! boundsViz && params.visualizeBounds ) {
 
 		boundsViz = new MeshBVHVisualizer( targetMesh );

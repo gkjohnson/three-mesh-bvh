@@ -274,6 +274,7 @@ function render() {
 					colorAttr.setZ( i2, b );
 
 				}
+
 				colorAttr.needsUpdate = true;
 
 			}
@@ -294,6 +295,7 @@ function render() {
 		targetMesh.rotation.y += delta * 0.001;
 
 	}
+
 	lastTime = currTime;
 
 	renderer.render( scene, camera );
