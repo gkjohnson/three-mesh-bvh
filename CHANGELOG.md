@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `MeshBVHVisualizer` not using the new geometry BVH if one was generated.
 - `MeshBVHVisualizer` not using the new mesh if it was set.
 
+## [0.3.7] - 2021-03-06
+### Fixed
+- Include built umd file including v0.3.6 changes.
+
 ## [0.3.6] - 2021-03-03
 ### Fixed
 - Incorrect face index would be returned from intersection (related to three.js bug fixed in v0.126.1).

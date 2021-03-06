@@ -1,6 +1,6 @@
 {
   "name": "three-mesh-bvh",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "A BVH implementation to speed up raycasting against three.js meshes.",
   "module": "src/index.js",
   "main": "src/index.js",
@@ -11,7 +11,8 @@
     "build": "npm run generate-cast-functions & rollup -c & parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "npm run generate-cast-functions & jest",
     "lint": "eslint \"./src/*.js\" \"./test/*.js\" \"./example/*.js\"",
-    "benchmark": "npm run generate-cast-functions & node benchmark/run-benchmark.js"
+    "benchmark": "npm run generate-cast-functions & node benchmark/run-benchmark.js",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "src/*",

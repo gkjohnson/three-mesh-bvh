@@ -135,6 +135,7 @@
 			ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
 
 		}
+
 		return ranges;
 
 	}
@@ -379,6 +380,7 @@
 				}
 
 			}
+
 			filteredLists.forEach( planes => planes.sort( ( a, b ) => a.p - b.p ) );
 
 			// this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
@@ -1877,14 +1879,14 @@
 
 			const face = {
 				a: a,
-				b: a,
+				b: b,
 				c: c,
 				normal: new three.Vector3( ),
 				materialIndex: 0
 			};
-			
+
 			three.Triangle.getNormal( vA, vB, vC, face.normal );
-			
+
 			intersection.face = face;
 			intersection.faceIndex = a;
 
@@ -3483,6 +3485,7 @@
 							target.copy( temp );
 
 						}
+
 						closestDistance = dist;
 
 					}
@@ -3563,6 +3566,7 @@
 							this.add( m );
 
 						}
+
 						requiredChildren ++;
 						arrayToBox( boundingData, boundingBox$2 );
 						boundingBox$2.getCenter( m.position );
