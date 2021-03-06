@@ -1,0 +1,5 @@
+path_classifiers:
+  template:
+    - "**/*.template.js"
+	generated:
+		- exclude: src/
