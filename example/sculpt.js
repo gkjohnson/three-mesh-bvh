@@ -29,7 +29,7 @@ let matcap;
 
 const params = {
 	size: 0.1,
-	clayBrush: true,
+	brush: 'clay',
 	intensity: 50,
 	maxSteps: 15,
 	invert: false,
@@ -155,7 +155,7 @@ function init() {
 	const gui = new dat.GUI();
 
 	const sculptFolder = gui.addFolder( 'Sculpting' );
-	sculptFolder.add( params, 'clayBrush' );
+	sculptFolder.add( params, 'brush', [ 'normal', 'clay', 'flatten' ] );
 	sculptFolder.add( params, 'size' ).min( 0.025 ).max( 0.25 ).step( 0.005 );
 	sculptFolder.add( params, 'intensity' ).min( 1 ).max( 100 ).step( 1 );
 	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
@@ -374,6 +374,10 @@ function performStroke( point, brushOnly = false ) {
 	}
 
 	// perform vertex adjustment
+	const targetHeight = params.intensity * 0.000025;
+	const plane = new THREE.Plane();
+	plane.setFromNormalAndCoplanarPoint( normal, point );
+
 	const indexToTriangles = {};
 	indices.forEach( i => {
 
@@ -383,7 +387,7 @@ function performStroke( point, brushOnly = false ) {
 		// compute the offset intensity
 		const dist = tempVec.distanceTo( tempVec2 );
 		let intensity = 1.0 - ( dist / params.size );
-		intensity *= intensity;
+		intensity = Math.pow( intensity, 4 );
 
 		if ( params.invert ) {
 
@@ -391,20 +395,24 @@ function performStroke( point, brushOnly = false ) {
 
 		}
 
-		if ( params.clayBrush ) {
+		// offset the vertex
+		if ( params.brush === 'clay' ) {
 
-			intensity = Math.min( intensity, 0.1 );
+			const planeDist = plane.distanceToPoint( tempVec );
+			const clampedIntensity = Math.min( intensity * 5, 1 );
+			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - planeDist * clampedIntensity * 0.5 );
 
-			// TODO: flatten along the plane defined by the offset normal and point
+		} else if ( params.brush === 'normal' ) {
 
-		} else {
+			tempVec.addScaledVector( normal, intensity * targetHeight );
 
-			intensity *= 0.5;
+		} else if ( params.brush === 'flatten' ) {
+
+			const planeDist = plane.distanceToPoint( tempVec );
+			tempVec.addScaledVector( normal, - planeDist * intensity * 0.5 );
 
 		}
 
-		// offset the vertex
-		tempVec.addScaledVector( normal, intensity * params.intensity * 0.00005 );
 		posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 
 		// save all the triangles that are connected to this vertex
@@ -451,6 +459,8 @@ function performStroke( point, brushOnly = false ) {
 
 		posAttr.needsUpdate = true;
 		normalAttr.needsUpdate = true;
+
+		// TODO: refit bounds here once it's optimized
 
 	}
 
