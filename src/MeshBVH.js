@@ -480,6 +480,7 @@ export default class MeshBVH {
 						target.copy( temp );
 
 					}
+
 					closestDistance = dist;
 
 				}

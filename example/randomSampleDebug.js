@@ -94,6 +94,7 @@ function init() {
 			// mesh.add( new THREE.AxesHelper( 10 ) );
 
 		}
+
 		mesh.updateMatrix( true );
 		mesh.updateMatrixWorld( true );
 

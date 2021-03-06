@@ -140,6 +140,7 @@ function regenerateKnot() {
 		return;
 
 	}
+
 	generating = true;
 
 	if ( knot ) {
@@ -189,6 +190,7 @@ function regenerateKnot() {
 				helper.update();
 
 			}
+
 			group.add( helper );
 
 			outputContainer.textContent =

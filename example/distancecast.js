@@ -83,6 +83,7 @@ function init() {
 		posAttr.setZ( i, noise.noise2D( x, y ) * 3 );
 
 	}
+
 	planeGeom.computeVertexNormals();
 	planeGeom.computeBoundsTree( { lazyGeneration: false } );
 
@@ -256,6 +257,7 @@ function updateFromOptions() {
 		boundsViz = null;
 
 	}
+
 	if ( ! boundsViz && params.visualizeBounds ) {
 
 		boundsViz = new MeshBVHVisualizer( terrain );

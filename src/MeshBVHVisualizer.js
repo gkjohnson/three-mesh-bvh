@@ -46,6 +46,7 @@ class MeshBVHRootVisualizer extends Group {
 						this.add( m );
 
 					}
+
 					requiredChildren ++;
 					arrayToBox( boundingData, boundingBox );
 					boundingBox.getCenter( m.position );

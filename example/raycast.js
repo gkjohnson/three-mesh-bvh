@@ -196,6 +196,7 @@ const updateFromOptions = () => {
 		containerObj.remove( knots.pop() );
 
 	}
+
 	while ( knots.length < params.mesh.count ) {
 
 		addKnot();
