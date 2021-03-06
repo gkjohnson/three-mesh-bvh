@@ -24,6 +24,7 @@ let targetMesh, brush, bvhHelper;
 let normalZ = new THREE.Vector3( 0, 0, 1 );
 let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2();
 let mouseState = false, lastMouseState = false;
+let lastCastPose = new THREE.Vector3();
 let matcap;
 
 const params = {
@@ -261,6 +262,7 @@ function render() {
 	if ( controls.active ) {
 
 		brush.visible = false;
+		lastCastPose.setScalar( Infinity );
 
 	} else {
 
@@ -364,15 +366,19 @@ function render() {
 			normal.normalize();
 			brush.quaternion.setFromUnitVectors( normalZ, normal );
 
-			const dx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
-			const dy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
-			const dist = Math.sqrt( dx * dx + dy * dy );
+			const mdx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
+			const mdy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
+			const mdist = Math.sqrt( mdx * mdx + mdy * mdy );
+
+			const castDist = hit.point.distanceTo( lastCastPose );
 
 			if ( ! ( mouseState || lastMouseState ) ) {
 
 				lastMouse.copy( mouse );
 
-			} else if ( dist > params.size * 200 / hit.distance ) {
+			} else if ( mdist > params.size * 200 / hit.distance && castDist > params.size * 0.15 ) {
+
+				lastCastPose.copy( hit.point );
 
 				const indexToTriangles = {};
 				indexSet.forEach( i => {
@@ -462,6 +468,7 @@ function render() {
 			controls.enabled = true;
 			brush.visible = false;
 			lastMouse.copy( mouse );
+			lastCastPose.setScalar( Infinity );
 
 		}
 
