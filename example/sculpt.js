@@ -34,12 +34,18 @@ const params = {
 	maxSteps: 15,
 	invert: false,
 	flatShading: false,
+
 	depth: 10,
 	displayHelper: false,
 };
 
+init();
+render();
+
+// reset the sculpt mesh
 function reset() {
 
+	// dispose of the mesh if it exists
 	if ( targetMesh ) {
 
 		targetMesh.geometry.dispose();
@@ -48,19 +54,20 @@ function reset() {
 
 	}
 
+	// load the mat cap material if it hasn't been made yet
 	if ( ! matcap ) {
 
 		matcap = new THREE.TextureLoader().load( '../textures/skinHazardousarts2.jpg' );
 
 	}
 
+	// merge the vertices because they're not already merged
 	let geometry = new THREE.IcosahedronBufferGeometry( 1, 100 );
 	geometry.deleteAttribute( 'uv' );
 	geometry = BufferGeometryUtils.mergeVertices( geometry );
-
-	geometry.computeBoundsTree();
 	geometry.attributes.position.setUsage( THREE.DynamicDrawUsage );
 	geometry.attributes.normal.setUsage( THREE.DynamicDrawUsage );
+	geometry.computeBoundsTree();
 
 	targetMesh = new THREE.Mesh(
 		geometry,
@@ -72,12 +79,17 @@ function reset() {
 	targetMesh.material.matcap.encoding = THREE.sRGBEncoding;
 	scene.add( targetMesh );
 
-	if ( bvhHelper ) {
+	// initialize bvh helper
+	if ( ! bvhHelper ) {
 
-		bvhHelper.mesh = targetMesh;
-		bvhHelper.update();
+		bvhHelper = new MeshBVHVisualizer( targetMesh, params.depth );
+		bvhHelper.visible = params.displayHelper;
+		scene.add( bvhHelper );
 
 	}
+
+	bvhHelper.mesh = targetMesh;
+	bvhHelper.update();
 
 }
 
@@ -105,12 +117,7 @@ function init() {
 	// geometry setup
 	reset();
 
-	// initialize bvh helper
-	bvhHelper = new MeshBVHVisualizer( targetMesh, params.depth );
-	bvhHelper.visible = params.displayHelper;
-	scene.add( bvhHelper );
-
-	// initialize brush shape
+	// initialize brush cursor
 	const brushSegments = [ new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ) ];
 	for ( let i = 0; i < 50; i ++ ) {
 
@@ -255,6 +262,7 @@ function init() {
 
 }
 
+// Run the perform the brush movement
 function performStroke( point, brushOnly = false ) {
 
 	const inverseMatrix = new THREE.Matrix4();
@@ -264,7 +272,8 @@ function performStroke( point, brushOnly = false ) {
 	sphere.center.copy( point ).applyMatrix4( inverseMatrix );
 	sphere.radius = params.size;
 
-	const indices = [];
+	// Collect the intersected vertices
+	const indices = new Set();
 	const tempVec = new THREE.Vector3();
 	const tempVec2 = new THREE.Vector3();
 	const normal = new THREE.Vector3();
@@ -309,9 +318,31 @@ function performStroke( point, brushOnly = false ) {
 		},
 		( tri, a, b, c, contained ) => {
 
-			if ( contained || tri.intersectsSphere( sphere ) ) {
+			if ( contained ) {
 
-				indices.push( a, b, c );
+				indices.add( a );
+				indices.add( b );
+				indices.add( c );
+
+			} else {
+
+				if ( sphere.containsPoint( tri.a ) ) {
+
+					indices.add( a );
+
+				}
+
+				if ( sphere.containsPoint( tri.b ) ) {
+
+					indices.add( b );
+
+				}
+
+				if ( sphere.containsPoint( tri.c ) ) {
+
+					indices.add( c );
+
+				}
 
 			}
 
@@ -319,23 +350,15 @@ function performStroke( point, brushOnly = false ) {
 
 		}
 	);
+
+	// Compute the average normal at this point
 	const indexAttr = targetMesh.geometry.index;
 	const posAttr = targetMesh.geometry.attributes.position;
 	const normalAttr = targetMesh.geometry.attributes.normal;
-	const indexSet = new Set( indices );
 	tempVec2.copy( point ).applyMatrix4( inverseMatrix );
-	indexSet.forEach( i => {
+	indices.forEach( i => {
 
 		const index = indexAttr.getX( i );
-		tempVec.fromBufferAttribute( posAttr, index );
-
-		const dist = tempVec.distanceTo( tempVec2 );
-		if ( dist > params.size ) {
-
-			return;
-
-		}
-
 		tempVec.fromBufferAttribute( normalAttr, index );
 		normal.add( tempVec );
 
@@ -343,6 +366,7 @@ function performStroke( point, brushOnly = false ) {
 	normal.normalize();
 	brush.quaternion.setFromUnitVectors( normalZ, normal );
 
+	// Early out if we just want to adjust the brush
 	if ( brushOnly ) {
 
 		return;
@@ -350,20 +374,14 @@ function performStroke( point, brushOnly = false ) {
 	}
 
 	// perform vertex adjustment
-
 	const indexToTriangles = {};
-	indexSet.forEach( i => {
+	indices.forEach( i => {
 
 		const index = indexAttr.getX( i );
 		tempVec.fromBufferAttribute( posAttr, index );
 
+		// compute the offset intensity
 		const dist = tempVec.distanceTo( tempVec2 );
-		if ( dist > params.size ) {
-
-			return;
-
-		}
-
 		let intensity = 1.0 - ( dist / params.size );
 		intensity *= intensity;
 		if ( params.clayBrush ) {
@@ -382,9 +400,11 @@ function performStroke( point, brushOnly = false ) {
 
 		}
 
+		// offset the vertex
 		tempVec.addScaledVector( normal, intensity * params.intensity * 0.00005 );
 		posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 
+		// save all the triangles that are connected to this vertex
 		let arr = indexToTriangles[ index ];
 		if ( ! arr ) {
 
@@ -396,9 +416,13 @@ function performStroke( point, brushOnly = false ) {
 
 	} );
 
-	if ( indices.length ) {
+	// If we found vertices
+	if ( indices.size ) {
 
-		// TODO: this can be improved
+		// compute the new vertex normal
+		// TODO: this can be improved by computing the normal vertices in place in
+		// the buffer then normalizing them and avoiding recomputing the normal for the
+		// same triangles multiple times
 		const triangle = new THREE.Triangle();
 		for ( const index in indexToTriangles ) {
 
@@ -437,6 +461,7 @@ function render() {
 
 	if ( controls.active ) {
 
+		// If the controls are being used then don't perform the strokes
 		brush.visible = false;
 		lastCastPose.setScalar( Infinity );
 
@@ -447,6 +472,7 @@ function render() {
 		raycaster.firstHitOnly = true;
 
 		const hit = raycaster.intersectObject( targetMesh, true )[ 0 ];
+		// if we hit the target mesh
 		if ( hit ) {
 
 			brush.visible = true;
@@ -455,17 +481,15 @@ function render() {
 			brush.quaternion.setFromUnitVectors( normalZ, hit.face.normal );
 			controls.enabled = false;
 
+			// if the last cast pose was missed in the last frame then set it to
+			// the current point so we don't streak across the surface
 			if ( lastCastPose.x === Infinity ) {
 
 				lastCastPose.copy( hit.point );
 
 			}
 
-			const mdx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
-			const mdy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
-			let mdist = Math.sqrt( mdx * mdx + mdy * mdy );
-			let castDist = hit.point.distanceTo( lastCastPose );
-
+			// If the mouse isn't pressed don't perform the stroke
 			if ( ! ( mouseState || lastMouseState ) ) {
 
 				performStroke( hit.point, true );
@@ -474,11 +498,18 @@ function render() {
 
 			} else {
 
+				// compute the distance the mouse moved and that the cast point moved
+				const mdx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
+				const mdy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
+				let mdist = Math.sqrt( mdx * mdx + mdy * mdy );
+				let castDist = hit.point.distanceTo( lastCastPose );
+
 				const step = params.size * 0.15;
 				const percent = Math.max( step / castDist, 1 / params.maxSteps );
 				const mstep = mdist * percent;
 				let stepCount = 0;
 
+				// perform multiple iterations toward the current mouse pose for a consistent stroke
 				while ( castDist > step && mdist > params.size * 200 / hit.distance ) {
 
 					lastMouse.lerp( mouse, percent );
@@ -496,10 +527,15 @@ function render() {
 
 				}
 
+				// refit the bounds if we adjusted the mesh
 				if ( stepCount > 0 ) {
 
 					targetMesh.geometry.boundsTree.refit( targetMesh.geometry );
 					bvhHelper.update();
+
+				} else {
+
+					performStroke( hit.point, true );
 
 				}
 
@@ -507,6 +543,7 @@ function render() {
 
 		} else {
 
+			// if we didn't hit
 			controls.enabled = true;
 			brush.visible = false;
 			lastMouse.copy( mouse );
@@ -522,7 +559,3 @@ function render() {
 	stats.end();
 
 }
-
-
-init();
-render();
