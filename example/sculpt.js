@@ -30,7 +30,8 @@ let matcap;
 const params = {
 	size: 0.1,
 	clayBrush: true,
-	intensity: 0.004,
+	intensity: 50,
+	maxSteps: 15,
 	invert: false,
 	flatShading: false,
 	depth: 10,
@@ -128,7 +129,7 @@ function init() {
 	}
 	brush = new THREE.LineSegments();
 	brush.geometry.setFromPoints( brushSegments );
-	brush.material.color.set( 0xff9800 );
+	brush.material.color.set( 0xfb8c00 );
 	scene.add( brush );
 
 	// camera setup
@@ -148,8 +149,9 @@ function init() {
 
 	const sculptFolder = gui.addFolder( 'Sculpting' );
 	sculptFolder.add( params, 'clayBrush' );
-	sculptFolder.add( params, 'size' ).min( 0.05 ).max( 0.25 ).step( 0.01 );
-	sculptFolder.add( params, 'intensity' ).min( 0.002 ).max( 0.01 ).step( 0.001 );
+	sculptFolder.add( params, 'size' ).min( 0.025 ).max( 0.25 ).step( 0.005 );
+	sculptFolder.add( params, 'intensity' ).min( 1 ).max( 100 ).step( 1 );
+	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
 	sculptFolder.add( params, 'invert' );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
 
@@ -245,11 +247,185 @@ function init() {
 		}
 
 		params.size += delta * 0.0005;
-		params.size = Math.max( Math.min( params.size, 0.25 ), 0.05 );
+		params.size = Math.max( Math.min( params.size, 0.25 ), 0.025 );
 
 		gui.updateDisplay();
 
 	} );
+
+}
+
+function performStroke( point, brushOnly = false ) {
+
+	const inverseMatrix = new THREE.Matrix4();
+	inverseMatrix.copy( targetMesh.matrixWorld ).invert();
+
+	const sphere = new THREE.Sphere();
+	sphere.center.copy( point ).applyMatrix4( inverseMatrix );
+	sphere.radius = params.size;
+
+	const indices = [];
+	const tempVec = new THREE.Vector3();
+	const tempVec2 = new THREE.Vector3();
+	const normal = new THREE.Vector3();
+	const bvh = targetMesh.geometry.boundsTree;
+	bvh.shapecast(
+		targetMesh,
+		box => {
+
+			const intersects = sphere.intersectsBox( box );
+			const { min, max } = box;
+			if ( intersects ) {
+
+				for ( let x = 0; x <= 1; x ++ ) {
+
+					for ( let y = 0; y <= 1; y ++ ) {
+
+						for ( let z = 0; z <= 1; z ++ ) {
+
+							tempVec.set(
+								x === 0 ? min.x : max.x,
+								y === 0 ? min.y : max.y,
+								z === 0 ? min.z : max.z
+							);
+							if ( ! sphere.containsPoint( tempVec ) ) {
+
+								return INTERSECTED;
+
+							}
+
+						}
+
+					}
+
+				}
+
+				return CONTAINED;
+
+			}
+
+			return intersects ? INTERSECTED : NOT_INTERSECTED;
+
+		},
+		( tri, a, b, c, contained ) => {
+
+			if ( contained || tri.intersectsSphere( sphere ) ) {
+
+				indices.push( a, b, c );
+
+			}
+
+			return false;
+
+		}
+	);
+	const indexAttr = targetMesh.geometry.index;
+	const posAttr = targetMesh.geometry.attributes.position;
+	const normalAttr = targetMesh.geometry.attributes.normal;
+	const indexSet = new Set( indices );
+	tempVec2.copy( point ).applyMatrix4( inverseMatrix );
+	indexSet.forEach( i => {
+
+		const index = indexAttr.getX( i );
+		tempVec.fromBufferAttribute( posAttr, index );
+
+		const dist = tempVec.distanceTo( tempVec2 );
+		if ( dist > params.size ) {
+
+			return;
+
+		}
+
+		tempVec.fromBufferAttribute( normalAttr, index );
+		normal.add( tempVec );
+
+	} );
+	normal.normalize();
+	brush.quaternion.setFromUnitVectors( normalZ, normal );
+
+	if ( brushOnly ) {
+
+		return;
+
+	}
+
+	// perform vertex adjustment
+
+	const indexToTriangles = {};
+	indexSet.forEach( i => {
+
+		const index = indexAttr.getX( i );
+		tempVec.fromBufferAttribute( posAttr, index );
+
+		const dist = tempVec.distanceTo( tempVec2 );
+		if ( dist > params.size ) {
+
+			return;
+
+		}
+
+		let intensity = 1.0 - ( dist / params.size );
+		intensity *= intensity;
+		if ( params.clayBrush ) {
+
+			intensity = Math.min( intensity, 0.1 );
+
+		} else {
+
+			intensity *= 0.5;
+
+		}
+
+		if ( params.invert ) {
+
+			intensity *= - 1;
+
+		}
+
+		tempVec.addScaledVector( normal, intensity * params.intensity * 0.00005 );
+		posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
+
+		let arr = indexToTriangles[ index ];
+		if ( ! arr ) {
+
+			arr = indexToTriangles[ index ] = [];
+
+		}
+
+		arr.push( ~ ~ ( i / 3 ) );
+
+	} );
+
+	if ( indices.length ) {
+
+		// TODO: this can be improved
+		const triangle = new THREE.Triangle();
+		for ( const index in indexToTriangles ) {
+
+			tempVec.set( 0, 0, 0 );
+
+			const arr = indexToTriangles[ index ];
+			for ( const tri in arr ) {
+
+				const i3 = arr[ tri ] * 3;
+				triangle.a.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 0 ) );
+				triangle.b.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 1 ) );
+				triangle.c.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 2 ) );
+
+				triangle.getNormal( tempVec2 );
+				tempVec.add( tempVec2 );
+
+			}
+
+			tempVec.normalize();
+			normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
+
+		}
+
+		posAttr.needsUpdate = true;
+		normalAttr.needsUpdate = true;
+
+	}
 
 }
 
@@ -279,187 +455,53 @@ function render() {
 			brush.quaternion.setFromUnitVectors( normalZ, hit.face.normal );
 			controls.enabled = false;
 
-
-			const inverseMatrix = new THREE.Matrix4();
-			inverseMatrix.copy( targetMesh.matrixWorld ).invert();
-
-			const sphere = new THREE.Sphere();
-			sphere.center.copy( hit.point ).applyMatrix4( inverseMatrix );
-			sphere.radius = params.size;
-
-			const indices = [];
-			const tempVec = new THREE.Vector3();
-			const tempVec2 = new THREE.Vector3();
-			const normal = new THREE.Vector3();
-			const bvh = targetMesh.geometry.boundsTree;
-			bvh.shapecast(
-				targetMesh,
-				box => {
-
-					const intersects = sphere.intersectsBox( box );
-					const { min, max } = box;
-					if ( intersects ) {
-
-						for ( let x = 0; x <= 1; x ++ ) {
-
-							for ( let y = 0; y <= 1; y ++ ) {
-
-								for ( let z = 0; z <= 1; z ++ ) {
-
-									tempVec.set(
-										x === 0 ? min.x : max.x,
-										y === 0 ? min.y : max.y,
-										z === 0 ? min.z : max.z
-									);
-									if ( ! sphere.containsPoint( tempVec ) ) {
-
-										return INTERSECTED;
-
-									}
-
-								}
-
-							}
-
-						}
-
-						return CONTAINED;
-
-					}
-
-					return intersects ? INTERSECTED : NOT_INTERSECTED;
-
-				},
-				( tri, a, b, c, contained ) => {
-
-					if ( contained || tri.intersectsSphere( sphere ) ) {
-
-						indices.push( a, b, c );
-
-					}
-
-					return false;
-
-				}
-			);
-			const indexAttr = targetMesh.geometry.index;
-			const posAttr = targetMesh.geometry.attributes.position;
-			const normalAttr = targetMesh.geometry.attributes.normal;
-			const indexSet = new Set( indices );
-			tempVec2.copy( hit.point ).applyMatrix4( inverseMatrix );
-			indexSet.forEach( i => {
-
-				const index = indexAttr.getX( i );
-				tempVec.fromBufferAttribute( posAttr, index );
-
-				const dist = tempVec.distanceTo( tempVec2 );
-				if ( dist > params.size ) {
-
-					return;
-
-				}
-
-				tempVec.fromBufferAttribute( normalAttr, index );
-				normal.add( tempVec );
-
-			} );
-			normal.normalize();
-			brush.quaternion.setFromUnitVectors( normalZ, normal );
-
-			const mdx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
-			const mdy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
-			const mdist = Math.sqrt( mdx * mdx + mdy * mdy );
-
-			const castDist = hit.point.distanceTo( lastCastPose );
-
-			if ( ! ( mouseState || lastMouseState ) ) {
-
-				lastMouse.copy( mouse );
-
-			} else if ( mdist > params.size * 200 / hit.distance && castDist > params.size * 0.15 ) {
+			if ( lastCastPose.x === Infinity ) {
 
 				lastCastPose.copy( hit.point );
 
-				const indexToTriangles = {};
-				indexSet.forEach( i => {
+			}
 
-					const index = indexAttr.getX( i );
-					tempVec.fromBufferAttribute( posAttr, index );
+			const mdx = ( mouse.x - lastMouse.x ) * window.innerWidth * window.devicePixelRatio;
+			const mdy = ( mouse.y - lastMouse.y ) * window.innerHeight * window.devicePixelRatio;
+			let mdist = Math.sqrt( mdx * mdx + mdy * mdy );
+			let castDist = hit.point.distanceTo( lastCastPose );
 
-					const dist = tempVec.distanceTo( tempVec2 );
-					if ( dist > params.size ) {
+			if ( ! ( mouseState || lastMouseState ) ) {
 
-						return;
+				performStroke( hit.point, true );
+				lastMouse.copy( mouse );
+				lastCastPose.copy( hit.point );
 
-					}
+			} else {
 
-					let intensity = 1.0 - ( dist / params.size );
-					intensity *= intensity;
-					if ( params.clayBrush ) {
+				const step = params.size * 0.15;
+				const percent = Math.max( step / castDist, 1 / params.maxSteps );
+				const mstep = mdist * percent;
+				let stepCount = 0;
 
-						intensity = Math.min( intensity, 0.1 );
+				while ( castDist > step && mdist > params.size * 200 / hit.distance ) {
 
-					} else {
+					lastMouse.lerp( mouse, percent );
+					lastCastPose.lerp( hit.point, percent );
+					castDist -= step;
+					mdist -= mstep;
 
-						intensity *= 0.5;
+					performStroke( lastCastPose, false );
+					stepCount ++;
+					if ( stepCount > params.maxSteps ) {
 
-					}
-
-					if ( params.invert ) {
-
-						intensity *= - 1;
-
-					}
-
-					tempVec.addScaledVector( normal, intensity * params.intensity );
-					posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
-
-					let arr = indexToTriangles[ index ];
-					if ( ! arr ) {
-
-						arr = indexToTriangles[ index ] = [];
+						break;
 
 					}
 
-					arr.push( ~ ~ ( i / 3 ) );
+				}
 
-				} );
-
-				if ( indices.length ) {
-
-					// TODO: this can be improved
-					const triangle = new THREE.Triangle();
-					for ( const index in indexToTriangles ) {
-
-						tempVec.set( 0, 0, 0 );
-
-						const arr = indexToTriangles[ index ];
-						for ( const tri in arr ) {
-
-							const i3 = arr[ tri ] * 3;
-							triangle.a.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 0 ) );
-							triangle.b.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 1 ) );
-							triangle.c.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 2 ) );
-
-							triangle.getNormal( tempVec2 );
-							tempVec.add( tempVec2 );
-
-						}
-
-						tempVec.normalize();
-						normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
-
-					}
-
-					posAttr.needsUpdate = true;
-					normalAttr.needsUpdate = true;
+				if ( stepCount > 0 ) {
 
 					targetMesh.geometry.boundsTree.refit( targetMesh.geometry );
-
 					bvhHelper.update();
 
 				}
-				lastMouse.copy( mouse );
 
 			}
 
