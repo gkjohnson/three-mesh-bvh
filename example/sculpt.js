@@ -31,7 +31,7 @@ const params = {
 	size: 0.1,
 	brush: 'clay',
 	intensity: 50,
-	maxSteps: 15,
+	maxSteps: 1,
 	invert: false,
 	flatShading: false,
 
@@ -158,7 +158,7 @@ function init() {
 	sculptFolder.add( params, 'brush', [ 'normal', 'clay', 'flatten' ] );
 	sculptFolder.add( params, 'size' ).min( 0.025 ).max( 0.25 ).step( 0.005 );
 	sculptFolder.add( params, 'intensity' ).min( 1 ).max( 100 ).step( 1 );
-	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
+	// sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
 	sculptFolder.add( params, 'invert' );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
 
@@ -387,7 +387,7 @@ function performStroke( point, brushOnly = false ) {
 		// compute the offset intensity
 		const dist = tempVec.distanceTo( tempVec2 );
 		let intensity = 1.0 - ( dist / params.size );
-		intensity = Math.pow( intensity, 4 );
+		intensity = Math.pow( intensity, 3 );
 
 		if ( params.invert ) {
 
@@ -409,7 +409,7 @@ function performStroke( point, brushOnly = false ) {
 		} else if ( params.brush === 'flatten' ) {
 
 			const planeDist = plane.distanceToPoint( tempVec );
-			tempVec.addScaledVector( normal, - planeDist * intensity * 0.5 );
+			tempVec.addScaledVector( normal, - planeDist * intensity * params.intensity * 0.01 );
 
 		}
 
