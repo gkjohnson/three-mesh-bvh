@@ -523,7 +523,8 @@ function render() {
 				let stepCount = 0;
 
 				// perform multiple iterations toward the current mouse pose for a consistent stroke
-				// TODO: recast here so he cursor is on the surface of the model
+				// TODO: recast here so he cursor is on the surface of the model which requires faster
+				// refitting of the model
 				while ( castDist > step && mdist > params.size * 200 / hit.distance ) {
 
 					lastMouse.lerp( mouse, percent );
