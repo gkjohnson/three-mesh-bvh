@@ -119,6 +119,7 @@ export default class MeshBVH {
 			_traverse( 0 );
 
 		}
+
 		function _traverse( node32Index ) {
 
 			const node16Index = node32Index * 2;

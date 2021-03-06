@@ -134,6 +134,7 @@ function init() {
 		);
 
 	}
+
 	brush = new THREE.LineSegments();
 	brush.geometry.setFromPoints( brushSegments );
 	brush.material.color.set( 0xfb8c00 );
