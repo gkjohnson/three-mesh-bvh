@@ -20,7 +20,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let stats;
 let scene, camera, renderer, controls;
-let targetMesh, brush, bvhHelper;
+let targetMesh, brush, symmetryBrush, bvhHelper;
 let normalZ = new THREE.Vector3( 0, 0, 1 );
 let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2();
 let mouseState = false, lastMouseState = false;
@@ -33,6 +33,7 @@ const params = {
 	intensity: 50,
 	maxSteps: 20,
 	invert: false,
+	symmetrical: true,
 	flatShading: false,
 
 	depth: 10,
@@ -142,9 +143,12 @@ function init() {
 	brush.material.color.set( 0xfb8c00 );
 	scene.add( brush );
 
+	symmetryBrush = brush.clone();
+	scene.add( symmetryBrush );
+
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 3, 3, 3 );
+	camera.position.set( 0, 0, 3 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -162,6 +166,7 @@ function init() {
 	sculptFolder.add( params, 'size' ).min( 0.025 ).max( 0.25 ).step( 0.005 );
 	sculptFolder.add( params, 'intensity' ).min( 1 ).max( 100 ).step( 1 );
 	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
+	sculptFolder.add( params, 'symmetrical' );
 	sculptFolder.add( params, 'invert' );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
 
@@ -256,7 +261,7 @@ function init() {
 
 		}
 
-		params.size += delta * 0.0005;
+		params.size += delta * 0.0001;
 		params.size = Math.max( Math.min( params.size, 0.25 ), 0.025 );
 
 		gui.updateDisplay();
@@ -266,7 +271,7 @@ function init() {
 }
 
 // Run the perform the brush movement
-function performStroke( point, brushOnly = false ) {
+function performStroke( point, brushObject, brushOnly = false ) {
 
 	const inverseMatrix = new THREE.Matrix4();
 	inverseMatrix.copy( targetMesh.matrixWorld ).invert();
@@ -381,7 +386,7 @@ function performStroke( point, brushOnly = false ) {
 
 	} );
 	normal.normalize();
-	brush.quaternion.setFromUnitVectors( normalZ, normal );
+	brushObject.quaternion.setFromUnitVectors( normalZ, normal );
 
 	if ( totalPoints ) {
 
@@ -417,8 +422,8 @@ function performStroke( point, brushOnly = false ) {
 
 			intensity = Math.pow( intensity, 3 );
 			const planeDist = plane.distanceToPoint( tempVec );
-			const clampedIntensity = negated * Math.min( intensity * 5, 1 );
-			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - planeDist * clampedIntensity * 0.15 );
+			const clampedIntensity = negated * Math.min( intensity * 2, 0.5 ) * 2.0;
+			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - negated * planeDist * clampedIntensity * 0.1 );
 
 		} else if ( params.brush === 'normal' ) {
 
@@ -430,7 +435,7 @@ function performStroke( point, brushOnly = false ) {
 			intensity = Math.pow( intensity, 2 );
 
 			const planeDist = plane.distanceToPoint( tempVec );
-			tempVec.addScaledVector( normal, negated * - planeDist * intensity * params.intensity * 0.01 * 0.5 );
+			tempVec.addScaledVector( normal, - planeDist * intensity * params.intensity * 0.01 * 0.5 );
 
 		}
 
@@ -513,7 +518,12 @@ function render() {
 			brush.visible = true;
 			brush.scale.set( params.size, params.size, 0.1 );
 			brush.position.copy( hit.point );
-			brush.quaternion.setFromUnitVectors( normalZ, hit.face.normal );
+
+			symmetryBrush.visible = params.symmetrical;
+			symmetryBrush.scale.set( params.size, params.size, 0.1 );
+			symmetryBrush.position.copy( hit.point );
+			symmetryBrush.position.x *= - 1;
+
 			controls.enabled = false;
 
 			// if the last cast pose was missed in the last frame then set it to
@@ -527,7 +537,15 @@ function render() {
 			// If the mouse isn't pressed don't perform the stroke
 			if ( ! ( mouseState || lastMouseState ) ) {
 
-				performStroke( hit.point, true );
+				performStroke( hit.point, brush, true );
+				if ( params.symmetrical ) {
+
+					hit.point.x *= - 1;
+					performStroke( hit.point, symmetryBrush, true );
+					hit.point.x *= - 1;
+
+				}
+
 				lastMouse.copy( mouse );
 				lastCastPose.copy( hit.point );
 
@@ -554,7 +572,16 @@ function render() {
 					castDist -= step;
 					mdist -= mstep;
 
-					performStroke( lastCastPose, false );
+					performStroke( lastCastPose, brush, false );
+
+					if ( params.symmetrical ) {
+
+						lastCastPose.x *= - 1;
+						performStroke( lastCastPose, symmetryBrush, false );
+						lastCastPose.x *= - 1;
+
+					}
+
 					stepCount ++;
 					if ( stepCount > params.maxSteps ) {
 
@@ -572,7 +599,14 @@ function render() {
 
 				} else {
 
-					performStroke( hit.point, true );
+					performStroke( hit.point, brush, true );
+					if ( params.symmetrical ) {
+
+						hit.point.x *= - 1;
+						performStroke( hit.point, symmetryBrush, true );
+						hit.point.x *= - 1;
+
+					}
 
 				}
 
@@ -583,6 +617,7 @@ function render() {
 			// if we didn't hit
 			controls.enabled = true;
 			brush.visible = false;
+			symmetryBrush.visible = false;
 			lastMouse.copy( mouse );
 			lastCastPose.setScalar( Infinity );
 
