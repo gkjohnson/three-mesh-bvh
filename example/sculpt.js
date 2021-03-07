@@ -31,7 +31,7 @@ const params = {
 	size: 0.1,
 	brush: 'clay',
 	intensity: 50,
-	maxSteps: 1,
+	maxSteps: 20,
 	invert: false,
 	flatShading: false,
 
@@ -69,6 +69,7 @@ function reset() {
 	geometry.attributes.normal.setUsage( THREE.DynamicDrawUsage );
 	geometry.computeBoundsTree();
 
+	// disable frustum culling because the verts will be updated
 	targetMesh = new THREE.Mesh(
 		geometry,
 		new THREE.MeshMatcapMaterial( {
@@ -77,6 +78,7 @@ function reset() {
 		} )
 	);
 	targetMesh.material.matcap.encoding = THREE.sRGBEncoding;
+	targetMesh.frustumCulled = false;
 	scene.add( targetMesh );
 
 	// initialize bvh helper
@@ -159,7 +161,7 @@ function init() {
 	sculptFolder.add( params, 'brush', [ 'normal', 'clay', 'flatten' ] );
 	sculptFolder.add( params, 'size' ).min( 0.025 ).max( 0.25 ).step( 0.005 );
 	sculptFolder.add( params, 'intensity' ).min( 1 ).max( 100 ).step( 1 );
-	// sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
+	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
 	sculptFolder.add( params, 'invert' );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
 
@@ -356,16 +358,36 @@ function performStroke( point, brushOnly = false ) {
 	const indexAttr = targetMesh.geometry.index;
 	const posAttr = targetMesh.geometry.attributes.position;
 	const normalAttr = targetMesh.geometry.attributes.normal;
-	tempVec2.copy( point ).applyMatrix4( inverseMatrix );
+	const localPoint = new THREE.Vector3();
+	localPoint.copy( point ).applyMatrix4( inverseMatrix );
+
+	const planePoint = new THREE.Vector3();
+	let totalPoints = 0;
 	indices.forEach( i => {
 
 		const index = indexAttr.getX( i );
 		tempVec.fromBufferAttribute( normalAttr, index );
 		normal.add( tempVec );
 
+		// compute the average point for cases where we need to flatten
+		// to the plane.
+		if ( ! brushOnly ) {
+
+			totalPoints ++;
+			tempVec.fromBufferAttribute( posAttr, index );
+			planePoint.add( tempVec );
+
+		}
+
 	} );
 	normal.normalize();
 	brush.quaternion.setFromUnitVectors( normalZ, normal );
+
+	if ( totalPoints ) {
+
+		planePoint.multiplyScalar( 1 / totalPoints );
+
+	}
 
 	// Early out if we just want to adjust the brush
 	if ( brushOnly ) {
@@ -377,7 +399,7 @@ function performStroke( point, brushOnly = false ) {
 	// perform vertex adjustment
 	const targetHeight = params.intensity * 0.000025;
 	const plane = new THREE.Plane();
-	plane.setFromNormalAndCoplanarPoint( normal, point );
+	plane.setFromNormalAndCoplanarPoint( normal, planePoint );
 
 	const indexToTriangles = {};
 	indices.forEach( i => {
@@ -386,31 +408,29 @@ function performStroke( point, brushOnly = false ) {
 		tempVec.fromBufferAttribute( posAttr, index );
 
 		// compute the offset intensity
-		const dist = tempVec.distanceTo( tempVec2 );
+		const dist = tempVec.distanceTo( localPoint );
+		const negated = params.invert ? - 1 : 1;
 		let intensity = 1.0 - ( dist / params.size );
-		intensity = Math.pow( intensity, 3 );
-
-		if ( params.invert ) {
-
-			intensity *= - 1;
-
-		}
 
 		// offset the vertex
 		if ( params.brush === 'clay' ) {
 
+			intensity = Math.pow( intensity, 3 );
 			const planeDist = plane.distanceToPoint( tempVec );
-			const clampedIntensity = Math.min( intensity * 5, 1 );
-			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - planeDist * clampedIntensity * 0.5 );
+			const clampedIntensity = negated * Math.min( intensity * 5, 1 );
+			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - planeDist * clampedIntensity * 0.15 );
 
 		} else if ( params.brush === 'normal' ) {
 
-			tempVec.addScaledVector( normal, intensity * targetHeight );
+			intensity = Math.pow( intensity, 3 );
+			tempVec.addScaledVector( normal, negated * intensity * targetHeight );
 
 		} else if ( params.brush === 'flatten' ) {
 
+			intensity = Math.pow( intensity, 2 );
+
 			const planeDist = plane.distanceToPoint( tempVec );
-			tempVec.addScaledVector( normal, - planeDist * intensity * params.intensity * 0.01 );
+			tempVec.addScaledVector( normal, negated * - planeDist * intensity * params.intensity * 0.01 * 0.5 );
 
 		}
 
@@ -461,7 +481,8 @@ function performStroke( point, brushOnly = false ) {
 		posAttr.needsUpdate = true;
 		normalAttr.needsUpdate = true;
 
-		// TODO: refit bounds here once it's optimized
+		// TODO: refit bounds here once it's optimized so we don't miss raycasts
+		// due to out of date bounds
 
 	}
 
