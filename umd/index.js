@@ -2157,10 +2157,11 @@
 
 		}
 
-		return function shapecast( nodeIndex32,
+		return function shapecast(
+			nodeIndex32,
 			mesh,
 			intersectsBoundsFunc,
-			intersectsTriangleFunc = null,
+			intersectsTriangleFunc,
 			nodeScoreFunc = null,
 			depth = 0,
 			triangle = _triangle,
@@ -2207,7 +2208,7 @@
 			let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			const isLeaf = ( uint16Array[ nodeIndex16 + 15 ] === 0xFFFF );
-			if ( isLeaf && intersectsTriangleFunc ) {
+			if ( isLeaf ) {
 
 				const geometry = mesh.geometry;
 				const offset = uint32Array[ nodeIndex32 + 6 ];
@@ -2824,6 +2825,9 @@
 		}
 
 		shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+
+			// default the triangle intersection function
+			intersectsTriangleFunc = intersectsTriangleFunc || ( ( tri, a, b, c, contained ) => contained );
 
 			let result = false;
 			for ( const root of this._roots ) {
