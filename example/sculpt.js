@@ -31,7 +31,7 @@ const params = {
 	size: 0.1,
 	brush: 'clay',
 	intensity: 50,
-	maxSteps: 20,
+	maxSteps: 10,
 	invert: false,
 	symmetrical: true,
 	flatShading: false,
@@ -165,7 +165,7 @@ function init() {
 	sculptFolder.add( params, 'brush', [ 'normal', 'clay', 'flatten' ] );
 	sculptFolder.add( params, 'size' ).min( 0.025 ).max( 0.25 ).step( 0.005 );
 	sculptFolder.add( params, 'intensity' ).min( 1 ).max( 100 ).step( 1 );
-	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 50 ).step( 1 );
+	sculptFolder.add( params, 'maxSteps' ).min( 1 ).max( 25 ).step( 1 );
 	sculptFolder.add( params, 'symmetrical' );
 	sculptFolder.add( params, 'invert' );
 	sculptFolder.add( params, 'flatShading' ).onChange( value => {
