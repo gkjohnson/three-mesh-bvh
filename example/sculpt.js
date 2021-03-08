@@ -285,6 +285,10 @@ function performStroke( point, brushObject, brushOnly = false ) {
 	const tempVec = new THREE.Vector3();
 	const tempVec2 = new THREE.Vector3();
 	const normal = new THREE.Vector3();
+	const indexAttr = targetMesh.geometry.index;
+	const posAttr = targetMesh.geometry.attributes.position;
+	const normalAttr = targetMesh.geometry.attributes.normal;
+	const triangles = new Set();
 	const bvh = targetMesh.geometry.boundsTree;
 	bvh.shapecast(
 		targetMesh,
@@ -326,6 +330,7 @@ function performStroke( point, brushObject, brushOnly = false ) {
 		},
 		( tri, a, b, c, contained ) => {
 
+			triangles.add( ~ ~ ( a / 3 ) );
 			if ( contained ) {
 
 				indices.add( a );
@@ -360,9 +365,6 @@ function performStroke( point, brushObject, brushOnly = false ) {
 	);
 
 	// Compute the average normal at this point
-	const indexAttr = targetMesh.geometry.index;
-	const posAttr = targetMesh.geometry.attributes.position;
-	const normalAttr = targetMesh.geometry.attributes.normal;
 	const localPoint = new THREE.Vector3();
 	localPoint.copy( point ).applyMatrix4( inverseMatrix );
 
@@ -406,8 +408,6 @@ function performStroke( point, brushObject, brushOnly = false ) {
 	const plane = new THREE.Plane();
 	plane.setFromNormalAndCoplanarPoint( normal, planePoint );
 
-	const indexToTriangles = {};
-	const triangles = new Set();
 	indices.forEach( i => {
 
 		const index = indexAttr.getX( i );
@@ -442,7 +442,6 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 		posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 		normalAttr.setXYZ( index, 0, 0, 0 );
-		triangles.add( ~ ~ ( i / 3 ) );
 
 	} );
 
