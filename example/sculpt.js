@@ -283,7 +283,6 @@ function performStroke( point, brushObject, brushOnly = false ) {
 	// Collect the intersected vertices
 	const indices = new Set();
 	const tempVec = new THREE.Vector3();
-	const tempVec2 = new THREE.Vector3();
 	const normal = new THREE.Vector3();
 	const indexAttr = targetMesh.geometry.index;
 	const posAttr = targetMesh.geometry.attributes.position;
@@ -447,69 +446,83 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 	} );
 
+
+	// TODO: refit bounds here once it's optimized so we don't miss raycasts
+	// due to out of date bounds
+
+
 	// If we found vertices
 	if ( indices.size ) {
 
-		// accumulate the normals in place in the normal buffer
-		const triangle = new THREE.Triangle();
-		triangles.forEach( tri => {
-
-			const tri3 = tri * 3;
-			const i0 = tri3 + 0;
-			const i1 = tri3 + 1;
-			const i2 = tri3 + 2;
-
-			const v0 = indexAttr.getX( i0 );
-			const v1 = indexAttr.getX( i1 );
-			const v2 = indexAttr.getX( i2 );
-
-			triangle.a.fromBufferAttribute( posAttr, v0 );
-			triangle.b.fromBufferAttribute( posAttr, v1 );
-			triangle.c.fromBufferAttribute( posAttr, v2 );
-			triangle.getNormal( tempVec2 );
-
-			if ( indices.has( v0 ) ) {
-
-				tempVec.fromBufferAttribute( normalAttr, v0 );
-				tempVec.add( tempVec2 );
-				normalAttr.setXYZ( v0, tempVec.x, tempVec.y, tempVec.z );
-
-			}
-
-			if ( indices.has( v1 ) ) {
-
-				tempVec.fromBufferAttribute( normalAttr, v1 );
-				tempVec.add( tempVec2 );
-				normalAttr.setXYZ( v1, tempVec.x, tempVec.y, tempVec.z );
-
-			}
-
-			if ( indices.has( v2 ) ) {
-
-				tempVec.fromBufferAttribute( normalAttr, v2 );
-				tempVec.add( tempVec2 );
-				normalAttr.setXYZ( v2, tempVec.x, tempVec.y, tempVec.z );
-
-			}
-
-		} );
-
-		// normalize the accumulated normals
-		indices.forEach( index => {
-
-			tempVec.fromBufferAttribute( normalAttr, index );
-			tempVec.normalize();
-			normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
-
-		} );
-
 		posAttr.needsUpdate = true;
-		normalAttr.needsUpdate = true;
-
-		// TODO: refit bounds here once it's optimized so we don't miss raycasts
-		// due to out of date bounds
+		updateNormals( triangles, indices );
 
 	}
+
+}
+
+function updateNormals( triangles, indices ) {
+
+	const tempVec = new THREE.Vector3();
+	const tempVec2 = new THREE.Vector3();
+	const indexAttr = targetMesh.geometry.index;
+	const posAttr = targetMesh.geometry.attributes.position;
+	const normalAttr = targetMesh.geometry.attributes.normal;
+
+	// accumulate the normals in place in the normal buffer
+	const triangle = new THREE.Triangle();
+	triangles.forEach( tri => {
+
+		const tri3 = tri * 3;
+		const i0 = tri3 + 0;
+		const i1 = tri3 + 1;
+		const i2 = tri3 + 2;
+
+		const v0 = indexAttr.getX( i0 );
+		const v1 = indexAttr.getX( i1 );
+		const v2 = indexAttr.getX( i2 );
+
+		triangle.a.fromBufferAttribute( posAttr, v0 );
+		triangle.b.fromBufferAttribute( posAttr, v1 );
+		triangle.c.fromBufferAttribute( posAttr, v2 );
+		triangle.getNormal( tempVec2 );
+
+		if ( indices.has( v0 ) ) {
+
+			tempVec.fromBufferAttribute( normalAttr, v0 );
+			tempVec.add( tempVec2 );
+			normalAttr.setXYZ( v0, tempVec.x, tempVec.y, tempVec.z );
+
+		}
+
+		if ( indices.has( v1 ) ) {
+
+			tempVec.fromBufferAttribute( normalAttr, v1 );
+			tempVec.add( tempVec2 );
+			normalAttr.setXYZ( v1, tempVec.x, tempVec.y, tempVec.z );
+
+		}
+
+		if ( indices.has( v2 ) ) {
+
+			tempVec.fromBufferAttribute( normalAttr, v2 );
+			tempVec.add( tempVec2 );
+			normalAttr.setXYZ( v2, tempVec.x, tempVec.y, tempVec.z );
+
+		}
+
+	} );
+
+	// normalize the accumulated normals
+	indices.forEach( index => {
+
+		tempVec.fromBufferAttribute( normalAttr, index );
+		tempVec.normalize();
+		normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
+
+	} );
+
+	normalAttr.needsUpdate = true;
 
 }
 
