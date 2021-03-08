@@ -271,7 +271,7 @@ function init() {
 }
 
 // Run the perform the brush movement
-function performStroke( point, brushObject, brushOnly = false ) {
+function performStroke( point, brushObject, brushOnly = false, accumulatedTriangles = new Set(), accumulatedIndices = new Set() ) {
 
 	const inverseMatrix = new THREE.Matrix4();
 	inverseMatrix.copy( targetMesh.matrixWorld ).invert();
@@ -329,7 +329,9 @@ function performStroke( point, brushObject, brushOnly = false ) {
 		},
 		( tri, a, b, c, contained ) => {
 
-			triangles.add( ~ ~ ( a / 3 ) );
+			const triIndex = ~ ~ ( a / 3 );
+			triangles.add( triIndex );
+			accumulatedTriangles.add( triIndex );
 
 			const va = indexAttr.getX( a );
 			const vb = indexAttr.getX( b );
@@ -340,23 +342,30 @@ function performStroke( point, brushObject, brushOnly = false ) {
 				indices.add( vb );
 				indices.add( vc );
 
+				accumulatedIndices.add( va );
+				accumulatedIndices.add( vb );
+				accumulatedIndices.add( vc );
+
 			} else {
 
 				if ( sphere.containsPoint( tri.a ) ) {
 
 					indices.add( va );
+					accumulatedIndices.add( va );
 
 				}
 
 				if ( sphere.containsPoint( tri.b ) ) {
 
 					indices.add( vb );
+					accumulatedIndices.add( vb );
 
 				}
 
 				if ( sphere.containsPoint( tri.c ) ) {
 
 					indices.add( vc );
+					accumulatedIndices.add( vc );
 
 				}
 
@@ -446,16 +455,10 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 	} );
 
-
-	// TODO: refit bounds here once it's optimized so we don't miss raycasts
-	// due to out of date bounds
-
-
 	// If we found vertices
 	if ( indices.size ) {
 
 		posAttr.needsUpdate = true;
-		updateNormals( triangles, indices );
 
 	}
 
@@ -598,6 +601,8 @@ function render() {
 				// perform multiple iterations toward the current mouse pose for a consistent stroke
 				// TODO: recast here so he cursor is on the surface of the model which requires faster
 				// refitting of the model
+				const changedTriangles = new Set();
+				const changedIndices = new Set();
 				while ( castDist > step && mdist > params.size * 200 / hit.distance ) {
 
 					lastMouse.lerp( mouse, percent );
@@ -605,12 +610,12 @@ function render() {
 					castDist -= step;
 					mdist -= mstep;
 
-					performStroke( lastCastPose, brush, false );
+					performStroke( lastCastPose, brush, false, changedTriangles, changedIndices );
 
 					if ( params.symmetrical ) {
 
 						lastCastPose.x *= - 1;
-						performStroke( lastCastPose, symmetryBrush, false );
+						performStroke( lastCastPose, symmetryBrush, false, changedTriangles, changedIndices );
 						lastCastPose.x *= - 1;
 
 					}
@@ -624,9 +629,13 @@ function render() {
 
 				}
 
-				// refit the bounds if we adjusted the mesh
+				// refit the bounds and update the normals if we adjusted the mesh
 				if ( stepCount > 0 ) {
 
+					// TODO: refit bounds and normal updates should probably happen after every stroke
+					// so it's up to date for the next one because both of those are used when updating
+					// the model but it's faster to do them here.
+					updateNormals( changedTriangles, changedIndices );
 					targetMesh.geometry.boundsTree.refit( targetMesh.geometry );
 					bvhHelper.update();
 
