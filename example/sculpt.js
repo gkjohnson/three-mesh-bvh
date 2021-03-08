@@ -407,6 +407,7 @@ function performStroke( point, brushObject, brushOnly = false ) {
 	plane.setFromNormalAndCoplanarPoint( normal, planePoint );
 
 	const indexToTriangles = {};
+	const triangles = new Set();
 	indices.forEach( i => {
 
 		const index = indexAttr.getX( i );
@@ -440,48 +441,67 @@ function performStroke( point, brushObject, brushOnly = false ) {
 		}
 
 		posAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
-
-		// save all the triangles that are connected to this vertex
-		let arr = indexToTriangles[ index ];
-		if ( ! arr ) {
-
-			arr = indexToTriangles[ index ] = [];
-
-		}
-
-		arr.push( ~ ~ ( i / 3 ) );
+		normalAttr.setXYZ( index, 0, 0, 0 );
+		triangles.add( ~ ~ ( i / 3 ) );
 
 	} );
 
 	// If we found vertices
 	if ( indices.size ) {
 
-		// compute the new vertex normal
-		// TODO: this can be improved by computing the normal vertices in place in
-		// the buffer then normalizing them and avoiding recomputing the normal for the
-		// same triangles multiple times
+		// accumulate the normals in place in the normal buffer
 		const triangle = new THREE.Triangle();
-		for ( const index in indexToTriangles ) {
+		triangles.forEach( tri => {
 
-			tempVec.set( 0, 0, 0 );
+			const tri3 = tri * 3;
+			const i0 = tri3 + 0;
+			const i1 = tri3 + 1;
+			const i2 = tri3 + 2;
 
-			const arr = indexToTriangles[ index ];
-			for ( const tri in arr ) {
+			const v0 = indexAttr.getX( i0 );
+			const v1 = indexAttr.getX( i1 );
+			const v2 = indexAttr.getX( i2 );
 
-				const i3 = arr[ tri ] * 3;
-				triangle.a.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 0 ) );
-				triangle.b.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 1 ) );
-				triangle.c.fromBufferAttribute( posAttr, indexAttr.getX( i3 + 2 ) );
+			triangle.a.fromBufferAttribute( posAttr, v0 );
+			triangle.b.fromBufferAttribute( posAttr, v1 );
+			triangle.c.fromBufferAttribute( posAttr, v2 );
+			triangle.getNormal( tempVec2 );
 
-				triangle.getNormal( tempVec2 );
+			if ( indices.has( i0 ) ) {
+
+				tempVec.fromBufferAttribute( normalAttr, v0 );
 				tempVec.add( tempVec2 );
+				normalAttr.setXYZ( v0, tempVec.x, tempVec.y, tempVec.z );
 
 			}
 
-			tempVec.normalize();
-			normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
+			if ( indices.has( i1 ) ) {
 
-		}
+				tempVec.fromBufferAttribute( normalAttr, v1 );
+				tempVec.add( tempVec2 );
+				normalAttr.setXYZ( v1, tempVec.x, tempVec.y, tempVec.z );
+
+			}
+
+			if ( indices.has( i2 ) ) {
+
+				tempVec.fromBufferAttribute( normalAttr, v2 );
+				tempVec.add( tempVec2 );
+				normalAttr.setXYZ( v2, tempVec.x, tempVec.y, tempVec.z );
+
+			}
+
+		} );
+
+		// normalize the accumulated normals
+		indices.forEach( i => {
+
+			const v = indexAttr.getX( i );
+			tempVec.fromBufferAttribute( normalAttr, v );
+			tempVec.normalize();
+			normalAttr.setXYZ( v, tempVec.x, tempVec.y, tempVec.z );
+
+		} );
 
 		posAttr.needsUpdate = true;
 		normalAttr.needsUpdate = true;
