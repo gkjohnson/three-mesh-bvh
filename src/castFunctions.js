@@ -155,10 +155,11 @@ export const shapecast = ( function () {
 
 	}
 
-	return function shapecast( nodeIndex32,
+	return function shapecast(
+		nodeIndex32,
 		mesh,
 		intersectsBoundsFunc,
-		intersectsTriangleFunc = null,
+		intersectsTriangleFunc,
 		nodeScoreFunc = null,
 		depth = 0,
 		triangle = _triangle,
@@ -205,7 +206,7 @@ export const shapecast = ( function () {
 		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 		const isLeaf = ( uint16Array[ nodeIndex16 + 15 ] === 0xFFFF );
-		if ( isLeaf && intersectsTriangleFunc ) {
+		if ( isLeaf ) {
 
 			const geometry = mesh.geometry;
 			const offset = uint32Array[ nodeIndex32 + 6 ];
