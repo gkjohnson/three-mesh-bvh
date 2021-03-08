@@ -331,29 +331,33 @@ function performStroke( point, brushObject, brushOnly = false ) {
 		( tri, a, b, c, contained ) => {
 
 			triangles.add( ~ ~ ( a / 3 ) );
+
+			const va = indexAttr.getX( a );
+			const vb = indexAttr.getX( b );
+			const vc = indexAttr.getX( c );
 			if ( contained ) {
 
-				indices.add( a );
-				indices.add( b );
-				indices.add( c );
+				indices.add( va );
+				indices.add( vb );
+				indices.add( vc );
 
 			} else {
 
 				if ( sphere.containsPoint( tri.a ) ) {
 
-					indices.add( a );
+					indices.add( va );
 
 				}
 
 				if ( sphere.containsPoint( tri.b ) ) {
 
-					indices.add( b );
+					indices.add( vb );
 
 				}
 
 				if ( sphere.containsPoint( tri.c ) ) {
 
-					indices.add( c );
+					indices.add( vc );
 
 				}
 
@@ -370,9 +374,8 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 	const planePoint = new THREE.Vector3();
 	let totalPoints = 0;
-	indices.forEach( i => {
+	indices.forEach( index => {
 
-		const index = indexAttr.getX( i );
 		tempVec.fromBufferAttribute( normalAttr, index );
 		normal.add( tempVec );
 
@@ -404,13 +407,12 @@ function performStroke( point, brushObject, brushOnly = false ) {
 	}
 
 	// perform vertex adjustment
-	const targetHeight = params.intensity * 0.000025;
+	const targetHeight = params.intensity * 0.0001;
 	const plane = new THREE.Plane();
 	plane.setFromNormalAndCoplanarPoint( normal, planePoint );
 
-	indices.forEach( i => {
+	indices.forEach( index => {
 
-		const index = indexAttr.getX( i );
 		tempVec.fromBufferAttribute( posAttr, index );
 
 		// compute the offset intensity
@@ -423,12 +425,12 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 			intensity = Math.pow( intensity, 3 );
 			const planeDist = plane.distanceToPoint( tempVec );
-			const clampedIntensity = negated * Math.min( intensity * 2, 0.5 ) * 2.0;
-			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - negated * planeDist * clampedIntensity * 0.1 );
+			const clampedIntensity = negated * Math.min( intensity * 4, 1.0 );
+			tempVec.addScaledVector( normal, clampedIntensity * targetHeight - negated * planeDist * clampedIntensity * 0.3 );
 
 		} else if ( params.brush === 'normal' ) {
 
-			intensity = Math.pow( intensity, 3 );
+			intensity = Math.pow( intensity, 2 );
 			tempVec.addScaledVector( normal, negated * intensity * targetHeight );
 
 		} else if ( params.brush === 'flatten' ) {
@@ -466,7 +468,7 @@ function performStroke( point, brushObject, brushOnly = false ) {
 			triangle.c.fromBufferAttribute( posAttr, v2 );
 			triangle.getNormal( tempVec2 );
 
-			if ( indices.has( i0 ) ) {
+			if ( indices.has( v0 ) ) {
 
 				tempVec.fromBufferAttribute( normalAttr, v0 );
 				tempVec.add( tempVec2 );
@@ -474,7 +476,7 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 			}
 
-			if ( indices.has( i1 ) ) {
+			if ( indices.has( v1 ) ) {
 
 				tempVec.fromBufferAttribute( normalAttr, v1 );
 				tempVec.add( tempVec2 );
@@ -482,7 +484,7 @@ function performStroke( point, brushObject, brushOnly = false ) {
 
 			}
 
-			if ( indices.has( i2 ) ) {
+			if ( indices.has( v2 ) ) {
 
 				tempVec.fromBufferAttribute( normalAttr, v2 );
 				tempVec.add( tempVec2 );
@@ -493,12 +495,11 @@ function performStroke( point, brushObject, brushOnly = false ) {
 		} );
 
 		// normalize the accumulated normals
-		indices.forEach( i => {
+		indices.forEach( index => {
 
-			const v = indexAttr.getX( i );
-			tempVec.fromBufferAttribute( normalAttr, v );
+			tempVec.fromBufferAttribute( normalAttr, index );
 			tempVec.normalize();
-			normalAttr.setXYZ( v, tempVec.x, tempVec.y, tempVec.z );
+			normalAttr.setXYZ( index, tempVec.x, tempVec.y, tempVec.z );
 
 		} );
 
