@@ -311,6 +311,9 @@ export default class MeshBVH {
 
 	shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
 
+		// default the triangle intersection function
+		intersectsTriangleFunc = intersectsTriangleFunc || ( ( tri, a, b, c, contained ) => contained );
+
 		let result = false;
 		for ( const root of this._roots ) {
 
