@@ -452,6 +452,26 @@ If the raycaster object being used has a property `firstHitOnly` set to `true`, 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 ```
 
+## GenerateMeshBVHWorker
+
+Class for generating a MeshBVH asynchronously in a WebWorker to avoid it blocking the main thread. The class is not exported via index.js because they require extra effort to integrate with some build processes due to Worker sytax being inconsistently supported. UMD variants of these functions are not provided. The class must be imported from the `src/workers/GenerateMeshWorker.js` file.
+
+### generate
+
+```js
+generate( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+```
+
+Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
+
+### terminate
+
+```js
+terminate() : void
+```
+
+Disposes of the web worker.
+
 ## Debug Functions
 
 ### estimateMemoryInBytes
@@ -477,18 +497,6 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 	splits: [ Number, Number, Number ]
 }
 ```
-
-## Extra Functions
-
-List of functions stored in the `src/workers/` and are not exported via index.js because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
-
-### generateAsync
-
-```js
-generateAsync( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
-```
-
-Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
 
 ## Gotchas
 
