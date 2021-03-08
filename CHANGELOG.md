@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - `MeshBVHVisualizer` not using the new geometry BVH if one was generated.
 - `MeshBVHVisualizer` not using the new mesh if it was set.
+- Case where passing in null `intersectsTriangleFunc` to `MeshBVH.shapecast` could throw an error.
 
 ## [0.3.7] - 2021-03-06
 ### Fixed
