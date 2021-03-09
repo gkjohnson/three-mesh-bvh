@@ -210,7 +210,7 @@ _NOTE: The returned MeshBVH is a fully generated, buffer packed BVH instance to 
 constructor( geometry : BufferGeometry, options : Object )
 ```
 
-Constructs the bounds tree for the given geometry and produces a new index attribute buffer. The available options are
+Constructs the bounds tree for the given geometry and produces a new index attribute buffer. A reference to the passed geometry is retained. The available options are
 
 ```js
 {
