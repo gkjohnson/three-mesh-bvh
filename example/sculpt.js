@@ -636,7 +636,7 @@ function render() {
 					// so it's up to date for the next one because both of those are used when updating
 					// the model but it's faster to do them here.
 					updateNormals( changedTriangles, changedIndices );
-					targetMesh.geometry.boundsTree.refit( targetMesh.geometry );
+					targetMesh.geometry.boundsTree.refit();
 					bvhHelper.update();
 
 				} else {
