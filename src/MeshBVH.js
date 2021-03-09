@@ -63,17 +63,17 @@ export default class MeshBVH {
 
 	}
 
-	constructor( geo, options = {} ) {
+	constructor( geometry, options = {} ) {
 
-		if ( ! geo.isBufferGeometry ) {
+		if ( ! geometry.isBufferGeometry ) {
 
 			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
 
-		} else if ( geo.attributes.position.isInterleavedBufferAttribute ) {
+		} else if ( geometry.attributes.position.isInterleavedBufferAttribute ) {
 
 			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the position attribute.' );
 
-		} else if ( geo.index && geo.index.isInterleavedBufferAttribute ) {
+		} else if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
 
 			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the index attribute.' );
 
@@ -98,14 +98,19 @@ export default class MeshBVH {
 		this._roots = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			this._roots = buildPackedTree( geo, options );
+			this._roots = buildPackedTree( geometry, options );
 
 		}
 
+		// retain references to the geometry so we can use them it without having to
+		// take a geometry reference in every function.
+		this.geometry = geometry;
+
 	}
 
-	refit( geometry ) {
+	refit() {
 
+		const geometry = this.geometry;
 		const indexArr = geometry.index.array;
 		const posArr = geometry.attributes.position.array;
 		let buffer, uint32Array, uint16Array, float32Array;
@@ -254,10 +259,11 @@ export default class MeshBVH {
 	/* Core Cast Functions */
 	raycast( mesh, raycaster, ray, intersects ) {
 
+		const geometry = this.geometry;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			raycast( 0, mesh, raycaster, ray, intersects );
+			raycast( 0, mesh, geometry, raycaster, ray, intersects );
 
 		}
 
@@ -267,11 +273,12 @@ export default class MeshBVH {
 
 	raycastFirst( mesh, raycaster, ray ) {
 
+		const geometry = this.geometry;
 		let closestResult = null;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			const result = raycastFirst( 0, mesh, raycaster, ray );
+			const result = raycastFirst( 0, mesh, geometry, raycaster, ray );
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
@@ -287,13 +294,14 @@ export default class MeshBVH {
 
 	}
 
-	intersectsGeometry( mesh, geometry, geomToMesh ) {
+	intersectsGeometry( mesh, otherGeometry, geomToMesh ) {
 
+		const geometry = this.geometry;
 		let result = false;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = intersectsGeometry( 0, mesh, geometry, geomToMesh );
+			result = intersectsGeometry( 0, mesh, geometry, otherGeometry, geomToMesh );
 
 			if ( result ) {
 
@@ -314,11 +322,12 @@ export default class MeshBVH {
 		// default the triangle intersection function
 		intersectsTriangleFunc = intersectsTriangleFunc || ( ( tri, a, b, c, contained ) => contained );
 
+		const geometry = this.geometry;
 		let result = false;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = shapecast( 0, mesh, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+			result = shapecast( 0, mesh, geometry, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
 
 			if ( result ) {
 
@@ -358,19 +367,19 @@ export default class MeshBVH {
 
 	}
 
-	closestPointToGeometry( mesh, geom, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToGeometry( mesh, otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
 
-		if ( ! geom.boundingBox ) {
+		if ( ! otherGeometry.boundingBox ) {
 
-			geom.computeBoundingBox();
+			otherGeometry.computeBoundingBox();
 
 		}
 
-		obb.set( geom.boundingBox.min, geom.boundingBox.max, geometryToBvh );
+		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
 		obb.update();
 
-		const pos = geom.attributes.position;
-		const index = geom.index;
+		const pos = otherGeometry.attributes.position;
+		const index = otherGeometry.index;
 
 		let tempTarget1 = null;
 		let tempTarget2 = null;

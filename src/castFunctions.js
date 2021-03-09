@@ -14,7 +14,7 @@ const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
-export function raycast( nodeIndex32, mesh, raycaster, ray, intersects ) {
+export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects ) {
 
 	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
@@ -24,7 +24,7 @@ export function raycast( nodeIndex32, mesh, raycaster, ray, intersects ) {
 		const offset = uint32Array[ nodeIndex32 + 6 ];
 		const count = uint16Array[ nodeIndex16 + 14 ];
 
-		intersectTris( mesh, mesh.geometry, raycaster, ray, offset, count, intersects );
+		intersectTris( mesh, geometry, raycaster, ray, offset, count, intersects );
 
 	} else {
 
@@ -46,7 +46,7 @@ export function raycast( nodeIndex32, mesh, raycaster, ray, intersects ) {
 
 }
 
-export function raycastFirst( nodeIndex32, mesh, raycaster, ray ) {
+export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 
 	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
@@ -55,7 +55,7 @@ export function raycastFirst( nodeIndex32, mesh, raycaster, ray ) {
 
 		const offset = uint32Array[ nodeIndex32 + 6 ];
 		const count = uint16Array[ nodeIndex16 + 14 ];
-		return intersectClosestTri( mesh, mesh.geometry, raycaster, ray, offset, count );
+		return intersectClosestTri( mesh, geometry, raycaster, ray, offset, count );
 
 	} else {
 
@@ -158,6 +158,7 @@ export const shapecast = ( function () {
 	return function shapecast(
 		nodeIndex32,
 		mesh,
+		geometry,
 		intersectsBoundsFunc,
 		intersectsTriangleFunc,
 		nodeScoreFunc = null,
@@ -208,7 +209,6 @@ export const shapecast = ( function () {
 		const isLeaf = ( uint16Array[ nodeIndex16 + 15 ] === 0xFFFF );
 		if ( isLeaf ) {
 
-			const geometry = mesh.geometry;
 			const offset = uint32Array[ nodeIndex32 + 6 ];
 			const count = uint16Array[ nodeIndex16 + 14 ];
 			return iterateOverTriangles( offset, count, geometry, intersectsTriangleFunc, false, depth, triangle );
@@ -264,7 +264,6 @@ export const shapecast = ( function () {
 			let c1StopTraversal;
 			if ( c1Intersection === CONTAINED ) {
 
-				const geometry = mesh.geometry;
 				const offset = getLeftOffset( c1 );
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
@@ -278,6 +277,7 @@ export const shapecast = ( function () {
 					shapecast(
 						c1,
 						mesh,
+						geometry,
 						intersectsBoundsFunc,
 						intersectsTriangleFunc,
 						nodeScoreFunc,
@@ -316,6 +316,7 @@ export const shapecast = ( function () {
 					shapecast(
 						c2,
 						mesh,
+						geometry,
 						intersectsBoundsFunc,
 						intersectsTriangleFunc,
 						nodeScoreFunc,
@@ -347,19 +348,19 @@ export const intersectsGeometry = ( function () {
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();
 
-	return function intersectsGeometry( nodeIndex32, mesh, geometry, geometryToBvh, cachedObb = null ) {
+	return function intersectsGeometry( nodeIndex32, mesh, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
 
 		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 		if ( cachedObb === null ) {
 
-			if ( ! geometry.boundingBox ) {
+			if ( ! otherGeometry.boundingBox ) {
 
-				geometry.computeBoundingBox();
+				otherGeometry.computeBoundingBox();
 
 			}
 
-			obb.set( geometry.boundingBox.min, geometry.boundingBox.max, geometryToBvh );
+			obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
 			obb.update();
 			cachedObb = obb;
 
@@ -368,12 +369,12 @@ export const intersectsGeometry = ( function () {
 		const isLeaf = ( uint16Array[ nodeIndex16 + 15 ] === 0xFFFF );
 		if ( isLeaf ) {
 
-			const thisGeometry = mesh.geometry;
+			const thisGeometry = geometry;
 			const thisIndex = thisGeometry.index;
 			const thisPos = thisGeometry.attributes.position;
 
-			const index = geometry.index;
-			const pos = geometry.attributes.position;
+			const index = otherGeometry.index;
+			const pos = otherGeometry.attributes.position;
 
 			const offset = uint32Array[ nodeIndex32 + 6 ];
 			const count = uint16Array[ nodeIndex16 + 14 ];
@@ -383,14 +384,14 @@ export const intersectsGeometry = ( function () {
 			// here.
 			invertedMat.copy( geometryToBvh ).invert();
 
-			if ( geometry.boundsTree ) {
+			if ( otherGeometry.boundsTree ) {
 
 				arrayToBox( nodeIndex32, float32Array, obb2 );
 				obb2.matrix.copy( invertedMat );
 				obb2.update();
 
-				cachedMesh.geometry = geometry;
-				const res = geometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
+				cachedMesh.geometry = otherGeometry;
+				const res = otherGeometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
 
 					tri.a.applyMatrix4( geometryToBvh );
 					tri.b.applyMatrix4( geometryToBvh );
@@ -453,14 +454,14 @@ export const intersectsGeometry = ( function () {
 			arrayToBox( left, float32Array, boundingBox );
 			const leftIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( left, mesh, geometry, geometryToBvh, cachedObb );
+				intersectsGeometry( left, mesh, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
 			arrayToBox( right, float32Array, boundingBox );
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( right, mesh, geometry, geometryToBvh, cachedObb );
+				intersectsGeometry( right, mesh, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
 
