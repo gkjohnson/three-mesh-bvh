@@ -31,14 +31,14 @@ export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects
 		const leftIndex = nodeIndex32 + 8;
 		if ( intersectRay( leftIndex, float32Array, ray, boxIntersection ) ) {
 
-			raycast( leftIndex, mesh, raycaster, ray, intersects );
+			raycast( leftIndex, mesh, geometry, raycaster, ray, intersects );
 
 		}
 
 		const rightIndex = uint32Array[ nodeIndex32 + 6 ];
 		if ( intersectRay( rightIndex, float32Array, ray, boxIntersection ) ) {
 
-			raycast( rightIndex, mesh, raycaster, ray, intersects );
+			raycast( rightIndex, mesh, geometry, raycaster, ray, intersects );
 
 		}
 
@@ -81,7 +81,7 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 		}
 
 		const c1Intersection = intersectRay( c1, float32Array, ray, boxIntersection );
-		const c1Result = c1Intersection ? raycastFirst( c1, mesh, raycaster, ray ) : null;
+		const c1Result = c1Intersection ? raycastFirst( c1, mesh, geometry, raycaster, ray ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -104,7 +104,7 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
 		const c2Intersection = intersectRay( c2, float32Array, ray, boxIntersection );
-		const c2Result = c2Intersection ? raycastFirst( c2, mesh, raycaster, ray ) : null;
+		const c2Result = c2Intersection ? raycastFirst( c2, mesh, geometry, raycaster, ray ) : null;
 
 		if ( c1Result && c2Result ) {
 
