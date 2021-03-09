@@ -193,6 +193,9 @@ function init() {
 	gui.add( { reset }, 'reset' );
 	gui.add( { rebuildBVH: () => {
 
+		// dispose of the bounding box because it's used in BVH construction but
+		// will be out of date here. See issue #222.
+		targetMesh.geometry.boundingBox = null;
 		targetMesh.geometry.computeBoundsTree();
 		bvhHelper.update();
 
