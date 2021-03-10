@@ -114,6 +114,7 @@ function runSuite( strategy ) {
 		50
 
 	);
+
 	geometry.computeBoundsTree( options );
 	runBenchmark(
 
