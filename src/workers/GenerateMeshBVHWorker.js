@@ -1,3 +1,4 @@
+import { Box3 } from 'three';
 import MeshBVH from '../MeshBVH.js';
 
 export class GenerateMeshBVHWorker {
@@ -35,6 +36,11 @@ export class GenerateMeshBVHWorker {
 				} else {
 
 					const bvh = MeshBVH.deserialize( serialized, geometry, false );
+					const boundsOptions = Object.assign( {
+
+						setBoundingBox: true,
+
+					}, options );
 
 					// we need to replace the arrays because they're neutered entirely by the
 					// webworker transfer.
@@ -42,6 +48,12 @@ export class GenerateMeshBVHWorker {
 					if ( geometry.index ) {
 
 						geometry.index.array = serialized.index;
+
+					}
+
+					if ( boundsOptions.setBoundingBox ) {
+
+						geometry.boundingBox = bvh.getBoundingBox( new Box3() );
 
 					}
 
