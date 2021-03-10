@@ -21,8 +21,7 @@ const temp = new Vector3();
 const tri2 = new SeparatingAxisTriangle();
 const temp1 = new Vector3();
 const temp2 = new Vector3();
-const tempBox1 = new Box3();
-const tempBox2 = new Box3();
+const tempBox = new Box3();
 
 export default class MeshBVH {
 
@@ -541,8 +540,8 @@ export default class MeshBVH {
 		const roots = this._roots;
 		roots.forEach( buffer => {
 
-			arrayToBox( 0, new Float32Array( buffer ), tempBox1 );
-			target.union( tempBox1 );
+			arrayToBox( 0, new Float32Array( buffer ), tempBox );
+			target.union( tempBox );
 
 		} );
 
