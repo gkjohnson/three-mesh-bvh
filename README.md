@@ -225,9 +225,9 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // The number of triangles to aim for in a leaf node.
     maxLeafTris: 10,
 
-	// If true then the bounding box for the geometry is set once the BVH
-	// has been constructed.
-	setBoundingBox: true,
+    // If true then the bounding box for the geometry is set once the BVH
+    // has been constructed.
+    setBoundingBox: true,
 
     // Print out warnings encountered during tree construction.
     verbose: true,
