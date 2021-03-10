@@ -327,17 +327,34 @@ export default class MeshBVH {
 
 	}
 
-	shapecast( mesh, intersectsBoundsFunc, intersectsTriangleFunc = null, orderNodesFunc = null ) {
+	shapecast( mesh, callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
+
+		// TODO: update shapecast function to fire a range function
+		// TODO: update this function to use range callback from shapecast, calling both the intersects tri and range functions
+		// TODO: update all other shapecast calls
+
+		if ( callbacks instanceof Function ) {
+
+			callbacks = {
+
+				boundsTraverseOrder: _orderNodesFunc,
+				intersectsBounds: callbacks,
+				intersectsTriangle: _intersectsTriangleFunc,
+				intersectsRange: null,
+
+			};
+
+		}
 
 		// default the triangle intersection function
-		intersectsTriangleFunc = intersectsTriangleFunc || ( ( tri, a, b, c, contained ) => contained );
+		const intersectsTriangleFunc = callbacks.intersectsTriangle || ( ( tri, a, b, c, contained ) => contained );
 
 		const geometry = this.geometry;
 		let result = false;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = shapecast( 0, mesh, geometry, intersectsBoundsFunc, intersectsTriangleFunc, orderNodesFunc );
+			result = shapecast( 0, mesh, geometry, callbacks.intersectsBounds, intersectsTriangleFunc, callbacks.orderNodes );
 
 			if ( result ) {
 
