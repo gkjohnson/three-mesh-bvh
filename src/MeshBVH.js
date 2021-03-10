@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute } from 'three';
+import { Vector3, BufferAttribute, Box3 } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
@@ -12,6 +12,7 @@ import {
 	setBuffer,
 	clearBuffer,
 } from './castFunctions.js';
+import { arrayToBox } from './Utils/BufferNodeUtils.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -20,6 +21,8 @@ const temp = new Vector3();
 const tri2 = new SeparatingAxisTriangle();
 const temp1 = new Vector3();
 const temp2 = new Vector3();
+const tempBox1 = new Box3();
+const tempBox2 = new Box3();
 
 export default class MeshBVH {
 
@@ -87,6 +90,8 @@ export default class MeshBVH {
 			maxLeafTris: 10,
 			verbose: true,
 
+			setBoundingBox: true,
+
 			// undocumented options
 
 			// Whether to skip generating the tree. Used for deserialization.
@@ -99,6 +104,12 @@ export default class MeshBVH {
 		if ( ! options[ SKIP_GENERATION ] ) {
 
 			this._roots = buildPackedTree( geometry, options );
+
+			if ( ! geometry.boundingBox && options.setBoundingBox ) {
+
+				geometry.boundingBox = this.getBoundingBox( new Box3() );
+
+			}
 
 		}
 
@@ -520,6 +531,22 @@ export default class MeshBVH {
 	distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
 
 		return this.closestPointToPoint( mesh, point, null, minThreshold, maxThreshold );
+
+	}
+
+	getBoundingBox( target ) {
+
+		target.empty();
+
+		const roots = this._roots;
+		roots.forEach( buffer => {
+
+			arrayToBox( 0, new Float32Array( buffer ), tempBox1 );
+			target.union( tempBox1 );
+
+		} );
+
+		return target;
 
 	}
 
