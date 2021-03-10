@@ -68,7 +68,7 @@ function reset() {
 	geometry = BufferGeometryUtils.mergeVertices( geometry );
 	geometry.attributes.position.setUsage( THREE.DynamicDrawUsage );
 	geometry.attributes.normal.setUsage( THREE.DynamicDrawUsage );
-	geometry.computeBoundsTree();
+	geometry.computeBoundsTree( { setBoundingBox: false } );
 
 	// disable frustum culling because the verts will be updated
 	targetMesh = new THREE.Mesh(
@@ -193,10 +193,9 @@ function init() {
 	gui.add( { reset }, 'reset' );
 	gui.add( { rebuildBVH: () => {
 
-		// dispose of the bounding box because it's used in BVH construction but
-		// will be out of date here. See issue #222.
-		targetMesh.geometry.boundingBox = null;
-		targetMesh.geometry.computeBoundsTree();
+		// don't create a bounding box because it's used in BVH construction but
+		// will be out of date after moving vertices. See issue #222.
+		targetMesh.geometry.computeBoundsTree( { setBoundingBox: false } );
 		bvhHelper.update();
 
 	} }, 'rebuildBVH' );
