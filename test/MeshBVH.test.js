@@ -250,6 +250,28 @@ describe( 'Options', () => {
 
 	} );
 
+	describe( 'setBoundingBox', () => {
+
+		it( 'should set the bounding box of the geometry when true.', () => {
+
+			mesh.geometry.boundingBox = null;
+			mesh.geometry.computeBoundsTree( { setBoundingBox: true } );
+
+			expect( mesh.geometry.boundingBox ).not.toBe( null );
+
+		} );
+
+		it( 'should not set the bounding box of the geometry when false.', () => {
+
+			mesh.geometry.boundingBox = null;
+			mesh.geometry.computeBoundsTree( { setBoundingBox: false } );
+
+			expect( mesh.geometry.boundingBox ).toBe( null );
+
+		} );
+
+	} );
+
 	describe( 'maxDepth', () => {
 
 		it( 'should not be limited by default', () => {

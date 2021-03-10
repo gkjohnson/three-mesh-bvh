@@ -536,7 +536,7 @@ export default class MeshBVH {
 
 	getBoundingBox( target ) {
 
-		target.empty();
+		target.makeEmpty();
 
 		const roots = this._roots;
 		roots.forEach( buffer => {
