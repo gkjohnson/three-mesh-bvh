@@ -623,21 +623,6 @@ export function buildTree( geo, options ) {
 
 	}
 
-	// if the geometry doesn't have a bounding box, then let's politely populate it using
-	// the work we did to determine the BVH root bounds
-	if ( geo.boundingBox == null ) {
-
-		const rootBox = new Box3();
-		geo.boundingBox = new Box3();
-
-		for ( let root of roots ) {
-
-			geo.boundingBox.union( arrayToBox( root.boundingData, rootBox ) );
-
-		}
-
-	}
-
 	return roots;
 
 }

@@ -6,6 +6,7 @@
 // with inline buffer reads. See generate-cast-functions.js.
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
+import { arrayToBox } from './Utils/BufferNodeUtils.js';
 
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
@@ -514,17 +515,5 @@ export function clearBuffer() {
 		setBuffer( bufferStack.pop() );
 
 	}
-
-}
-
-function arrayToBox( nodeIndex32, array, target ) {
-
-	target.min.x = array[ nodeIndex32 ];
-	target.min.y = array[ nodeIndex32 + 1 ];
-	target.min.z = array[ nodeIndex32 + 2 ];
-
-	target.max.x = array[ nodeIndex32 + 3 ];
-	target.max.y = array[ nodeIndex32 + 4 ];
-	target.max.z = array[ nodeIndex32 + 5 ];
 
 }
