@@ -225,6 +225,10 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // The number of triangles to aim for in a leaf node.
     maxLeafTris: 10,
 
+	// If true then the bounding box for the geometry is set once the BVH
+	// has been constructed.
+	setBoundingBox: true,
+
     // Print out warnings encountered during tree construction.
     verbose: true,
 
@@ -360,7 +364,15 @@ A generalized cast function that can be used to implement intersection logic for
 refit( geometry : BufferGeometry ) : void
 ```
 
-Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertice.
+Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices.
+
+### .getBoundingBox
+
+```js
+getBoundingBox( target : Box3 ) : Box3
+```
+
+Get the bounding box of the geometry computed from the root node bounds of the BVH. Significantly faster than `BufferGeometry.computeBoundingBox`.
 
 ## SerializedBVH
 

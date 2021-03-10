@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Added
 - `MeshBVH.refit` function to refit the bounds to modified vertices.
+- `setBoundingBox` MeshBVH construction option.
+- `MeshBVH.getBoundingBox` function.
 
 ### Changed
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.

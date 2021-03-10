@@ -86,6 +86,34 @@ function runSuite( strategy ) {
 
 	);
 
+	const tempBox = new THREE.Box3();
+	runBenchmark(
+
+		'Compute BB w/ BVH',
+		null,
+		() => {
+
+			geometry.boundsTree.getBoundingBox( tempBox );
+
+		},
+		3000,
+		50
+
+	);
+
+	runBenchmark(
+
+		'Compute BB w/o BVH',
+		null,
+		() => {
+
+			geometry.computeBoundingBox();
+
+		},
+		3000,
+		50
+
+	);
 	geometry.computeBoundsTree( options );
 	runBenchmark(
 
