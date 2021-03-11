@@ -12,7 +12,7 @@ import {
 	setBuffer,
 	clearBuffer,
 } from './castFunctions.js';
-import { arrayToBox } from './Utils/BufferNodeUtils.js';
+import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -22,6 +22,7 @@ const tri2 = new SeparatingAxisTriangle();
 const temp1 = new Vector3();
 const temp2 = new Vector3();
 const tempBox = new Box3();
+const triangle = new SeparatingAxisTriangle();
 
 export default class MeshBVH {
 
@@ -329,11 +330,22 @@ export default class MeshBVH {
 
 	shapecast( mesh, callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
 
-		// TODO: update shapecast function to fire a range function
-		// TODO: update this function to use range callback from shapecast, calling both the intersects tri and range functions
 		// TODO: update all other shapecast calls
 
+		const geometry = this.geometry;
 		if ( callbacks instanceof Function ) {
+
+			if ( _intersectsTriangleFunc ) {
+
+				const ogFunc = _intersectsTriangleFunc;
+				_intersectsTriangleFunc = ( offset, count, contained, depth ) => {
+
+					// TODO: if we update the arguments we need to do so here
+					return iterateOverTriangles( offset, count, geometry, ogFunc, contained, depth, triangle );
+
+				};
+
+			}
 
 			callbacks = {
 
@@ -346,15 +358,56 @@ export default class MeshBVH {
 
 		}
 
-		// default the triangle intersection function
-		const intersectsTriangleFunc = callbacks.intersectsTriangle || ( ( tri, a, b, c, contained ) => contained );
+		let {
+			boundsTraverseOrder,
+			intersectsBounds,
+			intersectsRange,
+			intersectsTriangle,
+		} = callbacks;
 
-		const geometry = this.geometry;
+		if ( intersectsRange && intersectsTriangle ) {
+
+			const originalIntersectsRange = intersectsRange;
+			intersectsRange = ( offset, count, contained, depth ) => {
+
+				if ( ! originalIntersectsRange( offset, count, contained, depth ) ) {
+
+					// TODO: iterate over triangles
+					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+
+				}
+
+				return true;
+
+			};
+
+		} else if ( ! intersectsRange ) {
+
+			if ( intersectsTriangle ) {
+
+				intersectsRange = ( offset, count, contained, depth ) => {
+
+					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+
+				};
+
+			} else {
+
+				intersectsRange = ( tri, a, b, c, contained ) => {
+
+					return contained;
+
+				};
+
+			}
+
+		}
+
 		let result = false;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = shapecast( 0, mesh, geometry, callbacks.intersectsBounds, intersectsTriangleFunc, callbacks.orderNodes );
+			result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder );
 
 			if ( result ) {
 
@@ -378,8 +431,10 @@ export default class MeshBVH {
 
 		return this.shapecast(
 			mesh,
-			box => obb.intersectsBox( box ),
-			tri => obb.intersectsTriangle( tri )
+			{
+				intersectsBounds: box => obb.intersectsBox( box ),
+				intersectsTriangle: tri => obb.intersectsTriangle( tri )
+			}
 		);
 
 	}
@@ -388,8 +443,10 @@ export default class MeshBVH {
 
 		return this.shapecast(
 			mesh,
-			box => sphere.intersectsBox( box ),
-			tri => tri.intersectsSphere( sphere )
+			{
+				intersectsBounds: box => sphere.intersectsBox( box ),
+				intersectsTriangle: tri => tri.intersectsSphere( sphere )
+			}
 		);
 
 	}
@@ -425,66 +482,80 @@ export default class MeshBVH {
 		let closestDistance = Infinity;
 		this.shapecast(
 			mesh,
-			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
-			tri => {
+			{
 
-				if ( tri.needsUpdate ) {
+				boundsTraverseOrder: box => {
 
-					tri.update();
+					return obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
 
-				}
+				},
 
-				const sphere1 = tri.sphere;
-				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+				intersectsBounds: ( box, isLeaf, score ) => {
 
-					setTriangle( tri2, i2, index, pos );
-					tri2.a.applyMatrix4( geometryToBvh );
-					tri2.b.applyMatrix4( geometryToBvh );
-					tri2.c.applyMatrix4( geometryToBvh );
-					tri2.sphere.setFromPoints( tri2.points );
+					return score < closestDistance && score < maxThreshold;
 
-					const sphere2 = tri2.sphere;
-					const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
-					if ( sphereDist > closestDistance ) {
+				},
 
-						continue;
+				intersectsTriangle: tri => {
+
+					if ( tri.needsUpdate ) {
+
+						tri.update();
 
 					}
 
-					tri2.update();
+					const sphere1 = tri.sphere;
+					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
-					const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
-					if ( dist < closestDistance ) {
+						setTriangle( tri2, i2, index, pos );
+						tri2.a.applyMatrix4( geometryToBvh );
+						tri2.b.applyMatrix4( geometryToBvh );
+						tri2.c.applyMatrix4( geometryToBvh );
+						tri2.sphere.setFromPoints( tri2.points );
 
-						if ( target1 ) {
+						const sphere2 = tri2.sphere;
+						const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
+						if ( sphereDist > closestDistance ) {
 
-							target1.copy( tempTarget1 );
+							continue;
 
 						}
 
-						if ( target2 ) {
+						tri2.update();
 
-							target2.copy( tempTarget2 );
+						const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
+						if ( dist < closestDistance ) {
+
+							if ( target1 ) {
+
+								target1.copy( tempTarget1 );
+
+							}
+
+							if ( target2 ) {
+
+								target2.copy( tempTarget2 );
+
+							}
+
+							closestDistance = dist;
 
 						}
 
-						closestDistance = dist;
+						// stop traversal if we find a point that's under the given threshold
+						if ( dist < minThreshold ) {
+
+							return true;
+
+						}
 
 					}
 
-					// stop traversal if we find a point that's under the given threshold
-					if ( dist < minThreshold ) {
-
-						return true;
-
-					}
+					return false;
 
 				}
 
-				return false;
-
-			},
-			box => obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) )
+			}
 
 		);
 
@@ -508,35 +579,49 @@ export default class MeshBVH {
 		this.shapecast(
 
 			mesh,
-			( box, isLeaf, score ) => score < closestDistance && score < maxThreshold,
-			tri => {
+			{
 
-				tri.closestPointToPoint( point, temp );
-				const dist = point.distanceTo( temp );
-				if ( dist < closestDistance ) {
+				boundsTraverseOrder: box => {
 
-					if ( target ) {
+					return box.distanceToPoint( point );
 
-						target.copy( temp );
+				},
+
+				intersectsBounds: ( box, isLeaf, score ) => {
+
+					return score < closestDistance && score < maxThreshold;
+
+				},
+
+				intersectsTriangle: tri => {
+
+					tri.closestPointToPoint( point, temp );
+					const dist = point.distanceTo( temp );
+					if ( dist < closestDistance ) {
+
+						if ( target ) {
+
+							target.copy( temp );
+
+						}
+
+						closestDistance = dist;
 
 					}
 
-					closestDistance = dist;
+					if ( dist < minThreshold ) {
 
-				}
+						return true;
 
-				if ( dist < minThreshold ) {
+					} else {
 
-					return true;
+						return false;
 
-				} else {
+					}
 
-					return false;
+				},
 
-				}
-
-			},
-			box => box.distanceToPoint( point )
+			}
 
 		);
 
