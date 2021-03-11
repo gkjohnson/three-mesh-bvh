@@ -1,4 +1,4 @@
-import { setTriangle } from './Utils/TriangleUtils.js';
+import { setTriangle } from './TriangleUtils.js';
 
 export function arrayToBox( nodeIndex32, array, target ) {
 
