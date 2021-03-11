@@ -328,20 +328,12 @@ export default class MeshBVH {
 
 	shapecast( mesh, callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
 
-		// TODO: update all other shapecast calls
-
 		const geometry = this.geometry;
 		if ( callbacks instanceof Function ) {
 
 			if ( _intersectsTriangleFunc ) {
 
-				const ogFunc = _intersectsTriangleFunc;
-				_intersectsTriangleFunc = ( offset, count, contained, depth ) => {
-
-					// TODO: if we update the arguments we need to do so here
-					return iterateOverTriangles( offset, count, geometry, ogFunc, contained, depth, triangle );
-
-				};
+				// TODO: if we update the arguments we need to do so here
 
 			}
 
@@ -370,7 +362,6 @@ export default class MeshBVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth ) ) {
 
-					// TODO: iterate over triangles
 					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
 
 				}

@@ -28,12 +28,7 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-describe( 'Shape Casts', () => {
-
-	describe( 'packed: false', () => runSuiteWithOptions( { packedData: false } ) );
-	describe( 'packed: true', () => runSuiteWithOptions( { packedData: true } ) );
-
-} );
+runSuiteWithOptions( {} );
 
 function runSuiteWithOptions( defaultOptions ) {
 
