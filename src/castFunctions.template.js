@@ -364,27 +364,33 @@ export const intersectsGeometry = ( function () {
 				obb2.update();
 
 				cachedMesh.geometry = otherGeometry;
-				const res = otherGeometry.boundsTree.shapecast( cachedMesh, box => obb2.intersectsBox( box ), function ( tri ) {
+				const res = otherGeometry.boundsTree.shapecast( cachedMesh, {
 
-					tri.a.applyMatrix4( geometryToBvh );
-					tri.b.applyMatrix4( geometryToBvh );
-					tri.c.applyMatrix4( geometryToBvh );
-					tri.update();
+					intersectsBounds: box => obb2.intersectsBox( box ),
 
-					for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+					intersectsTriangle: tri => {
 
-						// this triangle needs to be transformed into the current BVH coordinate frame
-						setTriangle( triangle2, i, thisIndex, thisPos );
-						triangle2.update();
-						if ( tri.intersectsTriangle( triangle2 ) ) {
+						tri.a.applyMatrix4( geometryToBvh );
+						tri.b.applyMatrix4( geometryToBvh );
+						tri.c.applyMatrix4( geometryToBvh );
+						tri.update();
 
-							return true;
+						for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+
+							// this triangle needs to be transformed into the current BVH coordinate frame
+							setTriangle( triangle2, i, thisIndex, thisPos );
+							triangle2.update();
+							if ( tri.intersectsTriangle( triangle2 ) ) {
+
+								return true;
+
+							}
 
 						}
 
-					}
+						return false;
 
-					return false;
+					}
 
 				} );
 				cachedMesh.geometry = null;
