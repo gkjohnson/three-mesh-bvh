@@ -575,7 +575,9 @@ export default class MeshBVH {
 		// skip checking if over maxThreshold
 		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
 		// returns Infinity if no value found
-		let closestDistance = Infinity;
+		const minThresholdSq = minThreshold * minThreshold;
+		const maxThresholdSq = maxThreshold * maxThreshold;
+		let closestDistanceSq = Infinity;
 		this.shapecast(
 
 			mesh,
@@ -583,21 +585,22 @@ export default class MeshBVH {
 
 				boundsTraverseOrder: box => {
 
-					return box.distanceToPoint( point );
+					temp.copy( point ).clamp( box.min, box.max );
+					return temp.distanceToSquared( point );
 
 				},
 
 				intersectsBounds: ( box, isLeaf, score ) => {
 
-					return score < closestDistance && score < maxThreshold;
+					return score < closestDistanceSq && score < maxThresholdSq;
 
 				},
 
 				intersectsTriangle: tri => {
 
 					tri.closestPointToPoint( point, temp );
-					const dist = point.distanceTo( temp );
-					if ( dist < closestDistance ) {
+					const distSq = point.distanceToSquared( temp );
+					if ( distSq < closestDistanceSq ) {
 
 						if ( target ) {
 
@@ -605,11 +608,11 @@ export default class MeshBVH {
 
 						}
 
-						closestDistance = dist;
+						closestDistanceSq = distSq;
 
 					}
 
-					if ( dist < minThreshold ) {
+					if ( distSq < minThresholdSq ) {
 
 						return true;
 
@@ -625,7 +628,7 @@ export default class MeshBVH {
 
 		);
 
-		return closestDistance;
+		return Math.sqrt( closestDistanceSq );
 
 	}
 
