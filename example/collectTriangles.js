@@ -18,7 +18,7 @@ let stats;
 let scene, camera, renderer, controls;
 let targetMesh, brushMesh;
 let mouse = new THREE.Vector2();
-let mouseType = - 1;
+let mouseType = - 1, brushActive = false;
 let lastTime;
 
 function init() {
@@ -32,6 +32,7 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.gammaOutput = true;
 	document.body.appendChild( renderer.domElement );
+	renderer.domElement.style.touchAction = 'none';
 
 	// scene setup
 	scene = new THREE.Scene();
@@ -81,7 +82,6 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	controls = new OrbitControls( camera, renderer.domElement );
 
 	// stats setup
 	stats = new Stats();
@@ -92,18 +92,6 @@ function init() {
 	gui.add( params, 'rotate' );
 	gui.open();
 
-	controls.addEventListener( 'start', function () {
-
-		this.active = true;
-
-	} );
-
-	controls.addEventListener( 'end', function () {
-
-		this.active = false;
-
-	} );
-
 	window.addEventListener( 'resize', function () {
 
 		camera.aspect = window.innerWidth / window.innerHeight;
@@ -113,24 +101,43 @@ function init() {
 
 	}, false );
 
-	window.addEventListener( 'mousemove', function ( e ) {
+	window.addEventListener( 'pointermove', function ( e ) {
 
 		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 
 	} );
 
-	window.addEventListener( 'mousedown', function ( e ) {
+	window.addEventListener( 'pointerdown', function ( e ) {
 
+		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 		mouseType = e.button;
 
-	} );
+		// disable the controls early if we're over the object because on touch screens
+		// we're not constantly tracking where the cursor is.
+		const raycaster = new THREE.Raycaster();
+		raycaster.setFromCamera( mouse, camera );
+		raycaster.firstHitOnly = true;
 
-	window.addEventListener( 'mouseup', function () {
+		const res = raycaster.intersectObject( targetMesh, true );
+		brushActive = true;
+		controls.enabled = res.length === 0;
+
+	}, true );
+
+	window.addEventListener( 'pointerup', function ( e ) {
 
 		mouseType = - 1;
+		if ( e.pointerType === 'touch' ) {
 
-	} );
+			// disable the brush visualization when the pointer action is done only
+			// if it's on a touch device.
+			brushActive = false;
+
+		}
+
+	}, true );
 
 	window.addEventListener( 'contextmenu', function ( e ) {
 
@@ -161,6 +168,20 @@ function init() {
 
 	} );
 
+	controls = new OrbitControls( camera, renderer.domElement );
+
+	controls.addEventListener( 'start', function () {
+
+		this.active = true;
+
+	} );
+
+	controls.addEventListener( 'end', function () {
+
+		this.active = false;
+
+	} );
+
 	lastTime = window.performance.now();
 
 }
@@ -176,7 +197,7 @@ function render() {
 	const colorAttr = geometry.getAttribute( 'color' );
 	const indexAttr = geometry.index;
 
-	if ( controls.active ) {
+	if ( controls.active || ! brushActive ) {
 
 		brushMesh.visible = false;
 
