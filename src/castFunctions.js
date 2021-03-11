@@ -240,7 +240,6 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				console.log('CONTAINED 1');
 				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1 );
 
 			} else {
@@ -279,7 +278,6 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				console.log('CONTAINED 2');
 				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1 );
 
 			} else {
