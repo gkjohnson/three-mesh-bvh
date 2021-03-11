@@ -179,6 +179,26 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	describe( 'refit', () => {
+
+		it( 'should resize the bounds to fit any updated triangles.', () => {
+
+			const geom = new SphereBufferGeometry( 1, 10, 10 );
+			geom.computeBoundsTree();
+
+			const debug = new MeshBVHDebug( geom.boundsTree, geom );
+			expect( debug.validateBounds() ).toBe( true );
+
+			geom.attributes.position.setX( 0, 10 );
+			expect( debug.validateBounds() ).toBe( false );
+
+			geom.boundsTree.refit();
+			expect( debug.validateBounds() ).toBe( true );
+
+		} );
+
+	} );
+
 } );
 
 describe( 'Serialization', () => {
