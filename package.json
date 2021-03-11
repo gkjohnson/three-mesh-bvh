@@ -5,6 +5,7 @@
   "module": "src/index.js",
   "main": "src/index.js",
   "type": "module",
+  "sideEffects": false,
   "scripts": {
     "generate-cast-functions": "node scripts/generate-cast-functions.js",
     "start": "npm run generate-cast-functions & concurrently \"parcel watch ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
