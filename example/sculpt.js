@@ -22,6 +22,7 @@ let stats;
 let scene, camera, renderer, controls;
 let targetMesh, brush, symmetryBrush, bvhHelper;
 let normalZ = new THREE.Vector3( 0, 0, 1 );
+let brushActive = false;
 let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2();
 let mouseState = false, lastMouseState = false;
 let lastCastPose = new THREE.Vector3();
@@ -107,6 +108,7 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.gammaOutput = true;
 	document.body.appendChild( renderer.domElement );
+	renderer.domElement.style.touchAction = 'none';
 
 	// scene setup
 	scene = new THREE.Scene();
@@ -151,9 +153,6 @@ function init() {
 	camera.position.set( 0, 0, 3 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
-
-	controls = new OrbitControls( camera, renderer.domElement );
-	controls.minDistance = 1.5;
 
 	// stats setup
 	stats = new Stats();
@@ -201,18 +200,6 @@ function init() {
 	} }, 'rebuildBVH' );
 	gui.open();
 
-	controls.addEventListener( 'start', function () {
-
-		this.active = true;
-
-	} );
-
-	controls.addEventListener( 'end', function () {
-
-		this.active = false;
-
-	} );
-
 	window.addEventListener( 'resize', function () {
 
 		camera.aspect = window.innerWidth / window.innerHeight;
@@ -222,22 +209,37 @@ function init() {
 
 	}, false );
 
-	window.addEventListener( 'mousemove', function ( e ) {
+	window.addEventListener( 'pointermove', function ( e ) {
 
 		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 
 	} );
 
-	window.addEventListener( 'mousedown', e => {
+	window.addEventListener( 'pointerdown', e => {
+
+		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+		mouseState = Boolean( e.buttons & 1 );
+		brushActive = true;
+
+		const raycaster = new THREE.Raycaster();
+		raycaster.setFromCamera( mouse, camera );
+		raycaster.firstHitOnly = true;
+
+		const res = raycaster.intersectObject( targetMesh );
+		controls.enabled = res.length === 0;
+
+	}, true );
+
+	window.addEventListener( 'pointerup', e => {
 
 		mouseState = Boolean( e.buttons & 1 );
+		if ( e.pointerType === 'touch' ) {
 
-	} );
+			brushActive = false;
 
-	window.addEventListener( 'mouseup', e => {
-
-		mouseState = Boolean( e.buttons & 1 );
+		}
 
 	} );
 
@@ -267,6 +269,21 @@ function init() {
 		params.size = Math.max( Math.min( params.size, 0.25 ), 0.025 );
 
 		gui.updateDisplay();
+
+	} );
+
+	controls = new OrbitControls( camera, renderer.domElement );
+	controls.minDistance = 1.5;
+
+	controls.addEventListener( 'start', function () {
+
+		this.active = true;
+
+	} );
+
+	controls.addEventListener( 'end', function () {
+
+		this.active = false;
 
 	} );
 
@@ -537,10 +554,11 @@ function render() {
 
 	stats.begin();
 
-	if ( controls.active ) {
+	if ( controls.active || ! brushActive ) {
 
 		// If the controls are being used then don't perform the strokes
 		brush.visible = false;
+		symmetryBrush.visible = false;
 		lastCastPose.setScalar( Infinity );
 
 	} else {
