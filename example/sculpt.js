@@ -293,26 +293,30 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedTriang
 	const bvh = targetMesh.geometry.boundsTree;
 	bvh.shapecast(
 		targetMesh,
-		box => {
+		{
 
-			const intersects = sphere.intersectsBox( box );
-			const { min, max } = box;
-			if ( intersects ) {
+			intersectsBounds: box => {
 
-				for ( let x = 0; x <= 1; x ++ ) {
+				const intersects = sphere.intersectsBox( box );
+				const { min, max } = box;
+				if ( intersects ) {
 
-					for ( let y = 0; y <= 1; y ++ ) {
+					for ( let x = 0; x <= 1; x ++ ) {
 
-						for ( let z = 0; z <= 1; z ++ ) {
+						for ( let y = 0; y <= 1; y ++ ) {
 
-							tempVec.set(
-								x === 0 ? min.x : max.x,
-								y === 0 ? min.y : max.y,
-								z === 0 ? min.z : max.z
-							);
-							if ( ! sphere.containsPoint( tempVec ) ) {
+							for ( let z = 0; z <= 1; z ++ ) {
 
-								return INTERSECTED;
+								tempVec.set(
+									x === 0 ? min.x : max.x,
+									y === 0 ? min.y : max.y,
+									z === 0 ? min.z : max.z
+								);
+								if ( ! sphere.containsPoint( tempVec ) ) {
+
+									return INTERSECTED;
+
+								}
 
 							}
 
@@ -320,60 +324,61 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedTriang
 
 					}
 
+					return CONTAINED;
+
 				}
 
-				return CONTAINED;
+				return intersects ? INTERSECTED : NOT_INTERSECTED;
 
-			}
+			},
 
-			return intersects ? INTERSECTED : NOT_INTERSECTED;
+			intersectsTriangle: ( tri, a, b, c, contained ) => {
 
-		},
-		( tri, a, b, c, contained ) => {
+				const triIndex = ~ ~ ( a / 3 );
+				triangles.add( triIndex );
+				accumulatedTriangles.add( triIndex );
 
-			const triIndex = ~ ~ ( a / 3 );
-			triangles.add( triIndex );
-			accumulatedTriangles.add( triIndex );
-
-			const va = indexAttr.getX( a );
-			const vb = indexAttr.getX( b );
-			const vc = indexAttr.getX( c );
-			if ( contained ) {
-
-				indices.add( va );
-				indices.add( vb );
-				indices.add( vc );
-
-				accumulatedIndices.add( va );
-				accumulatedIndices.add( vb );
-				accumulatedIndices.add( vc );
-
-			} else {
-
-				if ( sphere.containsPoint( tri.a ) ) {
+				const va = indexAttr.getX( a );
+				const vb = indexAttr.getX( b );
+				const vc = indexAttr.getX( c );
+				if ( contained ) {
 
 					indices.add( va );
-					accumulatedIndices.add( va );
-
-				}
-
-				if ( sphere.containsPoint( tri.b ) ) {
-
 					indices.add( vb );
-					accumulatedIndices.add( vb );
-
-				}
-
-				if ( sphere.containsPoint( tri.c ) ) {
-
 					indices.add( vc );
+
+					accumulatedIndices.add( va );
+					accumulatedIndices.add( vb );
 					accumulatedIndices.add( vc );
 
+				} else {
+
+					if ( sphere.containsPoint( tri.a ) ) {
+
+						indices.add( va );
+						accumulatedIndices.add( va );
+
+					}
+
+					if ( sphere.containsPoint( tri.b ) ) {
+
+						indices.add( vb );
+						accumulatedIndices.add( vb );
+
+					}
+
+					if ( sphere.containsPoint( tri.c ) ) {
+
+						indices.add( vc );
+						accumulatedIndices.add( vc );
+
+					}
+
 				}
 
-			}
+				return false;
 
-			return false;
+			}
 
 		}
 	);
