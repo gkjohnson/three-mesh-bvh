@@ -346,6 +346,8 @@ export default class MeshBVH {
 
 			};
 
+			console.warn( 'MeshBVH: Shapecast function signature has changed and now takes an object of callbacks as a second argument. See docs and CHANGELOG for full signature.' );
+
 		}
 
 		let {
