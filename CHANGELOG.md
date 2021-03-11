@@ -9,19 +9,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `MeshBVH.refit` function to refit the bounds to modified vertices.
 - `setBoundingBox` MeshBVH construction option.
 - `MeshBVH.getBoundingBox` function.
+- `intersectsRange` callback option to `MeshBVH.shapecast`.
 
 ### Changed
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.
 - Use `type: module` in package.json to enable use of es6 modules in node.
+- Add `sideEffects: false` to package.json.
 - Remove ability to generate an unpacked BVH.
 - Improved "closestPointToPoint" performance slightly.
+- `MeshBVH.shapecast` to take an object of callback functions instead of a list of function arguments. See README for new API. Calls using the old function will log a warning.
 
 ### Fixed
 - `MeshBVHVisualizer` not using the new geometry BVH if one was generated.
 - `MeshBVHVisualizer` not using the new mesh if it was set.
 - Case where passing in null `intersectsTriangleFunc` to `MeshBVH.shapecast` could throw an error.
 - Case where the buffer being raycast against was not cleared correctly if a BVH had multiple roots.
-
 
 ## [0.3.7] - 2021-03-06
 ### Fixed
