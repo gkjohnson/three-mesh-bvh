@@ -28,12 +28,7 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-describe( 'Shape Casts', () => {
-
-	describe( 'packed: false', () => runSuiteWithOptions( { packedData: false } ) );
-	describe( 'packed: true', () => runSuiteWithOptions( { packedData: true } ) );
-
-} );
+runSuiteWithOptions( {} );
 
 function runSuiteWithOptions( defaultOptions ) {
 
@@ -114,12 +109,14 @@ function runSuiteWithOptions( defaultOptions ) {
 			let numContained = 0;
 			bvh.shapecast(
 				mesh,
-				getIntersectsBoxFunction( sphere ),
-				( tri, i0, i1, i2, contained ) => {
+				{
+					intersectsBounds: getIntersectsBoxFunction( sphere ),
+					intersectsTriangle: ( tri, i0, i1, i2, contained ) => {
 
-					allContained = contained && allContained;
-					numContained ++;
+						allContained = contained && allContained;
+						numContained ++;
 
+					}
 				}
 			);
 
@@ -138,16 +135,18 @@ function runSuiteWithOptions( defaultOptions ) {
 			let numContained = 0;
 			bvh.shapecast(
 				mesh,
-				getIntersectsBoxFunction( sphere ),
-				( tri, i0, i1, i2, contained ) => {
+				{
+					intersectsBounds: getIntersectsBoxFunction( sphere ),
+					intersectsTriangle: ( tri, i0, i1, i2, contained ) => {
 
-					allContained = contained && allContained;
-					if ( contained ) {
+						allContained = contained && allContained;
+						if ( contained ) {
 
-						numContained ++;
+							numContained ++;
+
+						}
 
 					}
-
 				}
 			);
 
@@ -165,11 +164,13 @@ function runSuiteWithOptions( defaultOptions ) {
 			let trianglesIterated = 0;
 			bvh.shapecast(
 				mesh,
-				getIntersectsBoxFunction( sphere ),
-				( tri, i0, i1, i2, contained ) => {
+				{
+					intersectsBounds: getIntersectsBoxFunction( sphere ),
+					intersectsTriangle: ( tri, i0, i1, i2, contained ) => {
 
-					trianglesIterated ++;
+						trianglesIterated ++;
 
+					}
 				}
 			);
 

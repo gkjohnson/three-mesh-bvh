@@ -325,38 +325,54 @@ If a point is found that is closer than `minThreshold` then the function will re
 shapecast(
 	mesh : Mesh,
 
-	intersectsBoundsFunc : (
-		box : Box3,
-		isLeaf : Boolean,
-		score : Number | undefined,
-		depth : Number
-	) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
+	callbacks : {
 
-	intersectsTriangleFunc : (
-		triangle : Triangle,
-		index1 : Number,
-		index2 : Number,
-		index3 : Number,
-		contained : Boolean,
-		depth : Number
-	) => Boolean = null,
+		traverseBoundsOrder : (
+			box: Box3
+		) => Number = null,
 
-	orderNodesFunc : (
-		box: Box3
-	) => Number = null
+		intersectsBounds : (
+			box : Box3,
+			isLeaf : Boolean,
+			score : Number | undefined,
+			depth : Number
+		) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
+
+		intersectsRange : (
+			triangleOffset : Number,
+			triangleCount : Number
+			contained : Boolean,
+			depth : Number
+		) => Boolean = null,
+
+		intersectsTriangle : (
+			triangle : Triangle,
+			index1 : Number,
+			index2 : Number,
+			index3 : Number,
+			contained : Boolean,
+			depth : Number
+		) => Boolean = null,
+
+	}
 
 ) : Boolean
 ```
 
-A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `orderNodesFunc`, `intersectsBoundsFunc` and `intersectsTrianglesFunc` for each node and using the results to determine traversal depth. The `depth` value passed to `intersectsBoundsFunc` and `intersectsTriangleFunc` indicates the depth of the bounds the provided box or bounds belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. It can be used to precompute, cache, and then read information about a parent bound to improve performance while traversing.
+A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `traverseBoundsOrder`, `intersectsBoundsFunc`, `intersectsRange`, and intersectsTriangle for each node and using the results to determine traversal depth. The `depth` value passed to callbacks indicates the depth of the bounds the provided box or bounds belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. It can be used to precompute, cache, and then read information about a parent bound to improve performance while traversing.
 
 `mesh` is the is the object this BVH is representing.
 
-`intersectsBoundsFunc` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a constant indicating whether or not the bounds is intersected or contained and traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing all child triangles to be checked immediately rather than traversing the rest of the child bounds.
+`callbacks` is a list of callback functions (defined below) used for traversing the tree. All functions except for `intersectsBounds` are optional.
 
-`intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
+`traverseBoundsOrder` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score (often distance) used to determine whether the left or right node should be traversed first. The shape with the lowest score is traversed first.
 
-`orderNodesFunc` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score or distance representing the distance to the shape being intersected with. The shape with the lowest score is traversed first.
+`intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
+
+`intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
+
+`intersectsTriangle` takes a triangle and the index buffer indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
+
 
 ### .refit
 

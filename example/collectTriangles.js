@@ -227,26 +227,30 @@ function render() {
 			const tempVec = new THREE.Vector3();
 			bvh.shapecast(
 				targetMesh,
-				box => {
+				{
 
-					const intersects = sphere.intersectsBox( box );
-					const { min, max } = box;
-					if ( intersects ) {
+					intersectsBounds: box => {
 
-						for ( let x = 0; x <= 1; x ++ ) {
+						const intersects = sphere.intersectsBox( box );
+						const { min, max } = box;
+						if ( intersects ) {
 
-							for ( let y = 0; y <= 1; y ++ ) {
+							for ( let x = 0; x <= 1; x ++ ) {
 
-								for ( let z = 0; z <= 1; z ++ ) {
+								for ( let y = 0; y <= 1; y ++ ) {
 
-									tempVec.set(
-										x === 0 ? min.x : max.x,
-										y === 0 ? min.y : max.y,
-										z === 0 ? min.z : max.z
-									);
-									if ( ! sphere.containsPoint( tempVec ) ) {
+									for ( let z = 0; z <= 1; z ++ ) {
 
-										return INTERSECTED;
+										tempVec.set(
+											x === 0 ? min.x : max.x,
+											y === 0 ? min.y : max.y,
+											z === 0 ? min.z : max.z
+										);
+										if ( ! sphere.containsPoint( tempVec ) ) {
+
+											return INTERSECTED;
+
+										}
 
 									}
 
@@ -254,24 +258,25 @@ function render() {
 
 							}
 
+							return CONTAINED;
+
 						}
 
-						return CONTAINED;
+						return intersects ? INTERSECTED : NOT_INTERSECTED;
+
+					},
+
+					intersectsTriangle: ( tri, a, b, c, contained ) => {
+
+						if ( contained || tri.intersectsSphere( sphere ) ) {
+
+							indices.push( a, b, c );
+
+						}
+
+						return false;
 
 					}
-
-					return intersects ? INTERSECTED : NOT_INTERSECTED;
-
-				},
-				( tri, a, b, c, contained ) => {
-
-					if ( contained || tri.intersectsSphere( sphere ) ) {
-
-						indices.push( a, b, c );
-
-					}
-
-					return false;
 
 				}
 			);

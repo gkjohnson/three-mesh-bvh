@@ -380,20 +380,25 @@ function updatePlayer( delta ) {
 
 	collider.geometry.boundsTree.shapecast(
 		collider,
-		box => box.intersectsBox( tempBox ),
-		tri => {
+		{
 
-			const triPoint = tempVector;
-			const capsulePoint = tempVector2;
+			intersectsBounds: box => box.intersectsBox( tempBox ),
 
-			const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
-			if ( distance < capsuleInfo.radius ) {
+			intersectsTriangle: tri => {
 
-				const depth = capsuleInfo.radius - distance;
-				const direction = capsulePoint.sub( triPoint ).normalize();
+				const triPoint = tempVector;
+				const capsulePoint = tempVector2;
 
-				tempSegment.start.addScaledVector( direction, depth );
-				tempSegment.end.addScaledVector( direction, depth );
+				const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
+				if ( distance < capsuleInfo.radius ) {
+
+					const depth = capsuleInfo.radius - distance;
+					const direction = capsulePoint.sub( triPoint ).normalize();
+
+					tempSegment.start.addScaledVector( direction, depth );
+					tempSegment.end.addScaledVector( direction, depth );
+
+				}
 
 			}
 

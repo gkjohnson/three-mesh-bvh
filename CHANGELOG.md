@@ -14,11 +14,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Removed `src/worker/generateAsync.js` function. Use `GenerateMeshBVHWorker` instead.
 - Use `type: module` in package.json to enable use of es6 modules in node.
 - Remove ability to generate an unpacked BVH.
+- Improved "closestPointToPoint" performance slightly.
 
 ### Fixed
 - `MeshBVHVisualizer` not using the new geometry BVH if one was generated.
 - `MeshBVHVisualizer` not using the new mesh if it was set.
 - Case where passing in null `intersectsTriangleFunc` to `MeshBVH.shapecast` could throw an error.
+- Case where the buffer being raycast against was not cleared correctly if a BVH had multiple roots.
+
 
 ## [0.3.7] - 2021-03-06
 ### Fixed
