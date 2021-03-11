@@ -275,10 +275,9 @@ export default class MeshBVH {
 
 			setBuffer( root );
 			raycast( 0, mesh, geometry, raycaster, ray, intersects );
+			clearBuffer();
 
 		}
-
-		clearBuffer();
 
 	}
 
@@ -290,6 +289,7 @@ export default class MeshBVH {
 
 			setBuffer( root );
 			const result = raycastFirst( 0, mesh, geometry, raycaster, ray );
+			clearBuffer();
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
@@ -299,7 +299,6 @@ export default class MeshBVH {
 
 		}
 
-		clearBuffer();
 
 		return closestResult;
 
@@ -313,6 +312,7 @@ export default class MeshBVH {
 
 			setBuffer( root );
 			result = intersectsGeometry( 0, mesh, geometry, otherGeometry, geomToMesh );
+			clearBuffer();
 
 			if ( result ) {
 
@@ -321,8 +321,6 @@ export default class MeshBVH {
 			}
 
 		}
-
-		clearBuffer();
 
 		return result;
 
@@ -408,6 +406,7 @@ export default class MeshBVH {
 
 			setBuffer( root );
 			result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder );
+			clearBuffer();
 
 			if ( result ) {
 
@@ -416,8 +415,6 @@ export default class MeshBVH {
 			}
 
 		}
-
-		clearBuffer();
 
 		return result;
 
