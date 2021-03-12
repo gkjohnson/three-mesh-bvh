@@ -233,7 +233,7 @@ export const shapecast = ( function () {
 			}
 
 			const isC1Leaf = IS_LEAF( c1 );
-			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1 );
+			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, c1 );
 
 			let c1StopTraversal;
 			if ( c1Intersection === CONTAINED ) {
@@ -271,7 +271,7 @@ export const shapecast = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
 			const isC2Leaf = IS_LEAF( c2 );
-			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1 );
+			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, c2 );
 
 			let c2StopTraversal;
 			if ( c2Intersection === CONTAINED ) {
