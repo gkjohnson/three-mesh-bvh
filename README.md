@@ -335,7 +335,8 @@ shapecast(
 			box : Box3,
 			isLeaf : Boolean,
 			score : Number | undefined,
-			depth : Number
+			depth : Number,
+			nodeIndex : Number
 		) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
 
 		intersectsRange : (
@@ -365,7 +366,7 @@ A generalized cast function that can be used to implement intersection logic for
 
 `traverseBoundsOrder` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score (often distance) used to determine whether the left or right node should be traversed first. The shape with the lowest score is traversed first.
 
-`intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
+`intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc`, the node depth, and the node index (for use with the [refit](#refit) function) and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
 
 `intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
 
