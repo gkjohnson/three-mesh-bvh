@@ -111,7 +111,7 @@ function runSuiteWithOptions( defaultOptions ) {
 				mesh,
 				{
 					intersectsBounds: getIntersectsBoxFunction( sphere ),
-					intersectsTriangle: ( tri, i0, i1, i2, contained ) => {
+					intersectsTriangle: ( tri, index, contained ) => {
 
 						allContained = contained && allContained;
 						numContained ++;
@@ -137,7 +137,7 @@ function runSuiteWithOptions( defaultOptions ) {
 				mesh,
 				{
 					intersectsBounds: getIntersectsBoxFunction( sphere ),
-					intersectsTriangle: ( tri, i0, i1, i2, contained ) => {
+					intersectsTriangle: ( tri, index, contained ) => {
 
 						allContained = contained && allContained;
 						if ( contained ) {
@@ -166,7 +166,7 @@ function runSuiteWithOptions( defaultOptions ) {
 				mesh,
 				{
 					intersectsBounds: getIntersectsBoxFunction( sphere ),
-					intersectsTriangle: ( tri, i0, i1, i2, contained ) => {
+					intersectsTriangle: () => {
 
 						trianglesIterated ++;
 

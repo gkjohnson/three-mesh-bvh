@@ -584,7 +584,12 @@ function updateSelection() {
 
 			},
 
-			intersectsTriangle: ( tri, a, b, c, contained, depth ) => {
+			intersectsTriangle: ( tri, index, contained, depth ) => {
+
+				const i3 = index * 3;
+				const a = i3 + 0;
+				const b = i3 + 1;
+				const c = i3 + 2;
 
 				// if the parent bounds were marked as contained
 				if ( contained ) {

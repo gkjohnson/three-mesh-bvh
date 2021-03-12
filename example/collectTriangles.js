@@ -266,11 +266,12 @@ function render() {
 
 					},
 
-					intersectsTriangle: ( tri, a, b, c, contained ) => {
+					intersectsTriangle: ( tri, i, contained ) => {
 
 						if ( contained || tri.intersectsSphere( sphere ) ) {
 
-							indices.push( a, b, c );
+							const i3 = 3 * i;
+							indices.push( i3, i3 + 1, i3 + 2 );
 
 						}
 

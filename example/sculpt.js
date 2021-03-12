@@ -361,12 +361,16 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedTriang
 
 			},
 
-			intersectsTriangle: ( tri, a, b, c, contained ) => {
+			intersectsTriangle: ( tri, index, contained ) => {
 
-				const triIndex = ~ ~ ( a / 3 );
+				const triIndex = index;
 				triangles.add( triIndex );
 				accumulatedTriangles.add( triIndex );
 
+				const i3 = 3 * index;
+				const a = i3 + 0;
+				const b = i3 + 1;
+				const c = i3 + 2;
 				const va = indexAttr.getX( a );
 				const vb = indexAttr.getX( b );
 				const vc = indexAttr.getX( c );

@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add `sideEffects: false` to package.json.
 - Remove ability to generate an unpacked BVH.
 - Improved "closestPointToPoint" performance slightly.
-- `MeshBVH.shapecast` to take an object of callback functions instead of a list of function arguments. See README for new API. Calls using the old function will log a warning.
+- `MeshBVH.shapecast` to take an object of callback functions instead of a list of function arguments and the triangle intersection callback has been changed to take a single triangle index. See README for new API. Calls using the old function will log a warning.
 
 ### Fixed
 - `MeshBVHVisualizer` not using the new geometry BVH if one was generated.
