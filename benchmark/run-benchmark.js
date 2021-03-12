@@ -186,9 +186,15 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			mesh.geometry.boundsTree.shapecast( mesh, box => sphere.intersectsBox( box ), tri => {
+			mesh.geometry.boundsTree.shapecast( mesh, {
 
-				tri.intersectsSphere( sphere );
+				intersectsBounds: box => sphere.intersectsBox( box ),
+
+				intersectsTriangle: tri => {
+
+					tri.intersectsSphere( sphere );
+
+				},
 
 			} );
 
