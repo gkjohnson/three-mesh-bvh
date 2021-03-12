@@ -87,8 +87,11 @@ function reset() {
 	if ( ! bvhHelper ) {
 
 		bvhHelper = new MeshBVHVisualizer( targetMesh, params.depth );
-		bvhHelper.visible = params.displayHelper;
-		scene.add( bvhHelper );
+		if ( params.displayHelper ) {
+
+			scene.add( bvhHelper );
+
+		}
 
 	}
 
@@ -184,7 +187,16 @@ function init() {
 	} );
 	helperFolder.add( params, 'displayHelper' ).onChange( display => {
 
-		bvhHelper.visible = display;
+		if ( display ) {
+
+			scene.add( bvhHelper );
+			bvhHelper.update();
+
+		} else {
+
+			scene.remove( bvhHelper );
+
+		}
 
 	} );
 	helperFolder.open();
@@ -662,7 +674,12 @@ function render() {
 					// the model but it's faster to do them here.
 					updateNormals( changedTriangles, changedIndices );
 					targetMesh.geometry.boundsTree.refit();
-					bvhHelper.update();
+
+					if ( bvhHelper.parent !== null ) {
+
+						bvhHelper.update();
+
+					}
 
 				} else {
 
