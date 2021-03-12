@@ -24,12 +24,12 @@ export function iterateOverTriangles(
 
 	const index = geometry.index;
 	const pos = geometry.attributes.position;
-	for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		setTriangle( triangle, i, index, pos );
+		setTriangle( triangle, i * 3, index, pos );
 		triangle.needsUpdate = true;
 
-		if ( intersectsTriangleFunc( triangle, i, i + 1, i + 2, contained, depth ) ) {
+		if ( intersectsTriangleFunc( triangle, i, contained, depth ) ) {
 
 			return true;
 

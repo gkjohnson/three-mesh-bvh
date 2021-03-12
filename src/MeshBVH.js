@@ -333,7 +333,16 @@ export default class MeshBVH {
 
 			if ( _intersectsTriangleFunc ) {
 
-				// TODO: if we update the arguments we need to do so here
+				// Support the previous function signature that provided three sequential index buffer
+				// indices here.
+				const originalTriangleFunc = _intersectsTriangleFunc;
+				_intersectsTriangleFunc = ( tri, index, contained, depth ) => {
+
+					const i3 = index * 3;
+					return originalTriangleFunc( tri, i3, i3 + 1, i3 + 2, contained, depth );
+
+				};
+
 
 			}
 
@@ -384,7 +393,7 @@ export default class MeshBVH {
 
 			} else {
 
-				intersectsRange = ( tri, a, b, c, contained ) => {
+				intersectsRange = ( offset, count, contained ) => {
 
 					return contained;
 
