@@ -127,7 +127,6 @@ export default class MeshBVH {
 
 		}
 
-
 		if ( terminationIndices && Array.isArray( terminationIndices ) ) {
 
 			terminationIndices = new Set( terminationIndices );
