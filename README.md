@@ -376,10 +376,52 @@ A generalized cast function that can be used to implement intersection logic for
 ### .refit
 
 ```js
-refit( geometry : BufferGeometry ) : void
+refit(
+	traversedNodeIndices : Array<Number> | Set<Number> = null,
+	endNodeIndices : Array<Number> | Set<Number> = null
+) : void
 ```
 
-Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices.
+Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices. `traversedNodeIndices` is a set of node indices (provided by the [shapecast](#shapecast) function) that need to be refit including all internal nodes. `endNodeIndices` is the set of nodes that traversal ended at and that triangles need to be updated for. If neither index set is provided then the whole BVH is updated which is significantly slower than surgically updating the nodes that need to be updated.
+
+Here's how to get the set of indices that need to be refit:
+
+```js
+const traversedNodeIndices = new Set();
+const endNodeIndices = new Set();
+bvh.shapecast(
+
+	mesh,
+	{
+
+		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+
+			if ( /* intersects shape */ ) {
+
+				traversedNodeIndices.add( nodeIndex );
+				return INTERSECTED;
+
+			}
+
+			return NOT_INTERSECTED;
+
+		},
+
+		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
+
+			// collect triangles to update
+			endNodeIndices.add( nodeIndex );
+
+		}
+
+	}
+
+);
+
+// update the positions of the triangle vertices
+
+bvh.refit( traversedNodeIndices, endNodeIndices );
+```
 
 ### .getBoundingBox
 
