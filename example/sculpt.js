@@ -699,7 +699,7 @@ function render() {
 				// refit the bounds and update the normals if we adjusted the mesh
 				if ( stepCount > 0 ) {
 
-					// TODO: refit bounds and normal updates should probably happen after every stroke
+					// refit bounds and normal updates could happen after every stroke
 					// so it's up to date for the next one because both of those are used when updating
 					// the model but it's faster to do them here.
 					updateNormals( changedTriangles, changedIndices );

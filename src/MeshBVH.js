@@ -398,9 +398,9 @@ export default class MeshBVH {
 		if ( intersectsRange && intersectsTriangle ) {
 
 			const originalIntersectsRange = intersectsRange;
-			intersectsRange = ( offset, count, contained, depth ) => {
+			intersectsRange = ( offset, count, contained, depth, nodeIndex ) => {
 
-				if ( ! originalIntersectsRange( offset, count, contained, depth ) ) {
+				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
 					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
 
