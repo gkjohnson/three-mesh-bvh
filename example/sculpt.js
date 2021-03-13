@@ -225,6 +225,7 @@ function init() {
 
 		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+		brushActive = true;
 
 	} );
 
@@ -302,7 +303,14 @@ function init() {
 }
 
 // Run the perform the brush movement
-function performStroke( point, brushObject, brushOnly = false, accumulatedTriangles = new Set(), accumulatedIndices = new Set() ) {
+function performStroke( point, brushObject, brushOnly = false, accumulatedFields = {} ) {
+
+	const {
+		accumulatedTriangles = new Set(),
+		accumulatedIndices = new Set(),
+		accumulatedTraversedNodeIndices = new Set(),
+		accumulatedEndNodeIndices = new Set(),
+	} = accumulatedFields;
 
 	const inverseMatrix = new THREE.Matrix4();
 	inverseMatrix.copy( targetMesh.matrixWorld ).invert();
@@ -324,7 +332,9 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedTriang
 		targetMesh,
 		{
 
-			intersectsBounds: box => {
+			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+
+				accumulatedTraversedNodeIndices.add( nodeIndex );
 
 				const intersects = sphere.intersectsBox( box );
 				const { min, max } = box;
@@ -358,6 +368,12 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedTriang
 				}
 
 				return intersects ? INTERSECTED : NOT_INTERSECTED;
+
+			},
+
+			intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
+
+				accumulatedEndNodeIndices.add( nodeIndex );
 
 			},
 
@@ -644,6 +660,16 @@ function render() {
 				// refitting of the model
 				const changedTriangles = new Set();
 				const changedIndices = new Set();
+				const traversedNodeIndices = new Set();
+				const endNodeIndices = new Set();
+				const sets = {
+
+					accumulatedTriangles: changedTriangles,
+					accumulatedIndices: changedIndices,
+					accumulatedTraversedNodeIndices: traversedNodeIndices,
+					accumulatedEndNodeIndices: endNodeIndices,
+
+				};
 				while ( castDist > step && mdist > params.size * 200 / hit.distance ) {
 
 					lastMouse.lerp( mouse, percent );
@@ -651,12 +677,12 @@ function render() {
 					castDist -= step;
 					mdist -= mstep;
 
-					performStroke( lastCastPose, brush, false, changedTriangles, changedIndices );
+					performStroke( lastCastPose, brush, false, sets );
 
 					if ( params.symmetrical ) {
 
 						lastCastPose.x *= - 1;
-						performStroke( lastCastPose, symmetryBrush, false, changedTriangles, changedIndices );
+						performStroke( lastCastPose, symmetryBrush, false, sets );
 						lastCastPose.x *= - 1;
 
 					}
@@ -677,7 +703,7 @@ function render() {
 					// so it's up to date for the next one because both of those are used when updating
 					// the model but it's faster to do them here.
 					updateNormals( changedTriangles, changedIndices );
-					targetMesh.geometry.boundsTree.refit();
+					targetMesh.geometry.boundsTree.refit( traversedNodeIndices, endNodeIndices );
 
 					if ( bvhHelper.parent !== null ) {
 
