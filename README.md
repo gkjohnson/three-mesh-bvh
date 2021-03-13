@@ -343,7 +343,8 @@ shapecast(
 			triangleOffset : Number,
 			triangleCount : Number
 			contained : Boolean,
-			depth : Number
+			depth : Number,
+			nodeIndex : Number
 		) => Boolean = null,
 
 		intersectsTriangle : (
