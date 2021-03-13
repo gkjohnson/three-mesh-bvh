@@ -185,7 +185,7 @@ export const shapecast = ( function () {
 
 			const offset = OFFSET( nodeIndex32 );
 			const count = COUNT( nodeIndex16 );
-			return intersectsRangeFunc( offset, count, false, depth );
+			return intersectsRangeFunc( offset, count, false, depth, nodeIndex32 );
 
 		} else {
 
@@ -232,7 +232,7 @@ export const shapecast = ( function () {
 
 			}
 
-			const isC1Leaf = IS_LEAF( c1 );
+			const isC1Leaf = IS_LEAF( c1 * 2 );
 			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, c1 );
 
 			let c1StopTraversal;
@@ -242,7 +242,7 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1 );
+				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, c1 );
 
 			} else {
 
@@ -270,7 +270,7 @@ export const shapecast = ( function () {
 			box2 = cachedBox2;
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
-			const isC2Leaf = IS_LEAF( c2 );
+			const isC2Leaf = IS_LEAF( c2 * 2 );
 			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, c2 );
 
 			let c2StopTraversal;
@@ -280,7 +280,7 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1 );
+				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, c2 );
 
 			} else {
 

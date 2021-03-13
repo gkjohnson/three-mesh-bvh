@@ -119,7 +119,20 @@ export default class MeshBVH {
 
 	}
 
-	refit() {
+	refit( nodeIndices = null, terminationIndices = null ) {
+
+		if ( nodeIndices && Array.isArray( nodeIndices ) ) {
+
+			nodeIndices = new Set( nodeIndices );
+
+		}
+
+
+		if ( terminationIndices && Array.isArray( terminationIndices ) ) {
+
+			terminationIndices = new Set( terminationIndices );
+
+		}
 
 		const geometry = this.geometry;
 		const indexArr = geometry.index.array;
@@ -136,7 +149,7 @@ export default class MeshBVH {
 
 		}
 
-		function _traverse( node32Index ) {
+		function _traverse( node32Index, force = false ) {
 
 			const node16Index = node32Index * 2;
 			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
@@ -200,8 +213,24 @@ export default class MeshBVH {
 				const left = node32Index + 8;
 				const right = uint32Array[ node32Index + 6 ];
 
-				const leftChange = _traverse( left );
-				const rightChange = _traverse( right );
+				let leftChange = false;
+				let forceLeft = force || terminationIndices && terminationIndices.has( left );
+				let traverseLeft = forceLeft || ( nodeIndices ? nodeIndices.has( left ) : true );
+				if ( traverseLeft ) {
+
+					leftChange = _traverse( left, forceLeft );
+
+				}
+
+				let rightChange = false;
+				let forceRight = force || terminationIndices && terminationIndices.has( right );
+				let traverseRight = forceRight || ( nodeIndices ? nodeIndices.has( right ) : true );
+				if ( traverseRight ) {
+
+					rightChange = _traverse( right, forceRight );
+
+				}
+
 				const didChange = leftChange || rightChange;
 
 				if ( didChange ) {

@@ -46,6 +46,40 @@ function runSuite( strategy ) {
 
 	const options = { strategy };
 	geometry.computeBoundsTree( options );
+
+	// generate a set of node indices to use with an optimized refit function
+	const refitIndices = new Set();
+	const terminationIndices = new Set();
+	const newSphere = new THREE.Sphere(
+		new THREE.Vector3( 0, 0, 0 ),
+		0.5,
+	);
+	geometry.boundsTree.shapecast(
+		mesh,
+		{
+
+			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+
+				if ( box.intersectsSphere( newSphere ) ) {
+
+					refitIndices.add( nodeIndex );
+					return true;
+
+				}
+
+				return false;
+
+			},
+
+			intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
+
+				terminationIndices.add( nodeIndex );
+
+			}
+
+		}
+	);
+
 	logExtremes( geometry.boundsTree, geometry );
 
 	geometry.computeBoundingBox();
@@ -122,7 +156,22 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			geometry.boundsTree.refit( geometry );
+			geometry.boundsTree.refit();
+
+		},
+		3000,
+		50
+
+	);
+
+	runBenchmark(
+
+		'Refit w/ hints',
+		null,
+		() => {
+
+			geometry.boundsTree.refit( refitIndices, terminationIndices );
+
 
 		},
 		3000,
