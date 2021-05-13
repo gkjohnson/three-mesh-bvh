@@ -136,7 +136,7 @@ export const shapecast = ( function () {
 		intersectsBoundsFunc,
 		intersectsRangeFunc,
 		nodeScoreFunc = null,
-		byteOffset = 0,
+		nodeIndexByteOffset = 0, // offset for unique node identifier
 		depth = 0,
 		triangle = _triangle,
 		cachedBox1 = _cachedBox1,
@@ -234,7 +234,7 @@ export const shapecast = ( function () {
 			}
 
 			const isC1Leaf = IS_LEAF( c1 * 2 );
-			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, byteOffset + c1 );
+			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
 
 			let c1StopTraversal;
 			if ( c1Intersection === CONTAINED ) {
@@ -243,7 +243,7 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, byteOffset + c1 );
+				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c1 );
 
 			} else {
 
@@ -256,7 +256,7 @@ export const shapecast = ( function () {
 						intersectsBoundsFunc,
 						intersectsRangeFunc,
 						nodeScoreFunc,
-						byteOffset,
+						nodeIndexByteOffset,
 						depth + 1,
 						triangle,
 						cachedBox1,
@@ -273,7 +273,7 @@ export const shapecast = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
 			const isC2Leaf = IS_LEAF( c2 * 2 );
-			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, byteOffset + c2 );
+			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
 
 			let c2StopTraversal;
 			if ( c2Intersection === CONTAINED ) {
@@ -282,7 +282,7 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, byteOffset + c2 );
+				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c2 );
 
 			} else {
 
@@ -295,7 +295,7 @@ export const shapecast = ( function () {
 						intersectsBoundsFunc,
 						intersectsRangeFunc,
 						nodeScoreFunc,
-						byteOffset,
+						nodeIndexByteOffset,
 						depth + 1,
 						triangle,
 						cachedBox1,
