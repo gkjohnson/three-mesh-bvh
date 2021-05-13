@@ -137,6 +137,7 @@ export default class MeshBVH {
 		const indexArr = geometry.index.array;
 		const posArr = geometry.attributes.position.array;
 		let buffer, uint32Array, uint16Array, float32Array;
+		let byteOffset = 0;
 		const roots = this._roots;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
@@ -144,11 +145,13 @@ export default class MeshBVH {
 			uint32Array = new Uint32Array( buffer );
 			uint16Array = new Uint16Array( buffer );
 			float32Array = new Float32Array( buffer );
-			_traverse( 0 );
+
+			_traverse( 0, byteOffset );
+			byteOffset += buffer.byteLength;
 
 		}
 
-		function _traverse( node32Index, force = false ) {
+		function _traverse( node32Index, byteOffset, force = false ) {
 
 			const node16Index = node32Index * 2;
 			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
@@ -212,21 +215,26 @@ export default class MeshBVH {
 				const left = node32Index + 8;
 				const right = uint32Array[ node32Index + 6 ];
 
+				// the indentifying node indices provided by the shapecast function include offsets of all
+				// root buffers to guarantee they're unique between roots so offset left and right indices here.
+				const offsetLeft = left + byteOffset;
+				const offsetRight = right + byteOffset;
+
 				let leftChange = false;
-				let forceLeft = force || terminationIndices && terminationIndices.has( left );
-				let traverseLeft = forceLeft || ( nodeIndices ? nodeIndices.has( left ) : true );
+				let forceLeft = force || terminationIndices && terminationIndices.has( offsetLeft );
+				let traverseLeft = forceLeft || ( nodeIndices ? nodeIndices.has( offsetLeft ) : true );
 				if ( traverseLeft ) {
 
-					leftChange = _traverse( left, forceLeft );
+					leftChange = _traverse( left, byteOffset, forceLeft );
 
 				}
 
 				let rightChange = false;
-				let forceRight = force || terminationIndices && terminationIndices.has( right );
-				let traverseRight = forceRight || ( nodeIndices ? nodeIndices.has( right ) : true );
+				let forceRight = force || terminationIndices && terminationIndices.has( offsetRight );
+				let traverseRight = forceRight || ( nodeIndices ? nodeIndices.has( offsetRight ) : true );
 				if ( traverseRight ) {
 
-					rightChange = _traverse( right, forceRight );
+					rightChange = _traverse( right, byteOffset, forceRight );
 
 				}
 
@@ -432,10 +440,11 @@ export default class MeshBVH {
 		}
 
 		let result = false;
+		let byteOffset = 0;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder );
+			result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
 			clearBuffer();
 
 			if ( result ) {
@@ -443,6 +452,8 @@ export default class MeshBVH {
 				break;
 
 			}
+
+			byteOffset += root.byteLength;
 
 		}
 
