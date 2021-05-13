@@ -2161,6 +2161,7 @@
 			intersectsBoundsFunc,
 			intersectsRangeFunc,
 			nodeScoreFunc = null,
+			nodeIndexByteOffset = 0, // offset for unique node identifier
 			depth = 0,
 			triangle = _triangle,
 			cachedBox1 = _cachedBox1,
@@ -2258,7 +2259,7 @@
 				}
 
 				const isC1Leaf = ( uint16Array[ c1 * 2 + 15 ] === 0xFFFF );
-				const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, c1 );
+				const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
 
 				let c1StopTraversal;
 				if ( c1Intersection === CONTAINED ) {
@@ -2267,7 +2268,7 @@
 					const end = getRightEndOffset( c1 );
 					const count = end - offset;
 
-					c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, c1 );
+					c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c1 );
 
 				} else {
 
@@ -2280,6 +2281,7 @@
 							intersectsBoundsFunc,
 							intersectsRangeFunc,
 							nodeScoreFunc,
+							nodeIndexByteOffset,
 							depth + 1,
 							triangle,
 							cachedBox1,
@@ -2296,7 +2298,7 @@
 				arrayToBox$1( c2, float32Array, box2 );
 
 				const isC2Leaf = ( uint16Array[ c2 * 2 + 15 ] === 0xFFFF );
-				const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, c2 );
+				const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
 
 				let c2StopTraversal;
 				if ( c2Intersection === CONTAINED ) {
@@ -2305,7 +2307,7 @@
 					const end = getRightEndOffset( c2 );
 					const count = end - offset;
 
-					c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, c2 );
+					c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c2 );
 
 				} else {
 
@@ -2318,6 +2320,7 @@
 							intersectsBoundsFunc,
 							intersectsRangeFunc,
 							nodeScoreFunc,
+							nodeIndexByteOffset,
 							depth + 1,
 							triangle,
 							cachedBox1,
@@ -2642,6 +2645,7 @@
 			const indexArr = geometry.index.array;
 			const posArr = geometry.attributes.position.array;
 			let buffer, uint32Array, uint16Array, float32Array;
+			let byteOffset = 0;
 			const roots = this._roots;
 			for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
@@ -2649,11 +2653,13 @@
 				uint32Array = new Uint32Array( buffer );
 				uint16Array = new Uint16Array( buffer );
 				float32Array = new Float32Array( buffer );
-				_traverse( 0 );
+
+				_traverse( 0, byteOffset );
+				byteOffset += buffer.byteLength;
 
 			}
 
-			function _traverse( node32Index, force = false ) {
+			function _traverse( node32Index, byteOffset, force = false ) {
 
 				const node16Index = node32Index * 2;
 				const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
@@ -2717,21 +2723,26 @@
 					const left = node32Index + 8;
 					const right = uint32Array[ node32Index + 6 ];
 
+					// the indentifying node indices provided by the shapecast function include offsets of all
+					// root buffers to guarantee they're unique between roots so offset left and right indices here.
+					const offsetLeft = left + byteOffset;
+					const offsetRight = right + byteOffset;
+
 					let leftChange = false;
-					let forceLeft = force || terminationIndices && terminationIndices.has( left );
-					let traverseLeft = forceLeft || ( nodeIndices ? nodeIndices.has( left ) : true );
+					let forceLeft = force || terminationIndices && terminationIndices.has( offsetLeft );
+					let traverseLeft = forceLeft || ( nodeIndices ? nodeIndices.has( offsetLeft ) : true );
 					if ( traverseLeft ) {
 
-						leftChange = _traverse( left, forceLeft );
+						leftChange = _traverse( left, byteOffset, forceLeft );
 
 					}
 
 					let rightChange = false;
-					let forceRight = force || terminationIndices && terminationIndices.has( right );
-					let traverseRight = forceRight || ( nodeIndices ? nodeIndices.has( right ) : true );
+					let forceRight = force || terminationIndices && terminationIndices.has( offsetRight );
+					let traverseRight = forceRight || ( nodeIndices ? nodeIndices.has( offsetRight ) : true );
 					if ( traverseRight ) {
 
-						rightChange = _traverse( right, forceRight );
+						rightChange = _traverse( right, byteOffset, forceRight );
 
 					}
 
@@ -2937,10 +2948,11 @@
 			}
 
 			let result = false;
+			let byteOffset = 0;
 			for ( const root of this._roots ) {
 
 				setBuffer( root );
-				result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder );
+				result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
 				clearBuffer();
 
 				if ( result ) {
@@ -2948,6 +2960,8 @@
 					break;
 
 				}
+
+				byteOffset += root.byteLength;
 
 			}
 
