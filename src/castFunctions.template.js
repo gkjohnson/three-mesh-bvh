@@ -205,8 +205,12 @@ export const shapecast = ( function () {
 				arrayToBox( BOUNDING_DATA_INDEX( c1 ), float32Array, box1 );
 				arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
-				score1 = nodeScoreFunc( box1 );
-				score2 = nodeScoreFunc( box2 );
+				const splitAxis = SPLIT_AXIS( nodeIndex32 );
+				const splitField = xyzFields[ splitAxis ];
+				const avgSplitPosition = ( box1.max[ splitField ] + box2.min[ splitField ] ) / 2;
+
+				score1 = nodeScoreFunc( box1, splitAxis, avgSplitPosition, - 1 );
+				score2 = nodeScoreFunc( box2, splitAxis, avgSplitPosition, 1 );
 
 				if ( score2 < score1 ) {
 
