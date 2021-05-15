@@ -4,16 +4,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import MeshBVH from '../src/MeshBVH.js';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
+
 const params = {
 
 	sort: true,
 	frontToBack: false,
 	useBVH: true,
+	overdraw: false,
 
 };
 
-let renderer, camera, scene, mesh, clock, gui, outputContainer, helper, group, stats, bvh;
+let renderer, camera, scene, mesh, gui, stats, bvh, outputContainer;
+let overdrawMaterial, originalMaterial;
 const indexObjectPool = [];
 const triA = new THREE.Vector3();
 const triB = new THREE.Vector3();
@@ -25,6 +27,14 @@ render();
 function init() {
 
 	const bgColor = 0x222222;
+
+	overdrawMaterial = new THREE.MeshBasicMaterial( {
+
+		transparent: true,
+		opacity: 0.15,
+		side: THREE.DoubleSide,
+
+	} );
 
 	outputContainer = document.getElementById( 'output' );
 
@@ -38,7 +48,6 @@ function init() {
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0xffca28, 20, 60 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1, 1 );
@@ -51,8 +60,6 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	clock = new THREE.Clock();
-
 	// stats setup
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
@@ -61,12 +68,8 @@ function init() {
 
 		mesh = res.children[ 0 ];
 		mesh.material = new THREE.MeshStandardMaterial();
-		mesh.geometry.clearGroups()
+		mesh.geometry.clearGroups();
 
-		// mesh = new THREE.Mesh(
-		// 	new THREE.SphereBufferGeometry( .1, 5, 5 ),
-		// 	new THREE.MeshStandardMaterial()
-		// );
 		const { geometry, material } = mesh;
 		geometry.center().scale( 5, 5, 5 );
 
@@ -79,7 +82,8 @@ function init() {
 			geometry.setIndex( indices );
 
 		}
-		console.log( mesh.geometry.index.count / 3 );
+
+		originalMaterial = mesh.material;
 
 		const bvhGeometry = geometry.clone();
 		bvhGeometry.index = bvhGeometry.index.clone();
@@ -89,7 +93,7 @@ function init() {
 		material.depthWrite = false;
 		material.transparent = true;
 		material.opacity = 0.75;
-		material.side = 2;
+		material.side = THREE.DoubleSide;
 
 		scene.add( mesh );
 
@@ -102,6 +106,7 @@ function init() {
 	gui.add( params, 'sort' );
 	gui.add( params, 'frontToBack' );
 	gui.add( params, 'useBVH' );
+	gui.add( params, 'overdraw' );
 	gui.open();
 
 	window.addEventListener( 'resize', function () {
@@ -198,6 +203,7 @@ function updateWithBVH() {
 
 				intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
 
+					// TODO: Would this still be faster if we sorted triangles internally?
 					for ( let i = offset * 3, l = 3 * ( offset + count ); i < l; i += 3 ) {
 
 						const i0 = bvhIndex.getX( i + 0 );
@@ -216,21 +222,12 @@ function updateWithBVH() {
 
 				boundsTraverseOrder: ( box, splitAxis, splitPos, splitSide ) => {
 
-					// TODO: we need a little more information here such as the position of the
-					// axis plane the boxes are split on so we can give a better estimate. Should the
-					// exact position of the split be stored internally per internal node?
 					const order = params.frontToBack ? 1 : - 1;
 					const cameraPos = posInMesh[ xyzFields[ splitAxis ] ];
 					const camSide = Math.sign( cameraPos - splitPos );
 
 					return order * ( camSide === splitSide ? - 1 : 1 );
-
-
-					// return order * Math.abs( cameraPos - splitPos );
-
-
-					// return order * box.distanceToPoint( posInMesh );
-					return order * box.getCenter( triA ).distanceTo( posInMesh );
+					// return order * box.getCenter( triA ).distanceTo( posInMesh );
 
 				},
 			}
@@ -240,15 +237,19 @@ function updateWithBVH() {
 
 }
 
+let lastTime = 0;
 function render() {
 
 	stats.update();
 
 	requestAnimationFrame( render );
 	if ( ! mesh ) {
+
 		return;
+
 	}
 
+	const startTime = window.performance.now();
 	if ( params.sort ) {
 
 		if ( params.useBVH ) {
@@ -262,7 +263,16 @@ function render() {
 		}
 
 	}
+	const delta = window.performance.now() - startTime;
 
+	if ( startTime - lastTime > 250 ) {
+
+		outputContainer.innerText = delta.toFixed() + 'ms';
+		lastTime = startTime;
+
+	}
+
+	mesh.material = params.overdraw ? overdrawMaterial : originalMaterial;
 
 	renderer.render( scene, camera );
 
