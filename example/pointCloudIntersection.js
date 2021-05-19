@@ -98,6 +98,8 @@ function init() {
 }
 
 window.addEventListener("pointermove", (event) => {
+	if(!bvhMesh) return;
+
 	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
 	mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
