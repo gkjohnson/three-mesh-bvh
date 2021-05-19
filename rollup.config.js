@@ -24,13 +24,9 @@ export default [
 	
 		output: {
 	
-			name: 'MeshBVHLib',
-			extend: true,
 			format: 'esm',
 			file: './esm/index.js',
 			sourcemap: true,
-	
-			globals: p => /^three/.test( p ) ? 'THREE' : null,
 	
 		},
 	
