@@ -25,8 +25,8 @@ const params = {
 	displayHelper: false,
 	helperDepth: 10,
 
-	pointSize: 0.01,
-	raycastThreshold: 0.01,
+	pointSize: 0.005,
+	raycastThreshold: 0.005,
 	useBVH: true,
 
 };
@@ -98,9 +98,10 @@ function init() {
 
 	} );
 
-	const geometry = new THREE.SphereGeometry( 0.02, 32, 32 );
+	const geometry = new THREE.SphereGeometry( 0.01, 32, 32 );
 	const material = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.9, transparent: true } );
 	sphereCollision = new THREE.Mesh( geometry, material );
+	sphereCollision.visible = false;
 	scene.add( sphereCollision );
 
 	const gui = new GUI();
@@ -116,7 +117,7 @@ function init() {
 
 	const pointsFolder = gui.addFolder( 'points' );
 	pointsFolder.add( params, 'useBVH' );
-	pointsFolder.add( params, 'pointSize', 0.001, 0.1, 0.001 );
+	pointsFolder.add( params, 'pointSize', 0.001, 0.01, 0.001 );
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();
 
