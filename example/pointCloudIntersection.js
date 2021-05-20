@@ -1,25 +1,35 @@
 import Stats from 'stats.js/src/Stats';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
-import "@babel/polyfill";
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
+import { GUI } from 'dat.gui';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer } from '../src/index.js';
+import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-const plyPath = "../models/point_cloud_porsche_911_1.7M_vertices/scene.ply";
-const pointSize = 0.01;
-
+const plyPath = '../models/point_cloud_porsche_911_1.7M_vertices/scene.ply';
 let stats;
-let scene, camera, renderer, bvhMesh;
+let scene, camera, renderer, bvhMesh, helper, pointCloud;
 let mouse = new THREE.Vector2();
 let sphereCollision;
 
 const raycaster = new THREE.Raycaster();
 raycaster.firstHitOnly = true;
 raycaster.params.Points.threshold = 0.01;
+
+const params = {
+
+	displayHelper: false,
+	helperDepth: 10,
+
+	pointSize: 0.01,
+	raycastThreshold: 0.01,
+	useBVH: true,
+
+};
 
 function init() {
 
@@ -59,81 +69,128 @@ function init() {
 
 	// Load point cloud
 	const loader = new PLYLoader();
-	loader.load( plyPath, ( geometry ) => {
+	loader.load( plyPath, geometry => {
 
 		geometry.center();
-		const material = new THREE.PointsMaterial( { size: pointSize, vertexColors: true } );
-		const pointCloud = new THREE.Points( geometry, material );
+		const material = new THREE.PointsMaterial( { size: params.pointSize, vertexColors: true } );
+		pointCloud = new THREE.Points( geometry, material );
 		pointCloud.matrixAutoUpdate = false;
 
 		scene.add( pointCloud );
-
 
 		// BVH Mesh creation
 		const indices = [];
 		const bvhGeometry = geometry.clone();
 		let verticesLength = bvhGeometry.attributes.position.count;
-		while ( verticesLength > 0 ) {
+		for ( let i = 0, l = verticesLength; i < l; i ++ ) {
 
-			let index = bvhGeometry.attributes.position.count - verticesLength;
-			indices.push( index, index, index );
-			verticesLength --;
+			indices.push( i, i, i );
 
 		}
 
 		bvhGeometry.setIndex( indices );
 		const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
 		bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
+		bvhMesh.geometry.computeBoundsTree( { lazyGeneration: false } );
 
-		bvhMesh.geometry.computeBoundsTree();
+		helper = new MeshBVHVisualizer( bvhMesh, params.depth );
+		scene.add( helper );
 
 	} );
-
 
 	const geometry = new THREE.SphereGeometry( 0.02, 32, 32 );
 	const material = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.9, transparent: true } );
 	sphereCollision = new THREE.Mesh( geometry, material );
 	scene.add( sphereCollision );
 
+	const gui = new GUI();
+	const helperFolder = gui.addFolder( 'helper' );
+	helperFolder.add( params, 'displayHelper' );
+	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).name( 'depth' ).onChange( v => {
+
+		helper.depth = parseInt( v );
+		helper.update();
+
+	} );
+	helperFolder.open();
+
+	const pointsFolder = gui.addFolder( 'points' );
+	pointsFolder.add( params, 'useBVH' );
+	pointsFolder.add( params, 'pointSize', 0.001, 0.1, 0.001 );
+	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
+	pointsFolder.open();
+
 }
 
-window.addEventListener( "pointermove", ( event ) => {
+window.addEventListener( 'pointermove', ( event ) => {
 
-	if ( ! bvhMesh ) return;
+	if ( ! bvhMesh ) {
+
+		return;
+
+	}
 
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-	const inverseMatrix = new THREE.Matrix4();
-	inverseMatrix.copy( bvhMesh.matrixWorld ).invert();
 	raycaster.setFromCamera( mouse, camera );
-	raycaster.ray.applyMatrix4( inverseMatrix );
 
-	bvhMesh.geometry.boundsTree.shapecast(
-		bvhMesh,
-		box => {
+	if ( params.useBVH ) {
 
-			box.expandByScalar( pointSize );
-			return raycaster.ray.intersectsBox( box ) > 0;
+		const inverseMatrix = new THREE.Matrix4();
+		inverseMatrix.copy( bvhMesh.matrixWorld ).invert();
+		raycaster.ray.applyMatrix4( inverseMatrix );
 
-		},
-		triangle => {
+		const { pointSize } = params;
+		bvhMesh.geometry.boundsTree.shapecast(
+			bvhMesh,
+			box => {
 
-			const distance = raycaster.ray.distanceToPoint( triangle.a );
-			if ( distance < pointSize ) {
+				box.expandByScalar( pointSize );
+				return raycaster.ray.intersectsBox( box ) > 0;
 
-				sphereCollision.position.copy( triangle.a );
+			},
+			triangle => {
+
+				const distance = raycaster.ray.distanceToPoint( triangle.a );
+				if ( distance < pointSize ) {
+
+					sphereCollision.position.copy( triangle.a );
+
+				}
 
 			}
+		);
+
+	} else {
+
+		const intersects = raycaster.intersectObject( pointCloud, true );
+		const hit = intersects[ 0 ];
+		if ( hit ) {
+
+			sphereCollision.position.copy( hit.point );
+			sphereCollision.visible = true;
+
+		} else {
+
+			sphereCollision.visible = false;
 
 		}
-	);
+
+	}
 
 }, false );
 
 function render() {
 
 	requestAnimationFrame( render );
+
+	if ( pointCloud ) {
+
+		pointCloud.material.size = params.pointSize;
+		helper.visible = params.displayHelper;
+		raycaster.params.Points.threshold = params.raycastThreshold;
+
+	}
 
 	stats.begin();
 
