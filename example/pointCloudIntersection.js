@@ -12,7 +12,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const plyPath = '../models/point_cloud_porsche_911_1.7M_vertices/scene.ply';
 let stats;
-let scene, camera, renderer, bvhMesh, helper, pointCloud;
+let scene, camera, renderer, bvhMesh, helper, pointCloud, outputContainer;
 let mouse = new THREE.Vector2();
 let sphereCollision;
 
@@ -34,6 +34,8 @@ const params = {
 function init() {
 
 	const bgColor = 0x263238 / 2;
+
+	outputContainer = document.getElementById( 'output' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -135,6 +137,7 @@ window.addEventListener( 'pointermove', ( event ) => {
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 	raycaster.setFromCamera( mouse, camera );
 
+	const startTime = window.performance.now();
 	if ( params.useBVH ) {
 
 		sphereCollision.visible = false;
@@ -208,6 +211,9 @@ window.addEventListener( 'pointermove', ( event ) => {
 		}
 
 	}
+
+	const delta = window.performance.now() - startTime;
+	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
 }, false );
 
