@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'dat.gui';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer, INTERSECTED, NOT_INTERSECTED } from '../src/index.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -137,27 +137,57 @@ window.addEventListener( 'pointermove', ( event ) => {
 
 	if ( params.useBVH ) {
 
+		sphereCollision.visible = false;
+
 		const inverseMatrix = new THREE.Matrix4();
 		inverseMatrix.copy( bvhMesh.matrixWorld ).invert();
 		raycaster.ray.applyMatrix4( inverseMatrix );
 
-		const { pointSize } = params;
+		const threshold = raycaster.params.Points.threshold;
+		const localThreshold = threshold / ( ( bvhMesh.scale.x + bvhMesh.scale.y + bvhMesh.scale.z ) / 3 );
+		const localThresholdSq = localThreshold * localThreshold;
+
+		const { ray } = raycaster;
+		let closestDistance = Infinity;
 		bvhMesh.geometry.boundsTree.shapecast(
 			bvhMesh,
-			box => {
+			( box, isLeaf, score ) => {
 
-				box.expandByScalar( pointSize );
-				return raycaster.ray.intersectsBox( box ) > 0;
+				// if we've already found a point that's closer then the full bounds then
+				// don't traverse further.
+				if ( score > closestDistance ) {
+
+					return NOT_INTERSECTED;
+
+				}
+
+				box.expandByScalar( localThreshold );
+				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
 
 			},
 			triangle => {
 
-				const distance = raycaster.ray.distanceToPoint( triangle.a );
-				if ( distance < pointSize ) {
+				const distancesToRaySq = ray.distanceSqToPoint( triangle.a );
+				if ( distancesToRaySq < localThresholdSq ) {
 
-					sphereCollision.position.copy( triangle.a );
+					// track the closest found point distance so we can early out traversal and only
+					// use the closest point along the ray.
+					const distanceToPoint = ray.origin.distanceTo( triangle.a );
+					if ( distanceToPoint < closestDistance ) {
+
+						closestDistance = distanceToPoint;
+						sphereCollision.position.copy( triangle.a ).applyMatrix4( bvhMesh.matrixWorld );
+						sphereCollision.visible = true;
+
+					}
 
 				}
+
+			},
+			box => {
+
+				// traverse the closer bounds first.
+				return box.distanceToPoint( ray.origin );
 
 			}
 		);
