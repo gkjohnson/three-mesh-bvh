@@ -25,6 +25,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Lasso selection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
 
+[Point cloud interesection workaround](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+
 [WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
 # Use
