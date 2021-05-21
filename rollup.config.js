@@ -1,18 +1,34 @@
-export default {
-	input: './src/index.js',
-	treeshake: false,
-	external: p => /^three/.test( p ),
+export default [
+	{
+		input: './src/index.js',
+		treeshake: false,
+		external: p => /^three/.test( p ),
 
-	output: {
+		output: {
 
-		name: 'MeshBVHLib',
-		extend: true,
-		format: 'umd',
-		file: './umd/index.js',
-		sourcemap: true,
+			name: 'MeshBVHLib',
+			extend: true,
+			format: 'umd',
+			file: './build/index.umd.js',
+			sourcemap: true,
 
-		globals: p => /^three/.test( p ) ? 'THREE' : null,
+			globals: p => /^three/.test( p ) ? 'THREE' : null,
+
+		},
 
 	},
+	{
+		input: './src/index.js',
+		treeshake: false,
+		external: p => /^three/.test( p ),
 
-};
+		output: {
+
+			format: 'esm',
+			file: './build/index.module.js',
+			sourcemap: true,
+
+		},
+
+	}
+];
