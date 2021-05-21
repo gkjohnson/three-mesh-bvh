@@ -4,22 +4,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'dat.gui';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer, INTERSECTED, NOT_INTERSECTED } from '../src/index.js';
-import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-const plyPath = '../models/point_cloud_porsche_911_1.7M_vertices/scene.ply';
 let stats;
 let scene, camera, renderer, bvhMesh, helper, pointCloud, outputContainer;
 let mouse = new THREE.Vector2();
 let sphereCollision;
 
+const plyPath = '../models/point_cloud_porsche_911_1.7M_vertices/scene.ply';
 const raycaster = new THREE.Raycaster();
-raycaster.firstHitOnly = true;
-raycaster.params.Points.threshold = 0.01;
-
 const params = {
 
 	displayHelper: false,
