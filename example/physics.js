@@ -214,7 +214,7 @@ function loadColliderEnvironment() {
 
 		// create the merged geometry
 		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
-		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
+		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
 		collider = new THREE.Mesh( mergedGeometry );
 		collider.material.wireframe = true;

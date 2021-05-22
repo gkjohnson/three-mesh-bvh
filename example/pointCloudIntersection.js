@@ -89,7 +89,7 @@ function init() {
 		bvhGeometry.setIndex( indices );
 		const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
 		bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
-		bvhMesh.geometry.computeBoundsTree( { lazyGeneration: false } );
+		bvhMesh.geometry.computeBoundsTree();
 
 		helper = new MeshBVHVisualizer( bvhMesh, params.depth );
 		scene.add( helper );

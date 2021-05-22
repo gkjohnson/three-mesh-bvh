@@ -58,7 +58,7 @@ function init() {
 
 	const transformSeed = 7830035629;
 	const raySeed = 4697211981;
-	const options = { strategy: AVERAGE, packData: false, lazyGeneration: false, maxDepth: 1 };
+	const options = { strategy: AVERAGE, packData: false, maxDepth: 1 };
 
 	const geometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
 	geometry.computeBoundsTree( options );

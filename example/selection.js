@@ -88,7 +88,7 @@ function init() {
 			polygonOffsetFactor: 1,
 		} )
 	);
-	mesh.geometry.boundsTree = new MeshBVH( mesh.geometry, { lazyGeneration: false } );
+	mesh.geometry.boundsTree = new MeshBVH( mesh.geometry );
 	mesh.geometry.setAttribute( 'color', new THREE.Uint8BufferAttribute(
 		new Array( mesh.geometry.index.count * 3 ).fill( 255 ), 3, true
 	) );

@@ -204,7 +204,7 @@ function regenerateKnot() {
 
 	} else {
 
-		knot.geometry.boundsTree = new MeshBVH( knot.geometry, { lazyGeneration: false } );
+		knot.geometry.boundsTree = new MeshBVH( knot.geometry );
 		totalStallTime = window.performance.now() - stallStartTime;
 
 		group.add( knot );
