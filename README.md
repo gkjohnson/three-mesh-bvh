@@ -15,6 +15,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Shape intersection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
+[Sculpting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
+
 [Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
 [Distance comparison demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
@@ -48,8 +50,8 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // Generate geometry and associated BVH
-const geom = new THREE.TorusKnotBufferGeometry(10, 3, 400, 100);
-const mesh = new THREE.Mesh(geom, material);
+const geom = new THREE.TorusKnotBufferGeometry( 10, 3, 400, 100 );
+const mesh = new THREE.Mesh( geom, material );
 geom.computeBoundsTree();
 ```
 
@@ -97,7 +99,7 @@ const invMat = new THREE.Matrix4();
 
 // ...
 
-const bvh = new MeshBVH( geometry, { lazyGeneration: false } );
+const bvh = new MeshBVH( geometry );
 invMat.copy( mesh.matrixWorld ).invert();
 
 // raycasting
@@ -125,6 +127,8 @@ geometry.boundsTree = deserializedBVH;
 ```
 
 ## Asynchronous Generation
+
+_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenereateMeshBVHWorker class is not exported from the package root. If needed the code from `src/worker` can be copied and modified to accomodate a particular build process._
 
 ```js
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
@@ -208,7 +212,7 @@ _NOTE: The returned MeshBVH is a fully generated, buffer packed BVH instance to 
 constructor( geometry : BufferGeometry, options : Object )
 ```
 
-Constructs the bounds tree for the given geometry and produces a new index attribute buffer. The available options are
+Constructs the bounds tree for the given geometry and produces a new index attribute buffer. A reference to the passed geometry is retained. The available options are
 
 ```js
 {
@@ -223,18 +227,12 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // The number of triangles to aim for in a leaf node.
     maxLeafTris: 10,
 
+    // If true then the bounding box for the geometry is set once the BVH
+    // has been constructed.
+    setBoundingBox: true,
+
     // Print out warnings encountered during tree construction.
     verbose: true,
-
-    // If true the bounds tree is generated progressively as the tree is used allowing
-    // for a fast initialization time and memory allocation as needed but a higher memory
-    // footprint once the tree is completed. The initial raycasts are also slower until the
-    // tree is built up.
-    // If false then the bounds tree will be completely generated up front and packed into
-    // an array buffer for a lower final memory footprint and long initialization time.
-    // Note that this will keep intermediate buffers needed for generation in scope until
-    // the tree has been fully generated.
-    lazyGeneration: true
 
 }
 ```
@@ -329,38 +327,112 @@ If a point is found that is closer than `minThreshold` then the function will re
 shapecast(
 	mesh : Mesh,
 
-	intersectsBoundsFunc : (
-		box : Box3,
-		isLeaf : Boolean,
-		score : Number | undefined,
-		depth : Number
-	) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
+	callbacks : {
 
-	intersectsTriangleFunc : (
-		triangle : Triangle,
-		index1 : Number,
-		index2 : Number,
-		index3 : Number,
-		contained : Boolean,
-		depth : Number
-	) => Boolean = null,
+		traverseBoundsOrder : (
+			box: Box3
+		) => Number = null,
 
-	orderNodesFunc : (
-		box: Box3
-	) => Number = null
+		intersectsBounds : (
+			box : Box3,
+			isLeaf : Boolean,
+			score : Number | undefined,
+			depth : Number,
+			nodeIndex : Number
+		) => NOT_INTERSECTED | INTERSECTED | CONTAINED,
+
+		intersectsRange : (
+			triangleOffset : Number,
+			triangleCount : Number
+			contained : Boolean,
+			depth : Number,
+			nodeIndex : Number
+		) => Boolean = null,
+
+		intersectsTriangle : (
+			triangle : Triangle,
+			triangleIndex : Number,
+			contained : Boolean,
+			depth : Number
+		) => Boolean = null,
+
+	}
 
 ) : Boolean
 ```
 
-A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `orderNodesFunc`, `intersectsBoundsFunc` and `intersectsTrianglesFunc` for each node and using the results to determine traversal depth. The `depth` value passed to `intersectsBoundsFunc` and `intersectsTriangleFunc` indicates the depth of the bounds the provided box or bounds belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. It can be used to precompute, cache, and then read information about a parent bound to improve performance while traversing.
+A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox) and [intersectsSphere](#intersectsSphere). The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `traverseBoundsOrder`, `intersectsBoundsFunc`, `intersectsRange`, and intersectsTriangle for each node and using the results to determine traversal depth. The `depth` value passed to callbacks indicates the depth of the bounds the provided box or bounds belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. It can be used to precompute, cache, and then read information about a parent bound to improve performance while traversing.
 
 `mesh` is the is the object this BVH is representing.
 
-`intersectsBoundsFunc` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc` and returns a constant indicating whether or not the bounds is intersected or contained and traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing all child triangles to be checked immediately rather than traversing the rest of the child bounds.
+`callbacks` is a list of callback functions (defined below) used for traversing the tree. All functions except for `intersectsBounds` are optional.
 
-`intersectsTriangleFunc` takes a triangle and the vertex indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
+`traverseBoundsOrder` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score (often distance) used to determine whether the left or right node should be traversed first. The shape with the lowest score is traversed first.
 
-`orderNodesFunc` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score or distance representing the distance to the shape being intersected with. The shape with the lowest score is traversed first.
+`intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc`, the node depth, and the node index (for use with the [refit](#refit) function) and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned then and optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
+
+`intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
+
+`intersectsTriangle` takes a triangle and the index buffer indices used by the triangle from the geometry and returns whether or not the triangle has been intersected with. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
+
+
+### .refit
+
+```js
+refit(
+	traversedNodeIndices : Array<Number> | Set<Number> = null,
+	endNodeIndices : Array<Number> | Set<Number> = null
+) : void
+```
+
+Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices. `traversedNodeIndices` is a set of node indices (provided by the [shapecast](#shapecast) function) that need to be refit including all internal nodes. `endNodeIndices` is the set of nodes that traversal ended at and that triangles need to be updated for. If neither index set is provided then the whole BVH is updated which is significantly slower than surgically updating the nodes that need to be updated.
+
+Here's how to get the set of indices that need to be refit:
+
+```js
+const traversedNodeIndices = new Set();
+const endNodeIndices = new Set();
+bvh.shapecast(
+
+	mesh,
+	{
+
+		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+
+			if ( /* intersects shape */ ) {
+
+				traversedNodeIndices.add( nodeIndex );
+				return INTERSECTED;
+
+			}
+
+			return NOT_INTERSECTED;
+
+		},
+
+		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
+
+			// collect triangles to update
+			endNodeIndices.add( nodeIndex );
+
+		}
+
+	}
+
+);
+
+// update the positions of the triangle vertices
+
+bvh.refit( traversedNodeIndices, endNodeIndices );
+```
+
+### .getBoundingBox
+
+```js
+getBoundingBox( target : Box3 ) : Box3
+```
+
+Get the bounding box of the geometry computed from the root node bounds of the BVH. Significantly faster than `BufferGeometry.computeBoundingBox`.
 
 ## SerializedBVH
 
@@ -456,23 +528,33 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 ## GenerateMeshBVHWorker
 
-Class for generating a MeshBVH asynchronously in a WebWorker to avoid it blocking the main thread. The class is not exported via index.js because they require extra effort to integrate with some build processes due to Worker sytax being inconsistently supported. UMD variants of these functions are not provided. The class must be imported from the `src/workers/GenerateMeshWorker.js` file.
+Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while the BVH is being generated meaning the geometry will be unavailable to use while the BVH is being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when the MeshBVH is finished generating.
+
+_NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating a new Worker._
+
+### .running
+
+```js
+running : Boolean;
+```
+
+Flag indicating whether or not a BVH is already being generated in the worker.
 
 ### .generate
 
 ```js
-generate( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+generate( geometry : BufferGeometry, options : Object ) : Promise< MeshBVH >;
 ```
 
-Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
+Generates a MeshBVH instance for the given geometry with the given options in a WebWorker. Returns a promise that resolves with the generated MeshBVH. This function will throw an error if it is already running.
 
 ### .terminate
 
 ```js
-terminate() : void
+terminate() : Boolean;
 ```
 
-Disposes of the web worker.
+Terminates the worker.
 
 ## Debug Functions
 
@@ -499,6 +581,18 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 	splits: [ Number, Number, Number ]
 }
 ```
+
+## Extra Functions
+
+List of functions stored in the `src/workers/` and are not exported via index.js because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
+
+### generateAsync
+
+```js
+generateAsync( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+```
+
+Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
 
 ## Gotchas
 

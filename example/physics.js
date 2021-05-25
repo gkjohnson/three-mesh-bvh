@@ -214,7 +214,7 @@ function loadColliderEnvironment() {
 
 		// create the merged geometry
 		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
-		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
+		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
 		collider = new THREE.Mesh( mergedGeometry );
 		collider.material.wireframe = true;
@@ -329,33 +329,38 @@ function updateSphereCollisions( deltaTime ) {
 		let collided = false;
 		bvh.shapecast(
 			collider,
-			box => {
+			{
+				intersectsBounds: box => {
 
-				return box.intersectsSphere( tempSphere );
+					return box.intersectsSphere( tempSphere );
 
-			},
-			tri => {
+				},
 
-				// get delta between closest point and center
-				tri.closestPointToPoint( tempSphere.center, deltaVec );
-				deltaVec.sub( tempSphere.center );
-				const distance = deltaVec.length();
-				if ( distance < tempSphere.radius ) {
+				intersectsTriangle: tri => {
 
-					// move the sphere position to be outside the triangle
-					const radius = tempSphere.radius;
-					const depth = distance - radius;
-					deltaVec.multiplyScalar( 1 / distance );
-					tempSphere.center.addScaledVector( deltaVec, depth );
+					// get delta between closest point and center
+					tri.closestPointToPoint( tempSphere.center, deltaVec );
+					deltaVec.sub( tempSphere.center );
+					const distance = deltaVec.length();
+					if ( distance < tempSphere.radius ) {
 
-					collided = true;
+						// move the sphere position to be outside the triangle
+						const radius = tempSphere.radius;
+						const depth = distance - radius;
+						deltaVec.multiplyScalar( 1 / distance );
+						tempSphere.center.addScaledVector( deltaVec, depth );
 
-				}
+						collided = true;
 
-			},
-			box => {
+					}
 
-				return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
+				},
+
+				traverseBoundsOrder: box => {
+
+					return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
+
+				},
 
 			} );
 

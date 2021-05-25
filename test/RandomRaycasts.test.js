@@ -99,9 +99,6 @@ function runRandomTests( options ) {
 				raycaster.firstHitOnly = true;
 				const firstHit = raycaster.intersectObject( scene, true );
 
-				// run the og hits _after_ because in the lazy generation case
-				// the indices will be changing as the tree is generated and make
-				// the results will look different.
 				ungroupedGeometry.boundsTree = null;
 				groupedGeometry.boundsTree = null;
 				const ogHits = raycaster.intersectObject( scene, true );
@@ -117,26 +114,8 @@ function runRandomTests( options ) {
 
 }
 
-describe( 'Random CENTER intersections', () => {
+describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
 
-	describe( 'split', () => runRandomTests( { strategy: CENTER, packData: false, lazyGeneration: false } ) );
-	describe( 'Lazy split', () => runRandomTests( { strategy: CENTER, packData: false, lazyGeneration: true } ) );
-	describe( 'Packed split', () => runRandomTests( { strategy: CENTER, packData: true, lazyGeneration: false } ) );
+describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
 
-} );
-
-describe( 'Random AVERAGE intersections', () => {
-
-	describe( 'split', () => runRandomTests( { strategy: AVERAGE, packData: false, lazyGeneration: false } ) );
-	describe( 'Lazy split', () => runRandomTests( { strategy: AVERAGE, packData: false, lazyGeneration: true } ) );
-	describe( 'Packed split', () => runRandomTests( { strategy: AVERAGE, packData: true, lazyGeneration: false } ) );
-
-} );
-
-describe( 'Random SAH intersections', () => {
-
-	describe( 'split', () => runRandomTests( { strategy: SAH, packData: false, lazyGeneration: false } ) );
-	describe( 'Lazy split', () => runRandomTests( { strategy: SAH, packData: false, lazyGeneration: true } ) );
-	describe( 'Packed split', () => runRandomTests( { strategy: SAH, packData: true, lazyGeneration: false } ) );
-
-} );
+describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );

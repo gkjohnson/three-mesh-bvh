@@ -9,7 +9,7 @@ export default [
 			name: 'MeshBVHLib',
 			extend: true,
 			format: 'umd',
-			file: './umd/index.js',
+			file: './build/index.umd.js',
 			sourcemap: true,
 
 			globals: p => /^three/.test( p ) ? 'THREE' : null,
@@ -25,7 +25,7 @@ export default [
 		output: {
 
 			format: 'esm',
-			file: './esm/index.js',
+			file: './build/index.module.js',
 			sourcemap: true,
 
 		},

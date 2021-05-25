@@ -28,13 +28,7 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-describe( 'Shape Casts', () => {
-
-	describe( 'lazy: true, packed: false', () => runSuiteWithOptions( { lazyGeneration: true, packedData: false } ) );
-	describe( 'lazy: false, packed: false', () => runSuiteWithOptions( { lazyGeneration: false, packedData: false } ) );
-	describe( 'lazy: false, packed: true', () => runSuiteWithOptions( { lazyGeneration: false, packedData: true } ) );
-
-} );
+runSuiteWithOptions( {} );
 
 function runSuiteWithOptions( defaultOptions ) {
 
@@ -115,12 +109,14 @@ function runSuiteWithOptions( defaultOptions ) {
 			let numContained = 0;
 			bvh.shapecast(
 				mesh,
-				getIntersectsBoxFunction( sphere ),
-				( tri, i0, i1, i2, contained ) => {
+				{
+					intersectsBounds: getIntersectsBoxFunction( sphere ),
+					intersectsTriangle: ( tri, index, contained ) => {
 
-					allContained = contained && allContained;
-					numContained ++;
+						allContained = contained && allContained;
+						numContained ++;
 
+					}
 				}
 			);
 
@@ -139,16 +135,18 @@ function runSuiteWithOptions( defaultOptions ) {
 			let numContained = 0;
 			bvh.shapecast(
 				mesh,
-				getIntersectsBoxFunction( sphere ),
-				( tri, i0, i1, i2, contained ) => {
+				{
+					intersectsBounds: getIntersectsBoxFunction( sphere ),
+					intersectsTriangle: ( tri, index, contained ) => {
 
-					allContained = contained && allContained;
-					if ( contained ) {
+						allContained = contained && allContained;
+						if ( contained ) {
 
-						numContained ++;
+							numContained ++;
+
+						}
 
 					}
-
 				}
 			);
 
@@ -166,11 +164,13 @@ function runSuiteWithOptions( defaultOptions ) {
 			let trianglesIterated = 0;
 			bvh.shapecast(
 				mesh,
-				getIntersectsBoxFunction( sphere ),
-				( tri, i0, i1, i2, contained ) => {
+				{
+					intersectsBounds: getIntersectsBoxFunction( sphere ),
+					intersectsTriangle: () => {
 
-					trianglesIterated ++;
+						trianglesIterated ++;
 
+					}
 				}
 			);
 
@@ -650,8 +650,6 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const bvh = new MeshBVH( geometry );
 
-				// Run the bvh raycast before the builtin raycast because the bvh
-				// lazy raycast will rearrange the index.
 				geometry.boundsTree = bvh;
 				raycaster.firstHitOnly = true;
 				const bvhHits = raycaster.intersectObject( mesh, true );

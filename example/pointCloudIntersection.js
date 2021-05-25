@@ -89,7 +89,7 @@ function init() {
 		bvhGeometry.setIndex( indices );
 		const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
 		bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
-		bvhMesh.geometry.computeBoundsTree( { lazyGeneration: false } );
+		bvhMesh.geometry.computeBoundsTree();
 
 		helper = new MeshBVHVisualizer( bvhMesh, params.depth );
 		scene.add( helper );
@@ -150,44 +150,46 @@ window.addEventListener( 'pointermove', ( event ) => {
 		let closestDistance = Infinity;
 		bvhMesh.geometry.boundsTree.shapecast(
 			bvhMesh,
-			( box, isLeaf, score ) => {
+			{
+				boundsTraverseOrder: box => {
 
-				// if we've already found a point that's closer then the full bounds then
-				// don't traverse further.
-				if ( score > closestDistance ) {
+					// traverse the closer bounds first.
+					return box.distanceToPoint( ray.origin );
 
-					return NOT_INTERSECTED;
+				},
+				intersectsBounds: ( box, isLeaf, score ) => {
 
-				}
+					// if we've already found a point that's closer then the full bounds then
+					// don't traverse further.
+					if ( score > closestDistance ) {
 
-				box.expandByScalar( localThreshold );
-				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
-
-			},
-			triangle => {
-
-				const distancesToRaySq = ray.distanceSqToPoint( triangle.a );
-				if ( distancesToRaySq < localThresholdSq ) {
-
-					// track the closest found point distance so we can early out traversal and only
-					// use the closest point along the ray.
-					const distanceToPoint = ray.origin.distanceTo( triangle.a );
-					if ( distanceToPoint < closestDistance ) {
-
-						closestDistance = distanceToPoint;
-						sphereCollision.position.copy( triangle.a ).applyMatrix4( bvhMesh.matrixWorld );
-						sphereCollision.visible = true;
+						return NOT_INTERSECTED;
 
 					}
 
-				}
+					box.expandByScalar( localThreshold );
+					return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
 
-			},
-			box => {
+				},
+				intersectsTriangle: triangle => {
 
-				// traverse the closer bounds first.
-				return box.distanceToPoint( ray.origin );
+					const distancesToRaySq = ray.distanceSqToPoint( triangle.a );
+					if ( distancesToRaySq < localThresholdSq ) {
 
+						// track the closest found point distance so we can early out traversal and only
+						// use the closest point along the ray.
+						const distanceToPoint = ray.origin.distanceTo( triangle.a );
+						if ( distanceToPoint < closestDistance ) {
+
+							closestDistance = distanceToPoint;
+							sphereCollision.position.copy( triangle.a ).applyMatrix4( bvhMesh.matrixWorld );
+							sphereCollision.visible = true;
+
+						}
+
+					}
+
+				},
 			}
 		);
 

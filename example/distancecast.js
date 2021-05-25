@@ -85,7 +85,7 @@ function init() {
 	}
 
 	planeGeom.computeVertexNormals();
-	planeGeom.computeBoundsTree( { lazyGeneration: false } );
+	planeGeom.computeBoundsTree();
 
 	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { color: 0xFFFFFF, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
 	terrain.rotation.x = - Math.PI / 2;

@@ -554,23 +554,8 @@ export function buildTree( geo, options ) {
 			node.left = left;
 			left.boundingData = new Float32Array( 6 );
 
-			if ( lazyGeneration ) {
-
-				getBounds( triangleBounds, lstart, lcount, left.boundingData );
-				left.continueGeneration = function () {
-
-					delete this.continueGeneration;
-					getCentroidBounds( triangleBounds, lstart, lcount, cacheCentroidBoundingData );
-					splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
-
-				};
-
-			} else {
-
-				getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
-				splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
-
-			}
+			getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
+			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
 
 			// repeat for right
 			const right = new MeshBVHNode();
@@ -579,23 +564,8 @@ export function buildTree( geo, options ) {
 			node.right = right;
 			right.boundingData = new Float32Array( 6 );
 
-			if ( lazyGeneration ) {
-
-				getBounds( triangleBounds, rstart, rcount, right.boundingData );
-				right.continueGeneration = function () {
-
-					delete this.continueGeneration;
-					getCentroidBounds( triangleBounds, rstart, rcount, cacheCentroidBoundingData );
-					splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
-
-				};
-
-			} else {
-
-				getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
-				splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
-
-			}
+			getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
+			splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
 
 		}
 
@@ -613,7 +583,6 @@ export function buildTree( geo, options ) {
 	const verbose = options.verbose;
 	const maxLeafTris = options.maxLeafTris;
 	const strategy = options.strategy;
-	const lazyGeneration = options.lazyGeneration;
 	let reachedMaxDepth = false;
 
 	const roots = [];
@@ -654,21 +623,99 @@ export function buildTree( geo, options ) {
 
 	}
 
-	// if the geometry doesn't have a bounding box, then let's politely populate it using
-	// the work we did to determine the BVH root bounds
-	if ( geo.boundingBox == null ) {
+	return roots;
 
-		const rootBox = new Box3();
-		geo.boundingBox = new Box3();
+}
 
-		for ( let root of roots ) {
+export const BYTES_PER_NODE = 6 * 4 + 4 + 4;
 
-			geo.boundingBox.union( arrayToBox( root.boundingData, rootBox ) );
+export const IS_LEAFNODE_FLAG = 0xFFFF;
+
+export function buildPackedTree( geo, options ) {
+
+	// boundingData  				: 6 float32
+	// right / offset 				: 1 uint32
+	// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
+	const roots = buildTree( geo, options );
+
+	let float32Array;
+	let uint32Array;
+	let uint16Array;
+	const packedRoots = [];
+	for ( let i = 0; i < roots.length; i ++ ) {
+
+		const root = roots[ i ];
+		let nodeCount = countNodes( root );
+
+		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+		float32Array = new Float32Array( buffer );
+		uint32Array = new Uint32Array( buffer );
+		uint16Array = new Uint16Array( buffer );
+		populateBuffer( 0, root );
+		packedRoots.push( buffer );
+
+	}
+
+	return packedRoots;
+
+	function countNodes( node ) {
+
+		if ( node.count ) {
+
+			return 1;
+
+		} else {
+
+			return 1 + countNodes( node.left ) + countNodes( node.right );
 
 		}
 
 	}
 
-	return roots;
+	function populateBuffer( byteOffset, node ) {
+
+		const stride4Offset = byteOffset / 4;
+		const stride2Offset = byteOffset / 2;
+		const isLeaf = ! ! node.count;
+		const boundingData = node.boundingData;
+		for ( let i = 0; i < 6; i ++ ) {
+
+			float32Array[ stride4Offset + i ] = boundingData[ i ];
+
+		}
+
+		if ( isLeaf ) {
+
+			const offset = node.offset;
+			const count = node.count;
+			uint32Array[ stride4Offset + 6 ] = offset;
+			uint16Array[ stride2Offset + 14 ] = count;
+			uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
+			return byteOffset + BYTES_PER_NODE;
+
+		} else {
+
+			const left = node.left;
+			const right = node.right;
+			const splitAxis = node.splitAxis;
+
+			let nextUnusedPointer;
+			nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
+
+			if ( ( nextUnusedPointer / 4 ) > Math.pow( 2, 32 ) ) {
+
+				throw new Error( 'MeshBVH: Cannot store child pointer greater than 32 bits.' );
+
+			}
+
+			uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
+			nextUnusedPointer = populateBuffer( nextUnusedPointer, right );
+
+			uint32Array[ stride4Offset + 7 ] = splitAxis;
+			return nextUnusedPointer;
+
+		}
+
+	}
 
 }
