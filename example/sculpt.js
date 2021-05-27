@@ -12,7 +12,6 @@ import {
 	NOT_INTERSECTED,
 	MeshBVHVisualizer,
 } from '../src/index.js';
-import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -26,9 +25,11 @@ let brushActive = false;
 let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2();
 let mouseState = false, lastMouseState = false;
 let lastCastPose = new THREE.Vector3();
-let matcap;
+let material;
 
 const params = {
+	matcap: 'Clay',
+
 	size: 0.1,
 	brush: 'clay',
 	intensity: 50,
@@ -40,6 +41,8 @@ const params = {
 	depth: 10,
 	displayHelper: false,
 };
+
+const matcaps = {};
 
 init();
 render();
@@ -56,13 +59,6 @@ function reset() {
 
 	}
 
-	// load the mat cap material if it hasn't been made yet
-	if ( ! matcap ) {
-
-		matcap = new THREE.TextureLoader().load( '../textures/skinHazardousarts2.jpg' );
-
-	}
-
 	// merge the vertices because they're not already merged
 	let geometry = new THREE.IcosahedronBufferGeometry( 1, 100 );
 	geometry.deleteAttribute( 'uv' );
@@ -74,12 +70,8 @@ function reset() {
 	// disable frustum culling because the verts will be updated
 	targetMesh = new THREE.Mesh(
 		geometry,
-		new THREE.MeshMatcapMaterial( {
-			flatShading: params.flatShading,
-			matcap
-		} )
+		material,
 	);
-	targetMesh.material.matcap.encoding = THREE.sRGBEncoding;
 	targetMesh.frustumCulled = false;
 	scene.add( targetMesh );
 
@@ -102,7 +94,7 @@ function reset() {
 
 function init() {
 
-	const bgColor = 0x263238 / 2;
+	const bgColor = 0x060609;
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -121,9 +113,6 @@ function init() {
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
-
-	// geometry setup
-	reset();
 
 	// initialize brush cursor
 	const brushSegments = [ new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ) ];
@@ -161,7 +150,28 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	// init matcaps
+	matcaps[ 'Clay' ] = new THREE.TextureLoader().load( '../textures/B67F6B_4B2E2A_6C3A34_F3DBC6-256px.png' );
+	matcaps[ 'Red Wax' ] = new THREE.TextureLoader().load( '../textures/763C39_431510_210504_55241C-256px.png' );
+	matcaps[ 'Dark Wax' ] = new THREE.TextureLoader().load( '../textures/432322_5E3839_170C0B_543433-256px.png' );
+	matcaps[ 'Shiny Green' ] = new THREE.TextureLoader().load( '../textures/3B6E10_E3F2C3_88AC2E_99CE51-256px.png' );
+	matcaps[ 'Shiny Red' ] = new THREE.TextureLoader().load( '../textures/430404_BD9295_7E1E21_94544C-256px.png' );
+	matcaps[ 'Normal' ] = new THREE.TextureLoader().load( '../textures/7877EE_D87FC5_75D9C7_1C78C0-256px.png' );
+	material = new THREE.MeshMatcapMaterial( {
+		flatShading: params.flatShading,
+	} );
+
+	for ( const key in matcaps ) {
+
+		matcaps[ key ].encoding = THREE.sRGBEncoding;
+
+	}
+
+	// geometry setup
+	reset();
+
 	const gui = new dat.GUI();
+	gui.add( params, 'matcap', Object.keys( matcaps ) );
 
 	const sculptFolder = gui.addFolder( 'Sculpting' );
 	sculptFolder.add( params, 'brush', [ 'normal', 'clay', 'flatten' ] );
@@ -590,6 +600,8 @@ function render() {
 	requestAnimationFrame( render );
 
 	stats.begin();
+
+	material.matcap = matcaps[ params.matcap ];
 
 	if ( controls.active || ! brushActive ) {
 
