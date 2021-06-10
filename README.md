@@ -5,7 +5,7 @@
 [![build](https://img.shields.io/github/workflow/status/gkjohnson/three-mesh-bvh/Node.js%20CI?style=flat-square&label=build)](https://github.com/gkjohnson/three-mesh-bvh/actions)
 
 
-A BVH implementation to speed up raycasting against and enable intersection tests for three.js meshes.
+A BVH implementation to speed up raycasting and enable spatial queries against three.js meshes.
 
 ![screenshot](./docs/example-sm.gif)
 
