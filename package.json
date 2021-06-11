@@ -16,8 +16,7 @@
     "prepublishOnly": "npm run build"
   },
   "files": [
-    "src/*",
-    "umd/*"
+    "src/*"
   ],
   "keywords": [
     "graphics",
