@@ -16,7 +16,8 @@
     "prepublishOnly": "npm run build"
   },
   "files": [
-    "src/*"
+    "src/*",
+    "build/*"
   ],
   "keywords": [
     "graphics",
