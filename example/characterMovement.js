@@ -326,8 +326,6 @@ function reset() {
 
 function updatePlayer( delta ) {
 
-	window.playerVelocity = playerVelocity;
-
 	playerVelocity.y += delta * params.gravity;
 	player.position.addScaledVector( playerVelocity, delta );
 
@@ -369,9 +367,11 @@ function updatePlayer( delta ) {
 	tempMat.copy( collider.matrixWorld ).invert();
 	tempSegment.copy( capsuleInfo.segment );
 
+	// get the position of the capsule in the local space of the collider
 	tempSegment.start.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
 	tempSegment.end.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
 
+	// get the axis aligned bounding box of the capsule
 	tempBox.expandByPoint( tempSegment.start );
 	tempBox.expandByPoint( tempSegment.end );
 
@@ -386,6 +386,8 @@ function updatePlayer( delta ) {
 
 			intersectsTriangle: tri => {
 
+				// check if the triangle is intersecting the capsule and adjust the
+				// capsule position if it is.
 				const triPoint = tempVector;
 				const capsulePoint = tempVector2;
 
@@ -405,14 +407,20 @@ function updatePlayer( delta ) {
 		}
 	);
 
+	// get the adjusted position of the capsule collider in world space after checking
+	// triangle collisions and moving it. capsuleInfo.segment.start is assumed to be
+	// the origin of the player model.
 	const newPosition = tempVector;
 	newPosition.copy( tempSegment.start ).applyMatrix4( collider.matrixWorld );
 
+	// check how much the collider was moved
 	const deltaVector = tempVector2;
 	deltaVector.subVectors( newPosition, player.position );
 
+	// adjust the player model
 	player.position.copy( newPosition );
 
+	// if the player was primarily adjusted vertically we assume it's on something we should consider gound
 	playerIsOnGround = deltaVector.y > Math.abs( delta * playerVelocity.y * 0.25 );
 
 	if ( ! playerIsOnGround ) {
@@ -431,6 +439,7 @@ function updatePlayer( delta ) {
 	controls.target.copy( player.position );
 	camera.position.add( player.position );
 
+	// if the player has fallen too far below the level reset their position to the start
 	if ( player.position.y < - 25 ) {
 
 		reset();
