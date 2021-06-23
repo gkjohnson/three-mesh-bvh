@@ -326,7 +326,7 @@ function reset() {
 
 function updatePlayer( delta ) {
 
-	playerVelocity.y += delta * params.gravity;
+	playerVelocity.y += playerIsOnGround ? 0 : delta * params.gravity;
 	player.position.addScaledVector( playerVelocity, delta );
 
 	// move the player
@@ -417,11 +417,14 @@ function updatePlayer( delta ) {
 	const deltaVector = tempVector2;
 	deltaVector.subVectors( newPosition, player.position );
 
-	// adjust the player model
-	player.position.copy( newPosition );
-
-	// if the player was primarily adjusted vertically we assume it's on something we should consider gound
+	// if the player was primarily adjusted vertically we assume it's on something we should consider ground
 	playerIsOnGround = deltaVector.y > Math.abs( delta * playerVelocity.y * 0.25 );
+
+	const offset = Math.max( 0.0, deltaVector.length() - 1e-5 );
+	deltaVector.normalize().multiplyScalar( offset );
+
+	// adjust the player model
+	player.position.add( deltaVector );
 
 	if ( ! playerIsOnGround ) {
 
