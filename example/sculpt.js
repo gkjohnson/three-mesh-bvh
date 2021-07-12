@@ -257,7 +257,6 @@ function init() {
 	window.addEventListener( 'pointerup', e => {
 
 		mouseState = Boolean( e.buttons & 3 );
-		rightClick = Boolean( e.buttons & 2 );
 		if ( e.pointerType === 'touch' ) {
 
 			brushActive = false;
