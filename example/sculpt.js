@@ -25,7 +25,7 @@ let brushActive = false;
 let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2();
 let mouseState = false, lastMouseState = false;
 let lastCastPose = new THREE.Vector3();
-let material;
+let material, rightClick = false;
 
 const params = {
 	matcap: 'Clay',
@@ -241,7 +241,8 @@ function init() {
 
 		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-		mouseState = Boolean( e.buttons & 1 );
+		mouseState = Boolean( e.buttons & 3 );
+		rightClick = Boolean( e.buttons & 2 );
 		brushActive = true;
 
 		const raycaster = new THREE.Raycaster();
@@ -255,7 +256,8 @@ function init() {
 
 	window.addEventListener( 'pointerup', e => {
 
-		mouseState = Boolean( e.buttons & 1 );
+		mouseState = Boolean( e.buttons & 3 );
+		rightClick = Boolean( e.buttons & 2 );
 		if ( e.pointerType === 'touch' ) {
 
 			brushActive = false;
@@ -489,7 +491,7 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedFields
 
 		// compute the offset intensity
 		const dist = tempVec.distanceTo( localPoint );
-		const negated = params.invert ? - 1 : 1;
+		const negated = params.invert !== rightClick ? - 1 : 1;
 		let intensity = 1.0 - ( dist / params.size );
 
 		// offset the vertex
