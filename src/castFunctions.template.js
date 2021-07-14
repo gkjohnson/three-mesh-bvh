@@ -123,6 +123,193 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 
 }
 
+export const bvhcast = ( function () {
+
+	const _boxl1 = new Box3();
+	const _boxr1 = new Box3();
+	const _boxl2 = new Box3();
+	const _boxr2 = new Box3();
+	const _box1 = new Box3();
+	const _box2 = new Box3();
+
+	const sortArr = new Array( 4 ).fill().map( () => {
+
+		return {
+			score: 0,
+			n1: - 1,
+			n2: - 1,
+			b1: null,
+			b2: null,
+		};
+
+	} );
+	const sortFunc = ( a, b ) => {
+
+		return a.score - b.score;
+
+	};
+
+	return function bvhcast(
+		// current parent node status
+		g1NodeIndex32,
+		g2NodeIndex32,
+
+		// function taking two bounds and otherwise taking the same arguments as the shapecast variant
+		// returning what kind of intersection if any the two bounds have.
+		intersectsBoundsFunc,
+
+		// function taking the triangle ranges of both intersecting leaf bounds as well as the bounds themselves.
+		// returns the same types of values the the shapecast variant can.
+		intersectsRangeFunction,
+
+		// function that takes two bounds and return a score indicating the run order (lowest first)
+		nodeScoreFunc = null,
+
+		// node index and depth identifiers
+		g1NodeIndexByteOffset = 0,
+		g1Depth = 0,
+
+		g2NodeIndexByteOffset = 0,
+		g2Depth = 0,
+	) {
+
+		// TODO: IS_LEAF functions may need to take a second variable because they won't implicitly know which
+		// array to use here.
+		let g1NodeIndex16 = g1NodeIndex32 * 2,
+			float32Array = _float32Array,
+			uint16Array = _uint16Array,
+			uint32Array = _uint32Array,
+
+			g2NodeIndex16 = g2NodeIndex32 * 2,
+			float32Array2 = _float32Array2,
+			uint16Array2 = _uint16Array2,
+			uint32Array2 = _uint32Array2;
+
+		const isLeaf1 = IS_LEAF( g1NodeIndex32 );
+		const isLeaf2 = IS_LEAF( g2NodeIndex32 );
+
+		if ( isLeaf1 && isLeaf2 ) {
+
+			// intersect triangles
+			// TODO: should never get here
+
+		} else if ( isLeaf1 || isLeaf2 ) {
+
+			// TODO: if one is a leaf then we can just walk down one side of the tree?
+			// - check score between the leaf node and other nodes
+			// - run the lower scored comparison first
+			// - if it is contained or other is a leaf then run triangle range intersection
+			// - if it is intersected then run the next level
+			// - do it again for the other child
+			// - is there an easy way to dedupe code here?
+
+		} else {
+
+			// TODO: we can't reuse the sort array above. We need to create a local one, cache local variables, or create a stack of them
+			const left1 = LEFT_NODE( g1NodeIndex32 );
+			const right1 = RIGHT_NODE( g1NodeIndex32 );
+			const left2 = LEFT_NODE( g2NodeIndex32 );
+			const right2 = RIGHT_NODE( g2NodeIndex32 );
+
+			if ( nodeScoreFunc ) {
+
+				arrayToBox( BOUNDING_DATA_INDEX( left1 ), float32Array, _boxl1 );
+				arrayToBox( BOUNDING_DATA_INDEX( right1 ), float32Array, _boxr1 );
+				arrayToBox( BOUNDING_DATA_INDEX( left2 ), float32Array2, _boxl2 );
+				arrayToBox( BOUNDING_DATA_INDEX( right2 ), float32Array2, _boxr2 );
+
+				let info;
+				info = sortArr[ 0 ];
+				info.score = nodeScoreFunc( _boxl1, _boxl2 );
+				info.n1 = left1;
+				info.n2 = left2;
+
+				info = sortArr[ 1 ];
+				info.score = nodeScoreFunc( _boxl1, _boxr2 );
+				info.n1 = left1;
+				info.n2 = right2;
+
+				info = sortArr[ 2 ];
+				info.score = nodeScoreFunc( _boxr1, _boxl2 );
+				info.n1 = right1;
+				info.n2 = left2;
+
+				info = sortArr[ 2 ];
+				info.score = nodeScoreFunc( _boxr1, _boxr2 );
+				info.n1 = right1;
+				info.n2 = right2;
+
+				sortArr.sort( sortFunc );
+
+			} else {
+
+				let info;
+				info = sortArr[ 0 ];
+				info.n1 = left1;
+				info.n2 = left2;
+
+				info = sortArr[ 1 ];
+				info.n1 = left1;
+				info.n2 = right2;
+
+				info = sortArr[ 2 ];
+				info.n1 = right1;
+				info.n2 = left2;
+
+				info = sortArr[ 2 ];
+				info.n1 = right1;
+				info.n2 = right2;
+
+			}
+
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const info = sortArr[ i ];
+				arrayToBox( BOUNDING_DATA_INDEX( info.n1 ), float32Array, _box1 );
+				arrayToBox( BOUNDING_DATA_INDEX( info.n2 ), float32Array2, _box2 );
+
+				const leaf1 = IS_LEAF( info.n1 );
+				const leaf2 = IS_LEAF( info.n2 );
+				const intersection = intersectsBoundsFunc(
+					_box1, _box2, leaf1, leaf2,
+					info.score, g1Depth + 1, g2Depth + 1,
+					g1NodeIndexByteOffset + info.n1,
+					g2NodeIndexByteOffset + info.n2,
+				);
+
+				let stopTraversal;
+				if ( intersection === CONTAINED || leaf1 && leaf2 ) {
+
+					// run intersect triangles ranges nodes
+					// stopTraversal = intersectsRangeFunction();
+
+				} else if ( intersection ) {
+
+					stopTraversal = bvhcast(
+						info.n1, info.n2, intersectsBoundsFunc,
+						intersectsRangeFunction, nodeScoreFunc,
+						g1NodeIndexByteOffset + info.n1, g1Depth + 1,
+						g2NodeIndexByteOffset + info.n2, g2Depth + 1,
+					);
+
+				}
+
+				if ( stopTraversal ) {
+
+					return true;
+
+				}
+
+			}
+
+		}
+
+		return false;
+
+	};
+
+} );
+
 export const shapecast = ( function () {
 
 	const _box1 = new Box3();
@@ -479,6 +666,42 @@ export function clearBuffer() {
 	if ( bufferStack.length ) {
 
 		setBuffer( bufferStack.pop() );
+
+	}
+
+}
+
+const bufferStack2 = [];
+let _prevBuffer2;
+let _float32Array2;
+let _uint16Array2;
+let _uint32Array2;
+
+export function setBuffer2( buffer ) {
+
+	if ( _prevBuffer2 ) {
+
+		bufferStack2.push( _prevBuffer2 );
+
+	}
+
+	_prevBuffer2 = buffer;
+	_float32Array2 = new Float32Array( buffer );
+	_uint16Array2 = new Uint16Array( buffer );
+	_uint32Array2 = new Uint32Array( buffer );
+
+}
+
+export function clearBuffer2() {
+
+	_prevBuffer2 = null;
+	_float32Array2 = null;
+	_uint16Array2 = null;
+	_uint32Array2 = null;
+
+	if ( bufferStack2.length ) {
+
+		setBuffer( bufferStack2.pop() );
 
 	}
 
