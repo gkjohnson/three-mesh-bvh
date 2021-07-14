@@ -12,7 +12,7 @@
     "build": "npm run generate-cast-functions && rollup -c && parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "npm run generate-cast-functions && jest",
     "lint": "npm run generate-cast-functions && eslint \"./src/*.js\" \"./test/*.js\" \"./example/*.js\"",
-    "benchmark": "npm run generate-cast-functions & node benchmark/run-benchmark.js",
+    "benchmark": "npm run generate-cast-functions && node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"
   },
   "files": [
