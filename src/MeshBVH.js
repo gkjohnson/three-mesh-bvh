@@ -444,7 +444,7 @@ export default class MeshBVH {
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = shapecast( 0, mesh, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
+			result = shapecast( 0, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
 			clearBuffer();
 
 			if ( result ) {
