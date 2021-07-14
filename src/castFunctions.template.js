@@ -317,7 +317,6 @@ export const shapecast = ( function () {
 
 	return function shapecast(
 		nodeIndex32,
-		geometry,
 		intersectsBoundsFunc,
 		intersectsRangeFunc,
 		nodeScoreFunc = null,
@@ -433,7 +432,6 @@ export const shapecast = ( function () {
 					c1Intersection &&
 					shapecast(
 						c1,
-						geometry,
 						intersectsBoundsFunc,
 						intersectsRangeFunc,
 						nodeScoreFunc,
@@ -468,7 +466,6 @@ export const shapecast = ( function () {
 					c2Intersection &&
 					shapecast(
 						c2,
-						geometry,
 						intersectsBoundsFunc,
 						intersectsRangeFunc,
 						nodeScoreFunc,
