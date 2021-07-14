@@ -289,7 +289,7 @@ export const bvhcast = ( function () {
 
 		} else if ( isLeaf2 ) {
 
-
+			// TODO: consider a stack of these so we don't create a new one at each traversal
 			const sortArr = [ null, null, null, null ].map( () => {
 
 				return {
