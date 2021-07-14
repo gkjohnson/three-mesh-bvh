@@ -132,17 +132,6 @@ export const bvhcast = ( function () {
 	const _box1 = new Box3();
 	const _box2 = new Box3();
 
-	const sortArr = new Array( 4 ).fill().map( () => {
-
-		return {
-			score: 0,
-			n1: - 1,
-			n2: - 1,
-			b1: null,
-			b2: null,
-		};
-
-	} );
 	const sortFunc = ( a, b ) => {
 
 		return a.score - b.score;
@@ -173,8 +162,9 @@ export const bvhcast = ( function () {
 		g2Depth = 0,
 	) {
 
+		// TODO: Does including support for "CONTAINED" make sense here?
 		// TODO: IS_LEAF functions may need to take a second variable because they won't implicitly know which
-		// array to use here.
+		// array to use here. Can we just pass the appropriate buffer into the all the functions and skip the complexity?
 		let g1NodeIndex16 = g1NodeIndex32 * 2,
 			float32Array = _float32Array,
 			uint16Array = _uint16Array,
@@ -193,19 +183,124 @@ export const bvhcast = ( function () {
 			// intersect triangles
 			// TODO: should never get here
 
-		} else if ( isLeaf1 || isLeaf2 ) {
+		} else if ( isLeaf1 ) {
 
-			// TODO: if one is a leaf then we can just walk down one side of the tree?
-			// - check score between the leaf node and other nodes
-			// - run the lower scored comparison first
-			// - if it is contained or other is a leaf then run triangle range intersection
-			// - if it is intersected then run the next level
-			// - do it again for the other child
-			// - is there an easy way to dedupe code here?
+			const left2 = LEFT_NODE( g2NodeIndex32 );
+			const right2 = RIGHT_NODE( g2NodeIndex32 );
+			arrayToBox( BOUNDING_DATA_INDEX( g1NodeIndex32 ), float32Array, _box1 );
+			arrayToBox( BOUNDING_DATA_INDEX( left2 ), float32Array2, _boxl2 );
+			arrayToBox( BOUNDING_DATA_INDEX( right2 ), float32Array2, _boxr2 );
 
-		} else {
+			let c1 = left2;
+			let c2 = right2;
+			let s1 = 0;
+			let s2 = 0;
+			if ( nodeScoreFunc ) {
 
-			// TODO: we can't reuse the sort array above. We need to create a local one, cache local variables, or create a stack of them
+				const score1 = nodeScoreFunc( _box1, _boxl2 );
+				const score2 = nodeScoreFunc( _box1, _boxr2 );
+				if ( score2 < score1 ) {
+
+					c2 = left2;
+					c1 = right2;
+					s2 = score1;
+					s1 = score2;
+
+				} else {
+
+					s1 = score1;
+					s2 = score2;
+
+				}
+
+			}
+
+			// Check the first bounds
+			arrayToBox( BOUNDING_DATA_INDEX( g1NodeIndex32 ), float32Array, _box1 );
+			arrayToBox( BOUNDING_DATA_INDEX( c1 ), float32Array2, _box2 );
+			const c1IsLeaf = IS_LEAF( c1 );
+			const c1Intersection = intersectsBoundsFunc(
+				_box1, _box2, true, c1IsLeaf,
+				s1, g1Depth, g2Depth + 1,
+
+				// TODO: is this offset correct?
+				g1NodeIndexByteOffset + g1NodeIndex32,
+				g2NodeIndexByteOffset + c1,
+			);
+
+			let c1StopTraversal;
+			if ( c1Intersection === CONTAINED || c1IsLeaf ) {
+
+				// c1StopTraversal intersects range
+
+			} else {
+
+				c1StopTraversal = c1Intersection &&
+					bvhcast(
+						g1NodeIndex32, c1, intersectsBoundsFunc,
+						intersectsRangeFunction, nodeScoreFunc,
+						g1NodeIndexByteOffset, g1Depth,
+						g2NodeIndexByteOffset, g2Depth + 1,
+					);
+
+			}
+
+			if ( c1StopTraversal ) {
+
+				return true;
+
+			}
+
+			// Check the second bounds
+			arrayToBox( BOUNDING_DATA_INDEX( g1NodeIndex32 ), float32Array, _box1 );
+			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array2, _box2 );
+			const c2IsLeaf = IS_LEAF( c2 );
+			const c2Intersection = intersectsBoundsFunc(
+				_box1, _box2, true, c2IsLeaf,
+				s2, g1Depth, g2Depth + 1,
+
+				// TODO: is this offset correct?
+				g1NodeIndexByteOffset + g1NodeIndex32,
+				g2NodeIndexByteOffset + c2,
+			);
+
+			let c2StopTraversal;
+			if ( c2Intersection === CONTAINED || c2IsLeaf ) {
+
+				// c1StopTraversal intersects range
+
+			} else {
+
+				c2StopTraversal = c2Intersection &&
+					bvhcast(
+						g1NodeIndex32, c2, intersectsBoundsFunc,
+						intersectsRangeFunction, nodeScoreFunc,
+						g1NodeIndexByteOffset, g1Depth,
+						g2NodeIndexByteOffset, g2Depth + 1,
+					);
+
+			}
+
+			if ( c2StopTraversal ) {
+
+				return true;
+
+			}
+
+		} else if ( isLeaf2 ) {
+
+
+			const sortArr = [ null, null, null, null ].map( () => {
+
+				return {
+					score: 0,
+					n1: - 1,
+					n2: - 1,
+					b1: null,
+					b2: null,
+				};
+
+			} );
 			const left1 = LEFT_NODE( g1NodeIndex32 );
 			const right1 = RIGHT_NODE( g1NodeIndex32 );
 			const left2 = LEFT_NODE( g2NodeIndex32 );
@@ -288,8 +383,8 @@ export const bvhcast = ( function () {
 					stopTraversal = bvhcast(
 						info.n1, info.n2, intersectsBoundsFunc,
 						intersectsRangeFunction, nodeScoreFunc,
-						g1NodeIndexByteOffset + info.n1, g1Depth + 1,
-						g2NodeIndexByteOffset + info.n2, g2Depth + 1,
+						g1NodeIndexByteOffset, g1Depth + 1,
+						g2NodeIndexByteOffset, g2Depth + 1,
 					);
 
 				}
