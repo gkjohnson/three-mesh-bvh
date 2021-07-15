@@ -1,7 +1,3 @@
-/* global
-	IS_LEAF, OFFSET, COUNT, RIGHT_NODE, LEFT_NODE, BOUNDING_DATA_INDEX, SPLIT_AXIS
-*/
-
 // For speed and readability this script is processed to replace the macro-like calls
 // with inline buffer reads. See generate-cast-functions.js.
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
@@ -17,15 +13,58 @@ const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
+// TODO: fix all calls below, remove cast function generation (or at least augment it to support passing in an array).
+function IS_LEAF( n16, uint16Array ) {
+
+	return uint16Array[ n16 + 15 ] === 0xFFFF;
+
+}
+
+function OFFSET( n32, uint32Array ) {
+
+	return uint32Array[ n32 + 6 ];
+
+}
+
+function COUNT( n32, uint16Array ) {
+
+	return uint16Array[ n32 + 14 ];
+
+}
+
+function LEFT_NODE( n32 ) {
+
+	return n32 + 8;
+
+}
+
+function RIGHT_NODE( n32, uint32Array ) {
+
+	return uint32Array[ n32 + 6 ];
+
+}
+
+function SPLIT_AXIS( n32, uint32Array ) {
+
+	return uint32Array[ n32 + 7 ];
+
+}
+
+function BOUNDING_DATA_INDEX( n32 ) {
+
+	return n32;
+
+}
+
 export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects ) {
 
 	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-	const isLeaf = IS_LEAF( nodeIndex16 );
+	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
 
-		const offset = OFFSET( nodeIndex32 );
-		const count = COUNT( nodeIndex16 );
+		const offset = OFFSET( nodeIndex32, uint32Array );
+		const count = COUNT( nodeIndex16, uint16Array );
 
 		intersectTris( mesh, geometry, raycaster, ray, offset, count, intersects );
 
@@ -38,7 +77,7 @@ export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects
 
 		}
 
-		const rightIndex = RIGHT_NODE( nodeIndex32 );
+		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 		if ( intersectRay( rightIndex, float32Array, ray, boxIntersection ) ) {
 
 			raycast( rightIndex, mesh, geometry, raycaster, ray, intersects );
@@ -53,18 +92,18 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 
 	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-	const isLeaf = IS_LEAF( nodeIndex16 );
+	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
 
-		const offset = OFFSET( nodeIndex32 );
-		const count = COUNT( nodeIndex16 );
+		const offset = OFFSET( nodeIndex32, uint32Array );
+		const count = COUNT( nodeIndex16, uint16Array );
 		return intersectClosestTri( mesh, geometry, raycaster, ray, offset, count );
 
 	} else {
 
 		// consider the position of the split plane with respect to the oncoming ray; whichever direction
 		// the ray is coming from, look for an intersection among that side of the tree first
-		const splitAxis = SPLIT_AXIS( nodeIndex32 );
+		const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
 		const xyzAxis = xyzFields[ splitAxis ];
 		const rayDir = ray.direction[ xyzAxis ];
 		const leftToRight = rayDir >= 0;
@@ -74,11 +113,11 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 		if ( leftToRight ) {
 
 			c1 = LEFT_NODE( nodeIndex32 );
-			c2 = RIGHT_NODE( nodeIndex32 );
+			c2 = RIGHT_NODE( nodeIndex32, uint32Array );
 
 		} else {
 
-			c1 = RIGHT_NODE( nodeIndex32 );
+			c1 = RIGHT_NODE( nodeIndex32, uint32Array );
 			c2 = LEFT_NODE( nodeIndex32 );
 
 		}
@@ -145,14 +184,14 @@ export const shapecast = ( function () {
 			let nodeIndex16 = nodeIndex32 * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			// traverse until we find a leaf
-			while ( ! IS_LEAF( nodeIndex16 ) ) {
+			while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
 
 				nodeIndex32 = LEFT_NODE( nodeIndex32 );
 				nodeIndex16 = nodeIndex32 * 2;
 
 			}
 
-			return OFFSET( nodeIndex32 );
+			return OFFSET( nodeIndex32, uint32Array );
 
 		}
 
@@ -161,32 +200,32 @@ export const shapecast = ( function () {
 			let nodeIndex16 = nodeIndex32 * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
 			// traverse until we find a leaf
-			while ( ! IS_LEAF( nodeIndex16 ) ) {
+			while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
 
 				// adjust offset to point to the right node
-				nodeIndex32 = RIGHT_NODE( nodeIndex32 );
+				nodeIndex32 = RIGHT_NODE( nodeIndex32, uint32Array );
 				nodeIndex16 = nodeIndex32 * 2;
 
 			}
 
 			// return the end offset of the triangle range
-			return OFFSET( nodeIndex32 ) + COUNT( nodeIndex16 );
+			return OFFSET( nodeIndex32, uint32Array ) + COUNT( nodeIndex16, uint16Array );
 
 		}
 
 		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
-		const isLeaf = IS_LEAF( nodeIndex16 );
+		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 		if ( isLeaf ) {
 
-			const offset = OFFSET( nodeIndex32 );
-			const count = COUNT( nodeIndex16 );
+			const offset = OFFSET( nodeIndex32, uint32Array );
+			const count = COUNT( nodeIndex16, uint16Array );
 			return intersectsRangeFunc( offset, count, false, depth, nodeIndex32 );
 
 		} else {
 
 			const left = LEFT_NODE( nodeIndex32 );
-			const right = RIGHT_NODE( nodeIndex32 );
+			const right = RIGHT_NODE( nodeIndex32, uint32Array );
 			let c1 = left;
 			let c2 = right;
 
@@ -228,7 +267,7 @@ export const shapecast = ( function () {
 
 			}
 
-			const isC1Leaf = IS_LEAF( c1 * 2 );
+			const isC1Leaf = IS_LEAF( c1 * 2, uint16Array );
 			const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
 
 			let c1StopTraversal;
@@ -263,7 +302,7 @@ export const shapecast = ( function () {
 			box2 = _box2;
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
-			const isC2Leaf = IS_LEAF( c2 * 2 );
+			const isC2Leaf = IS_LEAF( c2 * 2, uint16Array );
 			const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
 
 			let c2StopTraversal;
@@ -329,7 +368,7 @@ export const intersectsGeometry = ( function () {
 
 		}
 
-		const isLeaf = IS_LEAF( nodeIndex16 );
+		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 		if ( isLeaf ) {
 
 			const thisGeometry = geometry;
@@ -339,8 +378,8 @@ export const intersectsGeometry = ( function () {
 			const index = otherGeometry.index;
 			const pos = otherGeometry.attributes.position;
 
-			const offset = OFFSET( nodeIndex32 );
-			const count = COUNT( nodeIndex16 );
+			const offset = OFFSET( nodeIndex32, uint32Array );
+			const count = COUNT( nodeIndex16, uint16Array );
 
 			// get the inverse of the geometry matrix so we can transform our triangles into the
 			// geometry space we're trying to test. We assume there are fewer triangles being checked
