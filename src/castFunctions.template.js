@@ -28,7 +28,7 @@ function OFFSET( n32, uint32Array ) {
 
 function COUNT( n32, uint16Array ) {
 
-	return uint16Array[ n32 + 6 ];
+	return uint16Array[ n32 + 14 ];
 
 }
 
@@ -186,7 +186,7 @@ export const shapecast = ( function () {
 			// traverse until we find a leaf
 			while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
 
-				nodeIndex32 = LEFT_NODE( nodeIndex32, uint32Array );
+				nodeIndex32 = LEFT_NODE( nodeIndex32 );
 				nodeIndex16 = nodeIndex32 * 2;
 
 			}
