@@ -149,7 +149,7 @@ export const bvhcast = ( function () {
 
 		// function taking the triangle ranges of both intersecting leaf bounds as well as the bounds themselves.
 		// returns the same types of values the the shapecast variant can.
-		intersectsRangeFunction,
+		intersectsRangeFunc,
 
 		// function that takes two bounds and return a score indicating the run order (lowest first)
 		nodeScoreFunc = null,
@@ -181,7 +181,14 @@ export const bvhcast = ( function () {
 		if ( isLeaf1 && isLeaf2 ) {
 
 			// intersect triangles
-			// TODO: should never get here
+			arrayToBox( BOUNDING_DATA_INDEX( g1NodeIndex32 ), float32Array, _box1 );
+			arrayToBox( BOUNDING_DATA_INDEX( g2NodeIndex32 ), float32Array2, _box2 );
+			return intersectsRangeFunc(
+				OFFSET( g1NodeIndex32 ), COUNT( g1NodeIndex32 ),
+				OFFSET( g2NodeIndex32 ), COUNT( g2NodeIndex32 ),
+				g1Depth, g1NodeIndexByteOffset + g1NodeIndex32,
+				g2Depth, g2NodeIndexByteOffset + g2NodeIndex32,
+			);
 
 		} else if ( isLeaf1 ) {
 
@@ -220,30 +227,22 @@ export const bvhcast = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( c1 ), float32Array2, _box2 );
 			const c1IsLeaf = IS_LEAF( c1 );
 			const c1Intersection = intersectsBoundsFunc(
-				_box1, _box2, true, c1IsLeaf,
-				s1, g1Depth, g2Depth + 1,
+				_box1, _box2, s1,
 
-				// TODO: is this offset correct?
-				g1NodeIndexByteOffset + g1NodeIndex32,
-				g2NodeIndexByteOffset + c1,
+				// node 1 info
+				true, g1Depth, g1NodeIndexByteOffset + g1NodeIndex32,
+
+				// node 2 info
+				c1IsLeaf, g2Depth + 1, g2NodeIndexByteOffset + c1,
+
 			);
 
-			let c1StopTraversal;
-			if ( c1Intersection === CONTAINED || c1IsLeaf ) {
-
-				// c1StopTraversal intersects range
-
-			} else {
-
-				c1StopTraversal = c1Intersection &&
-					bvhcast(
-						g1NodeIndex32, c1, intersectsBoundsFunc,
-						intersectsRangeFunction, nodeScoreFunc,
-						g1NodeIndexByteOffset, g1Depth,
-						g2NodeIndexByteOffset, g2Depth + 1,
-					);
-
-			}
+			const c1StopTraversal = c1Intersection && bvhcast(
+				g1NodeIndex32, c1, intersectsBoundsFunc,
+				intersectsRangeFunc, nodeScoreFunc,
+				g1NodeIndexByteOffset, g1Depth,
+				g2NodeIndexByteOffset, g2Depth + 1,
+			);
 
 			if ( c1StopTraversal ) {
 
@@ -256,30 +255,21 @@ export const bvhcast = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array2, _box2 );
 			const c2IsLeaf = IS_LEAF( c2 );
 			const c2Intersection = intersectsBoundsFunc(
-				_box1, _box2, true, c2IsLeaf,
-				s2, g1Depth, g2Depth + 1,
+				_box1, _box2, s2,
 
-				// TODO: is this offset correct?
-				g1NodeIndexByteOffset + g1NodeIndex32,
-				g2NodeIndexByteOffset + c2,
+				// node 1 info
+				true, g1Depth, g1NodeIndexByteOffset + g1NodeIndex32,
+
+				// node 2 info
+				c2IsLeaf, g2Depth + 1, g2NodeIndexByteOffset + c2,
 			);
 
-			let c2StopTraversal;
-			if ( c2Intersection === CONTAINED || c2IsLeaf ) {
-
-				// c1StopTraversal intersects range
-
-			} else {
-
-				c2StopTraversal = c2Intersection &&
-					bvhcast(
-						g1NodeIndex32, c2, intersectsBoundsFunc,
-						intersectsRangeFunction, nodeScoreFunc,
-						g1NodeIndexByteOffset, g1Depth,
-						g2NodeIndexByteOffset, g2Depth + 1,
-					);
-
-			}
+			const c2StopTraversal = c2Intersection && bvhcast(
+				g1NodeIndex32, c2, intersectsBoundsFunc,
+				intersectsRangeFunc, nodeScoreFunc,
+				g1NodeIndexByteOffset, g1Depth,
+				g2NodeIndexByteOffset, g2Depth + 1,
+			);
 
 			if ( c2StopTraversal ) {
 
@@ -288,6 +278,10 @@ export const bvhcast = ( function () {
 			}
 
 		} else if ( isLeaf2 ) {
+
+			// TODO
+
+		} else {
 
 			// TODO: consider a stack of these so we don't create a new one at each traversal
 			const sortArr = [ null, null, null, null ].map( () => {
@@ -366,23 +360,19 @@ export const bvhcast = ( function () {
 				const leaf1 = IS_LEAF( info.n1 );
 				const leaf2 = IS_LEAF( info.n2 );
 				const intersection = intersectsBoundsFunc(
-					_box1, _box2, leaf1, leaf2,
-					info.score, g1Depth + 1, g2Depth + 1,
-					g1NodeIndexByteOffset + info.n1,
-					g2NodeIndexByteOffset + info.n2,
+					_box1, _box2, info.score,
+
+					leaf1, g1Depth + 1, g1NodeIndexByteOffset + info.n1,
+
+					leaf2, g2Depth + 1, g2NodeIndexByteOffset + info.n2,
 				);
 
-				let stopTraversal;
-				if ( intersection === CONTAINED || leaf1 && leaf2 ) {
-
-					// run intersect triangles ranges nodes
-					// stopTraversal = intersectsRangeFunction();
-
-				} else if ( intersection ) {
+				let stopTraversal = false;
+				if ( intersection ) {
 
 					stopTraversal = bvhcast(
 						info.n1, info.n2, intersectsBoundsFunc,
-						intersectsRangeFunction, nodeScoreFunc,
+						intersectsRangeFunc, nodeScoreFunc,
 						g1NodeIndexByteOffset, g1Depth + 1,
 						g2NodeIndexByteOffset, g2Depth + 1,
 					);
