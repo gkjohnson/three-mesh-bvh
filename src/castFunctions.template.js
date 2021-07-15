@@ -200,9 +200,6 @@ export const bvhcast = ( function () {
 		g2Depth = 0,
 	) {
 
-		// TODO: Does including support for "CONTAINED" make sense here?
-		// TODO: IS_LEAF functions may need to take a second variable because they won't implicitly know which
-		// array to use here. Can we just pass the appropriate buffer into the all the functions and skip the complexity?
 		const float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 		const float32Array2 = _float32Array2, uint16Array2 = _uint16Array2, uint32Array2 = _uint32Array2;
 
@@ -211,6 +208,9 @@ export const bvhcast = ( function () {
 
 		if ( isLeaf1 && isLeaf2 ) {
 
+			// TODO: we know that children are leaves before calling this function again meaning we
+			// could just check triangle range callback in the previous call (below two conditions)
+			// and not have to read bounding data again.
 			// intersect triangles
 			arrayToBox( BOUNDING_DATA_INDEX( g1NodeIndex32 ), float32Array, _box1 );
 			arrayToBox( BOUNDING_DATA_INDEX( g2NodeIndex32 ), float32Array2, _box2 );
@@ -248,8 +248,6 @@ export const bvhcast = ( function () {
 				[ leafDepth, otherDepth ] = [ otherDepth, leafDepth ];
 				flipped = true;
 
-				// TODO: support flipped for all function calls
-
 			}
 
 			const left2 = LEFT_NODE( otherNodeIndex32 );
@@ -267,13 +265,14 @@ export const bvhcast = ( function () {
 				let score1, score2;
 				if ( flipped ) {
 
-					score1 = nodeScoreFunc( _box1, _boxl2 );
-					score2 = nodeScoreFunc( _box1, _boxr2 );
+					score1 = nodeScoreFunc( _boxl2, _box1 );
+					score2 = nodeScoreFunc( _boxr2, _box1 );
 
 				} else {
 
-					score1 = nodeScoreFunc( _boxl2, _box1 );
-					score2 = nodeScoreFunc( _boxr2, _box1 );
+					score1 = nodeScoreFunc( _box1, _boxl2 );
+					score2 = nodeScoreFunc( _box1, _boxr2 );
+
 
 				}
 
@@ -297,23 +296,55 @@ export const bvhcast = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( leafNodeIndex32 ), float32Array, _box1 );
 			arrayToBox( BOUNDING_DATA_INDEX( c1 ), float32Array2, _box2 );
 			const c1IsLeaf = IS_LEAF( c1, otherUint16Array );
-			const c1Intersection = intersectsBoundsFunc(
-				_box1, _box2, s1,
 
-				// node 1 info
-				true, leafDepth, leafByteOffset + leafNodeIndex32,
+			let c1Intersection, c1StopTraversal;
+			if ( flipped ) {
 
-				// node 2 info
-				c1IsLeaf, otherDepth + 1, otherByteOffset + c1,
+				c1Intersection = intersectsBoundsFunc(
+					_box2, _box1, s1,
 
-			);
+					// node 2 info
+					c1IsLeaf, otherDepth + 1, otherByteOffset + c1,
 
-			const c1StopTraversal = c1Intersection && bvhcast(
-				leafNodeIndex32, c1, intersectsBoundsFunc,
-				intersectsRangeFunc, nodeScoreFunc,
-				leafByteOffset, leafDepth,
-				otherByteOffset, otherDepth + 1,
-			);
+					// node 1 info
+					true, leafDepth, leafByteOffset + leafNodeIndex32,
+
+				);
+
+			} else {
+
+				c1Intersection = intersectsBoundsFunc(
+					_box1, _box2, s1,
+
+					// node 1 info
+					true, leafDepth, leafByteOffset + leafNodeIndex32,
+
+					// node 2 info
+					c1IsLeaf, otherDepth + 1, otherByteOffset + c1,
+
+				);
+
+			}
+
+			if ( flipped ) {
+
+				c1StopTraversal = c1Intersection && bvhcast(
+					c1, leafNodeIndex32,
+					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
+					otherByteOffset, otherDepth + 1,
+					leafByteOffset, leafDepth,
+				);
+
+			} else {
+
+				c1StopTraversal = c1Intersection && bvhcast(
+					leafNodeIndex32, c1,
+					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
+					leafByteOffset, leafDepth,
+					otherByteOffset, otherDepth + 1,
+				);
+
+			}
 
 			if ( c1StopTraversal ) {
 
@@ -325,22 +356,53 @@ export const bvhcast = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( leafNodeIndex32 ), leafFloat32Array, _box1 );
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), otherFloat32Array, _box2 );
 			const c2IsLeaf = IS_LEAF( c2, otherUint16Array );
-			const c2Intersection = intersectsBoundsFunc(
-				_box1, _box2, s2,
+			let c2Intersection, c2StopTraversal;
 
-				// node 1 info
-				true, leafDepth, leafByteOffset + leafNodeIndex32,
+			if ( flipped ) {
 
-				// node 2 info
-				c2IsLeaf, otherDepth + 1, otherByteOffset + c2,
-			);
+				c2Intersection = intersectsBoundsFunc(
+					_box1, _box2, s2,
 
-			const c2StopTraversal = c2Intersection && bvhcast(
-				leafNodeIndex32, c2, intersectsBoundsFunc,
-				intersectsRangeFunc, nodeScoreFunc,
-				leafByteOffset, leafDepth,
-				otherByteOffset, otherDepth + 1,
-			);
+					// node 1 info
+					true, leafDepth, leafByteOffset + leafNodeIndex32,
+
+					// node 2 info
+					c2IsLeaf, otherDepth + 1, otherByteOffset + c2,
+				);
+
+			} else {
+
+				c2Intersection = intersectsBoundsFunc(
+					_box1, _box2, s2,
+
+					// node 2 info
+					c2IsLeaf, otherDepth + 1, otherByteOffset + c2,
+
+					// node 1 info
+					true, leafDepth, leafByteOffset + leafNodeIndex32,
+				);
+
+			}
+
+			if ( flipped ) {
+
+				c2StopTraversal = c2Intersection && bvhcast(
+					c2, leafNodeIndex32,
+					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
+					otherByteOffset, otherDepth + 1,
+					leafByteOffset, leafDepth,
+				);
+
+			} else {
+
+				c2StopTraversal = c2Intersection && bvhcast(
+					leafNodeIndex32, c2,
+					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
+					leafByteOffset, leafDepth,
+					otherByteOffset, otherDepth + 1,
+				);
+
+			}
 
 			if ( c2StopTraversal ) {
 
