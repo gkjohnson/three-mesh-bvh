@@ -462,7 +462,9 @@ export const shapecast = ( function () {
 
 			const offset = OFFSET( nodeIndex32 );
 			const count = COUNT( nodeIndex16 );
-			return intersectsRangeFunc( offset, count, false, depth, nodeIndex32 );
+
+			// TODO: add tests for byte offsets?
+			return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32 );
 
 		} else {
 
