@@ -117,8 +117,8 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 
 		} else {
 
-			c1 = RIGHT_NODE( nodeIndex32 );
-			c2 = LEFT_NODE( nodeIndex32, uint32Array );
+			c1 = RIGHT_NODE( nodeIndex32, uint32Array );
+			c2 = LEFT_NODE( nodeIndex32 );
 
 		}
 
@@ -203,7 +203,7 @@ export const shapecast = ( function () {
 			while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
 
 				// adjust offset to point to the right node
-				nodeIndex32 = RIGHT_NODE( nodeIndex32 );
+				nodeIndex32 = RIGHT_NODE( nodeIndex32, uint32Array );
 				nodeIndex16 = nodeIndex32 * 2;
 
 			}
