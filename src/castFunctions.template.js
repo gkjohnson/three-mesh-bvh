@@ -13,7 +13,6 @@ const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
-// TODO: fix all calls below, remove cast function generation (or at least augment it to support passing in an array).
 function IS_LEAF( n16, uint16Array ) {
 
 	return uint16Array[ n16 + 15 ] === 0xFFFF;
