@@ -584,7 +584,7 @@ export const bvhcast = ( function () {
 
 	};
 
-} );
+} )();
 
 export const shapecast = ( function () {
 
