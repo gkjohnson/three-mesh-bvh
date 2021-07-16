@@ -370,7 +370,7 @@ export default class MeshBVH {
 
 						( box1, box2, score ) => {
 
-							return score === 0;
+							return score <= 0;
 
 						},
 
@@ -400,6 +400,8 @@ export default class MeshBVH {
 								}
 
 							}
+
+							return false;
 
 						},
 
@@ -463,7 +465,7 @@ export default class MeshBVH {
 				},
 				intersectsBounds: ( box, isLeaf, score ) => {
 
-					return score === 0;
+					return score <= 0;
 
 				},
 				intersectsRange: ( offset, count ) => {
