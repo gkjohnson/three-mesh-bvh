@@ -164,6 +164,8 @@ Option to use a Surface Area Heuristic to split the bounds optimally.
 
 This is the slowest construction option.
 
+_NOTE: This split strategy is in progress_
+
 ## Shapecast Intersection Constants
 
 #### NOT_INTERSECTED
