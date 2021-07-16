@@ -380,7 +380,7 @@ export default class MeshBVH {
 							// to minimize operations.
 							for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
-								setTriangle( triangle2, i2, otherIndexAttr, otherPosAttr );
+								setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPosAttr );
 								triangle2.a.applyMatrix4( geomToMesh );
 								triangle2.b.applyMatrix4( geomToMesh );
 								triangle2.c.applyMatrix4( geomToMesh );
@@ -388,7 +388,7 @@ export default class MeshBVH {
 
 								for ( let i = offset1, l = offset1 + count1; i < l; i ++ ) {
 
-									setTriangle( triangle, i, indexAttr, posAttr );
+									setTriangle( triangle, i * 3, indexAttr, posAttr );
 									triangle.needsUpdate = true;
 
 									if ( triangle.intersectsTriangle( triangle2 ) ) {
@@ -458,7 +458,7 @@ export default class MeshBVH {
 
 				boundsTraverseOrder: box => {
 
-					return obb.intersectsBox( box );
+					return obb.distanceToBox( box );
 
 				},
 				intersectsBounds: ( box, isLeaf, score ) => {
@@ -470,7 +470,7 @@ export default class MeshBVH {
 
 					for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-						setTriangle( triangle, i, indexAttr, posAttr );
+						setTriangle( triangle, i * 3, indexAttr, posAttr );
 						triangle.a.applyMatrix4( meshToGeom );
 						triangle.b.applyMatrix4( meshToGeom );
 						triangle.c.applyMatrix4( meshToGeom );
@@ -478,7 +478,7 @@ export default class MeshBVH {
 
 						for ( let i2 = 0; i2 < otherTriCount; i2 ++ ) {
 
-							setTriangle( triangle2, i2, otherIndexAttr, otherPosAttr );
+							setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPosAttr );
 							triangle2.needsUpdate = true;
 
 							if ( triangle.intersectsTriangle( triangle2 ) ) {
