@@ -161,15 +161,11 @@ export const bvhcast = ( function () {
 		const isLeaf1 = ( uint16Array1[ node1Index32 * 2 + 15 ] === 0xFFFF );
 		const isLeaf2 = ( uint16Array2[ node2Index32 * 2 + 15 ] === 0xFFFF );
 
-		console.log('TRAV');
-
 		if ( isLeaf1 && isLeaf2 ) {
 
 			// TODO: we know that children are leaves before calling this function again meaning we
 			// could just check triangle range callback in the previous call (below two conditions)
 			// and not have to read bounding data again.
-
-			console.log(' NESTED LEAF' );
 
 			// intersect triangles
 			arrayToBox( node1Index32, float32Array1, _box1 );
@@ -547,7 +543,7 @@ export const bvhcast = ( function () {
 
 	};
 
-} );
+} )();
 
 export const shapecast = ( function () {
 

@@ -356,6 +356,7 @@ export default class MeshBVH {
 
 		if ( otherBvh ) {
 
+			return false;
 			let result = false;
 			let byteOffset = 0;
 			let otherByteOffset = 0;
@@ -453,7 +454,7 @@ export default class MeshBVH {
 
 			}
 
-			const otherTriCount = otherIndexAttr ? otherIndexAttr.count / 3 : posAttr.count / 3;
+			const otherTriCount = otherIndexAttr ? otherIndexAttr.count : posAttr.count;
 			const boundingBox = otherGeometry.boundingBox;
 			obb.set( boundingBox.min, boundingBox.max, geomToMesh );
 			return this.shapecast( null, {
@@ -470,17 +471,17 @@ export default class MeshBVH {
 				},
 				intersectsRange: ( offset, count ) => {
 
-					for ( let i = offset, l = offset + count; i < l; i ++ ) {
+					for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
 
-						setTriangle( triangle, i * 3, indexAttr, posAttr );
+						setTriangle( triangle, i, indexAttr, posAttr );
 						triangle.a.applyMatrix4( meshToGeom );
 						triangle.b.applyMatrix4( meshToGeom );
 						triangle.c.applyMatrix4( meshToGeom );
 						triangle.needsUpdate = true;
 
-						for ( let i2 = 0; i2 < otherTriCount; i2 ++ ) {
+						for ( let i2 = 0; i2 < otherTriCount; i2 += 3 ) {
 
-							setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPosAttr );
+							setTriangle( triangle2, i2, otherIndexAttr, otherPosAttr );
 							triangle2.needsUpdate = true;
 
 							if ( triangle.intersectsTriangle( triangle2 ) ) {
