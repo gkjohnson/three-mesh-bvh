@@ -231,7 +231,7 @@ export const bvhcast = ( function () {
 			let otherNodeIndex32 = node2Index32;
 			let otherUint16Array = uint16Array2;
 			let otherUint32Array = uint32Array2;
-			let otherFloat32Array = uint32Array2;
+			let otherFloat32Array = float32Array2;
 			let otherByteOffset = node2IndexByteOffset;
 			let otherDepth = depth2;
 
@@ -258,7 +258,7 @@ export const bvhcast = ( function () {
 
 			const otherLeft = LEFT_NODE( otherNodeIndex32 );
 			const otherRight = RIGHT_NODE( otherNodeIndex32, otherUint32Array );
-			arrayToBox( BOUNDING_DATA_INDEX( node1Index32 ), leafFloat32Array, leafBox );
+			arrayToBox( BOUNDING_DATA_INDEX( leafNodeIndex32 ), leafFloat32Array, leafBox );
 			arrayToBox( BOUNDING_DATA_INDEX( otherLeft ), otherFloat32Array, otherBoxLeft );
 			arrayToBox( BOUNDING_DATA_INDEX( otherRight ), otherFloat32Array, otherBoxRight );
 
@@ -294,6 +294,8 @@ export const bvhcast = ( function () {
 
 				} else {
 
+					otherChild1 = otherLeft;
+					otherChild2 = otherRight;
 					score1 = scoreLeft;
 					score2 = scoreRight;
 
@@ -381,7 +383,7 @@ export const bvhcast = ( function () {
 			if ( flipped ) {
 
 				c2Intersection = intersectsBoundsFunc(
-					leafBox, otherBox, score2,
+					otherBox, leafBox, score2,
 
 					// node 1 info
 					true, leafDepth, leafByteOffset + leafNodeIndex32,
