@@ -1,12 +1,8 @@
 // For speed and readability this script is processed to replace the macro-like calls
 // with inline buffer reads. See generate-cast-functions.js.
-import { Box3, Vector3, Mesh, Matrix4 } from 'three';
+import { Box3, Vector3 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtlities.js';
 import { arrayToBox } from './Utils/BufferNodeUtils.js';
-
-import { OrientedBox } from './Utils/OrientedBox.js';
-import { setTriangle } from './Utils/TriangleUtils.js';
-import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { CONTAINED } from './Constants.js';
 
 const boundingBox = new Box3();
