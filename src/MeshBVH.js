@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute, Box3 } from 'three';
+import { Vector3, BufferAttribute, Box3, Matrix4 } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
@@ -11,6 +11,9 @@ import {
 	intersectsGeometry,
 	setBuffer,
 	clearBuffer,
+	setBuffer2,
+	clearBuffer2,
+	bvhcast,
 } from './castFunctions.js';
 import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
 
@@ -23,6 +26,7 @@ const temp1 = new Vector3();
 const temp2 = new Vector3();
 const tempBox = new Box3();
 const triangle = new SeparatingAxisTriangle();
+const triangle2 = new SeparatingAxisTriangle();
 
 export default class MeshBVH {
 
@@ -342,19 +346,155 @@ export default class MeshBVH {
 
 	intersectsGeometry( mesh, otherGeometry, geomToMesh ) {
 
+		const otherBvh = otherGeometry.boundsTree;
+		const meshToGeom = new Matrix4().copy( geomToMesh ).invert();
 		const geometry = this.geometry;
-		let result = false;
-		for ( const root of this._roots ) {
 
-			setBuffer( root );
-			result = intersectsGeometry( 0, mesh, geometry, otherGeometry, geomToMesh );
-			clearBuffer();
+		const indexAttr = geometry.index;
+		const posAttr = geometry.attributes.position;
+		const otherIndexAttr = otherGeometry.index;
+		const otherPosAttr = otherGeometry.attributes.position;
 
-			if ( result ) {
+		if ( otherBvh ) {
 
-				break;
+			let result = false;
+			let byteOffset = 0;
+			let otherByteOffset = 0;
+			for ( const root of this._roots ) {
+
+				setBuffer( root );
+				for ( const otherRoot of otherBvh._roots ) {
+
+					setBuffer2( otherRoot );
+					result = bvhcast(
+						0, 0,
+
+						( box1, box2, score ) => {
+
+							return score === 0;
+
+						},
+
+						( offset1, count1, offset2, count2 ) => {
+
+							// TODO: choose the triangle with the fewest triangles to transform
+							// to minimize operations.
+							for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
+
+								setTriangle( triangle2, i2, otherIndexAttr, otherPosAttr );
+								triangle2.a.applyMatrix4( geomToMesh );
+								triangle2.b.applyMatrix4( geomToMesh );
+								triangle2.c.applyMatrix4( geomToMesh );
+								triangle2.needsUpdate = true;
+
+								for ( let i = offset1, l = offset1 + count1; i < l; i ++ ) {
+
+									setTriangle( triangle, i, indexAttr, posAttr );
+									triangle.needsUpdate = true;
+
+									if ( triangle.intersectsTriangle( triangle2 ) ) {
+
+										return true;
+
+									}
+
+								}
+
+							}
+
+						},
+
+						( box1, box2 ) => {
+
+							obb.set( box2.min, box2.max, geomToMesh );
+							return obb.distanceToBox( box1 );
+
+						},
+
+						byteOffset, 0,
+
+						otherByteOffset, 0,
+
+					);
+
+					clearBuffer2();
+					otherByteOffset += otherRoot.byteLength;
+
+					if ( result ) {
+
+						break;
+
+					}
+
+
+				}
+
+				clearBuffer();
+				byteOffset += root.byteLength;
+
+				if ( result ) {
+
+					break;
+
+				}
 
 			}
+
+			return result;
+
+		} else {
+
+			// no bvh...
+			// use shapecast
+			if ( otherGeometry.boundingBox === null ) {
+
+				otherGeometry.computeBoundingBox();
+
+			}
+
+			const otherTriCount = otherIndexAttr ? otherIndexAttr.count / 3 : posAttr.count / 3;
+			const boundingBox = otherGeometry.boundingBox;
+			obb.set( boundingBox.min, boundingBox.max, geomToMesh );
+			this.shapecast( null, {
+
+				boundsTraverseOrder: box => {
+
+					return obb.intersectsBox( box );
+
+				},
+				intersectsBounds: ( box, isLeaf, score ) => {
+
+					return score === 0;
+
+				},
+				intersectsRange: ( offset, count ) => {
+
+					for ( let i = offset, l = offset + count; i < l; i ++ ) {
+
+						setTriangle( triangle, i, indexAttr, posAttr );
+						triangle.a.applyMatrix4( meshToGeom );
+						triangle.b.applyMatrix4( meshToGeom );
+						triangle.c.applyMatrix4( meshToGeom );
+						triangle.needsUpdate = true;
+
+						for ( let i2 = 0; i2 < otherTriCount; i2 ++ ) {
+
+							setTriangle( triangle2, i2, otherIndexAttr, otherPosAttr );
+							triangle2.needsUpdate = true;
+
+							if ( triangle.intersectsTriangle( triangle2 ) ) {
+
+								return true;
+
+							}
+
+						}
+
+					}
+
+				},
+
+			} );
 
 		}
 
