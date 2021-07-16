@@ -475,32 +475,24 @@ export const bvhcast = ( function () {
 				info.score = nodeScoreFunc( _boxLeft1, _boxLeft2 );
 				info.n1 = child1Left;
 				info.n2 = child2Left;
-				info.b1 = _boxLeft1;
-				info.b2 = _boxLeft2;
 
 				// left vs right
 				info = sortArr[ 1 ];
 				info.score = nodeScoreFunc( _boxLeft1, _boxRight2 );
 				info.n1 = child1Left;
 				info.n2 = child2Right;
-				info.b1 = _boxLeft1;
-				info.b2 = _boxRight2;
 
 				// right vs left
 				info = sortArr[ 2 ];
 				info.score = nodeScoreFunc( _boxRight1, _boxLeft2 );
 				info.n1 = child1Right;
 				info.n2 = child2Left;
-				info.b1 = _boxRight1;
-				info.b2 = _boxLeft2;
 
 				// right vs right
 				info = sortArr[ 3 ];
 				info.score = nodeScoreFunc( _boxRight1, _boxRight2 );
 				info.n1 = child1Right;
 				info.n2 = child2Right;
-				info.b1 = _boxRight1;
-				info.b2 = _boxRight2;
 
 				// sort scores lowest first
 				sortArr.sort( sortFunc );
@@ -514,42 +506,37 @@ export const bvhcast = ( function () {
 				info.score = 0;
 				info.n1 = child1Left;
 				info.n2 = child2Left;
-				info.b1 = _boxLeft1;
-				info.b2 = _boxLeft2;
 
 				// left vs right
 				info = sortArr[ 1 ];
 				info.score = 0;
 				info.n1 = child1Left;
 				info.n2 = child2Right;
-				info.b1 = _boxLeft1;
-				info.b2 = _boxRight2;
 
 				// right vs left
 				info = sortArr[ 2 ];
 				info.score = 0;
 				info.n1 = child1Right;
 				info.n2 = child2Left;
-				info.b1 = _boxRight1;
-				info.b2 = _boxLeft2;
 
 				// right vs right
 				info = sortArr[ 3 ];
 				info.score = 0;
 				info.n1 = child1Right;
 				info.n2 = child2Right;
-				info.b1 = _boxRight1;
-				info.b2 = _boxRight2;
 
 			}
 
 			for ( let i = 0; i < 4; i ++ ) {
 
-				const { n1, n2, b1, b2, score } = sortArr[ i ];
+				const { n1, n2, score } = sortArr[ i ];
+
+				arrayToBox( BOUNDING_DATA_INDEX( n1 ), float32Array1, _box1 );
+				arrayToBox( BOUNDING_DATA_INDEX( n2 ), float32Array2, _box2 );
 				const leaf1 = IS_LEAF( n1 * 2, uint16Array1 );
 				const leaf2 = IS_LEAF( n2 * 2, uint16Array2 );
 				const intersection = intersectsBoundsFunc(
-					b1, b2, score,
+					_box1, _box2, score,
 
 					leaf1, depth1 + 1, node1IndexByteOffset + n1,
 

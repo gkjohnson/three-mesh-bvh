@@ -359,10 +359,11 @@ export default class MeshBVH {
 			return false;
 			let result = false;
 			let byteOffset = 0;
-			let otherByteOffset = 0;
 			for ( const root of this._roots ) {
 
 				setBuffer( root );
+
+				let otherByteOffset = 0;
 				for ( const otherRoot of otherBvh._roots ) {
 
 					setBuffer2( otherRoot );
@@ -408,7 +409,9 @@ export default class MeshBVH {
 
 						( box1, box2 ) => {
 
+							// TODO: we should prioritize the bounds that overlap more
 							obb.set( box2.min, box2.max, geomToMesh );
+							obb.update();
 							return obb.distanceToBox( box1 );
 
 						},
@@ -457,6 +460,7 @@ export default class MeshBVH {
 			const otherTriCount = otherIndexAttr ? otherIndexAttr.count : posAttr.count;
 			const boundingBox = otherGeometry.boundingBox;
 			obb.set( boundingBox.min, boundingBox.max, geomToMesh );
+			obb.update();
 			return this.shapecast( null, {
 
 				boundsTraverseOrder: box => {
