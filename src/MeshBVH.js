@@ -8,7 +8,6 @@ import {
 	raycast,
 	raycastFirst,
 	shapecast,
-	intersectsGeometry,
 	setBuffer,
 	clearBuffer,
 	setBuffer2,
@@ -455,7 +454,7 @@ export default class MeshBVH {
 			const otherTriCount = otherIndexAttr ? otherIndexAttr.count / 3 : posAttr.count / 3;
 			const boundingBox = otherGeometry.boundingBox;
 			obb.set( boundingBox.min, boundingBox.max, geomToMesh );
-			this.shapecast( null, {
+			return this.shapecast( null, {
 
 				boundsTraverseOrder: box => {
 
@@ -497,8 +496,6 @@ export default class MeshBVH {
 			} );
 
 		}
-
-		return result;
 
 	}
 
