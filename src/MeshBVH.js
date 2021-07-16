@@ -356,7 +356,6 @@ export default class MeshBVH {
 
 		if ( otherBvh ) {
 
-			return false;
 			let result = false;
 			let byteOffset = 0;
 			for ( const root of this._roots ) {
