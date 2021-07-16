@@ -94,6 +94,7 @@ function estimateMemoryInBytes( obj ) {
 			continue;
 
 		}
+
 		traversed.add( curr );
 
 		for ( let key in curr ) {

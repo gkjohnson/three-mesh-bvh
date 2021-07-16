@@ -256,6 +256,7 @@ OrientedBox.prototype.distanceToBox = ( function () {
 				if ( target2 ) target2.copy( point2 );
 
 			}
+
 			return 0;
 
 		}
