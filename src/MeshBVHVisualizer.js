@@ -155,6 +155,12 @@ class MeshBVHVisualizer extends Group {
 
 	}
 
+	dispose() {
+
+		this._material.dispose();
+
+	}
+
 }
 
 
