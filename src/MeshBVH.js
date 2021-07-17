@@ -73,10 +73,6 @@ export default class MeshBVH {
 
 			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
 
-		} else if ( geometry.attributes.position.isInterleavedBufferAttribute ) {
-
-			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the position attribute.' );
-
 		} else if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
 
 			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the index attribute.' );

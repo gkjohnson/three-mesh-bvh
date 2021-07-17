@@ -605,6 +605,6 @@ Generates a BVH for the given geometry in a WebWorker so it can be created async
   be produced and retained as a side effect of the construction.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets cannot be used.
 - If the geometry is changed then a new bounds tree will need to be generated.
-- [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported on the geometry index or position attributes.
+- [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
 - A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in poorer raycast performance on geometry with lots of groups.
 - Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center so bounds tightly contain the geometry as much as possible.
