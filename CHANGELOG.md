@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Fixed
 - Case where `intersectsRangeFunc` could be passed the incorrect node id in shapecast.
+- Bug in `distanceToGeometry` and `closestPointToGeometry` which would likely result in some closest points being missed. This fix greatly degrades performance in the case where the passed geometry does not have a BVH. It is recommended that the passed in geometry include a computed bounds tree.
+- Cases where passed in geometry that did not include an index buffer could throw an error when calling functions like `closestPointToGeometry`.
+
+### Added
+- `distanceToGeometry` and `closestPointToGeometry` fast path when the passed in geometry has a bounds tree.
 
 ## [0.4.1] - 2021-06-21
 ### Changed

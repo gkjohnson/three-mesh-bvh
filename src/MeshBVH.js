@@ -19,8 +19,8 @@ import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 const obb = new OrientedBox();
+const obb2 = new OrientedBox();
 const temp = new Vector3();
-const tri2 = new SeparatingAxisTriangle();
 const temp1 = new Vector3();
 const temp2 = new Vector3();
 const tempBox = new Box3();
@@ -338,7 +338,6 @@ export default class MeshBVH {
 
 		}
 
-
 		return closestResult;
 
 	}
@@ -643,8 +642,11 @@ export default class MeshBVH {
 		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
 		obb.update();
 
-		const pos = otherGeometry.attributes.position;
-		const index = otherGeometry.index;
+		const geometry = this.geometry;
+		const pos = geometry.attributes.position;
+		const index = geometry.index;
+		const otherPos = otherGeometry.attributes.position;
+		const otherIndex = otherGeometry.index;
 
 		let tempTarget1 = null;
 		let tempTarget2 = null;
@@ -661,6 +663,7 @@ export default class MeshBVH {
 		}
 
 		let closestDistance = Infinity;
+		obb2.matrix.copy( geometryToBvh ).invert();
 		this.shapecast(
 			mesh,
 			{
@@ -673,68 +676,146 @@ export default class MeshBVH {
 
 				intersectsBounds: ( box, isLeaf, score ) => {
 
-					return score < closestDistance && score < maxThreshold;
+					if ( score < closestDistance && score < maxThreshold ) {
 
-				},
+						// if we know the triangles of this bounds will be intersected next then
+						// save the bounds to use during triangle checks.
+						if ( isLeaf ) {
 
-				intersectsTriangle: tri => {
-
-					if ( tri.needsUpdate ) {
-
-						tri.update();
-
-					}
-
-					const sphere1 = tri.sphere;
-					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
-
-						setTriangle( tri2, i2, index, pos );
-						tri2.a.applyMatrix4( geometryToBvh );
-						tri2.b.applyMatrix4( geometryToBvh );
-						tri2.c.applyMatrix4( geometryToBvh );
-						tri2.sphere.setFromPoints( tri2.points );
-
-						const sphere2 = tri2.sphere;
-						const sphereDist = sphere2.center.distanceTo( sphere1.center ) - sphere2.radius - sphere1.radius;
-						if ( sphereDist > closestDistance ) {
-
-							continue;
+							obb2.min.copy( box.min );
+							obb2.max.copy( box.max );
+							obb2.update();
 
 						}
 
-						tri2.update();
-
-						const dist = tri.distanceToTriangle( tri2, tempTarget1, tempTarget2 );
-						if ( dist < closestDistance ) {
-
-							if ( target1 ) {
-
-								target1.copy( tempTarget1 );
-
-							}
-
-							if ( target2 ) {
-
-								target2.copy( tempTarget2 );
-
-							}
-
-							closestDistance = dist;
-
-						}
-
-						// stop traversal if we find a point that's under the given threshold
-						if ( dist < minThreshold ) {
-
-							return true;
-
-						}
+						return true;
 
 					}
 
 					return false;
 
-				}
+				},
+
+				intersectsRange: ( offset, count ) => {
+
+					if ( otherGeometry.boundsTree ) {
+
+						// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
+						// the closest bounds in the other geometry to check.
+						return otherGeometry.boundsTree.shapecast(
+							null,
+							{
+								boundsTraverseOrder: box => {
+
+									return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+
+								},
+
+								intersectsBounds: ( box, isLeaf, score ) => {
+
+									return score < closestDistance && score < maxThreshold;
+
+								},
+
+								intersectsRange: ( otherOffset, otherCount ) => {
+
+									for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
+
+										setTriangle( triangle2, i2, otherIndex, otherPos );
+										triangle2.a.applyMatrix4( geometryToBvh );
+										triangle2.b.applyMatrix4( geometryToBvh );
+										triangle2.c.applyMatrix4( geometryToBvh );
+										triangle2.needsUpdate = true;
+
+										for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+
+											setTriangle( triangle, i, index, pos );
+											triangle.needsUpdate = true;
+
+											const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
+											if ( dist < closestDistance ) {
+
+												if ( target1 ) {
+
+													target1.copy( tempTarget1 );
+
+												}
+
+												if ( target2 ) {
+
+													target2.copy( tempTarget2 );
+
+												}
+
+												closestDistance = dist;
+
+											}
+
+											// stop traversal if we find a point that's under the given threshold
+											if ( dist < minThreshold ) {
+
+												return true;
+
+											}
+
+										}
+
+									}
+
+								},
+							}
+						);
+
+					} else {
+
+						// If no bounds tree then we'll just check every triangle.
+						const triCount = otherIndex ? otherIndex.count : otherPos.count;
+						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
+
+							setTriangle( triangle2, i2, otherIndex, otherPos );
+							triangle2.a.applyMatrix4( geometryToBvh );
+							triangle2.b.applyMatrix4( geometryToBvh );
+							triangle2.c.applyMatrix4( geometryToBvh );
+							triangle2.needsUpdate = true;
+
+							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+
+								setTriangle( triangle, i, index, pos );
+								triangle.needsUpdate = true;
+
+								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
+								if ( dist < closestDistance ) {
+
+									if ( target1 ) {
+
+										target1.copy( tempTarget1 );
+
+									}
+
+									if ( target2 ) {
+
+										target2.copy( tempTarget2 );
+
+									}
+
+									closestDistance = dist;
+
+								}
+
+								// stop traversal if we find a point that's under the given threshold
+								if ( dist < minThreshold ) {
+
+									return true;
+
+								}
+
+							}
+
+						}
+
+					}
+
+				},
 
 			}
 

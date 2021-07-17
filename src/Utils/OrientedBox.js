@@ -242,6 +242,7 @@ OrientedBox.prototype.distanceToBox = ( function () {
 	const point1 = new Vector3();
 	const point2 = new Vector3();
 
+	// early out if we find a value below threshold
 	return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
 
 		if ( this.intersectsBox( box ) ) {

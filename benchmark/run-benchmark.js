@@ -270,9 +270,10 @@ function runSuite( strategy ) {
 
 	);
 
+	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
-		'DistanceToGeometry',
+		'DistanceToGeometry w/ BVH',
 		null,
 		() => mesh.geometry.boundsTree.closestPointToGeometry( mesh, intersectGeometry, geomMat, target1, target2 ),
 		3000
@@ -294,7 +295,7 @@ function runSuite( strategy ) {
 	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
-		'IntersectsGeometry with BVH',
+		'IntersectsGeometry w/ BVH',
 		null,
 		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 		3000
@@ -305,7 +306,7 @@ function runSuite( strategy ) {
 	intersectGeometry.disposeBoundsTree();
 	runBenchmark(
 
-		'IntersectsGeometry without BVH',
+		'IntersectsGeometry w/o BVH',
 		null,
 		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
 		3000
