@@ -136,7 +136,18 @@ export default class MeshBVH {
 
 		const geometry = this.geometry;
 		const indexArr = geometry.index.array;
-		const posArr = geometry.attributes.position.array;
+		const posAttr = geometry.attributes.position;
+		const posArr = posAttr.array;
+
+		// support for an interleaved position buffer
+		const bufferOffset = posAttr.offset || 0;
+		let stride = 3;
+		if ( posAttr.isInterleavedBufferAttribute ) {
+
+			stride = posAttr.data.stride;
+
+		}
+
 		let buffer, uint32Array, uint16Array, float32Array;
 		let byteOffset = 0;
 		const roots = this._roots;
@@ -169,10 +180,10 @@ export default class MeshBVH {
 				let maxz = - Infinity;
 				for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
 
-					const index3 = indexArr[ i ] * 3;
-					const x = posArr[ index3 + 0 ];
-					const y = posArr[ index3 + 1 ];
-					const z = posArr[ index3 + 2 ];
+					const index = indexArr[ i ] * stride + bufferOffset;
+					const x = posArr[ index + 0 ];
+					const y = posArr[ index + 1 ];
+					const z = posArr[ index + 2 ];
 
 					if ( x < minx ) minx = x;
 					if ( x > maxx ) maxx = x;
