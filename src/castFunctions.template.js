@@ -166,6 +166,8 @@ export const bvhcast = ( function () {
 	const _box1 = new Box3();
 	const _box2 = new Box3();
 
+	let _sortArrIndex = 0;
+	const _sortArrPool = [];
 	const sortFunc = ( a, b ) => {
 
 		return a.score - b.score;
@@ -445,17 +447,30 @@ export const bvhcast = ( function () {
 		} else {
 
 			// TODO: consider a stack of these so we don't create a new one at each traversal
-			const sortArr = [ null, null, null, null ].map( () => {
+			let sortArr;
+			if ( _sortArrIndex >= _sortArrPool.length ) {
 
-				return {
-					score: 0,
-					n1: - 1,
-					n2: - 1,
-					b1: null,
-					b2: null,
-				};
+				sortArr = [ null, null, null, null ].map( () => {
 
-			} );
+					return {
+						score: 0,
+						n1: - 1,
+						n2: - 1,
+						b1: null,
+						b2: null,
+					};
+
+				} );
+				_sortArrPool.push( sortArr );
+				_sortArrIndex ++;
+
+			} else {
+
+				sortArr = _sortArrPool[ _sortArrIndex ];
+				_sortArrIndex ++;
+
+			}
+
 			const child1Left = LEFT_NODE( node1Index32 );
 			const child1Right = RIGHT_NODE( node1Index32, uint32Array1 );
 			const child2Left = LEFT_NODE( node2Index32 );
@@ -561,11 +576,14 @@ export const bvhcast = ( function () {
 
 				if ( stopTraversal ) {
 
+					_sortArrIndex --;
 					return true;
 
 				}
 
 			}
+
+			_sortArrIndex --;
 
 		}
 
