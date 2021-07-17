@@ -1,19 +1,19 @@
 import { LineBasicMaterial, Box3Helper, Box3, Group, LineSegments } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
-const wiremat = new LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
 const boxGeom = new Box3Helper().geometry;
 let boundingBox = new Box3();
 
 class MeshBVHRootVisualizer extends Group {
 
-	constructor( mesh, depth = 10, group = 0 ) {
+	constructor( mesh, material, depth = 10, group = 0 ) {
 
 		super( 'MeshBVHRootVisualizer' );
 
 		this.depth = depth;
 		this.mesh = mesh;
 		this._group = group;
+		this._material = material;
 
 		this.update();
 
@@ -41,7 +41,7 @@ class MeshBVHRootVisualizer extends Group {
 					let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
 					if ( ! m ) {
 
-						m = new LineSegments( boxGeom, wiremat );
+						m = new LineSegments( boxGeom, this._material );
 						m.raycast = () => [];
 						this.add( m );
 
@@ -70,6 +70,24 @@ class MeshBVHRootVisualizer extends Group {
 
 class MeshBVHVisualizer extends Group {
 
+	get color() {
+
+		return this._material.color;
+
+	}
+
+	get opacity() {
+
+		return this._material.opacity;
+
+	}
+
+	set opacity( v ) {
+
+		this._material.opacity = v;
+
+	}
+
 	constructor( mesh, depth = 10 ) {
 
 		super( 'MeshBVHVisualizer' );
@@ -77,6 +95,7 @@ class MeshBVHVisualizer extends Group {
 		this.depth = depth;
 		this.mesh = mesh;
 		this._roots = [];
+		this._material = new LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
 
 		this.update();
 
@@ -96,7 +115,7 @@ class MeshBVHVisualizer extends Group {
 
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootVisualizer( this.mesh, this.depth, i );
+				const root = new MeshBVHRootVisualizer( this.mesh, this._material, this.depth, i );
 				this.add( root );
 				this._roots.push( root );
 
