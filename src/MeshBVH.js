@@ -634,9 +634,6 @@ export default class MeshBVH {
 
 		}
 
-		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
-		obb.update();
-
 		const geometry = this.geometry;
 		const pos = geometry.attributes.position;
 		const index = geometry.index;
@@ -670,7 +667,6 @@ export default class MeshBVH {
 					let otherByteOffset = 0;
 					setBuffer2( otherRoot );
 
-					console.log('BVHING')
 					bvhcast(
 						0, 0,
 						( box1, box2, score ) => {
@@ -727,7 +723,12 @@ export default class MeshBVH {
 
 
 						},
-						box1 => {
+						( box1, box2 ) => {
+
+							obb.min.copy( box2.min );
+							obb.max.copy( box2.max );
+							obb.matrix.copy( geometryToBvh );
+							obb.update();
 
 							return obb.distanceToBox( box1, Math.min( closestDistance, maxThreshold ) );
 
@@ -760,6 +761,8 @@ export default class MeshBVH {
 
 		} else {
 
+			obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
+			obb.update();
 			obb2.matrix.copy( geometryToBvh ).invert();
 			this.shapecast(
 				mesh,
