@@ -156,6 +156,10 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			saTri2.update();
 			other = saTri2;
 
+		} else if ( other.needsUpdate ) {
+
+			other.update();
+
 		}
 
 		const satBounds1 = this.satBounds;

@@ -8,7 +8,7 @@ export function intersectTris( mesh, geo, raycaster, ray, offset, count, interse
 
 	}
 
-};
+}
 
 export function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
 
@@ -28,4 +28,4 @@ export function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) 
 
 	return res;
 
-};
+}
