@@ -246,7 +246,7 @@ export const bvhcast = ( function () {
 		if ( breakLeaf1 ) {
 
 			node1Child1 = LEFT_NODE( node1Index32 );
-			node1Child2 = RIGHT_NODE( node1Index32, uint32Array2 );
+			node1Child2 = RIGHT_NODE( node1Index32, uint32Array1 );
 			n1Depth += 1;
 			if ( nodeScoreFunc ) {
 
