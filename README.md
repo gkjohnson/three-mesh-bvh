@@ -466,6 +466,22 @@ depth : Number
 
 The depth to traverse and visualize the tree to.
 
+### .color
+
+```js
+color : THREE.Color
+```
+
+The color to render the bounding volume with.
+
+### .opacity
+
+```js
+opacity : Number
+```
+
+The opacity to render the bounding volume with.
+
 ### .constructor
 
 ```js
@@ -481,6 +497,14 @@ update() : void
 ```
 
 Updates the display of the bounds tree in the case that the bounds tree has changed or the depth parameter has changed.
+
+### .dispose
+
+```js
+dispose() : void
+```
+
+Disposes of the material used.
 
 ## Extensions
 
