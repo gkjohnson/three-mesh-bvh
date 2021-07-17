@@ -323,6 +323,8 @@ The `geometryToBvh` parameter is the transform of the geometry in the mesh's fra
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
+_Note that this function can be very slow if `geometry` does not have a `geometry.boundsTree` computed._
+
 ### .shapecast
 
 ```js
