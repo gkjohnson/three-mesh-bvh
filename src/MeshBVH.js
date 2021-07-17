@@ -324,13 +324,13 @@ export default class MeshBVH {
 
 		}
 
-		for ( let i = 0, l = localIntersects.length; i < l; i ++ ) {
-
-			delete localIntersects[ i ].localPoint;
-
-		}
-
 		if ( intersects ) {
+
+			for ( let i = 0, l = localIntersects.length; i < l; i ++ ) {
+
+				delete localIntersects[ i ].localPoint;
+
+			}
 
 			intersects.push( ...localIntersects );
 
