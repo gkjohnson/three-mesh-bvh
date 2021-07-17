@@ -15,13 +15,13 @@ contents = replaceFunctionMacro( contents, 'LEFT_NODE', '$1 + 8' );
 contents = replaceFunctionMacro( contents, 'RIGHT_NODE', '$2[ $1 + 6 ]' );
 contents = replaceFunctionMacro( contents, 'SPLIT_AXIS', '$2[ $1 + 7 ]' );
 contents = replaceFunctionMacro( contents, 'BOUNDING_DATA_INDEX', '$1' );
-contents = contents.replace( /^\/\*[\S\s]*?\*\//g, '/* Generated from "castFunctions.template.js". Do not edit. */' );
+contents = '/* Generated from "castFunctions.template.js". Do not edit. */\n' + contents;
 
 fs.writeFileSync( outputPath, contents );
 
 function replaceFunctionMacro( contents, name, body ) {
 
-	const functionRegexp = new RegExp( `function\\s+${ name }[^{]+{[^}]+}\n\n` );
+	const functionRegexp = new RegExp( `function\\s+${ name }[^{]+{[^}]+}[\r\n]*` );
 	const regexp = new RegExp( `(function )?${ name }\\((.*?)\\)`, 'g' );
 	return contents
 		.replace( functionRegexp, () => {
