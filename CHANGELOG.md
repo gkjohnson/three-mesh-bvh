@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - `distanceToGeometry` and `closestPointToGeometry` fast path when the passed in geometry has a bounds tree.
+- Support for position BufferAttribute to be interleaved.
 
 ## [0.4.1] - 2021-06-21
 ### Changed
