@@ -139,11 +139,12 @@ export default class MeshBVH {
 		const posAttr = geometry.attributes.position;
 		const posArr = posAttr.array;
 
+		// support for an interleaved position buffer
 		const bufferOffset = posAttr.offset || 0;
 		let stride = 3;
 		if ( posAttr.isInterleavedBufferAttribute ) {
 
-			stride = posAttr.stride;
+			stride = posAttr.data.stride;
 
 		}
 

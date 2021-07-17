@@ -455,24 +455,34 @@ function computeSAHPlanes( triangleBounds ) {
 // representing the center and half-extent in each dimension of triangle i
 function computeTriangleBounds( geo ) {
 
-	const verts = geo.attributes.position.array;
+	const posAttr = geo.attributes.position;
+	const posArr = posAttr.array;
 	const index = geo.index.array;
 	const triCount = index.length / 3;
 	const triangleBounds = new Float32Array( triCount * 6 );
+
+	// support for an interleaved position buffer
+	const bufferOffset = posAttr.offset || 0;
+	let stride = 3;
+	if ( posAttr.isInterleavedBufferAttribute ) {
+
+		stride = posAttr.data.stride;
+
+	}
 
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
 		const tri3 = tri * 3;
 		const tri6 = tri * 6;
-		const ai = index[ tri3 + 0 ] * 3;
-		const bi = index[ tri3 + 1 ] * 3;
-		const ci = index[ tri3 + 2 ] * 3;
+		const ai = index[ tri3 + 0 ] * stride + bufferOffset;
+		const bi = index[ tri3 + 1 ] * stride + bufferOffset;
+		const ci = index[ tri3 + 2 ] * stride + bufferOffset;
 
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const a = verts[ ai + el ];
-			const b = verts[ bi + el ];
-			const c = verts[ ci + el ];
+			const a = posArr[ ai + el ];
+			const b = posArr[ bi + el ];
+			const c = posArr[ ci + el ];
 
 			let min = a;
 			if ( b < min ) min = b;
