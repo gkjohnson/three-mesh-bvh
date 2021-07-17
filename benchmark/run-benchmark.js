@@ -270,9 +270,10 @@ function runSuite( strategy ) {
 
 	);
 
+	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
-		'DistanceToGeometry',
+		'DistanceToGeometry with BVH',
 		null,
 		() => mesh.geometry.boundsTree.closestPointToGeometry( mesh, intersectGeometry, geomMat, target1, target2 ),
 		3000

@@ -5,19 +5,27 @@ export function setTriangle( tri, i, index, pos ) {
 	const tb = tri.b;
 	const tc = tri.c;
 
-	let i3 = index.getX( i );
-	ta.x = pos.getX( i3 );
-	ta.y = pos.getY( i3 );
-	ta.z = pos.getZ( i3 );
+	let i0 = i;
+	let i1 = i + 1;
+	let i2 = i + 2;
+	if ( index ) {
 
-	i3 = index.getX( i + 1 );
-	tb.x = pos.getX( i3 );
-	tb.y = pos.getY( i3 );
-	tb.z = pos.getZ( i3 );
+		i0 = index.getX( i );
+		i1 = index.getX( i + 1 );
+		i2 = index.getX( i + 2 );
 
-	i3 = index.getX( i + 2 );
-	tc.x = pos.getX( i3 );
-	tc.y = pos.getY( i3 );
-	tc.z = pos.getZ( i3 );
+	}
+
+	ta.x = pos.getX( i0 );
+	ta.y = pos.getY( i0 );
+	ta.z = pos.getZ( i0 );
+
+	tb.x = pos.getX( i1 );
+	tb.y = pos.getY( i1 );
+	tb.z = pos.getZ( i1 );
+
+	tc.x = pos.getX( i2 );
+	tc.y = pos.getY( i2 );
+	tc.z = pos.getZ( i2 );
 
 }
