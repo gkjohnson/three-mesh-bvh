@@ -315,11 +315,24 @@ export default class MeshBVH {
 	raycast( mesh, raycaster, ray, intersects ) {
 
 		const geometry = this.geometry;
+		const localIntersects = intersects ? [] : null;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			raycast( 0, mesh, geometry, raycaster, ray, intersects );
+			raycast( 0, mesh, geometry, raycaster, ray, localIntersects );
 			clearBuffer();
+
+		}
+
+		if ( intersects ) {
+
+			for ( let i = 0, l = localIntersects.length; i < l; i ++ ) {
+
+				delete localIntersects[ i ].localPoint;
+
+			}
+
+			intersects.push( ...localIntersects );
 
 		}
 
@@ -340,6 +353,12 @@ export default class MeshBVH {
 				closestResult = result;
 
 			}
+
+		}
+
+		if ( closestResult ) {
+
+			delete closestResult.localPoint;
 
 		}
 

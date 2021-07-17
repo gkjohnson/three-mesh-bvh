@@ -36,6 +36,10 @@ function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point 
 	if ( distance < raycaster.near || distance > raycaster.far ) return null;
 
 	return {
+
+		// EDITED
+		// Including the local-space point so it can be used to accelerate raycasting
+		localPoint: point,
 		distance: distance,
 		point: intersectionPointWorld.clone(),
 		object: object
