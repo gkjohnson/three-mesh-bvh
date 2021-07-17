@@ -560,19 +560,14 @@ export const bvhcast = ( function () {
 					leaf2, depth2 + 1, node2IndexByteOffset + n2,
 				);
 
-				let stopTraversal = false;
-				if ( intersection ) {
+				const stopTraversal = intersection && bvhcast(
+					n1, n2, intersectsBoundsFunc,
 
-					stopTraversal = bvhcast(
-						n1, n2, intersectsBoundsFunc,
+					intersectsRangeFunc, nodeScoreFunc,
 
-						intersectsRangeFunc, nodeScoreFunc,
-
-						node1IndexByteOffset, depth1 + 1,
-						node2IndexByteOffset, depth2 + 1,
-					);
-
-				}
+					node1IndexByteOffset, depth1 + 1,
+					node2IndexByteOffset, depth2 + 1,
+				);
 
 				if ( stopTraversal ) {
 
