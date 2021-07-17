@@ -164,6 +164,8 @@ Option to use a Surface Area Heuristic to split the bounds optimally.
 
 This is the slowest construction option.
 
+_NOTE: This split strategy is in progress_
+
 ## Shapecast Intersection Constants
 
 #### NOT_INTERSECTED
@@ -601,9 +603,6 @@ Generates a BVH for the given geometry in a WebWorker so it can be created async
   be produced and retained as a side effect of the construction.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets cannot be used.
 - If the geometry is changed then a new bounds tree will need to be generated.
-- Only BufferGeometry (not [Geometry](https://threejs.org/docs/#api/en/core/Geometry)) is supported when building a bounds tree.
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported on the geometry index or position attributes.
 - A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in poorer raycast performance on geometry with lots of groups.
-- Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center.
-- Geometry with a lot of particularly long triangles on one axis can lead to a less than optimal bounds tree (see [#121](https://github.com/gkjohnson/three-mesh-bvh/issues/121)).
-
+- Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center so bounds tightly contain the geometry as much as possible.
