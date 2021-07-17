@@ -1,5 +1,4 @@
 /* Generated from "castFunctions.template.js". Do not edit. */
-
 // For speed and readability this script is processed to replace the macro-like calls
 // with inline buffer reads. See generate-cast-functions.js.
 import { Box3, Vector3, Mesh, Matrix4 } from 'three';
@@ -123,22 +122,17 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 
 export const shapecast = ( function () {
 
-	const _triangle = new SeparatingAxisTriangle();
-	const _cachedBox1 = new Box3();
-	const _cachedBox2 = new Box3();
+	const _box1 = new Box3();
+	const _box2 = new Box3();
 
 	return function shapecast(
 		nodeIndex32,
-		mesh,
 		geometry,
 		intersectsBoundsFunc,
 		intersectsRangeFunc,
 		nodeScoreFunc = null,
 		nodeIndexByteOffset = 0, // offset for unique node identifier
-		depth = 0,
-		triangle = _triangle,
-		cachedBox1 = _cachedBox1,
-		cachedBox2 = _cachedBox2
+		depth = 0
 	) {
 
 		// Define these inside the function so it has access to the local variables needed
@@ -184,7 +178,7 @@ export const shapecast = ( function () {
 
 			const offset = uint32Array[ nodeIndex32 + 6 ];
 			const count = uint16Array[ nodeIndex16 + 14 ];
-			return intersectsRangeFunc( offset, count, false, depth, nodeIndex32 );
+			return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32 );
 
 		} else {
 
@@ -197,8 +191,8 @@ export const shapecast = ( function () {
 			let box1, box2;
 			if ( nodeScoreFunc ) {
 
-				box1 = cachedBox1;
-				box2 = cachedBox2;
+				box1 = _box1;
+				box2 = _box2;
 
 				// bounding data is not offset
 				arrayToBox( c1, float32Array, box1 );
@@ -226,7 +220,7 @@ export const shapecast = ( function () {
 			// Check box 1 intersection
 			if ( ! box1 ) {
 
-				box1 = cachedBox1;
+				box1 = _box1;
 				arrayToBox( c1, float32Array, box1 );
 
 			}
@@ -249,16 +243,12 @@ export const shapecast = ( function () {
 					c1Intersection &&
 					shapecast(
 						c1,
-						mesh,
 						geometry,
 						intersectsBoundsFunc,
 						intersectsRangeFunc,
 						nodeScoreFunc,
 						nodeIndexByteOffset,
-						depth + 1,
-						triangle,
-						cachedBox1,
-						cachedBox2
+						depth + 1
 					);
 
 			}
@@ -267,7 +257,7 @@ export const shapecast = ( function () {
 
 			// Check box 2 intersection
 			// cached box2 will have been overwritten by previous traversal
-			box2 = cachedBox2;
+			box2 = _box2;
 			arrayToBox( c2, float32Array, box2 );
 
 			const isC2Leaf = ( uint16Array[ c2 * 2 + 15 ] === 0xFFFF );
@@ -288,16 +278,12 @@ export const shapecast = ( function () {
 					c2Intersection &&
 					shapecast(
 						c2,
-						mesh,
 						geometry,
 						intersectsBoundsFunc,
 						intersectsRangeFunc,
 						nodeScoreFunc,
 						nodeIndexByteOffset,
-						depth + 1,
-						triangle,
-						cachedBox1,
-						cachedBox2
+						depth + 1
 					);
 
 			}
