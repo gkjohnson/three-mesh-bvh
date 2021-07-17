@@ -315,7 +315,7 @@ export default class MeshBVH {
 	raycast( mesh, raycaster, ray, intersects ) {
 
 		const geometry = this.geometry;
-		const localIntersects = [];
+		const localIntersects = intersects ? [] : null;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
@@ -330,7 +330,11 @@ export default class MeshBVH {
 
 		}
 
-		intersects.push( ...localIntersects );
+		if ( intersects ) {
+
+			intersects.push( ...localIntersects );
+
+		}
 
 	}
 
