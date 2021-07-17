@@ -583,10 +583,12 @@ export default class MeshBVH {
 										triangle2.a.applyMatrix4( geometryToBvh );
 										triangle2.b.applyMatrix4( geometryToBvh );
 										triangle2.c.applyMatrix4( geometryToBvh );
+										triangle2.needsUpdate = true;
 
 										for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
 
 											setTriangle( triangle, i, index, pos );
+											triangle.needsUpdate = true;
 
 											const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 											if ( dist < closestDistance ) {
@@ -625,16 +627,19 @@ export default class MeshBVH {
 					} else {
 
 						// If no bounds tree then we'll just check every triangle.
-						for ( let i2 = 0, l2 = otherIndex.count; i2 < l2; i2 += 3 ) {
+						const triCount = otherIndex ? otherIndex.count : otherPos.count;
+						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
 
 							setTriangle( triangle2, i2, otherIndex, otherPos );
 							triangle2.a.applyMatrix4( geometryToBvh );
 							triangle2.b.applyMatrix4( geometryToBvh );
 							triangle2.c.applyMatrix4( geometryToBvh );
+							triangle2.needsUpdate = true;
 
 							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
 
 								setTriangle( triangle, i, index, pos );
+								triangle.needsUpdate = true;
 
 								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 								if ( dist < closestDistance ) {
