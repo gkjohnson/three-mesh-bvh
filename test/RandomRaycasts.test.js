@@ -1,4 +1,4 @@
-import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
+import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial, InterleavedBuffer, InterleavedBufferAttribute } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
@@ -20,6 +20,26 @@ function random() {
 
 }
 
+function createInterleavedPositionBuffer( bufferAttribute ) {
+
+	const array = bufferAttribute.array;
+	const newArray = new array.constructor( array.length * 2 );
+
+	const newBuffer = new InterleavedBufferAttribute( new InterleavedBuffer( newArray, 6 ), 3, 3, bufferAttribute.normalized );
+	for ( let i = 0; i < bufferAttribute.count; i ++ ) {
+
+		const x = bufferAttribute.getX( i );
+		const y = bufferAttribute.getY( i );
+		const z = bufferAttribute.getZ( i );
+
+		newBuffer.setXYZ( i, x, y, z );
+
+	}
+
+	return newBuffer;
+
+}
+
 function runRandomTests( options ) {
 
 	let scene = null;
@@ -37,6 +57,13 @@ function runRandomTests( options ) {
 
 			ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
 			groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+
+			if ( options.interleaved ) {
+
+				ungroupedGeometry.setAttribute( 'position', createInterleavedPositionBuffer( ungroupedGeometry.attributes.position ) );
+				groupedGeometry.setAttribute( 'position', createInterleavedPositionBuffer( groupedGeometry.attributes.position ) );
+
+			}
 
 			const groupCount = 10;
 			const groupSize = groupedGeometry.index.array.length / groupCount;
@@ -115,7 +142,10 @@ function runRandomTests( options ) {
 }
 
 describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
+describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
 
 describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
+describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
 
 describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
+describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );

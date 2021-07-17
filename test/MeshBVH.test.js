@@ -48,25 +48,8 @@ describe( 'Bounds Tree', () => {
 	it( 'should throw an error if InterleavedBufferAttributes are used', () => {
 
 		const indexAttr = new InterleavedBufferAttribute( new InterleavedBuffer( new Uint32Array( [ 1, 2, 3 ] ), 1 ), 4, 0, false );
-		const posAttr = new InterleavedBufferAttribute( new InterleavedBuffer( new Float32Array( [ 1, 2, 3 ] ), 3 ), 4, 0, false );
-
 		let geometry;
-		let posErrorThrown = false;
 		let indexErrorThrown = false;
-
-		geometry = new BoxBufferGeometry();
-		geometry.setAttribute( 'position', posAttr );
-		try {
-
-			new MeshBVH( geometry, { verbose: false } );
-
-		} catch ( e ) {
-
-			posErrorThrown = true;
-
-		}
-
-		expect( posErrorThrown ).toBe( true );
 
 		geometry = new BoxBufferGeometry();
 		geometry.setIndex( indexAttr );
