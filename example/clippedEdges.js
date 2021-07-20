@@ -30,6 +30,7 @@ render();
 
 // TODO
 // - display timing in the bottom left to compare bvh vs non bvh timing
+// - reexport smaller model
 
 function init() {
 
