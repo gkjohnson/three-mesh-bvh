@@ -20,17 +20,18 @@ const params = {
 
 let renderer, camera, scene, gui, stats;
 let controls, clock;
-let collider, colliderMesh, bvhHelper;
-let frontSideModel, backSideModel, plane;
-let planesArray, outlineLines;
+let colliderBvh, colliderMesh, bvhHelper;
+let frontSideModel, backSideModel, planeMesh;
+let clippingPlanes, outlineLines;
 let initialClip = false;
+
+const tempVector = new THREE.Vector3();
+const tempLine = new THREE.Line3();
+const inverseMatrix = new THREE.Matrix4();
+const localPlane = new THREE.Plane();
 
 init();
 render();
-
-// TODO
-// - display timing in the bottom left to compare bvh vs non bvh timing
-// - reexport smaller model
 
 function init() {
 
@@ -54,8 +55,6 @@ function init() {
 	// lights
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
-
-
 	scene.add( light );
 	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.4 ) );
 
@@ -65,42 +64,45 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	window.camera = camera;
-
 	controls = new OrbitControls( camera, renderer.domElement );
 
 	clock = new THREE.Clock();
 
-	planesArray = [
+	// clippingPlanes
+	clippingPlanes = [
 		new THREE.Plane(),
 	];
 
-	plane = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( {
+	planeMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( {
 		stencilWrite: true,
 		stencilFunc: THREE.NotEqualStencilFunc,
 		stencilFail: THREE.ZeroStencilOp,
 		stencilZFail: THREE.ZeroStencilOp,
 		stencilZPass: THREE.ZeroStencilOp,
 	} ) );
-	plane.scale.setScalar( 4 );
-	plane.material.color.set( 0x80deea ).convertLinearToSRGB();
-	plane.renderOrder = 1;
-	scene.add( plane );
+	planeMesh.scale.setScalar( 4 );
+	planeMesh.material.color.set( 0x80deea ).convertLinearToSRGB();
+	planeMesh.renderOrder = 1;
+	scene.add( planeMesh );
 
+	// create line geometry with enough data to hold 100000 segments
 	const lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( 300000 ), 3, false ) );
 	outlineLines = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial() );
 	outlineLines.material.color.set( 0x00bcd4 ).convertSRGBToLinear();
 	outlineLines.frustumCulled = false;
 
+	// load the model
 	new GLTFLoader().load( '../models/internal_combustion_engine/scene.gltf', gltf => {
 
 		let model = gltf.scene;
 		model.updateMatrixWorld( true );
 
+		// create a merged version if it isn't already
 		const geometries = [];
 		model.traverse( c => {
 
+			// TODO: remove this for faster load times
 			if ( c.isMesh ) {
 
 				const clonedGeometry = c.geometry.clone();
@@ -112,8 +114,6 @@ function init() {
 						continue;
 
 					}
-
-					console.log( 'HERE', key );
 
 					clonedGeometry.deleteAttribute( key );
 
@@ -128,6 +128,7 @@ function init() {
 		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
 		model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
 
+		// Adjust all the materials to draw front and back side with stencil for clip cap
 		const matSet = new Set();
 		const materialMap = new Map();
 		frontSideModel = model;
@@ -154,7 +155,7 @@ function init() {
 				material.stencilFail = THREE.IncrementWrapStencilOp;
 				material.stencilZFail = THREE.IncrementWrapStencilOp;
 				material.stencilZPass = THREE.IncrementWrapStencilOp;
-				material.clippingPlanes = planesArray;
+				material.clippingPlanes = clippingPlanes;
 
 				materialMap.set( c.material, material );
 				c.material = material;
@@ -188,7 +189,7 @@ function init() {
 				material.stencilFail = THREE.DecrementWrapStencilOp;
 				material.stencilZFail = THREE.DecrementWrapStencilOp;
 				material.stencilZPass = THREE.DecrementWrapStencilOp;
-				material.clippingPlanes = planesArray;
+				material.clippingPlanes = clippingPlanes;
 
 				materialMap.set( c.material, material );
 				c.material = material;
@@ -197,8 +198,9 @@ function init() {
 
 		} );
 
-		collider = new MeshBVH( mergedGeometry, { maxLeafTris: 3 } );
-		mergedGeometry.boundsTree = collider;
+		// create the collider and preview mesh
+		colliderBvh = new MeshBVH( mergedGeometry, { maxLeafTris: 3 } );
+		mergedGeometry.boundsTree = colliderBvh;
 
 		colliderMesh = new THREE.Mesh( mergedGeometry, new THREE.MeshBasicMaterial( {
 			wireframe: true,
@@ -212,6 +214,7 @@ function init() {
 		bvhHelper.depth = parseInt( params.helperDepth );
 		bvhHelper.update();
 
+		// create group of meshes and offset it so they're centered
 		const group = new THREE.Group();
 		group.add( frontSideModel, backSideModel, colliderMesh, bvhHelper, outlineLines );
 
@@ -247,7 +250,7 @@ function init() {
 
 	gui.open();
 
-
+	// stats
 	stats = new Stats();
 	document.body.appendChild( stats.domElement );
 
@@ -278,65 +281,45 @@ function render() {
 	const delta = Math.min( clock.getDelta(), 0.03 );
 	if ( params.animate ) {
 
-		plane.rotation.x += 0.25 * delta;
-		plane.rotation.y += 0.25 * delta;
-		plane.rotation.z += 0.25 * delta;
-		plane.updateMatrixWorld();
+		planeMesh.rotation.x += 0.25 * delta;
+		planeMesh.rotation.y += 0.25 * delta;
+		planeMesh.rotation.z += 0.25 * delta;
+		planeMesh.updateMatrixWorld();
 
 	}
 
-	const clippingPlane = planesArray[ 0 ];
-	clippingPlane.normal.set( 0, 0, - 1 ).applyMatrix4( plane.matrixWorld );
+	const clippingPlane = clippingPlanes[ 0 ];
+	clippingPlane.normal.set( 0, 0, - 1 ).applyMatrix4( planeMesh.matrixWorld );
 
-	if ( collider && ( params.animate || ! initialClip ) ) {
+	if ( colliderBvh && ( params.animate || ! initialClip ) ) {
 
 		initialClip = true;
 
-		const tempVector = new THREE.Vector3();
-		const tempLine = new THREE.Line3();
-		const inverseMatrix = new THREE.Matrix4().copy( colliderMesh.matrixWorld ).invert();
-		const localPlane = clippingPlane.clone().applyMatrix4( inverseMatrix );
+		// get the clipping plane in the local space of the BVH
+		inverseMatrix.copy( colliderMesh.matrixWorld ).invert();
+		localPlane.copy( clippingPlane ).applyMatrix4( inverseMatrix );
 
 		let index = 0;
 		const posAttr = outlineLines.geometry.attributes.position;
-		collider.shapecast( null, {
+		colliderBvh.shapecast( null, {
 
 			intersectsBounds: box => {
 
+				// if we're not using the BVH then skip straight to iterating over all triangles
 				if ( ! params.useBVH ) {
 
 					return CONTAINED;
 
 				}
 
-				let side = null;
-				const { min, max } = box;
-				for ( let x = - 1; x <= 1; x += 2 ) {
-
-					for ( let y = - 1; y <= 1; y += 2 ) {
-
-						for ( let z = - 1; z <= 1; z += 2 ) {
-
-							tempVector.x = x === - 1 ? min.x : max.x;
-							tempVector.y = y === - 1 ? min.y : max.y;
-							tempVector.z = z === - 1 ? min.z : max.z;
-
-							const newSide = localPlane.distanceToPoint( tempVector ) > 0;
-							if ( side === null ) side = newSide;
-							else if ( side !== newSide ) return true;
-
-						}
-
-					}
-
-				}
-
-				return false;
+				return localPlane.intersectsBox( box );
 
 			},
 
 			intersectsTriangle: tri => {
 
+				// check each triangle edge to see if it intersects with the plane. If so then
+				// add it to the list of segments.
 				let count = 0;
 				tempLine.start.copy( tri.a );
 				tempLine.end.copy( tri.b );
@@ -368,6 +351,8 @@ function render() {
 
 				}
 
+				// If we only intersected with one or three sides then just remove it. This could be handled
+				// more gracefully.
 				if ( count !== 2 ) {
 
 					index -= count;
