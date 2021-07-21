@@ -57,10 +57,10 @@ function init() {
 	scene.fog = new THREE.Fog( bgColor, 20, 70 );
 
 	// lights
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
-	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
+	const light = new THREE.DirectionalLight( 0xffffff, 0.75 );
+	light.position.set( 1, 1.5, 2 ).multiplyScalar( 50 );
 	scene.add( light );
-	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.4 ) );
+	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.5 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 50 );
@@ -93,7 +93,7 @@ function init() {
 	const lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( 300000 ), 3, false ) );
 	outlineLines = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial() );
-	outlineLines.material.color.set( 0x00bcd4 ).convertSRGBToLinear();
+	outlineLines.material.color.set( 0x00acc1 ).convertSRGBToLinear();
 	outlineLines.frustumCulled = false;
 
 	// load the model
@@ -224,7 +224,7 @@ function init() {
 		colliderMesh = new THREE.Mesh( mergedGeometry, new THREE.MeshBasicMaterial( {
 			wireframe: true,
 			transparent: true,
-			opacity: 0.1,
+			opacity: 0.01,
 			depthWrite: false,
 		} ) );
 		colliderMesh.renderOrder = 2;
@@ -256,6 +256,7 @@ function init() {
 	gui.add( params, 'useBVH' );
 
 	const helperFolder = gui.addFolder( 'helper' );
+	helperFolder.add( params, 'wireframeDisplay' );
 	helperFolder.add( params, 'helperDisplay' );
 	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).onChange( v => {
 
@@ -267,7 +268,6 @@ function init() {
 		}
 
 	} );
-	helperFolder.add( params, 'wireframeDisplay' );
 	helperFolder.open();
 
 	gui.open();
@@ -299,6 +299,11 @@ function render() {
 		backSideModel.visible = params.displayModel;
 
 	}
+
+	// make the outlines darker if the model is shown
+	outlineLines.material.color
+		.set( params.displayModel ? 0x00acc1 : 0x4dd0e1 )
+		.convertSRGBToLinear();
 
 	const delta = Math.min( clock.getDelta(), 0.03 );
 	if ( params.animate ) {
