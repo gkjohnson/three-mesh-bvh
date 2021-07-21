@@ -313,6 +313,7 @@ function render() {
 	const clippingPlane = clippingPlanes[ 0 ];
 	clippingPlane.normal.set( 0, 0, - 1 ).applyMatrix4( planeMesh.matrixWorld );
 
+	// Perform the clipping
 	if ( colliderBvh && ( params.animate || ! initialClip ) ) {
 
 		initialClip = true;
