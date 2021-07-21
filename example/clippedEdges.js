@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+// import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { MeshBVH, MeshBVHVisualizer, CONTAINED } from '../src/index.js';
@@ -96,40 +97,55 @@ function init() {
 	outlineLines.frustumCulled = false;
 
 	// load the model
-	new GLTFLoader().load( '../models/internal_combustion_engine/scene.gltf', gltf => {
+	const loader = new GLTFLoader();
+	loader.setMeshoptDecoder( MeshoptDecoder );
+	loader.load( '../models/internal_combustion_engine/model.gltf', gltf => {
 
-		let model = gltf.scene;
-		model.updateMatrixWorld( true );
+		// merge the geometry if needed
+		// let model = gltf.scene;
+		// model.updateMatrixWorld( true );
 
 		// create a merged version if it isn't already
-		const geometries = [];
-		model.traverse( c => {
+		// const geometries = [];
+		// model.traverse( c => {
 
-			// TODO: remove this for faster load times
-			if ( c.isMesh ) {
+		// 	if ( c.isMesh ) {
 
-				const clonedGeometry = c.geometry.clone();
-				clonedGeometry.applyMatrix4( c.matrixWorld );
-				for ( const key in clonedGeometry.attributes ) {
+		// 		const clonedGeometry = c.geometry.clone();
+		// 		clonedGeometry.applyMatrix4( c.matrixWorld );
+		// 		for ( const key in clonedGeometry.attributes ) {
 
-					if ( key === 'position' || key === 'normal' ) {
+		// 			if ( key === 'position' || key === 'normal' ) {
 
-						continue;
+		// 				continue;
 
-					}
+		// 			}
 
-					clonedGeometry.deleteAttribute( key );
+		// 			clonedGeometry.deleteAttribute( key );
 
-				}
+		// 		}
 
-				geometries.push( clonedGeometry );
+		// 		geometries.push( clonedGeometry );
 
-			}
+		// 	}
 
-		} );
+		// } );
 
-		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
-		model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
+		// const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
+		// model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
+
+		const model = gltf.scene.children[ 0 ];
+		const mergedGeometry = model.geometry;
+
+		console.log( model.scale );
+		model.position.set( 0, 0, 0 );
+		model.quaternion.identity();
+
+		outlineLines.scale.copy( model.scale );
+		outlineLines.position.set( 0, 0, 0 );
+		outlineLines.quaternion.identity();
+
+		model.updateMatrixWorld( true );
 
 		// Adjust all the materials to draw front and back side with stencil for clip cap
 		const matSet = new Set();
@@ -212,6 +228,9 @@ function init() {
 			depthWrite: false,
 		} ) );
 		colliderMesh.renderOrder = 2;
+		colliderMesh.position.copy( model.position );
+		colliderMesh.rotation.copy( model.rotation );
+		colliderMesh.scale.copy( model.scale );
 
 		bvhHelper = new MeshBVHVisualizer( colliderMesh, parseInt( params.helperDepth ) );
 		bvhHelper.depth = parseInt( params.helperDepth );
