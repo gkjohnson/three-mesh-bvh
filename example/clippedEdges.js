@@ -1,0 +1,411 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import Stats from 'stats.js';
+import { GUI } from 'dat.gui';
+import { MeshBVH, MeshBVHVisualizer, CONTAINED } from '../src/index.js';
+
+const params = {
+	useBVH: true,
+
+	helperDisplay: false,
+	helperDepth: 10,
+
+	wireframeDisplay: false,
+	displayModel: true,
+
+	animate: true,
+};
+
+let renderer, camera, scene, gui, stats;
+let controls, clock;
+let colliderBvh, colliderMesh, bvhHelper;
+let frontSideModel, backSideModel, planeMesh;
+let clippingPlanes, outlineLines;
+let initialClip = false;
+let outputElement = null;
+
+const tempVector = new THREE.Vector3();
+const tempLine = new THREE.Line3();
+const inverseMatrix = new THREE.Matrix4();
+const localPlane = new THREE.Plane();
+
+init();
+render();
+
+function init() {
+
+	outputElement = document.getElementById( 'output' );
+
+	const bgColor = new THREE.Color( 0x263238 ).multiplyScalar( 0.1 );
+
+	// renderer setup
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setClearColor( bgColor, 1 );
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+	renderer.gammaOutput = true;
+	renderer.localClippingEnabled = true;
+	document.body.appendChild( renderer.domElement );
+
+	// scene setup
+	scene = new THREE.Scene();
+	scene.fog = new THREE.Fog( bgColor, 20, 70 );
+
+	// lights
+	const light = new THREE.DirectionalLight( 0xffffff, 0.8 );
+	light.position.set( 1, 1.5, 2 ).multiplyScalar( 50 );
+	scene.add( light );
+	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.5 ) );
+
+	// camera setup
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 50 );
+	camera.position.set( 0.4, 0.4, 0.4 );
+	camera.far = 100;
+	camera.updateProjectionMatrix();
+
+	controls = new OrbitControls( camera, renderer.domElement );
+
+	clock = new THREE.Clock();
+
+	// clippingPlanes
+	clippingPlanes = [
+		new THREE.Plane(),
+	];
+
+	planeMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( {
+		stencilWrite: true,
+		stencilFunc: THREE.NotEqualStencilFunc,
+		stencilFail: THREE.ZeroStencilOp,
+		stencilZFail: THREE.ZeroStencilOp,
+		stencilZPass: THREE.ZeroStencilOp,
+	} ) );
+	planeMesh.scale.setScalar( 1.5 );
+	planeMesh.material.color.set( 0x80deea ).convertLinearToSRGB();
+	planeMesh.renderOrder = 1;
+	scene.add( planeMesh );
+
+	// create line geometry with enough data to hold 100000 segments
+	const lineGeometry = new THREE.BufferGeometry();
+	lineGeometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( 300000 ), 3, false ) );
+	outlineLines = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial() );
+	outlineLines.material.color.set( 0x00acc1 ).convertSRGBToLinear();
+	outlineLines.frustumCulled = false;
+
+	// load the model
+	const loader = new GLTFLoader();
+	loader.setMeshoptDecoder( MeshoptDecoder );
+	loader.load( '../models/internal_combustion_engine/model.gltf', gltf => {
+
+		// merge the geometry if needed
+		// let model = gltf.scene;
+		// model.updateMatrixWorld( true );
+
+		// create a merged version if it isn't already
+		// const geometries = [];
+		// model.traverse( c => {
+
+		// 	if ( c.isMesh ) {
+
+		// 		const clonedGeometry = c.geometry.clone();
+		// 		clonedGeometry.applyMatrix4( c.matrixWorld );
+		// 		for ( const key in clonedGeometry.attributes ) {
+
+		// 			if ( key === 'position' || key === 'normal' ) {
+
+		// 				continue;
+
+		// 			}
+
+		// 			clonedGeometry.deleteAttribute( key );
+
+		// 		}
+
+		// 		geometries.push( clonedGeometry );
+
+		// 	}
+
+		// } );
+
+		// const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
+		// model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
+
+		const model = gltf.scene.children[ 0 ];
+		const mergedGeometry = model.geometry;
+		model.position.set( 0, 0, 0 );
+		model.quaternion.identity();
+
+		outlineLines.scale.copy( model.scale );
+		outlineLines.position.set( 0, 0, 0 );
+		outlineLines.quaternion.identity();
+
+		model.updateMatrixWorld( true );
+
+		// Adjust all the materials to draw front and back side with stencil for clip cap
+		const matSet = new Set();
+		const materialMap = new Map();
+		frontSideModel = model;
+		frontSideModel.updateMatrixWorld( true );
+		frontSideModel.traverse( c => {
+
+			if ( c.isMesh ) {
+
+				if ( materialMap.has( c.material ) ) {
+
+					c.material = materialMap.get( c.material );
+					return;
+
+				}
+
+				matSet.add( c.material );
+
+				const material = c.material.clone();
+				material.color.set( 0xffffff );
+				material.roughness = 1.0;
+				material.metalness = 0.0;
+				material.side = THREE.FrontSide;
+				material.stencilWrite = true;
+				material.stencilFail = THREE.IncrementWrapStencilOp;
+				material.stencilZFail = THREE.IncrementWrapStencilOp;
+				material.stencilZPass = THREE.IncrementWrapStencilOp;
+				material.clippingPlanes = clippingPlanes;
+
+				materialMap.set( c.material, material );
+				c.material = material;
+
+			}
+
+		} );
+
+		materialMap.clear();
+
+		backSideModel = frontSideModel.clone();
+		backSideModel.traverse( c => {
+
+			if ( c.isMesh ) {
+
+				if ( materialMap.has( c.material ) ) {
+
+					c.material = materialMap.get( c.material );
+					return;
+
+				}
+
+				const material = c.material.clone();
+				material.color.set( 0xffffff );
+				material.roughness = 1.0;
+				material.metalness = 0.0;
+				material.colorWrite = false;
+				material.depthWrite = false;
+				material.side = THREE.BackSide;
+				material.stencilWrite = true;
+				material.stencilFail = THREE.DecrementWrapStencilOp;
+				material.stencilZFail = THREE.DecrementWrapStencilOp;
+				material.stencilZPass = THREE.DecrementWrapStencilOp;
+				material.clippingPlanes = clippingPlanes;
+
+				materialMap.set( c.material, material );
+				c.material = material;
+
+			}
+
+		} );
+
+		// create the collider and preview mesh
+		colliderBvh = new MeshBVH( mergedGeometry, { maxLeafTris: 3 } );
+		mergedGeometry.boundsTree = colliderBvh;
+
+		colliderMesh = new THREE.Mesh( mergedGeometry, new THREE.MeshBasicMaterial( {
+			wireframe: true,
+			transparent: true,
+			opacity: 0.01,
+			depthWrite: false,
+		} ) );
+		colliderMesh.renderOrder = 2;
+		colliderMesh.position.copy( model.position );
+		colliderMesh.rotation.copy( model.rotation );
+		colliderMesh.scale.copy( model.scale );
+
+		bvhHelper = new MeshBVHVisualizer( colliderMesh, parseInt( params.helperDepth ) );
+		bvhHelper.depth = parseInt( params.helperDepth );
+		bvhHelper.update();
+
+		// create group of meshes and offset it so they're centered
+		const group = new THREE.Group();
+		group.add( frontSideModel, backSideModel, colliderMesh, bvhHelper, outlineLines );
+
+		const box = new THREE.Box3();
+		box.setFromObject( frontSideModel );
+		box.getCenter( group.position ).multiplyScalar( - 1 );
+		group.updateMatrixWorld( true );
+		scene.add( group );
+
+	} );
+
+	// dat.gui
+	gui = new GUI();
+
+	gui.add( params, 'animate' );
+	gui.add( params, 'displayModel' );
+	gui.add( params, 'useBVH' );
+
+	const helperFolder = gui.addFolder( 'helper' );
+	helperFolder.add( params, 'wireframeDisplay' );
+	helperFolder.add( params, 'helperDisplay' );
+	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).onChange( v => {
+
+		if ( bvhHelper ) {
+
+			bvhHelper.depth = parseInt( v );
+			bvhHelper.update();
+
+		}
+
+	} );
+	helperFolder.open();
+
+	gui.open();
+
+	// stats
+	stats = new Stats();
+	document.body.appendChild( stats.domElement );
+
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.setPixelRatio( window.devicePixelRatio );
+
+	}, false );
+
+}
+
+function render() {
+
+	if ( bvhHelper ) {
+
+		bvhHelper.visible = params.helperDisplay;
+		colliderMesh.visible = params.wireframeDisplay;
+
+		frontSideModel.visible = params.displayModel;
+		backSideModel.visible = params.displayModel;
+
+	}
+
+	// make the outlines darker if the model is shown
+	outlineLines.material.color
+		.set( params.displayModel ? 0x00acc1 : 0x4dd0e1 )
+		.convertSRGBToLinear();
+
+	const delta = Math.min( clock.getDelta(), 0.03 );
+	if ( params.animate ) {
+
+		planeMesh.rotation.x += 0.25 * delta;
+		planeMesh.rotation.y += 0.25 * delta;
+		planeMesh.rotation.z += 0.25 * delta;
+		planeMesh.updateMatrixWorld();
+
+	}
+
+	const clippingPlane = clippingPlanes[ 0 ];
+	clippingPlane.normal.set( 0, 0, - 1 ).applyMatrix4( planeMesh.matrixWorld );
+
+	// Perform the clipping
+	if ( colliderBvh && ( params.animate || ! initialClip ) ) {
+
+		initialClip = true;
+
+		// get the clipping plane in the local space of the BVH
+		inverseMatrix.copy( colliderMesh.matrixWorld ).invert();
+		localPlane.copy( clippingPlane ).applyMatrix4( inverseMatrix );
+
+		let index = 0;
+		const posAttr = outlineLines.geometry.attributes.position;
+		const startTime = window.performance.now();
+		colliderBvh.shapecast( null, {
+
+			intersectsBounds: box => {
+
+				// if we're not using the BVH then skip straight to iterating over all triangles
+				if ( ! params.useBVH ) {
+
+					return CONTAINED;
+
+				}
+
+				return localPlane.intersectsBox( box );
+
+			},
+
+			intersectsTriangle: tri => {
+
+				// check each triangle edge to see if it intersects with the plane. If so then
+				// add it to the list of segments.
+				let count = 0;
+				tempLine.start.copy( tri.a );
+				tempLine.end.copy( tri.b );
+				if ( localPlane.intersectLine( tempLine, tempVector ) ) {
+
+					posAttr.setXYZ( index, tempVector.x, tempVector.y, tempVector.z );
+					index ++;
+					count ++;
+
+				}
+
+				tempLine.start.copy( tri.b );
+				tempLine.end.copy( tri.c );
+				if ( localPlane.intersectLine( tempLine, tempVector ) ) {
+
+					posAttr.setXYZ( index, tempVector.x, tempVector.y, tempVector.z );
+					count ++;
+					index ++;
+
+				}
+
+				tempLine.start.copy( tri.c );
+				tempLine.end.copy( tri.a );
+				if ( localPlane.intersectLine( tempLine, tempVector ) ) {
+
+					posAttr.setXYZ( index, tempVector.x, tempVector.y, tempVector.z );
+					count ++;
+					index ++;
+
+				}
+
+				// If we only intersected with one or three sides then just remove it. This could be handled
+				// more gracefully.
+				if ( count !== 2 ) {
+
+					index -= count;
+
+				}
+
+			},
+
+		} );
+
+		// set the draw range to only the new segments and offset the lines so they don't intersect with the geometry
+		outlineLines.geometry.setDrawRange( 0, index );
+		outlineLines.position.copy( clippingPlane.normal ).multiplyScalar( - 0.00001 );
+		posAttr.needsUpdate = true;
+
+		const delta = window.performance.now() - startTime;
+		outputElement.innerText = `${ parseFloat( delta.toFixed( 3 ) ) }ms`;
+
+	}
+
+	stats.update();
+	requestAnimationFrame( render );
+
+	controls.update();
+
+	renderer.render( scene, camera );
+
+}
+
