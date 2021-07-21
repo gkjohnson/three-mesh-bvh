@@ -57,7 +57,7 @@ function init() {
 	scene.fog = new THREE.Fog( bgColor, 20, 70 );
 
 	// lights
-	const light = new THREE.DirectionalLight( 0xffffff, 0.75 );
+	const light = new THREE.DirectionalLight( 0xffffff, 0.8 );
 	light.position.set( 1, 1.5, 2 ).multiplyScalar( 50 );
 	scene.add( light );
 	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.5 ) );
@@ -84,7 +84,7 @@ function init() {
 		stencilZFail: THREE.ZeroStencilOp,
 		stencilZPass: THREE.ZeroStencilOp,
 	} ) );
-	planeMesh.scale.setScalar( 4 );
+	planeMesh.scale.setScalar( 1.5 );
 	planeMesh.material.color.set( 0x80deea ).convertLinearToSRGB();
 	planeMesh.renderOrder = 1;
 	scene.add( planeMesh );
@@ -136,8 +136,6 @@ function init() {
 
 		const model = gltf.scene.children[ 0 ];
 		const mergedGeometry = model.geometry;
-
-		console.log( model.scale );
 		model.position.set( 0, 0, 0 );
 		model.quaternion.identity();
 
