@@ -24,6 +24,7 @@ let colliderBvh, colliderMesh, bvhHelper;
 let frontSideModel, backSideModel, planeMesh;
 let clippingPlanes, outlineLines;
 let initialClip = false;
+let outputElement = null;
 
 const tempVector = new THREE.Vector3();
 const tempLine = new THREE.Line3();
@@ -34,6 +35,8 @@ init();
 render();
 
 function init() {
+
+	outputElement = document.getElementById( 'output' );
 
 	const bgColor = new THREE.Color( 0x263238 ).multiplyScalar( 0.1 );
 
@@ -301,6 +304,7 @@ function render() {
 
 		let index = 0;
 		const posAttr = outlineLines.geometry.attributes.position;
+		const startTime = window.performance.now();
 		colliderBvh.shapecast( null, {
 
 			intersectsBounds: box => {
@@ -367,6 +371,9 @@ function render() {
 		outlineLines.geometry.setDrawRange( 0, index );
 		outlineLines.position.copy( clippingPlane.normal ).multiplyScalar( - 0.00001 );
 		posAttr.needsUpdate = true;
+
+		const delta = window.performance.now() - startTime;
+		outputElement.innerText = `${ parseFloat( delta.toFixed( 3 ) ) }ms`;
 
 	}
 
