@@ -63,7 +63,7 @@ function init() {
 	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.4 ) );
 
 	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 50 );
 	camera.position.set( 0.4, 0.4, 0.4 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
