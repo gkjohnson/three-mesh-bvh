@@ -86,7 +86,7 @@ function init() {
 	} ) );
 	planeMesh.scale.setScalar( 1.5 );
 	planeMesh.material.color.set( 0x80deea ).convertLinearToSRGB();
-	planeMesh.renderOrder = 1;
+	planeMesh.renderOrder = 2;
 	scene.add( planeMesh );
 
 	// create line geometry with enough data to hold 100000 segments
@@ -97,6 +97,7 @@ function init() {
 	outlineLines = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial() );
 	outlineLines.material.color.set( 0x00acc1 ).convertSRGBToLinear();
 	outlineLines.frustumCulled = false;
+	outlineLines.renderOrder = 3;
 
 	// load the model
 	const loader = new GLTFLoader();
@@ -136,10 +137,27 @@ function init() {
 		// const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
 		// model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
 
+		// Render Order
+		// 0. Render front model and back model with stencil
+		// 1. Render surface color model
+		// 2. Render clip pane cap
+		// 3. Render outlines
+
+		// use basic material because the using clip caps is expensive since the fragment
+		// shader has to run always.
 		const model = gltf.scene.children[ 0 ];
 		const mergedGeometry = model.geometry;
+		model.material = new THREE.MeshBasicMaterial();
 		model.position.set( 0, 0, 0 );
 		model.quaternion.identity();
+
+		// color the surface of the geometry with an EQUAL depth to limit the amount of
+		// fragment shading that has to run.
+		const surfaceModel = model.clone();
+		surfaceModel.material = new THREE.MeshStandardMaterial( {
+			depthFunc: THREE.EqualDepth,
+		} );
+		surfaceModel.renderOrder = 1;
 
 		outlineLines.scale.copy( model.scale );
 		outlineLines.position.set( 0, 0, 0 );
@@ -238,7 +256,7 @@ function init() {
 
 		// create group of meshes and offset it so they're centered
 		const group = new THREE.Group();
-		group.add( frontSideModel, backSideModel, colliderMesh, bvhHelper, outlineLines );
+		group.add( frontSideModel, backSideModel, surfaceModel, colliderMesh, bvhHelper, outlineLines );
 
 		const box = new THREE.Box3();
 		box.setFromObject( frontSideModel );
