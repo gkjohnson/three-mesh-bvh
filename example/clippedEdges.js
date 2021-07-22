@@ -91,7 +91,9 @@ function init() {
 
 	// create line geometry with enough data to hold 100000 segments
 	const lineGeometry = new THREE.BufferGeometry();
-	lineGeometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( 300000 ), 3, false ) );
+	const linePosAttr = new THREE.BufferAttribute( new Float32Array( 300000 ), 3, false );
+	linePosAttr.setUsage( THREE.DynamicDrawUsage );
+	lineGeometry.setAttribute( 'position', linePosAttr );
 	outlineLines = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial() );
 	outlineLines.material.color.set( 0x00acc1 ).convertSRGBToLinear();
 	outlineLines.frustumCulled = false;
