@@ -327,7 +327,6 @@ function render() {
 		inverseMatrix.copy( colliderMesh.matrixWorld ).invert();
 		localPlane.copy( clippingPlane ).applyMatrix4( inverseMatrix );
 
-		// TODO: we can probably build a whole clipped geometry here
 		let index = 0;
 		const posAttr = outlineLines.geometry.attributes.position;
 		const startTime = window.performance.now();
