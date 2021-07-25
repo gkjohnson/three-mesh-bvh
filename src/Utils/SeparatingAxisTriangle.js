@@ -68,12 +68,6 @@ SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
 
 	return function distanceToSegment( segment, target1 = null, target2 = null ) {
 
-		if ( this.needsUpdate ) {
-
-			this.update();
-
-		}
-
 		const { start, end } = segment;
 		const points = this.points;
 		let distSq;
@@ -227,18 +221,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 	const line2 = new Line3();
 
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
-
-		if ( other.needsUpdate ) {
-
-			other.update();
-
-		}
-
-		if ( this.needsUpdate ) {
-
-			this.update();
-
-		}
 
 		if ( this.intersectsTriangle( other ) ) {
 
