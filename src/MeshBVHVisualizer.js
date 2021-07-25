@@ -2,32 +2,30 @@ import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments } from 't
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
 const boundingBox = new Box3();
-class MeshBVHRootVisualizer extends Group {
+class MeshBVHRootVisualizer extends LineSegments {
 
 	constructor( mesh, material, depth = 10, group = 0 ) {
 
-		super( 'MeshBVHRootVisualizer' );
+		super( undefined, material );
 
-		const lines = new LineSegments( undefined, material );
-		lines.raycast = () => {};
-
+		this.material = material;
+		this.name = 'MeshBVHRootVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
-		this._lines = lines;
 		this._group = group;
 
-		this.add( lines );
 		this.update();
 
 	}
 
+	raycast() {}
+
 	update() {
 
-		const lines = this._lines;
-		const linesGeometry = lines.geometry;
+		const linesGeometry = this.geometry;
 		const boundsTree = this.mesh.geometry.boundsTree;
 		linesGeometry.dispose();
-		lines.visible = false;
+		this.visible = false;
 		if ( boundsTree ) {
 
 			// count the number of bounds required
@@ -130,7 +128,7 @@ class MeshBVHRootVisualizer extends Group {
 				'position',
 				new BufferAttribute( positionArray, 3, false ),
 			);
-			lines.visible = true;
+			this.visible = true;
 
 		}
 
@@ -160,8 +158,9 @@ class MeshBVHVisualizer extends Group {
 
 	constructor( mesh, depth = 10 ) {
 
-		super( 'MeshBVHVisualizer' );
+		super();
 
+		this.name = 'MeshBVHVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
 		this._roots = [];
