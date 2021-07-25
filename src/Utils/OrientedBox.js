@@ -151,11 +151,11 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 	const cachedSatBounds2 = new SeparatingAxisBounds();
 	const cachedAxis = new Vector3();
 	return function intersectsTriangle( triangle ) {
-		
+
 		if ( this.needsUpdate ) {
-		
+
 			this.update();
-			
+
 		}
 
 		if ( ! triangle.isSeparatingAxisTriangle ) {
