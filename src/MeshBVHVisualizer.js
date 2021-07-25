@@ -1,68 +1,140 @@
-import { LineBasicMaterial, Box3Helper, Box3, Group, LineSegments } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
-const boxGeom = new Box3Helper().geometry;
-let boundingBox = new Box3();
-
-class MeshBVHRootVisualizer extends Group {
+const boundingBox = new Box3();
+class MeshBVHRootVisualizer extends LineSegments {
 
 	constructor( mesh, material, depth = 10, group = 0 ) {
 
-		super( 'MeshBVHRootVisualizer' );
+		super( undefined, material );
 
+		this.material = material;
+		this.name = 'MeshBVHRootVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
 		this._group = group;
-		this._material = material;
 
 		this.update();
 
 	}
 
+	raycast() {}
+
 	update() {
 
+		const linesGeometry = this.geometry;
 		const boundsTree = this.mesh.geometry.boundsTree;
-		let requiredChildren = 0;
+		const group = this._group;
+		linesGeometry.dispose();
+		this.visible = false;
 		if ( boundsTree ) {
 
-			boundsTree.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
+			// count the number of bounds required
+			const targetDepth = this.depth - 1;
+			let boundsCount = 0;
+			boundsTree.traverse( ( depth, isLeaf ) => {
 
-				let isTerminal = isLeaf || countOrIsUnfinished;
+				if ( depth === targetDepth || isLeaf ) {
 
-				// Stop traversal
-				if ( depth >= this.depth ) {
+					boundsCount ++;
+					return true;
+
+				}
+
+			}, group );
+
+			// fill in the position buffer with the bounds corners
+			let posIndex = 0;
+			const positionArray = new Float32Array( 8 * 3 * boundsCount );
+			boundsTree.traverse( ( depth, isLeaf, boundingData ) => {
+
+				if ( depth === targetDepth || isLeaf ) {
+
+					arrayToBox( boundingData, boundingBox );
+
+					const { min, max } = boundingBox;
+					for ( let x = - 1; x <= 1; x += 2 ) {
+
+						const xVal = x < 0 ? min.x : max.x;
+						for ( let y = - 1; y <= 1; y += 2 ) {
+
+							const yVal = y < 0 ? min.y : max.y;
+							for ( let z = - 1; z <= 1; z += 2 ) {
+
+								const zVal = z < 0 ? min.z : max.z;
+								positionArray[ posIndex + 0 ] = xVal;
+								positionArray[ posIndex + 1 ] = yVal;
+								positionArray[ posIndex + 2 ] = zVal;
+
+								posIndex += 3;
+
+							}
+
+						}
+
+					}
 
 					return true;
 
 				}
 
-				if ( depth === this.depth - 1 || isTerminal ) {
+			}, group );
 
-					let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
-					if ( ! m ) {
+			// fill in the index buffer to point to the corner points
+			const edgeIndices = new Uint8Array( [
+				// x axis
+				0, 4,
+				1, 5,
+				2, 6,
+				3, 7,
 
-						m = new LineSegments( boxGeom, this._material );
-						m.raycast = () => [];
-						this.add( m );
+				// y axis
+				0, 2,
+				1, 3,
+				4, 6,
+				5, 7,
 
-					}
+				// z axis
+				0, 1,
+				2, 3,
+				4, 5,
+				6, 7,
+			] );
 
-					requiredChildren ++;
-					arrayToBox( boundingData, boundingBox );
-					boundingBox.getCenter( m.position );
-					m.scale.subVectors( boundingBox.max, boundingBox.min ).multiplyScalar( 0.5 );
+			let indexArray;
+			if ( positionArray.length > 65535 ) {
 
-					if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
-					if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
-					if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
+				indexArray = new Uint32Array( 12 * 2 * boundsCount );
+
+			} else {
+
+				indexArray = new Uint16Array( 12 * 2 * boundsCount );
+
+			}
+
+			for ( let i = 0; i < boundsCount; i ++ ) {
+
+				const posOffset = i * 8;
+				const indexOffset = i * 24;
+				for ( let j = 0; j < 24; j ++ ) {
+
+					indexArray[ indexOffset + j ] = posOffset + edgeIndices[ j ];
 
 				}
 
-			} );
+			}
+
+			// update the geometry
+			linesGeometry.setIndex(
+				new BufferAttribute( indexArray, 1, false ),
+			);
+			linesGeometry.setAttribute(
+				'position',
+				new BufferAttribute( positionArray, 3, false ),
+			);
+			this.visible = true;
 
 		}
-
-		while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
 
 	}
 
@@ -90,12 +162,18 @@ class MeshBVHVisualizer extends Group {
 
 	constructor( mesh, depth = 10 ) {
 
-		super( 'MeshBVHVisualizer' );
+		super();
 
+		this.name = 'MeshBVHVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
 		this._roots = [];
-		this._material = new LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
+		this._material = new LineBasicMaterial( {
+			color: 0x00FF88,
+			transparent: true,
+			opacity: 0.3,
+			depthWrite: false,
+		} );
 
 		this.update();
 
