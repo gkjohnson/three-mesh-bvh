@@ -491,7 +491,7 @@ export default class MeshBVH {
 	intersectsBox( mesh, box, boxToMesh ) {
 
 		obb.set( box.min, box.max, boxToMesh );
-		obb.update();
+		obb.needsUpdate = true;
 
 		return this.shapecast(
 			mesh,
@@ -524,7 +524,7 @@ export default class MeshBVH {
 		}
 
 		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
-		obb.update();
+		obb.needsUpdate = true;
 
 		const geometry = this.geometry;
 		const pos = geometry.attributes.position;
@@ -568,7 +568,7 @@ export default class MeshBVH {
 
 							obb2.min.copy( box.min );
 							obb2.max.copy( box.max );
-							obb2.update();
+							obb2.needsUpdate = true;
 
 						}
 
