@@ -1,3 +1,0 @@
-path_classifiers:
-  template:
-    - "src/*.template.js"
