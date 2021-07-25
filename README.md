@@ -13,13 +13,11 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Raycasting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
 
-[Shape intersection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
-
 [Sculpting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
 
-[Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
+[Clipped edges demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
 
-[Distance comparison demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
+[Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
 [Sphere physics collision demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
 
@@ -28,6 +26,10 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 [Lasso selection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
 
 [Point cloud interesection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+
+[Distance comparison demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
+
+[Shape intersection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
 [WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
