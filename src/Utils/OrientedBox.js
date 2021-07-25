@@ -17,6 +17,7 @@ export class OrientedBox extends Box3 {
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.sphere = new Sphere();
+		this.needsUpdate = false;
 
 	}
 
@@ -88,6 +89,7 @@ OrientedBox.prototype.update = ( function () {
 		alignedSatBounds[ 2 ].setFromPointsField( points, 'z' );
 
 		this.invMatrix.copy( this.matrix ).invert();
+		this.needsUpdate = false;
 
 	};
 
@@ -97,6 +99,12 @@ OrientedBox.prototype.intersectsBox = ( function () {
 
 	const aabbBounds = new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
+
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
 
 		if ( ! box.intersectsSphere( this.sphere ) ) return false;
 
@@ -141,6 +149,12 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 	const cachedSatBounds2 = new SeparatingAxisBounds();
 	const cachedAxis = new Vector3();
 	return function intersectsTriangle( triangle ) {
+		
+		if ( this.needsUpdate ) {
+		
+			this.update();
+			
+		}
 
 		if ( ! triangle.isSeparatingAxisTriangle ) {
 
@@ -208,6 +222,12 @@ OrientedBox.prototype.closestPointToPoint = ( function () {
 
 	return function closestPointToPoint( point, target1 ) {
 
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
+
 		target1
 			.copy( point )
 			.applyMatrix4( this.invMatrix )
@@ -244,6 +264,12 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 	// early out if we find a value below threshold
 	return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {
+
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
 
 		if ( this.intersectsBox( box ) ) {
 
