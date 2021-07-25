@@ -1,19 +1,21 @@
-import { LineBasicMaterial, Box3Helper, Box3, Group, LineSegments } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
-const boxGeom = new Box3Helper().geometry;
-let boundingBox = new Box3();
-
+const boundingBox = new Box3();
+const keys = [ 'x', 'y', 'z' ];
 class MeshBVHRootVisualizer extends Group {
 
 	constructor( mesh, material, depth = 10, group = 0 ) {
 
 		super( 'MeshBVHRootVisualizer' );
 
+		const lines = new LineSegments( undefined, material );
+		this.add( lines );
+
 		this.depth = depth;
 		this.mesh = mesh;
+		this._lines = lines;
 		this._group = group;
-		this._material = material;
 
 		this.update();
 
@@ -21,48 +23,82 @@ class MeshBVHRootVisualizer extends Group {
 
 	update() {
 
+		const lines = this._lines;
+		const linesGeometry = lines.geometry;
 		const boundsTree = this.mesh.geometry.boundsTree;
-		let requiredChildren = 0;
+		linesGeometry.dispose();
+		lines.visible = false;
 		if ( boundsTree ) {
 
-			boundsTree.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, countOrIsUnfinished ) => {
+			const targetDepth = this.depth - 1;
+			let boundsCount = 0;
+			boundsTree.traverse( ( depth, isLeaf ) => {
 
-				let isTerminal = isLeaf || countOrIsUnfinished;
+				if ( depth === targetDepth || isLeaf ) {
 
-				// Stop traversal
-				if ( depth >= this.depth ) {
-
+					boundsCount ++;
 					return true;
-
-				}
-
-				if ( depth === this.depth - 1 || isTerminal ) {
-
-					let m = requiredChildren < this.children.length ? this.children[ requiredChildren ] : null;
-					if ( ! m ) {
-
-						m = new LineSegments( boxGeom, this._material );
-						m.raycast = () => [];
-						this.add( m );
-
-					}
-
-					requiredChildren ++;
-					arrayToBox( boundingData, boundingBox );
-					boundingBox.getCenter( m.position );
-					m.scale.subVectors( boundingBox.max, boundingBox.min ).multiplyScalar( 0.5 );
-
-					if ( m.scale.x === 0 ) m.scale.x = Number.EPSILON;
-					if ( m.scale.y === 0 ) m.scale.y = Number.EPSILON;
-					if ( m.scale.z === 0 ) m.scale.z = Number.EPSILON;
 
 				}
 
 			} );
 
-		}
+			let index = 0;
+			const newPosition = new Float32Array( 12 * 6 * boundsCount );
+			boundsTree.traverse( ( depth, isLeaf, boundingData ) => {
 
-		while ( this.children.length > requiredChildren ) this.remove( this.children.pop() );
+				if ( depth === targetDepth || isLeaf ) {
+
+					arrayToBox( boundingData, boundingBox );
+
+					const { min, max } = boundingBox;
+					for ( let k = 0; k < 3; k ++ ) {
+
+						const index0 = k;
+						const index1 = ( k + 1 ) % 3;
+						const index2 = ( k + 2 ) % 3;
+						const key0 = keys[ k ];
+						const key1 = keys[ index1 ];
+						const key2 = keys[ index2 ];
+
+						const v0Pos = max[ key0 ];
+						const v0Neg = min[ key0 ];
+						for ( let i = - 1; i <= 1; i += 2 ) {
+
+							const v1 = i < 0 ? min[ key1 ] : max[ key1 ];
+							for ( let j = - 1; j <= 1; j += 2 ) {
+
+								const v2 = j < 0 ? min[ key2 ] : max[ key2 ];
+
+								newPosition[ index + index0 ] = v0Neg;
+								newPosition[ index + index1 ] = v1;
+								newPosition[ index + index2 ] = v2;
+								index += 3;
+
+								newPosition[ index + index0 ] = v0Pos;
+								newPosition[ index + index1 ] = v1;
+								newPosition[ index + index2 ] = v2;
+								index += 3;
+
+							}
+
+						}
+
+					}
+
+					return true;
+
+				}
+
+			} );
+
+			linesGeometry.setAttribute(
+				'position',
+				new BufferAttribute( newPosition, 3, false ),
+			);
+			lines.visible = true;
+
+		}
 
 	}
 
@@ -95,7 +131,12 @@ class MeshBVHVisualizer extends Group {
 		this.depth = depth;
 		this.mesh = mesh;
 		this._roots = [];
-		this._material = new LineBasicMaterial( { color: 0x00FF88, transparent: true, opacity: 0.3 } );
+		this._material = new LineBasicMaterial( {
+			color: 0x00FF88,
+			transparent: true,
+			opacity: 0.3,
+			depthWrite: false,
+		} );
 
 		this.update();
 
