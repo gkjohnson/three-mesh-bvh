@@ -3,6 +3,7 @@ import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CONTAINED, INTERSECTED, NOT_INTERSECTED } from '../src/index.js';
+import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';
 import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -196,6 +197,7 @@ function render() {
 	const geometry = targetMesh.geometry;
 	const bvh = geometry.boundsTree;
 	const colorAttr = geometry.getAttribute( 'color' );
+	const posAttr = geometry.getAttribute( 'position' );
 	const indexAttr = geometry.index;
 
 	if ( controls.active || ! brushActive ) {
@@ -224,6 +226,7 @@ function render() {
 			sphere.center.copy( brushMesh.position ).applyMatrix4( inverseMatrix );
 			sphere.radius = params.size;
 
+			const triangle = new SeparatingAxisTriangle();
 			const indices = [];
 			const tempVec = new THREE.Vector3();
 			bvh.shapecast(
@@ -267,12 +270,37 @@ function render() {
 
 					},
 
-					intersectsTriangle: ( tri, i, contained ) => {
+					intersectsRange: ( offset, count, contained ) => {
 
-						if ( contained || tri.intersectsSphere( sphere ) ) {
+						if ( contained ) {
 
-							const i3 = 3 * i;
-							indices.push( i3, i3 + 1, i3 + 2 );
+							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i ++ ) {
+
+								indices.push( i );
+
+							}
+
+						} else {
+
+							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+
+								const i0 = indexAttr.getX( i );
+								const i1 = indexAttr.getX( i + 1 );
+								const i2 = indexAttr.getX( i + 2 );
+
+								const { a, b, c } = triangle;
+								a.fromBufferAttribute( posAttr, i0 );
+								b.fromBufferAttribute( posAttr, i1 );
+								c.fromBufferAttribute( posAttr, i2 );
+								triangle.needsUpdate = true;
+
+								if ( triangle.intersectsSphere( sphere ) ) {
+
+									indices.push( i, i + 1, i + 2 );
+
+								}
+
+							}
 
 						}
 
