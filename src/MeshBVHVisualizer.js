@@ -24,6 +24,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 		const linesGeometry = this.geometry;
 		const boundsTree = this.mesh.geometry.boundsTree;
+		const group = this._group;
 		linesGeometry.dispose();
 		this.visible = false;
 		if ( boundsTree ) {
@@ -40,7 +41,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 				}
 
-			} );
+			}, group );
 
 			// fill in the position buffer with the bounds corners
 			let posIndex = 0;
@@ -77,7 +78,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 				}
 
-			} );
+			}, group );
 
 			// fill in the index buffer to point to the corner points
 			const edgeIndices = new Uint8Array( [
