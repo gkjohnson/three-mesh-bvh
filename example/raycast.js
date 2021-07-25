@@ -294,7 +294,7 @@ meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'A
 meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
 meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.open();
 
 window.addEventListener( 'resize', function () {
