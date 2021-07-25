@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Bug in `distanceToGeometry` and `closestPointToGeometry` which would likely result in some closest points being missed. This fix greatly degrades performance in the case where the passed geometry does not have a BVH. It is recommended that the passed in geometry include a computed bounds tree.
 - Cases where passed in geometry that did not include an index buffer could throw an error when calling functions like `closestPointToGeometry`.
 - Case where raycastFirst would return the incorrect result.
+- Greatly improved `MeshBVHVisualizer` render and update performance.
 
 ### Added
 - `distanceToGeometry` and `closestPointToGeometry` fast path when the passed in geometry has a bounds tree.
