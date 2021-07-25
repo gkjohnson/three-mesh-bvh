@@ -362,7 +362,6 @@ export const intersectsGeometry = ( function () {
 			}
 
 			obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
-			obb.update();
 			cachedObb = obb;
 
 		}
@@ -389,7 +388,7 @@ export const intersectsGeometry = ( function () {
 
 				arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, obb2 );
 				obb2.matrix.copy( invertedMat );
-				obb2.update();
+				obb2.needsUpdate = true;
 
 				cachedMesh.geometry = otherGeometry;
 				const res = otherGeometry.boundsTree.shapecast( cachedMesh, {
@@ -401,13 +400,13 @@ export const intersectsGeometry = ( function () {
 						tri.a.applyMatrix4( geometryToBvh );
 						tri.b.applyMatrix4( geometryToBvh );
 						tri.c.applyMatrix4( geometryToBvh );
-						tri.update();
+						tri.needsUpdate = true;
 
 						for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
 
 							// this triangle needs to be transformed into the current BVH coordinate frame
 							setTriangle( triangle2, i, thisIndex, thisPos );
-							triangle2.update();
+							triangle2.needsUpdate = true;
 							if ( tri.intersectsTriangle( triangle2 ) ) {
 
 								return true;
@@ -434,12 +433,12 @@ export const intersectsGeometry = ( function () {
 					triangle.a.applyMatrix4( invertedMat );
 					triangle.b.applyMatrix4( invertedMat );
 					triangle.c.applyMatrix4( invertedMat );
-					triangle.update();
+					triangle.needsUpdate = true;
 
 					for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
 
 						setTriangle( triangle2, i2, index, pos );
-						triangle2.update();
+						triangle2.needsUpdate = true;
 
 						if ( triangle.intersectsTriangle( triangle2 ) ) {
 
