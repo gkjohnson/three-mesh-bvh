@@ -23,20 +23,12 @@ export class SeparatingAxisTriangle extends Triangle {
 
 	}
 
-}
-
-SeparatingAxisTriangle.prototype.update = ( function () {
-
-	const arr = new Array( 3 );
-	return function update() {
+	update() {
 
 		const a = this.a;
 		const b = this.b;
 		const c = this.c;
-
-		arr[ 0 ] = this.a;
-		arr[ 1 ] = this.b;
-		arr[ 2 ] = this.c;
+		const points = this.points;
 
 		const satAxes = this.satAxes;
 		const satBounds = this.satBounds;
@@ -44,29 +36,29 @@ SeparatingAxisTriangle.prototype.update = ( function () {
 		const axis0 = satAxes[ 0 ];
 		const sab0 = satBounds[ 0 ];
 		this.getNormal( axis0 );
-		sab0.setFromPoints( axis0, arr );
+		sab0.setFromPoints( axis0, points );
 
 		const axis1 = satAxes[ 1 ];
 		const sab1 = satBounds[ 1 ];
 		axis1.subVectors( a, b );
-		sab1.setFromPoints( axis1, arr );
+		sab1.setFromPoints( axis1, points );
 
 		const axis2 = satAxes[ 2 ];
 		const sab2 = satBounds[ 2 ];
 		axis2.subVectors( b, c );
-		sab2.setFromPoints( axis2, arr );
+		sab2.setFromPoints( axis2, points );
 
 		const axis3 = satAxes[ 3 ];
 		const sab3 = satBounds[ 3 ];
 		axis3.subVectors( c, a );
-		sab3.setFromPoints( axis3, arr );
+		sab3.setFromPoints( axis3, points );
 
 		this.sphere.setFromPoints( this.points );
 		this.needsUpdate = false;
 
-	};
+	}
 
-} )();
+}
 
 SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
 
@@ -75,12 +67,6 @@ SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
 	const edge = new Line3();
 
 	return function distanceToSegment( segment, target1 = null, target2 = null ) {
-
-		if ( this.needsUpdate ) {
-
-			this.update();
-
-		}
 
 		const { start, end } = segment;
 		const points = this.points;
@@ -235,18 +221,6 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 	const line2 = new Line3();
 
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
-
-		if ( other.needsUpdate ) {
-
-			other.update();
-
-		}
-
-		if ( this.needsUpdate ) {
-
-			this.update();
-
-		}
 
 		if ( this.intersectsTriangle( other ) ) {
 
