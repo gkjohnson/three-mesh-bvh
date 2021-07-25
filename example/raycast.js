@@ -54,7 +54,7 @@ document.body.appendChild( stats.dom );
 const rayCasterObjects = [];
 const raycaster = new THREE.Raycaster();
 const sphere = new THREE.SphereGeometry( 0.25, 20, 20 );
-const cylinder = new THREE.CylinderGeometry( 0.02, 0.02 );
+const cylinder = new THREE.CylinderGeometry( 0.01, 0.01 );
 const pointDist = 25;
 
 const knots = [];
@@ -95,7 +95,8 @@ const addRaycaster = () => {
 	const material = new THREE.MeshBasicMaterial( { color: 0xffffff } );
 	const origMesh = new THREE.Mesh( sphere, material );
 	const hitMesh = new THREE.Mesh( sphere, material );
-	hitMesh.scale.multiplyScalar( 0.5 );
+	hitMesh.scale.multiplyScalar( 0.25 );
+	origMesh.scale.multiplyScalar( 0.5 );
 
 	const cylinderMesh = new THREE.Mesh( cylinder, new THREE.MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.25 } ) );
 
@@ -109,17 +110,20 @@ const addRaycaster = () => {
 	origMesh.position.set( pointDist, 0, 0 );
 	obj.rotation.x = Math.random() * 10;
 	obj.rotation.y = Math.random() * 10;
+	obj.rotation.z = Math.random() * 10;
 
 	// reusable vectors
 	const origVec = new THREE.Vector3();
 	const dirVec = new THREE.Vector3();
 	const xDir = ( Math.random() - 0.5 );
 	const yDir = ( Math.random() - 0.5 );
+	const zDir = ( Math.random() - 0.5 );
 	rayCasterObjects.push( {
 		update: () => {
 
 			obj.rotation.x += xDir * 0.0001 * params.raycasters.speed * deltaTime;
 			obj.rotation.y += yDir * 0.0001 * params.raycasters.speed * deltaTime;
+			obj.rotation.z += zDir * 0.0001 * params.raycasters.speed * deltaTime;
 
 			origMesh.updateMatrixWorld();
 			origVec.setFromMatrixPosition( origMesh.matrixWorld );
@@ -284,7 +288,7 @@ const render = () => {
 // Run
 const gui = new dat.GUI();
 const rcFolder = gui.addFolder( 'Raycasters' );
-rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 500 ).step( 1 ).onChange( () => updateFromOptions() );
+rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
 rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
 rcFolder.open();
 
@@ -294,7 +298,7 @@ meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'A
 meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
 meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.open();
 
 window.addEventListener( 'resize', function () {
