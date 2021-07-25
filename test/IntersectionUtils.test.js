@@ -41,11 +41,12 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, - 1, 0 );
 		t1.b.set( 1, - 1, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 1, 0, 0 );
 		t2.b.set( 0, 0, 1 );
 		t2.c.set( - 2, 0, 1 );
+		t2.needsUpdate = true;
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
@@ -56,7 +57,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 1, 0, 0 );
 		t2.b.set( 1, 0, 0 );
@@ -71,7 +72,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 1, 0, 0.01 );
 		t2.b.set( 1, 0, 0.01 );
@@ -86,7 +87,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 3, 0, 0 );
 		t2.b.set( - 1.001, 0, 0 );
@@ -101,7 +102,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 2, 0, 0 );
 		t2.b.set( 0, 0, 0 );
@@ -116,7 +117,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 1, 0, 0 );
 		t2.b.set( - 3, 0, 0 );
@@ -131,7 +132,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( 0, 0.5, 0 );
 		t2.b.set( - 1, 0.5, 1 );
@@ -146,7 +147,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( - 0.5, 0.25, 0 );
 		t2.b.set( 0.5, 0.25, 0 );
@@ -161,7 +162,7 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
-		t1.update();
+		t1.needsUpdate = true;
 
 		t2.a.set( 0, 0.5, 0.5 );
 		t2.b.set( 0.5, 0.5, - 0.5 );
@@ -347,7 +348,7 @@ describe( 'Box Intersections', () => {
 		box.min.set( - 1, - 1, - 1 );
 		box.max.set( 1, 1, 1 );
 		getRandomOrientation( box.matrix, 10 );
-		box.update();
+		box.needsUpdate = true;
 
 		center = new Vector3();
 		center.setFromMatrixPosition( box.matrix );
