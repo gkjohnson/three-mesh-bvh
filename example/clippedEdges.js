@@ -17,6 +17,8 @@ const params = {
 	displayModel: true,
 
 	animate: true,
+	animation: 'SPIN',
+	invert: false,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -26,6 +28,7 @@ let frontSideModel, backSideModel, planeMesh;
 let clippingPlanes, outlineLines;
 let initialClip = false;
 let outputElement = null;
+let time = 0;
 
 const tempVector = new THREE.Vector3();
 const tempLine = new THREE.Line3();
@@ -78,6 +81,7 @@ function init() {
 	];
 
 	planeMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( {
+		side: THREE.DoubleSide,
 		stencilWrite: true,
 		stencilFunc: THREE.NotEqualStencilFunc,
 		stencilFail: THREE.ZeroStencilOp,
@@ -269,7 +273,13 @@ function init() {
 	// dat.gui
 	gui = new GUI();
 
+	gui.add( params, 'invert' );
 	gui.add( params, 'animate' );
+	gui.add( params, 'animation', [ 'SPIN', 'PLANAR' ] ).onChange( v => {
+
+		time = 0;
+
+	} );
 	gui.add( params, 'displayModel' );
 	gui.add( params, 'useBVH' );
 
@@ -326,15 +336,30 @@ function render() {
 	const delta = Math.min( clock.getDelta(), 0.03 );
 	if ( params.animate ) {
 
-		planeMesh.rotation.x += 0.25 * delta;
-		planeMesh.rotation.y += 0.25 * delta;
-		planeMesh.rotation.z += 0.25 * delta;
+		time += delta;
+
+		if ( params.animation === 'SPIN' ) {
+
+			planeMesh.rotation.x = 0.25 * time;
+			planeMesh.rotation.y = 0.25 * time;
+			planeMesh.rotation.z = 0.25 * time;
+			planeMesh.position.set( 0, 0, 0 );
+
+		} else {
+
+			planeMesh.position.set( Math.sin( 0.25 * time ) * 0.325, 0, 0 );
+			planeMesh.rotation.set( 0, Math.PI / 2, 0 );
+
+		}
+
 		planeMesh.updateMatrixWorld();
 
 	}
 
 	const clippingPlane = clippingPlanes[ 0 ];
-	clippingPlane.normal.set( 0, 0, - 1 ).applyMatrix4( planeMesh.matrixWorld );
+	clippingPlane.normal.set( 0, 0, params.invert ? 1 : - 1 );
+	clippingPlane.constant = 0;
+	clippingPlane.applyMatrix4( planeMesh.matrixWorld );
 
 	// Perform the clipping
 	if ( colliderBvh && ( params.animate || ! initialClip ) ) {
