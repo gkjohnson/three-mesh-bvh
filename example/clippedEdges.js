@@ -275,7 +275,7 @@ function init() {
 
 	gui.add( params, 'invert' );
 	gui.add( params, 'animate' );
-	gui.add( params, 'animation', [ 'SPIN', 'PLANAR' ] ).onChange( v => {
+	gui.add( params, 'animation', [ 'SPIN', 'OSCILLATE' ] ).onChange( () => {
 
 		time = 0;
 
