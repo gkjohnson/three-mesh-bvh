@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.4.2] - 2021-08-04
 ### Fixed
 - Case where `intersectsRangeFunc` could be passed the incorrect node id in shapecast.
 - Bug in `distanceToGeometry` and `closestPointToGeometry` which would likely result in some closest points being missed. This fix greatly degrades performance in the case where the passed geometry does not have a BVH. It is recommended that the passed in geometry include a computed bounds tree.
