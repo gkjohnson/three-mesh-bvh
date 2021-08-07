@@ -3,7 +3,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'dat.gui';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer, INTERSECTED, NOT_INTERSECTED } from '../src/index.js';
+import {
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer, INTERSECTED, NOT_INTERSECTED,
+	SAH, CENTER, AVERAGE,
+} from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -20,7 +23,9 @@ const params = {
 
 	displayHelper: false,
 	helperDepth: 10,
+	displayParents: false,
 
+	strategy: CENTER,
 	pointSize: 0.005,
 	raycastThreshold: 0.005,
 	useBVH: true,
@@ -89,7 +94,7 @@ function init() {
 		bvhGeometry.setIndex( indices );
 		const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
 		bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
-		bvhMesh.geometry.computeBoundsTree();
+		bvhMesh.geometry.computeBoundsTree( { mode: params.mode } );
 
 		helper = new MeshBVHVisualizer( bvhMesh, params.depth );
 		scene.add( helper );
@@ -105,6 +110,12 @@ function init() {
 	const gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
 	helperFolder.add( params, 'displayHelper' );
+	helperFolder.add( params, 'displayParents' ).onChange( v => {
+
+		helper.displayParents = v;
+		helper.update();
+
+	} );
 	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).name( 'depth' ).onChange( v => {
 
 		helper.depth = parseInt( v );
@@ -115,6 +126,12 @@ function init() {
 
 	const pointsFolder = gui.addFolder( 'points' );
 	pointsFolder.add( params, 'useBVH' );
+	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( v => {
+
+		bvhMesh.geometry.computeBoundsTree( { strategy: parseInt( v ) } );
+		helper.update();
+
+	} );
 	pointsFolder.add( params, 'pointSize', 0.001, 0.01, 0.001 );
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();

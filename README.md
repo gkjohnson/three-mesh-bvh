@@ -471,7 +471,7 @@ The depth to traverse and visualize the tree to.
 ### .color
 
 ```js
-color : THREE.Color
+color = 0x00FF88 : THREE.Color
 ```
 
 The color to render the bounding volume with.
@@ -479,10 +479,18 @@ The color to render the bounding volume with.
 ### .opacity
 
 ```js
-opacity : Number
+opacity = 0.3 : Number
 ```
 
 The opacity to render the bounding volume with.
+
+### .displayParents
+
+```js
+displayParents = false : Boolean
+```
+
+Whether or not to display the parent bounds.
 
 ### .constructor
 
