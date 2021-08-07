@@ -3,7 +3,6 @@ import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
-import "@babel/polyfill";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -69,6 +68,7 @@ const params = {
 		count: 1,
 		useBoundsTree: true,
 		visualizeBounds: false,
+		displayParents: false,
 		speed: 1,
 		visualBoundsDepth: 10
 	}
@@ -247,6 +247,7 @@ const updateFromOptions = () => {
 	if ( boundsViz ) {
 
 		boundsViz.depth = params.mesh.visualBoundsDepth;
+		boundsViz.displayParents = params.mesh.displayParents;
 		boundsViz.update();
 
 	}
@@ -298,6 +299,7 @@ meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'A
 meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
 meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+meshFolder.add( params.mesh, 'displayParents' ).onChange( () => updateFromOptions() );
 meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
 meshFolder.open();
 

@@ -172,6 +172,7 @@ class MeshBVHVisualizer extends Group {
 		this.name = 'MeshBVHVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
+		this.displayParents = false;
 		this._roots = [];
 		this._material = new LineBasicMaterial( {
 			color: 0x00FF88,
