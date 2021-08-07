@@ -149,7 +149,6 @@ function runSuite( strategy ) {
 
 	);
 
-	geometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'Refit',

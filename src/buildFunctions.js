@@ -263,10 +263,11 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 	} else if ( strategy === SAH ) {
 
-		// TODO: compute cost for current node and don't split if we can't beat the cost
-		let bestCost = Infinity;
-		let _leftTriCount = 0;
-		let _rightTriCount = 0;
+		const l0 = nodeBoundingData[ 3 + 0 ] - nodeBoundingData[ 0 ];
+		const l1 = nodeBoundingData[ 3 + 1 ] - nodeBoundingData[ 1 ];
+		const l2 = nodeBoundingData[ 3 + 2 ] - nodeBoundingData[ 2 ];
+		const rootSurfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
+		let bestCost = rootSurfaceArea * count;
 
 		// iterate over all axes
 		const cStart = offset * 6;
@@ -327,15 +328,13 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				);
 
 				const rightTriCount = count - leftTriCount;
-				const cost = 1 + leftSurfaceArea * leftTriCount + rightSurfaceArea * rightTriCount;
+				const cost = leftSurfaceArea * leftTriCount + rightSurfaceArea * rightTriCount;
 
 				if ( cost < bestCost ) {
 
 					axis = a;
 					pos = leftSplitPos;
 					bestCost = cost;
-					_leftTriCount = leftTriCount;
-					_rightTriCount = rightTriCount;
 
 				}
 
