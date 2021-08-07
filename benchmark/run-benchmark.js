@@ -270,7 +270,6 @@ function runSuite( strategy ) {
 
 	);
 
-	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'DistanceToGeometry w/ BVH',
@@ -292,7 +291,6 @@ function runSuite( strategy ) {
 
 	console.log( '' );
 
-	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'IntersectsGeometry w/ BVH',
