@@ -263,6 +263,86 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 	} else if ( strategy === SAH ) {
 
+		// TODO: compute cost for current node and don't split if we can't beat the cost
+		let bestCost = Infinity;
+		let _leftTriCount = 0;
+		let _rightTriCount = 0;
+
+		// iterate over all axes
+		const cStart = offset * 6;
+		const cEnd = ( offset + count ) * 6;
+		for ( let a = 0; a < 3; a ++ ) {
+
+			const axis1 = ( a + 1 ) % 3;
+			const axis2 = ( a + 2 ) % 3;
+
+			const axis1Length = nodeBoundingData[ axis1 + 3 ] - nodeBoundingData[ axis1 ];
+			const axis2Length = nodeBoundingData[ axis2 + 3 ] - nodeBoundingData[ axis2 ];
+			const axisLeft = nodeBoundingData[ a ];
+			const axisRight = nodeBoundingData[ a + 3 ];
+
+			// iterate over all center positions
+			for ( let c = cStart; c < cEnd; c += 6 ) {
+
+				const cCenterIndex = c + 2 * a;
+				const leftSplitPos = triangleBounds[ cCenterIndex ] + triangleBounds[ cCenterIndex + 1 ];
+				let rightSplitPos = axisRight;
+				let leftTriCount = 0;
+
+				// find the number of triangles on the left and right
+				for ( let c2 = cStart; c2 < cEnd; c2 += 6 ) {
+
+					// TODO: make sure this is how the "partition" function will split axes, too
+					const c2CenterIndex = c2 + 2 * a;
+					const triCenter = triangleBounds[ c2CenterIndex ];
+					if ( triCenter < leftSplitPos ) {
+
+						leftTriCount ++;
+
+					} else {
+
+						const triLeft = triCenter - triangleBounds[ c2CenterIndex + 1 ];
+						if ( triLeft < rightSplitPos ) {
+
+							rightSplitPos = triLeft;
+
+						}
+
+					}
+
+				}
+
+				const leftLength = leftSplitPos - axisLeft;
+				const rightLength = axisRight - rightSplitPos;
+
+				const leftSurfaceArea = 2 * (
+					leftLength * axis1Length +
+					leftLength * axis2Length +
+					axis1Length * axis2Length
+				);
+				const rightSurfaceArea = 2 * (
+					rightLength * axis1Length +
+					rightLength * axis2Length +
+					axis1Length * axis2Length
+				);
+
+				const rightTriCount = count - leftTriCount;
+				const cost = 1 + leftSurfaceArea * leftTriCount + rightSurfaceArea * rightTriCount;
+
+				if ( cost < bestCost ) {
+
+					axis = a;
+					pos = leftSplitPos;
+					bestCost = cost;
+					_leftTriCount = leftTriCount;
+					_rightTriCount = rightTriCount;
+
+				}
+
+			}
+
+		}
+
 	}
 
 	return { axis, pos };
