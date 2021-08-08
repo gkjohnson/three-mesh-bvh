@@ -394,35 +394,44 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				const bin = sahBins[ i ];
 				const count = bin.count;
 				const bounds = bin.bounds;
-				leftCount += count;
 
-				if ( count === 0 ) {
+				// dont do anything with the bounds if the new bounds have no triangles
+				if ( count !== 0 ) {
 
-					continue;
+					if ( leftCount === 0 ) {
 
-				}
+						copyBounds( bounds, leftBounds );
 
-				if ( i === 0 ) {
+					} else {
 
-					copyBounds( bounds, leftBounds );
-
-				} else {
-
-					unionBounds( bounds, leftBounds );
-
-				}
-
-				// TODO: could be cached ahead of time
-				const nexti = i + 1;
-				if ( nexti < BIN_COUNT ) {
-
-					copyBounds( sahBins[ nexti ].bounds, rightBounds );
-					for ( let j = nexti + 1; j < BIN_COUNT; j ++ ) {
-
-						unionBounds( sahBins[ j ].bounds, rightBounds );
+						unionBounds( bounds, leftBounds );
 
 					}
 
+				}
+
+				leftCount += count;
+
+				// TODO: could be cached ahead of time
+				// fill out the right bounds
+				let initialized = false;
+				for ( let j = i + 1; j < BIN_COUNT; j ++ ) {
+
+					const bin = sahBins[ j ];
+					if ( bin.count !== 0 ) {
+
+						if ( initialized === false ) {
+
+							copyBounds( sahBins[ j ].bounds, rightBounds );
+							initialized = true;
+
+						} else {
+
+							unionBounds( sahBins[ j ].bounds, rightBounds );
+
+						}
+
+					}
 
 				}
 
@@ -440,8 +449,8 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				if ( cost < bestCost ) {
 
 					axis = a;
-					pos = splitCandidate;
 					bestCost = cost;
+					pos = bin.candidate;
 
 				}
 
