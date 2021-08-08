@@ -265,13 +265,17 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 		// TODO: hone these costs
 		const TRAVERSAL_COST = 1;
-		const TRIANGLE_COST = 1.5;
+		const TRIANGLE_COST = 1.25;
 		const l0 = nodeBoundingData[ 3 + 0 ] - nodeBoundingData[ 0 ];
 		const l1 = nodeBoundingData[ 3 + 1 ] - nodeBoundingData[ 1 ];
 		const l2 = nodeBoundingData[ 3 + 2 ] - nodeBoundingData[ 2 ];
 		const rootSurfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
 		let bestCost = TRIANGLE_COST * count;
 
+		// TODO: if the plane list were already pre-sorted (and maintained as pre sorted) this could be a lot faster
+		// because we wouldn't have to iterate twice.
+		// TODO: look into "binning" here:
+		// http://www.sci.utah.edu/~wald/Publications/2007/ParallelBVHBuild/fastbuild.pdf
 		// iterate over all axes
 		const cStart = offset * 6;
 		const cEnd = ( offset + count ) * 6;
@@ -324,6 +328,9 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
+				// TODO: make sure we use tight bounds for the other two axes to get the best cost
+				// TODO: it might be good enough to evaluate SA without creating optimal bounds -- ie
+				// just split the bounds and measure which would simplify the processing
 				const leftLength = leftSplitPos - axisLeft;
 				const rightLength = axisRight - rightSplitPos;
 

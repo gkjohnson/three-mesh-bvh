@@ -10,6 +10,7 @@ const params = {
 
 	displayCollider: false,
 	displayBVH: false,
+	displayParents: false,
 	visualizeDepth: 10,
 	gravity: - 9.8,
 	physicsSteps: 5,
@@ -96,6 +97,12 @@ function init() {
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayCollider' );
 	visFolder.add( params, 'displayBVH' );
+	visFolder.add( params, 'displayParents' ).onChange( v => {
+
+		visualizer.displayParents = v;
+		visualizer.update();
+
+	} );
 	visFolder.add( params, 'visualizeDepth', 1, 20, 1 ).onChange( v => {
 
 		visualizer.depth = v;

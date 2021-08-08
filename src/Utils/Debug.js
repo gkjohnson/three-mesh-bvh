@@ -27,6 +27,8 @@ function getRootExtremes( bvh, group ) {
 
 	// TODO: return the score of the total surface area so tree construction
 	// can be compared.
+	const TRAVERSAL_COST = 1;
+	const TRIANGLE_COST = 1.25;
 	const result = {
 		total: 0,
 		depth: {
@@ -35,10 +37,17 @@ function getRootExtremes( bvh, group ) {
 		tris: {
 			min: Infinity, max: - Infinity
 		},
-		splits: [ 0, 0, 0 ]
+		splits: [ 0, 0, 0 ],
+		surfaceAreaCost: 0,
 	};
 
 	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, count ) => {
+
+		const l0 = boundingData[ 0 + 3 ] - boundingData[ 0 ];
+		const l1 = boundingData[ 1 + 3 ] - boundingData[ 1 ];
+		const l2 = boundingData[ 2 + 3 ] - boundingData[ 2 ];
+
+		const surfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
 
 		result.total ++;
 		if ( isLeaf ) {
@@ -49,9 +58,13 @@ function getRootExtremes( bvh, group ) {
 			result.tris.min = Math.min( count, result.tris.min );
 			result.tris.max = Math.max( count, result.tris.max );
 
+			result.surfaceAreaCost += surfaceArea * TRIANGLE_COST * count;
+
 		} else {
 
 			result.splits[ offsetOrSplit ] ++;
+
+			result.surfaceAreaCost += surfaceArea * TRAVERSAL_COST;
 
 		}
 
