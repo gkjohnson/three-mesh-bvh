@@ -25,6 +25,8 @@ function isTypedArray( arr ) {
 
 function getRootExtremes( bvh, group ) {
 
+	// TODO: return the score of the total surface area so tree construction
+	// can be compared.
 	const result = {
 		total: 0,
 		depth: {

@@ -263,11 +263,14 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 	} else if ( strategy === SAH ) {
 
+		// TODO: hone these costs
+		const TRAVERSAL_COST = 1;
+		const TRIANGLE_COST = 1.5;
 		const l0 = nodeBoundingData[ 3 + 0 ] - nodeBoundingData[ 0 ];
 		const l1 = nodeBoundingData[ 3 + 1 ] - nodeBoundingData[ 1 ];
 		const l2 = nodeBoundingData[ 3 + 2 ] - nodeBoundingData[ 2 ];
 		const rootSurfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
-		let bestCost = rootSurfaceArea * count;
+		let bestCost = TRIANGLE_COST * count;
 
 		// iterate over all axes
 		const cStart = offset * 6;
@@ -286,19 +289,27 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			for ( let c = cStart; c < cEnd; c += 6 ) {
 
 				const cCenterIndex = c + 2 * a;
-				const leftSplitPos = triangleBounds[ cCenterIndex ] + triangleBounds[ cCenterIndex + 1 ];
+				const splitCandidate = triangleBounds[ cCenterIndex ];
 				let rightSplitPos = axisRight;
-				let leftTriCount = 0;
+				let leftSplitPos = axisLeft;
+				let leftCount = 0;
 
 				// find the number of triangles on the left and right
 				for ( let c2 = cStart; c2 < cEnd; c2 += 6 ) {
 
-					// TODO: make sure this is how the "partition" function will split axes, too
 					const c2CenterIndex = c2 + 2 * a;
 					const triCenter = triangleBounds[ c2CenterIndex ];
-					if ( triCenter < leftSplitPos ) {
+					if ( triCenter < splitCandidate ) {
 
-						leftTriCount ++;
+						leftCount ++;
+
+						const triRight = triCenter + triangleBounds[ c2CenterIndex + 1 ];
+						if ( triRight > leftSplitPos ) {
+
+							leftSplitPos = triRight;
+
+						}
+
 
 					} else {
 
@@ -327,13 +338,18 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 					axis1Length * axis2Length
 				);
 
-				const rightTriCount = count - leftTriCount;
-				const cost = leftSurfaceArea * leftTriCount + rightSurfaceArea * rightTriCount;
+				const leftProb = leftSurfaceArea / rootSurfaceArea;
+				const rightProb = rightSurfaceArea / rootSurfaceArea;
+
+				const rightCount = count - leftCount;
+				const cost = TRAVERSAL_COST + TRIANGLE_COST * (
+					leftProb * leftCount + rightProb * rightCount
+				);
 
 				if ( cost < bestCost ) {
 
 					axis = a;
-					pos = leftSplitPos;
+					pos = splitCandidate;
 					bestCost = cost;
 
 				}
