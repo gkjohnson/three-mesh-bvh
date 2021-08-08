@@ -237,6 +237,55 @@ function partition( index, triangleBounds, offset, count, split ) {
 
 }
 
+const BIN_COUNT = 32;
+const sahBins = new Array( BIN_COUNT ).fill().map( () => {
+
+	return {
+
+		count: 0,
+		bounds: new Float32Array( 6 ),
+		candidate: 0,
+
+	};
+
+} );
+const leftBounds = new Float32Array( 6 );
+const rightBounds = new Float32Array( 6 )
+
+function unionBounds( a, b ) {
+
+	for ( let d = 0; d < 3; d ++ ) {
+
+		const d3 = d + 3;
+		if ( a[ d ] < b[ d ] ) b[ d ] = a[ d ];
+		if ( a[ d3 ] > b[ d3 ] ) b[ d3 ] = a[ d3 ];
+
+	}
+
+}
+
+function copyBounds( a, b ) {
+
+	for ( let d = 0; d < 3; d ++ ) {
+
+		const d3 = d + 3;
+		if ( a[ d ] < b[ d ] ) b[ d ] = a[ d ];
+		if ( a[ d3 ] > b[ d3 ] ) b[ d3 ] = a[ d3 ];
+
+	}
+
+}
+
+function boundsSurfaceArea( bounds ) {
+
+	const d0 = bounds[ 3 ] - bounds[ 0 ];
+	const d1 = bounds[ 4 ] - bounds[ 1 ];
+	const d2 = bounds[ 5 ] - bounds[ 2 ];
+
+	return 2 * ( d0 * d1 + d1 * d2 + d2 * d0 );
+
+}
+
 function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
 
 	let axis = - 1;
@@ -266,11 +315,9 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 		// TODO: hone these costs
 		const TRAVERSAL_COST = 1;
 		const TRIANGLE_COST = 1.25;
-		const l0 = nodeBoundingData[ 3 + 0 ] - nodeBoundingData[ 0 ];
-		const l1 = nodeBoundingData[ 3 + 1 ] - nodeBoundingData[ 1 ];
-		const l2 = nodeBoundingData[ 3 + 2 ] - nodeBoundingData[ 2 ];
-		const rootSurfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
-		let bestCost = TRIANGLE_COST * count;
+		const rootSurfaceArea = boundsSurfaceArea( nodeBoundingData );
+		// let bestCost = TRIANGLE_COST * count;
+		let bestCost = Infinity;
 
 		// TODO: if the plane list were already pre-sorted (and maintained as pre sorted) this could be a lot faster
 		// because we wouldn't have to iterate twice.
@@ -281,69 +328,106 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 		const cEnd = ( offset + count ) * 6;
 		for ( let a = 0; a < 3; a ++ ) {
 
-			const axis1 = ( a + 1 ) % 3;
-			const axis2 = ( a + 2 ) % 3;
-
-			const axis1Length = nodeBoundingData[ axis1 + 3 ] - nodeBoundingData[ axis1 ];
-			const axis2Length = nodeBoundingData[ axis2 + 3 ] - nodeBoundingData[ axis2 ];
 			const axisLeft = nodeBoundingData[ a ];
 			const axisRight = nodeBoundingData[ a + 3 ];
+			const axisLength = axisRight - axisLeft;
+			const binWidth = axisLength / 32;
+
+			// reset the bins
+			for ( let i = 0; i < BIN_COUNT; i ++ ) {
+
+				const bin = sahBins[ i ];
+				bin.count = 0;
+				bin.candidate = axisLeft + binWidth + i * binWidth;
+
+				const bounds = bin.bounds;
+				for ( let d = 0; d < 3; d ++ ) {
+
+					bounds[ d ] = Infinity;
+					bounds[ d + 3 ] = - Infinity;
+
+				}
+
+			}
 
 			// iterate over all center positions
 			for ( let c = cStart; c < cEnd; c += 6 ) {
 
 				const cCenterIndex = c + 2 * a;
 				const splitCandidate = triangleBounds[ cCenterIndex ];
-				let rightSplitPos = axisRight;
-				let leftSplitPos = axisLeft;
-				let leftCount = 0;
 
-				// find the number of triangles on the left and right
-				for ( let c2 = cStart; c2 < cEnd; c2 += 6 ) {
+				// TODO: make sure this aligns with how partitioning works
+				let binIndex = ~ ~ ( ( splitCandidate - axisLeft ) / binWidth );
+				if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
 
-					const c2CenterIndex = c2 + 2 * a;
-					const triCenter = triangleBounds[ c2CenterIndex ];
-					if ( triCenter < splitCandidate ) {
+				const bin = sahBins[ binIndex ];
+				bin.count ++;
 
-						leftCount ++;
+				const bounds = bin.bounds;
+				for ( let d = 0; d < 3; d ++ ) {
 
-						const triRight = triCenter + triangleBounds[ c2CenterIndex + 1 ];
-						if ( triRight > leftSplitPos ) {
+					const tCenter = triangleBounds[ c + d ];
+					const tHalf = triangleBounds[ c + d + 3 ];
 
-							leftSplitPos = triRight;
+					const tMin = tCenter - tHalf;
+					const tMax = tCenter + tHalf;
 
-						}
+					if ( tMin < bounds[ d ] ) {
 
+						bounds[ d ] = tMin;
 
-					} else {
+					}
 
-						const triLeft = triCenter - triangleBounds[ c2CenterIndex + 1 ];
-						if ( triLeft < rightSplitPos ) {
+					if ( tMax > bounds[ d + 3 ] ) {
 
-							rightSplitPos = triLeft;
-
-						}
+						bounds[ d + 3 ] = tMax;
 
 					}
 
 				}
 
-				// TODO: make sure we use tight bounds for the other two axes to get the best cost
-				// TODO: it might be good enough to evaluate SA without creating optimal bounds -- ie
-				// just split the bounds and measure which would simplify the processing
-				const leftLength = leftSplitPos - axisLeft;
-				const rightLength = axisRight - rightSplitPos;
+			}
 
-				const leftSurfaceArea = 2 * (
-					leftLength * axis1Length +
-					leftLength * axis2Length +
-					axis1Length * axis2Length
-				);
-				const rightSurfaceArea = 2 * (
-					rightLength * axis1Length +
-					rightLength * axis2Length +
-					axis1Length * axis2Length
-				);
+			let leftCount = 0;
+			for ( let i = 0; i < BIN_COUNT; i ++ ) {
+
+				const bin = sahBins[ i ];
+				const count = bin.count;
+				const bounds = bin.bounds;
+				leftCount += count;
+
+				if ( count === 0 ) {
+
+					continue;
+
+				}
+
+				if ( i === 0 ) {
+
+					copyBounds( bounds, leftBounds );
+
+				} else {
+
+					unionBounds( bounds, leftBounds );
+
+				}
+
+				// TODO: could be cached ahead of time
+				const nexti = i + 1;
+				if ( nexti < BIN_COUNT ) {
+
+					copyBounds( sahBins[ nexti ].bounds, rightBounds );
+					for ( let j = nexti + 1; j < BIN_COUNT; j ++ ) {
+
+						unionBounds( sahBins[ j ].bounds, rightBounds );
+
+					}
+
+
+				}
+
+				const leftSurfaceArea = boundsSurfaceArea( leftBounds );
+				const rightSurfaceArea = boundsSurfaceArea( rightBounds	);
 
 				const leftProb = leftSurfaceArea / rootSurfaceArea;
 				const rightProb = rightSurfaceArea / rootSurfaceArea;
