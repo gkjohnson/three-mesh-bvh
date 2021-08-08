@@ -94,7 +94,10 @@ function init() {
 		bvhGeometry.setIndex( indices );
 		const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
 		bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
+
+		console.time( 'computeBoundsTree' );
 		bvhMesh.geometry.computeBoundsTree( { mode: params.mode } );
+		console.timeEnd( 'computeBoundsTree' );
 
 		helper = new MeshBVHVisualizer( bvhMesh, params.depth );
 		scene.add( helper );
@@ -128,7 +131,9 @@ function init() {
 	pointsFolder.add( params, 'useBVH' );
 	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( v => {
 
+		console.time( 'computeBoundsTree' );
 		bvhMesh.geometry.computeBoundsTree( { strategy: parseInt( v ) } );
+		console.timeEnd( 'computeBoundsTree' );
 		helper.update();
 
 	} );
