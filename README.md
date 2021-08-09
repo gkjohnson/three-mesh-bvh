@@ -154,7 +154,7 @@ worker.generate( geometry ).then( bvh => {
 
 Option for splitting each BVH node down the center of the longest axis of the bounds.
 
-This is the fastest construction option but will yield a less optimal hierarchy.
+This is the fastest construction option and will yield a good bounds.
 
 #### AVERAGE
 
@@ -162,11 +162,9 @@ Option for splitting each BVH node at the average point along the longest axis f
 
 #### SAH
 
-Option to use a Surface Area Heuristic to split the bounds optimally.
+Option to use a Surface Area Heuristic to split the bounds optimally. This SAH implementation tests 32 discrete splits in each node along each axis to determine which split is the best one.
 
-This is the slowest construction option.
-
-_NOTE: This split strategy is in progress_
+This is the slowest construction option but will yield the best bounds of the three options.
 
 ## Shapecast Intersection Constants
 
