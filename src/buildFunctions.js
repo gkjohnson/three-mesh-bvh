@@ -250,7 +250,7 @@ const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 
 } );
 const leftBounds = new Float32Array( 6 );
-const rightBounds = new Float32Array( 6 )
+const rightBounds = new Float32Array( 6 );
 
 function unionBounds( a, b ) {
 
@@ -266,13 +266,7 @@ function unionBounds( a, b ) {
 
 function copyBounds( a, b ) {
 
-	for ( let d = 0; d < 3; d ++ ) {
-
-		const d3 = d + 3;
-		if ( a[ d ] < b[ d ] ) b[ d ] = a[ d ];
-		if ( a[ d3 ] > b[ d3 ] ) b[ d3 ] = a[ d3 ];
-
-	}
+	b.set( a );
 
 }
 
