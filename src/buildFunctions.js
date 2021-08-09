@@ -1,6 +1,6 @@
 import { BufferAttribute } from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
-import { boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
+import { boxToArray, getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
@@ -250,34 +250,6 @@ const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 const leftBounds = new Float32Array( 6 );
 const rightBounds = new Float32Array( 6 );
 
-function unionBounds( a, b ) {
-
-	for ( let d = 0; d < 3; d ++ ) {
-
-		const d3 = d + 3;
-		if ( a[ d ] < b[ d ] ) b[ d ] = a[ d ];
-		if ( a[ d3 ] > b[ d3 ] ) b[ d3 ] = a[ d3 ];
-
-	}
-
-}
-
-function copyBounds( a, b ) {
-
-	b.set( a );
-
-}
-
-function boundsSurfaceArea( bounds ) {
-
-	const d0 = bounds[ 3 ] - bounds[ 0 ];
-	const d1 = bounds[ 4 ] - bounds[ 1 ];
-	const d2 = bounds[ 5 ] - bounds[ 2 ];
-
-	return 2 * ( d0 * d1 + d1 * d2 + d2 * d0 );
-
-}
-
 function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
 
 	let axis = - 1;
@@ -305,7 +277,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 	} else if ( strategy === SAH ) {
 
 		// TODO: hone these costs
-		const rootSurfaceArea = boundsSurfaceArea( nodeBoundingData );
+		const rootSurfaceArea = computeSurfaceArea( nodeBoundingData );
 		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
 		// iterate over all axes
@@ -425,14 +397,14 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				if ( leftCount !== 0 ) {
 
-					leftProb = boundsSurfaceArea( leftBounds ) / rootSurfaceArea;
+					leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
 
 				}
 
 				const rightCount = count - leftCount;
 				if ( rightCount !== 0 ) {
 
-					rightProb = boundsSurfaceArea( rightBounds ) / rootSurfaceArea;
+					rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
 
 				}
 

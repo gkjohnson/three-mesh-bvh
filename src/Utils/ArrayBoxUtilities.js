@@ -49,3 +49,34 @@ export function getLongestEdgeIndex( bounds ) {
 	return splitDimIdx;
 
 }
+
+// copys bounds a into bounds b
+export function copyBounds( a, b ) {
+
+	b.set( a );
+
+}
+
+// sets bounds b to the union of bounds a and b
+export function unionBounds( a, b ) {
+
+	for ( let d = 0; d < 3; d ++ ) {
+
+		const d3 = d + 3;
+		if ( a[ d ] < b[ d ] ) b[ d ] = a[ d ];
+		if ( a[ d3 ] > b[ d3 ] ) b[ d3 ] = a[ d3 ];
+
+	}
+
+}
+
+// compute bounds surface area
+export function computeSurfaceArea( bounds ) {
+
+	const d0 = bounds[ 3 ] - bounds[ 0 ];
+	const d1 = bounds[ 4 ] - bounds[ 1 ];
+	const d2 = bounds[ 5 ] - bounds[ 2 ];
+
+	return 2 * ( d0 * d1 + d1 * d2 + d2 * d0 );
+
+}
