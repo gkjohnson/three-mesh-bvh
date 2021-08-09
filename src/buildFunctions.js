@@ -322,7 +322,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			const axisLeft = nodeBoundingData[ a ];
 			const axisRight = nodeBoundingData[ a + 3 ];
 			const axisLength = axisRight - axisLeft;
-			const binWidth = axisLength / 32;
+			const binWidth = axisLength / BIN_COUNT;
 
 			// reset the bins
 			for ( let i = 0; i < BIN_COUNT; i ++ ) {
@@ -344,11 +344,11 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			// iterate over all center positions
 			for ( let c = cStart; c < cEnd; c += 6 ) {
 
-				const cCenterIndex = c + 2 * a;
-				const splitCandidate = triangleBounds[ cCenterIndex ];
+				const triCenter = triangleBounds[ c + 2 * a ];
+				const relativeCenter = triCenter - axisLeft;
 
 				// TODO: make sure this aligns with how partitioning works
-				let binIndex = ~ ~ ( ( splitCandidate - axisLeft ) / binWidth );
+				let binIndex = ~ ~ ( relativeCenter / binWidth );
 				if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
 
 				const bin = sahBins[ binIndex ];
@@ -357,8 +357,8 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				const bounds = bin.bounds;
 				for ( let d = 0; d < 3; d ++ ) {
 
-					const tCenter = triangleBounds[ c + d ];
-					const tHalf = triangleBounds[ c + d + 3 ];
+					const tCenter = triangleBounds[ c + 2 * d ];
+					const tHalf = triangleBounds[ c + 2 * d + 1 ];
 
 					const tMin = tCenter - tHalf;
 					const tMax = tCenter + tHalf;
@@ -429,8 +429,8 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				const leftSurfaceArea = boundsSurfaceArea( leftBounds );
 				const rightSurfaceArea = boundsSurfaceArea( rightBounds	);
 
-				const leftProb = leftSurfaceArea / rootSurfaceArea;
-				const rightProb = rightSurfaceArea / rootSurfaceArea;
+				const leftProb = leftCount === 0 ? 0 : leftSurfaceArea / rootSurfaceArea;
+				const rightProb = rightCount === 0 ? 0 : rightSurfaceArea / rootSurfaceArea;
 
 				const rightCount = count - leftCount;
 				const cost = TRAVERSAL_COST + TRIANGLE_COST * (
