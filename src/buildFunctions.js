@@ -1,7 +1,7 @@
 import { BufferAttribute } from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import { boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
-import { CENTER, AVERAGE, SAH } from './Constants.js';
+import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
 const FLOAT32_EPSILON = Math.pow( 2, - 24 );
@@ -305,10 +305,8 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 	} else if ( strategy === SAH ) {
 
 		// TODO: hone these costs
-		const TRAVERSAL_COST = 1;
-		const TRIANGLE_COST = 1.25;
 		const rootSurfaceArea = boundsSurfaceArea( nodeBoundingData );
-		let bestCost = TRIANGLE_COST * count;
+		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
 		// iterate over all axes
 		const cStart = offset * 6;
