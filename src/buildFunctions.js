@@ -408,7 +408,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
-				const cost = TRAVERSAL_COST + TRIANGLE_COST * (
+				const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
 					leftProb * leftCount + rightProb * rightCount
 				);
 
