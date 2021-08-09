@@ -1,12 +1,10 @@
 import { Box3, BufferAttribute } from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
-import { arrayToBox, boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
+import { boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
 const FLOAT32_EPSILON = Math.pow( 2, - 24 );
-const xyzFields = [ 'x', 'y', 'z' ];
-const boxTemp = new Box3();
 
 function ensureIndex( geo ) {
 
