@@ -308,8 +308,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 		const TRAVERSAL_COST = 1;
 		const TRIANGLE_COST = 1.25;
 		const rootSurfaceArea = boundsSurfaceArea( nodeBoundingData );
-		// let bestCost = TRIANGLE_COST * count;
-		let bestCost = Infinity;
+		let bestCost = TRIANGLE_COST * count;
 
 		// TODO: if the plane list were already pre-sorted (and maintained as pre sorted) this could be a lot faster
 		// because we wouldn't have to iterate twice.
