@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute } from 'three';
+import { BufferAttribute } from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
 import { boxToArray, getLongestEdgeIndex } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH } from './Constants.js';
