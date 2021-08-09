@@ -310,17 +310,13 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 		const rootSurfaceArea = boundsSurfaceArea( nodeBoundingData );
 		let bestCost = TRIANGLE_COST * count;
 
-		// TODO: if the plane list were already pre-sorted (and maintained as pre sorted) this could be a lot faster
-		// because we wouldn't have to iterate twice.
-		// TODO: look into "binning" here:
-		// http://www.sci.utah.edu/~wald/Publications/2007/ParallelBVHBuild/fastbuild.pdf
 		// iterate over all axes
 		const cStart = offset * 6;
 		const cEnd = ( offset + count ) * 6;
 		for ( let a = 0; a < 3; a ++ ) {
 
-			const axisLeft = nodeBoundingData[ a ];
-			const axisRight = nodeBoundingData[ a + 3 ];
+			const axisLeft = centroidBoundingData[ a ];
+			const axisRight = centroidBoundingData[ a + 3 ];
 			const axisLength = axisRight - axisLeft;
 			const binWidth = axisLength / BIN_COUNT;
 
@@ -380,14 +376,14 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			}
 
 			let leftCount = 0;
-			for ( let i = 0; i < BIN_COUNT; i ++ ) {
+			for ( let i = 0; i < BIN_COUNT - 1; i ++ ) {
 
 				const bin = sahBins[ i ];
-				const count = bin.count;
+				const binCount = bin.count;
 				const bounds = bin.bounds;
 
 				// dont do anything with the bounds if the new bounds have no triangles
-				if ( count !== 0 ) {
+				if ( binCount !== 0 ) {
 
 					if ( leftCount === 0 ) {
 
@@ -401,24 +397,24 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
-				leftCount += count;
+				leftCount += binCount;
 
 				// TODO: could be cached ahead of time
 				// fill out the right bounds
 				let initialized = false;
 				for ( let j = i + 1; j < BIN_COUNT; j ++ ) {
 
-					const bin = sahBins[ j ];
-					if ( bin.count !== 0 ) {
+					const bin2 = sahBins[ j ];
+					if ( bin2.count !== 0 ) {
 
 						if ( initialized === false ) {
 
-							copyBounds( sahBins[ j ].bounds, rightBounds );
+							copyBounds( bin2.bounds, rightBounds );
 							initialized = true;
 
 						} else {
 
-							unionBounds( sahBins[ j ].bounds, rightBounds );
+							unionBounds( bin2.bounds, rightBounds );
 
 						}
 
@@ -426,13 +422,22 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
-				const leftSurfaceArea = boundsSurfaceArea( leftBounds );
-				const rightSurfaceArea = boundsSurfaceArea( rightBounds	);
+				let leftProb = 0;
+				let rightProb = 0;
 
-				const leftProb = leftCount === 0 ? 0 : leftSurfaceArea / rootSurfaceArea;
-				const rightProb = rightCount === 0 ? 0 : rightSurfaceArea / rootSurfaceArea;
+				if ( leftCount !== 0 ) {
+
+					leftProb = boundsSurfaceArea( leftBounds ) / rootSurfaceArea;
+
+				}
 
 				const rightCount = count - leftCount;
+				if ( rightCount !== 0 ) {
+
+					rightProb = boundsSurfaceArea( rightBounds ) / rootSurfaceArea;
+
+				}
+
 				const cost = TRAVERSAL_COST + TRIANGLE_COST * (
 					leftProb * leftCount + rightProb * rightCount
 				);
