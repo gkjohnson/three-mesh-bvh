@@ -194,6 +194,8 @@ function partition( index, triangleBounds, offset, count, split ) {
 
 		}
 
+
+		// if a triangle center lies on the partition plane it is considered to be on the right side
 		while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
 
 			right --;
@@ -313,7 +315,8 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				const triCenter = triangleBounds[ c + 2 * a ];
 				const relativeCenter = triCenter - axisLeft;
 
-				// TODO: make sure this aligns with how partitioning works
+				// in the partition function if the centroid lies on the split plane then it is
+				// considered to be on the right side of the split
 				let binIndex = ~ ~ ( relativeCenter / binWidth );
 				if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
 
