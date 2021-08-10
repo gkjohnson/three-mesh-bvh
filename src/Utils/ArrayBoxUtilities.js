@@ -51,20 +51,29 @@ export function getLongestEdgeIndex( bounds ) {
 }
 
 // copys bounds a into bounds b
-export function copyBounds( a, b ) {
+export function copyBounds( source, target ) {
 
-	b.set( a );
+	target.set( source );
 
 }
 
-// sets bounds b to the union of bounds a and b
-export function unionBounds( a, b ) {
+// sets bounds target to the union of bounds a and b
+export function unionBounds( a, b, target ) {
 
+	let aVal, bVal;
 	for ( let d = 0; d < 3; d ++ ) {
 
 		const d3 = d + 3;
-		if ( a[ d ] < b[ d ] ) b[ d ] = a[ d ];
-		if ( a[ d3 ] > b[ d3 ] ) b[ d3 ] = a[ d3 ];
+
+		// set the minimum values
+		aVal = a[ d ];
+		bVal = b[ d ];
+		target[ d ] = aVal < bVal ? aVal : bVal;
+
+		// set the max values
+		aVal = a[ d3 ];
+		bVal = b[ d3 ];
+		target[ d3 ] = aVal > bVal ? aVal : bVal;
 
 	}
 

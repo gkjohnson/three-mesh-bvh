@@ -364,7 +364,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 					} else {
 
-						unionBounds( bounds, leftBounds );
+						unionBounds( bounds, leftBounds, leftBounds );
 
 					}
 
@@ -387,7 +387,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 						} else {
 
-							unionBounds( bin2.bounds, rightBounds );
+							unionBounds( bin2.bounds, rightBounds, rightBounds );
 
 						}
 
