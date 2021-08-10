@@ -244,13 +244,13 @@ const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 
 		count: 0,
 		bounds: new Float32Array( 6 ),
+		rightCacheBounds: new Float32Array( 6 ),
 		candidate: 0,
 
 	};
 
 } );
 const leftBounds = new Float32Array( 6 );
-const rightBounds = new Float32Array( 6 );
 
 function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
 
@@ -348,12 +348,26 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 			}
 
+			// cache the unioned bounds from right to left so we don't have to regenerate them each time
+			const lastBin = sahBins[ BIN_COUNT - 1 ];
+			copyBounds( lastBin.bounds, lastBin.rightCacheBounds );
+			for ( let i = BIN_COUNT - 2; i >= 0; i -- ) {
+
+				const bin = sahBins[ i ];
+				const nextBin = sahBins[ i + 1 ];
+				unionBounds( bin.bounds, nextBin.rightCacheBounds, bin.rightCacheBounds );
+
+			}
+
 			let leftCount = 0;
 			for ( let i = 0; i < BIN_COUNT - 1; i ++ ) {
 
 				const bin = sahBins[ i ];
 				const binCount = bin.count;
 				const bounds = bin.bounds;
+
+				const nextBin = sahBins[ i + 1 ];
+				const rightBounds = nextBin.rightCacheBounds;
 
 				// dont do anything with the bounds if the new bounds have no triangles
 				if ( binCount !== 0 ) {
@@ -372,29 +386,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				leftCount += binCount;
 
-				// TODO: could be cached ahead of time
-				// fill out the right bounds
-				let initialized = false;
-				for ( let j = i + 1; j < BIN_COUNT; j ++ ) {
-
-					const bin2 = sahBins[ j ];
-					if ( bin2.count !== 0 ) {
-
-						if ( initialized === false ) {
-
-							copyBounds( bin2.bounds, rightBounds );
-							initialized = true;
-
-						} else {
-
-							unionBounds( bin2.bounds, rightBounds, rightBounds );
-
-						}
-
-					}
-
-				}
-
+				// check the cost of this split
 				let leftProb = 0;
 				let rightProb = 0;
 
