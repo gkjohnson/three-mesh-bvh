@@ -38,7 +38,7 @@ function getRootExtremes( bvh, group ) {
 			min: Infinity, max: - Infinity
 		},
 		splits: [ 0, 0, 0 ],
-		surfaceAreaCost: 0,
+		surfaceAreaScore: 0,
 	};
 
 	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, count ) => {
@@ -58,13 +58,13 @@ function getRootExtremes( bvh, group ) {
 			result.tris.min = Math.min( count, result.tris.min );
 			result.tris.max = Math.max( count, result.tris.max );
 
-			result.surfaceAreaCost += surfaceArea * TRIANGLE_INTERSECT_COST * count;
+			result.surfaceAreaScore += surfaceArea * TRIANGLE_INTERSECT_COST * count;
 
 		} else {
 
 			result.splits[ offsetOrSplit ] ++;
 
-			result.surfaceAreaCost += surfaceArea * TRAVERSAL_COST;
+			result.surfaceAreaScore += surfaceArea * TRAVERSAL_COST;
 
 		}
 

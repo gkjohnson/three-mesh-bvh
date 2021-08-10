@@ -37,7 +37,8 @@ function logExtremes( bvh, geometry ) {
 		`\t\ttotal nodes: ${ extremes.total }\n` +
 		`\t\ttris: ${extremes.tris.min}, ${extremes.tris.max}\n` +
 		`\t\tdepth: ${extremes.depth.min}, ${extremes.depth.max}\n` +
-		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n`
+		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n` +
+		`\t\tsurfaceAreaScore: ${extremes.tsurfaceAreaScore}\n`
 	);
 
 }
