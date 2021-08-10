@@ -1,3 +1,5 @@
+import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../Constants.js';
+
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
 function getPrimitiveSize( el ) {
 
@@ -25,6 +27,8 @@ function isTypedArray( arr ) {
 
 function getRootExtremes( bvh, group ) {
 
+	// TODO: return the score of the total surface area so tree construction
+	// can be compared.
 	const result = {
 		total: 0,
 		depth: {
@@ -33,10 +37,17 @@ function getRootExtremes( bvh, group ) {
 		tris: {
 			min: Infinity, max: - Infinity
 		},
-		splits: [ 0, 0, 0 ]
+		splits: [ 0, 0, 0 ],
+		surfaceAreaScore: 0,
 	};
 
 	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, count ) => {
+
+		const l0 = boundingData[ 0 + 3 ] - boundingData[ 0 ];
+		const l1 = boundingData[ 1 + 3 ] - boundingData[ 1 ];
+		const l2 = boundingData[ 2 + 3 ] - boundingData[ 2 ];
+
+		const surfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
 
 		result.total ++;
 		if ( isLeaf ) {
@@ -47,9 +58,13 @@ function getRootExtremes( bvh, group ) {
 			result.tris.min = Math.min( count, result.tris.min );
 			result.tris.max = Math.max( count, result.tris.max );
 
+			result.surfaceAreaScore += surfaceArea * TRIANGLE_INTERSECT_COST * count;
+
 		} else {
 
 			result.splits[ offsetOrSplit ] ++;
+
+			result.surfaceAreaScore += surfaceArea * TRAVERSAL_COST;
 
 		}
 

@@ -18,9 +18,9 @@ function runBenchmark( name, preFunc, func, maxTime, maxIterations = 100 ) {
 	while ( elapsed < maxTime ) {
 
 		if ( preFunc ) preFunc();
-		let start = Date.now();
+		let start = performance.now();
 		func();
-		elapsed += Date.now() - start;
+		elapsed += performance.now() - start;
 
 		iterations ++;
 		if ( iterations >= maxIterations ) break;

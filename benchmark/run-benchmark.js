@@ -21,8 +21,8 @@ const target2 = new THREE.Vector3();
 const geometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
 const raycaster = new THREE.Raycaster();
-raycaster.ray.origin.set( 10, 10, 10 );
-raycaster.ray.direction.set( - 1, - 1, - 1 );
+raycaster.ray.origin.set( 10, 20, 30 );
+raycaster.ray.direction.set( - 1, - 2, - 3 );
 
 function logExtremes( bvh, geometry ) {
 
@@ -37,7 +37,8 @@ function logExtremes( bvh, geometry ) {
 		`\t\ttotal nodes: ${ extremes.total }\n` +
 		`\t\ttris: ${extremes.tris.min}, ${extremes.tris.max}\n` +
 		`\t\tdepth: ${extremes.depth.min}, ${extremes.depth.max}\n` +
-		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n`
+		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n` +
+		`\t\tsurfaceAreaScore: ${extremes.surfaceAreaScore.toFixed( 6 )}\n`
 	);
 
 }
@@ -149,7 +150,6 @@ function runSuite( strategy ) {
 
 	);
 
-	geometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'Refit',
@@ -270,7 +270,6 @@ function runSuite( strategy ) {
 
 	);
 
-	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'DistanceToGeometry w/ BVH',
@@ -292,7 +291,6 @@ function runSuite( strategy ) {
 
 	console.log( '' );
 
-	intersectGeometry.computeBoundsTree( options );
 	runBenchmark(
 
 		'IntersectsGeometry w/ BVH',

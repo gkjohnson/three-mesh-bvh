@@ -11,10 +11,9 @@ class MeshBVHRootVisualizer extends LineSegments {
 		this.material = material;
 		this.name = 'MeshBVHRootVisualizer';
 		this.depth = depth;
+		this.displayParents = false;
 		this.mesh = mesh;
 		this._group = group;
-
-		this.update();
 
 	}
 
@@ -31,6 +30,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 			// count the number of bounds required
 			const targetDepth = this.depth - 1;
+			const displayParents = this.displayParents;
 			let boundsCount = 0;
 			boundsTree.traverse( ( depth, isLeaf ) => {
 
@@ -38,6 +38,10 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 					boundsCount ++;
 					return true;
+
+				} else if ( displayParents ) {
+
+					boundsCount ++;
 
 				}
 
@@ -48,7 +52,8 @@ class MeshBVHRootVisualizer extends LineSegments {
 			const positionArray = new Float32Array( 8 * 3 * boundsCount );
 			boundsTree.traverse( ( depth, isLeaf, boundingData ) => {
 
-				if ( depth === targetDepth || isLeaf ) {
+				const terminate = depth === targetDepth || isLeaf;
+				if ( terminate || displayParents ) {
 
 					arrayToBox( boundingData, boundingBox );
 
@@ -74,7 +79,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 					}
 
-					return true;
+					return terminate;
 
 				}
 
@@ -167,6 +172,7 @@ class MeshBVHVisualizer extends Group {
 		this.name = 'MeshBVHVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
+		this.displayParents = false;
 		this._roots = [];
 		this._material = new LineBasicMaterial( {
 			color: 0x00FF88,
@@ -197,14 +203,13 @@ class MeshBVHVisualizer extends Group {
 				this.add( root );
 				this._roots.push( root );
 
-			} else {
-
-				let root = this._roots[ i ];
-				root.depth = this.depth;
-				root.mesh = this.mesh;
-				root.update();
-
 			}
+
+			const root = this._roots[ i ];
+			root.depth = this.depth;
+			root.mesh = this.mesh;
+			root.displayParents = this.displayParents;
+			root.update();
 
 		}
 
