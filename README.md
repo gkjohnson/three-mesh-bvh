@@ -456,7 +456,7 @@ index : TypedArray
 
 ## MeshBVHVisualizer
 
-Displays a view of the bounds tree up to the given depth of the tree.
+Displays a view of the bounds tree up to the given depth of the tree. Update() must be called after any fields that affect visualization geometry are changed.
 
 _Note: The visualizer is expected to be a sibling of the mesh being visualized._
 
@@ -491,6 +491,30 @@ displayParents = false : Boolean
 ```
 
 Whether or not to display the parent bounds.
+
+### .displayEdges
+
+```js
+displayEdges = true : Boolean
+```
+
+If true displays the bounds as edges other displays the bounds as solid meshes.
+
+### .edgeMaterial
+
+```js
+edgeMaterial : LineBasicMaterial
+```
+
+The material to use when rendering edges.
+
+### .meshMaterial
+
+```js
+meshMaterial : MeshBasicMaterial
+```
+
+The material to use when rendering as a sold meshes.
 
 ### .constructor
 
