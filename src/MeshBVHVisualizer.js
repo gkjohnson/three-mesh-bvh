@@ -1,4 +1,4 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments, MeshBasicMaterial, Mesh } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
 // fill in the index buffer to point to the corner points
@@ -22,29 +22,35 @@ const edgeIndices = new Uint8Array( [
 	6, 7,
 ] );
 
-const faceIndices = new Uint8Array( [
-	0, 1, 3,
-	3, 1, 2,
+// z, y, x
+const meshIndices = new Uint8Array( [
 
-	1, 5, 2,
-	2, 5, 6,
+	// X-, X+
+	0, 1, 2,
+	2, 1, 3,
 
-	5, 4, 6,
-	6, 4, 7,
+	4, 6, 5,
+	6, 7, 5,
 
-	4, 0, 7,
-	7, 0, 3,
+	// Y-, Y+
+	1, 4, 5,
+	0, 4, 1,
 
-	3, 2, 7,
-	7, 2, 6,
+	2, 3, 6,
+	3, 7, 6,
 
-	4, 5, 0,
-	0, 5, 1
+	// Z-, Z+
+	0, 2, 4,
+	2, 6, 4,
+
+	1, 5, 3,
+	3, 5, 7,
+
 ] );
 
 
 const boundingBox = new Box3();
-class MeshBVHRootVisualizer extends LineSegments {
+class MeshBVHRootVisualizer extends Mesh {
 
 	constructor( mesh, material, depth = 10, group = 0 ) {
 
@@ -55,7 +61,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 		this.depth = depth;
 		this.displayParents = false;
 		this.mesh = mesh;
-		this.displayLines = true;
+		this.displayEdges = true;
 		this._group = group;
 
 	}
@@ -131,24 +137,25 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 
 			let indexArray;
-			const indexCount = edgeIndices.lengths;
+			const indices = this.displayEdges ? edgeIndices : meshIndices;
 			if ( positionArray.length > 65535 ) {
 
-				indexArray = new Uint32Array( indexCount * boundsCount );
+				indexArray = new Uint32Array( indices.length * boundsCount );
 
 			} else {
 
-				indexArray = new Uint16Array( indexCount * boundsCount );
+				indexArray = new Uint16Array( indices.length * boundsCount );
 
 			}
 
+			const indexLength = indices.length;
 			for ( let i = 0; i < boundsCount; i ++ ) {
 
 				const posOffset = i * 8;
-				const indexOffset = i * 24;
-				for ( let j = 0; j < 24; j ++ ) {
+				const indexOffset = i * indexLength;
+				for ( let j = 0; j < indexLength; j ++ ) {
 
-					indexArray[ indexOffset + j ] = posOffset + edgeIndices[ j ];
+					indexArray[ indexOffset + j ] = posOffset + indices[ j ];
 
 				}
 
@@ -174,19 +181,20 @@ class MeshBVHVisualizer extends Group {
 
 	get color() {
 
-		return this._material.color;
+		return this.edgeMaterial.color;
 
 	}
 
 	get opacity() {
 
-		return this._material.opacity;
+		return this.edgeMaterial.opacity;
 
 	}
 
 	set opacity( v ) {
 
-		this._material.opacity = v;
+		this.edgeMaterial.opacity = v;
+		this.meshMaterial.opacity = v;
 
 	}
 
@@ -198,13 +206,27 @@ class MeshBVHVisualizer extends Group {
 		this.depth = depth;
 		this.mesh = mesh;
 		this.displayParents = false;
+		this.displayEdges = false;
 		this._roots = [];
-		this._material = new LineBasicMaterial( {
+
+		const edgeMaterial = new LineBasicMaterial( {
 			color: 0x00FF88,
 			transparent: true,
 			opacity: 0.3,
 			depthWrite: false,
 		} );
+
+		const meshMaterial = new MeshBasicMaterial( {
+			color: 0x00FF88,
+			transparent: true,
+			opacity: 0.3,
+			depthWrite: false,
+		} );
+
+		meshMaterial.color = edgeMaterial.color;
+
+		this.edgeMaterial = edgeMaterial;
+		this.meshMaterial = meshMaterial;
 
 		this.update();
 
@@ -224,7 +246,7 @@ class MeshBVHVisualizer extends Group {
 
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootVisualizer( this.mesh, this._material, this.depth, i );
+				const root = new MeshBVHRootVisualizer( this.mesh, this.edgeMaterial, this.depth, i );
 				this.add( root );
 				this._roots.push( root );
 
@@ -234,6 +256,8 @@ class MeshBVHVisualizer extends Group {
 			root.depth = this.depth;
 			root.mesh = this.mesh;
 			root.displayParents = this.displayParents;
+			root.displayEdges = this.displayEdges;
+			root.material = this.displayEdges ? this.edgeMaterial : this.meshMaterial;
 			root.update();
 
 		}
@@ -265,7 +289,7 @@ class MeshBVHVisualizer extends Group {
 
 	dispose() {
 
-		this._material.dispose();
+		this.edgeMaterial.dispose();
 
 	}
 
