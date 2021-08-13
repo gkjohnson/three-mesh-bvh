@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Return "surfaceAreaCost" in returned `getBVHExtremes` object to compare BVH structure quality.
+- Support for `displayEdges`, `meshMaterial`, and `edgeMaterial` to MeshBVHVisualizer to enable displaying bounds as solid meshes.
 
 ## [0.4.2] - 2021-08-04
 ### Fixed
