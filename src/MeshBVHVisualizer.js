@@ -1,62 +1,33 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments, MeshBasicMaterial, Mesh } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
-// fill in the index buffer to point to the corner points
-const edgeIndices = new Uint8Array( [
-	// x axis
-	0, 4,
-	1, 5,
-	2, 6,
-	3, 7,
-
-	// y axis
-	0, 2,
-	1, 3,
-	4, 6,
-	5, 7,
-
-	// z axis
-	0, 1,
-	2, 3,
-	4, 5,
-	6, 7,
-] );
-
-// z, y, x
-const meshIndices = new Uint8Array( [
-
-	// X-, X+
-	0, 1, 2,
-	2, 1, 3,
-
-	4, 6, 5,
-	6, 7, 5,
-
-	// Y-, Y+
-	1, 4, 5,
-	0, 4, 1,
-
-	2, 3, 6,
-	3, 7, 6,
-
-	// Z-, Z+
-	0, 2, 4,
-	2, 6, 4,
-
-	1, 5, 3,
-	3, 5, 7,
-
-] );
-
-
 const boundingBox = new Box3();
-class MeshBVHRootVisualizer extends Mesh {
+class MeshBVHRootVisualizer extends Object3D {
+
+	get isMesh() {
+
+		return ! this.displayEdges;
+
+	}
+
+	get isLineSegments() {
+
+		return this.displayEdges;
+
+	}
+
+	get isLine() {
+
+		return this.displayEdges;
+
+	}
 
 	constructor( mesh, material, depth = 10, group = 0 ) {
 
-		super( undefined, material );
+		super();
 
 		this.material = material;
+		this.geometry = new BufferGeometry();
 		this.name = 'MeshBVHRootVisualizer';
 		this.depth = depth;
 		this.displayParents = false;
@@ -70,10 +41,10 @@ class MeshBVHRootVisualizer extends Mesh {
 
 	update() {
 
-		const linesGeometry = this.geometry;
+		const geometry = this.geometry;
 		const boundsTree = this.mesh.geometry.boundsTree;
 		const group = this._group;
-		linesGeometry.dispose();
+		geometry.dispose();
 		this.visible = false;
 		if ( boundsTree ) {
 
@@ -134,10 +105,60 @@ class MeshBVHRootVisualizer extends Mesh {
 
 			}, group );
 
-
-
 			let indexArray;
-			const indices = this.displayEdges ? edgeIndices : meshIndices;
+			let indices;
+			if ( this.displayEdges ) {
+
+				// fill in the index buffer to point to the corner points
+				indices = new Uint8Array( [
+					// x axis
+					0, 4,
+					1, 5,
+					2, 6,
+					3, 7,
+
+					// y axis
+					0, 2,
+					1, 3,
+					4, 6,
+					5, 7,
+
+					// z axis
+					0, 1,
+					2, 3,
+					4, 5,
+					6, 7,
+				] );
+
+			} else {
+
+				indices = new Uint8Array( [
+
+					// X-, X+
+					0, 1, 2,
+					2, 1, 3,
+
+					4, 6, 5,
+					6, 7, 5,
+
+					// Y-, Y+
+					1, 4, 5,
+					0, 4, 1,
+
+					2, 3, 6,
+					3, 7, 6,
+
+					// Z-, Z+
+					0, 2, 4,
+					2, 6, 4,
+
+					1, 5, 3,
+					3, 5, 7,
+
+				] );
+
+			}
+
 			if ( positionArray.length > 65535 ) {
 
 				indexArray = new Uint32Array( indices.length * boundsCount );
@@ -162,10 +183,10 @@ class MeshBVHRootVisualizer extends Mesh {
 			}
 
 			// update the geometry
-			linesGeometry.setIndex(
+			geometry.setIndex(
 				new BufferAttribute( indexArray, 1, false ),
 			);
-			linesGeometry.setAttribute(
+			geometry.setAttribute(
 				'position',
 				new BufferAttribute( positionArray, 3, false ),
 			);
@@ -206,7 +227,7 @@ class MeshBVHVisualizer extends Group {
 		this.depth = depth;
 		this.mesh = mesh;
 		this.displayParents = false;
-		this.displayEdges = false;
+		this.displayEdges = true;
 		this._roots = [];
 
 		const edgeMaterial = new LineBasicMaterial( {
