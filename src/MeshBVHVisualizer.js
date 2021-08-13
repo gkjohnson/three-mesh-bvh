@@ -1,6 +1,48 @@
 import { LineBasicMaterial, BufferAttribute, Box3, Group, LineSegments } from 'three';
 import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
 
+// fill in the index buffer to point to the corner points
+const edgeIndices = new Uint8Array( [
+	// x axis
+	0, 4,
+	1, 5,
+	2, 6,
+	3, 7,
+
+	// y axis
+	0, 2,
+	1, 3,
+	4, 6,
+	5, 7,
+
+	// z axis
+	0, 1,
+	2, 3,
+	4, 5,
+	6, 7,
+] );
+
+const faceIndices = new Uint8Array( [
+	0, 1, 3,
+	3, 1, 2,
+
+	1, 5, 2,
+	2, 5, 6,
+
+	5, 4, 6,
+	6, 4, 7,
+
+	4, 0, 7,
+	7, 0, 3,
+
+	3, 2, 7,
+	7, 2, 6,
+
+	4, 5, 0,
+	0, 5, 1
+] );
+
+
 const boundingBox = new Box3();
 class MeshBVHRootVisualizer extends LineSegments {
 
@@ -13,6 +55,7 @@ class MeshBVHRootVisualizer extends LineSegments {
 		this.depth = depth;
 		this.displayParents = false;
 		this.mesh = mesh;
+		this.displayLines = true;
 		this._group = group;
 
 	}
@@ -85,35 +128,17 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 			}, group );
 
-			// fill in the index buffer to point to the corner points
-			const edgeIndices = new Uint8Array( [
-				// x axis
-				0, 4,
-				1, 5,
-				2, 6,
-				3, 7,
 
-				// y axis
-				0, 2,
-				1, 3,
-				4, 6,
-				5, 7,
-
-				// z axis
-				0, 1,
-				2, 3,
-				4, 5,
-				6, 7,
-			] );
 
 			let indexArray;
+			const indexCount = edgeIndices.lengths;
 			if ( positionArray.length > 65535 ) {
 
-				indexArray = new Uint32Array( 12 * 2 * boundsCount );
+				indexArray = new Uint32Array( indexCount * boundsCount );
 
 			} else {
 
-				indexArray = new Uint16Array( 12 * 2 * boundsCount );
+				indexArray = new Uint16Array( indexCount * boundsCount );
 
 			}
 
