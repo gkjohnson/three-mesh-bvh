@@ -1,4 +1,3 @@
-import Stats from 'stats.js/src/Stats';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -12,7 +11,6 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-let stats;
 let scene, camera, renderer, helper, mesh, outputContainer;
 let mouse = new THREE.Vector2();
 
@@ -53,10 +51,6 @@ function init() {
 	camera.updateProjectionMatrix();
 
 	new OrbitControls( camera, renderer.domElement );
-
-	// stats setup
-	stats = new Stats();
-	document.body.appendChild( stats.dom );
 
 	window.addEventListener( 'resize', function () {
 
