@@ -311,6 +311,14 @@ class MeshBVHVisualizer extends Group {
 	dispose() {
 
 		this.edgeMaterial.dispose();
+		this.meshMaterial.dispose();
+
+		const children = this.children;
+		for ( let i = 0, l = children.length; i < l; i ++ ) {
+
+			children[ i ].geometry.dispose();
+
+		}
 
 	}
 
