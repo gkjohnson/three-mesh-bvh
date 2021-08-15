@@ -15,12 +15,20 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 let stats;
 let scene, camera, renderer, helper, mesh, outputContainer;
 let mouse = new THREE.Vector2();
-let sphereCollision;
 
 const modelPath = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb';
 const params = {
 
-	strategy: SAH,
+	options: {
+		strategy: SAH,
+		maxLeafTris: 10,
+		maxDepth: 40,
+		rebuild: function () {
+
+			updateBVH();
+
+		},
+	},
 
 };
 
@@ -40,7 +48,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 3, 3, 3 );
+	camera.position.set( - 2.5, 2.5, 2.5 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -59,7 +67,7 @@ function init() {
 
 	}, false );
 
-	// Load point cloud
+	// Load dragon
 	const loader = new GLTFLoader();
 	loader.load( modelPath, gltf => {
 
@@ -76,12 +84,12 @@ function init() {
 		mesh.material = new THREE.MeshBasicMaterial( { color: 0 } );
 		scene.add( mesh );
 
-		helper = new MeshBVHVisualizer( mesh, 30 );
+		helper = new MeshBVHVisualizer( mesh, 40 );
 		helper.displayEdges = false;
 		helper.displayParents = true;
 		helper.color.set( 0xffffff );
 		helper.opacity = 5 / 255;
-		helper.depth = 30;
+		helper.depth = 40;
 		scene.add( helper );
 
 		updateBVH();
@@ -89,22 +97,25 @@ function init() {
 	} );
 
 	const gui = new GUI();
-	const pointsFolder = gui.addFolder( 'points' );
-	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( () => {
-
-		updateBVH();
-
-	} );
-	pointsFolder.open();
+	const bvhFolder = gui.addFolder( 'BVH' );
+	bvhFolder.add( params.options, 'strategy', { CENTER, AVERAGE, SAH } );
+	bvhFolder.add( params.options, 'maxLeafTris', 1, 30, 1 );
+	bvhFolder.add( params.options, 'maxDepth', 1, 40, 1 );
+	bvhFolder.add( params.options, 'rebuild' );
+	bvhFolder.open();
 
 }
 
 function updateBVH() {
 
-	mesh.geometry.computeBoundsTree( { strategy: parseInt( params.strategy ) } );
+	mesh.geometry.computeBoundsTree( {
+		strategy: parseInt( params.options.strategy ),
+		maxLeafTris: params.options.maxLeafTris,
+		maxDepth: params.options.maxDepth,
+	} );
 	helper.update();
 
-	console.log( getBVHExtremes( mesh.geometry.boundsTree ) ) ;
+	console.log( getBVHExtremes( mesh.geometry.boundsTree ) );
 
 }
 
