@@ -24,6 +24,7 @@
 			font-family: monospace;
 			text-align: center;
 			padding: 5px 0;
+			pointer-events: none;
 		}
 
 		a {
@@ -49,6 +50,9 @@
 <body>
     <div id="info">
 		BVH inspector showing the number of traversals at a given pixel, various BVH construction stats, and basic raycast benchmark.
+		<br/>
+		<br/>
+		Pixels with traversals above the "traversalTreshold" are highlighted in red.
 	</div>
 	<div id="container">
 		<div id="output"></div>

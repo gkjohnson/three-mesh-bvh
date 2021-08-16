@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
+
 import { GUI } from 'dat.gui';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer,
@@ -12,7 +14,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, helper, mesh, outputContainer, benchmarkContainer;
-let benchmarkViz;
+let benchmarkViz, renderTarget, fsQuad;
 
 const modelPath = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb';
 const params = {
@@ -28,6 +30,13 @@ const params = {
 		},
 	},
 
+	visualization: {
+
+		traversalThreshold: 50,
+		boundsOpacity: 5 / 255,
+
+	},
+
 	benchmark: {
 
 		displayRays: false,
@@ -38,6 +47,105 @@ const params = {
 	}
 
 };
+
+class TraverseMaterial extends THREE.ShaderMaterial {
+
+	constructor( params ) {
+
+		super( {
+
+			uniforms: {
+				map: { value: null },
+				threshold: { value: 35 },
+				boundsOpacity: { value: 5 },
+			},
+
+			vertexShader: /* glsl */`
+				varying vec2 vUv;
+				void main() {
+
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+				}
+			`,
+
+			fragmentShader: /* glsl */`
+				uniform sampler2D map;
+				uniform float threshold;
+				uniform float boundsOpacity;
+				varying vec2 vUv;
+				void main() {
+
+					float count = 255.0 * texture2D( map, vUv ).r;
+
+					if ( count > threshold ) {
+
+						gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+
+					} else {
+
+						gl_FragColor = vec4( boundsOpacity * count );
+
+					}
+
+				}
+			`,
+
+		} );
+
+		Object.defineProperties( this, {
+
+			map: {
+
+				get() {
+
+					return this.uniforms.map.value;
+
+				},
+				set( v ) {
+
+					this.uniforms.map.value = v;
+
+				}
+
+			},
+			threshold: {
+
+				get() {
+
+					return this.uniforms.threshold.value;
+
+				},
+				set( v ) {
+
+					this.uniforms.threshold.value = v;
+
+				}
+
+			},
+			boundsOpacity: {
+
+				get() {
+
+					return this.uniforms.boundsOpacity.value;
+
+				},
+				set( v ) {
+
+					this.uniforms.boundsOpacity.value = v;
+
+				}
+
+			}
+
+		} );
+
+		this.setValues( params );
+
+	}
+
+}
 
 function init() {
 
@@ -51,6 +159,21 @@ function init() {
 	renderer.setClearColor( 0, 1 );
 	document.body.appendChild( renderer.domElement );
 
+	// render target
+	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
+		format: THREE.RedFormat,
+		// format: THREE.RedIntegerFormat,
+		// type: THREE.UnsignedShortType,
+		// internalFormat: 'R16UI'
+	} );
+
+	fsQuad = new Pass.FullScreenQuad( new TraverseMaterial( {
+
+		map: renderTarget.texture,
+		depthWrite: false,
+
+	} ) );
+
 	// scene setup
 	scene = new THREE.Scene();
 
@@ -62,14 +185,8 @@ function init() {
 
 	new OrbitControls( camera, renderer.domElement );
 
-	window.addEventListener( 'resize', function () {
-
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-
-		renderer.setSize( window.innerWidth, window.innerHeight );
-
-	}, false );
+	window.addEventListener( 'resize', onResize, false );
+	onResize();
 
 	// Load dragon
 	const loader = new GLTFLoader();
@@ -85,15 +202,21 @@ function init() {
 
 		} );
 
-		mesh.material = new THREE.MeshBasicMaterial( { color: 0 } );
+		mesh.material = new THREE.MeshBasicMaterial( { colorWrite: false } );
 		scene.add( mesh );
 
 		helper = new MeshBVHVisualizer( mesh, 40 );
 		helper.displayEdges = false;
 		helper.displayParents = true;
 		helper.color.set( 0xffffff );
-		helper.opacity = 5 / 255;
+		helper.opacity = 1 / 255;
 		helper.depth = 40;
+
+		const material = helper.meshMaterial;
+		material.blending = THREE.CustomBlending;
+		material.blendDst = THREE.OneFactor;
+		// material.blendSrc = THREE.OneFactor;
+
 		scene.add( helper );
 
 		updateBVH();
@@ -117,6 +240,11 @@ function init() {
 	bvhFolder.add( params.options, 'rebuild' );
 	bvhFolder.open();
 
+	const vizFolder = gui.addFolder( 'Visualization' );
+	vizFolder.add( params.visualization, 'traversalThreshold', 1, 175, 1 );
+	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.1, 0.001 );
+	vizFolder.open();
+
 	const benchmarkFolder = gui.addFolder( 'Benchmark' );
 	benchmarkFolder.add( params.benchmark, 'displayRays' );
 	benchmarkFolder.add( params.benchmark, 'firstHitOnly' ).onChange( resetBenchmark );
@@ -133,6 +261,21 @@ function init() {
 
 	} );
 	benchmarkFolder.open();
+
+}
+
+function onResize() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setPixelRatio( window.devicePixelRatio );
+
+	renderTarget.setSize(
+		window.innerWidth * window.devicePixelRatio,
+		window.innerHeight * window.devicePixelRatio,
+	);
 
 }
 
@@ -195,7 +338,7 @@ function runBenchmark( updateGeom = false ) {
 			Math.cos( 0.75 * Math.PI * y ) * Math.cos( rotations * 2 * Math.PI * i / rayCount ),
 		).multiplyScalar( 2.5 );
 
-		direction.copy( origin ).multiplyScalar( - 1 ).normalize();
+		direction.set( Math.cos( 10 * y ), Math.sin( 10 * y ), 0 ).sub( origin ).normalize();
 
 		raycaster.intersectObject( mesh );
 
@@ -253,9 +396,25 @@ function render() {
 
 	}
 
+	fsQuad.material.threshold = params.visualization.traversalThreshold;
+	fsQuad.material.boundsOpacity = params.visualization.boundsOpacity;
+
+	// render bvh
+	benchmarkViz.visible = false;
+	renderer.autoClear = true;
+	renderer.setRenderTarget( renderTarget );
+	renderer.render( scene, camera );
+
+	renderer.setRenderTarget( null );
+	fsQuad.render( renderer );
+
+	// render rays
+	renderer.autoClear = false;
 	benchmarkViz.visible = params.benchmark.displayRays;
 
-	renderer.render( scene, camera );
+	if ( mesh ) renderer.render( mesh, camera );
+	renderer.render( benchmarkViz, camera );
+
 
 }
 
