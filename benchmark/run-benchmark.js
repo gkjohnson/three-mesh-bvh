@@ -34,7 +34,7 @@ function logExtremes( bvh, geometry ) {
 		`\tExtremes:\n` +
 		`\t\tmemory: ${ bvhSize / 1000 } kb\n` +
 		`\t\tserialized: ${ serializedSize / 1000 } kb\n` +
-		`\t\ttotal nodes: ${ extremes.total }\n` +
+		`\t\ttotal nodes: ${ extremes.nodeCount }\n` +
 		`\t\ttris: ${extremes.tris.min}, ${extremes.tris.max}\n` +
 		`\t\tdepth: ${extremes.depth.min}, ${extremes.depth.max}\n` +
 		`\t\tsplits: ${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}\n` +
