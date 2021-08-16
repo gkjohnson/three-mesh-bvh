@@ -11,8 +11,8 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-let scene, camera, renderer, helper, mesh, outputContainer;
-let mouse = new THREE.Vector2();
+let scene, camera, renderer, helper, mesh, outputContainer, benchmarkContainer;
+let benchmarkViz;
 
 const modelPath = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb';
 const params = {
@@ -28,11 +28,21 @@ const params = {
 		},
 	},
 
+	benchmark: {
+
+		displayRays: false,
+		firstHitOnly: true,
+		rotations: 10,
+		castCount: 1000,
+
+	}
+
 };
 
 function init() {
 
 	outputContainer = document.getElementById( 'output' );
+	benchmarkContainer = document.getElementById( 'benchmark' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -88,7 +98,16 @@ function init() {
 
 		updateBVH();
 
+		runBenchmark( true );
+
 	} );
+
+	benchmarkViz = new THREE.LineSegments();
+	benchmarkViz.material.opacity = 0.2;
+	benchmarkViz.material.transparent = true;
+	benchmarkViz.material.depthWrite = false;
+	benchmarkViz.frustumCulled = false;
+	scene.add( benchmarkViz );
 
 	const gui = new GUI();
 	const bvhFolder = gui.addFolder( 'BVH' );
@@ -97,6 +116,23 @@ function init() {
 	bvhFolder.add( params.options, 'maxDepth', 1, 40, 1 );
 	bvhFolder.add( params.options, 'rebuild' );
 	bvhFolder.open();
+
+	const benchmarkFolder = gui.addFolder( 'Benchmark' );
+	benchmarkFolder.add( params.benchmark, 'displayRays' );
+	benchmarkFolder.add( params.benchmark, 'firstHitOnly' ).onChange( resetBenchmark );
+	benchmarkFolder.add( params.benchmark, 'castCount', 100, 5000, 1 ).onChange( () => {
+
+		resetBenchmark();
+		runBenchmark( true );
+
+	} );
+	benchmarkFolder.add( params.benchmark, 'rotations', 1, 20, 1 ).onChange( () => {
+
+		resetBenchmark();
+		runBenchmark( true );
+
+	} );
+	benchmarkFolder.open();
 
 }
 
@@ -110,6 +146,8 @@ function updateBVH() {
 	} );
 	const deltaTime = performance.now() - startTime;
 	helper.update();
+
+	resetBenchmark();
 
 	const info = getBVHExtremes( mesh.geometry.boundsTree )[ 0 ];
 	outputContainer.innerText =
@@ -125,9 +163,97 @@ function updateBVH() {
 
 }
 
+function runBenchmark( updateGeom = false ) {
+
+	let points = null;
+	let newGeometry = null;
+	if ( updateGeom ) {
+
+		mesh.updateMatrixWorld();
+		newGeometry = new THREE.BufferGeometry();
+		benchmarkViz.geometry.dispose();
+		points = [];
+
+	}
+
+	const raycaster = new THREE.Raycaster();
+	raycaster.firstHitOnly = params.benchmark.firstHitOnly;
+
+	const rayCount = params.benchmark.castCount;
+	const rotations = params.benchmark.rotations;
+	const { ray } = raycaster;
+	const { origin, direction } = ray;
+
+	const startTime = performance.now();
+	for ( let i = 0; i < rayCount; i ++ ) {
+
+		const step = i / rayCount;
+		const y = step - 0.5;
+		origin.set(
+			Math.cos( 0.75 * Math.PI * y ) * Math.sin( rotations * 2 * Math.PI * i / rayCount ),
+			2 * y,
+			Math.cos( 0.75 * Math.PI * y ) * Math.cos( rotations * 2 * Math.PI * i / rayCount ),
+		).multiplyScalar( 2.5 );
+
+		direction.copy( origin ).multiplyScalar( - 1 ).normalize();
+
+		raycaster.intersectObject( mesh );
+
+		if ( updateGeom ) {
+
+			const hit = raycaster.intersectObject( mesh )[ 0 ];
+
+			points.push( origin.clone() );
+			if ( hit ) {
+
+				points.push( hit.point.clone() );
+
+			} else {
+
+				points.push( new THREE.Vector3() );
+
+			}
+
+		}
+
+	}
+
+	const deltaTime = performance.now() - startTime;
+
+	if ( updateGeom ) {
+
+		newGeometry.setFromPoints( points );
+		benchmarkViz.geometry = newGeometry;
+
+	}
+
+	return deltaTime;
+
+}
+
+let sampleCount = 0;
+let currTime = 0;
+
+function resetBenchmark() {
+
+	sampleCount = 0;
+	currTime = 0;
+
+}
+
 function render() {
 
 	requestAnimationFrame( render );
+
+	if ( mesh ) {
+
+		sampleCount = Math.min( sampleCount + 1, 50 );
+		currTime += ( runBenchmark() - currTime ) / sampleCount;
+		benchmarkContainer.innerText = `\nbenchmark rolling avg   : ${ currTime.toFixed( 3 ) } ms`;
+
+	}
+
+	benchmarkViz.visible = params.benchmark.displayRays;
 
 	renderer.render( scene, camera );
 
