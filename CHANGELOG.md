@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Return "surfaceAreaCost" in returned `getBVHExtremes` object to compare BVH structure quality.
 - Support for `displayEdges`, `meshMaterial`, and `edgeMaterial` to MeshBVHVisualizer to enable displaying bounds as solid meshes.
 
+### Changed
+- Deprecated the `getBVHExtremes` "total" return value in favor of `nodeCount`.
+
 ## [0.4.2] - 2021-08-04
 ### Fixed
 - Case where `intersectsRangeFunc` could be passed the incorrect node id in shapecast.
