@@ -15,6 +15,8 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, helper, mesh, outputContainer, benchmarkContainer;
 let benchmarkViz, renderTarget, fsQuad;
+let mouse = new THREE.Vector2();
+const readBuffer = new Uint8Array( 1 );
 
 const modelPath = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb';
 const params = {
@@ -203,6 +205,8 @@ function init() {
 		} );
 
 		mesh.material = new THREE.MeshBasicMaterial( { colorWrite: false } );
+		mesh.geometry.center();
+		mesh.position.set( 0, 0, 0 );
 		scene.add( mesh );
 
 		helper = new MeshBVHVisualizer( mesh, 40 );
@@ -211,11 +215,11 @@ function init() {
 		helper.color.set( 0xffffff );
 		helper.opacity = 1 / 255;
 		helper.depth = 40;
+		window.HELPER = helper;
 
 		const material = helper.meshMaterial;
 		material.blending = THREE.CustomBlending;
 		material.blendDst = THREE.OneFactor;
-		// material.blendSrc = THREE.OneFactor;
 
 		scene.add( helper );
 
@@ -242,7 +246,7 @@ function init() {
 
 	const vizFolder = gui.addFolder( 'Visualization' );
 	vizFolder.add( params.visualization, 'traversalThreshold', 1, 175, 1 );
-	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.1, 0.001 );
+	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.05, 0.001 );
 	vizFolder.open();
 
 	const benchmarkFolder = gui.addFolder( 'Benchmark' );
@@ -261,6 +265,12 @@ function init() {
 
 	} );
 	benchmarkFolder.open();
+
+	window.addEventListener( 'mousemove', e => {
+
+		mouse.set( e.clientX, window.innerHeight - e.clientY );
+
+	} );
 
 }
 
@@ -294,15 +304,15 @@ function updateBVH() {
 
 	const info = getBVHExtremes( mesh.geometry.boundsTree )[ 0 ];
 	outputContainer.innerText =
-		`construction time       : ${ deltaTime.toFixed( 2 ) }ms\n` +
-		`surface area score      : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
-		`total nodes             : ${ info.nodeCount }\n` +
-		`total leaf nodes        : ${ info.leafNodeCount }\n` +
-		`surface area score      : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
-		`min / max tris per leaf : ${ info.tris.min } / ${ info.tris.max }\n` +
-		`min / max depth         : ${ info.depth.min } / ${ info.depth.max }\n` +
-		`memory (incl. geometry) : ${ ( estimateMemoryInBytes( mesh.geometry.boundsTree ) * 1e-6 ).toFixed( 3 ) } mb \n` +
-		`memory (excl. geometry) : ${ ( estimateMemoryInBytes( mesh.geometry.boundsTree._roots ) * 1e-6 ).toFixed( 3 ) } mb`;
+		`construction time        : ${ deltaTime.toFixed( 2 ) }ms\n` +
+		`surface area score       : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
+		`total nodes              : ${ info.nodeCount }\n` +
+		`total leaf nodes         : ${ info.leafNodeCount }\n` +
+		`surface area score       : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
+		`min / max tris per leaf  : ${ info.tris.min } / ${ info.tris.max }\n` +
+		`min / max depth          : ${ info.depth.min } / ${ info.depth.max }\n` +
+		`memory (incl. geometry)  : ${ ( estimateMemoryInBytes( mesh.geometry.boundsTree ) * 1e-6 ).toFixed( 3 ) } mb \n` +
+		`memory (excl. geometry)  : ${ ( estimateMemoryInBytes( mesh.geometry.boundsTree._roots ) * 1e-6 ).toFixed( 3 ) } mb`;
 
 }
 
@@ -338,7 +348,11 @@ function runBenchmark( updateGeom = false ) {
 			Math.cos( 0.75 * Math.PI * y ) * Math.cos( rotations * 2 * Math.PI * i / rayCount ),
 		).multiplyScalar( 2.5 );
 
-		direction.set( Math.cos( 10 * y ), Math.sin( 10 * y ), 0 ).sub( origin ).normalize();
+		direction.set(
+			Math.cos( rotations * 5 * y ),
+			Math.sin( rotations * 10 * y ),
+			Math.sin( rotations * 5 * y ),
+		).sub( origin ).normalize();
 
 		raycaster.intersectObject( mesh );
 
@@ -353,7 +367,9 @@ function runBenchmark( updateGeom = false ) {
 
 			} else {
 
-				points.push( new THREE.Vector3() );
+				const v = new THREE.Vector3();
+				ray.at( 5, v );
+				points.push( v );
 
 			}
 
@@ -388,11 +404,21 @@ function render() {
 
 	requestAnimationFrame( render );
 
+	// read the buffer from the last frame of rendering so we don't block
+	// waiting for this frame to finish.
+	renderer.readRenderTargetPixels(
+		renderTarget,
+		mouse.x, mouse.y, 1, 1,
+		readBuffer,
+	);
+
 	if ( mesh ) {
 
 		sampleCount = Math.min( sampleCount + 1, 50 );
 		currTime += ( runBenchmark() - currTime ) / sampleCount;
-		benchmarkContainer.innerText = `\nbenchmark rolling avg   : ${ currTime.toFixed( 3 ) } ms`;
+		benchmarkContainer.innerText =
+			`\ntraversal depth at mouse : ${ readBuffer[ 0 ] }\n` +
+			`benchmark rolling avg    : ${ currTime.toFixed( 3 ) } ms`;
 
 	}
 
@@ -414,7 +440,6 @@ function render() {
 
 	if ( mesh ) renderer.render( mesh, camera );
 	renderer.render( benchmarkViz, camera );
-
 
 }
 
