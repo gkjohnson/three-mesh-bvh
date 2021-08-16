@@ -16,7 +16,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 let scene, camera, renderer, helper, mesh, outputContainer, benchmarkContainer;
 let benchmarkViz, renderTarget, fsQuad;
 let mouse = new THREE.Vector2();
-const readBuffer = new Uint8Array( 1 );
+const readBuffer = new Float32Array( 1 );
 
 const modelPath = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb';
 const params = {
@@ -34,6 +34,7 @@ const params = {
 
 	visualization: {
 
+		displayMesh: true,
 		traversalThreshold: 50,
 		boundsOpacity: 5 / 255,
 
@@ -79,7 +80,7 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 				varying vec2 vUv;
 				void main() {
 
-					float count = 255.0 * texture2D( map, vUv ).r;
+					float count = texture2D( map, vUv ).r;
 
 					if ( count > threshold ) {
 
@@ -88,6 +89,7 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 					} else {
 
 						gl_FragColor = vec4( boundsOpacity * count );
+						gl_FragColor.a = 1.0;
 
 					}
 
@@ -165,7 +167,7 @@ function init() {
 	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
 		format: THREE.RedFormat,
 		// format: THREE.RedIntegerFormat,
-		// type: THREE.UnsignedShortType,
+		type: THREE.FloatType,
 		// internalFormat: 'R16UI'
 	} );
 
@@ -213,7 +215,7 @@ function init() {
 		helper.displayEdges = false;
 		helper.displayParents = true;
 		helper.color.set( 0xffffff );
-		helper.opacity = 1 / 255;
+		helper.opacity = 1;
 		helper.depth = 40;
 		window.HELPER = helper;
 
@@ -230,7 +232,7 @@ function init() {
 	} );
 
 	benchmarkViz = new THREE.LineSegments();
-	benchmarkViz.material.opacity = 0.2;
+	benchmarkViz.material.opacity = 0.1;
 	benchmarkViz.material.transparent = true;
 	benchmarkViz.material.depthWrite = false;
 	benchmarkViz.frustumCulled = false;
@@ -245,7 +247,8 @@ function init() {
 	bvhFolder.open();
 
 	const vizFolder = gui.addFolder( 'Visualization' );
-	vizFolder.add( params.visualization, 'traversalThreshold', 1, 175, 1 );
+	vizFolder.add( params.visualization, 'displayMesh' );
+	vizFolder.add( params.visualization, 'traversalThreshold', 1, 300, 1 );
 	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.05, 0.001 );
 	vizFolder.open();
 
@@ -417,7 +420,7 @@ function render() {
 		sampleCount = Math.min( sampleCount + 1, 50 );
 		currTime += ( runBenchmark() - currTime ) / sampleCount;
 		benchmarkContainer.innerText =
-			`\ntraversal depth at mouse : ${ readBuffer[ 0 ] }\n` +
+			`\ntraversal depth at mouse : ${ Math.round( readBuffer[ 0 ] ) }\n` +
 			`benchmark rolling avg    : ${ currTime.toFixed( 3 ) } ms`;
 
 	}
@@ -428,6 +431,7 @@ function render() {
 	// render bvh
 	benchmarkViz.visible = false;
 	renderer.autoClear = true;
+	if ( mesh ) mesh.visible = params.visualization.displayMesh;
 	renderer.setRenderTarget( renderTarget );
 	renderer.render( scene, camera );
 
