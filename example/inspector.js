@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { GUI } from 'dat.gui';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer,
-	SAH, CENTER, AVERAGE, getBVHExtremes,
+	SAH, CENTER, AVERAGE, getBVHExtremes, estimateMemoryInBytes,
 } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -115,10 +115,13 @@ function updateBVH() {
 	outputContainer.innerText =
 		`construction time       : ${ deltaTime.toFixed( 2 ) }ms\n` +
 		`surface area score      : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
-		`total nodes             : ${ info.total }\n` +
+		`total nodes             : ${ info.nodeCount }\n` +
+		`total leaf nodes        : ${ info.leafNodeCount }\n` +
 		`surface area score      : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
 		`min / max tris per leaf : ${ info.tris.min } / ${ info.tris.max }\n` +
-		`min / max depth         : ${ info.depth.min } / ${ info.depth.max }\n`;
+		`min / max depth         : ${ info.depth.min } / ${ info.depth.max }\n` +
+		`memory (incl. geometry) : ${ estimateMemoryInBytes( mesh.geometry.boundsTree ) * 1e-6 } mb \n` +
+		`memory (excl. geometry) : ${ estimateMemoryInBytes( mesh.geometry.boundsTree._roots ) * 1e-6 } mb`;
 
 }
 

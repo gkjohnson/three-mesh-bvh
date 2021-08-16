@@ -30,7 +30,15 @@ function getRootExtremes( bvh, group ) {
 	// TODO: return the score of the total surface area so tree construction
 	// can be compared.
 	const result = {
-		total: 0,
+		get total() {
+
+			console.warn( 'getRootExtremes: "total" has been replaced by "nodeCount" and will be removed in the next release.' );
+			return this.nodeCount;
+
+		},
+		nodeCount: 0,
+		leafNodeCount: 0,
+
 		depth: {
 			min: Infinity, max: - Infinity
 		},
@@ -49,8 +57,10 @@ function getRootExtremes( bvh, group ) {
 
 		const surfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
 
-		result.total ++;
+		result.nodeCount ++;
 		if ( isLeaf ) {
+
+			result.leafNodeCount ++;
 
 			result.depth.min = Math.min( depth, result.depth.min );
 			result.depth.max = Math.max( depth, result.depth.max );
