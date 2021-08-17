@@ -35,6 +35,7 @@ const params = {
 	visualization: {
 
 		displayMesh: true,
+		simpleColors: false,
 		traversalThreshold: 50,
 		boundsOpacity: 5 / 255,
 
@@ -51,6 +52,10 @@ const params = {
 
 };
 
+const BOUNDS_COLOR = 0xffca28;
+const BG_COLOR = 0x001c15;
+const THRESHOLD_COLOR = 0xf44336;
+
 class TraverseMaterial extends THREE.ShaderMaterial {
 
 	constructor( params ) {
@@ -61,6 +66,10 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 				map: { value: null },
 				threshold: { value: 35 },
 				boundsOpacity: { value: 5 },
+
+				boundsColor: { value: new THREE.Color( 0xffffff ) },
+				backgroundColor: { value: new THREE.Color( 0x0000 ) },
+				thresholdColor: { value: new THREE.Color( 0xff0000 ) },
 			},
 
 			vertexShader: /* glsl */`
@@ -77,6 +86,11 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 				uniform sampler2D map;
 				uniform float threshold;
 				uniform float boundsOpacity;
+
+				uniform vec3 thresholdColor;
+				uniform vec3 boundsColor;
+				uniform vec3 backgroundColor;
+
 				varying vec2 vUv;
 				void main() {
 
@@ -84,11 +98,14 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 
 					if ( count > threshold ) {
 
-						gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+						gl_FragColor.rgb = thresholdColor.rgb;
+						gl_FragColor.a = 1.0;
 
 					} else {
 
-						gl_FragColor = vec4( boundsOpacity * count );
+						float alpha = min( boundsOpacity * count, 1.0 );
+						gl_FragColor.rgb = mix( backgroundColor, boundsColor, alpha ).rgb;
+						gl_FragColor.rgb = mix( gl_FragColor.rgb, vec3( 1.0 ), 2.0 * max( 0.0, alpha - 0.5 ) ).rgb;
 						gl_FragColor.a = 1.0;
 
 					}
@@ -98,52 +115,26 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 
 		} );
 
-		Object.defineProperties( this, {
+		const uniforms = this.uniforms;
+		for ( const key in uniforms ) {
 
-			map: {
-
-				get() {
-
-					return this.uniforms.map.value;
-
-				},
-				set( v ) {
-
-					this.uniforms.map.value = v;
-
-				}
-
-			},
-			threshold: {
+			Object.defineProperty( this, key, {
 
 				get() {
 
-					return this.uniforms.threshold.value;
+					return this.uniforms[ key ].value;
 
 				},
+
 				set( v ) {
 
-					this.uniforms.threshold.value = v;
+					this.uniforms[ key ].value = v;
 
 				}
 
-			},
-			boundsOpacity: {
+			} );
 
-				get() {
-
-					return this.uniforms.boundsOpacity.value;
-
-				},
-				set( v ) {
-
-					this.uniforms.boundsOpacity.value = v;
-
-				}
-
-			}
-
-		} );
+		}
 
 		this.setValues( params );
 
@@ -247,6 +238,7 @@ function init() {
 	bvhFolder.open();
 
 	const vizFolder = gui.addFolder( 'Visualization' );
+	vizFolder.add( params.visualization, 'simpleColors' );
 	vizFolder.add( params.visualization, 'displayMesh' );
 	vizFolder.add( params.visualization, 'traversalThreshold', 1, 300, 1 );
 	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.05, 0.001 );
@@ -421,6 +413,20 @@ function render() {
 		benchmarkContainer.innerText =
 			`\ntraversal depth at mouse : ${ Math.round( readBuffer[ 0 ] ) }\n` +
 			`benchmark rolling avg    : ${ currTime.toFixed( 3 ) } ms`;
+
+	}
+
+	if ( params.visualization.simpleColors ) {
+
+		fsQuad.material.boundsColor.set( 0xffffff );
+		fsQuad.material.thresholdColor.set( 0xff0000 );
+		fsQuad.material.backgroundColor.set( 0x000000 );
+
+	} else {
+
+		fsQuad.material.boundsColor.set( BOUNDS_COLOR );
+		fsQuad.material.thresholdColor.set( THRESHOLD_COLOR );
+		fsQuad.material.backgroundColor.set( BG_COLOR );
 
 	}
 
