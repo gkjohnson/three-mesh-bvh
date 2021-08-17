@@ -183,7 +183,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( - 2.5, 2.5, 2.5 );
+	camera.position.set( - 2.5, 1.5, 2.5 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -311,7 +311,6 @@ function updateBVH() {
 		`surface area score       : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
 		`total nodes              : ${ info.nodeCount }\n` +
 		`total leaf nodes         : ${ info.leafNodeCount }\n` +
-		`surface area score       : ${ info.surfaceAreaScore.toFixed( 2 ) }\n` +
 		`min / max tris per leaf  : ${ info.tris.min } / ${ info.tris.max }\n` +
 		`min / max depth          : ${ info.depth.min } / ${ info.depth.max }\n` +
 		`memory (incl. geometry)  : ${ ( estimateMemoryInBytes( mesh.geometry.boundsTree ) * 1e-6 ).toFixed( 3 ) } mb \n` +
