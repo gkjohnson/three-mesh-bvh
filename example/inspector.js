@@ -18,7 +18,7 @@ let benchmarkViz, renderTarget, fsQuad;
 let mouse = new THREE.Vector2();
 const readBuffer = new Float32Array( 1 );
 
-const modelPath = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DragonAttenuation/glTF-Binary/DragonAttenuation.glb';
+const modelPath = '../models/DragonAttenuation.glb';
 const params = {
 
 	options: {
@@ -52,7 +52,7 @@ const params = {
 
 };
 
-const BOUNDS_COLOR = 0xffca28;
+const BOUNDS_COLOR = 0xffffff;
 const BG_COLOR = 0x001c15;
 const THRESHOLD_COLOR = 0xf44336;
 
@@ -68,7 +68,7 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 				boundsOpacity: { value: 5 },
 
 				boundsColor: { value: new THREE.Color( 0xffffff ) },
-				backgroundColor: { value: new THREE.Color( 0x0000 ) },
+				backgroundColor: { value: new THREE.Color( 0x000000 ) },
 				thresholdColor: { value: new THREE.Color( 0xff0000 ) },
 			},
 
@@ -105,7 +105,6 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 
 						float alpha = min( boundsOpacity * count, 1.0 );
 						gl_FragColor.rgb = mix( backgroundColor, boundsColor, alpha ).rgb;
-						gl_FragColor.rgb = mix( gl_FragColor.rgb, vec3( 1.0 ), 2.0 * max( 0.0, alpha - 0.5 ) ).rgb;
 						gl_FragColor.a = 1.0;
 
 					}
@@ -238,7 +237,7 @@ function init() {
 	bvhFolder.open();
 
 	const vizFolder = gui.addFolder( 'Visualization' );
-	vizFolder.add( params.visualization, 'simpleColors' );
+	// vizFolder.add( params.visualization, 'simpleColors' );
 	vizFolder.add( params.visualization, 'displayMesh' );
 	vizFolder.add( params.visualization, 'traversalThreshold', 1, 300, 1 );
 	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.05, 0.001 );
