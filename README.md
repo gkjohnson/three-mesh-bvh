@@ -229,8 +229,8 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     maxDepth: 40,
 
     // The number of triangles to aim for in a leaf node. Setting this to a lower
-	// number can improve raycast performance but increase construction time and
-	// memory footprint.
+    // number can improve raycast performance but increase construction time and
+    // memory footprint.
     maxLeafTris: 10,
 
     // If true then the bounding box for the geometry is set once the BVH
