@@ -260,7 +260,7 @@ function init() {
 	} );
 	benchmarkFolder.open();
 
-	window.addEventListener( 'mousemove', e => {
+	window.addEventListener( 'pointermove', e => {
 
 		mouse.set( e.clientX, window.innerHeight - e.clientY );
 
@@ -399,9 +399,10 @@ function render() {
 
 	// read the buffer from the last frame of rendering so we don't block
 	// waiting for this frame to finish.
+	const pixelRatio = renderer.getPixelRatio();
 	renderer.readRenderTargetPixels(
 		renderTarget,
-		mouse.x, mouse.y, 1, 1,
+		mouse.x * pixelRatio, mouse.y * pixelRatio, 1, 1,
 		readBuffer,
 	);
 
