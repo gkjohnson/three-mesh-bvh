@@ -156,8 +156,11 @@ function init() {
 	// render target
 	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
 		format: THREE.RedFormat,
-		// format: THREE.RedIntegerFormat,
 		type: THREE.FloatType,
+
+		// TODO: Use integer buffers once better supported in three.js
+		// format: THREE.RedIntegerFormat,
+		// type: THREE.UnsignedIntType,
 		// internalFormat: 'R16UI'
 	} );
 
