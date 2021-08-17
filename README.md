@@ -228,7 +228,9 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // time and less memory allocation.
     maxDepth: 40,
 
-    // The number of triangles to aim for in a leaf node.
+    // The number of triangles to aim for in a leaf node. Setting this to a lower
+    // number can improve raycast performance but increase construction time and
+    // memory footprint.
     maxLeafTris: 10,
 
     // If true then the bounding box for the geometry is set once the BVH
@@ -638,8 +640,26 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 
 ```js
 {
+	// The total number of nodes in the tree including leaf nodes.
+	nodeCount: Number,
+
+	// The total number of leaf nodes in the tree.
+	leafNodeCount: Number,
+
+	// A total tree score based on the surface area heuristic score
+	// useful for comparing the quality and performance capability
+	// of the bounds tree. Lower score is better and based on the surface
+	// area of bounds and how many triangles are stored within.
+	surfaceAreaScore: Number,
+
+	// The min and max of leaf nodes in the tree.
 	depth: { min: Number, max: Number },
+
+	// The min and max number of triangles contained within the
+	// bounds the leaf nodes.
 	tris: { min: Number, max: Number },
+
+	// The number of splits on any given axis.
 	splits: [ Number, Number, Number ]
 }
 ```
