@@ -33,6 +33,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
+[BVH options inspector demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
+
 # Use
 
 Using pre-made functions
