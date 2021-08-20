@@ -359,6 +359,9 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
+				// TODO: These bounds cache functions need to account for triangles lying on the same
+				// split bounds. Any duplicate split bounds should be removed and the triangle bounds
+				// from each merged into one.
 				// compute and cache the left bounds
 				b = 1;
 				for ( let i = cStart + 6; i < cEnd; i += 6, b ++ ) {
