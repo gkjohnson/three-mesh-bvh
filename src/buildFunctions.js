@@ -278,7 +278,6 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 	} else if ( strategy === SAH ) {
 
-		// TODO: hone these costs
 		const rootSurfaceArea = computeSurfaceArea( nodeBoundingData );
 		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
