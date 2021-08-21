@@ -37,7 +37,6 @@ const params = {
 		displayMesh: true,
 		simpleColors: false,
 		traversalThreshold: 50,
-		boundsOpacity: 5 / 255,
 
 	},
 
@@ -52,9 +51,9 @@ const params = {
 
 };
 
-const BOUNDS_COLOR = 0xffffff;
-const BG_COLOR = 0x001c15;
-const THRESHOLD_COLOR = 0xf44336;
+const BOUNDS_COLOR = 0xffca28;
+const BG_COLOR = 0x002425;
+const THRESHOLD_COLOR = 0xe91e63;
 
 class TraverseMaterial extends THREE.ShaderMaterial {
 
@@ -65,7 +64,6 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 			uniforms: {
 				map: { value: null },
 				threshold: { value: 35 },
-				boundsOpacity: { value: 5 },
 
 				boundsColor: { value: new THREE.Color( 0xffffff ) },
 				backgroundColor: { value: new THREE.Color( 0x000000 ) },
@@ -85,7 +83,6 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 			fragmentShader: /* glsl */`
 				uniform sampler2D map;
 				uniform float threshold;
-				uniform float boundsOpacity;
 
 				uniform vec3 thresholdColor;
 				uniform vec3 boundsColor;
@@ -103,8 +100,10 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 
 					} else {
 
-						float alpha = min( boundsOpacity * count, 1.0 );
-						gl_FragColor.rgb = mix( backgroundColor, boundsColor, alpha ).rgb;
+						float alpha = count / threshold;
+						vec3 color = mix( boundsColor, vec3( 1.0 ), pow( alpha, 1.75 ) );
+
+						gl_FragColor.rgb = mix( backgroundColor, color, alpha ).rgb;
 						gl_FragColor.a = 1.0;
 
 					}
@@ -210,7 +209,6 @@ function init() {
 		helper.color.set( 0xffffff );
 		helper.opacity = 1;
 		helper.depth = 40;
-		window.HELPER = helper;
 
 		const material = helper.meshMaterial;
 		material.blending = THREE.CustomBlending;
@@ -240,10 +238,9 @@ function init() {
 	bvhFolder.open();
 
 	const vizFolder = gui.addFolder( 'Visualization' );
-	// vizFolder.add( params.visualization, 'simpleColors' );
+	vizFolder.add( params.visualization, 'simpleColors' );
 	vizFolder.add( params.visualization, 'displayMesh' );
 	vizFolder.add( params.visualization, 'traversalThreshold', 1, 300, 1 );
-	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.05, 0.001 );
 	vizFolder.open();
 
 	const benchmarkFolder = gui.addFolder( 'Benchmark' );
@@ -434,7 +431,6 @@ function render() {
 	}
 
 	fsQuad.material.threshold = params.visualization.traversalThreshold;
-	fsQuad.material.boundsOpacity = params.visualization.boundsOpacity;
 
 	// render bvh
 	benchmarkViz.visible = false;
