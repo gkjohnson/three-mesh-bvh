@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Fixed
-- Fixed Surface Area Heuristic (SAH) split strategy to function correctly, improve build performance, produce more optimal bounds, and improved a memory footprint.
+- Fixed Surface Area Heuristic (SAH) split strategy to function correctly, improve build performance, and produce more optimal bounds and improved a memory footprint.
 
 ### Added
 - Return "surfaceAreaCost" in returned `getBVHExtremes` object to compare BVH structure quality.
