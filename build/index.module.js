@@ -1,13 +1,21 @@
-import { Box3, BufferAttribute, Vector3, Vector2, Plane, Line3, Triangle, Sphere, Matrix4, BackSide, DoubleSide, Mesh, LineSegments, Group, LineBasicMaterial, Ray } from 'three';
+import { BufferAttribute, Vector3, Vector2, Plane, Line3, Triangle, Sphere, Box3, Matrix4, BackSide, DoubleSide, Mesh, Object3D, BufferGeometry, Group, LineBasicMaterial, MeshBasicMaterial, Ray } from 'three';
 
 // Split strategy constants
 const CENTER = 0;
 const AVERAGE = 1;
 const SAH = 2;
 
+// Traversal constants
 const NOT_INTERSECTED = 0;
 const INTERSECTED = 1;
 const CONTAINED = 2;
+
+// SAH cost constants
+// TODO: hone these costs more. The relative difference between them should be the
+// difference in measured time to perform a triangle intersection vs traversing
+// bounds.
+const TRIANGLE_INTERSECT_COST = 1.25;
+const TRAVERSAL_COST = 1;
 
 class MeshBVHNode {
 
@@ -72,10 +80,48 @@ function getLongestEdgeIndex( bounds ) {
 
 }
 
+// copys bounds a into bounds b
+function copyBounds( source, target ) {
+
+	target.set( source );
+
+}
+
+// sets bounds target to the union of bounds a and b
+function unionBounds( a, b, target ) {
+
+	let aVal, bVal;
+	for ( let d = 0; d < 3; d ++ ) {
+
+		const d3 = d + 3;
+
+		// set the minimum values
+		aVal = a[ d ];
+		bVal = b[ d ];
+		target[ d ] = aVal < bVal ? aVal : bVal;
+
+		// set the max values
+		aVal = a[ d3 ];
+		bVal = b[ d3 ];
+		target[ d3 ] = aVal > bVal ? aVal : bVal;
+
+	}
+
+}
+
+// compute bounds surface area
+function computeSurfaceArea( bounds ) {
+
+	const d0 = bounds[ 3 ] - bounds[ 0 ];
+	const d1 = bounds[ 4 ] - bounds[ 1 ];
+	const d2 = bounds[ 5 ] - bounds[ 2 ];
+
+	return 2 * ( d0 * d1 + d1 * d2 + d2 * d0 );
+
+}
+
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
 const FLOAT32_EPSILON = Math.pow( 2, - 24 );
-const xyzFields = [ 'x', 'y', 'z' ];
-const boxTemp = new Box3();
 
 function ensureIndex( geo ) {
 
@@ -249,7 +295,7 @@ function getCentroidBounds( triangleBounds, offset, count, centroidTarget ) {
 // reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 // will be on the left and elements on the right side of the split will be on the right. returns the index
 // of the first element on the right side, or offset + count if there are no elements on the right side.
-function partition( index, triangleBounds, sahPlanes, offset, count, split ) {
+function partition( index, triangleBounds, offset, count, split ) {
 
 	let left = offset;
 	let right = offset + count - 1;
@@ -265,6 +311,8 @@ function partition( index, triangleBounds, sahPlanes, offset, count, split ) {
 
 		}
 
+
+		// if a triangle center lies on the partition plane it is considered to be on the right side
 		while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
 
 			right --;
@@ -293,18 +341,6 @@ function partition( index, triangleBounds, sahPlanes, offset, count, split ) {
 
 			}
 
-			if ( sahPlanes ) {
-
-				for ( let i = 0; i < 3; i ++ ) {
-
-					let t = sahPlanes[ i ][ left ];
-					sahPlanes[ i ][ left ] = sahPlanes[ i ][ right ];
-					sahPlanes[ i ][ right ] = t;
-
-				}
-
-			}
-
 			left ++;
 			right --;
 
@@ -318,7 +354,22 @@ function partition( index, triangleBounds, sahPlanes, offset, count, split ) {
 
 }
 
-function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, sahPlanes, offset, count, strategy ) {
+const BIN_COUNT = 32;
+const sahBins = new Array( BIN_COUNT ).fill().map( () => {
+
+	return {
+
+		count: 0,
+		bounds: new Float32Array( 6 ),
+		rightCacheBounds: new Float32Array( 6 ),
+		candidate: 0,
+
+	};
+
+} );
+const leftBounds = new Float32Array( 6 );
+
+function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
 
 	let axis = - 1;
 	let pos = 0;
@@ -344,135 +395,139 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 	} else if ( strategy === SAH ) {
 
-		// Surface Area Heuristic
-		// In order to make this code more terse, the x, y, and z
-		// variables of various structures have been stuffed into
-		// 0, 1, and 2 array indices so they can be easily computed
-		// and accessed within array iteration
+		const rootSurfaceArea = computeSurfaceArea( nodeBoundingData );
+		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
-		// Cost values defineed for operations. We're using bounds for traversal, so
-		// the cost of traversing one more layer is more than intersecting a triangle.
-		const TRAVERSAL_COST = 3;
-		const INTERSECTION_COST = 1;
-		const bb = arrayToBox( nodeBoundingData, boxTemp );
+		// iterate over all axes
+		const cStart = offset * 6;
+		const cEnd = ( offset + count ) * 6;
+		for ( let a = 0; a < 3; a ++ ) {
 
-		// Define the width, height, and depth of the bounds as a box
-		const dim = [
-			bb.max.x - bb.min.x,
-			bb.max.y - bb.min.y,
-			bb.max.z - bb.min.z
-		];
-		const sa = 2 * ( dim[ 0 ] * dim[ 1 ] + dim[ 0 ] * dim[ 2 ] + dim[ 1 ] * dim[ 2 ] );
+			const axisLeft = centroidBoundingData[ a ];
+			const axisRight = centroidBoundingData[ a + 3 ];
+			const axisLength = axisRight - axisLeft;
+			const binWidth = axisLength / BIN_COUNT;
 
-		// Get the precalculated planes based for the triangles we're
-		// testing here
-		const filteredLists = [[], [], []];
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+			// reset the bins
+			for ( let i = 0; i < BIN_COUNT; i ++ ) {
 
-			for ( let v = 0; v < 3; v ++ ) {
+				const bin = sahBins[ i ];
+				bin.count = 0;
+				bin.candidate = axisLeft + binWidth + i * binWidth;
 
-				filteredLists[ v ].push( sahPlanes[ v ][ i ] );
+				const bounds = bin.bounds;
+				for ( let d = 0; d < 3; d ++ ) {
+
+					bounds[ d ] = Infinity;
+					bounds[ d + 3 ] = - Infinity;
+
+				}
 
 			}
 
-		}
+			// iterate over all center positions
+			for ( let c = cStart; c < cEnd; c += 6 ) {
 
-		filteredLists.forEach( planes => planes.sort( ( a, b ) => a.p - b.p ) );
+				const triCenter = triangleBounds[ c + 2 * a ];
+				const relativeCenter = triCenter - axisLeft;
 
-		// this bounds surface area, left bound SA, left triangles, right bound SA, right triangles
-		const getCost = ( sa, sal, nl, sar, nr ) =>
-			  TRAVERSAL_COST + INTERSECTION_COST * ( ( sal / sa ) * nl + ( sar / sa ) * nr );
+				// in the partition function if the centroid lies on the split plane then it is
+				// considered to be on the right side of the split
+				let binIndex = ~ ~ ( relativeCenter / binWidth );
+				if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
 
-		// the cost of _not_ splitting into smaller bounds
-		const noSplitCost = INTERSECTION_COST * count;
+				const bin = sahBins[ binIndex ];
+				bin.count ++;
 
-		axis = - 1;
-		let bestCost = noSplitCost;
-		for ( let i = 0; i < 3; i ++ ) {
+				const bounds = bin.bounds;
+				for ( let d = 0; d < 3; d ++ ) {
 
-			// o1 and o2 represent the _other_ two axes in the
-			// the space. So if we're checking the x (0) dimension,
-			// then o1 and o2 would be y and z (1 and 2)
-			const o1 = ( i + 1 ) % 3;
-			const o2 = ( i + 2 ) % 3;
+					const tCenter = triangleBounds[ c + 2 * d ];
+					const tHalf = triangleBounds[ c + 2 * d + 1 ];
 
-			const bmin = bb.min[ xyzFields[ i ] ];
-			const bmax = bb.max[ xyzFields[ i ] ];
-			const planes = filteredLists[ i ];
+					const tMin = tCenter - tHalf;
+					const tMax = tCenter + tHalf;
 
-			// The number of left and right triangles on either side
-			// given the current split
-			let nl = 0;
-			let nr = count;
-			for ( let p = 0; p < planes.length; p ++ ) {
+					if ( tMin < bounds[ d ] ) {
 
-				const pinfo = planes[ p ];
+						bounds[ d ] = tMin;
 
-				// As the plane moves, we have to increment or decrement the
-				// number of triangles on either side of the plane
-				nl ++;
-				nr --;
+					}
 
-				// the distance from the plane to the edge of the broader bounds
-				const ldim = pinfo.p - bmin;
-				const rdim = bmax - pinfo.p;
+					if ( tMax > bounds[ d + 3 ] ) {
 
-				// same for the other two dimensions
-				let ldimo1 = dim[ o1 ], rdimo1 = dim[ o1 ];
-				let ldimo2 = dim[ o2 ], rdimo2 = dim[ o2 ];
+						bounds[ d + 3 ] = tMax;
 
-				/*
-				// compute the other bounding planes for the box
-				// if only the current triangles are considered to
-				// be in the box
-				// This is really slow and probably not really worth it
-				const o1planes = sahPlanes[o1];
-				const o2planes = sahPlanes[o2];
-				let lmin = Infinity, lmax = -Infinity;
-				let rmin = Infinity, rmax = -Infinity;
-				planes.forEach((p, i) => {
-				const tri2 = p.tri * 2;
-				const inf1 = o1planes[tri2 + 0];
-				const inf2 = o1planes[tri2 + 1];
-				if (i <= nl) {
-				lmin = Math.min(inf1.p, inf2.p, lmin);
-				lmax = Math.max(inf1.p, inf2.p, lmax);
+					}
+
 				}
-				if (i >= nr) {
-				rmin = Math.min(inf1.p, inf2.p, rmin);
-				rmax = Math.max(inf1.p, inf2.p, rmax);
-				}
-				})
-				ldimo1 = Math.min(lmax - lmin, ldimo1);
-				rdimo1 = Math.min(rmax - rmin, rdimo1);
 
-				planes.forEach((p, i) => {
-				const tri2 = p.tri * 2;
-				const inf1 = o2planes[tri2 + 0];
-				const inf2 = o2planes[tri2 + 1];
-				if (i <= nl) {
-				lmin = Math.min(inf1.p, inf2.p, lmin);
-				lmax = Math.max(inf1.p, inf2.p, lmax);
-				}
-				if (i >= nr) {
-				rmin = Math.min(inf1.p, inf2.p, rmin);
-				rmax = Math.max(inf1.p, inf2.p, rmax);
-				}
-				})
-				ldimo2 = Math.min(lmax - lmin, ldimo2);
-				rdimo2 = Math.min(rmax - rmin, rdimo2);
-				*/
+			}
 
-				// surface areas and cost
-				const sal = 2 * ( ldimo1 * ldimo2 + ldimo1 * ldim + ldimo2 * ldim );
-				const sar = 2 * ( rdimo1 * rdimo2 + rdimo1 * rdim + rdimo2 * rdim );
-				const cost = getCost( sa, sal, nl, sar, nr );
+			// cache the unioned bounds from right to left so we don't have to regenerate them each time
+			const lastBin = sahBins[ BIN_COUNT - 1 ];
+			copyBounds( lastBin.bounds, lastBin.rightCacheBounds );
+			for ( let i = BIN_COUNT - 2; i >= 0; i -- ) {
+
+				const bin = sahBins[ i ];
+				const nextBin = sahBins[ i + 1 ];
+				unionBounds( bin.bounds, nextBin.rightCacheBounds, bin.rightCacheBounds );
+
+			}
+
+			let leftCount = 0;
+			for ( let i = 0; i < BIN_COUNT - 1; i ++ ) {
+
+				const bin = sahBins[ i ];
+				const binCount = bin.count;
+				const bounds = bin.bounds;
+
+				const nextBin = sahBins[ i + 1 ];
+				const rightBounds = nextBin.rightCacheBounds;
+
+				// dont do anything with the bounds if the new bounds have no triangles
+				if ( binCount !== 0 ) {
+
+					if ( leftCount === 0 ) {
+
+						copyBounds( bounds, leftBounds );
+
+					} else {
+
+						unionBounds( bounds, leftBounds, leftBounds );
+
+					}
+
+				}
+
+				leftCount += binCount;
+
+				// check the cost of this split
+				let leftProb = 0;
+				let rightProb = 0;
+
+				if ( leftCount !== 0 ) {
+
+					leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
+
+				}
+
+				const rightCount = count - leftCount;
+				if ( rightCount !== 0 ) {
+
+					rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
+
+				}
+
+				const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+					leftProb * leftCount + rightProb * rightCount
+				);
 
 				if ( cost < bestCost ) {
 
-					axis = i;
-					pos = pinfo.p;
+					axis = a;
 					bestCost = cost;
+					pos = bin.candidate;
 
 				}
 
@@ -497,24 +552,6 @@ function getAverage( triangleBounds, offset, count, axis ) {
 	}
 
 	return avg / count;
-
-}
-
-function computeSAHPlanes( triangleBounds ) {
-
-	const triCount = triangleBounds.length / 6;
-	const sahPlanes = [ new Array( triCount ), new Array( triCount ), new Array( triCount ) ];
-	for ( let tri = 0; tri < triCount; tri ++ ) {
-
-		for ( let el = 0; el < 3; el ++ ) {
-
-			sahPlanes[ el ][ tri ] = { p: triangleBounds[ tri * 6 + el * 2 ], tri };
-
-		}
-
-	}
-
-	return sahPlanes;
 
 }
 
@@ -605,7 +642,7 @@ function buildTree( geo, options ) {
 		}
 
 		// Find where to split the volume
-		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, sahPlanes, offset, count, strategy );
+		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
 			node.offset = offset;
@@ -614,7 +651,7 @@ function buildTree( geo, options ) {
 
 		}
 
-		const splitOffset = partition( indexArray, triangleBounds, sahPlanes, offset, count, split );
+		const splitOffset = partition( indexArray, triangleBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
@@ -656,7 +693,6 @@ function buildTree( geo, options ) {
 
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	const triangleBounds = computeTriangleBounds( geo );
-	const sahPlanes = options.strategy === SAH ? computeSAHPlanes( triangleBounds ) : null;
 	const indexArray = geo.index.array;
 	const maxDepth = options.maxDepth;
 	const verbose = options.verbose;
@@ -2066,7 +2102,7 @@ function iterateOverTriangles(
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
-const xyzFields$1 = [ 'x', 'y', 'z' ];
+const xyzFields = [ 'x', 'y', 'z' ];
 
 function IS_LEAF( n16, uint16Array ) {
 
@@ -2158,7 +2194,7 @@ function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 		// consider the position of the split plane with respect to the oncoming ray; whichever direction
 		// the ray is coming from, look for an intersection among that side of the tree first
 		const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
-		const xyzAxis = xyzFields$1[ splitAxis ];
+		const xyzAxis = xyzFields[ splitAxis ];
 		const rayDir = ray.direction[ xyzAxis ];
 		const leftToRight = rayDir >= 0;
 
@@ -3365,19 +3401,38 @@ class MeshBVH {
 }
 
 const boundingBox$1 = new Box3();
-class MeshBVHRootVisualizer extends LineSegments {
+class MeshBVHRootVisualizer extends Object3D {
+
+	get isMesh() {
+
+		return ! this.displayEdges;
+
+	}
+
+	get isLineSegments() {
+
+		return this.displayEdges;
+
+	}
+
+	get isLine() {
+
+		return this.displayEdges;
+
+	}
 
 	constructor( mesh, material, depth = 10, group = 0 ) {
 
-		super( undefined, material );
+		super();
 
 		this.material = material;
+		this.geometry = new BufferGeometry();
 		this.name = 'MeshBVHRootVisualizer';
 		this.depth = depth;
+		this.displayParents = false;
 		this.mesh = mesh;
+		this.displayEdges = true;
 		this._group = group;
-
-		this.update();
 
 	}
 
@@ -3385,15 +3440,16 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 	update() {
 
-		const linesGeometry = this.geometry;
+		const geometry = this.geometry;
 		const boundsTree = this.mesh.geometry.boundsTree;
 		const group = this._group;
-		linesGeometry.dispose();
+		geometry.dispose();
 		this.visible = false;
 		if ( boundsTree ) {
 
 			// count the number of bounds required
 			const targetDepth = this.depth - 1;
+			const displayParents = this.displayParents;
 			let boundsCount = 0;
 			boundsTree.traverse( ( depth, isLeaf ) => {
 
@@ -3401,6 +3457,10 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 					boundsCount ++;
 					return true;
+
+				} else if ( displayParents ) {
+
+					boundsCount ++;
 
 				}
 
@@ -3411,7 +3471,8 @@ class MeshBVHRootVisualizer extends LineSegments {
 			const positionArray = new Float32Array( 8 * 3 * boundsCount );
 			boundsTree.traverse( ( depth, isLeaf, boundingData ) => {
 
-				if ( depth === targetDepth || isLeaf ) {
+				const terminate = depth === targetDepth || isLeaf;
+				if ( terminate || displayParents ) {
 
 					arrayToBox( boundingData, boundingBox$1 );
 
@@ -3437,61 +3498,94 @@ class MeshBVHRootVisualizer extends LineSegments {
 
 					}
 
-					return true;
+					return terminate;
 
 				}
 
 			}, group );
 
-			// fill in the index buffer to point to the corner points
-			const edgeIndices = new Uint8Array( [
-				// x axis
-				0, 4,
-				1, 5,
-				2, 6,
-				3, 7,
-
-				// y axis
-				0, 2,
-				1, 3,
-				4, 6,
-				5, 7,
-
-				// z axis
-				0, 1,
-				2, 3,
-				4, 5,
-				6, 7,
-			] );
-
 			let indexArray;
-			if ( positionArray.length > 65535 ) {
+			let indices;
+			if ( this.displayEdges ) {
 
-				indexArray = new Uint32Array( 12 * 2 * boundsCount );
+				// fill in the index buffer to point to the corner points
+				indices = new Uint8Array( [
+					// x axis
+					0, 4,
+					1, 5,
+					2, 6,
+					3, 7,
+
+					// y axis
+					0, 2,
+					1, 3,
+					4, 6,
+					5, 7,
+
+					// z axis
+					0, 1,
+					2, 3,
+					4, 5,
+					6, 7,
+				] );
 
 			} else {
 
-				indexArray = new Uint16Array( 12 * 2 * boundsCount );
+				indices = new Uint8Array( [
+
+					// X-, X+
+					0, 1, 2,
+					2, 1, 3,
+
+					4, 6, 5,
+					6, 7, 5,
+
+					// Y-, Y+
+					1, 4, 5,
+					0, 4, 1,
+
+					2, 3, 6,
+					3, 7, 6,
+
+					// Z-, Z+
+					0, 2, 4,
+					2, 6, 4,
+
+					1, 5, 3,
+					3, 5, 7,
+
+				] );
 
 			}
 
+			if ( positionArray.length > 65535 ) {
+
+				indexArray = new Uint32Array( indices.length * boundsCount );
+
+			} else {
+
+				indexArray = new Uint16Array( indices.length * boundsCount );
+
+			}
+
+			const indexLength = indices.length;
 			for ( let i = 0; i < boundsCount; i ++ ) {
 
 				const posOffset = i * 8;
-				const indexOffset = i * 24;
-				for ( let j = 0; j < 24; j ++ ) {
+				const indexOffset = i * indexLength;
+				for ( let j = 0; j < indexLength; j ++ ) {
 
-					indexArray[ indexOffset + j ] = posOffset + edgeIndices[ j ];
+					indexArray[ indexOffset + j ] = posOffset + indices[ j ];
 
 				}
 
 			}
 
 			// update the geometry
-			linesGeometry.setIndex(
+			geometry.setIndex(
 				new BufferAttribute( indexArray, 1, false ),
 			);
-			linesGeometry.setAttribute(
+			geometry.setAttribute(
 				'position',
 				new BufferAttribute( positionArray, 3, false ),
 			);
@@ -3507,19 +3601,20 @@ class MeshBVHVisualizer extends Group {
 
 	get color() {
 
-		return this._material.color;
+		return this.edgeMaterial.color;
 
 	}
 
 	get opacity() {
 
-		return this._material.opacity;
+		return this.edgeMaterial.opacity;
 
 	}
 
 	set opacity( v ) {
 
-		this._material.opacity = v;
+		this.edgeMaterial.opacity = v;
+		this.meshMaterial.opacity = v;
 
 	}
 
@@ -3530,13 +3625,28 @@ class MeshBVHVisualizer extends Group {
 		this.name = 'MeshBVHVisualizer';
 		this.depth = depth;
 		this.mesh = mesh;
+		this.displayParents = false;
+		this.displayEdges = true;
 		this._roots = [];
-		this._material = new LineBasicMaterial( {
+
+		const edgeMaterial = new LineBasicMaterial( {
 			color: 0x00FF88,
 			transparent: true,
 			opacity: 0.3,
 			depthWrite: false,
 		} );
+
+		const meshMaterial = new MeshBasicMaterial( {
+			color: 0x00FF88,
+			transparent: true,
+			opacity: 0.3,
+			depthWrite: false,
+		} );
+
+		meshMaterial.color = edgeMaterial.color;
+
+		this.edgeMaterial = edgeMaterial;
+		this.meshMaterial = meshMaterial;
 
 		this.update();
 
@@ -3556,18 +3666,19 @@ class MeshBVHVisualizer extends Group {
 
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootVisualizer( this.mesh, this._material, this.depth, i );
+				const root = new MeshBVHRootVisualizer( this.mesh, this.edgeMaterial, this.depth, i );
 				this.add( root );
 				this._roots.push( root );
 
-			} else {
-
-				let root = this._roots[ i ];
-				root.depth = this.depth;
-				root.mesh = this.mesh;
-				root.update();
-
 			}
+
+			const root = this._roots[ i ];
+			root.depth = this.depth;
+			root.mesh = this.mesh;
+			root.displayParents = this.displayParents;
+			root.displayEdges = this.displayEdges;
+			root.material = this.displayEdges ? this.edgeMaterial : this.meshMaterial;
+			root.update();
 
 		}
 
@@ -3598,7 +3709,15 @@ class MeshBVHVisualizer extends Group {
 
 	dispose() {
 
-		this._material.dispose();
+		this.edgeMaterial.dispose();
+		this.meshMaterial.dispose();
+
+		const children = this.children;
+		for ( let i = 0, l = children.length; i < l; i ++ ) {
+
+			children[ i ].geometry.dispose();
+
+		}
 
 	}
 
@@ -3632,20 +3751,37 @@ function isTypedArray( arr ) {
 function getRootExtremes( bvh, group ) {
 
 	const result = {
-		total: 0,
+		get total() {
+
+			console.warn( 'getRootExtremes: "total" has been replaced by "nodeCount" and will be removed in the next release.' );
+			return this.nodeCount;
+
+		},
+		nodeCount: 0,
+		leafNodeCount: 0,
+
 		depth: {
 			min: Infinity, max: - Infinity
 		},
 		tris: {
 			min: Infinity, max: - Infinity
 		},
-		splits: [ 0, 0, 0 ]
+		splits: [ 0, 0, 0 ],
+		surfaceAreaScore: 0,
 	};
 
 	bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, count ) => {
 
-		result.total ++;
+		const l0 = boundingData[ 0 + 3 ] - boundingData[ 0 ];
+		const l1 = boundingData[ 1 + 3 ] - boundingData[ 1 ];
+		const l2 = boundingData[ 2 + 3 ] - boundingData[ 2 ];
+
+		const surfaceArea = 2 * ( l0 * l1 + l1 * l2 + l2 * l0 );
+
+		result.nodeCount ++;
 		if ( isLeaf ) {
+
+			result.leafNodeCount ++;
 
 			result.depth.min = Math.min( depth, result.depth.min );
 			result.depth.max = Math.max( depth, result.depth.max );
@@ -3653,9 +3789,13 @@ function getRootExtremes( bvh, group ) {
 			result.tris.min = Math.min( count, result.tris.min );
 			result.tris.max = Math.max( count, result.tris.max );
 
+			result.surfaceAreaScore += surfaceArea * TRIANGLE_INTERSECT_COST * count;
+
 		} else {
 
 			result.splits[ offsetOrSplit ] ++;
+
+			result.surfaceAreaScore += surfaceArea * TRAVERSAL_COST;
 
 		}
 
