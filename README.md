@@ -666,6 +666,8 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 }
 ```
 
+_NOTE The when using the [refit](#refit) function the `surfaceAreaScore` can be used to check out significantly the structure of the BVH has degraded and rebuild it if it has changed beyond some threshold ratio._
+
 ## Extra Functions
 
 List of functions stored in the `src/workers/` and are not exported via index.js because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
