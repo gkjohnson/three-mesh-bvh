@@ -36,6 +36,7 @@ const params = {
 
 		displayMesh: true,
 		simpleColors: false,
+		outline: true,
 		traversalThreshold: 50,
 
 	},
@@ -68,6 +69,8 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 				boundsColor: { value: new THREE.Color( 0xffffff ) },
 				backgroundColor: { value: new THREE.Color( 0x000000 ) },
 				thresholdColor: { value: new THREE.Color( 0xff0000 ) },
+				resolution: { value: new THREE.Vector2() },
+				outlineAlpha: { value: 0.5 },
 			},
 
 			vertexShader: /* glsl */`
@@ -87,11 +90,32 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 				uniform vec3 thresholdColor;
 				uniform vec3 boundsColor;
 				uniform vec3 backgroundColor;
+				uniform vec2 resolution;
+				uniform float outlineAlpha;
 
 				varying vec2 vUv;
 				void main() {
 
 					float count = texture2D( map, vUv ).r;
+
+					if ( count == 0.0 ) {
+
+						vec2 offset = 1.0 / resolution;
+						float c1 = texture2D( map, vUv + offset * vec2( 1.0, 0.0 ) ).r;
+						float c2 = texture2D( map, vUv + offset * vec2( - 1.0, 0.0 ) ).r;
+						float c3 = texture2D( map, vUv + offset * vec2( 0.0, 1.0 ) ).r;
+						float c4 = texture2D( map, vUv + offset * vec2( 0.0, - 1.0 ) ).r;
+
+						float maxC = max( c1, max( c2, max( c3, c4 ) ) );
+						if ( maxC != 0.0 ) {
+
+							gl_FragColor.rgb = mix( backgroundColor, mix( boundsColor, vec3( 1.0 ), 0.5 ), outlineAlpha );
+							gl_FragColor.a = 1.0;
+							return;
+
+						}
+
+					}
 
 					if ( count > threshold ) {
 
@@ -103,7 +127,7 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 						float alpha = count / threshold;
 						vec3 color = mix( boundsColor, vec3( 1.0 ), pow( alpha, 1.75 ) );
 
-						gl_FragColor.rgb = mix( backgroundColor, color, alpha ).rgb;
+						gl_FragColor.rgb = mix( backgroundColor, color, alpha ).rgb ;
 						gl_FragColor.a = 1.0;
 
 					}
@@ -238,8 +262,9 @@ function init() {
 	bvhFolder.open();
 
 	const vizFolder = gui.addFolder( 'Visualization' );
-	vizFolder.add( params.visualization, 'simpleColors' );
 	vizFolder.add( params.visualization, 'displayMesh' );
+	vizFolder.add( params.visualization, 'simpleColors' );
+	vizFolder.add( params.visualization, 'outline' );
 	vizFolder.add( params.visualization, 'traversalThreshold', 1, 300, 1 );
 	vizFolder.open();
 
@@ -431,6 +456,8 @@ function render() {
 	}
 
 	fsQuad.material.threshold = params.visualization.traversalThreshold;
+	fsQuad.material.outlineAlpha = params.visualization.outline ? 0.5 : 0.0;
+	renderer.getSize( fsQuad.material.resolution );
 
 	// render bvh
 	benchmarkViz.visible = false;
