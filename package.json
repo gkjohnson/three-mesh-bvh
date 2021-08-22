@@ -8,7 +8,8 @@
   "sideEffects": false,
   "scripts": {
     "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/dev-bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
-    "build": "rollup -c && parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
+    "build": "rollup -c",
+		"build-examples": "parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
     "lint": "eslint \"./src/**/*.js\" \"./test/**/*.js\" \"./example/*.js\"",
     "benchmark": "node benchmark/run-benchmark.js",
