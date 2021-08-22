@@ -53,7 +53,7 @@ const params = {
 };
 
 const BOUNDS_COLOR = 0xffca28;
-const BG_COLOR = 0x002425;
+const BG_COLOR = 0x002027;
 const THRESHOLD_COLOR = 0xe91e63;
 
 class TraverseMaterial extends THREE.ShaderMaterial {
