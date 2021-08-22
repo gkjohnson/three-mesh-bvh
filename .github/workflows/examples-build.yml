@@ -25,11 +25,11 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - run: npm run build-examples --if-present
+    - run: npm run build-examples
 
     - name: Commit Examples
       uses: EndBug/add-and-commit@v7
       with:
         add: 'example/bundle'
-        branch: examples
         message: 'update builds'
+        push: 'origin HEAD:examples --force'
