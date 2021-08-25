@@ -1,4 +1,4 @@
-import { Triangle, Vector3, Line3, Sphere } from 'three';
+import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
@@ -13,6 +13,7 @@ export class SeparatingAxisTriangle extends Triangle {
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
 		this.sphere = new Sphere();
+		this.plane = new Plane();
 		this.needsUpdate = false;
 
 	}
@@ -54,6 +55,7 @@ export class SeparatingAxisTriangle extends Triangle {
 		sab3.setFromPoints( axis3, points );
 
 		this.sphere.setFromPoints( this.points );
+		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
 		this.needsUpdate = false;
 
 	}
@@ -128,7 +130,13 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 	const cachedSatBounds = new SeparatingAxisBounds();
 	const cachedSatBounds2 = new SeparatingAxisBounds();
 	const cachedAxis = new Vector3();
-	return function intersectsTriangle( other ) {
+	const dir1 = new Vector3();
+	const dir2 = new Vector3();
+	const tempDir = new Vector3();
+	const edge = new Line3();
+	const edge1 = new Line3();
+	const edge2 = new Line3();
+	return function intersectsTriangle( other, target = null ) {
 
 		if ( this.needsUpdate ) {
 
@@ -187,6 +195,86 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 				cachedSatBounds.setFromPoints( cachedAxis, arr1 );
 				cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
 				if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+			}
+
+		}
+
+		if ( target ) {
+
+			const plane1 = this.plane;
+			const plane2 = other.plane;
+
+			// find the edge that intersects the other triangle plane
+			const points1 = this.points;
+			let found1 = false;
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const p1 = points1[ i ];
+				const p2 = points1[ ( i + 1 ) % 3 ];
+
+				edge.start.copy( p1 );
+				edge.end.copy( p2 );
+
+				if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
+
+					found1 = true;
+
+				}
+
+			}
+
+			// find the other triangles edge that intersects this plane
+			const points2 = this.points;
+			let found2 = false;
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const p1 = points2[ i ];
+				const p2 = points2[ ( i + 1 ) % 3 ];
+
+				edge.start.copy( p1 );
+				edge.end.copy( p2 );
+
+				if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
+
+					found2 = true;
+
+				}
+
+			}
+
+			// find swap the second edge so both lines are running the same direction
+			edge1.delta( dir1 );
+			edge2.delta( dir2 );
+
+
+			if ( dir1.dot( dir2 ) < 0 ) {
+
+				let tmp = edge2.start;
+				edge2.start = edge2.end;
+				edge2.end = tmp;
+
+			}
+
+			tempDir.subVectors( edge1.start, edge2.start );
+			if ( tempDir.dot( dir1 ) > 0 ) {
+
+				target.start.copy( edge1.start );
+
+			} else {
+
+				target.start.copy( edge2.start );
+
+			}
+
+			tempDir.subVectors( edge1.end, edge2.end );
+			if ( tempDir.dot( dir2 ) < 0 ) {
+
+				target.end.copy( edge1.end );
+
+			} else {
+
+				target.end.copy( edge2.end );
 
 			}
 
