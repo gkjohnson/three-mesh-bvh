@@ -310,18 +310,13 @@ SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
 
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
 
-		if ( this.intersectsTriangle( other ) ) {
+		const lineTarget = target1 || target2 ? line1 : null;
+		if ( this.intersectsTriangle( other, lineTarget ) ) {
 
-			// TODO: This will not result in a point that lies on
-			// the intersection line of the triangles
 			if ( target1 || target2 ) {
 
-				this.getMidpoint( point );
-				other.closestPointToPoint( point, point2 );
-				this.closestPointToPoint( point2, point );
-
-				if ( target1 ) target1.copy( point );
-				if ( target2 ) target2.copy( point2 );
+				if ( target1 ) lineTarget.getCenter( target1 );
+				if ( target2 ) lineTarget.getCenter( target2 );
 
 			}
 
