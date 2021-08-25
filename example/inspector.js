@@ -457,7 +457,7 @@ function render() {
 
 	fsQuad.material.threshold = params.visualization.traversalThreshold;
 	fsQuad.material.outlineAlpha = params.visualization.outline ? 0.5 : 0.0;
-	renderer.getSize( fsQuad.material.resolution );
+	fsQuad.material.resolution.set( renderTarget.width, renderTarget.height );
 
 	// render bvh
 	benchmarkViz.visible = false;
