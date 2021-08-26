@@ -111,6 +111,10 @@ invMat.copy( mesh.matrixWorld ).invert();
 raycaster.ray.applyMatrix4( invMat );
 const hit = bvh.raycastFirst( raycaster );
 
+// results are returned in local spac, as well, so they must be transformed into
+// world space if needed.
+hit.point.applyMatrixWorld( mesh.matrixWorld );
+
 // spherecasting
 // ensure the sphere is in the local space of the geometry being cast against
 sphere.applyMatrix4( invMat );
