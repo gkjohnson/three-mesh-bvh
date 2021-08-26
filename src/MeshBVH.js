@@ -820,7 +820,7 @@ export default class MeshBVH {
 
 		}
 
-		originalFunc.apply( this, args );
+		return originalFunc.apply( this, args );
 
 	};
 
