@@ -797,3 +797,30 @@ export default class MeshBVH {
 	}
 
 }
+
+[
+	'intersectsGeometry',
+	'shapecast',
+	'intersectsBox',
+	'intersectsSphere',
+	'closestPointToGeometry',
+	'distanceToGeometry',
+	'closestPointToPoint',
+	'distanceToPoint',
+].forEach( name => {
+
+	const originalFunc = MeshBVH.prototype[ name ];
+	MeshBVH.prototype[ name ] = function( ...args ) {
+
+		if ( args[ 0 ].isMesh ) {
+
+			args.shift();
+			console.warn( `MeshBVH: The function signature for "${ name }" has changed and no longer takes Mesh. See docs for new signature.` );
+
+		}
+
+		originalFunc.apply( this, args );
+
+	};
+
+} );
