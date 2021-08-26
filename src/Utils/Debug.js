@@ -28,12 +28,6 @@ function isTypedArray( arr ) {
 function getRootExtremes( bvh, group ) {
 
 	const result = {
-		get total() {
-
-			console.warn( 'getRootExtremes: "total" has been replaced by "nodeCount" and will be removed in the next release.' );
-			return this.nodeCount;
-
-		},
 		nodeCount: 0,
 		leafNodeCount: 0,
 
