@@ -4,35 +4,11 @@ import Visualizer from './MeshBVHVisualizer.js';
 import { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED } from './Constants.js';
 import { getBVHExtremes, estimateMemoryInBytes } from './Utils/Debug.js';
 import { MeshBVHDebug } from './MeshBVHDebug.js';
+import { adjustIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const ray = new Ray();
 const tmpInverseMatrix = new Matrix4();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
-
-function adjustIntersect( hit, object, raycaster ) {
-
-	if ( hit === null ) {
-
-		return null;
-
-	}
-
-	hit.point.applyMatrix4( object.matrixWorld );
-	hit.distance = hit.point.distanceTo( raycaster.ray.origin );
-	hit.object = object;
-	delete hit.localPoint;
-
-	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) {
-
-		return null;
-
-	} else {
-
-		return hit;
-
-	}
-
-}
 
 function acceleratedRaycast( raycaster, intersects ) {
 

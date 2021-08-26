@@ -47,7 +47,6 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'Shapecast containment', () => {
 
-		let mesh = null;
 		let bvh = null;
 		let intersectGeometry = null;
 

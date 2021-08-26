@@ -13,6 +13,7 @@ import {
 	clearBuffer,
 } from './castFunctions.js';
 import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
+import { adjustIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -811,6 +812,57 @@ export default class MeshBVH {
 		} );
 
 		return target;
+
+	}
+
+}
+
+// Deprecation
+const originalRaycast = MeshBVH.prototype.raycast;
+MeshBVH.prototype.raycast = function ( ...args ) {
+
+	if ( args[ 0 ].isMesh ) {
+
+		console.warn( 'MeshBVH: The function signature for "raycast" has changed. See docs for new signature.' );
+		const [
+			mesh, raycaster, ray, intersects,
+		] = args;
+
+		const results = originalRaycast.call( this, ray, mesh.material );
+		results.forEach( hit => {
+
+			hit = adjustIntersect( hit, mesh, raycaster );
+			if ( hit ) {
+
+				intersects.push( hit );
+
+			}
+
+		} );
+
+	} else {
+
+		return originalRaycast.apply( this, args );
+
+	}
+
+}
+
+const originalRaycastFirst = MeshBVH.prototype.raycastFirst;
+MeshBVH.prototype.raycastFirst = function ( ...args ) {
+
+	if ( args[ 0 ].isMesh ) {
+
+		console.warn( 'MeshBVH: The function signature for "raycastFirst" has changed. See docs for new signature.' );
+		const [
+			mesh, raycaster, ray,
+		] = args;
+
+		return adjustIntersect( originalRaycastFirst.call( this, ray, mesh.material ), mesh, raycaster );
+
+	} else {
+
+		return originalRaycastFirst.apply( this, args );
 
 	}
 
