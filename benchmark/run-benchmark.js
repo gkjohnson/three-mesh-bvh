@@ -83,28 +83,9 @@ function runSuite( strategy ) {
 	geometry.computeBoundingBox();
 	runBenchmark(
 
-		'Compute BVH w/ BB',
+		'Compute BVH',
 		() => {
 
-			geometry.boundsTree = null;
-
-		},
-		() => {
-
-			geometry.computeBoundsTree( options );
-
-		},
-		3000,
-		50
-
-	);
-
-	runBenchmark(
-
-		'Compute BVH w/o BB',
-		() => {
-
-			geometry.boundingBox = null;
 			geometry.boundsTree = null;
 
 		},
