@@ -1,5 +1,5 @@
 import { BufferAttribute } from 'three';
-mport MeshBVHNode from './MeshBVHNode.js';
+import MeshBVHNode from './MeshBVHNode.js';
 import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
 
