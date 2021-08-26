@@ -1,5 +1,5 @@
 import { BufferAttribute } from 'three';
-import MeshBVHNode from './MeshBVHNode.js';
+mport MeshBVHNode from './MeshBVHNode.js';
 import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
 
@@ -577,8 +577,9 @@ export function buildTree( geo, options ) {
 
 	ensureIndex( geo );
 
-	// compute the full bounds of the geometry at the same time as triangle bounds because
-	// we typically need it.
+	// Compute the full bounds of the geometry at the same time as triangle bounds because
+	// we'll need it for the root bounds in the case with no groups and it should be fast here.
+	// We can't use the geometrying bounding box if it's available because it may be out of date.
 	const fullBounds = new Float32Array( 6 );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	const triangleBounds = computeTriangleBounds( geo, fullBounds );
