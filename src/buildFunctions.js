@@ -577,6 +577,8 @@ export function buildTree( geo, options ) {
 
 	ensureIndex( geo );
 
+	// compute the full bounds of the geometry at the same time as triangle bounds because
+	// we typically need it.
 	const fullBounds = new Float32Array( 6 );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	const triangleBounds = computeTriangleBounds( geo, fullBounds );
