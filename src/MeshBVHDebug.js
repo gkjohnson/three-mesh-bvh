@@ -62,7 +62,8 @@ export class MeshBVHDebug {
 
 	validateBounds() {
 
-		const { bvh, geometry } = this;
+		const { bvh } = this;
+		const geometry = bvh.geometry;
 		const depthStack = [];
 		const index = geometry.index;
 		const position = geometry.getAttribute( 'position' );
