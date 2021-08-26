@@ -6,10 +6,9 @@ const vec = new Vector3();
 
 export class MeshBVHDebug {
 
-	constructor( bvh, geometry ) {
+	constructor( bvh ) {
 
 		this.bvh = bvh;
-		this.geometry = geometry;
 
 	}
 
