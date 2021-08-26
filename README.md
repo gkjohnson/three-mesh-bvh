@@ -112,9 +112,9 @@ raycaster.ray.applyMatrix4( invMat );
 const hit = bvh.raycastFirst( mesh, raycaster, raycaster.ray );
 
 // spherecasting
-// ensure the sphere is in the lcoal space of hte geometry being cast against
+// ensure the sphere is in the local space of hte geometry being cast against
 sphere.applyMatrix4( invMat );
-const intersects = bvh.intersectsSphere( mesh, sphere );
+const intersects = bvh.intersectsSphere( sphere );
 ```
 
 ## Serialization and Deserialization
@@ -266,7 +266,7 @@ Returns the first raycast hit in the model. This is typically much faster than r
 ### .intersectsSphere
 
 ```js
-intersectsSphere( mesh : Mesh, sphere : Sphere ) : Boolean
+intersectsSphere( sphere : Sphere ) : Boolean
 ```
 
 Returns whether or not the mesh instersects the given sphere.
@@ -274,7 +274,7 @@ Returns whether or not the mesh instersects the given sphere.
 ### .intersectsBox
 
 ```js
-intersectsBox( mesh : Mesh, box : Box3, boxToBvh : Matrix4 ) : Boolean
+intersectsBox( box : Box3, boxToBvh : Matrix4 ) : Boolean
 ```
 
 Returns whether or not the mesh intersects the given box.
@@ -284,7 +284,7 @@ The `boxToBvh` parameter is the transform of the box in the meshs frame.
 ### .intersectsGeometry
 
 ```js
-intersectsGeometry( mesh : Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boolean
+intersectsGeometry( geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boolean
 ```
 
 Returns whether or not the mesh intersects the given geometry.
@@ -297,7 +297,6 @@ Performance improves considerably if the provided geometry _also_ has a `boundsT
 
 ```js
 closestPointToPoint(
-	mesh : Mesh,
 	point : Vector3,
 	target : Vector3,
 	minThreshold : Number = 0,
@@ -313,7 +312,6 @@ If a point is found that is closer than `minThreshold` then the function will re
 
 ```js
 closestPointToGeometry(
-	mesh : Mesh,
 	geometry : BufferGeometry,
 	geometryToBvh : Matrix4,
 	target1 : Vector3 = null,
@@ -335,8 +333,6 @@ _Note that this function can be very slow if `geometry` does not have a `geometr
 
 ```js
 shapecast(
-	mesh : Mesh,
-
 	callbacks : {
 
 		traverseBoundsOrder : (
@@ -404,7 +400,6 @@ const traversedNodeIndices = new Set();
 const endNodeIndices = new Set();
 bvh.shapecast(
 
-	mesh,
 	{
 
 		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
