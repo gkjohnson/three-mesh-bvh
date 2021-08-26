@@ -1,6 +1,6 @@
 // For speed and readability this script is processed to replace the macro-like calls
 // with inline buffer reads. See generate-cast-functions.js.
-import { Box3, Vector3, Mesh, Matrix4 } from 'three';
+import { Box3, Vector3, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtilities.js';
 import { arrayToBox } from './Utils/BufferNodeUtils.js';
 
@@ -343,13 +343,12 @@ export const intersectsGeometry = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
-	const cachedMesh = new Mesh();
 	const invertedMat = new Matrix4();
 
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();
 
-	return function intersectsGeometry( nodeIndex32, mesh, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
+	return function intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
 
 		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
@@ -390,8 +389,7 @@ export const intersectsGeometry = ( function () {
 				obb2.matrix.copy( invertedMat );
 				obb2.needsUpdate = true;
 
-				cachedMesh.geometry = otherGeometry;
-				const res = otherGeometry.boundsTree.shapecast( cachedMesh, {
+				const res = otherGeometry.boundsTree.shapecast( {
 
 					intersectsBounds: box => obb2.intersectsBox( box ),
 
@@ -420,7 +418,6 @@ export const intersectsGeometry = ( function () {
 					}
 
 				} );
-				cachedMesh.geometry = null;
 
 				return res;
 
@@ -460,14 +457,14 @@ export const intersectsGeometry = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 			const leftIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( left, mesh, geometry, otherGeometry, geometryToBvh, cachedObb );
+				intersectsGeometry( left, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
 			arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox );
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( right, mesh, geometry, otherGeometry, geometryToBvh, cachedObb );
+				intersectsGeometry( right, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
 

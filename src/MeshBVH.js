@@ -366,14 +366,14 @@ export default class MeshBVH {
 
 	}
 
-	intersectsGeometry( mesh, otherGeometry, geomToMesh ) {
+	intersectsGeometry( otherGeometry, geomToMesh ) {
 
 		const geometry = this.geometry;
 		let result = false;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = intersectsGeometry( 0, mesh, geometry, otherGeometry, geomToMesh );
+			result = intersectsGeometry( 0, geometry, otherGeometry, geomToMesh );
 			clearBuffer();
 
 			if ( result ) {
@@ -388,7 +388,7 @@ export default class MeshBVH {
 
 	}
 
-	shapecast( mesh, callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
+	shapecast( callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
 
 		const geometry = this.geometry;
 		if ( callbacks instanceof Function ) {
@@ -488,13 +488,12 @@ export default class MeshBVH {
 	}
 
 	/* Derived Cast Functions */
-	intersectsBox( mesh, box, boxToMesh ) {
+	intersectsBox( box, boxToMesh ) {
 
 		obb.set( box.min, box.max, boxToMesh );
 		obb.needsUpdate = true;
 
 		return this.shapecast(
-			mesh,
 			{
 				intersectsBounds: box => obb.intersectsBox( box ),
 				intersectsTriangle: tri => obb.intersectsTriangle( tri )
@@ -503,10 +502,9 @@ export default class MeshBVH {
 
 	}
 
-	intersectsSphere( mesh, sphere ) {
+	intersectsSphere( sphere ) {
 
 		return this.shapecast(
-			mesh,
 			{
 				intersectsBounds: box => sphere.intersectsBox( box ),
 				intersectsTriangle: tri => tri.intersectsSphere( sphere )
@@ -515,7 +513,7 @@ export default class MeshBVH {
 
 	}
 
-	closestPointToGeometry( mesh, otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
 
 		if ( ! otherGeometry.boundingBox ) {
 
@@ -549,7 +547,6 @@ export default class MeshBVH {
 		let closestDistance = Infinity;
 		obb2.matrix.copy( geometryToBvh ).invert();
 		this.shapecast(
-			mesh,
 			{
 
 				boundsTraverseOrder: box => {
@@ -709,13 +706,13 @@ export default class MeshBVH {
 
 	}
 
-	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold ) {
+	distanceToGeometry( geom, matrix, minThreshold, maxThreshold ) {
 
-		return this.closestPointToGeometry( mesh, geom, matrix, null, null, minThreshold, maxThreshold );
+		return this.closestPointToGeometry( geom, matrix, null, null, minThreshold, maxThreshold );
 
 	}
 
-	closestPointToPoint( mesh, point, target, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToPoint( point, target, minThreshold = 0, maxThreshold = Infinity ) {
 
 		// early out if under minThreshold
 		// skip checking if over maxThreshold
@@ -726,7 +723,6 @@ export default class MeshBVH {
 		let closestDistanceSq = Infinity;
 		this.shapecast(
 
-			mesh,
 			{
 
 				boundsTraverseOrder: box => {
@@ -778,9 +774,9 @@ export default class MeshBVH {
 
 	}
 
-	distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
+	distanceToPoint( point, minThreshold, maxThreshold ) {
 
-		return this.closestPointToPoint( mesh, point, null, minThreshold, maxThreshold );
+		return this.closestPointToPoint( point, null, minThreshold, maxThreshold );
 
 	}
 
