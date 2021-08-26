@@ -11,7 +11,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 const bgColor = 0x263238 / 2;
 
 let renderer, scene, stats, camera;
-let knotGeometry, material, boundsViz, containerObj;
+let geometry, material, boundsViz, containerObj;
 const knots = [];
 const rayCasterObjects = [];
 
@@ -71,7 +71,7 @@ function init() {
 	const radialSegments = 100;
 
 	containerObj = new THREE.Object3D();
-	knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+	geometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
 	// const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
 	material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
 	containerObj.scale.multiplyScalar( 10 );
@@ -119,7 +119,7 @@ function init() {
 
 function addKnot() {
 
-	const mesh = new THREE.Mesh( knotGeometry, material );
+	const mesh = new THREE.Mesh( geometry, material );
 	mesh.rotation.x = Math.random() * 10;
 	mesh.rotation.y = Math.random() * 10;
 	knots.push( mesh );
@@ -193,6 +193,12 @@ function addRaycaster() {
 
 function updateFromOptions() {
 
+	if ( ! geometry ) {
+
+		return;
+
+	}
+
 	// Update raycaster count
 	while ( rayCasterObjects.length > params.raycasters.count ) {
 
@@ -208,19 +214,19 @@ function updateFromOptions() {
 
 	// Update whether or not to use the bounds tree
 	if (
-		! params.mesh.useBoundsTree && knotGeometry.boundsTree ||
-		knotGeometry.boundsTree && params.mesh.splitStrategy !== knotGeometry.boundsTree.splitStrategy
+		! params.mesh.useBoundsTree && geometry.boundsTree ||
+		geometry.boundsTree && params.mesh.splitStrategy !== geometry.boundsTree.splitStrategy
 	) {
 
-		knotGeometry.disposeBoundsTree();
+		geometry.disposeBoundsTree();
 
 	}
 
-	if ( params.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
+	if ( params.mesh.useBoundsTree && ! geometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
-		knotGeometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
-		knotGeometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
+		geometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
+		geometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
 		if ( boundsViz ) {
@@ -268,7 +274,7 @@ function updateFromOptions() {
 	}
 
 	// Update bounds viz
-	const shouldDisplayBounds = params.mesh.visualizeBounds && knotGeometry.boundsTree;
+	const shouldDisplayBounds = params.mesh.visualizeBounds && geometry.boundsTree;
 	if ( boundsViz && ! shouldDisplayBounds ) {
 
 		containerObj.remove( boundsViz );
