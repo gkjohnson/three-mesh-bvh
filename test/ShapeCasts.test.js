@@ -240,14 +240,12 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'IntersectsGeometry', () => {
 
-		let mesh = null;
 		let bvh = null;
 		let intersectGeometry = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 
@@ -301,13 +299,11 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'IntersectsSphere', () => {
 
-		let mesh = null;
 		let bvh = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -343,13 +339,11 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'IntersectsBox', () => {
 
-		let mesh = null;
 		let bvh = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -441,14 +435,12 @@ function runSuiteWithOptions( defaultOptions ) {
 		// error to account for the geometry
 		// not being perfectly round
 		const EPSILON = 0.001;
-		let mesh = null;
 		let bvh = null;
 		let target = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 200, 200 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 			target = new Vector3();
 
@@ -494,7 +486,6 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'Distance To Geometry', () => {
 
-		let mesh = null;
 		let geometry = null;
 		let bvh = null;
 		let target1 = null;
@@ -503,7 +494,6 @@ function runSuiteWithOptions( defaultOptions ) {
 		beforeEach( () => {
 
 			const geom = new SphereBufferGeometry( 1, 20, 20 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 			target1 = new Vector3();
