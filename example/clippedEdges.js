@@ -51,7 +51,7 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	renderer.localClippingEnabled = true;
 	document.body.appendChild( renderer.domElement );
 
@@ -373,7 +373,7 @@ function render() {
 		let index = 0;
 		const posAttr = outlineLines.geometry.attributes.position;
 		const startTime = window.performance.now();
-		colliderBvh.shapecast( null, {
+		colliderBvh.shapecast( {
 
 			intersectsBounds: box => {
 

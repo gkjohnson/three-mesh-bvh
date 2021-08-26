@@ -170,50 +170,47 @@ window.addEventListener( 'pointermove', ( event ) => {
 
 		const { ray } = raycaster;
 		let closestDistance = Infinity;
-		bvhMesh.geometry.boundsTree.shapecast(
-			bvhMesh,
-			{
-				boundsTraverseOrder: box => {
+		bvhMesh.geometry.boundsTree.shapecast( {
+			boundsTraverseOrder: box => {
 
-					// traverse the closer bounds first.
-					return box.distanceToPoint( ray.origin );
+				// traverse the closer bounds first.
+				return box.distanceToPoint( ray.origin );
 
-				},
-				intersectsBounds: ( box, isLeaf, score ) => {
+			},
+			intersectsBounds: ( box, isLeaf, score ) => {
 
-					// if we've already found a point that's closer then the full bounds then
-					// don't traverse further.
-					if ( score > closestDistance ) {
+				// if we've already found a point that's closer then the full bounds then
+				// don't traverse further.
+				if ( score > closestDistance ) {
 
-						return NOT_INTERSECTED;
+					return NOT_INTERSECTED;
 
-					}
+				}
 
-					box.expandByScalar( localThreshold );
-					return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+				box.expandByScalar( localThreshold );
+				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
 
-				},
-				intersectsTriangle: triangle => {
+			},
+			intersectsTriangle: triangle => {
 
-					const distancesToRaySq = ray.distanceSqToPoint( triangle.a );
-					if ( distancesToRaySq < localThresholdSq ) {
+				const distancesToRaySq = ray.distanceSqToPoint( triangle.a );
+				if ( distancesToRaySq < localThresholdSq ) {
 
-						// track the closest found point distance so we can early out traversal and only
-						// use the closest point along the ray.
-						const distanceToPoint = ray.origin.distanceTo( triangle.a );
-						if ( distanceToPoint < closestDistance ) {
+					// track the closest found point distance so we can early out traversal and only
+					// use the closest point along the ray.
+					const distanceToPoint = ray.origin.distanceTo( triangle.a );
+					if ( distanceToPoint < closestDistance ) {
 
-							closestDistance = distanceToPoint;
-							sphereCollision.position.copy( triangle.a ).applyMatrix4( bvhMesh.matrixWorld );
-							sphereCollision.visible = true;
-
-						}
+						closestDistance = distanceToPoint;
+						sphereCollision.position.copy( triangle.a ).applyMatrix4( bvhMesh.matrixWorld );
+						sphereCollision.visible = true;
 
 					}
 
-				},
-			}
-		);
+				}
+
+			},
+		} );
 
 	} else {
 

@@ -285,7 +285,8 @@ function updateDistanceCheck( fastCheck ) {
 	const distance = params.volume.distance;
 	const maxDistance = distance;
 	const minDistance = fastCheck ? distance : 0;
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, minDistance, maxDistance );
+
+	const dist = terrain.geometry.boundsTree.closestPointToGeometry( targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, minDistance, maxDistance );
 	const hit = dist < distance;
 	targetMesh.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	targetMesh.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
@@ -391,7 +392,7 @@ function* updateMarchingCubes() {
 
 					pos.applyMatrix4( worldToBvh );
 
-					const dist = distanceMesh.geometry.boundsTree.distanceToPoint( distanceMesh, pos, distance, distance );
+					const dist = distanceMesh.geometry.boundsTree.distanceToPoint( pos, distance, distance );
 					const result = dist < distance;
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 

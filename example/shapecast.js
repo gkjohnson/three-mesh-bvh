@@ -263,7 +263,7 @@ function render() {
 		const sphere = new THREE.Sphere( undefined, 1 );
 		sphere.applyMatrix4( transformMatrix );
 
-		const hit = targetMesh.geometry.boundsTree.intersectsSphere( targetMesh, sphere );
+		const hit = targetMesh.geometry.boundsTree.intersectsSphere( sphere );
 		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
 		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
@@ -273,13 +273,13 @@ function render() {
 		box.min.set( - 0.5, - 0.5, - 0.5 );
 		box.max.set( 0.5, 0.5, 0.5 );
 
-		const hit = targetMesh.geometry.boundsTree.intersectsBox( targetMesh, box, transformMatrix );
+		const hit = targetMesh.geometry.boundsTree.intersectsBox( box, transformMatrix );
 		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
 		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
 	} else if ( s === 'geometry' ) {
 
-		const hit = targetMesh.geometry.boundsTree.intersectsGeometry( targetMesh, shape.geometry, transformMatrix );
+		const hit = targetMesh.geometry.boundsTree.intersectsGeometry( shape.geometry, transformMatrix );
 		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
 		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
