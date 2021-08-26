@@ -192,6 +192,8 @@ Indicate the shape entirely contains the given bounding box.
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
 
+Note that all query functions expect arguments in local space of the mesh and return results in local space, as well. If world space results are needed (as three.js' raycaster returns) they must be transformed into world space using `object.matrixWorld`.
+
 ### static .serialize
 
 ```js
