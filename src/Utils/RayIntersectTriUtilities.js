@@ -30,7 +30,9 @@ export function intersectClosestTri( geo, side, ray, offset, count ) {
 
 }
 
-export function adjustIntersect( hit, object, raycaster ) {
+// converts the given BVH raycast intersection to align with the three.js raycast
+// structure (include object, world space distance and point).
+export function convertRaycastIntersect( hit, object, raycaster ) {
 
 	if ( hit === null ) {
 
@@ -41,7 +43,6 @@ export function adjustIntersect( hit, object, raycaster ) {
 	hit.point.applyMatrix4( object.matrixWorld );
 	hit.distance = hit.point.distanceTo( raycaster.ray.origin );
 	hit.object = object;
-	delete hit.localPoint;
 
 	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) {
 

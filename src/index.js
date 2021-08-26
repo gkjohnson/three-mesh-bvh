@@ -3,7 +3,7 @@ import MeshBVH from './MeshBVH.js';
 import Visualizer from './MeshBVHVisualizer.js';
 import { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED } from './Constants.js';
 import { getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds } from './Utils/Debug.js';
-import { adjustIntersect } from './Utils/RayIntersectTriUtilities.js';
+import { convertRaycastIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const ray = new Ray();
 const tmpInverseMatrix = new Matrix4();
@@ -21,7 +21,7 @@ function acceleratedRaycast( raycaster, intersects ) {
 		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
 
-			const hit = adjustIntersect( bvh.raycastFirst( ray, this.material ), this, raycaster );
+			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material ), this, raycaster );
 			if ( hit ) {
 
 				intersects.push( hit );
@@ -33,7 +33,7 @@ function acceleratedRaycast( raycaster, intersects ) {
 			const hits = bvh.raycast( ray, this.material );
 			for ( let i = 0, l = hits.length; i < l; i ++ ) {
 
-				const hit = adjustIntersect( hits[ i ], this, raycaster );
+				const hit = convertRaycastIntersect( hits[ i ], this, raycaster );
 				if ( hit ) {
 
 					intersects.push( hit );
