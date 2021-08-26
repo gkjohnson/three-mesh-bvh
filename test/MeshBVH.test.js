@@ -8,7 +8,8 @@ import {
 	Raycaster,
 	MeshBasicMaterial,
 	TorusBufferGeometry,
-	BufferAttribute
+	BufferAttribute,
+	Vector3,
 } from 'three';
 import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes, MeshBVHDebug } from '../src/index.js';
 
@@ -80,8 +81,22 @@ describe( 'Bounds Tree', () => {
 		let calledRaycastFirst = false;
 		geom.boundsTree = {
 
-			raycast: () => calledRaycast = true,
-			raycastFirst: () => calledRaycastFirst = true
+			raycast: () => {
+
+				calledRaycast = true;
+				return {
+					point: new Vector3(),
+				};
+
+			},
+			raycastFirst: () => {
+
+				calledRaycastFirst = true;
+				return {
+					point: new Vector3(),
+				};
+
+			},
 
 		};
 
