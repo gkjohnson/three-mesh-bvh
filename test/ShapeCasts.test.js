@@ -13,6 +13,9 @@ import {
 	Scene,
 	TorusBufferGeometry,
 	MeshBasicMaterial,
+	BoxBufferGeometry,
+	FrontSide,
+	BackSide,
 } from 'three';
 import {
 	MeshBVH as _MeshBVH,
@@ -624,6 +627,38 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const res = raycaster.intersectObject( scene, true );
 				expect( res ).toHaveLength( 110 );
+
+			} );
+
+			it( 'should support correct use of groups', () => {
+
+				const backSideMaterial = new MeshBasicMaterial( {
+					side: BackSide,
+				} );
+
+				const frontSideMaterial = new MeshBasicMaterial( {
+					side: FrontSide,
+				} );
+
+				const box = new Mesh(
+					new BoxBufferGeometry(),
+					[
+						backSideMaterial, frontSideMaterial,
+						backSideMaterial, frontSideMaterial,
+						backSideMaterial, frontSideMaterial,
+					],
+				);
+
+				const raycaster = new Raycaster();
+				raycaster.ray.origin.set( 0, 0.25, - 10 );
+				raycaster.ray.direction.set( 0, 0, 1 );
+
+				const results = raycaster.intersectObject( box, true );
+
+				box.geometry.computeBoundsTree();
+				const results2 = raycaster.intersectObject( box, true );
+
+				expect( results ).toEqual( results2 );
 
 			} );
 
