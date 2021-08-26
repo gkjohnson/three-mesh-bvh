@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute, Box3 } from 'three';
+import { Vector3, BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
@@ -312,18 +312,27 @@ export default class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( mesh, raycaster, ray, intersects ) {
+	raycast( ray, intersects = null, materialOrSide = FrontSide ) {
 
+		const roots = this._roots;
 		const geometry = this.geometry;
-		const localIntersects = intersects ? [] : null;
-		for ( const root of this._roots ) {
+		const localIntersects = [];
+		const isMaterial = materialOrSide.isMaterial;
+		const isArrayMaterial = isMaterial && Array.isArray( materialOrSide );
 
-			setBuffer( root );
-			raycast( 0, mesh, geometry, raycaster, ray, localIntersects );
+		const groups = geometry.groups;
+		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
+
+			setBuffer( roots[ i ] );
+			raycast( 0, geometry, materialSide, ray, localIntersects );
 			clearBuffer();
 
 		}
 
+		// TODO: do this in the mesh override function
 		if ( intersects ) {
 
 			for ( let i = 0, l = localIntersects.length; i < l; i ++ ) {
@@ -336,16 +345,27 @@ export default class MeshBVH {
 
 		}
 
+		return localIntersects;
+
 	}
 
-	raycastFirst( mesh, raycaster, ray ) {
+	raycastFirst( ray, materialOrSide = FrontSide ) {
 
+		const roots = this._roots;
 		const geometry = this.geometry;
-		let closestResult = null;
-		for ( const root of this._roots ) {
+		const isMaterial = materialOrSide.isMaterial;
+		const isArrayMaterial = isMaterial && Array.isArray( materialOrSide );
 
-			setBuffer( root );
-			const result = raycastFirst( 0, mesh, geometry, raycaster, ray );
+		let closestResult = null;
+
+		const groups = geometry.groups;
+		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
+
+			setBuffer( roots[ i ] );
+			const result = raycastFirst( 0, geometry, materialSide, ray );
 			clearBuffer();
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
@@ -356,6 +376,7 @@ export default class MeshBVH {
 
 		}
 
+		// TODO: do this in the mesh override function
 		if ( closestResult ) {
 
 			delete closestResult.localPoint;

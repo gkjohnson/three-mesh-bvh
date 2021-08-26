@@ -1,22 +1,22 @@
 import { intersectTri } from './ThreeIntersectionUtilities.js';
 
-export function intersectTris( mesh, geo, raycaster, ray, offset, count, intersections ) {
+export function intersectTris( geo, side, ray, offset, count, intersections ) {
 
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		intersectTri( mesh, geo, raycaster, ray, i, intersections );
+		intersectTri( geo, side, ray, i, intersections );
 
 	}
 
 }
 
-export function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
+export function intersectClosestTri( geo, side, ray, offset, count ) {
 
 	let dist = Infinity;
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		const intersection = intersectTri( mesh, geo, raycaster, ray, i );
+		const intersection = intersectTri( geo, side, ray, i );
 		if ( intersection && intersection.distance < dist ) {
 
 			res = intersection;
