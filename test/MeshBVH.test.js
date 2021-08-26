@@ -8,9 +8,10 @@ import {
 	Raycaster,
 	MeshBasicMaterial,
 	TorusBufferGeometry,
-	BufferAttribute
+	BufferAttribute,
+	Vector3,
 } from 'three';
-import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes, MeshBVHDebug } from '../src/index.js';
+import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes, validateBounds } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -29,9 +30,8 @@ describe( 'Bounds Tree', () => {
 
 		const geom = new SphereBufferGeometry( 500, 50, 50 );
 		const bvh = new MeshBVH( geom );
-		const debug = new MeshBVHDebug( bvh, geom );
 
-		expect( debug.validateBounds() ).toBeTruthy();
+		expect( validateBounds( bvh ) ).toBeTruthy();
 
 	} );
 
@@ -80,8 +80,22 @@ describe( 'Bounds Tree', () => {
 		let calledRaycastFirst = false;
 		geom.boundsTree = {
 
-			raycast: () => calledRaycast = true,
-			raycastFirst: () => calledRaycastFirst = true
+			raycast: () => {
+
+				calledRaycast = true;
+				return {
+					point: new Vector3(),
+				};
+
+			},
+			raycastFirst: () => {
+
+				calledRaycastFirst = true;
+				return {
+					point: new Vector3(),
+				};
+
+			},
 
 		};
 
@@ -169,14 +183,13 @@ describe( 'Bounds Tree', () => {
 			const geom = new SphereBufferGeometry( 1, 10, 10 );
 			geom.computeBoundsTree();
 
-			const debug = new MeshBVHDebug( geom.boundsTree, geom );
-			expect( debug.validateBounds() ).toBe( true );
+			expect( validateBounds( geom.boundsTree ) ).toBe( true );
 
 			geom.attributes.position.setX( 0, 10 );
-			expect( debug.validateBounds() ).toBe( false );
+			expect( validateBounds( geom.boundsTree ) ).toBe( false );
 
 			geom.boundsTree.refit();
-			expect( debug.validateBounds() ).toBe( true );
+			expect( validateBounds( geom.boundsTree ) ).toBe( true );
 
 		} );
 

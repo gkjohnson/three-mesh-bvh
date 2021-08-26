@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute, Box3 } from 'three';
+import { Vector3, BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import { OrientedBox } from './Utils/OrientedBox.js';
@@ -13,6 +13,7 @@ import {
 	clearBuffer,
 } from './castFunctions.js';
 import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
+import { convertRaycastIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -312,53 +313,71 @@ export default class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( mesh, raycaster, ray, intersects ) {
+	raycast( ray, materialOrSide = FrontSide ) {
 
+		const roots = this._roots;
 		const geometry = this.geometry;
-		const localIntersects = intersects ? [] : null;
-		for ( const root of this._roots ) {
+		const intersects = [];
+		const isMaterial = materialOrSide.isMaterial;
+		const isArrayMaterial = Array.isArray( materialOrSide );
 
-			setBuffer( root );
-			raycast( 0, mesh, geometry, raycaster, ray, localIntersects );
+		const groups = geometry.groups;
+		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
+			const startCount = intersects.length;
+
+			setBuffer( roots[ i ] );
+			raycast( 0, geometry, materialSide, ray, intersects );
 			clearBuffer();
 
-		}
+			if ( isArrayMaterial ) {
 
-		if ( intersects ) {
+				const materialIndex = groups[ i ].materialIndex;
+				for ( let j = startCount, jl = intersects.length; j < jl; j ++ ) {
 
-			for ( let i = 0, l = localIntersects.length; i < l; i ++ ) {
+					intersects[ j ].face.materialIndex = materialIndex;
 
-				delete localIntersects[ i ].localPoint;
+				}
 
 			}
 
-			intersects.push( ...localIntersects );
-
 		}
+
+		return intersects;
 
 	}
 
-	raycastFirst( mesh, raycaster, ray ) {
+	raycastFirst( ray, materialOrSide = FrontSide ) {
 
+		const roots = this._roots;
 		const geometry = this.geometry;
-		let closestResult = null;
-		for ( const root of this._roots ) {
+		const isMaterial = materialOrSide.isMaterial;
+		const isArrayMaterial = Array.isArray( materialOrSide );
 
-			setBuffer( root );
-			const result = raycastFirst( 0, mesh, geometry, raycaster, ray );
+		let closestResult = null;
+
+		const groups = geometry.groups;
+		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
+
+			setBuffer( roots[ i ] );
+			const result = raycastFirst( 0, geometry, materialSide, ray );
 			clearBuffer();
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
+				if ( isArrayMaterial ) {
+
+					result.face.materialIndex = groups[ i ].materialIndex;
+
+				}
 
 			}
-
-		}
-
-		if ( closestResult ) {
-
-			delete closestResult.localPoint;
 
 		}
 
@@ -366,14 +385,14 @@ export default class MeshBVH {
 
 	}
 
-	intersectsGeometry( mesh, otherGeometry, geomToMesh ) {
+	intersectsGeometry( otherGeometry, geomToMesh ) {
 
 		const geometry = this.geometry;
 		let result = false;
 		for ( const root of this._roots ) {
 
 			setBuffer( root );
-			result = intersectsGeometry( 0, mesh, geometry, otherGeometry, geomToMesh );
+			result = intersectsGeometry( 0, geometry, otherGeometry, geomToMesh );
 			clearBuffer();
 
 			if ( result ) {
@@ -388,7 +407,7 @@ export default class MeshBVH {
 
 	}
 
-	shapecast( mesh, callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
+	shapecast( callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
 
 		const geometry = this.geometry;
 		if ( callbacks instanceof Function ) {
@@ -488,13 +507,12 @@ export default class MeshBVH {
 	}
 
 	/* Derived Cast Functions */
-	intersectsBox( mesh, box, boxToMesh ) {
+	intersectsBox( box, boxToMesh ) {
 
 		obb.set( box.min, box.max, boxToMesh );
 		obb.needsUpdate = true;
 
 		return this.shapecast(
-			mesh,
 			{
 				intersectsBounds: box => obb.intersectsBox( box ),
 				intersectsTriangle: tri => obb.intersectsTriangle( tri )
@@ -503,10 +521,9 @@ export default class MeshBVH {
 
 	}
 
-	intersectsSphere( mesh, sphere ) {
+	intersectsSphere( sphere ) {
 
 		return this.shapecast(
-			mesh,
 			{
 				intersectsBounds: box => sphere.intersectsBox( box ),
 				intersectsTriangle: tri => tri.intersectsSphere( sphere )
@@ -515,7 +532,7 @@ export default class MeshBVH {
 
 	}
 
-	closestPointToGeometry( mesh, otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
 
 		if ( ! otherGeometry.boundingBox ) {
 
@@ -549,7 +566,6 @@ export default class MeshBVH {
 		let closestDistance = Infinity;
 		obb2.matrix.copy( geometryToBvh ).invert();
 		this.shapecast(
-			mesh,
 			{
 
 				boundsTraverseOrder: box => {
@@ -586,69 +602,66 @@ export default class MeshBVH {
 
 						// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
 						// the closest bounds in the other geometry to check.
-						return otherGeometry.boundsTree.shapecast(
-							null,
-							{
-								boundsTraverseOrder: box => {
+						return otherGeometry.boundsTree.shapecast( {
+							boundsTraverseOrder: box => {
 
-									return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+								return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
 
-								},
+							},
 
-								intersectsBounds: ( box, isLeaf, score ) => {
+							intersectsBounds: ( box, isLeaf, score ) => {
 
-									return score < closestDistance && score < maxThreshold;
+								return score < closestDistance && score < maxThreshold;
 
-								},
+							},
 
-								intersectsRange: ( otherOffset, otherCount ) => {
+							intersectsRange: ( otherOffset, otherCount ) => {
 
-									for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
+								for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
 
-										setTriangle( triangle2, i2, otherIndex, otherPos );
-										triangle2.a.applyMatrix4( geometryToBvh );
-										triangle2.b.applyMatrix4( geometryToBvh );
-										triangle2.c.applyMatrix4( geometryToBvh );
-										triangle2.needsUpdate = true;
+									setTriangle( triangle2, i2, otherIndex, otherPos );
+									triangle2.a.applyMatrix4( geometryToBvh );
+									triangle2.b.applyMatrix4( geometryToBvh );
+									triangle2.c.applyMatrix4( geometryToBvh );
+									triangle2.needsUpdate = true;
 
-										for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+									for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
 
-											setTriangle( triangle, i, index, pos );
-											triangle.needsUpdate = true;
+										setTriangle( triangle, i, index, pos );
+										triangle.needsUpdate = true;
 
-											const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
-											if ( dist < closestDistance ) {
+										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
+										if ( dist < closestDistance ) {
 
-												if ( target1 ) {
+											if ( target1 ) {
 
-													target1.copy( tempTarget1 );
-
-												}
-
-												if ( target2 ) {
-
-													target2.copy( tempTarget2 );
-
-												}
-
-												closestDistance = dist;
+												target1.copy( tempTarget1 );
 
 											}
 
-											// stop traversal if we find a point that's under the given threshold
-											if ( dist < minThreshold ) {
+											if ( target2 ) {
 
-												return true;
+												target2.copy( tempTarget2 );
 
 											}
+
+											closestDistance = dist;
+
+										}
+
+										// stop traversal if we find a point that's under the given threshold
+										if ( dist < minThreshold ) {
+
+											return true;
 
 										}
 
 									}
 
-								},
-							}
-						);
+								}
+
+							},
+						} );
 
 					} else {
 
@@ -709,13 +722,13 @@ export default class MeshBVH {
 
 	}
 
-	distanceToGeometry( mesh, geom, matrix, minThreshold, maxThreshold ) {
+	distanceToGeometry( geom, matrix, minThreshold, maxThreshold ) {
 
-		return this.closestPointToGeometry( mesh, geom, matrix, null, null, minThreshold, maxThreshold );
+		return this.closestPointToGeometry( geom, matrix, null, null, minThreshold, maxThreshold );
 
 	}
 
-	closestPointToPoint( mesh, point, target, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToPoint( point, target, minThreshold = 0, maxThreshold = Infinity ) {
 
 		// early out if under minThreshold
 		// skip checking if over maxThreshold
@@ -726,7 +739,6 @@ export default class MeshBVH {
 		let closestDistanceSq = Infinity;
 		this.shapecast(
 
-			mesh,
 			{
 
 				boundsTraverseOrder: box => {
@@ -778,9 +790,9 @@ export default class MeshBVH {
 
 	}
 
-	distanceToPoint( mesh, point, minThreshold, maxThreshold ) {
+	distanceToPoint( point, minThreshold, maxThreshold ) {
 
-		return this.closestPointToPoint( mesh, point, null, minThreshold, maxThreshold );
+		return this.closestPointToPoint( point, null, minThreshold, maxThreshold );
 
 	}
 
@@ -801,3 +813,83 @@ export default class MeshBVH {
 	}
 
 }
+
+// Deprecation
+const originalRaycast = MeshBVH.prototype.raycast;
+MeshBVH.prototype.raycast = function ( ...args ) {
+
+	if ( args[ 0 ].isMesh ) {
+
+		console.warn( 'MeshBVH: The function signature for "raycast" has changed. See docs for new signature.' );
+		const [
+			mesh, raycaster, ray, intersects,
+		] = args;
+
+		const results = originalRaycast.call( this, ray, mesh.material );
+		results.forEach( hit => {
+
+			hit = convertRaycastIntersect( hit, mesh, raycaster );
+			if ( hit ) {
+
+				intersects.push( hit );
+
+			}
+
+		} );
+
+		return intersects;
+
+	} else {
+
+		return originalRaycast.apply( this, args );
+
+	}
+
+};
+
+const originalRaycastFirst = MeshBVH.prototype.raycastFirst;
+MeshBVH.prototype.raycastFirst = function ( ...args ) {
+
+	if ( args[ 0 ].isMesh ) {
+
+		console.warn( 'MeshBVH: The function signature for "raycastFirst" has changed. See docs for new signature.' );
+		const [
+			mesh, raycaster, ray,
+		] = args;
+
+		return convertRaycastIntersect( originalRaycastFirst.call( this, ray, mesh.material ), mesh, raycaster );
+
+	} else {
+
+		return originalRaycastFirst.apply( this, args );
+
+	}
+
+};
+
+[
+	'intersectsGeometry',
+	'shapecast',
+	'intersectsBox',
+	'intersectsSphere',
+	'closestPointToGeometry',
+	'distanceToGeometry',
+	'closestPointToPoint',
+	'distanceToPoint',
+].forEach( name => {
+
+	const originalFunc = MeshBVH.prototype[ name ];
+	MeshBVH.prototype[ name ] = function ( ...args ) {
+
+		if ( args[ 0 ].isMesh ) {
+
+			args.shift();
+			console.warn( `MeshBVH: The function signature for "${ name }" has changed and no longer takes Mesh. See docs for new signature.` );
+
+		}
+
+		return originalFunc.apply( this, args );
+
+	};
+
+} );

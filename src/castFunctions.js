@@ -1,6 +1,6 @@
 // For speed and readability this script is processed to replace the macro-like calls
 // with inline buffer reads. See generate-cast-functions.js.
-import { Box3, Vector3, Mesh, Matrix4 } from 'three';
+import { Box3, Vector3, Matrix4 } from 'three';
 import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtilities.js';
 import { arrayToBox } from './Utils/BufferNodeUtils.js';
 
@@ -55,7 +55,7 @@ function BOUNDING_DATA_INDEX( n32 ) {
 
 }
 
-export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects ) {
+export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 
 	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
@@ -65,21 +65,21 @@ export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		intersectTris( mesh, geometry, raycaster, ray, offset, count, intersects );
+		intersectTris( geometry, side, ray, offset, count, intersects );
 
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
 		if ( intersectRay( leftIndex, float32Array, ray, boxIntersection ) ) {
 
-			raycast( leftIndex, mesh, geometry, raycaster, ray, intersects );
+			raycast( leftIndex, geometry, side, ray, intersects );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 		if ( intersectRay( rightIndex, float32Array, ray, boxIntersection ) ) {
 
-			raycast( rightIndex, mesh, geometry, raycaster, ray, intersects );
+			raycast( rightIndex, geometry, side, ray, intersects );
 
 		}
 
@@ -87,7 +87,7 @@ export function raycast( nodeIndex32, mesh, geometry, raycaster, ray, intersects
 
 }
 
-export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
+export function raycastFirst( nodeIndex32, geometry, side, ray ) {
 
 	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
@@ -96,7 +96,7 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
-		return intersectClosestTri( mesh, geometry, raycaster, ray, offset, count );
+		return intersectClosestTri( geometry, side, ray, offset, count );
 
 	} else {
 
@@ -122,14 +122,15 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 		}
 
 		const c1Intersection = intersectRay( c1, float32Array, ray, boxIntersection );
-		const c1Result = c1Intersection ? raycastFirst( c1, mesh, geometry, raycaster, ray ) : null;
+		const c1Result = c1Intersection ? raycastFirst( c1, geometry, side, ray ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
 		if ( c1Result ) {
 
 			// check if the point is within the second bounds
-			const point = c1Result.localPoint[ xyzAxis ];
+			// "point" is in the local frame of the bvh
+			const point = c1Result.point[ xyzAxis ];
 			const isOutside = leftToRight ?
 				point <= float32Array[ c2 + splitAxis ] : // min bounding data
 				point >= float32Array[ c2 + splitAxis + 3 ]; // max bounding data
@@ -145,7 +146,7 @@ export function raycastFirst( nodeIndex32, mesh, geometry, raycaster, ray ) {
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
 		const c2Intersection = intersectRay( c2, float32Array, ray, boxIntersection );
-		const c2Result = c2Intersection ? raycastFirst( c2, mesh, geometry, raycaster, ray ) : null;
+		const c2Result = c2Intersection ? raycastFirst( c2, geometry, side, ray ) : null;
 
 		if ( c1Result && c2Result ) {
 
@@ -343,13 +344,12 @@ export const intersectsGeometry = ( function () {
 
 	const triangle = new SeparatingAxisTriangle();
 	const triangle2 = new SeparatingAxisTriangle();
-	const cachedMesh = new Mesh();
 	const invertedMat = new Matrix4();
 
 	const obb = new OrientedBox();
 	const obb2 = new OrientedBox();
 
-	return function intersectsGeometry( nodeIndex32, mesh, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
+	return function intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
 
 		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
 
@@ -390,8 +390,7 @@ export const intersectsGeometry = ( function () {
 				obb2.matrix.copy( invertedMat );
 				obb2.needsUpdate = true;
 
-				cachedMesh.geometry = otherGeometry;
-				const res = otherGeometry.boundsTree.shapecast( cachedMesh, {
+				const res = otherGeometry.boundsTree.shapecast( {
 
 					intersectsBounds: box => obb2.intersectsBox( box ),
 
@@ -420,7 +419,6 @@ export const intersectsGeometry = ( function () {
 					}
 
 				} );
-				cachedMesh.geometry = null;
 
 				return res;
 
@@ -460,14 +458,14 @@ export const intersectsGeometry = ( function () {
 			arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 			const leftIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( left, mesh, geometry, otherGeometry, geometryToBvh, cachedObb );
+				intersectsGeometry( left, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
 			arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox );
 			const rightIntersection =
 				cachedObb.intersectsBox( boundingBox ) &&
-				intersectsGeometry( right, mesh, geometry, otherGeometry, geometryToBvh, cachedObb );
+				intersectsGeometry( right, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
 

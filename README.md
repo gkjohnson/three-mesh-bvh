@@ -109,12 +109,16 @@ invMat.copy( mesh.matrixWorld ).invert();
 // raycasting
 // ensure the ray is in the local space of the geometry being cast against
 raycaster.ray.applyMatrix4( invMat );
-const hit = bvh.raycastFirst( mesh, raycaster, raycaster.ray );
+const hit = bvh.raycastFirst( raycaster );
+
+// results are returned in local spac, as well, so they must be transformed into
+// world space if needed.
+hit.point.applyMatrixWorld( mesh.matrixWorld );
 
 // spherecasting
-// ensure the sphere is in the lcoal space of hte geometry being cast against
+// ensure the sphere is in the local space of the geometry being cast against
 sphere.applyMatrix4( invMat );
-const intersects = bvh.intersectsSphere( mesh, sphere );
+const intersects = bvh.intersectsSphere( sphere );
 ```
 
 ## Serialization and Deserialization
@@ -188,6 +192,8 @@ Indicate the shape entirely contains the given bounding box.
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
 
+Note that all query functions expect arguments in local space of the mesh and return results in local space, as well. If world space results are needed (as three.js' raycaster returns) they must be transformed into world space using `object.matrixWorld`.
+
 ### static .serialize
 
 ```js
@@ -250,23 +256,31 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 ### .raycast
 
 ```js
-raycast( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array ) : Array<RaycastHit>
+raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Array<RaycastHit>
+```
+```js
+raycast( ray : Ray, material : Material | Array<Material> ) : Array<RaycastHit>
 ```
 
-Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
+Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
+
+Unlike three.js' Raycaster restults the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function they are transformed into world space to be consistent with three's results.
 
 ### .raycastFirst
 
 ```js
-raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray ) : RaycastHit
+raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : RaycastHit
+```
+```js
+raycastFirst( ray : Ray, material : Material | Array<Material> ) : RaycastHit
 ```
 
-Returns the first raycast hit in the model. This is typically much faster than returning all hits.
+Returns the first raycast hit in the model. This is typically much faster than returning all hits. See [raycast](#raycast) for information on the side and material options as well as the frame of the returned intersections.
 
 ### .intersectsSphere
 
 ```js
-intersectsSphere( mesh : Mesh, sphere : Sphere ) : Boolean
+intersectsSphere( sphere : Sphere ) : Boolean
 ```
 
 Returns whether or not the mesh instersects the given sphere.
@@ -274,7 +288,7 @@ Returns whether or not the mesh instersects the given sphere.
 ### .intersectsBox
 
 ```js
-intersectsBox( mesh : Mesh, box : Box3, boxToBvh : Matrix4 ) : Boolean
+intersectsBox( box : Box3, boxToBvh : Matrix4 ) : Boolean
 ```
 
 Returns whether or not the mesh intersects the given box.
@@ -284,7 +298,7 @@ The `boxToBvh` parameter is the transform of the box in the meshs frame.
 ### .intersectsGeometry
 
 ```js
-intersectsGeometry( mesh : Mesh, geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boolean
+intersectsGeometry( geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boolean
 ```
 
 Returns whether or not the mesh intersects the given geometry.
@@ -297,7 +311,6 @@ Performance improves considerably if the provided geometry _also_ has a `boundsT
 
 ```js
 closestPointToPoint(
-	mesh : Mesh,
 	point : Vector3,
 	target : Vector3,
 	minThreshold : Number = 0,
@@ -309,11 +322,22 @@ Returns the closest distance from the point to the mesh and puts the closest poi
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
+### .distanceToPoint
+
+```js
+distanceToPoint(
+	point : Vector3,
+	minThreshold : Number = 0,
+	maxThreshold : Number = Infinity
+) : Number
+```
+
+Convenience function for just getting the distance returned by calling [closestPointToPoint](#closestPointToPoint).
+
 ### .closestPointToGeometry
 
 ```js
 closestPointToGeometry(
-	mesh : Mesh,
 	geometry : BufferGeometry,
 	geometryToBvh : Matrix4,
 	target1 : Vector3 = null,
@@ -331,12 +355,23 @@ If a point is found that is closer than `minThreshold` then the function will re
 
 _Note that this function can be very slow if `geometry` does not have a `geometry.boundsTree` computed._
 
+### .distanceToGeometry
+
+```js
+distanceToGeometry(
+	geometry : BufferGeometry,
+	geometryToBvh : Matrix4,
+	minThreshold : Number = 0,
+	maxThreshold : Number = Infinity
+) : Number
+```
+
+Convenience function for just getting the distance returned by calling [closestPointToGeometry](#closestPointToGeometry).
+
 ### .shapecast
 
 ```js
 shapecast(
-	mesh : Mesh,
-
 	callbacks : {
 
 		traverseBoundsOrder : (
@@ -404,7 +439,6 @@ const traversedNodeIndices = new Set();
 const endNodeIndices = new Set();
 bvh.shapecast(
 
-	mesh,
 	{
 
 		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
