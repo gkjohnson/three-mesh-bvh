@@ -310,6 +310,18 @@ Returns the closest distance from the point to the mesh and puts the closest poi
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
+### .distanceToPoint
+
+```js
+distanceToPoint(
+	point : Vector3,
+	minThreshold : Number = 0,
+	maxThreshold : Number = Infinity
+) : Number
+```
+
+Convenience function for just getting the distance returned by calling [closestPointToPoint](#closestPointToPoint).
+
 ### .closestPointToGeometry
 
 ```js
@@ -330,6 +342,19 @@ The `geometryToBvh` parameter is the transform of the geometry in the mesh's fra
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
 _Note that this function can be very slow if `geometry` does not have a `geometry.boundsTree` computed._
+
+### .distanceToGeometry
+
+```js
+distanceToGeometry(
+	geometry : BufferGeometry,
+	geometryToBvh : Matrix4,
+	minThreshold : Number = 0,
+	maxThreshold : Number = Infinity
+) : Number
+```
+
+Convenience function for just getting the distance returned by calling [closestPointToGeometry](#closestPointToGeometry).
 
 ### .shapecast
 
