@@ -30,7 +30,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 	renderer.domElement.style.touchAction = 'none';
 
@@ -53,7 +53,7 @@ function init() {
 	const colorArray = new Uint8Array( knotGeometry.attributes.position.count * 3 );
 	colorArray.fill( 255 );
 	const colorAttr = new THREE.BufferAttribute( colorArray, 3, true );
-	colorAttr.dynamic = true;
+	colorAttr.setUsage( THREE.DynamicDrawUsage );
 	knotGeometry.setAttribute( 'color', colorAttr );
 
 	const knotMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff, roughness: 0.3, metalness: 0, vertexColors: true } );

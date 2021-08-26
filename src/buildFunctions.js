@@ -508,8 +508,7 @@ export function buildTree( geo, options ) {
 			reachedMaxDepth = true;
 			if ( verbose ) {
 
-				console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( this, geo );
+				console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.`, geo );
 
 			}
 
