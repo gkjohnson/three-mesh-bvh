@@ -318,17 +318,29 @@ export default class MeshBVH {
 		const geometry = this.geometry;
 		const localIntersects = [];
 		const isMaterial = materialOrSide.isMaterial;
-		const isArrayMaterial = isMaterial && Array.isArray( materialOrSide );
+		const isArrayMaterial = Array.isArray( materialOrSide );
 
 		const groups = geometry.groups;
 		const side = isMaterial ? materialOrSide.side : materialOrSide;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
+			const startCount = localIntersects.length;
 
 			setBuffer( roots[ i ] );
 			raycast( 0, geometry, materialSide, ray, localIntersects );
 			clearBuffer();
+
+			if ( isArrayMaterial ) {
+
+				const materialIndex = groups[ i ].materialIndex;
+				for ( let j = startCount, jl = localIntersects.length; j < jl; j ++ ) {
+
+					localIntersects[ j ].face.materialIndex = materialIndex;
+
+				}
+
+			}
 
 		}
 
@@ -341,7 +353,7 @@ export default class MeshBVH {
 		const roots = this._roots;
 		const geometry = this.geometry;
 		const isMaterial = materialOrSide.isMaterial;
-		const isArrayMaterial = isMaterial && Array.isArray( materialOrSide );
+		const isArrayMaterial = Array.isArray( materialOrSide );
 
 		let closestResult = null;
 
@@ -358,6 +370,11 @@ export default class MeshBVH {
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
+				if ( isArrayMaterial ) {
+
+					result.face.materialIndex = groups[ i ].materialIndex;
+
+				}
 
 			}
 

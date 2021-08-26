@@ -72,14 +72,14 @@ export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 		const leftIndex = LEFT_NODE( nodeIndex32 );
 		if ( intersectRay( leftIndex, float32Array, ray, boxIntersection ) ) {
 
-			raycast( leftIndex, geometry, ray, intersects );
+			raycast( leftIndex, geometry, side, ray, intersects );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 		if ( intersectRay( rightIndex, float32Array, ray, boxIntersection ) ) {
 
-			raycast( rightIndex, geometry, ray, intersects );
+			raycast( rightIndex, geometry, side, ray, intersects );
 
 		}
 

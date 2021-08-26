@@ -22,7 +22,7 @@ function adjustIntersect( hit, object, raycaster ) {
 	hit.object = object;
 	delete hit.localPoint;
 
-	if ( ! ( hit.distance < raycaster.near && hit.distance > raycaster.far ) ) {
+	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) {
 
 		return null;
 
