@@ -313,11 +313,11 @@ export default class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( ray, materialOrSide = FrontSide ) {
+	raycast( ray, materialOrSide = FrontSide, intersects = [] ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
-		const localIntersects = [];
+		const intersects = [];
 		const isMaterial = materialOrSide.isMaterial;
 		const isArrayMaterial = Array.isArray( materialOrSide );
 
@@ -326,18 +326,18 @@ export default class MeshBVH {
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const startCount = localIntersects.length;
+			const startCount = intersects.length;
 
 			setBuffer( roots[ i ] );
-			raycast( 0, geometry, materialSide, ray, localIntersects );
+			raycast( 0, geometry, materialSide, ray, intersects );
 			clearBuffer();
 
 			if ( isArrayMaterial ) {
 
 				const materialIndex = groups[ i ].materialIndex;
-				for ( let j = startCount, jl = localIntersects.length; j < jl; j ++ ) {
+				for ( let j = startCount, jl = intersects.length; j < jl; j ++ ) {
 
-					localIntersects[ j ].face.materialIndex = materialIndex;
+					intersects[ j ].face.materialIndex = materialIndex;
 
 				}
 
@@ -345,7 +345,7 @@ export default class MeshBVH {
 
 		}
 
-		return localIntersects;
+		return intersects;
 
 	}
 
