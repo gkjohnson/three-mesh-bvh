@@ -129,7 +129,8 @@ export function raycastFirst( nodeIndex32, geometry, side, ray ) {
 		if ( c1Result ) {
 
 			// check if the point is within the second bounds
-			const point = c1Result.localPoint[ xyzAxis ];
+			// "point" is in the local frame of the bvh
+			const point = c1Result.point[ xyzAxis ];
 			const isOutside = leftToRight ?
 				point <= float32Array[ c2 + splitAxis ] : // min bounding data
 				point >= float32Array[ c2 + splitAxis + 3 ]; // max bounding data
