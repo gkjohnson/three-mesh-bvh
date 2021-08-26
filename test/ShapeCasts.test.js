@@ -651,12 +651,30 @@ function runSuiteWithOptions( defaultOptions ) {
 				raycaster.ray.origin.set( 0, 0.25, - 10 );
 				raycaster.ray.direction.set( 0, 0, 1 );
 
+				// all hits
 				const results = raycaster.intersectObject( box, true );
-
 				box.geometry.computeBoundsTree();
 				const results2 = raycaster.intersectObject( box, true );
 
 				expect( results ).toEqual( results2 );
+				expect( results ).toHaveLength( 2 );
+
+				// first hit
+				raycaster.firstHitOnly = true;
+				box.material = [
+					frontSideMaterial, frontSideMaterial,
+					frontSideMaterial, frontSideMaterial,
+					backSideMaterial, backSideMaterial,
+				];
+
+				box.geometry.disposeBoundsTree();
+				const firstHit = raycaster.intersectObject( box, true )[ 0 ];
+
+				box.geometry.computeBoundsTree();
+				const firstHit2 = raycaster.intersectObject( box, true )[ 0 ];
+
+				expect( firstHit ).toEqual( firstHit2 );
+				expect( firstHit.point.z ).toEqual( 0.5 );
 
 			} );
 

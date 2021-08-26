@@ -372,7 +372,7 @@ runBenchmark(
 
 	'CENTER raycast',
 	null,
-	() => mesh.raycast( raycaster ),
+	() => mesh.raycast( raycaster, [] ),
 	3000
 
 );
