@@ -109,7 +109,7 @@ invMat.copy( mesh.matrixWorld ).invert();
 // raycasting
 // ensure the ray is in the local space of the geometry being cast against
 raycaster.ray.applyMatrix4( invMat );
-const hit = bvh.raycastFirst( mesh, raycaster, raycaster.ray );
+const hit = bvh.raycastFirst( raycaster );
 
 // spherecasting
 // ensure the sphere is in the local space of hte geometry being cast against
@@ -250,7 +250,8 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 ### .raycast
 
 ```js
-raycast( mesh : Mesh, raycaster : Raycaster, ray : Ray, intersects : Array ) : Array<RaycastHit>
+raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Array<RaycastHit>
+raycast( ray : Ray, material : Material | Array<Material> ) : Array<RaycastHit>
 ```
 
 Adds all raycast triangle hits in unsorted order to the `intersects` array. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh.
@@ -258,7 +259,8 @@ Adds all raycast triangle hits in unsorted order to the `intersects` array. It i
 ### .raycastFirst
 
 ```js
-raycastFirst( mesh : Mesh, raycaster : Raycaster, ray : Ray ) : RaycastHit
+raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : RaycastHit
+raycastFirst( ray : Ray, material : Material | Array<Material> ) : RaycastHit
 ```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits.

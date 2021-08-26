@@ -840,13 +840,15 @@ MeshBVH.prototype.raycast = function ( ...args ) {
 
 		} );
 
+		return intersects;
+
 	} else {
 
 		return originalRaycast.apply( this, args );
 
 	}
 
-}
+};
 
 const originalRaycastFirst = MeshBVH.prototype.raycastFirst;
 MeshBVH.prototype.raycastFirst = function ( ...args ) {
@@ -866,7 +868,7 @@ MeshBVH.prototype.raycastFirst = function ( ...args ) {
 
 	}
 
-}
+};
 
 [
 	'intersectsGeometry',

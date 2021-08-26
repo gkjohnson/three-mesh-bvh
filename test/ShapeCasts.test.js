@@ -95,7 +95,6 @@ function runSuiteWithOptions( defaultOptions ) {
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 			intersectGeometry.computeBoundsTree();
