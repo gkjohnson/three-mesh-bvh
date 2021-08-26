@@ -30,7 +30,6 @@ function checkIntersection( ray, pA, pB, pC, point, side ) {
 
 	return {
 
-		localPoint: point.clone(),
 		distance: distance,
 		point: point.clone(),
 
