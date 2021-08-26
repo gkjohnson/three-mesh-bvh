@@ -383,7 +383,7 @@ runBenchmark(
 
 	'AVERAGE raycast',
 	null,
-	() => mesh.raycast( raycaster ),
+	() => mesh.raycast( raycaster, [] ),
 	3000
 
 );
@@ -394,7 +394,7 @@ runBenchmark(
 
 	'SAH raycast',
 	null,
-	() => mesh.raycast( raycaster ),
+	() => mesh.raycast( raycaster, [] ),
 	3000
 
 );
