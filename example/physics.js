@@ -334,42 +334,41 @@ function updateSphereCollisions( deltaTime ) {
 		tempSphere.copy( sphere.collider );
 
 		let collided = false;
-		bvh.shapecast(
-			collider,
-			{
-				intersectsBounds: box => {
+		bvh.shapecast( {
 
-					return box.intersectsSphere( tempSphere );
+			intersectsBounds: box => {
 
-				},
+				return box.intersectsSphere( tempSphere );
 
-				intersectsTriangle: tri => {
+			},
 
-					// get delta between closest point and center
-					tri.closestPointToPoint( tempSphere.center, deltaVec );
-					deltaVec.sub( tempSphere.center );
-					const distance = deltaVec.length();
-					if ( distance < tempSphere.radius ) {
+			intersectsTriangle: tri => {
 
-						// move the sphere position to be outside the triangle
-						const radius = tempSphere.radius;
-						const depth = distance - radius;
-						deltaVec.multiplyScalar( 1 / distance );
-						tempSphere.center.addScaledVector( deltaVec, depth );
+				// get delta between closest point and center
+				tri.closestPointToPoint( tempSphere.center, deltaVec );
+				deltaVec.sub( tempSphere.center );
+				const distance = deltaVec.length();
+				if ( distance < tempSphere.radius ) {
 
-						collided = true;
+					// move the sphere position to be outside the triangle
+					const radius = tempSphere.radius;
+					const depth = distance - radius;
+					deltaVec.multiplyScalar( 1 / distance );
+					tempSphere.center.addScaledVector( deltaVec, depth );
 
-					}
+					collided = true;
 
-				},
+				}
 
-				traverseBoundsOrder: box => {
+			},
 
-					return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
+			traverseBoundsOrder: box => {
 
-				},
+				return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
 
-			} );
+			},
+
+		} );
 
 		if ( collided ) {
 

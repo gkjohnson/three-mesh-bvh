@@ -337,34 +337,30 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedFields
 	const normalAttr = targetMesh.geometry.attributes.normal;
 	const triangles = new Set();
 	const bvh = targetMesh.geometry.boundsTree;
-	bvh.shapecast(
-		targetMesh,
-		{
+	bvh.shapecast( {
 
-			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
 
-				accumulatedTraversedNodeIndices.add( nodeIndex );
+			accumulatedTraversedNodeIndices.add( nodeIndex );
 
-				const intersects = sphere.intersectsBox( box );
-				const { min, max } = box;
-				if ( intersects ) {
+			const intersects = sphere.intersectsBox( box );
+			const { min, max } = box;
+			if ( intersects ) {
 
-					for ( let x = 0; x <= 1; x ++ ) {
+				for ( let x = 0; x <= 1; x ++ ) {
 
-						for ( let y = 0; y <= 1; y ++ ) {
+					for ( let y = 0; y <= 1; y ++ ) {
 
-							for ( let z = 0; z <= 1; z ++ ) {
+						for ( let z = 0; z <= 1; z ++ ) {
 
-								tempVec.set(
-									x === 0 ? min.x : max.x,
-									y === 0 ? min.y : max.y,
-									z === 0 ? min.z : max.z
-								);
-								if ( ! sphere.containsPoint( tempVec ) ) {
+							tempVec.set(
+								x === 0 ? min.x : max.x,
+								y === 0 ? min.y : max.y,
+								z === 0 ? min.z : max.z
+							);
+							if ( ! sphere.containsPoint( tempVec ) ) {
 
-									return INTERSECTED;
-
-								}
+								return INTERSECTED;
 
 							}
 
@@ -372,74 +368,75 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedFields
 
 					}
 
-					return CONTAINED;
-
 				}
 
-				return intersects ? INTERSECTED : NOT_INTERSECTED;
-
-			},
-
-			intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
-
-				accumulatedEndNodeIndices.add( nodeIndex );
-
-			},
-
-			intersectsTriangle: ( tri, index, contained ) => {
-
-				const triIndex = index;
-				triangles.add( triIndex );
-				accumulatedTriangles.add( triIndex );
-
-				const i3 = 3 * index;
-				const a = i3 + 0;
-				const b = i3 + 1;
-				const c = i3 + 2;
-				const va = indexAttr.getX( a );
-				const vb = indexAttr.getX( b );
-				const vc = indexAttr.getX( c );
-				if ( contained ) {
-
-					indices.add( va );
-					indices.add( vb );
-					indices.add( vc );
-
-					accumulatedIndices.add( va );
-					accumulatedIndices.add( vb );
-					accumulatedIndices.add( vc );
-
-				} else {
-
-					if ( sphere.containsPoint( tri.a ) ) {
-
-						indices.add( va );
-						accumulatedIndices.add( va );
-
-					}
-
-					if ( sphere.containsPoint( tri.b ) ) {
-
-						indices.add( vb );
-						accumulatedIndices.add( vb );
-
-					}
-
-					if ( sphere.containsPoint( tri.c ) ) {
-
-						indices.add( vc );
-						accumulatedIndices.add( vc );
-
-					}
-
-				}
-
-				return false;
+				return CONTAINED;
 
 			}
 
+			return intersects ? INTERSECTED : NOT_INTERSECTED;
+
+		},
+
+		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
+
+			accumulatedEndNodeIndices.add( nodeIndex );
+
+		},
+
+		intersectsTriangle: ( tri, index, contained ) => {
+
+			const triIndex = index;
+			triangles.add( triIndex );
+			accumulatedTriangles.add( triIndex );
+
+			const i3 = 3 * index;
+			const a = i3 + 0;
+			const b = i3 + 1;
+			const c = i3 + 2;
+			const va = indexAttr.getX( a );
+			const vb = indexAttr.getX( b );
+			const vc = indexAttr.getX( c );
+			if ( contained ) {
+
+				indices.add( va );
+				indices.add( vb );
+				indices.add( vc );
+
+				accumulatedIndices.add( va );
+				accumulatedIndices.add( vb );
+				accumulatedIndices.add( vc );
+
+			} else {
+
+				if ( sphere.containsPoint( tri.a ) ) {
+
+					indices.add( va );
+					accumulatedIndices.add( va );
+
+				}
+
+				if ( sphere.containsPoint( tri.b ) ) {
+
+					indices.add( vb );
+					accumulatedIndices.add( vb );
+
+				}
+
+				if ( sphere.containsPoint( tri.c ) ) {
+
+					indices.add( vc );
+					accumulatedIndices.add( vc );
+
+				}
+
+			}
+
+			return false;
+
 		}
-	);
+
+	} );
 
 	// Compute the average normal at this point
 	const localPoint = new THREE.Vector3();

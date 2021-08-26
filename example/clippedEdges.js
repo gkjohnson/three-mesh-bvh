@@ -373,7 +373,7 @@ function render() {
 		let index = 0;
 		const posAttr = outlineLines.geometry.attributes.position;
 		const startTime = window.performance.now();
-		colliderBvh.shapecast( null, {
+		colliderBvh.shapecast( {
 
 			intersectsBounds: box => {
 
