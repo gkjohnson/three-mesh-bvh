@@ -55,31 +55,28 @@ function runSuite( strategy ) {
 		new THREE.Vector3( 0, 0, 0 ),
 		0.5,
 	);
-	geometry.boundsTree.shapecast(
-		mesh,
-		{
+	geometry.boundsTree.shapecast( {
 
-			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
 
-				if ( box.intersectsSphere( newSphere ) ) {
+			if ( box.intersectsSphere( newSphere ) ) {
 
-					refitIndices.add( nodeIndex );
-					return true;
-
-				}
-
-				return false;
-
-			},
-
-			intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
-
-				terminationIndices.add( nodeIndex );
+				refitIndices.add( nodeIndex );
+				return true;
 
 			}
 
+			return false;
+
+		},
+
+		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
+
+			terminationIndices.add( nodeIndex );
+
 		}
-	);
+
+	} );
 
 	logExtremes( geometry.boundsTree, geometry );
 
@@ -235,7 +232,7 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			mesh.geometry.boundsTree.shapecast( mesh, {
+			mesh.geometry.boundsTree.shapecast( {
 
 				intersectsBounds: box => sphere.intersectsBox( box ),
 
@@ -256,7 +253,7 @@ function runSuite( strategy ) {
 
 		'IntersectsSphere',
 		null,
-		() => mesh.geometry.boundsTree.intersectsSphere( mesh, sphere ),
+		() => mesh.geometry.boundsTree.intersectsSphere( sphere ),
 		3000
 
 	);
@@ -265,7 +262,7 @@ function runSuite( strategy ) {
 
 		'IntersectsBox',
 		null,
-		() => mesh.geometry.boundsTree.intersectsBox( mesh, box, boxMat ),
+		() => mesh.geometry.boundsTree.intersectsBox( box, boxMat ),
 		3000
 
 	);
@@ -274,7 +271,7 @@ function runSuite( strategy ) {
 
 		'DistanceToGeometry w/ BVH',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToGeometry( mesh, intersectGeometry, geomMat, target1, target2 ),
+		() => mesh.geometry.boundsTree.closestPointToGeometry( intersectGeometry, geomMat, target1, target2 ),
 		3000
 
 	);
@@ -284,7 +281,7 @@ function runSuite( strategy ) {
 
 		'DistanceToPoint',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToPoint( mesh, vec, target1 ),
+		() => mesh.geometry.boundsTree.closestPointToPoint( vec, target1 ),
 		3000
 
 	);
@@ -295,7 +292,7 @@ function runSuite( strategy ) {
 
 		'IntersectsGeometry w/ BVH',
 		null,
-		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
+		() => mesh.geometry.boundsTree.intersectsGeometry( intersectGeometry, geomMat ),
 		3000
 
 	);
@@ -306,7 +303,7 @@ function runSuite( strategy ) {
 
 		'IntersectsGeometry w/o BVH',
 		null,
-		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
+		() => mesh.geometry.boundsTree.intersectsGeometry( intersectGeometry, geomMat ),
 		3000
 
 	);
