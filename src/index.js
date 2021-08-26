@@ -2,8 +2,7 @@ import { Ray, Matrix4, Mesh } from 'three';
 import MeshBVH from './MeshBVH.js';
 import Visualizer from './MeshBVHVisualizer.js';
 import { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED } from './Constants.js';
-import { getBVHExtremes, estimateMemoryInBytes } from './Utils/Debug.js';
-import { MeshBVHDebug } from './MeshBVHDebug.js';
+import { getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds } from './Utils/Debug.js';
 import { adjustIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const ray = new Ray();
@@ -67,8 +66,8 @@ function disposeBoundsTree() {
 }
 
 export {
-	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer, MeshBVHDebug,
+	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer,
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED,
-	estimateMemoryInBytes, getBVHExtremes
+	estimateMemoryInBytes, getBVHExtremes, validateBounds, getJSONStructure
 };
