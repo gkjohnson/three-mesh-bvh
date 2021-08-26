@@ -1,22 +1,22 @@
 import { intersectTri } from './ThreeIntersectionUtilities.js';
 
-export function intersectTris( mesh, geo, raycaster, ray, offset, count, intersections ) {
+export function intersectTris( geo, side, ray, offset, count, intersections ) {
 
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		intersectTri( mesh, geo, raycaster, ray, i, intersections );
+		intersectTri( geo, side, ray, i, intersections );
 
 	}
 
 }
 
-export function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) {
+export function intersectClosestTri( geo, side, ray, offset, count ) {
 
 	let dist = Infinity;
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		const intersection = intersectTri( mesh, geo, raycaster, ray, i );
+		const intersection = intersectTri( geo, side, ray, i );
 		if ( intersection && intersection.distance < dist ) {
 
 			res = intersection;
@@ -27,5 +27,31 @@ export function intersectClosestTri( mesh, geo, raycaster, ray, offset, count ) 
 	}
 
 	return res;
+
+}
+
+// converts the given BVH raycast intersection to align with the three.js raycast
+// structure (include object, world space distance and point).
+export function convertRaycastIntersect( hit, object, raycaster ) {
+
+	if ( hit === null ) {
+
+		return null;
+
+	}
+
+	hit.point.applyMatrix4( object.matrixWorld );
+	hit.distance = hit.point.distanceTo( raycaster.ray.origin );
+	hit.object = object;
+
+	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) {
+
+		return null;
+
+	} else {
+
+		return hit;
+
+	}
 
 }

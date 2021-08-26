@@ -2,8 +2,8 @@ import { Ray, Matrix4, Mesh } from 'three';
 import MeshBVH from './MeshBVH.js';
 import Visualizer from './MeshBVHVisualizer.js';
 import { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED } from './Constants.js';
-import { getBVHExtremes, estimateMemoryInBytes } from './Utils/Debug.js';
-import { MeshBVHDebug } from './MeshBVHDebug.js';
+import { getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds } from './Utils/Debug.js';
+import { convertRaycastIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const ray = new Ray();
 const tmpInverseMatrix = new Matrix4();
@@ -18,14 +18,29 @@ function acceleratedRaycast( raycaster, intersects ) {
 		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
+		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
 
-			const res = this.geometry.boundsTree.raycastFirst( this, raycaster, ray );
-			if ( res ) intersects.push( res );
+			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material ), this, raycaster );
+			if ( hit ) {
+
+				intersects.push( hit );
+
+			}
 
 		} else {
 
-			this.geometry.boundsTree.raycast( this, raycaster, ray, intersects );
+			const hits = bvh.raycast( ray, this.material );
+			for ( let i = 0, l = hits.length; i < l; i ++ ) {
+
+				const hit = convertRaycastIntersect( hits[ i ], this, raycaster );
+				if ( hit ) {
+
+					intersects.push( hit );
+
+				}
+
+			}
 
 		}
 
@@ -51,8 +66,8 @@ function disposeBoundsTree() {
 }
 
 export {
-	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer, MeshBVHDebug,
+	MeshBVH, Visualizer, Visualizer as MeshBVHVisualizer,
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED,
-	estimateMemoryInBytes, getBVHExtremes
+	estimateMemoryInBytes, getBVHExtremes, validateBounds, getJSONStructure
 };

@@ -37,7 +37,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -113,7 +113,7 @@ function init() {
 	const sphereGeom = new THREE.SphereBufferGeometry( 0.1 );
 	const sphereMesh = new THREE.Mesh( sphereGeom );
 
-	sphereMesh.position.copy( raycaster.ray.at( 0 ) );
+	sphereMesh.position.copy( raycaster.ray.at( 0, new THREE.Vector3() ) );
 	scene.add( sphereMesh );
 
 	// perform the hits

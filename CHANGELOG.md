@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Fixed
+- `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
+
+### Changed
+- Changed function signature for `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`, `closestPointToGeometry`, `distanceToGeometry`, `closestPointToPoint`, `distanceToPoint`, `raycast`, and `raycastFirst`. Calling functions with the old signature will log a warning. See documentation for more details.
+- `raycast` and `raycastFirst` now return hits in the local space of the geometry rather than world space when querying the BVH directly to conform with other cast functions. Results still match three.js' original results when using `Raycaster.intersectObject(s)` functions. See documentation for more details.
+- `MeshBVHDebug` class has been removed and the function `getJSONStructure` and `validateBounds` are now exported individually.
+- Small observed performance improvements possibly a result of simplified function arguments.
+
 ## [0.4.3] - 2021-08-20
 ### Fixed
 - Fixed Surface Area Heuristic (SAH) split strategy to function correctly, improve build performance, and produce more optimal bounds and improved a memory footprint.
