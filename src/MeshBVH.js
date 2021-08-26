@@ -312,7 +312,7 @@ export default class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( ray, intersects = null, materialOrSide = FrontSide ) {
+	raycast( ray, materialOrSide = FrontSide ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
@@ -329,19 +329,6 @@ export default class MeshBVH {
 			setBuffer( roots[ i ] );
 			raycast( 0, geometry, materialSide, ray, localIntersects );
 			clearBuffer();
-
-		}
-
-		// TODO: do this in the mesh override function
-		if ( intersects ) {
-
-			for ( let i = 0, l = localIntersects.length; i < l; i ++ ) {
-
-				delete localIntersects[ i ].localPoint;
-
-			}
-
-			intersects.push( ...localIntersects );
 
 		}
 
@@ -373,13 +360,6 @@ export default class MeshBVH {
 				closestResult = result;
 
 			}
-
-		}
-
-		// TODO: do this in the mesh override function
-		if ( closestResult ) {
-
-			delete closestResult.localPoint;
 
 		}
 
@@ -831,7 +811,7 @@ export default class MeshBVH {
 ].forEach( name => {
 
 	const originalFunc = MeshBVH.prototype[ name ];
-	MeshBVH.prototype[ name ] = function( ...args ) {
+	MeshBVH.prototype[ name ] = function ( ...args ) {
 
 		if ( args[ 0 ].isMesh ) {
 
