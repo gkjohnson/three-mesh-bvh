@@ -313,7 +313,7 @@ export default class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( ray, materialOrSide = FrontSide, intersects = [] ) {
+	raycast( ray, materialOrSide = FrontSide ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
