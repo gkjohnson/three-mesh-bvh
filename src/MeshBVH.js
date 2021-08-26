@@ -602,69 +602,66 @@ export default class MeshBVH {
 
 						// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
 						// the closest bounds in the other geometry to check.
-						return otherGeometry.boundsTree.shapecast(
-							null,
-							{
-								boundsTraverseOrder: box => {
+						return otherGeometry.boundsTree.shapecast( {
+							boundsTraverseOrder: box => {
 
-									return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+								return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
 
-								},
+							},
 
-								intersectsBounds: ( box, isLeaf, score ) => {
+							intersectsBounds: ( box, isLeaf, score ) => {
 
-									return score < closestDistance && score < maxThreshold;
+								return score < closestDistance && score < maxThreshold;
 
-								},
+							},
 
-								intersectsRange: ( otherOffset, otherCount ) => {
+							intersectsRange: ( otherOffset, otherCount ) => {
 
-									for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
+								for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
 
-										setTriangle( triangle2, i2, otherIndex, otherPos );
-										triangle2.a.applyMatrix4( geometryToBvh );
-										triangle2.b.applyMatrix4( geometryToBvh );
-										triangle2.c.applyMatrix4( geometryToBvh );
-										triangle2.needsUpdate = true;
+									setTriangle( triangle2, i2, otherIndex, otherPos );
+									triangle2.a.applyMatrix4( geometryToBvh );
+									triangle2.b.applyMatrix4( geometryToBvh );
+									triangle2.c.applyMatrix4( geometryToBvh );
+									triangle2.needsUpdate = true;
 
-										for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+									for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
 
-											setTriangle( triangle, i, index, pos );
-											triangle.needsUpdate = true;
+										setTriangle( triangle, i, index, pos );
+										triangle.needsUpdate = true;
 
-											const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
-											if ( dist < closestDistance ) {
+										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
+										if ( dist < closestDistance ) {
 
-												if ( target1 ) {
+											if ( target1 ) {
 
-													target1.copy( tempTarget1 );
-
-												}
-
-												if ( target2 ) {
-
-													target2.copy( tempTarget2 );
-
-												}
-
-												closestDistance = dist;
+												target1.copy( tempTarget1 );
 
 											}
 
-											// stop traversal if we find a point that's under the given threshold
-											if ( dist < minThreshold ) {
+											if ( target2 ) {
 
-												return true;
+												target2.copy( tempTarget2 );
 
 											}
+
+											closestDistance = dist;
+
+										}
+
+										// stop traversal if we find a point that's under the given threshold
+										if ( dist < minThreshold ) {
+
+											return true;
 
 										}
 
 									}
 
-								},
-							}
-						);
+								}
+
+							},
+						} );
 
 					} else {
 
