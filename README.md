@@ -112,7 +112,7 @@ raycaster.ray.applyMatrix4( invMat );
 const hit = bvh.raycastFirst( raycaster );
 
 // spherecasting
-// ensure the sphere is in the local space of hte geometry being cast against
+// ensure the sphere is in the local space of the geometry being cast against
 sphere.applyMatrix4( invMat );
 const intersects = bvh.intersectsSphere( sphere );
 ```
@@ -251,6 +251,8 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 
 ```js
 raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Array<RaycastHit>
+```
+```js
 raycast( ray : Ray, material : Material | Array<Material> ) : Array<RaycastHit>
 ```
 
@@ -262,6 +264,8 @@ Unlike three.js' Raycaster restults the points and distances in the intersection
 
 ```js
 raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : RaycastHit
+```
+```js
 raycastFirst( ray : Ray, material : Material | Array<Material> ) : RaycastHit
 ```
 
