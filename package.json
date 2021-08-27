@@ -28,6 +28,8 @@
     "three-js",
     "bounds-hierarchy",
     "performance",
+    "raytracing",
+    "pathtracing",
     "geometry",
     "mesh",
     "distance",
