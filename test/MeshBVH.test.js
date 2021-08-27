@@ -266,7 +266,7 @@ describe( 'Serialization', () => {
 		geom2.setAttribute( 'position', new BufferAttribute( new Float32Array( 60000 * 3 ), 3, false ) );
 
 		new MeshBVH( geom2 );
-		expect( geom2.index.array instanceof Uint32Array ).toBe( true );
+		expect( geom2.index.array instanceof Uint32Array ).toBe( false );
 
 	} );
 
@@ -355,12 +355,12 @@ describe( 'Options', () => {
 
 			geometry.toNonIndexed();
 			bvh1 = new MeshBVH( geometry, { useSharedArrayBuffer: true } );
-			expect( bvh1._roots[ 0 ].buffer instanceof SharedArrayBuffer ).toBe( true );
+			expect( bvh1._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( true );
 			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( true );
 
 			geometry.toNonIndexed();
 			bvh2 = new MeshBVH( geometry, { useSharedArrayBuffer: false } );
-			expect( bvh2._roots[ 0 ].buffer instanceof SharedArrayBuffer ).toBe( false );
+			expect( bvh2._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( false );
 			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( false );
 
 		} );
