@@ -126,7 +126,7 @@ const intersects = bvh.intersectsSphere( sphere );
 ```js
 const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
 const bvh = new MeshBVH( geometry );
-const serialized = MeshBVH.serialize( bvh, geometry );
+const serialized = MeshBVH.serialize( bvh );
 
 // ...
 
@@ -197,26 +197,46 @@ Note that all query functions expect arguments in local space of the mesh and re
 ### static .serialize
 
 ```js
-static serialize( bvh : MeshBVH, geometry : BufferGeometry, copyIndexBuffer = true : Boolean ) : SerializedBVH
+static serialize( bvh : MeshBVH, options : Object = null ) : SerializedBVH
 ```
 
-Generates a representation of the complete bounds tree and the geometry index buffer which can be used to recreate a bounds tree using the [deserialize](#static-deserialize) function. The `serialize` and `deserialize` functions can be used to generate a MeshBVH asynchronously in a background web worker to prevent the main thread from stuttering.
+Generates a representation of the complete bounds tree and the geometry index buffer which can be used to recreate a bounds tree using the [deserialize](#static-deserialize) function. The `serialize` and `deserialize` functions can be used to generate a MeshBVH asynchronously in a background web worker to prevent the main thread from stuttering. The BVH roots buffer stored in the serialized representation are the same as the ones used by the original BVH so they should not be modified. If `SharedArrayBuffers` are used then the same BVH memory can be used for multiple BVH in multiple WebWorkers.
 
-`bvh` is the MeshBVH to be serialized and `geometry` is the bufferGeometry used to generate and raycast against using the `bvh`.
+`bvh` is the MeshBVH to be serialized. The `options` object can have the following fields:
 
-If `copyIndexBuffer` is true then a copy of the `geometry.index.array` is made which is slower but useful is the geometry index is intended to be modified.
+```js
+{
+
+	// if true then a copy of the `geometry.index.array` is made which is slower but useful
+	// if the geometry index is intended to be modified.
+	copyIndexBuffer: true
+
+}
+
+```
 
 ### static .deserialize
 
 ```js
-static deserialize( data : SerializedBVH, geometry : BufferGeometry, setIndex = true : Boolean ) : MeshBVH
+static deserialize( data : SerializedBVH, geometry : BufferGeometry, options : Object = null ) : MeshBVH
 ```
 
-Returns a new MeshBVH instance from the serialized data. `geometry` is the geometry used to generate the original bvh `data` was derived from. If `setIndex` is true then the buffer for the `geometry.index` attribute is set from the serialized data attribute or created if an index does not exist.
+Returns a new MeshBVH instance from the serialized data. `geometry` is the geometry used to generate the original BVH `data` was derived from. The root buffers stored in `data` are set directly on the new BVH so the memory is shared.
+
+The `options` object can have the following fields:
+
+```js
+{
+	// If true then the buffer for the `geometry.index` attribute is set from the serialized
+	// data attribute or created if an index does not exist.
+	setIndex: true,
+
+	// Passthrough options for MeshBVH. See MeshBVH docs for more information and defaults.
+	verbose,
+	setBoundingBox,
+}
 
 _NOTE: In order for the bounds tree to be used for casts the geometry index attribute must be replaced by the data in the SeralizedMeshBVH object._
-
-_NOTE: The returned MeshBVH is a fully generated, buffer packed BVH instance to improve memory footprint and uses the same buffers passed in on the `data.root` property._
 
 ### .constructor
 
