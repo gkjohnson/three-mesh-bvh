@@ -125,7 +125,7 @@ export default class MeshBVH {
 			maxDepth: 40,
 			maxLeafTris: 10,
 			verbose: true,
-
+			useSharedArrayBuffer: false,
 			setBoundingBox: true,
 
 			// undocumented options
@@ -134,7 +134,12 @@ export default class MeshBVH {
 			[ SKIP_GENERATION ]: false
 
 		}, options );
-		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
+
+		if ( options.useSharedArrayBuffer && typeof SharedArrayBuffer === 'undefined' ) {
+
+			throw new Error( 'MeshBVH: SharedArrayBuffer is not available.' );
+
+		}
 
 		this._roots = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
