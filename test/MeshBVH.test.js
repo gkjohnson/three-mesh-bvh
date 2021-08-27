@@ -275,7 +275,7 @@ describe( 'Serialization', () => {
 describe( 'Options', () => {
 
 	let mesh = null;
-	beforeEach( () => {
+	beforeAll( () => {
 
 		const geometry = new TorusBufferGeometry( 5, 5, 400, 100 );
 		mesh = new Mesh( geometry, new MeshBasicMaterial() );
@@ -350,15 +350,15 @@ describe( 'Options', () => {
 
 		it( 'should initialize with shared array buffers if true.', () => {
 
-			const geometry = new TorusBufferGeometry( 5, 5, 400, 100 );
+			const geometry = new TorusBufferGeometry( 5, 5, 40, 10 );
 			let bvh1, bvh2;
 
-			geometry.toNonIndexed();
+			geometry.setIndex( null );
 			bvh1 = new MeshBVH( geometry, { useSharedArrayBuffer: true } );
 			expect( bvh1._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( true );
 			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( true );
 
-			geometry.toNonIndexed();
+			geometry.setIndex( null );
 			bvh2 = new MeshBVH( geometry, { useSharedArrayBuffer: false } );
 			expect( bvh2._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( false );
 			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( false );
