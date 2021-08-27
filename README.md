@@ -264,10 +264,10 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // has been constructed.
     setBoundingBox: true,
 
-	// If true then the MeshBVH will use SharedArrayBuffer rather than ArrayBuffer when
-	// initializing the BVH buffers. Geometry index data will be created as a
-	// SharedArrayBuffer only if it needs to be created. Otherwise it is used as-is.
-	useSharedArrayBuffer: false,
+    // If true then the MeshBVH will use SharedArrayBuffer rather than ArrayBuffer when
+    // initializing the BVH buffers. Geometry index data will be created as a
+    // SharedArrayBuffer only if it needs to be created. Otherwise it is used as-is.
+    useSharedArrayBuffer: false,
 
     // Print out warnings encountered during tree construction.
     verbose: true,
