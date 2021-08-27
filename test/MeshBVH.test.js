@@ -240,7 +240,7 @@ describe( 'Serialization', () => {
 
 	} );
 
-	it( 'should create a new index if one does not exist when deserializing', () => {
+	it( 'should create a new index if one does not exist when deserializing.', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
@@ -251,6 +251,22 @@ describe( 'Serialization', () => {
 		MeshBVH.deserialize( serialized, geom );
 
 		expect( geom.index ).toBeTruthy();
+
+	} );
+
+	it( 'should create an index buffer of the appriopriate bit width.', () => {
+
+		const geom1 = new BufferGeometry();
+		geom1.setAttribute( new BufferAttribute( new Float32Array( 70000 ), 3, false ) );
+
+		new MeshBVH( geom1 );
+		expect( geom1.index.array instanceof Uint32Array ).toBe( true );
+
+		const geom2 = new BufferGeometry();
+		geom2.setAttribute( new BufferAttribute( new Float32Array( 60000 ), 3, false ) );
+
+		new MeshBVH( geom2 );
+		expect( geom2.index.array instanceof Uint32Array ).toBe( true );
 
 	} );
 
