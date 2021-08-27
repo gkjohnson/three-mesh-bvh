@@ -214,7 +214,6 @@ Generates a representation of the complete bounds tree and the geometry index bu
 	copyIndexBuffer: true
 
 }
-
 ```
 
 ### static .deserialize
@@ -233,10 +232,8 @@ The `options` object can have the following fields:
 	// data attribute or created if an index does not exist.
 	setIndex: true,
 
-	// Passthrough options for MeshBVH. See MeshBVH docs for more information and defaults.
-	verbose,
-	setBoundingBox,
 }
+```
 
 _NOTE: In order for the bounds tree to be used for casts the geometry index attribute must be replaced by the data in the SeralizedMeshBVH object._
 
@@ -266,6 +263,11 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // If true then the bounding box for the geometry is set once the BVH
     // has been constructed.
     setBoundingBox: true,
+
+	// If true then the MeshBVH will use SharedArrayBuffer rather than ArrayBuffer when
+	// initializing the BVH buffers. Geometry index data will be created as a
+	// SharedArrayBuffer only if it needs to be created. Otherwise it is used as-is.
+	useSharedArrayBuffer: false,
 
     // Print out warnings encountered during tree construction.
     verbose: true,
