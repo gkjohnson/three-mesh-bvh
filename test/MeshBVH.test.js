@@ -254,16 +254,16 @@ describe( 'Serialization', () => {
 
 	} );
 
-	it( 'should create an index buffer of the appriopriate bit width.', () => {
+	it( 'should create an index buffer of the appropriate bit width.', () => {
 
 		const geom1 = new BufferGeometry();
-		geom1.setAttribute( new BufferAttribute( new Float32Array( 70000 ), 3, false ) );
+		geom1.setAttribute( 'position', new BufferAttribute( new Float32Array( 70000 ), 3, false ) );
 
 		new MeshBVH( geom1 );
 		expect( geom1.index.array instanceof Uint32Array ).toBe( true );
 
 		const geom2 = new BufferGeometry();
-		geom2.setAttribute( new BufferAttribute( new Float32Array( 60000 ), 3, false ) );
+		geom2.setAttribute( 'position', new BufferAttribute( new Float32Array( 60000 ), 3, false ) );
 
 		new MeshBVH( geom2 );
 		expect( geom2.index.array instanceof Uint32Array ).toBe( true );
