@@ -740,6 +740,7 @@ Generates a BVH for the given geometry in a WebWorker so it can be created async
 
 ## Gotchas
 
+- When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
 - This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
   be produced and retained as a side effect of the construction.
