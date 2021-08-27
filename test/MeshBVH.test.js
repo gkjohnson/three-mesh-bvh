@@ -203,7 +203,7 @@ describe( 'Serialization', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
-		const serialized = MeshBVH.serialize( bvh, geom );
+		const serialized = MeshBVH.serialize( bvh );
 
 		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
 		expect( deserializedBVH ).toEqual( bvh );
@@ -215,8 +215,8 @@ describe( 'Serialization', () => {
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 
-		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh, geom ).index );
-		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, geom, false ).index );
+		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh ).index );
+		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, { copyIndexBuffer: false } ).index );
 
 	} );
 
@@ -225,15 +225,15 @@ describe( 'Serialization', () => {
 		const geom1 = new SphereBufferGeometry( 1, 10, 10 );
 		const geom2 = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom1 );
-		const serialized = MeshBVH.serialize( bvh, geom1 );
+		const serialized = MeshBVH.serialize( bvh );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( serialized, geom2, false );
+		MeshBVH.deserialize( serialized, geom2, { setIndex: false } );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( serialized, geom2, true );
+		MeshBVH.deserialize( serialized, geom2, { setIndex: true } );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).toEqual( serialized.index );
@@ -244,7 +244,7 @@ describe( 'Serialization', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
-		const serialized = MeshBVH.serialize( bvh, geom );
+		const serialized = MeshBVH.serialize( bvh );
 
 		geom.index = null;
 
