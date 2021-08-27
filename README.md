@@ -1,3 +1,5 @@
+_[Click here](https://github.com/gkjohnson/three-mesh-bvh/tree/v0.4.3) for the latest v0.4.3 release documentation._
+
 # three-mesh-bvh
 
 [![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
