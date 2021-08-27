@@ -5,14 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- `useSharedArrayBuffer` option to `MeshBVH` so it creates `SharedArrayBuffers` rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
+
 ### Fixed
 - `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
+- Case where the BVH root bounds would be incorrect if the geometry bounding box was incorrect / out of date.
 
 ### Changed
 - Changed function signature for `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`, `closestPointToGeometry`, `distanceToGeometry`, `closestPointToPoint`, `distanceToPoint`, `raycast`, and `raycastFirst`. Calling functions with the old signature will log a warning. See documentation for more details.
 - `raycast` and `raycastFirst` now return hits in the local space of the geometry rather than world space when querying the BVH directly to conform with other cast functions. Results still match three.js' original results when using `Raycaster.intersectObject(s)` functions. See documentation for more details.
 - `MeshBVHDebug` class has been removed and the function `getJSONStructure` and `validateBounds` are now exported individually.
 - Small observed performance improvements possibly a result of simplified function arguments.
+- The function signatures and options for `MeshBVH.serialize` and `MeshBVH.deserialize` have changed. See documentation for more new signature.
 
 ## [0.4.3] - 2021-08-20
 ### Fixed

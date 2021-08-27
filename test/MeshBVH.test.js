@@ -203,7 +203,7 @@ describe( 'Serialization', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
-		const serialized = MeshBVH.serialize( bvh, geom );
+		const serialized = MeshBVH.serialize( bvh );
 
 		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
 		expect( deserializedBVH ).toEqual( bvh );
@@ -215,8 +215,8 @@ describe( 'Serialization', () => {
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 
-		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh, geom ).index );
-		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, geom, false ).index );
+		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh ).index );
+		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, { copyIndexBuffer: false } ).index );
 
 	} );
 
@@ -225,32 +225,48 @@ describe( 'Serialization', () => {
 		const geom1 = new SphereBufferGeometry( 1, 10, 10 );
 		const geom2 = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom1 );
-		const serialized = MeshBVH.serialize( bvh, geom1 );
+		const serialized = MeshBVH.serialize( bvh );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( serialized, geom2, false );
+		MeshBVH.deserialize( serialized, geom2, { setIndex: false } );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( serialized, geom2, true );
+		MeshBVH.deserialize( serialized, geom2, { setIndex: true } );
 
 		expect( geom2.index.array ).not.toBe( serialized.index );
 		expect( geom2.index.array ).toEqual( serialized.index );
 
 	} );
 
-	it( 'should create a new index if one does not exist when deserializing', () => {
+	it( 'should create a new index if one does not exist when deserializing.', () => {
 
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
-		const serialized = MeshBVH.serialize( bvh, geom );
+		const serialized = MeshBVH.serialize( bvh );
 
 		geom.index = null;
 
 		MeshBVH.deserialize( serialized, geom );
 
 		expect( geom.index ).toBeTruthy();
+
+	} );
+
+	it( 'should create an index buffer of the appropriate bit width.', () => {
+
+		const geom1 = new BufferGeometry();
+		geom1.setAttribute( 'position', new BufferAttribute( new Float32Array( 70000 * 3 ), 3, false ) );
+
+		new MeshBVH( geom1 );
+		expect( geom1.index.array instanceof Uint32Array ).toBe( true );
+
+		const geom2 = new BufferGeometry();
+		geom2.setAttribute( 'position', new BufferAttribute( new Float32Array( 60000 * 3 ), 3, false ) );
+
+		new MeshBVH( geom2 );
+		expect( geom2.index.array instanceof Uint32Array ).toBe( false );
 
 	} );
 
@@ -325,6 +341,27 @@ describe( 'Options', () => {
 
 			expect( ogHits ).toEqual( bvhHits );
 			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
+
+		} );
+
+	} );
+
+	describe( 'useSharedArrayBuffer', () => {
+
+		it( 'should initialize with shared array buffers if true.', () => {
+
+			const geometry = new TorusBufferGeometry( 5, 5, 40, 10 );
+			let bvh1, bvh2;
+
+			geometry.setIndex( null );
+			bvh1 = new MeshBVH( geometry, { useSharedArrayBuffer: true } );
+			expect( bvh1._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( true );
+			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( true );
+
+			geometry.setIndex( null );
+			bvh2 = new MeshBVH( geometry, { useSharedArrayBuffer: false } );
+			expect( bvh2._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( false );
+			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( false );
 
 		} );
 

@@ -193,12 +193,6 @@ function addRaycaster() {
 
 function updateFromOptions() {
 
-	if ( ! geometry ) {
-
-		return;
-
-	}
-
 	// Update raycaster count
 	while ( rayCasterObjects.length > params.raycasters.count ) {
 
@@ -209,6 +203,12 @@ function updateFromOptions() {
 	while ( rayCasterObjects.length < params.raycasters.count ) {
 
 		addRaycaster();
+
+	}
+
+	if ( ! geometry ) {
+
+		return;
 
 	}
 

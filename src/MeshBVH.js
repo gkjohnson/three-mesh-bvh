@@ -28,26 +28,64 @@ const triangle2 = new SeparatingAxisTriangle();
 
 export default class MeshBVH {
 
-	static serialize( bvh, geometry, copyIndexBuffer = true ) {
+	static serialize( bvh, options = {} ) {
 
+		if ( options.isBufferGeometry ) {
+
+			console.warn( 'MeshBVH.serialize: The arguments for the function have changed. See documentation for new signature.' );
+
+			return MeshBVH.serialize(
+				arguments[ 0 ],
+				{
+					copyIndexBuffer: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
+				}
+			);
+
+		}
+
+		options = {
+			copyIndexBuffer: true,
+			...options,
+		};
+
+		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
 		const indexAttribute = geometry.getIndex();
 		const result = {
 			roots: rootData,
-			index: copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
+			index: options.copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
 		};
 
 		return result;
 
 	}
 
-	static deserialize( data, geometry, setIndex = true ) {
+	static deserialize( data, geometry, options = {} ) {
+
+		if ( typeof options === 'boolean' ) {
+
+			console.warn( 'MeshBVH.deserialize: The arguments for the function have changed. See documentation for new signature.' );
+
+			return MeshBVH.deserialize(
+				arguments[ 0 ],
+				arguments[ 1 ],
+				{
+					setIndex: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
+				}
+			);
+
+		}
+
+		options = {
+			setIndex: true,
+			...options,
+		};
 
 		const { index, roots } = data;
-		const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+		const bvh = new MeshBVH( geometry, { ...options, [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
 
-		if ( setIndex ) {
+		if ( options.setIndex ) {
 
 			const indexAttribute = geometry.getIndex();
 			if ( indexAttribute === null ) {
@@ -87,7 +125,7 @@ export default class MeshBVH {
 			maxDepth: 40,
 			maxLeafTris: 10,
 			verbose: true,
-
+			useSharedArrayBuffer: false,
 			setBoundingBox: true,
 
 			// undocumented options
@@ -96,7 +134,12 @@ export default class MeshBVH {
 			[ SKIP_GENERATION ]: false
 
 		}, options );
-		options.strategy = Math.max( 0, Math.min( 2, options.strategy ) );
+
+		if ( options.useSharedArrayBuffer && typeof SharedArrayBuffer === 'undefined' ) {
+
+			throw new Error( 'MeshBVH: SharedArrayBuffer is not available.' );
+
+		}
 
 		this._roots = null;
 		if ( ! options[ SKIP_GENERATION ] ) {

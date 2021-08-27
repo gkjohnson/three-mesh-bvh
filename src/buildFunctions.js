@@ -1,17 +1,28 @@
 import { BufferAttribute } from 'three';
 import MeshBVHNode from './MeshBVHNode.js';
-import { boxToArray, getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from './Utils/ArrayBoxUtilities.js';
+import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from './Utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
 const FLOAT32_EPSILON = Math.pow( 2, - 24 );
 
-function ensureIndex( geo ) {
+function ensureIndex( geo, options ) {
 
 	if ( ! geo.index ) {
 
 		const vertexCount = geo.attributes.position.count;
-		const index = new ( vertexCount > 65535 ? Uint32Array : Uint16Array )( vertexCount );
+		const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
+		let index;
+		if ( vertexCount > 65535 ) {
+
+			index = new Uint32Array( new BufferConstructor( 4 * vertexCount ) );
+
+		} else {
+
+			index = new Uint16Array( new BufferConstructor( 2 * vertexCount ) );
+
+		}
+
 		geo.setIndex( new BufferAttribute( index, 1 ) );
 
 		for ( let i = 0; i < vertexCount; i ++ ) {
@@ -442,7 +453,7 @@ function getAverage( triangleBounds, offset, count, axis ) {
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
-function computeTriangleBounds( geo ) {
+function computeTriangleBounds( geo, fullBounds ) {
 
 	const posAttr = geo.attributes.position;
 	const posArr = posAttr.array;
@@ -488,6 +499,9 @@ function computeTriangleBounds( geo ) {
 			const el2 = el * 2;
 			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
 			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
+
+			if ( min < fullBounds[ el ] ) fullBounds[ el ] = min;
+			if ( max > fullBounds[ el + 3 ] ) fullBounds[ el + 3 ] = max;
 
 		}
 
@@ -572,10 +586,14 @@ export function buildTree( geo, options ) {
 
 	}
 
-	ensureIndex( geo );
+	ensureIndex( geo, options );
 
+	// Compute the full bounds of the geometry at the same time as triangle bounds because
+	// we'll need it for the root bounds in the case with no groups and it should be fast here.
+	// We can't use the geometrying bounding box if it's available because it may be out of date.
+	const fullBounds = new Float32Array( 6 );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geo );
+	const triangleBounds = computeTriangleBounds( geo, fullBounds );
 	const indexArray = geo.index.array;
 	const maxDepth = options.maxDepth;
 	const verbose = options.verbose;
@@ -588,20 +606,10 @@ export function buildTree( geo, options ) {
 
 	if ( ranges.length === 1 ) {
 
-		const root = new MeshBVHNode();
 		const range = ranges[ 0 ];
-
-		if ( geo.boundingBox != null ) {
-
-			root.boundingData = boxToArray( geo.boundingBox );
-			getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
-
-		} else {
-
-			root.boundingData = new Float32Array( 6 );
-			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
-
-		}
+		const root = new MeshBVHNode();
+		root.boundingData = fullBounds;
+		getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
 
 		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
 		roots.push( root );
@@ -640,12 +648,13 @@ export function buildPackedTree( geo, options ) {
 	let uint32Array;
 	let uint16Array;
 	const packedRoots = [];
+	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 	for ( let i = 0; i < roots.length; i ++ ) {
 
 		const root = roots[ i ];
 		let nodeCount = countNodes( root );
 
-		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+		const buffer = new BufferConstructor( BYTES_PER_NODE * nodeCount );
 		float32Array = new Float32Array( buffer );
 		uint32Array = new Uint32Array( buffer );
 		uint16Array = new Uint16Array( buffer );

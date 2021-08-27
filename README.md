@@ -1,3 +1,5 @@
+_[Click here](https://github.com/gkjohnson/three-mesh-bvh/tree/v0.4.3) for the latest v0.4.3 release documentation._
+
 # three-mesh-bvh
 
 [![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
@@ -126,7 +128,7 @@ const intersects = bvh.intersectsSphere( sphere );
 ```js
 const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
 const bvh = new MeshBVH( geometry );
-const serialized = MeshBVH.serialize( bvh, geometry );
+const serialized = MeshBVH.serialize( bvh );
 
 // ...
 
@@ -197,26 +199,43 @@ Note that all query functions expect arguments in local space of the mesh and re
 ### static .serialize
 
 ```js
-static serialize( bvh : MeshBVH, geometry : BufferGeometry, copyIndexBuffer = true : Boolean ) : SerializedBVH
+static serialize( bvh : MeshBVH, options : Object = null ) : SerializedBVH
 ```
 
-Generates a representation of the complete bounds tree and the geometry index buffer which can be used to recreate a bounds tree using the [deserialize](#static-deserialize) function. The `serialize` and `deserialize` functions can be used to generate a MeshBVH asynchronously in a background web worker to prevent the main thread from stuttering.
+Generates a representation of the complete bounds tree and the geometry index buffer which can be used to recreate a bounds tree using the [deserialize](#static-deserialize) function. The `serialize` and `deserialize` functions can be used to generate a MeshBVH asynchronously in a background web worker to prevent the main thread from stuttering. The BVH roots buffer stored in the serialized representation are the same as the ones used by the original BVH so they should not be modified. If `SharedArrayBuffers` are used then the same BVH memory can be used for multiple BVH in multiple WebWorkers.
 
-`bvh` is the MeshBVH to be serialized and `geometry` is the bufferGeometry used to generate and raycast against using the `bvh`.
+`bvh` is the MeshBVH to be serialized. The `options` object can have the following fields:
 
-If `copyIndexBuffer` is true then a copy of the `geometry.index.array` is made which is slower but useful is the geometry index is intended to be modified.
+```js
+{
+
+	// if true then a copy of the `geometry.index.array` is made which is slower but useful
+	// if the geometry index is intended to be modified.
+	copyIndexBuffer: true
+
+}
+```
 
 ### static .deserialize
 
 ```js
-static deserialize( data : SerializedBVH, geometry : BufferGeometry, setIndex = true : Boolean ) : MeshBVH
+static deserialize( data : SerializedBVH, geometry : BufferGeometry, options : Object = null ) : MeshBVH
 ```
 
-Returns a new MeshBVH instance from the serialized data. `geometry` is the geometry used to generate the original bvh `data` was derived from. If `setIndex` is true then the buffer for the `geometry.index` attribute is set from the serialized data attribute or created if an index does not exist.
+Returns a new MeshBVH instance from the serialized data. `geometry` is the geometry used to generate the original BVH `data` was derived from. The root buffers stored in `data` are set directly on the new BVH so the memory is shared.
+
+The `options` object can have the following fields:
+
+```js
+{
+	// If true then the buffer for the `geometry.index` attribute is set from the serialized
+	// data attribute or created if an index does not exist.
+	setIndex: true,
+
+}
+```
 
 _NOTE: In order for the bounds tree to be used for casts the geometry index attribute must be replaced by the data in the SeralizedMeshBVH object._
-
-_NOTE: The returned MeshBVH is a fully generated, buffer packed BVH instance to improve memory footprint and uses the same buffers passed in on the `data.root` property._
 
 ### .constructor
 
@@ -244,6 +263,11 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // If true then the bounding box for the geometry is set once the BVH
     // has been constructed.
     setBoundingBox: true,
+
+    // If true then the MeshBVH will use SharedArrayBuffer rather than ArrayBuffer when
+    // initializing the BVH buffers. Geometry index data will be created as a
+    // SharedArrayBuffer only if it needs to be created. Otherwise it is used as-is.
+    useSharedArrayBuffer: false,
 
     // Print out warnings encountered during tree construction.
     verbose: true,
@@ -716,11 +740,12 @@ Generates a BVH for the given geometry in a WebWorker so it can be created async
 
 ## Gotchas
 
+- When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
 - This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
   be produced and retained as a side effect of the construction.
-- The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used.
-- If the geometry is changed then a new bounds tree will need to be generated.
+- The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.
+- If the geometry is changed then a new bounds tree will need to be generated or refit.
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
-- A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in poorer raycast performance on geometry with lots of groups.
+- A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in less than optimal raycast performance on geometry with lots of groups.
 - Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center so bounds tightly contain the geometry as much as possible.
