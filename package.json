@@ -7,7 +7,7 @@
   "type": "module",
   "sideEffects": false,
   "scripts": {
-    "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/dev-bundle/ --public-url . --no-cache\" \"rollup -w -c\" \"static-server\"",
+    "start": "concurrently \"parcel watch ./example/*.html --out-dir ./example/dev-bundle/ --public-url . --no-cache\" \"static-server\"",
     "build": "rollup -c",
     "build-examples": "parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",

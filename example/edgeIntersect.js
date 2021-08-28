@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
+import { OrientedBox } from '../src/math/OrientedBox.js';
+import { setTriangle } from '../src/utils/TriangleUtilities.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -13,6 +16,8 @@ const params = {
 	position: new THREE.Vector3(),
 	rotation: new THREE.Euler(),
 	scale: new THREE.Vector3( 1, 1, 1 ),
+	speed: 1,
+	visibleMeshes: false,
 };
 
 let stats;
@@ -25,13 +30,14 @@ render();
 
 function init() {
 
-	const bgColor = 0x263238 / 2;
+	const bgColor = 0x66093a;
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -46,13 +52,14 @@ function init() {
 	// geometry setup
 	const radius = 1;
 	const tube = 0.4;
-	const tubularSegments = 40;
-	const radialSegments = 10;
+	const tubularSegments = 100;
+	const radialSegments = 40;
 
 	const geometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
 	const material = new THREE.MeshPhongMaterial( {
 		color: 0xffffff,
 		side: THREE.DoubleSide,
+		shininess: 0.01,
 		polygonOffset: true,
 		polygonOffsetFactor: 1,
 		polygonOffsetUnits: 1,
@@ -67,7 +74,7 @@ function init() {
 	// 	new THREE.Vector3( 0, 1, 0 ),
 	// ] );
 	// geometry.computeVertexNormals();
-	geometry.computeBoundsTree();
+	geometry.computeBoundsTree( { maxLeafTris: 1 } );
 
 	mesh1 = new THREE.Mesh( geometry, material );
 	mesh2 = new THREE.Mesh( geometry, material );
@@ -75,10 +82,10 @@ function init() {
 
 	const lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setFromPoints( [ new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, - 1, 0 ) ] );
-	line = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial( { color: 0xff0000 } ) );
+	line = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial( { color: 0xE91E63 } ) );
 
 	bgLine = line.clone();
-	bgLine.material = new THREE.LineBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0.25, depthTest: false } );
+	bgLine.material = new THREE.LineBasicMaterial( { color: 0xE91E63, transparent: true, opacity: 0.25, depthTest: false } );
 
 	lineGroup = new THREE.Group();
 	lineGroup.add( line, bgLine );
@@ -86,7 +93,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 3, 3, 3 );
+	camera.position.set( 2, 2, 2 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -94,8 +101,11 @@ function init() {
 	scene.add( transformControls );
 
 	group = new THREE.Group();
+	group.position.y = 1.1;
+	mesh1.position.y = - 1.1;
 	transformControls.attach( group );
 	scene.add( group );
+	transformControls.visible = false;
 
 	orbitControls = new OrbitControls( camera, renderer.domElement );
 
@@ -104,7 +114,11 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	const gui = new dat.GUI();
+	gui.add( params, 'speed', 0, 10, 0.001 );
+	gui.add( params, 'visibleMeshes' );
+	gui.add( transformControls, 'visible' ).name( 'visibleControls' );
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
+
 
 	const posFolder = gui.addFolder( 'position' );
 	posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
@@ -188,15 +202,14 @@ function render() {
 	const delta = window.performance.now() - lastTime;
 	lastTime = window.performance.now();
 
-	// targetMesh.rotation.y += params.speed * delta * 0.001;
-	// targetMesh.updateMatrixWorld();
-
-	// mesh2.position.copy( group.position );
+	mesh2.position.copy( group.position );
 	// mesh2.rotation.copy( group.rotation );
 	// mesh2.scale.copy( group.scale );
-	mesh2.rotation.x += delta * 0.0001;
-	mesh2.rotation.y += delta * 2 * 0.0001;
-	mesh2.rotation.z += delta * 3 * 0.0001;
+
+	mesh2.rotation.x += delta * 0.0001 * params.speed;
+	mesh2.rotation.y += delta * 2 * 0.0001 * params.speed;
+	mesh2.rotation.z += delta * 3 * 0.0001 * params.speed;
+
 
 	mesh1.updateMatrixWorld();
 	mesh2.updateMatrixWorld();
@@ -205,47 +218,76 @@ function render() {
 		.copy( mesh1.matrixWorld )
 		.invert()
 		.multiply( mesh2.matrixWorld );
-	// const matrix1to2 = matrix2to1.clone().invert();
+	const matrix1to2 = matrix2to1.clone().invert();
+
+	const orientedBounds2 = new OrientedBox();
+	mesh2.geometry.boundsTree.getBoundingBox( orientedBounds2 );
+	orientedBounds2.matrix.copy( matrix2to1 );
+	orientedBounds2.needsUpdate = true;
+
+	const orientedBounds1 = new OrientedBox();
+	orientedBounds1.matrix.copy( matrix1to2 );
+
+	const triangle1 = new SeparatingAxisTriangle();
+	const triangle2 = new SeparatingAxisTriangle();
+	const edge = new THREE.Line3();
 
 	const results = [];
 	mesh1.geometry.boundsTree.shapecast( {
 
-		intersectsBounds: ( /* box */ ) => {
+		intersectsBounds: box => {
 
-			return true;
+			return orientedBounds2.intersectsBox( box );
 
 		},
 
-		intersectsTriangle: tri => {
+		intersectsRange: ( offset1, count1, contained, depth, nodeIndex, box ) => {
+
+			orientedBounds1.min.copy( box.min );
+			orientedBounds1.max.copy( box.max );
+			orientedBounds1.needsUpdate = true;
 
 			mesh2.geometry.boundsTree.shapecast( {
 
-				intersectsBounds: ( /* box2 */ ) => {
+				intersectsBounds: box2 => {
 
-					return true;
+					return orientedBounds1.intersectsBox( box2 );
 
 				},
 
-				intersectsTriangle: tri2 => {
+				intersectsRange: ( offset2, count2 ) => {
 
-					const edge = new THREE.Line3();
-					tri2.a.applyMatrix4( matrix2to1 );
-					tri2.b.applyMatrix4( matrix2to1 );
-					tri2.c.applyMatrix4( matrix2to1 );
+					const geometry1 = mesh1.geometry;
+					const geometry2 = mesh2.geometry;
 
-					tri2.needsUpdate = true;
+					for ( let i2 = offset2 * 3, l2 = ( offset2 + count2 ) * 3; i2 < l2; i2 += 3 ) {
 
-					if ( tri.intersectsTriangle( tri2, edge ) ) {
+						setTriangle( triangle2, i2, geometry2.index, geometry2.attributes.position );
+						triangle2.a.applyMatrix4( matrix2to1 );
+						triangle2.b.applyMatrix4( matrix2to1 );
+						triangle2.c.applyMatrix4( matrix2to1 );
+						triangle2.needsUpdate = true;
 
-						const { start, end } = edge;
-						results.push(
-							start.x,
-							start.y,
-							start.z,
-							end.x,
-							end.y,
-							end.z,
-						);
+						for ( let i1 = offset1 * 3, l1 = ( offset1 + count1 ) * 3; i1 < l1; i1 += 3 ) {
+
+							setTriangle( triangle1, i1, geometry1.index, geometry1.attributes.position );
+							triangle1.needsUpdate = true;
+
+							if ( triangle1.intersectsTriangle( triangle2, edge ) ) {
+
+								const { start, end } = edge;
+								results.push(
+									start.x,
+									start.y,
+									start.z,
+									end.x,
+									end.y,
+									end.z,
+								);
+
+							}
+
+						}
 
 					}
 
@@ -277,19 +319,20 @@ function render() {
 		lineGroup.position.copy( mesh1.position );
 		lineGroup.rotation.copy( mesh1.rotation );
 		lineGroup.scale.copy( mesh1.scale );
-		line.visible = true;
+		lineGroup.visible = true;
 
 	} else {
 
-		line.visible = false;
+		lineGroup.visible = false;
 
 	}
 
+	mesh1.visible = params.visibleMeshes;
+	mesh2.visible = params.visibleMeshes;
 	renderer.render( scene, camera );
 
 	stats.begin();
 	stats.end();
-
 
 }
 
