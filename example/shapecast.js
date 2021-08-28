@@ -3,9 +3,7 @@ import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
-import "@babel/polyfill";
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

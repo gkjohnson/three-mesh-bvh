@@ -1,8 +1,10 @@
 import Stats from 'stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
+import {
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
+	CENTER, SAH, AVERAGE, MeshBVHVisualizer,
+} from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

@@ -11,7 +11,10 @@ import {
 	BufferAttribute,
 	Vector3,
 } from 'three';
-import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes, validateBounds } from '../src/index.js';
+import {
+	MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
+	getBVHExtremes, validateBounds,
+} from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
