@@ -208,88 +208,99 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			const plane1 = this.plane;
 			const plane2 = other.plane;
 
-			// find the edge that intersects the other triangle plane
-			const points1 = this.points;
-			let found1 = false;
-			for ( let i = 0; i < 3; i ++ ) {
+			if ( Math.abs( plane1.normal.dot( plane2.normal ) ) > 1.0 - 1e-10 ) {
 
-				const p1 = points1[ i ];
-				const p2 = points1[ ( i + 1 ) % 3 ];
-
-				edge.start.copy( p1 );
-				edge.end.copy( p2 );
-
-				if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
-
-					if ( found1 ) {
-
-						break;
-
-					}
-
-					found1 = true;
-
-				}
-
-			}
-
-			// find the other triangles edge that intersects this plane
-			const points2 = other.points;
-			let found2 = false;
-			for ( let i = 0; i < 3; i ++ ) {
-
-				const p1 = points2[ i ];
-				const p2 = points2[ ( i + 1 ) % 3 ];
-
-				edge.start.copy( p1 );
-				edge.end.copy( p2 );
-
-				if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
-
-					if ( found2 ) {
-
-						break;
-
-					}
-
-					found2 = true;
-
-				}
-
-			}
-
-			// find swap the second edge so both lines are running the same direction
-			edge1.delta( dir1 );
-			edge2.delta( dir2 );
-
-
-			if ( dir1.dot( dir2 ) < 0 ) {
-
-				let tmp = edge2.start;
-				edge2.start = edge2.end;
-				edge2.end = tmp;
-
-			}
-
-			tempDir.subVectors( edge1.start, edge2.start );
-			if ( tempDir.dot( dir1 ) > 0 ) {
-
-				target.start.copy( edge1.start );
+				// TODO find two points that intersect on the edges and make that the result
+				console.log( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+				target.start.set( 0, 0, 0 );
+				target.end.set( 0, 0, 0 );
 
 			} else {
 
-				target.start.copy( edge2.start );
+				// find the edge that intersects the other triangle plane
+				const points1 = this.points;
+				let found1 = false;
+				for ( let i = 0; i < 3; i ++ ) {
 
-			}
+					const p1 = points1[ i ];
+					const p2 = points1[ ( i + 1 ) % 3 ];
 
-			tempDir.subVectors( edge1.end, edge2.end );
-			if ( tempDir.dot( dir2 ) < 0 ) {
+					edge.start.copy( p1 );
+					edge.end.copy( p2 );
 
-				target.end.copy( edge1.end );
+					if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
 
-			} else {
+						if ( found1 ) {
 
-				target.end.copy( edge2.end );
+							break;
+
+						}
+
+						found1 = true;
+
+					}
+
+				}
+
+				// find the other triangles edge that intersects this plane
+				const points2 = other.points;
+				let found2 = false;
+				for ( let i = 0; i < 3; i ++ ) {
+
+					const p1 = points2[ i ];
+					const p2 = points2[ ( i + 1 ) % 3 ];
+
+					edge.start.copy( p1 );
+					edge.end.copy( p2 );
+
+					if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
+
+						if ( found2 ) {
+
+							break;
+
+						}
+
+						found2 = true;
+
+					}
+
+				}
+
+				// find swap the second edge so both lines are running the same direction
+				edge1.delta( dir1 );
+				edge2.delta( dir2 );
+
+
+				if ( dir1.dot( dir2 ) < 0 ) {
+
+					let tmp = edge2.start;
+					edge2.start = edge2.end;
+					edge2.end = tmp;
+
+				}
+
+				tempDir.subVectors( edge1.start, edge2.start );
+				if ( tempDir.dot( dir1 ) > 0 ) {
+
+					target.start.copy( edge1.start );
+
+				} else {
+
+					target.start.copy( edge2.start );
+
+				}
+
+				tempDir.subVectors( edge1.end, edge2.end );
+				if ( tempDir.dot( dir2 ) < 0 ) {
+
+					target.end.copy( edge1.end );
+
+				} else {
+
+					target.end.copy( edge2.end );
+
+				}
 
 			}
 
