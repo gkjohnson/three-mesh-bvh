@@ -24,9 +24,9 @@ function OFFSET( n32, uint32Array ) {
 
 }
 
-function COUNT( n32, uint16Array ) {
+function COUNT( n16, uint16Array ) {
 
-	return uint16Array[ n32 + 14 ];
+	return uint16Array[ n16 + 14 ];
 
 }
 
@@ -166,9 +166,6 @@ export const shapecast = ( function () {
 	let _box1, _box2;
 	const boxStack = [];
 	const boxPool = new PrimitivePool( () => new Box3() );
-
-	// const _box1 = new Box3();
-	// const _box2 = new Box3();
 
 	return function shapecast( ...args ) {
 
@@ -371,431 +368,176 @@ export const shapecast = ( function () {
 
 export const bvhcast = ( function () {
 
-	const _boxLeft1 = new Box3();
-	const _boxRight1 = new Box3();
-	const _boxLeft2 = new Box3();
-	const _boxRight2 = new Box3();
+	const _child1 = new Box3();
+	const _child2 = new Box3();
+	const _oriented1 = new OrientedBox();
+	const _oriented2 = new OrientedBox();
+
 	const _box1 = new Box3();
-	const _box2 = new Box3();
+	const _box2 = new OrientedBox();
 
-	let _sortArrIndex = 0;
-	const _sortArrPool = [];
-	const sortFunc = ( a, b ) => {
+	function boxVolume( box ) {
 
-		return a.score - b.score;
+		const { min, max } = box;
+		const x = max.x - min.x;
+		const y = max.y - min.y;
+		const z = max.z - min.z;
 
-	};
+		return x * y * z;
+
+	}
 
 	return function bvhcast(
 		// current parent node status
 		node1Index32,
 		node2Index32,
-
-		// function taking two bounds and otherwise taking the same arguments as the shapecast variant
-		// returning what kind of intersection if any the two bounds have.
-		intersectsBoundsFunc,
+		matrix2to1,
 
 		// function taking the triangle ranges of both intersecting leaf bounds as well as the bounds themselves.
 		// returns the same types of values the the shapecast variant can.
 		intersectsRangeFunc,
 
-		// function that takes two bounds and return a score indicating the run order (lowest first)
-		nodeScoreFunc = null,
-
 		// node index and depth identifiers
 		node1IndexByteOffset = 0,
-		depth1 = 0,
-
 		node2IndexByteOffset = 0,
+
+		depth1 = 0,
 		depth2 = 0,
 	) {
 
 		const float32Array1 = _float32Array, uint16Array1 = _uint16Array, uint32Array1 = _uint32Array;
 		const float32Array2 = _float32Array2, uint16Array2 = _uint16Array2, uint32Array2 = _uint32Array2;
 
-		const isLeaf1 = ( uint16Array1[ node1Index32 * 2 + 15 ] === 0xFFFF );
-		const isLeaf2 = ( uint16Array2[ node2Index32 * 2 + 15 ] === 0xFFFF );
+		const isLeaf1 = IS_LEAF( node1Index32 * 2, uint16Array1 );
+		const isLeaf2 = IS_LEAF( node2Index32 * 2, uint16Array2 );
 
 		if ( isLeaf1 && isLeaf2 ) {
 
-			// TODO: we know that children are leaves before calling this function again meaning we
-			// could just check triangle range callback in the previous call (below two conditions)
-			// and not have to read bounding data again.
-
 			// intersect triangles
-			arrayToBox( node1Index32, float32Array1, _box1 );
-			arrayToBox( node2Index32, float32Array2, _box2 );
+			arrayToBox( BOUNDING_DATA_INDEX( node1Index32 ), float32Array1, _box1 );
+			arrayToBox( BOUNDING_DATA_INDEX( node2Index32 ), float32Array2, _box2 );
 			return intersectsRangeFunc(
-				uint32Array1[ node1Index32 + 6 ], uint16Array1[ node1Index32 + 14 ],
-				uint32Array2[ node2Index32 + 6 ], uint16Array2[ node2Index32 + 14 ],
+				OFFSET( node1Index32, uint32Array1 ), COUNT( node1Index32 * 2, uint16Array1 ),
+				OFFSET( node2Index32, uint32Array2 ), COUNT( node2Index32 * 2, uint16Array2 ),
 				depth1, node1IndexByteOffset + node1Index32,
 				depth2, node2IndexByteOffset + node2Index32,
 			);
 
-		} else if ( isLeaf1 || isLeaf2 ) {
-
-			// Assume that bvh 1 node is the leaf first
-			let leafNodeIndex32 = node1Index32;
-			let leafUint16Array = uint16Array1;
-			let leafUint32Array = uint32Array1;
-			let leafFloat32Array = float32Array1;
-			let leafByteOffset = node1IndexByteOffset;
-			let leafDepth = depth1;
-
-			let otherNodeIndex32 = node2Index32;
-			let otherUint16Array = uint16Array2;
-			let otherUint32Array = uint32Array2;
-			let otherFloat32Array = float32Array2;
-			let otherByteOffset = node2IndexByteOffset;
-			let otherDepth = depth2;
-
-			// if not then flip the variables so bvh 2 node is the leaf and track that its been flipped
-			// for upcoming function calls.
-			let flipped = false;
-			if ( isLeaf2 ) {
-
-				[ leafNodeIndex32, otherNodeIndex32 ] = [ otherNodeIndex32, leafNodeIndex32 ];
-				[ leafUint16Array, otherUint16Array ] = [ otherUint16Array, leafUint16Array ];
-				[ leafUint32Array, otherUint32Array ] = [ otherUint32Array, leafUint32Array ];
-				[ leafFloat32Array, otherFloat32Array ] = [ otherFloat32Array, leafFloat32Array ];
-				[ leafByteOffset, otherByteOffset ] = [ otherByteOffset, leafByteOffset ];
-				[ leafDepth, otherDepth ] = [ otherDepth, leafDepth ];
-				flipped = true;
-
-			}
-
-			// reference boxes for intuitive naming
-			const leafBox = _box1;
-			const otherBox = _box2;
-			const otherBoxLeft = _boxLeft2;
-			const otherBoxRight = _boxRight2;
-
-			const otherLeft = otherNodeIndex32 + 8;
-			const otherRight = otherUint32Array[ otherNodeIndex32 + 6 ];
-			arrayToBox( leafNodeIndex32, leafFloat32Array, leafBox );
-			arrayToBox( otherLeft, otherFloat32Array, otherBoxLeft );
-			arrayToBox( otherRight, otherFloat32Array, otherBoxRight );
-
-			// determine the order to check the child intersections in if there's a node score function.
-			let otherChild1 = otherLeft;
-			let otherChild2 = otherRight;
-			let score1 = 0;
-			let score2 = 0;
-			if ( nodeScoreFunc ) {
-
-				let scoreLeft, scoreRight;
-				if ( flipped ) {
-
-					scoreLeft = nodeScoreFunc( otherBoxLeft, leafBox );
-					scoreRight = nodeScoreFunc( otherBoxRight, leafBox );
-
-				} else {
-
-					// not flipped
-					// Leaf is assumed to be the first node which should be passed in first
-					scoreLeft = nodeScoreFunc( leafBox, otherBoxLeft );
-					scoreRight = nodeScoreFunc( leafBox, otherBoxRight );
-
-				}
-
-				// if the right child scored lower than the left child, then traverse it first.
-				if ( scoreRight < scoreLeft ) {
-
-					otherChild1 = otherRight;
-					otherChild2 = otherLeft;
-					score1 = scoreRight;
-					score2 = scoreLeft;
-
-				} else {
-
-					otherChild1 = otherLeft;
-					otherChild2 = otherRight;
-					score1 = scoreLeft;
-					score2 = scoreRight;
-
-				}
-
-			}
-
-			// Check the first bounds
-			arrayToBox( leafNodeIndex32, float32Array1, leafBox );
-			arrayToBox( otherChild1, float32Array2, otherBox );
-
-			const c1IsLeaf = ( otherUint16Array[ otherChild1 * 2 + 15 ] === 0xFFFF );
-			let c1Intersection, c1StopTraversal;
-			if ( flipped ) {
-
-				c1Intersection = intersectsBoundsFunc(
-					otherBox, leafBox, score1,
-
-					// node 2 info
-					c1IsLeaf, otherDepth + 1, otherByteOffset + otherChild1,
-
-					// node 1 info
-					true, leafDepth, leafByteOffset + leafNodeIndex32,
-
-				);
-
-			} else {
-
-				// not flipped
-				c1Intersection = intersectsBoundsFunc(
-					leafBox, otherBox, score1,
-
-					// node 1 info
-					true, leafDepth, leafByteOffset + leafNodeIndex32,
-
-					// node 2 info
-					c1IsLeaf, otherDepth + 1, otherByteOffset + otherChild1,
-
-				);
-
-			}
-
-			if ( flipped ) {
-
-				c1StopTraversal = c1Intersection && bvhcast(
-					// node indices
-					otherChild1, leafNodeIndex32,
-
-					// functions
-					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
-
-					// depth and offsets
-					otherByteOffset, otherDepth + 1,
-					leafByteOffset, leafDepth,
-				);
-
-			} else {
-
-				c1StopTraversal = c1Intersection && bvhcast(
-					// node indices
-					leafNodeIndex32, otherChild1,
-
-					// functions
-					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
-
-					// depth and offsets
-					leafByteOffset, leafDepth,
-					otherByteOffset, otherDepth + 1,
-				);
-
-			}
-
-			if ( c1StopTraversal ) {
-
-				return true;
-
-			}
-
-			// Check the second bounds
-			arrayToBox( leafNodeIndex32, leafFloat32Array, leafBox );
-			arrayToBox( otherChild2, otherFloat32Array, otherBox );
-
-			const c2IsLeaf = ( otherUint16Array[ otherChild2 * 2 + 15 ] === 0xFFFF );
-			let c2Intersection, c2StopTraversal;
-			if ( flipped ) {
-
-				c2Intersection = intersectsBoundsFunc(
-					otherBox, leafBox, score2,
-
-					// node 1 info
-					true, leafDepth, leafByteOffset + leafNodeIndex32,
-
-					// node 2 info
-					c2IsLeaf, otherDepth + 1, otherByteOffset + otherChild2,
-				);
-
-			} else {
-
-				c2Intersection = intersectsBoundsFunc(
-					leafBox, otherBox, score2,
-
-					// node 2 info
-					c2IsLeaf, otherDepth + 1, otherByteOffset + otherChild2,
-
-					// node 1 info
-					true, leafDepth, leafByteOffset + leafNodeIndex32,
-				);
-
-			}
-
-			if ( flipped ) {
-
-				c2StopTraversal = c2Intersection && bvhcast(
-					// node indices
-					otherChild2, leafNodeIndex32,
-
-					// functions
-					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
-
-					// depth and offsets
-					otherByteOffset, otherDepth + 1,
-					leafByteOffset, leafDepth,
-				);
-
-			} else {
-
-				c2StopTraversal = c2Intersection && bvhcast(
-					// node indices
-					leafNodeIndex32, otherChild2,
-
-					// functions
-					intersectsBoundsFunc, intersectsRangeFunc, nodeScoreFunc,
-
-					// depth and offsets
-					leafByteOffset, leafDepth,
-					otherByteOffset, otherDepth + 1,
-				);
-
-			}
-
-			if ( c2StopTraversal ) {
-
-				return true;
-
-			}
-
 		} else {
 
-			// TODO: consider a stack of these so we don't create a new one at each traversal
-			let sortArr;
-			if ( _sortArrIndex >= _sortArrPool.length ) {
+			// if one of the nodes is already a leaf then split it
+			let splitSide = 0;
+			if ( isLeaf1 ) {
 
-				sortArr = [ null, null, null, null ].map( () => {
-
-					return {
-						score: 0,
-						n1: - 1,
-						n2: - 1,
-						b1: null,
-						b2: null,
-					};
-
-				} );
-				_sortArrPool.push( sortArr );
-				_sortArrIndex ++;
-
-			} else {
-
-				sortArr = _sortArrPool[ _sortArrIndex ];
-				_sortArrIndex ++;
+				splitSide = 1;
 
 			}
 
-			const child1Left = node1Index32 + 8;
-			const child1Right = uint32Array1[ node1Index32 + 6 ];
-			const child2Left = node2Index32 + 8;
-			const child2Right = uint32Array2[ node2Index32 + 6 ];
+			if ( isLeaf2 ) {
 
-			// get bounds of all children
-			arrayToBox( child1Left, float32Array1, _boxLeft1 );
-			arrayToBox( child1Right, float32Array1, _boxRight1 );
-			arrayToBox( child2Left, float32Array2, _boxLeft2 );
-			arrayToBox( child2Right, float32Array2, _boxRight2 );
-
-			// if we have a score function then fill up the sort array
-			if ( nodeScoreFunc ) {
-
-				let info;
-
-				// left vs left
-				info = sortArr[ 0 ];
-				info.score = nodeScoreFunc( _boxLeft1, _boxLeft2 );
-				info.n1 = child1Left;
-				info.n2 = child2Left;
-
-				// left vs right
-				info = sortArr[ 1 ];
-				info.score = nodeScoreFunc( _boxLeft1, _boxRight2 );
-				info.n1 = child1Left;
-				info.n2 = child2Right;
-
-				// right vs left
-				info = sortArr[ 2 ];
-				info.score = nodeScoreFunc( _boxRight1, _boxLeft2 );
-				info.n1 = child1Right;
-				info.n2 = child2Left;
-
-				// right vs right
-				info = sortArr[ 3 ];
-				info.score = nodeScoreFunc( _boxRight1, _boxRight2 );
-				info.n1 = child1Right;
-				info.n2 = child2Right;
-
-				// sort scores lowest first
-				sortArr.sort( sortFunc );
-
-			} else {
-
-				let info;
-
-				// left vs left
-				info = sortArr[ 0 ];
-				info.score = 0;
-				info.n1 = child1Left;
-				info.n2 = child2Left;
-
-				// left vs right
-				info = sortArr[ 1 ];
-				info.score = 0;
-				info.n1 = child1Left;
-				info.n2 = child2Right;
-
-				// right vs left
-				info = sortArr[ 2 ];
-				info.score = 0;
-				info.n1 = child1Right;
-				info.n2 = child2Left;
-
-				// right vs right
-				info = sortArr[ 3 ];
-				info.score = 0;
-				info.n1 = child1Right;
-				info.n2 = child2Right;
+				splitSide = 2;
 
 			}
 
-			for ( let i = 0; i < 4; i ++ ) {
+			// if neither element is a leaf then split the one that has a higher volume
+			arrayToBox( node1Index32, uint32Array1, _box1 );
+			arrayToBox( node2Index32, uint32Array2, _box2 );
 
-				const { n1, n2, score } = sortArr[ i ];
+			if ( splitSide === 0 ) {
 
-				arrayToBox( n1, float32Array1, _box1 );
-				arrayToBox( n2, float32Array2, _box2 );
-				const leaf1 = ( uint16Array1[ n1 * 2 + 15 ] === 0xFFFF );
-				const leaf2 = ( uint16Array2[ n2 * 2 + 15 ] === 0xFFFF );
-				const intersection = intersectsBoundsFunc(
-					_box1, _box2, score,
+				const volume1 = boxVolume( _box1 );
+				const volume2 = boxVolume( _box2 );
+				splitSide = volume1 > volume2 ? 1 : 2;
 
-					leaf1, depth1 + 1, node1IndexByteOffset + n1,
+			}
 
-					leaf2, depth2 + 1, node2IndexByteOffset + n2,
-				);
+			if ( splitSide === 1 ) {
 
-				let stopTraversal = false;
-				if ( intersection ) {
+				// split node 1
+				const c1 = LEFT_NODE( node1Index32 );
+				const c2 = RIGHT_NODE( node1Index32, uint32Array1 );
 
-					stopTraversal = bvhcast(
-						n1, n2, intersectsBoundsFunc,
+				_box2.matrix.copy( matrix2to1 );
+				_box2.needsUpdate = true;
 
-						intersectsRangeFunc, nodeScoreFunc,
+				// run the first child first
+				arrayToBox( c1, uint32Array1, _child1 );
 
-						node1IndexByteOffset, depth1 + 1,
-						node2IndexByteOffset, depth2 + 1,
-					);
+				if (
+					_box2.intersectsBox( _child1 ) &&
+					bvhcast(
+						c1, node2Index32, matrix2to1,
+						intersectsRangeFunc,
+						node1IndexByteOffset, node2IndexByteOffset,
+						depth1 + 1, depth2,
+					)
+				) {
+
+					return true;
 
 				}
 
-				if ( stopTraversal ) {
+				// run the second child next
+				arrayToBox( c2, uint32Array1, _child2 );
 
-					_sortArrIndex --;
+				if (
+					_box2.intersectsBox( _child2 ) &&
+					bvhcast(
+						c2, node2Index32, matrix2to1,
+						intersectsRangeFunc,
+						node1IndexByteOffset, node2IndexByteOffset,
+						depth1 + 1, depth2,
+					)
+				) {
+
+					return true;
+
+				}
+
+			} else {
+
+				const c1 = LEFT_NODE( node2Index32 );
+				const c2 = RIGHT_NODE( node2Index32, uint32Array2 );
+
+				// run the first child first
+				arrayToBox( c1, uint32Array1, _oriented1 );
+				_oriented1.matrix.copy( matrix2to1 );
+				_oriented1.needsUpdate = true;
+
+				if (
+					_oriented1.intersectsBox( _box1 ) &&
+					bvhcast(
+						node1Index32, c1, matrix2to1,
+						intersectsRangeFunc,
+						node1IndexByteOffset, node2IndexByteOffset,
+						depth1, depth2 + 1,
+					)
+				) {
+
+					return true;
+
+				}
+
+				// run the second child next
+				arrayToBox( c2, uint32Array1, _oriented2 );
+				_oriented2.matrix.copy( matrix2to1 );
+				_oriented2.needsUpdate = true;
+
+				if (
+					_oriented2.intersectsBox( _box1 ) &&
+					bvhcast(
+						node1Index32, c2, matrix2to1,
+						intersectsRangeFunc,
+						node1IndexByteOffset, node2IndexByteOffset,
+						depth1, depth2 + 1,
+					)
+				) {
+
 					return true;
 
 				}
 
 			}
-
-			_sortArrIndex --;
 
 		}
 
