@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - `useSharedArrayBuffer` option to `MeshBVH` so it creates `SharedArrayBuffers` rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
 - SeparatingAxisTriangle.intersectsTriangle: added `target` field to retrieve the edge describing the intersection.
+- "box" argument to shapecast "intersectsRange" function.
 
 ### Fixed
 - `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
