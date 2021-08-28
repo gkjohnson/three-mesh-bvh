@@ -27,7 +27,7 @@ const temp2 = new Vector3();
 const tempBox = new Box3();
 const trianglePool = new PrimitivePool( () => new SeparatingAxisTriangle() );
 
-export default class MeshBVH {
+export class MeshBVH {
 
 	static serialize( bvh, options = {} ) {
 

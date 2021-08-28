@@ -1,4 +1,4 @@
-import { intersectTri } from './ThreeIntersectionUtilities.js';
+import { intersectTri } from './ThreeRayIntersectUtilities.js';
 
 export function intersectTris( geo, side, ray, offset, count, intersections ) {
 

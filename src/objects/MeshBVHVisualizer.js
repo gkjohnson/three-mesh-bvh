@@ -325,4 +325,4 @@ class MeshBVHVisualizer extends Group {
 }
 
 
-export default MeshBVHVisualizer;
+export { MeshBVHVisualizer };

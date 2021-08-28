@@ -1,6 +1,6 @@
-import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../Constants.js';
-import { arrayToBox } from './ArrayBoxUtilities.js';
 import { Box3, Vector3 } from 'three';
+import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../core/Constants.js';
+import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
 
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
 function getPrimitiveSize( el ) {
