@@ -14,7 +14,7 @@ import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
 import { PrimitivePool } from '../Utils/PrimitivePool.js';
 import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../Utils/TriangleUtilities.js';
-import { convertRaycastIntersect } from '../Utils/ExtensionUtilities.js';
+import { convertRaycastIntersect } from '../Utils/GeometryRayIntersectUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
