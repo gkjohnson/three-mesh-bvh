@@ -365,7 +365,7 @@ export const shapecast = ( function () {
 
 		}
 
-	};
+	}
 
 } )();
 
