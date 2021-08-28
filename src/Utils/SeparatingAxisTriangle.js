@@ -136,6 +136,9 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 	const edge = new Line3();
 	const edge1 = new Line3();
 	const edge2 = new Line3();
+
+	// TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
+	// be a line contained by both triangles if not a different special case somehow represented in the return result.
 	return function intersectsTriangle( other, target = null ) {
 
 		if ( this.needsUpdate ) {
@@ -218,6 +221,12 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 				if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
 
+					if ( found1 ) {
+
+						break;
+
+					}
+
 					found1 = true;
 
 				}
@@ -236,6 +245,12 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 				edge.end.copy( p2 );
 
 				if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
+
+					if ( found2 ) {
+
+						break;
+
+					}
 
 					found2 = true;
 

@@ -216,7 +216,6 @@ function render() {
 
 					if ( tri.intersectsTriangle( tri2, edge ) ) {
 
-						console.log( 'INTERSECTED');
 						results.push( edge.start, edge.end );
 
 					}
