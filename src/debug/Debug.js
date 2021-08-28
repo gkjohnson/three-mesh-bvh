@@ -1,6 +1,6 @@
-import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../Constants.js';
-import { arrayToBox } from './ArrayBoxUtilities.js';
 import { Box3, Vector3 } from 'three';
+import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../core/Constants.js';
+import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
 function getPrimitiveSize( el ) {
@@ -181,7 +181,7 @@ function validateBounds( bvh ) {
 		};
 		depthStack[ depth ] = info;
 
-		arrayToBox( boundingData, box1 );
+		arrayToBox( 0, boundingData, box1 );
 		const parent = depthStack[ depth - 1 ];
 
 		if ( isLeaf ) {
@@ -214,7 +214,7 @@ function validateBounds( bvh ) {
 		if ( parent ) {
 
 			// check if my bounds fit in my parents
-			arrayToBox( boundingData, box2 );
+			arrayToBox( 0, boundingData, box2 );
 
 			const isContained = box2.containsBox( box1 );
 			console.assert( isContained, 'Parent bounds does not fully contain child.' );
@@ -236,7 +236,7 @@ function getJSONStructure( bvh ) {
 	bvh.traverse( ( depth, isLeaf, boundingData, offset, count ) => {
 
 		const info = {
-			bounds: arrayToBox( boundingData, new Box3() ),
+			bounds: arrayToBox( 0, boundingData, new Box3() ),
 		};
 
 		if ( isLeaf ) {

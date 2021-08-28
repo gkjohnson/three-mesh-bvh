@@ -1,10 +1,6 @@
 import { Vector3, BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
-import { OrientedBox } from './Utils/OrientedBox.js';
-import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
-import { setTriangle } from './Utils/TriangleUtils.js';
-import { PrimitivePool } from './Utils/PrimitivePool.js';
 import {
 	raycast,
 	raycastFirst,
@@ -13,8 +9,12 @@ import {
 	setBuffer,
 	clearBuffer,
 } from './castFunctions.js';
-import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
-import { convertRaycastIntersect } from './Utils/RayIntersectTriUtilities.js';
+import { OrientedBox } from '../math/OrientedBox.js';
+import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { PrimitivePool } from '../utils/PrimitivePool.js';
+import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
+import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
+import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -26,7 +26,7 @@ const temp2 = new Vector3();
 const tempBox = new Box3();
 const trianglePool = new PrimitivePool( () => new SeparatingAxisTriangle() );
 
-export default class MeshBVH {
+export class MeshBVH {
 
 	static serialize( bvh, options = {} ) {
 

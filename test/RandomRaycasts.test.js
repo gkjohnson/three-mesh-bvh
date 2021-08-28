@@ -1,5 +1,21 @@
-import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial, InterleavedBuffer, InterleavedBufferAttribute } from 'three';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
+import {
+	Mesh,
+	BufferGeometry,
+	TorusBufferGeometry,
+	Scene,
+	Raycaster,
+	MeshBasicMaterial,
+	InterleavedBuffer,
+	InterleavedBufferAttribute,
+} from 'three';
+import {
+	acceleratedRaycast,
+	computeBoundsTree,
+	disposeBoundsTree,
+	CENTER,
+	SAH,
+	AVERAGE,
+} from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

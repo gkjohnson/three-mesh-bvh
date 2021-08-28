@@ -1,6 +1,4 @@
-
-export default
-class MeshBVHNode {
+export class MeshBVHNode {
 
 	constructor() {
 

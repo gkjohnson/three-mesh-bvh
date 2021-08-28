@@ -1,13 +1,11 @@
-// For speed and readability this script is processed to replace the macro-like calls
-// with inline buffer reads. See generate-cast-functions.js.
 import { Box3, Vector3, Matrix4 } from 'three';
-import { intersectTris, intersectClosestTri } from './Utils/RayIntersectTriUtilities.js';
-import { arrayToBox } from './Utils/BufferNodeUtils.js';
-
-import { OrientedBox } from './Utils/OrientedBox.js';
-import { setTriangle } from './Utils/TriangleUtils.js';
-import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { CONTAINED } from './Constants.js';
+
+import { OrientedBox } from '../math/OrientedBox.js';
+import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersectUtilities.js';
+import { setTriangle } from '../utils/TriangleUtilities.js';
+import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();

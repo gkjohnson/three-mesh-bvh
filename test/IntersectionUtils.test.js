@@ -1,7 +1,7 @@
 import { Vector3, Quaternion, Euler, Triangle, Sphere, Plane } from 'three';
-import { sphereIntersectTriangle } from '../src/Utils/MathUtilities.js';
-import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';
-import { OrientedBox } from '../src/Utils/OrientedBox.js';
+import { sphereIntersectTriangle } from '../src/math/MathUtilities.js';
+import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
+import { OrientedBox } from '../src/math/OrientedBox.js';
 
 function setRandomVector( vector, length ) {
 

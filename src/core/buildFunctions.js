@@ -1,6 +1,6 @@
 import { BufferAttribute } from 'three';
-import MeshBVHNode from './MeshBVHNode.js';
-import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from './Utils/ArrayBoxUtilities.js';
+import { MeshBVHNode } from './MeshBVHNode.js';
+import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from '../utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
 
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
