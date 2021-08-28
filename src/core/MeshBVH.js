@@ -13,7 +13,8 @@ import {
 	setBuffer,
 	clearBuffer,
 } from './castFunctions.js';
-import { arrayToBox, iterateOverTriangles } from './Utils/BufferNodeUtils.js';
+import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
+import { iterateOverTriangles } from './Utils/BufferNodeUtils.js';
 import { convertRaycastIntersect } from './Utils/RayIntersectTriUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
