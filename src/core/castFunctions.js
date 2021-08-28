@@ -387,7 +387,18 @@ export const bvhcast = ( function () {
 
 	}
 
-	return function bvhcast(
+	return function bvhcast( node1Index32, node2Index32, matrix2to1, ...args ) {
+
+		// copy the matrices once here so we don't have to do it over and over
+		_oriented1.matrix.copy( matrix2to1 );
+		_oriented2.matrix.copy( matrix2to1 );
+		_box2.matrix.copy( matrix2to1 );
+
+		return bvhcastTraverse( node1Index32, node2Index32, matrix2to1, ...args );
+
+	};
+
+	function bvhcastTraverse(
 		// current parent node status
 		node1Index32,
 		node2Index32,
@@ -440,6 +451,7 @@ export const bvhcast = ( function () {
 			// if neither element is a leaf then split the one that has a higher volume
 			arrayToBox( node1Index32, float32Array1, _box1 );
 			arrayToBox( node2Index32, float32Array2, _box2 );
+			_box2.needsUpdate = true;
 
 			if ( splitSide === 0 ) {
 
@@ -454,9 +466,6 @@ export const bvhcast = ( function () {
 				// split node 1
 				const c1 = LEFT_NODE( node1Index32 );
 				const c2 = RIGHT_NODE( node1Index32, uint32Array1 );
-
-				_box2.matrix.copy( matrix2to1 );
-				_box2.needsUpdate = true;
 
 				// run the first child first
 				arrayToBox( c1, float32Array1, _child1 );
@@ -500,7 +509,6 @@ export const bvhcast = ( function () {
 
 				// run the first child first
 				arrayToBox( c1, float32Array2, _oriented1 );
-				_oriented1.matrix.copy( matrix2to1 );
 				_oriented1.needsUpdate = true;
 
 				if (
@@ -520,7 +528,6 @@ export const bvhcast = ( function () {
 				// run the second child next
 				arrayToBox( node1Index32, float32Array1, _box1 );
 				arrayToBox( c2, float32Array2, _oriented2 );
-				_oriented2.matrix.copy( matrix2to1 );
 				_oriented2.needsUpdate = true;
 
 				if (
@@ -543,7 +550,7 @@ export const bvhcast = ( function () {
 
 		return false;
 
-	};
+	}
 
 } )();
 
