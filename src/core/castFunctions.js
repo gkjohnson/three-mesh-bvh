@@ -478,6 +478,7 @@ export const bvhcast = ( function () {
 				}
 
 				// run the second child next
+				arrayToBox( node2Index32, uint32Array2, _box2 );
 				arrayToBox( c2, uint32Array1, _child2 );
 
 				if (
@@ -519,6 +520,7 @@ export const bvhcast = ( function () {
 				}
 
 				// run the second child next
+				arrayToBox( node1Index32, uint32Array1, _box1 );
 				arrayToBox( c2, uint32Array1, _oriented2 );
 				_oriented2.matrix.copy( matrix2to1 );
 				_oriented2.needsUpdate = true;
