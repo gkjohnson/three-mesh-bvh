@@ -8,6 +8,8 @@ export function arrayToBox( nodeIndex32, array, target ) {
 	target.max.y = array[ nodeIndex32 + 4 ];
 	target.max.z = array[ nodeIndex32 + 5 ];
 
+	return target;
+
 }
 
 export function getLongestEdgeIndex( bounds ) {
