@@ -4,7 +4,7 @@ import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFuncti
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
-import { PrimitivePool } from './Utils/PrimitivePool';
+import { PrimitivePool } from './Utils/PrimitivePool.js';
 import {
 	raycast,
 	raycastFirst,
