@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Added
 - `useSharedArrayBuffer` option to `MeshBVH` so it creates `SharedArrayBuffers` rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
+- SeparatingAxisTriangle.intersectsTriangle: added `target` field to retrieve the edge describing the intersection.
 
 ### Fixed
 - `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
 - Case where the BVH root bounds would be incorrect if the geometry bounding box was incorrect / out of date.
+- MeshBBH.closestPointTGeometry not returning a proper intersection point if triangles intersect
 
 ### Changed
 - Changed function signature for `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`, `closestPointToGeometry`, `distanceToGeometry`, `closestPointToPoint`, `distanceToPoint`, `raycast`, and `raycastFirst`. Calling functions with the old signature will log a warning. See documentation for more details.
