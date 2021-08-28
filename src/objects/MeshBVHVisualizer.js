@@ -1,5 +1,5 @@
 import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
-import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
+import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 const boundingBox = new Box3();
 class MeshBVHRootVisualizer extends Object3D {

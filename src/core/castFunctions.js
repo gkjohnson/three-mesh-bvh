@@ -3,9 +3,9 @@ import { CONTAINED } from './Constants.js';
 
 import { OrientedBox } from '../math/OrientedBox.js';
 import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
-import { intersectTris, intersectClosestTri } from '../Utils/GeometryRayIntersectUtilities.js';
-import { setTriangle } from '../Utils/TriangleUtilities.js';
-import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
+import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersectUtilities.js';
+import { setTriangle } from '../utils/TriangleUtilities.js';
+import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
