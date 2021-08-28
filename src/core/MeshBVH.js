@@ -1,10 +1,6 @@
 import { Vector3, BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
-import { OrientedBox } from './Utils/OrientedBox.js';
-import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
-import { setTriangle } from './Utils/TriangleUtils.js';
-import { PrimitivePool } from './Utils/PrimitivePool.js';
 import {
 	raycast,
 	raycastFirst,
@@ -13,9 +9,12 @@ import {
 	setBuffer,
 	clearBuffer,
 } from './castFunctions.js';
-import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
-import { iterateOverTriangles } from './Utils/BufferNodeUtils.js';
-import { convertRaycastIntersect } from './Utils/RayIntersectTriUtilities.js';
+import { OrientedBox } from '../math/OrientedBox.js';
+import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { PrimitivePool } from '../Utils/PrimitivePool.js';
+import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
+import { iterateOverTriangles, setTriangle } from '../Utils/TriangleUtilities.js';
+import { convertRaycastIntersect } from '../Utils/ExtensionUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 

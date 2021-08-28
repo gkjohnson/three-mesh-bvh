@@ -1,11 +1,11 @@
 import { Box3, Vector3, Matrix4 } from 'three';
 import { CONTAINED } from './Constants.js';
 
-import { intersectTris, intersectClosestTri } from '../Utils/RayIntersectTriUtilities.js';
-import { arrayToBox } from '../Utils/BufferNodeUtils.js';
-import { OrientedBox } from '../Utils/OrientedBox.js';
-import { setTriangle } from '../Utils/TriangleUtils.js';
-import { SeparatingAxisTriangle } from '../Utils/SeparatingAxisTriangle.js';
+import { OrientedBox } from '../math/OrientedBox.js';
+import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { intersectTris, intersectClosestTri } from '../Utils/GeometryRayIntersectUtilities.js';
+import { setTriangle } from '../Utils/TriangleUtilities.js';
+import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();

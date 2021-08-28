@@ -1,5 +1,5 @@
 import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
-import { arrayToBox } from './Utils/ArrayBoxUtilities.js';
+import { arrayToBox } from '../Utils/ArrayBoxUtilities.js';
 
 const boundingBox = new Box3();
 class MeshBVHRootVisualizer extends Object3D {
@@ -75,7 +75,7 @@ class MeshBVHRootVisualizer extends Object3D {
 				const terminate = depth === targetDepth || isLeaf;
 				if ( terminate || displayParents ) {
 
-					arrayToBox( boundingData, boundingBox );
+					arrayToBox( 0, boundingData, boundingBox );
 
 					const { min, max } = boundingBox;
 					for ( let x = - 1; x <= 1; x += 2 ) {
