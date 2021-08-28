@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { runBenchmark } from './utils.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH, estimateMemoryInBytes, getBVHExtremes, MeshBVH } from '../src/index.js';
+import {
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes,
+	CENTER, AVERAGE, SAH, estimateMemoryInBytes, MeshBVH,
+} from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

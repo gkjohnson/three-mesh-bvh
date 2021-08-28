@@ -12,8 +12,12 @@ import {
 	Vector3,
 } from 'three';
 import {
-	MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
-	getBVHExtremes, validateBounds,
+	MeshBVH,
+	acceleratedRaycast,
+	computeBoundsTree,
+	disposeBoundsTree,
+	getBVHExtremes,
+	validateBounds,
 } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
