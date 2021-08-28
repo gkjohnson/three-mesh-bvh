@@ -211,7 +211,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			if ( Math.abs( plane1.normal.dot( plane2.normal ) ) > 1.0 - 1e-10 ) {
 
 				// TODO find two points that intersect on the edges and make that the result
-				console.log( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+				console.warn( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
 				target.start.set( 0, 0, 0 );
 				target.end.set( 0, 0, 0 );
 
@@ -292,7 +292,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 				}
 
 				tempDir.subVectors( edge1.end, edge2.end );
-				if ( tempDir.dot( dir2 ) < 0 ) {
+				if ( tempDir.dot( dir1 ) < 0 ) {
 
 					target.end.copy( edge1.end );
 

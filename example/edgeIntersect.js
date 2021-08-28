@@ -4,8 +4,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
-import { SeparatingAxisTriangle } from '../src/Utils/SeparatingAxisTriangle.js';
-import { setTriangle } from '../src/Utils/TriangleUtils.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -19,7 +17,8 @@ const params = {
 
 let stats;
 let scene, camera, renderer, orbitControls, boundsViz, transformControls;
-let mesh1, mesh2, group, line;
+let mesh1, mesh2, group, lineGroup, line, bgLine;
+let lastTime = window.performance.now();
 
 init();
 render();
@@ -45,36 +44,45 @@ function init() {
 	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
 
 	// geometry setup
-	// const radius = 1;
-	// const tube = 0.4;
-	// const tubularSegments = 400;
-	// const radialSegments = 100;
+	const radius = 1;
+	const tube = 0.4;
+	const tubularSegments = 40;
+	const radialSegments = 10;
 
-	// const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
-	const material = new THREE.MeshPhongMaterial( { color: 0xffffff, side: THREE.DoubleSide } );
-	// targetMesh = new THREE.Mesh( knotGeometry, material );
-	// targetMesh.geometry.computeBoundsTree();
-	// scene.add( targetMesh );
+	const geometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+	const material = new THREE.MeshPhongMaterial( {
+		color: 0xffffff,
+		side: THREE.DoubleSide,
+		polygonOffset: true,
+		polygonOffsetFactor: 1,
+		polygonOffsetUnits: 1,
+	} );
 
-	const tri1 = new THREE.BufferGeometry();
-	tri1.setFromPoints( [
-		new THREE.Vector3( 1, 0, 0 ),
-		new THREE.Vector3( - 1, 0, 0 ),
-		new THREE.Vector3( 0, 1, 0 ),
-	] );
-	tri1.computeVertexNormals();
-	tri1.computeBoundsTree();
+	// const geometry = new THREE.BoxBufferGeometry();
 
-	mesh1 = new THREE.Mesh( tri1, material );
-	mesh2 = new THREE.Mesh( tri1, material );
+	// const geometry = new THREE.BufferGeometry();
+	// geometry.setFromPoints( [
+	// 	new THREE.Vector3( 1, 0, 0 ),
+	// 	new THREE.Vector3( - 1, 0, 0 ),
+	// 	new THREE.Vector3( 0, 1, 0 ),
+	// ] );
+	// geometry.computeVertexNormals();
+	geometry.computeBoundsTree();
+
+	mesh1 = new THREE.Mesh( geometry, material );
+	mesh2 = new THREE.Mesh( geometry, material );
 	scene.add( mesh1, mesh2 );
 
 	const lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setFromPoints( [ new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, - 1, 0 ) ] );
-	line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color: 0xff0000, depthTest: false } ) );
-	// line.visible = false;
-	scene.add( line );
+	line = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial( { color: 0xff0000 } ) );
 
+	bgLine = line.clone();
+	bgLine.material = new THREE.LineBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0.25, depthTest: false } );
+
+	lineGroup = new THREE.Group();
+	lineGroup.add( line, bgLine );
+	scene.add( lineGroup );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -173,7 +181,6 @@ function init() {
 
 }
 
-let lastTime = window.performance.now();
 function render() {
 
 	requestAnimationFrame( render );
@@ -184,39 +191,61 @@ function render() {
 	// targetMesh.rotation.y += params.speed * delta * 0.001;
 	// targetMesh.updateMatrixWorld();
 
-	mesh2.position.copy( group.position );
-	mesh2.rotation.copy( group.rotation );
-	mesh2.scale.copy( group.scale );
+	// mesh2.position.copy( group.position );
+	// mesh2.rotation.copy( group.rotation );
+	// mesh2.scale.copy( group.scale );
+	mesh2.rotation.x += delta * 0.0001;
+	mesh2.rotation.y += delta * 2 * 0.0001;
+	mesh2.rotation.z += delta * 3 * 0.0001;
+
+	mesh1.updateMatrixWorld();
 	mesh2.updateMatrixWorld();
 
-	const matrix = new THREE.Matrix4()
+	const matrix2to1 = new THREE.Matrix4()
 		.copy( mesh1.matrixWorld )
 		.invert()
 		.multiply( mesh2.matrixWorld );
+	// const matrix1to2 = matrix2to1.clone().invert();
 
 	const results = [];
 	mesh1.geometry.boundsTree.shapecast( {
 
-		intersectsBounds: () => true,
+		intersectsBounds: ( /* box */ ) => {
+
+			return true;
+
+		},
 
 		intersectsTriangle: tri => {
 
 			mesh2.geometry.boundsTree.shapecast( {
 
-				intersectsRange: ( offset, count ) => {
+				intersectsBounds: ( /* box2 */ ) => {
+
+					return true;
+
+				},
+
+				intersectsTriangle: tri2 => {
 
 					const edge = new THREE.Line3();
-					const tri2 = new SeparatingAxisTriangle();
-					setTriangle( tri2, offset * 3, mesh2.geometry.index, mesh2.geometry.attributes.position );
-					tri2.a.applyMatrix4( matrix );
-					tri2.b.applyMatrix4( matrix );
-					tri2.c.applyMatrix4( matrix );
+					tri2.a.applyMatrix4( matrix2to1 );
+					tri2.b.applyMatrix4( matrix2to1 );
+					tri2.c.applyMatrix4( matrix2to1 );
 
 					tri2.needsUpdate = true;
 
 					if ( tri.intersectsTriangle( tri2, edge ) ) {
 
-						results.push( edge.start, edge.end );
+						const { start, end } = edge;
+						results.push(
+							start.x,
+							start.y,
+							start.z,
+							end.x,
+							end.y,
+							end.z,
+						);
 
 					}
 
@@ -230,9 +259,24 @@ function render() {
 
 	if ( results.length ) {
 
-		// console.log( results );
-		line.geometry.dispose();
-		line.geometry.setFromPoints( results );
+		const geometry = line.geometry;
+		const posArray = geometry.attributes.position.array;
+		if ( posArray.length < results.length ) {
+
+			geometry.dispose();
+			geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( results ), 3, false ) );
+
+		} else {
+
+			posArray.set( results );
+
+		}
+
+		geometry.setDrawRange( 0, results.length / 3 );
+		geometry.attributes.position.needsUpdate = true;
+		lineGroup.position.copy( mesh1.position );
+		lineGroup.rotation.copy( mesh1.rotation );
+		lineGroup.scale.copy( mesh1.scale );
 		line.visible = true;
 
 	} else {
