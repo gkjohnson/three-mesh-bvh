@@ -16,7 +16,7 @@ const params = {
 };
 
 let stats;
-let scene, camera, renderer, orbitControls, boundsViz, transformControls;
+let scene, camera, renderer, orbitControls, transformControls;
 let mesh1, mesh2, group, lineGroup, line, bgLine;
 let lastTime = window.performance.now();
 
@@ -284,9 +284,6 @@ function render() {
 		line.visible = false;
 
 	}
-
-
-	if ( boundsViz ) boundsViz.update();
 
 	renderer.render( scene, camera );
 
