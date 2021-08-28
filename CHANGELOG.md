@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
 - Case where the BVH root bounds would be incorrect if the geometry bounding box was incorrect / out of date.
-- MeshBBH.closestPointTGeometry not returning a proper intersection point if triangles intersect
+- MeshBBH.closestPointTGeometry not returning a proper intersection point if triangles intersect.
+- Shapecast function will now ensure a unique triangle / box is provided for each recursive call.
 
 ### Changed
 - Changed function signature for `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`, `closestPointToGeometry`, `distanceToGeometry`, `closestPointToPoint`, `distanceToPoint`, `raycast`, and `raycastFirst`. Calling functions with the old signature will log a warning. See documentation for more details.
