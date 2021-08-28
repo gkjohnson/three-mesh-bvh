@@ -19,7 +19,7 @@ global.onmessage = function ( { data } ) {
 
 		options.lazyGeneration = false;
 		const bvh = new MeshBVH( geometry, options );
-		const serialized = MeshBVH.serialize( bvh, geometry, false );
+		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
 
 		global.postMessage( {
 

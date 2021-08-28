@@ -48,7 +48,7 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -378,34 +378,31 @@ function updatePlayer( delta ) {
 	tempBox.min.addScalar( - capsuleInfo.radius );
 	tempBox.max.addScalar( capsuleInfo.radius );
 
-	collider.geometry.boundsTree.shapecast(
-		collider,
-		{
+	collider.geometry.boundsTree.shapecast( {
 
-			intersectsBounds: box => box.intersectsBox( tempBox ),
+		intersectsBounds: box => box.intersectsBox( tempBox ),
 
-			intersectsTriangle: tri => {
+		intersectsTriangle: tri => {
 
-				// check if the triangle is intersecting the capsule and adjust the
-				// capsule position if it is.
-				const triPoint = tempVector;
-				const capsulePoint = tempVector2;
+			// check if the triangle is intersecting the capsule and adjust the
+			// capsule position if it is.
+			const triPoint = tempVector;
+			const capsulePoint = tempVector2;
 
-				const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
-				if ( distance < capsuleInfo.radius ) {
+			const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
+			if ( distance < capsuleInfo.radius ) {
 
-					const depth = capsuleInfo.radius - distance;
-					const direction = capsulePoint.sub( triPoint ).normalize();
+				const depth = capsuleInfo.radius - distance;
+				const direction = capsulePoint.sub( triPoint ).normalize();
 
-					tempSegment.start.addScaledVector( direction, depth );
-					tempSegment.end.addScaledVector( direction, depth );
-
-				}
+				tempSegment.start.addScaledVector( direction, depth );
+				tempSegment.end.addScaledVector( direction, depth );
 
 			}
 
 		}
-	);
+
+	} );
 
 	// get the adjusted position of the capsule collider in world space after checking
 	// triangle collisions and moving it. capsuleInfo.segment.start is assumed to be

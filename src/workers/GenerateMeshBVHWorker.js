@@ -35,7 +35,7 @@ export class GenerateMeshBVHWorker {
 
 				} else {
 
-					const bvh = MeshBVH.deserialize( serialized, geometry, false );
+					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
 					const boundsOptions = Object.assign( {
 
 						setBoundingBox: true,
