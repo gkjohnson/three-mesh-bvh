@@ -210,6 +210,72 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
+		it( 'should not use the same box twice when being recursively called.', () => {
+
+			const geometry = new SphereBufferGeometry();
+			const bvh = new MeshBVH( geometry );
+
+			let boundsChecks = 0;
+			let rangeChecks = 0;
+			bvh.shapecast( {
+
+				intersectsBounds: box1 => {
+
+					bvh.shapecast( {
+
+						intersectsBounds: box2 => {
+
+							expect( box1 ).not.toBe( box2 );
+							boundsChecks ++;
+							return true;
+
+						},
+
+						intersectsRange: ( offset, count, contained, depth, nodeIndex, box2 ) => {
+
+							expect( box1 ).not.toBe( box2 );
+							boundsChecks ++;
+							return true;
+
+						}
+
+					} );
+					return true;
+
+				},
+				intersectsRange: ( offset, count, contained, depth, nodeIndex, box1 ) => {
+
+					bvh.shapecast( {
+
+						intersectsBounds: box2 => {
+
+							expect( box1 ).not.toBe( box2 );
+							rangeChecks ++;
+							return true;
+
+						},
+
+						intersectsRange: ( offset, count, contained, depth, nodeIndex, box2 ) => {
+
+							expect( box1 ).not.toBe( box2 );
+							rangeChecks ++;
+							return true;
+
+						}
+
+					} );
+
+					return true;
+
+				}
+
+			} );
+
+			expect( rangeChecks ).not.toEqual( 0 );
+			expect( boundsChecks ).not.toEqual( 0 );
+
+		} );
+
 	} );
 
 	describe( 'IntersectsGeometry with BVH', () => {

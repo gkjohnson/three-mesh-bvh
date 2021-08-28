@@ -6,6 +6,7 @@ import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
 import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersectUtilities.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
+import { PrimitivePool } from '../utils/PrimitivePool.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
@@ -162,10 +163,39 @@ export function raycastFirst( nodeIndex32, geometry, side, ray ) {
 
 export const shapecast = ( function () {
 
-	const _box1 = new Box3();
-	const _box2 = new Box3();
+	let _box1, _box2;
+	const boxStack = [];
+	const boxPool = new PrimitivePool( () => new Box3() );
 
-	return function shapecast(
+	// const _box1 = new Box3();
+	// const _box2 = new Box3();
+
+	return function shapecast( ...args ) {
+
+		_box1 = boxPool.getPrimitive();
+		_box2 = boxPool.getPrimitive();
+		boxStack.push( _box1, _box2 );
+
+		const result = shapecastTraverse( ...args );
+
+		boxPool.releasePrimitive( _box1 );
+		boxPool.releasePrimitive( _box2 );
+		boxStack.pop();
+		boxStack.pop();
+
+		const length = boxStack.length;
+		if ( length > 0 ) {
+
+			_box2 = boxStack[ length - 1 ];
+			_box1 = boxStack[ length - 2 ];
+
+		}
+
+		return result;
+
+	};
+
+	function shapecastTraverse(
 		nodeIndex32,
 		geometry,
 		intersectsBoundsFunc,
@@ -218,7 +248,8 @@ export const shapecast = ( function () {
 
 			const offset = OFFSET( nodeIndex32, uint32Array );
 			const count = COUNT( nodeIndex16, uint16Array );
-			return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32 );
+			arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, _box1 );
+			return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32, _box1 );
 
 		} else {
 
@@ -275,13 +306,13 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c1 );
 				const count = end - offset;
 
-				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c1 );
+				c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c1, box1 );
 
 			} else {
 
 				c1StopTraversal =
 					c1Intersection &&
-					shapecast(
+					shapecastTraverse(
 						c1,
 						geometry,
 						intersectsBoundsFunc,
@@ -310,13 +341,13 @@ export const shapecast = ( function () {
 				const end = getRightEndOffset( c2 );
 				const count = end - offset;
 
-				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c2 );
+				c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c2, box2 );
 
 			} else {
 
 				c2StopTraversal =
 					c2Intersection &&
-					shapecast(
+					shapecastTraverse(
 						c2,
 						geometry,
 						intersectsBoundsFunc,
