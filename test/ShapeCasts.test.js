@@ -176,6 +176,40 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
+		it( 'should not use the same triangle twice when being recursively called.', () => {
+
+			const geometry = new SphereBufferGeometry();
+			const bvh = new MeshBVH( geometry );
+
+			let checks = 0;
+			bvh.shapecast( {
+
+				intersectsBounds: () => true,
+				intersectsTriangle: tri => {
+
+					bvh.shapecast( {
+
+						intersectsBounds: () => true,
+						intersectsTriangle: tri2 => {
+
+							expect( tri2 ).not.toBe( tri );
+							checks ++;
+							return true;
+
+						}
+
+					} );
+
+					return true;
+
+				}
+
+			} );
+
+			expect( checks ).not.toBe( 0 );
+
+		} );
+
 	} );
 
 	describe( 'IntersectsGeometry with BVH', () => {

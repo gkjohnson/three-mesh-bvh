@@ -4,6 +4,7 @@ import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFuncti
 import { OrientedBox } from './Utils/OrientedBox.js';
 import { SeparatingAxisTriangle } from './Utils/SeparatingAxisTriangle.js';
 import { setTriangle } from './Utils/TriangleUtils.js';
+import { PrimitivePool } from './Utils/PrimitivePool.js';
 import {
 	raycast,
 	raycastFirst,
@@ -23,8 +24,7 @@ const temp = new Vector3();
 const temp1 = new Vector3();
 const temp2 = new Vector3();
 const tempBox = new Box3();
-const triangle = new SeparatingAxisTriangle();
-const triangle2 = new SeparatingAxisTriangle();
+const trianglePool = new PrimitivePool( () => new SeparatingAxisTriangle() );
 
 export default class MeshBVH {
 
@@ -483,6 +483,7 @@ export default class MeshBVH {
 
 		}
 
+		const triangle = trianglePool.getPrimitive();
 		let {
 			boundsTraverseOrder,
 			intersectsBounds,
@@ -545,6 +546,8 @@ export default class MeshBVH {
 
 		}
 
+		trianglePool.releasePrimitive( triangle );
+
 		return result;
 
 	}
@@ -591,6 +594,8 @@ export default class MeshBVH {
 		const index = geometry.index;
 		const otherPos = otherGeometry.attributes.position;
 		const otherIndex = otherGeometry.index;
+		const triangle = trianglePool.getPrimitive();
+		const triangle2 = trianglePool.getPrimitive();
 
 		let tempTarget1 = null;
 		let tempTarget2 = null;
@@ -760,6 +765,9 @@ export default class MeshBVH {
 			}
 
 		);
+
+		trianglePool.releasePrimitive( triangle );
+		trianglePool.releasePrimitive( triangle2 );
 
 		return closestDistance;
 
