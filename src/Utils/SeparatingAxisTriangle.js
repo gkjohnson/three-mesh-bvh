@@ -225,7 +225,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			}
 
 			// find the other triangles edge that intersects this plane
-			const points2 = this.points;
+			const points2 = other.points;
 			let found2 = false;
 			for ( let i = 0; i < 3; i ++ ) {
 
