@@ -395,7 +395,7 @@ export const bvhcast = ( function () {
 	function getAABB( nodeIndex32, float32Array ) {
 
 		let box;
-		if ( _aabbMap.has( nodeIndex32 ) && false ) {
+		if ( _aabbMap.has( nodeIndex32 ) ) {
 
 			box = _aabbMap.get( nodeIndex32 );
 
