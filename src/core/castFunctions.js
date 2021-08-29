@@ -368,14 +368,6 @@ export const shapecast = ( function () {
 
 export const bvhcast = ( function () {
 
-	// const _child1 = new Box3();
-	// const _child2 = new Box3();
-	// const _oriented1 = new OrientedBox();
-	// const _oriented2 = new OrientedBox();
-
-	// const _box1 = new Box3();
-	// const _box2 = new OrientedBox();
-
 	const _obbPool = new PrimitivePool( () => new OrientedBox() );
 	const _aabbPool = new PrimitivePool( () => new Box3() );
 	const _obbMap = new Map();
@@ -434,11 +426,6 @@ export const bvhcast = ( function () {
 
 	return function bvhcast( node1Index32, node2Index32, matrix2to1, ...args ) {
 
-		// copy the matrices once here so we don't have to do it over and over
-		// _oriented1.matrix.copy( matrix2to1 );
-		// _oriented2.matrix.copy( matrix2to1 );
-		// _box2.matrix.copy( matrix2to1 );
-
 		_obbMap.forEach( box => _obbPool.releasePrimitive( box ) );
 		_obbMap.clear();
 
@@ -483,35 +470,14 @@ export const bvhcast = ( function () {
 				depth2, node2IndexByteOffset + node2Index32,
 			);
 
-		} else {
+		} else if ( isLeaf1 || isLeaf2 ) {
 
 			// if one of the nodes is already a leaf then split it
-			let splitSide = 0;
-			if ( isLeaf1 ) {
-
-				splitSide = 2;
-
-			}
-
-			if ( isLeaf2 ) {
-
-				splitSide = 1;
-
-			}
+			let splitSide = isLeaf1 ? 2 : 1;
 
 			// get and cache the bounds
 			const _box1 = getAABB( node1Index32, float32Array1 );
 			const _box2 = getOBB( node2Index32, float32Array2, matrix2to1 );
-
-			// if neither element is a leaf then split the one that has a higher volume
-			if ( splitSide === 0 ) {
-
-				// TODO: account for scale here
-				const volume1 = boxVolume( _box1 );
-				const volume2 = boxVolume( _box2 );
-				splitSide = volume1 > volume2 ? 1 : 2;
-
-			}
 
 			if ( splitSide === 1 ) {
 
@@ -521,6 +487,7 @@ export const bvhcast = ( function () {
 
 				// run the first child first
 				const _child1 = getAABB( c1, float32Array1 );
+				const _child2 = getAABB( c2, float32Array1 );
 
 				if (
 					_box2.intersectsBox( _child1 ) &&
@@ -535,9 +502,6 @@ export const bvhcast = ( function () {
 					return true;
 
 				}
-
-				// run the second child next
-				const _child2 = getAABB( c2, float32Array1 );
 
 				if (
 					_box2.intersectsBox( _child2 ) &&
@@ -560,6 +524,7 @@ export const bvhcast = ( function () {
 
 				// run the first child first
 				const _oriented1 = getOBB( c1, float32Array2, matrix2to1 );
+				const _oriented2 = getOBB( c2, float32Array2, matrix2to1 );
 
 				if (
 					_oriented1.intersectsBox( _box1 ) &&
@@ -575,9 +540,6 @@ export const bvhcast = ( function () {
 
 				}
 
-				// run the second child next
-				const _oriented2 = getOBB( c2, float32Array2, matrix2to1 );
-
 				if (
 					_oriented2.intersectsBox( _box1 ) &&
 					bvhcastTraverse(
@@ -591,6 +553,75 @@ export const bvhcast = ( function () {
 					return true;
 
 				}
+
+			}
+
+		} else {
+
+			// split both sides
+			const c11 = LEFT_NODE( node1Index32 );
+			const c12 = RIGHT_NODE( node1Index32, uint32Array1 );
+			const c21 = LEFT_NODE( node2Index32 );
+			const c22 = RIGHT_NODE( node2Index32, uint32Array2 );
+
+			const _child11 = getAABB( c11, float32Array1 );
+			const _child12 = getAABB( c12, float32Array1 );
+			const _oriented21 = getOBB( c21, float32Array2, matrix2to1 );
+			const _oriented22 = getOBB( c22, float32Array2, matrix2to1 );
+
+			if (
+				_oriented21.intersectsBox( _child11 ) &&
+				bvhcastTraverse(
+					c11, c21, matrix2to1,
+					intersectsRangeFunc,
+					node1IndexByteOffset, node2IndexByteOffset,
+					depth1 + 1, depth2 + 1,
+				)
+			) {
+
+				return true;
+
+			}
+
+			if (
+				_oriented21.intersectsBox( _child12 ) &&
+				bvhcastTraverse(
+					c12, c21, matrix2to1,
+					intersectsRangeFunc,
+					node1IndexByteOffset, node2IndexByteOffset,
+					depth1 + 1, depth2 + 1,
+				)
+			) {
+
+				return true;
+
+			}
+
+			if (
+				_oriented22.intersectsBox( _child11 ) &&
+				bvhcastTraverse(
+					c11, c22, matrix2to1,
+					intersectsRangeFunc,
+					node1IndexByteOffset, node2IndexByteOffset,
+					depth1 + 1, depth2 + 1,
+				)
+			) {
+
+				return true;
+
+			}
+
+			if (
+				_oriented22.intersectsBox( _child12 ) &&
+				bvhcastTraverse(
+					c12, c22, matrix2to1,
+					intersectsRangeFunc,
+					node1IndexByteOffset, node2IndexByteOffset,
+					depth1 + 1, depth2 + 1,
+				)
+			) {
+
+				return true;
 
 			}
 
