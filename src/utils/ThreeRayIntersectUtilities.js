@@ -2,15 +2,15 @@ import { Vector3, Vector2, Triangle, DoubleSide, BackSide } from 'three';
 
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
-const vA = new Vector3();
-const vB = new Vector3();
-const vC = new Vector3();
+const vA = /* @__PURE__ */ new Vector3();
+const vB = /* @__PURE__ */ new Vector3();
+const vC = /* @__PURE__ */ new Vector3();
 
-const uvA = new Vector2();
-const uvB = new Vector2();
-const uvC = new Vector2();
+const uvA = /* @__PURE__ */ new Vector2();
+const uvB = /* @__PURE__ */ new Vector2();
+const uvC = /* @__PURE__ */ new Vector2();
 
-const intersectionPoint = new Vector3();
+const intersectionPoint = /* @__PURE__ */ new Vector3();
 function checkIntersection( ray, pA, pB, pC, point, side ) {
 
 	let intersect;

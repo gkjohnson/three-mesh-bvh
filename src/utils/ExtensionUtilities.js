@@ -2,8 +2,8 @@ import { Ray, Matrix4, Mesh } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
-const ray = new Ray();
-const tmpInverseMatrix = new Matrix4();
+const ray = /* @__PURE__ */ new Ray();
+const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
 
 export function acceleratedRaycast( raycaster, intersects ) {

@@ -18,16 +18,16 @@ import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
-const aabb = new Box3();
-const aabb2 = new Box3();
-const tempMatrix = new Matrix4();
-const obb = new OrientedBox();
-const obb2 = new OrientedBox();
-const temp = new Vector3();
-const temp1 = new Vector3();
-const temp2 = new Vector3();
-const tempBox = new Box3();
-const trianglePool = new PrimitivePool( () => new SeparatingAxisTriangle() );
+const aabb = /* @__PURE__ */ new Box3();
+const aabb2 = /* @__PURE__ */ new Box3();
+const tempMatrix = /* @__PURE__ */ new Matrix4();
+const obb = /* @__PURE__ */ new OrientedBox();
+const obb2 = /* @__PURE__ */ new OrientedBox();
+const temp = /* @__PURE__ */ new Vector3();
+const temp1 = /* @__PURE__ */ new Vector3();
+const temp2 = /* @__PURE__ */ new Vector3();
+const tempBox = /* @__PURE__ */ new Box3();
+const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
 
 export class MeshBVH {
 

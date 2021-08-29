@@ -2,6 +2,10 @@ import { Box3, Vector3 } from 'three';
 import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
+const _box1 = /* @__PURE__ */ new Box3();
+const _box2 = /* @__PURE__ */ new Box3();
+const _vec = /* @__PURE__ */ new Vector3();
+
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
 function getPrimitiveSize( el ) {
 
@@ -158,10 +162,6 @@ function estimateMemoryInBytes( obj ) {
 
 }
 
-const box1 = new Box3();
-const box2 = new Box3();
-const vec = new Vector3();
-
 function validateBounds( bvh ) {
 
 	const geometry = bvh.geometry;
@@ -181,7 +181,7 @@ function validateBounds( bvh ) {
 		};
 		depthStack[ depth ] = info;
 
-		arrayToBox( 0, boundingData, box1 );
+		arrayToBox( 0, boundingData, _box1 );
 		const parent = depthStack[ depth - 1 ];
 
 		if ( isLeaf ) {
@@ -195,14 +195,14 @@ function validateBounds( bvh ) {
 
 				let isContained;
 
-				vec.fromBufferAttribute( position, i0 );
-				isContained = box1.containsPoint( vec );
+				_vec.fromBufferAttribute( position, i0 );
+				isContained = _box1.containsPoint( _vec );
 
-				vec.fromBufferAttribute( position, i1 );
-				isContained = isContained && box1.containsPoint( vec );
+				_vec.fromBufferAttribute( position, i1 );
+				isContained = isContained && _box1.containsPoint( _vec );
 
-				vec.fromBufferAttribute( position, i2 );
-				isContained = isContained && box1.containsPoint( vec );
+				_vec.fromBufferAttribute( position, i2 );
+				isContained = isContained && _box1.containsPoint( _vec );
 
 				console.assert( isContained, 'Leaf bounds does not fully contain triangle.' );
 				passes = passes && isContained;
@@ -214,9 +214,9 @@ function validateBounds( bvh ) {
 		if ( parent ) {
 
 			// check if my bounds fit in my parents
-			arrayToBox( 0, boundingData, box2 );
+			arrayToBox( 0, boundingData, _box2 );
 
-			const isContained = box2.containsBox( box1 );
+			const isContained = _box2.containsBox( _box1 );
 			console.assert( isContained, 'Parent bounds does not fully contain child.' );
 			passes = passes && isContained;
 

@@ -16,7 +16,7 @@ import { MeshBVH } from './MeshBVH.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
 
-const trianglePool = new PrimitivePool( () => new SeparatingAxisTriangle() );
+const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
 
 MeshBVH.prototype.bvhcast = function ( otherBvh, matrixToLocal, callbacks ) {
 
