@@ -368,13 +368,18 @@ export const shapecast = ( function () {
 
 export const bvhcast = ( function () {
 
-	const _child1 = new Box3();
-	const _child2 = new Box3();
-	const _oriented1 = new OrientedBox();
-	const _oriented2 = new OrientedBox();
+	// const _child1 = new Box3();
+	// const _child2 = new Box3();
+	// const _oriented1 = new OrientedBox();
+	// const _oriented2 = new OrientedBox();
 
-	const _box1 = new Box3();
-	const _box2 = new OrientedBox();
+	// const _box1 = new Box3();
+	// const _box2 = new OrientedBox();
+
+	const _obbPool = new PrimitivePool( () => new OrientedBox() );
+	const _aabbPool = new PrimitivePool( () => new Box3() );
+	const _obbMap = new Map();
+	const _aabbMap = new Map();
 
 	function boxVolume( box ) {
 
@@ -387,12 +392,58 @@ export const bvhcast = ( function () {
 
 	}
 
+	function getAABB( nodeIndex32, float32Array ) {
+
+		let box;
+		if ( _aabbMap.has( nodeIndex32 ) && false ) {
+
+			box = _aabbMap.get( nodeIndex32 );
+
+		} else {
+
+			box = _aabbPool.getPrimitive();
+			_aabbMap.set( nodeIndex32, box );
+			arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, box );
+
+		}
+
+		return box;
+
+	}
+
+	function getOBB( nodeIndex32, float32Array, matrix ) {
+
+		let box;
+		if ( _obbMap.has( nodeIndex32 ) ) {
+
+			box = _obbMap.get( nodeIndex32 );
+
+		} else {
+
+			box = _obbPool.getPrimitive();
+			_obbMap.set( nodeIndex32, box );
+			arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, box );
+			box.matrix.copy( matrix );
+			box.needsUpdate = true;
+
+		}
+
+		return box;
+
+	}
+
 	return function bvhcast( node1Index32, node2Index32, matrix2to1, ...args ) {
 
 		// copy the matrices once here so we don't have to do it over and over
-		_oriented1.matrix.copy( matrix2to1 );
-		_oriented2.matrix.copy( matrix2to1 );
-		_box2.matrix.copy( matrix2to1 );
+		// _oriented1.matrix.copy( matrix2to1 );
+		// _oriented2.matrix.copy( matrix2to1 );
+		// _box2.matrix.copy( matrix2to1 );
+
+		_obbMap.forEach( box => _obbPool.releasePrimitive( box ) );
+		_obbMap.clear();
+
+		_aabbMap.forEach( box => _aabbPool.releasePrimitive( box ) );
+		_aabbMap.clear();
 
 		return bvhcastTraverse( node1Index32, node2Index32, matrix2to1, ...args );
 
@@ -448,13 +499,14 @@ export const bvhcast = ( function () {
 
 			}
 
-			// if neither element is a leaf then split the one that has a higher volume
-			arrayToBox( node1Index32, float32Array1, _box1 );
-			arrayToBox( node2Index32, float32Array2, _box2 );
-			_box2.needsUpdate = true;
+			// get and cache the bounds
+			const _box1 = getAABB( node1Index32, float32Array1 );
+			const _box2 = getOBB( node2Index32, float32Array2, matrix2to1 );
 
+			// if neither element is a leaf then split the one that has a higher volume
 			if ( splitSide === 0 ) {
 
+				// TODO: account for scale here
 				const volume1 = boxVolume( _box1 );
 				const volume2 = boxVolume( _box2 );
 				splitSide = volume1 > volume2 ? 1 : 2;
@@ -468,7 +520,7 @@ export const bvhcast = ( function () {
 				const c2 = RIGHT_NODE( node1Index32, uint32Array1 );
 
 				// run the first child first
-				arrayToBox( c1, float32Array1, _child1 );
+				const _child1 = getAABB( c1, float32Array1 );
 
 				if (
 					_box2.intersectsBox( _child1 ) &&
@@ -485,10 +537,7 @@ export const bvhcast = ( function () {
 				}
 
 				// run the second child next
-				arrayToBox( node2Index32, float32Array2, _box2 );
-				_box2.needsUpdate = true;
-
-				arrayToBox( c2, float32Array1, _child2 );
+				const _child2 = getAABB( c2, float32Array1 );
 
 				if (
 					_box2.intersectsBox( _child2 ) &&
@@ -510,8 +559,7 @@ export const bvhcast = ( function () {
 				const c2 = RIGHT_NODE( node2Index32, uint32Array2 );
 
 				// run the first child first
-				arrayToBox( c1, float32Array2, _oriented1 );
-				_oriented1.needsUpdate = true;
+				const _oriented1 = getOBB( c1, float32Array2, matrix2to1 );
 
 				if (
 					_oriented1.intersectsBox( _box1 ) &&
@@ -528,9 +576,7 @@ export const bvhcast = ( function () {
 				}
 
 				// run the second child next
-				arrayToBox( node1Index32, float32Array1, _box1 );
-				arrayToBox( c2, float32Array2, _oriented2 );
-				_oriented2.needsUpdate = true;
+				const _oriented2 = getOBB( c2, float32Array2, matrix2to1 );
 
 				if (
 					_oriented2.intersectsBox( _box1 ) &&
