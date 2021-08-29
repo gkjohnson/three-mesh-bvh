@@ -206,9 +206,9 @@ function render() {
 	// mesh2.rotation.copy( group.rotation );
 	// mesh2.scale.copy( group.scale );
 
-	mesh1.rotation.x -= delta * 0.0001 * params.speed * 0.5;
-	mesh1.rotation.y -= delta * 2 * 0.0001 * params.speed * 0.5;
-	mesh1.rotation.z -= delta * 3 * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.x -= delta * 3 * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.y -= delta * 1 * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.z -= delta * 2 * 0.0001 * params.speed * 0.5;
 
 	mesh2.rotation.x += delta * 0.0001 * params.speed;
 	mesh2.rotation.y += delta * 2 * 0.0001 * params.speed;
