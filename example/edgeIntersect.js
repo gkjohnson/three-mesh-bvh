@@ -144,81 +144,29 @@ function render() {
 		.copy( mesh1.matrixWorld )
 		.invert()
 		.multiply( mesh2.matrixWorld );
-	const matrix1to2 = matrix2to1.clone().invert();
 
-	const aabb1 = new THREE.Box3();
-	const aabb2 = new THREE.Box3();
-	mesh2.geometry.boundsTree.getBoundingBox( aabb2 );
-	aabb2.applyMatrix4( matrix2to1 );
 
-	const triangle1 = new SeparatingAxisTriangle();
-	const triangle2 = new SeparatingAxisTriangle();
 	const edge = new THREE.Line3();
-
 	const results = [];
-	mesh1.geometry.boundsTree.shapecast( {
+	mesh1.geometry.boundsTree.bvhcast( mesh2.geometry.boundsTree, matrix2to1, {
 
-		intersectsBounds: box => {
+		intersectsTriangles( triangle1, triangle2 ) {
 
-			return aabb2.intersectsBox( box );
+			if ( triangle1.intersectsTriangle( triangle2, edge ) ) {
 
-		},
+				const { start, end } = edge;
+				results.push(
+					start.x,
+					start.y,
+					start.z,
+					end.x,
+					end.y,
+					end.z,
+				);
 
-		intersectsRange: ( offset1, count1, contained, depth, nodeIndex, box ) => {
+			}
 
-			aabb1.min.copy( box.min );
-			aabb1.max.copy( box.max );
-			aabb1.applyMatrix4( matrix1to2 );
-
-			mesh2.geometry.boundsTree.shapecast( {
-
-				intersectsBounds: box2 => {
-
-					return aabb1.intersectsBox( box2 );
-
-				},
-
-				intersectsRange: ( offset2, count2 ) => {
-
-					const geometry1 = mesh1.geometry;
-					const geometry2 = mesh2.geometry;
-
-					for ( let i2 = offset2 * 3, l2 = ( offset2 + count2 ) * 3; i2 < l2; i2 += 3 ) {
-
-						setTriangle( triangle2, i2, geometry2.index, geometry2.attributes.position );
-						triangle2.a.applyMatrix4( matrix2to1 );
-						triangle2.b.applyMatrix4( matrix2to1 );
-						triangle2.c.applyMatrix4( matrix2to1 );
-						triangle2.needsUpdate = true;
-
-						for ( let i1 = offset1 * 3, l1 = ( offset1 + count1 ) * 3; i1 < l1; i1 += 3 ) {
-
-							setTriangle( triangle1, i1, geometry1.index, geometry1.attributes.position );
-							triangle1.needsUpdate = true;
-
-							if ( triangle1.intersectsTriangle( triangle2, edge ) ) {
-
-								const { start, end } = edge;
-								results.push(
-									start.x,
-									start.y,
-									start.z,
-									end.x,
-									end.y,
-									end.z,
-								);
-
-							}
-
-						}
-
-					}
-
-				},
-
-			} );
-
-		},
+		}
 
 	} );
 
