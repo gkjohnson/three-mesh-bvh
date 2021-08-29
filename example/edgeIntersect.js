@@ -3,8 +3,6 @@ import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH } from '../src/index.js';
-import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
-import { setTriangle } from '../src/utils/TriangleUtilities.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
