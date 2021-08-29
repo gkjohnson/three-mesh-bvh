@@ -1,4 +1,4 @@
-import { Box3, Vector3, Matrix4, Sphere, Line3 } from 'three';
+import { Box3, Vector3, Matrix4, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
@@ -16,7 +16,6 @@ export class OrientedBox extends Box3 {
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
-		this.sphere = new Sphere();
 		this.needsUpdate = false;
 
 	}
@@ -68,8 +67,6 @@ OrientedBox.prototype.update = ( function () {
 
 		}
 
-		this.sphere.setFromPoints( this.points );
-
 		const satBounds = this.satBounds;
 		const satAxes = this.satAxes;
 		const minVec = points[ 0 ];
@@ -102,13 +99,12 @@ OrientedBox.prototype.intersectsBox = ( function () {
 	const aabbBounds = new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
 
+		// TODO: should this be doing SAT against the AABB?
 		if ( this.needsUpdate ) {
 
 			this.update();
 
 		}
-
-		if ( ! box.intersectsSphere( this.sphere ) ) return false;
 
 		const min = box.min;
 		const max = box.max;

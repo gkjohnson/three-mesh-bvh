@@ -2,11 +2,7 @@ import Stats from 'stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
-import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
-import { OrientedBox } from '../src/math/OrientedBox.js';
-import { setTriangle } from '../src/utils/TriangleUtilities.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -17,12 +13,13 @@ const params = {
 	rotation: new THREE.Euler(),
 	scale: new THREE.Vector3( 1, 1, 1 ),
 	speed: 1,
-	visibleMeshes: false,
+	displayMeshes: false,
+	distance: 1.1,
 };
 
 let stats;
-let scene, camera, renderer, orbitControls, transformControls;
-let mesh1, mesh2, group, lineGroup, line, bgLine;
+let scene, camera, renderer, orbitControls;
+let mesh1, mesh2, lineGroup, line, bgLine;
 let lastTime = window.performance.now();
 
 init();
@@ -74,7 +71,7 @@ function init() {
 	// 	new THREE.Vector3( 0, 1, 0 ),
 	// ] );
 	// geometry.computeVertexNormals();
-	geometry.computeBoundsTree( { maxLeafTris: 1 } );
+	geometry.computeBoundsTree( { maxLeafTris: 1, strategy: SAH } );
 
 	mesh1 = new THREE.Mesh( geometry, material );
 	mesh2 = new THREE.Mesh( geometry, material );
@@ -97,16 +94,6 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
-	transformControls = new TransformControls( camera, renderer.domElement );
-	scene.add( transformControls );
-
-	group = new THREE.Group();
-	group.position.y = 1.1;
-	mesh1.position.y = - 1.1;
-	transformControls.attach( group );
-	scene.add( group );
-	transformControls.visible = false;
-
 	orbitControls = new OrbitControls( camera, renderer.domElement );
 
 	// stats setup
@@ -115,57 +102,10 @@ function init() {
 
 	const gui = new dat.GUI();
 	gui.add( params, 'speed', 0, 10, 0.001 );
-	gui.add( params, 'visibleMeshes' );
-	gui.add( transformControls, 'visible' ).name( 'visibleControls' );
-	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
-
-
-	const posFolder = gui.addFolder( 'position' );
-	posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.add( params.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.add( params.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.open();
-
-	const rotFolder = gui.addFolder( 'rotation' );
-	rotFolder.add( params.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.add( params.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.open();
+	gui.add( params, 'distance', 0, 1.5, 0.001 );
+	gui.add( params, 'displayMeshes' );
 
 	gui.open();
-
-	transformControls.addEventListener( 'change', function () {
-
-		params.position.copy( mesh1.position );
-		params.rotation.copy( mesh1.rotation );
-		params.scale.copy( mesh1.scale );
-		gui.updateDisplay();
-
-	} );
-
-	transformControls.addEventListener( 'mouseDown', function () {
-
-		orbitControls.enabled = false;
-
-	} );
-
-	transformControls.addEventListener( 'mouseUp', function () {
-
-		orbitControls.enabled = true;
-
-	} );
-
-	orbitControls.addEventListener( 'start', function () {
-
-		transformControls.enabled = false;
-
-	} );
-
-	orbitControls.addEventListener( 'end', function () {
-
-		transformControls.enabled = true;
-
-	} );
 
 	window.addEventListener( 'resize', function () {
 
@@ -176,23 +116,6 @@ function init() {
 
 	}, false );
 
-	window.addEventListener( 'keydown', function ( e ) {
-
-		switch ( e.key ) {
-
-			case 'w':
-				transformControls.mode = 'translate';
-				break;
-			case 'e':
-				transformControls.mode = 'rotate';
-				break;
-
-		}
-
-		gui.updateDisplay();
-
-	} );
-
 }
 
 function render() {
@@ -202,14 +125,15 @@ function render() {
 	const delta = window.performance.now() - lastTime;
 	lastTime = window.performance.now();
 
-	mesh2.position.copy( group.position );
-	// mesh2.rotation.copy( group.rotation );
-	// mesh2.scale.copy( group.scale );
+	mesh1.position.y = - params.distance;
+	mesh1.rotation.x -= delta * 3 * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.y -= delta * 1 * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.z -= delta * 2 * 0.0001 * params.speed * 0.5;
 
+	mesh2.position.y = params.distance;
 	mesh2.rotation.x += delta * 0.0001 * params.speed;
 	mesh2.rotation.y += delta * 2 * 0.0001 * params.speed;
 	mesh2.rotation.z += delta * 3 * 0.0001 * params.speed;
-
 
 	mesh1.updateMatrixWorld();
 	mesh2.updateMatrixWorld();
@@ -218,84 +142,29 @@ function render() {
 		.copy( mesh1.matrixWorld )
 		.invert()
 		.multiply( mesh2.matrixWorld );
-	const matrix1to2 = matrix2to1.clone().invert();
 
-	const orientedBounds2 = new OrientedBox();
-	mesh2.geometry.boundsTree.getBoundingBox( orientedBounds2 );
-	orientedBounds2.matrix.copy( matrix2to1 );
-	orientedBounds2.needsUpdate = true;
 
-	const orientedBounds1 = new OrientedBox();
-	orientedBounds1.matrix.copy( matrix1to2 );
-
-	const triangle1 = new SeparatingAxisTriangle();
-	const triangle2 = new SeparatingAxisTriangle();
 	const edge = new THREE.Line3();
-
 	const results = [];
-	mesh1.geometry.boundsTree.shapecast( {
+	mesh1.geometry.boundsTree.bvhcast( mesh2.geometry.boundsTree, matrix2to1, {
 
-		intersectsBounds: box => {
+		intersectsTriangles( triangle1, triangle2 ) {
 
-			return orientedBounds2.intersectsBox( box );
+			if ( triangle1.intersectsTriangle( triangle2, edge ) ) {
 
-		},
+				const { start, end } = edge;
+				results.push(
+					start.x,
+					start.y,
+					start.z,
+					end.x,
+					end.y,
+					end.z,
+				);
 
-		intersectsRange: ( offset1, count1, contained, depth, nodeIndex, box ) => {
+			}
 
-			orientedBounds1.min.copy( box.min );
-			orientedBounds1.max.copy( box.max );
-			orientedBounds1.needsUpdate = true;
-
-			mesh2.geometry.boundsTree.shapecast( {
-
-				intersectsBounds: box2 => {
-
-					return orientedBounds1.intersectsBox( box2 );
-
-				},
-
-				intersectsRange: ( offset2, count2 ) => {
-
-					const geometry1 = mesh1.geometry;
-					const geometry2 = mesh2.geometry;
-
-					for ( let i2 = offset2 * 3, l2 = ( offset2 + count2 ) * 3; i2 < l2; i2 += 3 ) {
-
-						setTriangle( triangle2, i2, geometry2.index, geometry2.attributes.position );
-						triangle2.a.applyMatrix4( matrix2to1 );
-						triangle2.b.applyMatrix4( matrix2to1 );
-						triangle2.c.applyMatrix4( matrix2to1 );
-						triangle2.needsUpdate = true;
-
-						for ( let i1 = offset1 * 3, l1 = ( offset1 + count1 ) * 3; i1 < l1; i1 += 3 ) {
-
-							setTriangle( triangle1, i1, geometry1.index, geometry1.attributes.position );
-							triangle1.needsUpdate = true;
-
-							if ( triangle1.intersectsTriangle( triangle2, edge ) ) {
-
-								const { start, end } = edge;
-								results.push(
-									start.x,
-									start.y,
-									start.z,
-									end.x,
-									end.y,
-									end.z,
-								);
-
-							}
-
-						}
-
-					}
-
-				},
-
-			} );
-
-		},
+		}
 
 	} );
 
@@ -327,8 +196,8 @@ function render() {
 
 	}
 
-	mesh1.visible = params.visibleMeshes;
-	mesh2.visible = params.visibleMeshes;
+	mesh1.visible = params.displayMeshes;
+	mesh2.visible = params.displayMeshes;
 	renderer.render( scene, camera );
 
 	stats.begin();

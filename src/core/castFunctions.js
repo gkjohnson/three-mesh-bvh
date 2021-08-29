@@ -7,52 +7,11 @@ import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersec
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
+import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX, SPLIT_AXIS } from './nodeBufferFunctions.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-
-function IS_LEAF( n16, uint16Array ) {
-
-	return uint16Array[ n16 + 15 ] === 0xFFFF;
-
-}
-
-function OFFSET( n32, uint32Array ) {
-
-	return uint32Array[ n32 + 6 ];
-
-}
-
-function COUNT( n32, uint16Array ) {
-
-	return uint16Array[ n32 + 14 ];
-
-}
-
-function LEFT_NODE( n32 ) {
-
-	return n32 + 8;
-
-}
-
-function RIGHT_NODE( n32, uint32Array ) {
-
-	return uint32Array[ n32 + 6 ];
-
-}
-
-function SPLIT_AXIS( n32, uint32Array ) {
-
-	return uint32Array[ n32 + 7 ];
-
-}
-
-function BOUNDING_DATA_INDEX( n32 ) {
-
-	return n32;
-
-}
 
 export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 
@@ -166,9 +125,6 @@ export const shapecast = ( function () {
 	let _box1, _box2;
 	const boxStack = [];
 	const boxPool = new PrimitivePool( () => new Box3() );
-
-	// const _box1 = new Box3();
-	// const _box2 = new Box3();
 
 	return function shapecast( ...args ) {
 
