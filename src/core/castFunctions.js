@@ -472,7 +472,7 @@ export const bvhcast = ( function () {
 
 				if (
 					_box2.intersectsBox( _child1 ) &&
-					bvhcast(
+					bvhcastTraverse(
 						c1, node2Index32, matrix2to1,
 						intersectsRangeFunc,
 						node1IndexByteOffset, node2IndexByteOffset,
@@ -492,7 +492,7 @@ export const bvhcast = ( function () {
 
 				if (
 					_box2.intersectsBox( _child2 ) &&
-					bvhcast(
+					bvhcastTraverse(
 						c2, node2Index32, matrix2to1,
 						intersectsRangeFunc,
 						node1IndexByteOffset, node2IndexByteOffset,
@@ -515,7 +515,7 @@ export const bvhcast = ( function () {
 
 				if (
 					_oriented1.intersectsBox( _box1 ) &&
-					bvhcast(
+					bvhcastTraverse(
 						node1Index32, c1, matrix2to1,
 						intersectsRangeFunc,
 						node1IndexByteOffset, node2IndexByteOffset,
@@ -534,7 +534,7 @@ export const bvhcast = ( function () {
 
 				if (
 					_oriented2.intersectsBox( _box1 ) &&
-					bvhcast(
+					bvhcastTraverse(
 						node1Index32, c2, matrix2to1,
 						intersectsRangeFunc,
 						node1IndexByteOffset, node2IndexByteOffset,
