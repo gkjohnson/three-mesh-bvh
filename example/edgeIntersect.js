@@ -17,7 +17,7 @@ const params = {
 	rotation: new THREE.Euler(),
 	scale: new THREE.Vector3( 1, 1, 1 ),
 	speed: 1,
-	visibleMeshes: false,
+	displayMeshes: false,
 };
 
 let stats;
@@ -115,8 +115,8 @@ function init() {
 
 	const gui = new dat.GUI();
 	gui.add( params, 'speed', 0, 10, 0.001 );
-	gui.add( params, 'visibleMeshes' );
-	gui.add( transformControls, 'visible' ).name( 'visibleControls' );
+	gui.add( params, 'displayMeshes' );
+	gui.add( transformControls, 'visible' ).name( 'displayControls' );
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
 
 
@@ -205,6 +205,10 @@ function render() {
 	mesh2.position.copy( group.position );
 	// mesh2.rotation.copy( group.rotation );
 	// mesh2.scale.copy( group.scale );
+
+	mesh1.rotation.x -= delta * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.y -= delta * 2 * 0.0001 * params.speed * 0.5;
+	mesh1.rotation.z -= delta * 3 * 0.0001 * params.speed * 0.5;
 
 	mesh2.rotation.x += delta * 0.0001 * params.speed;
 	mesh2.rotation.y += delta * 2 * 0.0001 * params.speed;
@@ -327,8 +331,8 @@ function render() {
 
 	}
 
-	mesh1.visible = params.visibleMeshes;
-	mesh2.visible = params.visibleMeshes;
+	mesh1.visible = params.displayMeshes;
+	mesh2.visible = params.displayMeshes;
 	transformControls.enabled = transformControls.visible;
 	renderer.render( scene, camera );
 
