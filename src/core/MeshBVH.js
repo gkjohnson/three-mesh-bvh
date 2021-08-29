@@ -5,12 +5,9 @@ import {
 	raycast,
 	raycastFirst,
 	shapecast,
-	bvhcast,
 	intersectsGeometry,
 	setBuffer,
-	setBuffer2,
 	clearBuffer,
-	clearBuffer2,
 } from './castFunctions.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
