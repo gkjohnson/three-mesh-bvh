@@ -486,6 +486,8 @@ export const bvhcast = ( function () {
 
 				// run the second child next
 				arrayToBox( node2Index32, float32Array2, _box2 );
+				_box2.needsUpdate = true;
+
 				arrayToBox( c2, float32Array1, _child2 );
 
 				if (
