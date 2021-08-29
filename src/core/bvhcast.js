@@ -3,7 +3,8 @@
  * performing recursive shapecast calls between two BVHs (ie shapecast down to a leaf node and then shapecast using
  * that OBB against the other BVH) likely due to the overhead of updating the "OrientedBox" cache variables which
  * this approach needs to use and update a lot more frequently. If the OrientedBox update and intersects bounds
- * functions can be made faster then this may be a win.
+ * functions can be made faster then this may be a win. Using an AABB with a matrix applied is more of a win but
+ * the same improvements benefit the shapecast approach, as well.
  */
 import { Box3 } from 'three';
 
