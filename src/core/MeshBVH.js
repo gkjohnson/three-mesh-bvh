@@ -453,14 +453,14 @@ export class MeshBVH {
 
 	}
 
-	bvhcast( matrixToLocal, otherBvh, callbacks ) {
+	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
 		let {
 			intersectsRange,
 			intersectsTriangle,
 		} = callbacks;
 
-		const geometry = otherBvh;
+		const geometry = otherBvh.geometry;
 		const indexAttr = geometry.index;
 		const positionAttr = geometry.attributes.position;
 

@@ -438,13 +438,13 @@ export const bvhcast = ( function () {
 			let splitSide = 0;
 			if ( isLeaf1 ) {
 
-				splitSide = 1;
+				splitSide = 2;
 
 			}
 
 			if ( isLeaf2 ) {
 
-				splitSide = 2;
+				splitSide = 1;
 
 			}
 

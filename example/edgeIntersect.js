@@ -329,6 +329,7 @@ function render() {
 
 	mesh1.visible = params.visibleMeshes;
 	mesh2.visible = params.visibleMeshes;
+	transformControls.enabled = transformControls.visible;
 	renderer.render( scene, camera );
 
 	stats.begin();
