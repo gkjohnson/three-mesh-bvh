@@ -1,4 +1,4 @@
-import { Box3, Vector3, Matrix4, Sphere, Line3 } from 'three';
+import { Box3, Vector3, Matrix4, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
