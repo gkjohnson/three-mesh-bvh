@@ -25,7 +25,6 @@ export class SeparatingAxisBounds {
 		this.min = min;
 		this.max = max;
 
-
 	}
 
 	setFromPoints( axis, points ) {

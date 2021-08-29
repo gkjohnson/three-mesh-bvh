@@ -99,6 +99,7 @@ OrientedBox.prototype.intersectsBox = ( function () {
 	const aabbBounds = new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
 
+		// TODO: should this be doing SAT against the AABB?
 		if ( this.needsUpdate ) {
 
 			this.update();

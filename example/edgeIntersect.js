@@ -3,7 +3,7 @@ import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH } from '../src/index.js';
 import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
 import { OrientedBox } from '../src/math/OrientedBox.js';
 import { setTriangle } from '../src/utils/TriangleUtilities.js';
@@ -74,7 +74,7 @@ function init() {
 	// 	new THREE.Vector3( 0, 1, 0 ),
 	// ] );
 	// geometry.computeVertexNormals();
-	geometry.computeBoundsTree( { maxLeafTris: 1 } );
+	geometry.computeBoundsTree( { maxLeafTris: 1, strategy: SAH } );
 
 	mesh1 = new THREE.Mesh( geometry, material );
 	mesh2 = new THREE.Mesh( geometry, material );
@@ -203,8 +203,6 @@ function render() {
 	lastTime = window.performance.now();
 
 	mesh2.position.copy( group.position );
-	// mesh2.rotation.copy( group.rotation );
-	// mesh2.scale.copy( group.scale );
 
 	mesh1.rotation.x -= delta * 3 * 0.0001 * params.speed * 0.5;
 	mesh1.rotation.y -= delta * 1 * 0.0001 * params.speed * 0.5;
