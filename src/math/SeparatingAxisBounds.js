@@ -17,8 +17,8 @@ export class SeparatingAxisBounds {
 
 			const p = points[ i ];
 			const val = p[ field ];
-			min = Math.min( val, min );
-			max = Math.max( val, max );
+			min = val < min ? val : min;
+			max = val > max ? val : max;
 
 		}
 
@@ -36,8 +36,8 @@ export class SeparatingAxisBounds {
 
 			const p = points[ i ];
 			const val = axis.dot( p );
-			min = Math.min( val, min );
-			max = Math.max( val, max );
+			min = val < min ? val : min;
+			max = val > max ? val : max;
 
 		}
 
