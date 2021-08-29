@@ -16,7 +16,6 @@ export class OrientedBox extends Box3 {
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
-		this.sphere = new Sphere();
 		this.needsUpdate = false;
 
 	}
@@ -68,8 +67,6 @@ OrientedBox.prototype.update = ( function () {
 
 		}
 
-		this.sphere.setFromPoints( this.points );
-
 		const satBounds = this.satBounds;
 		const satAxes = this.satAxes;
 		const minVec = points[ 0 ];
@@ -107,8 +104,6 @@ OrientedBox.prototype.intersectsBox = ( function () {
 			this.update();
 
 		}
-
-		if ( ! box.intersectsSphere( this.sphere ) ) return false;
 
 		const min = box.min;
 		const max = box.max;
