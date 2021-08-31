@@ -288,7 +288,7 @@ raycast( ray : Ray, material : Material | Array<Material> ) : Array<RaycastHit>
 
 Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
 
-Unlike three.js' Raycaster restults the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function they are transformed into world space to be consistent with three's results.
+Unlike three.js' Raycaster restults the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function as an override for `Mesh.raycast` they are transformed into world space to be consistent with three's results.
 
 ### .raycastFirst
 
