@@ -26,6 +26,7 @@ const params = {
 		stretchImage: true,
 	},
 	pathTracing: {
+		antialiasing: true,
 		bounces: 5,
 		directLightSampling: true,
 		importanceSampling: true,
@@ -142,6 +143,7 @@ function init() {
 	resolutionFolder.open();
 
 	const pathTracingFolder = gui.addFolder( 'path tracing' );
+	pathTracingFolder.add( params.pathTracing, 'antialiasing' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 10, 1 ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'importanceSampling' ).onChange( resetImage );
