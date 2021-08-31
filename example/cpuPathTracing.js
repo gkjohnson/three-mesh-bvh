@@ -145,8 +145,8 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 10, 1 ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'importanceSampling' ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'apertureSize' ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'focalLength' ).onChange( resetImage );
+	pathTracingFolder.add( params.pathTracing, 'apertureSize', 0, 0.1, 0.0001 ).onChange( resetImage );
+	pathTracingFolder.add( params.pathTracing, 'focusDistance', 0.1, 5, 0.001 ).onChange( resetImage );
 	pathTracingFolder.open();
 
 	const materialFolder = gui.addFolder( 'material' );
