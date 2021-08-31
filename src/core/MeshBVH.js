@@ -977,7 +977,7 @@ MeshBVH.prototype.raycast = function ( ...args ) {
 
 	if ( args[ 0 ].isMesh ) {
 
-		console.warn( 'MeshBVH: The function signature for "raycast" has changed. See docs for new signature.' );
+		console.warn( 'MeshBVH: The function signature and results frame for "raycast" has changed. See docs for new signature.' );
 		const [
 			mesh, raycaster, ray, intersects,
 		] = args;
@@ -1009,7 +1009,7 @@ MeshBVH.prototype.raycastFirst = function ( ...args ) {
 
 	if ( args[ 0 ].isMesh ) {
 
-		console.warn( 'MeshBVH: The function signature for "raycastFirst" has changed. See docs for new signature.' );
+		console.warn( 'MeshBVH: The function signature and results frame for "raycastFirst" has changed. See docs for new signature.' );
 		const [
 			mesh, raycaster, ray,
 		] = args;
