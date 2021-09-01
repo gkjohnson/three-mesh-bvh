@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -91,7 +91,7 @@ function init() {
 	scanLineElement.style.visibility = 'hidden';
 	containerElement.appendChild( scanLineElement );
 
-	fsQuad = new Pass.FullScreenQuad( new THREE.MeshBasicMaterial() );
+	fsQuad = new FullScreenQuad( new THREE.MeshBasicMaterial() );
 	fsQuad.material.transparent = true;
 
 	// scene setup

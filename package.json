@@ -69,7 +69,7 @@
     "simplex-noise": "^2.4.0",
     "static-server": "^2.2.1",
     "stats.js": "^0.17.0",
-    "three": "^0.126.1"
+    "three": "^0.132.0"
   },
   "dependencies": {}
 }
