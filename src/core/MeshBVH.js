@@ -916,7 +916,9 @@ export class MeshBVH {
 			tempV2.fromBufferAttribute( positions1, b1 );
 			tempV3.fromBufferAttribute( positions1, c1 );
 
-			normal1 = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
+			if ( target1.face && target1.face.normal ) normal1 = target1.face.normal;
+			else normal1 = new Vector3();
+			Triangle.getNormal( tempV1, tempV2, tempV3, normal1 );
 
 			if ( uvs1 ) {
 
@@ -924,7 +926,9 @@ export class MeshBVH {
 				tempUV2.fromBufferAttribute( uvs1, b1 );
 				tempUV3.fromBufferAttribute( uvs1, c1 );
 
-				uv1 = Triangle.getUV( tempTargetDest1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+				if ( target1.uv ) uv1 = target1.uv;
+				else uv1 = new Vector2();
+				Triangle.getUV( tempTargetDest1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv1 );
 
 			}
 
@@ -950,7 +954,9 @@ export class MeshBVH {
 			tempV2.fromBufferAttribute( positions2, b2 );
 			tempV3.fromBufferAttribute( positions2, c2 );
 
-			normal2 = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
+			if ( target2.face && target2.face.normal ) normal2 = target2.face.normal;
+			else normal2 = new Vector3();
+			Triangle.getNormal( tempV1, tempV2, tempV3, normal2 );
 
 			if ( uvs2 ) {
 
@@ -958,7 +964,9 @@ export class MeshBVH {
 				tempUV2.fromBufferAttribute( uvs2, b2 );
 				tempUV3.fromBufferAttribute( uvs2, c2 );
 
-				uv2 = Triangle.getUV( tempTargetDest2, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+				if ( target2.uv ) uv2 = target2.uv;
+				else uv2 = new Vector2();
+				Triangle.getUV( tempTargetDest2, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv2 );
 
 			}
 
@@ -974,28 +982,30 @@ export class MeshBVH {
 
 			if ( target1 ) {
 
-				target1.point = tempTargetDest1.clone();
+				if ( ! target1.point ) target1.point = new Vector3();
+				target1.point.copy( tempTargetDest1 );
 				target1.distance = closestDistance;
 				if ( ! target1.face ) target1.face = { };
 				target1.face.a = a1;
 				target1.face.b = b1;
 				target1.face.c = c1;
-				target1.materialIndex = 0;
-				target1.normal = normal1;
+				target1.face.materialIndex = 0;
+				target1.face.normal = normal1;
 				target1.uv = uv1;
 
 			}
 
 			if ( target2 ) {
 
-				target2.point = tempTargetDest2.clone();
+				if ( ! target2.point ) target2.point = new Vector3();
+				target2.point.copy( tempTargetDest2 );
 				target2.distance = closestDistance;
 				if ( ! target2.face ) target2.face = { };
 				target2.face.a = a2;
 				target2.face.b = b2;
 				target2.face.c = c2;
-				target2.materialIndex = 0;
-				target2.normal = normal2;
+				target2.face.materialIndex = 0;
+				target2.face.normal = normal2;
 				target2.uv = uv2;
 
 			}
@@ -1095,7 +1105,9 @@ export class MeshBVH {
 			tempUV2.fromBufferAttribute( uvs, b );
 			tempUV3.fromBufferAttribute( uvs, c );
 
-			uv = Triangle.getUV( temp1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+			if ( target && target.uv ) uv = target.uv;
+			else uv = new Vector2();
+			Triangle.getUV( temp1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv );
 
 		}
 
@@ -1108,14 +1120,18 @@ export class MeshBVH {
 
 			}
 
-			target.point = temp1.clone();
+			if ( ! target.point ) target.point = new Vector3();
+			target.point.copy( temp1 );
 			target.distance = closestDistance;
 			if ( ! target.face ) target.face = { };
 			target.face.a = a;
 			target.face.b = b;
 			target.face.c = c;
-			target.materialIndex = 0;
-			target.normal = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
+			target.face.materialIndex = 0;
+			if ( ! target.face.normal ) target.face.normal  = new Vector3();
+			Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
+			if ( ! target.uv ) target.uv = new Vector2();
+			target.uv.copy( uv );
 
 			return target;
 
