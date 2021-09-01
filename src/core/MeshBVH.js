@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
+import { Vector2, Vector3, BufferAttribute, Box3, FrontSide, Matrix4, Triangle } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import {
@@ -26,6 +26,12 @@ const obb2 = /* @__PURE__ */ new OrientedBox();
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
 const temp2 = /* @__PURE__ */ new Vector3();
+const tempV1 = /* @__PURE__ */ new Vector3();
+const tempV2 = /* @__PURE__ */ new Vector3();
+const tempV3 = /* @__PURE__ */ new Vector3();
+const tempUV1 = /* @__PURE__ */ new Vector2();
+const tempUV2 = /* @__PURE__ */ new Vector2();
+const tempUV3 = /* @__PURE__ */ new Vector2();
 const tempBox = /* @__PURE__ */ new Box3();
 const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
 
@@ -718,6 +724,8 @@ export class MeshBVH {
 		}
 
 		let closestDistance = Infinity;
+		let closestDistanceTriIndex = null;
+		let closestDistanceOtherTriIndex = null;
 		obb2.matrix.copy( geometryToBvh ).invert();
 		this.shapecast(
 			{
@@ -800,6 +808,8 @@ export class MeshBVH {
 											}
 
 											closestDistance = dist;
+											closestDistanceTriIndex = i / 3;
+											closestDistanceOtherTriIndex = i2 / 3;
 
 										}
 
@@ -850,6 +860,8 @@ export class MeshBVH {
 									}
 
 									closestDistance = dist;
+									closestDistanceTriIndex = i / 3;
+									closestDistanceOtherTriIndex = i2 / 3;
 
 								}
 
@@ -875,13 +887,100 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
-		return closestDistance;
+		// Collect closest point info for this.geometry
+		let uv1 = null;
+		let normal1 = null;
+		let a1 = null;
+		let b1 = null;
+		let c1 = null;
+		if ( target1 ) {
+
+			const indices1 = this.geometry.getIndex().array;
+			const positions1 = this.geometry.getAttribute( 'position' );
+			const uvs1 = this.geometry.getAttribute( 'uv' );
+
+			a1 = indices1[ closestDistanceTriIndex * 3 ];
+			b1 = indices1[ closestDistanceTriIndex * 3 + 1 ];
+			c1 = indices1[ closestDistanceTriIndex * 3 + 2 ];
+
+			tempV1.fromBufferAttribute( positions1, a1 );
+			tempV2.fromBufferAttribute( positions1, b1 );
+			tempV3.fromBufferAttribute( positions1, c1 );
+
+			normal1 = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
+
+			if ( uvs1 ) {
+
+				tempUV1.fromBufferAttribute( uvs1, a1 );
+				tempUV2.fromBufferAttribute( uvs1, b1 );
+				tempUV3.fromBufferAttribute( uvs1, c1 );
+
+				uv1 = Triangle.getUV( target1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+
+			}
+
+		}
+
+		// Collect closest point info for otherGeometry
+		let uv2 = null;
+		let normal2 = null;
+		let a2 = null;
+		let b2 = null;
+		let c2 = null;
+		if ( target2 ) {
+
+			const indices2 = otherGeometry.getIndex().array;
+			const positions2 = otherGeometry.getAttribute( 'position' );
+			const uvs2 = otherGeometry.getAttribute( 'uv' );
+
+			a2 = indices2[ closestDistanceOtherTriIndex * 3 ];
+			b2 = indices2[ closestDistanceOtherTriIndex * 3 + 1 ];
+			c2 = indices2[ closestDistanceOtherTriIndex * 3 + 2 ];
+
+			tempV1.fromBufferAttribute( positions2, a2 );
+			tempV2.fromBufferAttribute( positions2, b2 );
+			tempV3.fromBufferAttribute( positions2, c2 );
+
+			normal2 = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
+
+			if ( uvs2 ) {
+
+				tempUV1.fromBufferAttribute( uvs2, a2 );
+				tempUV2.fromBufferAttribute( uvs2, b2 );
+				tempUV3.fromBufferAttribute( uvs2, c2 );
+
+				uv2 = Triangle.getUV( target2, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+
+			}
+
+		}
+
+		return {
+			point: target1,
+			distance: closestDistance,
+			face: {
+				a: a1,
+				b: b1,
+				c: c1,
+				materialIndex: 0,
+				normal: normal1
+			},
+			uv: uv1,
+			faceOther: {
+				a: a2,
+				b: b2,
+				c: c2,
+				materialIndex: 0,
+				normal: normal2
+			},
+			uvOther: uv2
+		};
 
 	}
 
 	distanceToGeometry( geom, matrix, minThreshold, maxThreshold ) {
 
-		return this.closestPointToGeometry( geom, matrix, null, null, minThreshold, maxThreshold );
+		return this.closestPointToGeometry( geom, matrix, null, null, minThreshold, maxThreshold ).distance;
 
 	}
 
@@ -894,6 +993,7 @@ export class MeshBVH {
 		const minThresholdSq = minThreshold * minThreshold;
 		const maxThresholdSq = maxThreshold * maxThreshold;
 		let closestDistanceSq = Infinity;
+		let closestDistanceTriIndex = null;
 		this.shapecast(
 
 			{
@@ -911,19 +1011,15 @@ export class MeshBVH {
 
 				},
 
-				intersectsTriangle: tri => {
+				intersectsTriangle: ( tri, triIndex ) => {
 
 					tri.closestPointToPoint( point, temp );
 					const distSq = point.distanceToSquared( temp );
 					if ( distSq < closestDistanceSq ) {
 
-						if ( target ) {
-
-							target.copy( temp );
-
-						}
-
+						temp1.copy( temp );
 						closestDistanceSq = distSq;
+						closestDistanceTriIndex = triIndex;
 
 					}
 
@@ -943,13 +1039,50 @@ export class MeshBVH {
 
 		);
 
-		return Math.sqrt( closestDistanceSq );
+		temp.copy( temp1 );
+		if ( target ) target.copy( temp1 );
+
+		const indices = this.geometry.getIndex().array;
+		const positions = this.geometry.getAttribute( 'position' );
+		const uvs = this.geometry.getAttribute( 'uv' );
+
+		const a = indices[ closestDistanceTriIndex * 3 ];
+		const b = indices[ closestDistanceTriIndex * 3 + 1 ];
+		const c = indices[ closestDistanceTriIndex * 3 + 2 ];
+
+		tempV1.fromBufferAttribute( positions, a );
+		tempV2.fromBufferAttribute( positions, b );
+		tempV3.fromBufferAttribute( positions, c );
+
+		let uv = null;
+		if ( uvs ) {
+
+			tempUV1.fromBufferAttribute( uvs, a );
+			tempUV2.fromBufferAttribute( uvs, b );
+			tempUV3.fromBufferAttribute( uvs, c );
+
+			uv = Triangle.getUV( temp, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+
+		}
+
+		return {
+			point: target,
+			distance: Math.sqrt( closestDistanceSq ),
+			face: {
+				a: a,
+				b: b,
+				c: c,
+				materialIndex: 0,
+				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
+			},
+			uv: uv
+		};
 
 	}
 
 	distanceToPoint( point, minThreshold, maxThreshold ) {
 
-		return this.closestPointToPoint( point, null, minThreshold, maxThreshold );
+		return this.closestPointToPoint( point, null, minThreshold, maxThreshold ).distance;
 
 	}
 

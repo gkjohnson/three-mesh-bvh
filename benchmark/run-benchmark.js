@@ -255,7 +255,7 @@ function runSuite( strategy ) {
 
 		'DistanceToGeometry w/ BVH',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToGeometry( intersectGeometry, geomMat, target1, target2 ),
+		() => mesh.geometry.boundsTree.closestPointToGeometry( intersectGeometry, geomMat, target1, target2 ).distance,
 		3000
 
 	);
@@ -265,7 +265,7 @@ function runSuite( strategy ) {
 
 		'DistanceToPoint',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToPoint( vec, target1 ),
+		() => mesh.geometry.boundsTree.closestPointToPoint( vec, target1 ).distance,
 		3000
 
 	);
