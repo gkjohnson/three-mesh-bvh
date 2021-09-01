@@ -549,7 +549,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return the radius if at the center of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( new Vector3(), target ).distance;
+			const dist = bvh.closestPointToPoint( new Vector3(), target );
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -557,7 +557,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return 0 if on the surface of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( new Vector3( 0, 1, 0 ), target ).distance;
+			const dist = bvh.closestPointToPoint( new Vector3( 0, 1, 0 ), target );
 			expect( dist ).toBe( 0 );
 
 		} );
@@ -575,7 +575,7 @@ function runSuiteWithOptions( defaultOptions ) {
 				vec.normalize().multiplyScalar( length );
 
 				const expectedDist = Math.abs( 1 - length );
-				const dist = bvh.closestPointToPoint( vec, target ).distance;
+				const dist = bvh.closestPointToPoint( vec, target );
 				expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 				expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 
@@ -615,7 +615,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.001, 0.001, 0.001 )
 				);
-			const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 ).distance;
+			const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -629,7 +629,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 )
 				);
-			const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 ).distance;
+			const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
 			expect( dist ).toBe( 0 );
 
 		} );
@@ -659,7 +659,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const distToCenter = Math.abs( 1 - length );
 				const expectedDist = distToCenter < radius ? 0 : distToCenter - radius;
-				const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 ).distance;
+				const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
 				expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 				expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 

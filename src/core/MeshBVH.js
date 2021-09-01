@@ -26,6 +26,8 @@ const obb2 = /* @__PURE__ */ new OrientedBox();
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
 const temp2 = /* @__PURE__ */ new Vector3();
+const temp3 = /* @__PURE__ */ new Vector3();
+const temp4 = /* @__PURE__ */ new Vector3();
 const tempV1 = /* @__PURE__ */ new Vector3();
 const tempV2 = /* @__PURE__ */ new Vector3();
 const tempV3 = /* @__PURE__ */ new Vector3();
@@ -711,15 +713,19 @@ export class MeshBVH {
 
 		let tempTarget1 = null;
 		let tempTarget2 = null;
+		let tempTargetDest1 = null;
+		let tempTargetDest2 = null;
 		if ( target1 ) {
 
 			tempTarget1 = temp1;
+			tempTargetDest1 = temp3;
 
 		}
 
 		if ( target2 ) {
 
 			tempTarget2 = temp2;
+			tempTargetDest2 = temp4;
 
 		}
 
@@ -795,15 +801,15 @@ export class MeshBVH {
 										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 										if ( dist < closestDistance ) {
 
-											if ( target1 ) {
+											if ( tempTargetDest1 ) {
 
-												target1.copy( tempTarget1 );
+												tempTargetDest1.copy( tempTarget1 );
 
 											}
 
-											if ( target2 ) {
+											if ( tempTargetDest2 ) {
 
-												target2.copy( tempTarget2 );
+												tempTargetDest2.copy( tempTarget2 );
 
 											}
 
@@ -847,15 +853,15 @@ export class MeshBVH {
 								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 								if ( dist < closestDistance ) {
 
-									if ( target1 ) {
+									if ( tempTargetDest1 ) {
 
-										target1.copy( tempTarget1 );
+										tempTargetDest1.copy( tempTarget1 );
 
 									}
 
-									if ( target2 ) {
+									if ( tempTargetDest2 ) {
 
-										target2.copy( tempTarget2 );
+										tempTargetDest2.copy( tempTarget2 );
 
 									}
 
@@ -887,13 +893,16 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
+		// In backwardsCompat, target1 and target2 are expected to be Vector3 if not null
+		const backwardsCompat = ( target1 || target2 ) && ( ( target1 && target1.isVector3 ) || ( target2 && target2.isVector3 ) );
+
 		// Collect closest point info for this.geometry
 		let uv1 = null;
 		let normal1 = null;
 		let a1 = null;
 		let b1 = null;
 		let c1 = null;
-		if ( target1 ) {
+		if ( target1 && ! backwardsCompat ) {
 
 			const indices1 = this.geometry.getIndex().array;
 			const positions1 = this.geometry.getAttribute( 'position' );
@@ -915,7 +924,7 @@ export class MeshBVH {
 				tempUV2.fromBufferAttribute( uvs1, b1 );
 				tempUV3.fromBufferAttribute( uvs1, c1 );
 
-				uv1 = Triangle.getUV( target1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+				uv1 = Triangle.getUV( tempTargetDest1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
 
 			}
 
@@ -927,7 +936,7 @@ export class MeshBVH {
 		let a2 = null;
 		let b2 = null;
 		let c2 = null;
-		if ( target2 ) {
+		if ( target2 && ! backwardsCompat ) {
 
 			const indices2 = otherGeometry.getIndex().array;
 			const positions2 = otherGeometry.getAttribute( 'position' );
@@ -949,38 +958,65 @@ export class MeshBVH {
 				tempUV2.fromBufferAttribute( uvs2, b2 );
 				tempUV3.fromBufferAttribute( uvs2, c2 );
 
-				uv2 = Triangle.getUV( target2, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+				uv2 = Triangle.getUV( tempTargetDest2, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
 
 			}
 
 		}
 
-		return {
-			point: target1,
-			distance: closestDistance,
-			face: {
-				a: a1,
-				b: b1,
-				c: c1,
-				materialIndex: 0,
-				normal: normal1
-			},
-			uv: uv1,
-			faceOther: {
-				a: a2,
-				b: b2,
-				c: c2,
-				materialIndex: 0,
-				normal: normal2
-			},
-			uvOther: uv2
-		};
+		if ( backwardsCompat ) {
 
-	}
+			if ( target1 ) target1.copy( tempTargetDest1 );
+			if ( target2 ) target2.copy( tempTargetDest2 );
+			return closestDistance;
 
-	distanceToGeometry( geom, matrix, minThreshold, maxThreshold ) {
+		}
+		else {
 
-		return this.closestPointToGeometry( geom, matrix, null, null, minThreshold, maxThreshold ).distance;
+			if ( target1 ) {
+
+				target1.point = tempTargetDest1.clone();
+				target1.distance = closestDistance;
+				if ( ! target1.face ) target1.face = { };
+				target1.face.a = a1;
+				target1.face.b = b1;
+				target1.face.c = c1;
+				target1.materialIndex = 0;
+				target1.normal = normal1;
+				target1.uv = uv1;
+
+			}
+
+			if ( target2 ) {
+
+				target2.point = tempTargetDest2.clone();
+				target2.distance = closestDistance;
+				if ( ! target2.face ) target2.face = { };
+				target2.face.a = a2;
+				target2.face.b = b2;
+				target2.face.c = c2;
+				target2.materialIndex = 0;
+				target2.normal = normal2;
+				target2.uv = uv2;
+
+			}
+
+			if ( target1 || target2 ) return target1;
+
+			return {
+				point: tempTargetDest1.clone(),
+				distance: closestDistance,
+				face: {
+					a: a1,
+					b: b1,
+					c: c1,
+					materialIndex: 0,
+					normal: normal1
+				},
+				uv: uv1
+			};
+
+		}
 
 	}
 
@@ -1039,8 +1075,7 @@ export class MeshBVH {
 
 		);
 
-		temp.copy( temp1 );
-		if ( target ) target.copy( temp1 );
+		const closestDistance = Math.sqrt( closestDistanceSq );
 
 		const indices = this.geometry.getIndex().array;
 		const positions = this.geometry.getAttribute( 'position' );
@@ -1061,28 +1096,48 @@ export class MeshBVH {
 			tempUV2.fromBufferAttribute( uvs, b );
 			tempUV3.fromBufferAttribute( uvs, c );
 
-			uv = Triangle.getUV( temp, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
+			uv = Triangle.getUV( temp1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, new Vector2() );
 
 		}
 
-		return {
-			point: target,
-			distance: Math.sqrt( closestDistanceSq ),
-			face: {
-				a: a,
-				b: b,
-				c: c,
-				materialIndex: 0,
-				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
-			},
-			uv: uv
-		};
+		if ( target ) {
 
-	}
+			if ( target.isVector3 ) {
 
-	distanceToPoint( point, minThreshold, maxThreshold ) {
+				target.copy( temp1 );
+				return closestDistance;
 
-		return this.closestPointToPoint( point, null, minThreshold, maxThreshold ).distance;
+			}
+
+			target.point = temp1.clone();
+			target.distance = closestDistance;
+			if ( ! target.face ) target.face = { };
+			target.face.a = a;
+			target.face.b = b;
+			target.face.c = c;
+			target.materialIndex = 0;
+			target.normal = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
+
+			return target;
+
+		}
+		else {
+
+			return {
+
+				point: temp1.clone(),
+				distance: closestDistance,
+				face: {
+					a: a,
+					b: b,
+					c: c,
+					materialIndex: 0,
+					normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
+				},
+				uv: uv
+			};
+
+		}
 
 	}
 
