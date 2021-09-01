@@ -970,8 +970,7 @@ export class MeshBVH {
 			if ( target2 ) target2.copy( tempTargetDest2 );
 			return closestDistance;
 
-		}
-		else {
+		} else {
 
 			if ( target1 ) {
 
@@ -1120,8 +1119,7 @@ export class MeshBVH {
 
 			return target;
 
-		}
-		else {
+		} else {
 
 			return {
 
