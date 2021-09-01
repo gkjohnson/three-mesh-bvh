@@ -19,7 +19,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, light, mesh, clock;
-let renderTarget, fsQuad, controls, bvh, materials;
+let fsQuad, controls, bvh, materials;
 let raycaster, dataTexture, samples, ssPoint, color, task, delay;
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
@@ -70,17 +70,6 @@ function init() {
 	document.body.style.width = '100vw';
 	document.body.style.height = '100vh';
 	document.body.appendChild( renderer.domElement );
-
-	// render target
-	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
-		format: THREE.RedFormat,
-		type: THREE.FloatType,
-
-		// TODO: Use integer buffers once better supported in three.js
-		// format: THREE.RedIntegerFormat,
-		// type: THREE.UnsignedIntType,
-		// internalFormat: 'R16UI'
-	} );
 
 	fsQuad = new Pass.FullScreenQuad( new THREE.MeshBasicMaterial() );
 	fsQuad.material.transparent = true;
@@ -221,8 +210,6 @@ function onResize() {
 			}
 
 			dataTexture = new THREE.DataTexture( new Float32Array( w * h * 4 ), w, h, THREE.RGBAFormat, THREE.FloatType );
-
-			renderTarget.setSize( w, h );
 			resetImage();
 
 		}
