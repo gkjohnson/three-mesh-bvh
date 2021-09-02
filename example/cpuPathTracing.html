@@ -32,28 +32,25 @@
             color: #eee;
         }
 
-        #container {
+        #output {
             position: absolute;
             bottom: 0;
             left: 0;
             padding: 5px;
             color: white;
-            opacity: 0.5;
+            opacity: 0.75;
+			background-color: rgba( 0, 0, 0, 0.35 );
             font-family: monospace;
             pointer-events: none;
-        }
-
-        #output, #benchmark {
-            white-space: pre;
+			z-index: 1;
+			white-space: pre;
         }
     </style>
 </head>
 <body>
     <div id="info">
 	</div>
-	<div id="container">
-		<div id="output"></div>
-		<div id="benchmark"></div>
+	<div id="output">
 	</div>
     <script src="./cpuPathTracing.js"></script>
 </body>

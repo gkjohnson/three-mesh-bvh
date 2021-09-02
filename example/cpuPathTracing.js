@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 import { GUI } from 'dat.gui';
@@ -21,7 +21,8 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 let scene, camera, renderer, light, mesh, clock;
 let fsQuad, controls, bvh, materials;
 let raycaster, dataTexture, samples, ssPoint, color, task, delay;
-let scanLineElement, containerElement;
+let scanLineElement, containerElement, outputContainer;
+let renderStartTime, computationTime;
 const triangle = new THREE.Triangle();
 const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
@@ -42,6 +43,7 @@ const params = {
 		stretchImage: true,
 	},
 	pathTracing: {
+		pause: false,
 		displayScanLine: false,
 		antialiasing: true,
 		bounces: 5,
@@ -90,6 +92,8 @@ function init() {
 	scanLineElement.style.borderBottom = '1px solid #80CBC4';
 	scanLineElement.style.visibility = 'hidden';
 	containerElement.appendChild( scanLineElement );
+
+	outputContainer = document.getElementById( 'output' );
 
 	fsQuad = new FullScreenQuad( new THREE.MeshBasicMaterial() );
 	fsQuad.material.transparent = true;
@@ -169,6 +173,7 @@ function init() {
 	resolutionFolder.open();
 
 	const pathTracingFolder = gui.addFolder( 'path tracing' );
+	pathTracingFolder.add( params.pathTracing, 'pause' );
 	pathTracingFolder.add( params.pathTracing, 'displayScanLine' ).onChange( v => {
 
 		scanLineElement.style.visibility = v ? 'visible' : 'hidden';
@@ -301,6 +306,8 @@ function* runPathTracing() {
 	const posAttr = bvh.geometry.attributes.position;
 	const normalAttr = bvh.geometry.attributes.normal;
 	const materialAttr = bvh.geometry.attributes.materialIndex;
+	renderStartTime = performance.now();
+	computationTime = 0;
 	scanLineElement.style.bottom = `100%`;
 
 	while ( true ) {
@@ -344,7 +351,10 @@ function* runPathTracing() {
 
 				}
 
-				if ( performance.now() - lastStartTime > 16 ) {
+				const delta = performance.now() - lastStartTime;
+				if ( delta > 16 ) {
+
+					computationTime += delta;
 
 					yield;
 					scanLineElement.style.bottom = `${ 100 * y / ( height - 1 ) }%`;
@@ -451,6 +461,21 @@ function* runPathTracing() {
 
 }
 
+function toHumanReadableTime( ms ) {
+
+	ms = ms || 0;
+
+	let seconds = ms * 1e-3;
+	const minutes = Math.floor( seconds / 60 );
+	seconds = seconds - minutes * 60;
+
+	const minutesString = ( minutes < 10 ? '0' : '' ) + minutes;
+	const secondsString = ( seconds < 10 ? '0' : '' ) + seconds.toFixed( 3 );
+
+	return `${ minutesString }m ${ secondsString }s`;
+
+}
+
 function render() {
 
 	requestAnimationFrame( render );
@@ -473,7 +498,7 @@ function render() {
 	// run the path tracing
 	scene.updateMatrixWorld( true );
 	camera.updateMatrixWorld( true );
-	if ( bvh ) {
+	if ( bvh && ! params.pathTracing.pause ) {
 
 		task.next();
 
@@ -490,6 +515,11 @@ function render() {
 		delay += clock.getDelta() * 1e3;
 
 	}
+
+	outputContainer.innerText =
+		`completed samples : ${ samples }\n` +
+		`computation time  : ${ toHumanReadableTime( computationTime ) }\n` +
+		`elapsed time      : ${ toHumanReadableTime( performance.now() - renderStartTime ) }`;
 
 }
 
