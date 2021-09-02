@@ -1128,7 +1128,7 @@ export class MeshBVH {
 			target.face.b = b;
 			target.face.c = c;
 			target.face.materialIndex = 0;
-			if ( ! target.face.normal ) target.face.normal  = new Vector3();
+			if ( ! target.face.normal ) target.face.normal = new Vector3();
 			Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 			if ( ! target.uv ) target.uv = new Vector2();
 			target.uv.copy( uv );
