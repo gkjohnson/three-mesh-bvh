@@ -24,11 +24,11 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, light, clock;
-let fsQuad, controls, materials;
+let fsQuad, controls;
 let raycaster, dataTexture, samples, ssPoint, color, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
-let mesh, bvh;
+let mesh, bvh, materials;
 const triangle = new THREE.Triangle();
 const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
@@ -43,7 +43,7 @@ const EPSILON = 1e-7;
 
 const models = {};
 const params = {
-	model: 'Dragon',
+	model: 'Rover',
 	resolution: {
 		resolutionScale: 2,
 		smoothImageScaling: false,
@@ -158,14 +158,13 @@ function init() {
 			new THREE.MeshStandardMaterial(),
 		);
 
-		const results = mergeMeshes( [ mesh, ground ], true );
-		const merged = new THREE.Mesh( results.geometry, new THREE.MeshStandardMaterial() );
+		const { geometry, materials } = mergeMeshes( [ mesh, ground ], true );
+		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		scene.add( merged );
 
-		bvh = new MeshBVH( results.geometry, { strategy: SAH, maxLeafTris: 1 } );
-		materials = results.materials;
+		bvh = new MeshBVH( geometry, { strategy: SAH, maxLeafTris: 1 } );
 
-		models[ 'Dragon' ] = { mesh: merged, bvh };
+		models[ 'Dragon' ] = { mesh: merged, bvh, materials };
 
 	} );
 
@@ -202,14 +201,62 @@ function init() {
 		newGeometry.applyMatrix4( originalMesh.matrixWorld ).center();
 
 		const mesh = new THREE.Mesh( newGeometry, new THREE.MeshStandardMaterial() );
-		new GenerateMeshBVHWorker()
+		const generator = new GenerateMeshBVHWorker();
+		generator
 			.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
 			.then( bvh => {
 
-				models[ 'Engine' ] = { mesh, bvh };
+				models[ 'Engine' ] = { mesh, bvh, materials: [ new THREE.MeshStandardMaterial() ] };
 				scene.add( mesh );
 
+				generator.terminate();
+
 			} );
+
+	} );
+
+	models[ 'Rover' ] = null;
+	new GLTFLoader().load( '../models/Perseverance.glb', gltf => {
+
+		const meshes = [];
+		gltf.scene.updateMatrixWorld( true );
+		gltf.scene.traverse( c => {
+
+			if ( c.isMesh ) {
+
+				const g = c.geometry;
+				for ( const key in g.attributes ) {
+
+					if ( key !== 'position' && key !== 'normal' ) {
+
+						delete g.attributes[ key ];
+
+					}
+
+				}
+
+				meshes.push( c );
+
+			}
+
+		} );
+
+		const plane = new THREE.PlaneBufferGeometry();
+		delete plane.attributes.uv;
+
+		const planeMesh = new THREE.Mesh( plane, new THREE.MeshStandardMaterial() );
+		planeMesh.rotateX( - Math.PI / 2 );
+		planeMesh.scale.setScalar( 10 );
+
+		const { geometry, materials } = mergeMeshes( [ ...meshes, planeMesh ], true );
+		geometry.center();
+		geometry.setAttribute( 'materialIndex', new THREE.BufferAttribute( new Uint8Array( geometry.attributes.position.count ), 1, false ) );
+
+		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+		const bvh = new MeshBVH( geometry, { strategy: SAH, maxLeafTris: 1 } );
+
+		scene.add( mesh );
+		models[ 'Rover' ] = { mesh, bvh, materials };
 
 	} );
 
@@ -555,11 +602,13 @@ function render() {
 		model.mesh.visible = true;
 		mesh = model.mesh;
 		bvh = model.bvh;
+		materials = model.materials;
 
 	} else {
 
 		mesh = null;
 		bvh = null;
+		materials = null;
 
 	}
 
