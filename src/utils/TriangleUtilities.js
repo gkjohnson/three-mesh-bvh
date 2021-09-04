@@ -115,11 +115,11 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		target.uv.copy( uv );
 
 		return target;
-	}
-	else {
 
+	}
+	else {
 		return {
-			point: point.clone(),
+		point: point.clone(),
 			distance: 0,
 			face: {
 				a: a,
