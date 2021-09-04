@@ -1,4 +1,4 @@
-import { Vector2, Vector3, BufferAttribute, Box3, FrontSide, Matrix4, Triangle } from 'three';
+import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
 import { CENTER } from './Constants.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
 import {

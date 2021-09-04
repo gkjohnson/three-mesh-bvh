@@ -1,5 +1,5 @@
 
-import { Vector2, Vector3 } from 'three';
+import { Vector2, Vector3, Triangle } from 'three';
 
 // sets the vertices of triangle `tri` with the 3 vertices after i
 export function setTriangle( tri, i, index, pos ) {
