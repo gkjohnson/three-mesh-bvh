@@ -28,12 +28,6 @@ const temp1 = /* @__PURE__ */ new Vector3();
 const temp2 = /* @__PURE__ */ new Vector3();
 const temp3 = /* @__PURE__ */ new Vector3();
 const temp4 = /* @__PURE__ */ new Vector3();
-const tempV1 = /* @__PURE__ */ new Vector3();
-const tempV2 = /* @__PURE__ */ new Vector3();
-const tempV3 = /* @__PURE__ */ new Vector3();
-const tempUV1 = /* @__PURE__ */ new Vector2();
-const tempUV2 = /* @__PURE__ */ new Vector2();
-const tempUV3 = /* @__PURE__ */ new Vector2();
 const tempBox = /* @__PURE__ */ new Box3();
 const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
 
@@ -711,20 +705,14 @@ export class MeshBVH {
 		const triangle = trianglePool.getPrimitive();
 		const triangle2 = trianglePool.getPrimitive();
 
-		let tempTarget1 = null;
+		let tempTarget1 = temp1;
+		let tempTargetDest1 = temp2;
 		let tempTarget2 = null;
-		let tempTargetDest1 = null;
 		let tempTargetDest2 = null;
-		if ( target1 ) {
-
-			tempTarget1 = temp1;
-			tempTargetDest1 = temp3;
-
-		}
 
 		if ( target2 ) {
 
-			tempTarget2 = temp2;
+			tempTarget2 = temp3;
 			tempTargetDest2 = temp4;
 
 		}
@@ -893,139 +881,31 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
-		// In backwardsCompat, target1 and target2 are expected to be Vector3 if not null
-		const backwardsCompat = ( target1 || target2 ) && ( ( target1 && target1.isVector3 ) || ( target2 && target2.isVector3 ) );
+		if ( target2 ) {
 
-		// Collect closest point info for this.geometry
-		let uv1 = null;
-		let normal1 = null;
-		let a1 = null;
-		let b1 = null;
-		let c1 = null;
-		if ( target1 && ! backwardsCompat ) {
-
-			const indices1 = this.geometry.getIndex().array;
-			const positions1 = this.geometry.getAttribute( 'position' );
-			const uvs1 = this.geometry.getAttribute( 'uv' );
-
-			a1 = indices1[ closestDistanceTriIndex * 3 ];
-			b1 = indices1[ closestDistanceTriIndex * 3 + 1 ];
-			c1 = indices1[ closestDistanceTriIndex * 3 + 2 ];
-
-			tempV1.fromBufferAttribute( positions1, a1 );
-			tempV2.fromBufferAttribute( positions1, b1 );
-			tempV3.fromBufferAttribute( positions1, c1 );
-
-			if ( target1.face && target1.face.normal ) normal1 = target1.face.normal;
-			else normal1 = new Vector3();
-			Triangle.getNormal( tempV1, tempV2, tempV3, normal1 );
-
-			if ( uvs1 ) {
-
-				tempUV1.fromBufferAttribute( uvs1, a1 );
-				tempUV2.fromBufferAttribute( uvs1, b1 );
-				tempUV3.fromBufferAttribute( uvs1, c1 );
-
-				if ( target1.uv ) uv1 = target1.uv;
-				else uv1 = new Vector2();
-				Triangle.getUV( tempTargetDest1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv1 );
-
-			}
+			if ( ! target2.point ) target2.point = tempTargetDest2.clone();
+			else target2.point.copy( tempTargetDest2 );
+			target2.distance = closestDistance,
+			target2.faceIndex = closestDistanceOtherTriIndex;
 
 		}
 
-		// Collect closest point info for otherGeometry
-		let uv2 = null;
-		let normal2 = null;
-		let a2 = null;
-		let b2 = null;
-		let c2 = null;
-		if ( target2 && ! backwardsCompat ) {
+		if ( target1 ) {
 
-			const indices2 = otherGeometry.getIndex().array;
-			const positions2 = otherGeometry.getAttribute( 'position' );
-			const uvs2 = otherGeometry.getAttribute( 'uv' );
+			if ( ! target1.point ) target1.point = tempTargetDest1.clone();
+			else target1.point.copy( tempTargetDest1 );
+			target1.distance = closestDistance,
+			target1.faceIndex = closestDistanceTriIndex;
 
-			a2 = indices2[ closestDistanceOtherTriIndex * 3 ];
-			b2 = indices2[ closestDistanceOtherTriIndex * 3 + 1 ];
-			c2 = indices2[ closestDistanceOtherTriIndex * 3 + 2 ];
-
-			tempV1.fromBufferAttribute( positions2, a2 );
-			tempV2.fromBufferAttribute( positions2, b2 );
-			tempV3.fromBufferAttribute( positions2, c2 );
-
-			if ( target2.face && target2.face.normal ) normal2 = target2.face.normal;
-			else normal2 = new Vector3();
-			Triangle.getNormal( tempV1, tempV2, tempV3, normal2 );
-
-			if ( uvs2 ) {
-
-				tempUV1.fromBufferAttribute( uvs2, a2 );
-				tempUV2.fromBufferAttribute( uvs2, b2 );
-				tempUV3.fromBufferAttribute( uvs2, c2 );
-
-				if ( target2.uv ) uv2 = target2.uv;
-				else uv2 = new Vector2();
-				Triangle.getUV( tempTargetDest2, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv2 );
-
-			}
+			return target1;
 
 		}
 
-		if ( backwardsCompat ) {
-
-			if ( target1 ) target1.copy( tempTargetDest1 );
-			if ( target2 ) target2.copy( tempTargetDest2 );
-			return closestDistance;
-
-		} else {
-
-			if ( target1 ) {
-
-				if ( ! target1.point ) target1.point = new Vector3();
-				target1.point.copy( tempTargetDest1 );
-				target1.distance = closestDistance;
-				if ( ! target1.face ) target1.face = { };
-				target1.face.a = a1;
-				target1.face.b = b1;
-				target1.face.c = c1;
-				target1.face.materialIndex = 0;
-				target1.face.normal = normal1;
-				target1.uv = uv1;
-
-			}
-
-			if ( target2 ) {
-
-				if ( ! target2.point ) target2.point = new Vector3();
-				target2.point.copy( tempTargetDest2 );
-				target2.distance = closestDistance;
-				if ( ! target2.face ) target2.face = { };
-				target2.face.a = a2;
-				target2.face.b = b2;
-				target2.face.c = c2;
-				target2.face.materialIndex = 0;
-				target2.face.normal = normal2;
-				target2.uv = uv2;
-
-			}
-
-			if ( target1 || target2 ) return target1;
-
-			return {
-				point: tempTargetDest1.clone(),
-				distance: closestDistance,
-				face: {
-					a: a1,
-					b: b1,
-					c: c1,
-					materialIndex: 0,
-					normal: normal1
-				},
-				uv: uv1
-			};
-
-		}
+		return {
+			point: tempTargetDest1.clone(),
+			distance: closestDistance,
+			faceIndex: closestDistanceTriIndex
+		};
 
 	}
 
@@ -1086,53 +966,12 @@ export class MeshBVH {
 
 		const closestDistance = Math.sqrt( closestDistanceSq );
 
-		const indices = this.geometry.getIndex().array;
-		const positions = this.geometry.getAttribute( 'position' );
-		const uvs = this.geometry.getAttribute( 'uv' );
-
-		const a = indices[ closestDistanceTriIndex * 3 ];
-		const b = indices[ closestDistanceTriIndex * 3 + 1 ];
-		const c = indices[ closestDistanceTriIndex * 3 + 2 ];
-
-		tempV1.fromBufferAttribute( positions, a );
-		tempV2.fromBufferAttribute( positions, b );
-		tempV3.fromBufferAttribute( positions, c );
-
-		let uv = null;
-		if ( uvs ) {
-
-			tempUV1.fromBufferAttribute( uvs, a );
-			tempUV2.fromBufferAttribute( uvs, b );
-			tempUV3.fromBufferAttribute( uvs, c );
-
-			if ( target && target.uv ) uv = target.uv;
-			else uv = new Vector2();
-			Triangle.getUV( temp1, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv );
-
-		}
-
 		if ( target ) {
 
-			if ( target.isVector3 ) {
-
-				target.copy( temp1 );
-				return closestDistance;
-
-			}
-
-			if ( ! target.point ) target.point = new Vector3();
-			target.point.copy( temp1 );
-			target.distance = closestDistance;
-			if ( ! target.face ) target.face = { };
-			target.face.a = a;
-			target.face.b = b;
-			target.face.c = c;
-			target.face.materialIndex = 0;
-			if ( ! target.face.normal ) target.face.normal = new Vector3();
-			Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
-			if ( ! target.uv ) target.uv = new Vector2();
-			target.uv.copy( uv );
-
+			if ( ! target.point ) target.point = temp1.clone();
+			else target.point.copy( temp1 );
+			target.distance = closestDistance,
+			target.faceIndex = closestDistanceTriIndex;
 			return target;
 
 		} else {
@@ -1141,14 +980,8 @@ export class MeshBVH {
 
 				point: temp1.clone(),
 				distance: closestDistance,
-				face: {
-					a: a,
-					b: b,
-					c: c,
-					materialIndex: 0,
-					normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
-				},
-				uv: uv
+				faceIndex: closestDistanceTriIndex
+
 			};
 
 		}
@@ -1221,6 +1054,43 @@ MeshBVH.prototype.raycastFirst = function ( ...args ) {
 	} else {
 
 		return originalRaycastFirst.apply( this, args );
+
+	}
+
+};
+
+const originalClosestPointToPoint = MeshBVH.prototype.closestPointToPoint;
+MeshBVH.prototype.closestPointToPoint = function ( ...args ) {
+
+	const target = args[ 1 ];
+
+	if ( target && target.isVector3 ) {
+
+		console.warn( 'MeshBVH: The function signature and results frame for "closestPointToPoint" has changed. See docs for new signature.' );
+		return null;
+
+	} else {
+
+		return originalClosestPointToPoint.apply( this, args );
+
+	}
+
+};
+
+const originalClosestPointToGeometry = MeshBVH.prototype.closestPointToGeometry;
+MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
+
+	const target1 = args[ 2 ];
+	const target2 = args[ 3 ];
+
+	if ( ( target1 && target1.isVector3 ) || ( target2 && target2.isVector3 ) ) {
+
+		console.warn( 'MeshBVH: The function signature and results frame for "closestPointToGeometry" has changed. See docs for new signature.' );
+		return null;
+
+	} else {
+
+		return originalClosestPointToGeometry.apply( this, args );
 
 	}
 
