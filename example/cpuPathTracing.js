@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -10,19 +11,24 @@ import {
 	computeBoundsTree,
 	disposeBoundsTree,
 	SAH,
+	CENTER,
 	MeshBVH,
 } from '../src/index.js';
+import {
+	GenerateMeshBVHWorker,
+} from '../src/workers/GenerateMeshBVHWorker.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-let scene, camera, renderer, light, mesh, clock;
-let fsQuad, controls, bvh, materials;
-let raycaster, dataTexture, samples, ssPoint, color, task, delay;
+let scene, camera, renderer, light, clock;
+let fsQuad, controls, materials;
+let raycaster, dataTexture, samples, ssPoint, color, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
+let mesh, bvh;
 const triangle = new THREE.Triangle();
 const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
@@ -35,8 +41,9 @@ const DELAY_TIME = 300;
 const FADE_DELAY = 150;
 const EPSILON = 1e-7;
 
-const modelPath = '../models/DragonAttenuation.glb';
+const models = {};
 const params = {
+	model: 'Dragon',
 	resolution: {
 		resolutionScale: 2,
 		smoothImageScaling: false,
@@ -89,7 +96,7 @@ function init() {
 	scanLineElement = document.createElement( 'div' );
 	scanLineElement.style.width = '100%';
 	scanLineElement.style.position = 'absolute';
-	scanLineElement.style.borderBottom = '1px solid #80CBC4';
+	scanLineElement.style.borderBottom = '1px solid #e91e63';
 	scanLineElement.style.visibility = 'hidden';
 	containerElement.appendChild( scanLineElement );
 
@@ -123,9 +130,10 @@ function init() {
 	onResize();
 
 	// Load dragon
-	const loader = new GLTFLoader();
-	loader.load( modelPath, gltf => {
+	models[ 'Dragon' ] = null;
+	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
 
+		let mesh, bvh;
 		gltf.scene.traverse( c => {
 
 			if ( c.isMesh && c.name === 'Dragon' ) {
@@ -157,6 +165,52 @@ function init() {
 		bvh = new MeshBVH( results.geometry, { strategy: SAH, maxLeafTris: 1 } );
 		materials = results.materials;
 
+		models[ 'Dragon' ] = { mesh: merged, bvh };
+
+	} );
+
+	models[ 'Engine' ] = null;
+	new GLTFLoader().setMeshoptDecoder( MeshoptDecoder ).load( '../models/internal_combustion_engine/model.gltf', gltf => {
+
+		const originalMesh = gltf.scene.children[ 0 ];
+		const originalGeometry = originalMesh.geometry;
+		const newGeometry = new THREE.BufferGeometry();
+
+		const ogPosAttr = originalGeometry.attributes.position;
+		const ogNormAttr = originalGeometry.attributes.normal;
+		const posAttr = new THREE.BufferAttribute( new Float32Array( ogPosAttr.count * 3 ), 3, false );
+		const normAttr = new THREE.BufferAttribute( new Float32Array( ogNormAttr.count * 3 ), 3, false );
+
+		const vec = new THREE.Vector3();
+		for ( let i = 0, l = ogPosAttr.count; i < l; i ++ ) {
+
+			vec.fromBufferAttribute( ogPosAttr, i );
+			posAttr.setXYZ( i, vec.x, vec.y, vec.z );
+
+			vec.fromBufferAttribute( ogNormAttr, i );
+			vec.multiplyScalar( 1 / 127 );
+			normAttr.setXYZ( i, vec.x, vec.y, vec.z );
+
+		}
+
+		originalMesh.scale.multiplyScalar( 5 );
+		originalMesh.updateMatrixWorld();
+		newGeometry.setAttribute( 'position', posAttr );
+		newGeometry.setAttribute( 'normal', normAttr );
+		newGeometry.setAttribute( 'materialIndex', new THREE.BufferAttribute( new Uint8Array( posAttr.count ), 1, false ) );
+		newGeometry.setIndex( originalGeometry.index );
+		newGeometry.applyMatrix4( originalMesh.matrixWorld ).center();
+
+		const mesh = new THREE.Mesh( newGeometry, new THREE.MeshStandardMaterial() );
+		new GenerateMeshBVHWorker()
+			.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
+			.then( bvh => {
+
+				models[ 'Engine' ] = { mesh, bvh };
+				scene.add( mesh );
+
+			} );
+
 	} );
 
 	raycaster = new THREE.Raycaster();
@@ -166,6 +220,8 @@ function init() {
 	clock = new THREE.Clock();
 
 	const gui = new GUI();
+	gui.add( params, 'model', Object.keys( models ) ).onChange( resetImage );
+
 	const resolutionFolder = gui.addFolder( 'resolution' );
 	resolutionFolder.add( params.resolution, 'resolutionScale', 1, 5, 1 ).onChange( onResize );
 	resolutionFolder.add( params.resolution, 'smoothImageScaling' ).onChange( onResize );
@@ -291,6 +347,8 @@ function resetImage() {
 	samples = 0;
 	task = runPathTracing();
 	delay = 0;
+	scanLineElement.style.visibility = 'hidden';
+	scanLinePercent = 100;
 
 }
 
@@ -308,7 +366,8 @@ function* runPathTracing() {
 	const materialAttr = bvh.geometry.attributes.materialIndex;
 	renderStartTime = performance.now();
 	computationTime = 0;
-	scanLineElement.style.bottom = `100%`;
+	scanLinePercent = 100;
+	scanLineElement.style.visibility = params.pathTracing.displayScanLine ? 'visible' : 'hidden';
 
 	while ( true ) {
 
@@ -355,9 +414,9 @@ function* runPathTracing() {
 				if ( delta > 16 ) {
 
 					computationTime += delta;
+					scanLinePercent = 100 * y / height;
 
 					yield;
-					scanLineElement.style.bottom = `${ 100 * y / ( height - 1 ) }%`;
 					lastStartTime = performance.now();
 
 				}
@@ -480,6 +539,30 @@ function render() {
 
 	requestAnimationFrame( render );
 
+	for ( const key in models ) {
+
+		if ( models[ key ] ) {
+
+			models[ key ].mesh.visible = false;
+
+		}
+
+	}
+
+	if ( models[ params.model ] ) {
+
+		const model = models[ params.model ];
+		model.mesh.visible = true;
+		mesh = model.mesh;
+		bvh = model.bvh;
+
+	} else {
+
+		mesh = null;
+		bvh = null;
+
+	}
+
 	let fade = 0;
 	if ( delay > FADE_DELAY ) {
 
@@ -489,6 +572,18 @@ function render() {
 
 	fsQuad.material.map = dataTexture;
 	fsQuad.material.opacity = fade;
+	scanLineElement.style.bottom = `${ scanLinePercent }%`;
+	if ( params.resolution.stretchImage ) {
+
+		scanLineElement.style.borderBottomWidth = `${ Math.pow( 2, params.resolution.resolutionScale - 1 ) }px`;
+
+	} else {
+
+		scanLineElement.style.borderBottomWidth = '1px';
+
+	}
+
+
 
 	renderer.render( scene, camera );
 	renderer.autoClear = false;
