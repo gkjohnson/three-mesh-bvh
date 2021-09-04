@@ -119,7 +119,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 	}
 	else {
 		return {
-		point: point.clone(),
+			point: point.clone(),
 			distance: 0,
 			face: {
 				a: a,
