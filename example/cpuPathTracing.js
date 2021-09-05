@@ -431,7 +431,7 @@ function* runPathTracing() {
 		let [ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ aaIndex ];
 		randomOffsetX = ( ( randomOffsetX / 8 ) - 0.5 ) / width;
 		randomOffsetY = ( ( randomOffsetY / 8 ) - 0.5 ) / height;
-		aaIndex ++;
+		aaIndex = ( aaIndex + 1 ) % 16;
 
 		for ( let y = height - 1; y >= 0; y -- ) {
 
