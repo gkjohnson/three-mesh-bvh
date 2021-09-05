@@ -41,9 +41,18 @@ const DELAY_TIME = 300;
 const FADE_DELAY = 150;
 const EPSILON = 1e-7;
 
+// https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
+const ANTIALIAS_OFFSETS = [
+	[ 1, 1 ], [ - 1, - 3 ], [ - 3, 2 ], [ 4, - 1 ],
+	[ - 5, - 2 ], [ 2, 5 ], [ 5, 3 ], [ 3, - 5 ],
+	[ - 2, 6 ], [ 0, - 7 ], [ - 4, - 6 ], [ - 6, 4 ],
+	[ - 8, 0 ], [ 7, - 4 ], [ 6, 7 ], [ - 7, - 8 ],
+];
+
+
 const models = {};
 const params = {
-	model: 'Rover',
+	model: 'Dragon',
 	resolution: {
 		resolutionScale: 2,
 		smoothImageScaling: false,
@@ -416,17 +425,13 @@ function* runPathTracing() {
 	scanLinePercent = 100;
 	scanLineElement.style.visibility = params.pathTracing.displayScanLine ? 'visible' : 'hidden';
 
+	let aaIndex = 0;
 	while ( true ) {
 
-		// TODO: make this a more predictable function (maybe based on a fixed poisson sampling)
-		let randomOffsetX = 0;
-		let randomOffsetY = 0;
-		if ( params.pathTracing.antialiasing ) {
-
-			randomOffsetX = ( Math.random() - 0.5 ) / width;
-			randomOffsetY = ( Math.random() - 0.5 ) / height;
-
-		}
+		let [ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ aaIndex ];
+		randomOffsetX = ( ( randomOffsetX / 8 ) - 0.5 ) / width;
+		randomOffsetY = ( ( randomOffsetY / 8 ) - 0.5 ) / height;
+		aaIndex ++;
 
 		for ( let y = height - 1; y >= 0; y -- ) {
 
@@ -559,7 +564,6 @@ function* runPathTracing() {
 			targetColor.g = THREE.MathUtils.lerp( 1.0, 0.7, value );
 			targetColor.b = THREE.MathUtils.lerp( 1.0, 1.0, value );
 			targetColor.multiplyScalar( skyIntensity );
-			// targetColor.setRGB( value, value, value );
 
 		}
 
