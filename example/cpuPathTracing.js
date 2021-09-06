@@ -43,6 +43,7 @@ const FADE_DELAY = 150;
 const EPSILON = 0;
 
 // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
+const ANTIALIAS_WIDTH = 16;
 const ANTIALIAS_OFFSETS = [
 	[ 1, 1 ], [ - 1, - 3 ], [ - 3, 2 ], [ 4, - 1 ],
 	[ - 5, - 2 ], [ 2, 5 ], [ 5, 3 ], [ 3, - 5 ],
@@ -68,8 +69,6 @@ const params = {
 		smoothNormals: true,
 		directLightSampling: true,
 		importanceSampling: true,
-		focusDistance: 50,
-		apertureSize: 0,
 	},
 	material: {
 		skyMode: 'sky',
@@ -299,8 +298,6 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'smoothNormals' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 10, 1 ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'raysPerHit', 1, 10, 1 ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'apertureSize', 0, 0.1, 0.0001 ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'focusDistance', 0.1, 5, 0.001 ).onChange( resetImage );
 	pathTracingFolder.open();
 
 	const materialFolder = gui.addFolder( 'material' );
@@ -434,9 +431,9 @@ function* runPathTracing() {
 	while ( true ) {
 
 		let [ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ aaIndex ];
-		randomOffsetX = ( ( randomOffsetX / 8 ) - 0.5 ) / width;
-		randomOffsetY = ( ( randomOffsetY / 8 ) - 0.5 ) / height;
-		aaIndex = ( aaIndex + 1 ) % 16;
+		randomOffsetX = ( randomOffsetX / ANTIALIAS_WIDTH ) / width;
+		randomOffsetY = ( randomOffsetY / ANTIALIAS_WIDTH ) / height;
+		aaIndex = ( aaIndex + 1 ) % ANTIALIAS_OFFSETS.length;
 
 		for ( let y = height - 1; y >= 0; y -- ) {
 
