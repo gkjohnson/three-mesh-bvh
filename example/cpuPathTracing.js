@@ -515,9 +515,10 @@ function* runPathTracing() {
 					triangle.getBarycoord( point, barycoord );
 
 					normal
+						.setScalar( 0 )
 						.addScaledVector( normal0, barycoord.x )
 						.addScaledVector( normal1, barycoord.y )
-						.addScaledVector( normal2, barycoord.z ).normalize();
+						.addScaledVector( normal2, barycoord.z );
 
 				} else {
 
