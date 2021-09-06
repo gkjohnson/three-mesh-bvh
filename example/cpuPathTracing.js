@@ -34,12 +34,13 @@ const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
 const normal2 = new THREE.Vector3();
 const barycoord = new THREE.Vector3();
+const spherical = new THREE.Spherical();
 const colorStack = new Array( 10 ).fill().map( () => new THREE.Color() );
 const rayStack = new Array( 10 ).fill().map( () => new THREE.Ray() );
 const normalStack = new Array( 10 ).fill().map( () => new THREE.Vector3() );
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
-const EPSILON = 1e-7;
+const EPSILON = 0;
 
 // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
 const ANTIALIAS_OFFSETS = [
@@ -71,6 +72,7 @@ const params = {
 		apertureSize: 0,
 	},
 	material: {
+		skyMode: 'sky',
 		skyIntensity: 1.0,
 		color: '#bbbbbb',
 		emissive: '#000000',
@@ -302,6 +304,7 @@ function init() {
 	pathTracingFolder.open();
 
 	const materialFolder = gui.addFolder( 'material' );
+	materialFolder.add( params.material, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
 	materialFolder.add( params.material, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'color' ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'emissive' ).onChange( resetImage );
@@ -416,6 +419,7 @@ function* runPathTracing() {
 	const bounces = parseInt( params.pathTracing.bounces );
 	const raysPerHit = parseInt( params.pathTracing.raysPerHit );
 	const skyIntensity = parseFloat( params.material.skyIntensity );
+	const skyMode = params.material.skyMode;
 	const smoothNormals = params.pathTracing.smoothNormals;
 	const indexAttr = bvh.geometry.index;
 	const posAttr = bvh.geometry.attributes.position;
@@ -491,18 +495,7 @@ function* runPathTracing() {
 		const hit = bvh.raycastFirst( ray );
 		if ( hit ) {
 
-			if ( bvh.geometry.attributes.materialIndex.getX( hit.face.a ) === 0 && false ) {
-
-				targetColor.set( 0xff0000 );
-
-			} else {
-
-				targetColor.set( 0 );
-
-			}
-			// target.r = hit.face.normal.x;
-			// target.g = hit.face.normal.y;
-			// target.b = hit.face.normal.z;
+			targetColor.set( 0 );
 
 			if ( depth !== bounces ) {
 
@@ -565,12 +558,50 @@ function* runPathTracing() {
 		} else {
 
 			const direction = ray.direction;
-			const value = ( direction.y + 0.5 ) / 2.0;
 
-			targetColor.r = THREE.MathUtils.lerp( 1.0, 0.5, value );
-			targetColor.g = THREE.MathUtils.lerp( 1.0, 0.7, value );
-			targetColor.b = THREE.MathUtils.lerp( 1.0, 1.0, value );
-			targetColor.multiplyScalar( skyIntensity );
+			if ( skyMode === 'checkerboard' ) {
+
+				spherical.setFromVector3( direction );
+
+				const angleStep = Math.PI / 20;
+				const thetaEven = Math.floor( spherical.theta / angleStep ) % 2 === 0;
+				const phiEven = Math.floor( spherical.phi / angleStep ) % 2 === 0;
+				const isBlack = thetaEven === phiEven;
+				targetColor.set( isBlack ? 0 : 0xffffff );
+				targetColor.multiplyScalar( skyIntensity );
+
+			} else if ( skyMode === 'sun' ) {
+
+				normal0.setScalar( 1 ).normalize();
+
+				let value = Math.max( 0.0, direction.dot( normal0 ) + 1.0 ) / 2.0;
+				value *= value;
+				targetColor.r = THREE.MathUtils.lerp( 0.01, 0.5, value );
+				targetColor.g = THREE.MathUtils.lerp( 0.01, 0.7, value );
+				targetColor.b = THREE.MathUtils.lerp( 0.01, 1.0, value );
+
+				if ( value > 0.95 ) {
+
+					let value2 = ( value - 0.95 ) / 0.05;
+					value2 *= value2;
+					targetColor.r = THREE.MathUtils.lerp( 0.5, 20.0, value2 );
+					targetColor.g = THREE.MathUtils.lerp( 0.7, 20.0, value2 );
+					targetColor.b = THREE.MathUtils.lerp( 1.0, 20.0, value2 );
+
+
+				}
+
+				targetColor.multiplyScalar( skyIntensity );
+
+			} else {
+
+				const value = ( direction.y + 0.5 ) / 2.0;
+				targetColor.r = THREE.MathUtils.lerp( 1.0, 0.5, value );
+				targetColor.g = THREE.MathUtils.lerp( 1.0, 0.7, value );
+				targetColor.b = THREE.MathUtils.lerp( 1.0, 1.0, value );
+				targetColor.multiplyScalar( skyIntensity );
+
+			}
 
 		}
 
