@@ -540,9 +540,13 @@ function* runPathTracing() {
 					direction.x -= 0.5;
 					direction.y -= 0.5;
 					direction.z -= 0.5;
+
+					// lambertian
 					direction.normalize().multiplyScalar( material.roughness ).add( normal ).normalize();
 
-					// direction.copy( ray.direction ).reflect( normal ).normalize();
+					// specular
+					// normal0.copy( ray.direction ).reflect( normal );
+					// direction.normalize().multiplyScalar( material.roughness ).add( normal0 ).normalize();
 
 					getColorSample( tempRay, tempColor, depth + 1 );
 					targetColor.r += ( emissiveIntensity * emissive.r + color.r * tempColor.r ) / count;
@@ -561,11 +565,11 @@ function* runPathTracing() {
 
 				spherical.setFromVector3( direction );
 
-				const angleStep = Math.PI / 20;
+				const angleStep = Math.PI / 10;
 				const thetaEven = Math.floor( spherical.theta / angleStep ) % 2 === 0;
 				const phiEven = Math.floor( spherical.phi / angleStep ) % 2 === 0;
 				const isBlack = thetaEven === phiEven;
-				targetColor.set( isBlack ? 0 : 0xffffff );
+				targetColor.set( isBlack ? 0 : 0xffffff ).multiplyScalar( 1.5 );
 				targetColor.multiplyScalar( skyIntensity );
 
 			} else if ( skyMode === 'sun' ) {
@@ -646,7 +650,8 @@ function render() {
 
 		materials[ 0 ].color.set( params.material.color ).convertSRGBToLinear();
 		materials[ 0 ].emissive.set( params.material.emissive ).convertSRGBToLinear();
-		materials[ 0 ].emissiveIntensity = params.material.emissiveIntensity;
+		materials[ 0 ].emissiveIntensity = parseFloat( params.material.emissiveIntensity );
+		materials[ 0 ].roughness = parseFloat( params.material.roughness );
 
 	} else {
 
