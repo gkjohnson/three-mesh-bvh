@@ -72,8 +72,9 @@ const params = {
 	},
 	material: {
 		skyIntensity: 1.0,
-		color: '#ffffff',
-		emissive: '#ffffff',
+		color: '#bbbbbb',
+		emissive: '#000000',
+		emissiveIntensity: 1,
 		roughness: 1.0,
 		metalness: 0.0,
 		ior: 1.5,
@@ -164,7 +165,7 @@ function init() {
 
 		const ground = new THREE.Mesh(
 			plane,
-			new THREE.MeshStandardMaterial(),
+			new THREE.MeshStandardMaterial( { color: 0x7f7f7f } ),
 		);
 
 		const { geometry, materials } = mergeMeshes( [ mesh, ground ], true );
@@ -253,13 +254,12 @@ function init() {
 		const plane = new THREE.PlaneBufferGeometry();
 		delete plane.attributes.uv;
 
-		const planeMesh = new THREE.Mesh( plane, new THREE.MeshStandardMaterial() );
+		const planeMesh = new THREE.Mesh( plane, new THREE.MeshStandardMaterial( { color: 0x7f7f7f } ) );
 		planeMesh.rotateX( - Math.PI / 2 );
 		planeMesh.scale.setScalar( 10 );
 
 		const { geometry, materials } = mergeMeshes( [ ...meshes, planeMesh ], true );
 		geometry.center();
-		geometry.setAttribute( 'materialIndex', new THREE.BufferAttribute( new Uint8Array( geometry.attributes.position.count ), 1, false ) );
 
 		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		const bvh = new MeshBVH( geometry, { strategy: SAH, maxLeafTris: 1 } );
@@ -305,6 +305,7 @@ function init() {
 	materialFolder.add( params.material, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'color' ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'emissive' ).onChange( resetImage );
+	materialFolder.add( params.material, 'emissiveIntensity', 0, 5, 0.001 ).onChange( resetImage );
 	materialFolder.add( params.material, 'roughness', 0, 1.0, 0.001 ).onChange( resetImage );
 	materialFolder.add( params.material, 'metalness', 0, 1.0, 0.001 ).onChange( resetImage );
 	materialFolder.add( params.material, 'transmission', 0, 1.0, 0.001 ).onChange( resetImage );
@@ -441,6 +442,10 @@ function* runPathTracing() {
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
 				getColorSample( raycaster.ray, color );
 
+				color.r = Math.min( color.r, 1.0 );
+				color.g = Math.min( color.g, 1.0 );
+				color.b = Math.min( color.b, 1.0 );
+
 				const index = ( y * width + x ) * 4;
 				if ( samples === 0 ) {
 
@@ -535,6 +540,8 @@ function* runPathTracing() {
 				const direction = tempRay.direction;
 				origin.copy( hit.point ).addScaledVector( normal, EPSILON );
 
+				const { color, emissive, emissiveIntensity } = material;
+
 				const count = depth > 1 ? 1 : raysPerHit;
 				for ( let i = 0; i < count; i ++ ) {
 
@@ -547,9 +554,9 @@ function* runPathTracing() {
 					// direction.copy( ray.direction ).reflect( normal ).normalize();
 
 					getColorSample( tempRay, tempColor, depth + 1 );
-					targetColor.r += tempColor.r * 0.5 / count;
-					targetColor.g += tempColor.g * 0.5 / count;
-					targetColor.b += tempColor.b * 0.5 / count;
+					targetColor.r += ( emissiveIntensity * emissive.r + color.r * tempColor.r ) / count;
+					targetColor.g += ( emissiveIntensity * emissive.g + color.g * tempColor.g ) / count;
+					targetColor.b += ( emissiveIntensity * emissive.b + color.b * tempColor.b ) / count;
 
 				}
 
@@ -607,6 +614,10 @@ function render() {
 		mesh = model.mesh;
 		bvh = model.bvh;
 		materials = model.materials;
+
+		materials[ 0 ].color.set( params.material.color ).convertSRGBToLinear();
+		materials[ 0 ].emissive.set( params.material.emissive ).convertSRGBToLinear();
+		materials[ 0 ].emissiveIntensity = params.material.emissiveIntensity;
 
 	} else {
 
