@@ -542,7 +542,7 @@ function* runPathTracing() {
 					direction.z -= 0.5;
 
 					// lambertian
-					direction.normalize().multiplyScalar( material.roughness ).add( normal ).normalize();
+					direction.normalize().add( normal ).normalize();
 
 					// specular
 					// normal0.copy( ray.direction ).reflect( normal );
