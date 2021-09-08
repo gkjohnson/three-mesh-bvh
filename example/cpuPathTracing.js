@@ -40,7 +40,7 @@ const rayStack = new Array( 10 ).fill().map( () => new THREE.Ray() );
 const normalStack = new Array( 10 ).fill().map( () => new THREE.Vector3() );
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
-const EPSILON = 0;
+const EPSILON = 1e-7;
 
 // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
 const ANTIALIAS_WIDTH = 16;
@@ -418,7 +418,6 @@ function* runPathTracing() {
 	const skyIntensity = parseFloat( params.material.skyIntensity );
 	const skyMode = params.material.skyMode;
 	const smoothNormals = params.pathTracing.smoothNormals;
-	const indexAttr = bvh.geometry.index;
 	const posAttr = bvh.geometry.attributes.position;
 	const normalAttr = bvh.geometry.attributes.normal;
 	const materialAttr = bvh.geometry.attributes.materialIndex;
@@ -489,7 +488,7 @@ function* runPathTracing() {
 
 	function getColorSample( ray, targetColor, depth = 1 ) {
 
-		const hit = bvh.raycastFirst( ray );
+		const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
 		if ( hit ) {
 
 			targetColor.set( 0 );
@@ -529,6 +528,8 @@ function* runPathTracing() {
 				const tempColor = colorStack[ depth ];
 				const origin = tempRay.origin;
 				const direction = tempRay.direction;
+				// TODO: Should this instead be offset by the direction vector? If a glossy vector
+				// scatters inside the model we need to exclude its light contribution.
 				origin.copy( hit.point ).addScaledVector( normal, EPSILON );
 
 				const { color, emissive, emissiveIntensity } = material;
