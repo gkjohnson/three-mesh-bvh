@@ -29,15 +29,17 @@ let raycaster, dataTexture, samples, ssPoint, color, task, delay, scanLinePercen
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
 let mesh, bvh, materials;
+const MAX_BOUNCES = 30;
 const triangle = new THREE.Triangle();
 const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
 const normal2 = new THREE.Vector3();
 const barycoord = new THREE.Vector3();
+const tempVector = new THREE.Vector3();
 const spherical = new THREE.Spherical();
-const colorStack = new Array( 10 ).fill().map( () => new THREE.Color() );
-const rayStack = new Array( 10 ).fill().map( () => new THREE.Ray() );
-const normalStack = new Array( 10 ).fill().map( () => new THREE.Vector3() );
+const colorStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Color() );
+const rayStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Ray() );
+const normalStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Vector3() );
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
 const EPSILON = 1e-7;
@@ -324,7 +326,7 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'importanceSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'smoothNormals' ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 10, 1 ).onChange( resetImage );
+	pathTracingFolder.add( params.pathTracing, 'bounces', 1, MAX_BOUNCES, 1 ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'raysPerHit', 1, 10, 1 ).onChange( resetImage );
 	pathTracingFolder.open();
 
@@ -525,6 +527,7 @@ function* runPathTracing() {
 
 				const normal = normalStack[ depth ];
 				const face = hit.face;
+				const geometryNormal = hit.face.normal;
 				if ( smoothNormals ) {
 
 					const point = hit.point;
@@ -546,7 +549,14 @@ function* runPathTracing() {
 
 				} else {
 
-					normal.copy( hit.face.normal );
+					normal.copy( geometryNormal );
+
+				}
+
+				const hitFrontFace = normal.dot( ray.direction ) < 0;
+				if ( ! hitFrontFace ) {
+
+					normal.multiplyScalar( - 1 );
 
 				}
 
@@ -558,9 +568,9 @@ function* runPathTracing() {
 				const direction = tempRay.direction;
 				// TODO: Should this instead be offset by the direction vector? If a glossy vector
 				// scatters inside the model we need to exclude its light contribution.
-				origin.copy( hit.point ).addScaledVector( normal, EPSILON );
+				origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
-				const { color, emissive, emissiveIntensity } = material;
+				const { color, emissive, emissiveIntensity, ior } = material;
 
 				const count = depth > 1 ? 1 : raysPerHit;
 				for ( let i = 0; i < count; i ++ ) {
@@ -677,10 +687,12 @@ function render() {
 		bvh = model.bvh;
 		materials = model.materials;
 
-		materials[ 0 ].color.set( params.material.color ).convertSRGBToLinear();
-		materials[ 0 ].emissive.set( params.material.emissive ).convertSRGBToLinear();
-		materials[ 0 ].emissiveIntensity = parseFloat( params.material.emissiveIntensity );
-		materials[ 0 ].roughness = parseFloat( params.material.roughness );
+		const material = materials[ 0 ];
+		material.color.set( params.material.color ).convertSRGBToLinear();
+		material.emissive.set( params.material.emissive ).convertSRGBToLinear();
+		material.emissiveIntensity = parseFloat( params.material.emissiveIntensity );
+		material.roughness = parseFloat( params.material.roughness );
+		material.ior = parseFloat( params.material.ior );
 
 	} else {
 
