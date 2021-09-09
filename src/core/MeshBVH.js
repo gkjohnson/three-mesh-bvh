@@ -686,7 +686,7 @@ export class MeshBVH {
 
 	}
 
-	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = { }, target2 = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
 		if ( ! otherGeometry.boundingBox ) {
 
@@ -720,7 +720,8 @@ export class MeshBVH {
 		let closestDistance = Infinity;
 		let closestDistanceTriIndex = null;
 		let closestDistanceOtherTriIndex = null;
-		obb2.matrix.copy( geometryToBvh ).invert();
+		tempMatrix.copy( geometryToBvh ).invert();
+		obb2.matrix.copy( tempMatrix );
 		this.shapecast(
 			{
 
@@ -789,11 +790,7 @@ export class MeshBVH {
 										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 										if ( dist < closestDistance ) {
 
-											if ( tempTargetDest1 ) {
-
-												tempTargetDest1.copy( tempTarget1 );
-
-											}
+											tempTargetDest1.copy( tempTarget1 );
 
 											if ( tempTargetDest2 ) {
 
@@ -841,11 +838,7 @@ export class MeshBVH {
 								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 								if ( dist < closestDistance ) {
 
-									if ( tempTargetDest1 ) {
-
-										tempTargetDest1.copy( tempTarget1 );
-
-									}
+									tempTargetDest1.copy( tempTarget1 );
 
 									if ( tempTargetDest2 ) {
 
@@ -881,35 +874,27 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
+		if ( ! target1.point ) target1.point = tempTargetDest1.clone();
+		else target1.point.copy( tempTargetDest1 );
+		target1.distance = closestDistance,
+		target1.faceIndex = closestDistanceTriIndex;
+
 		if ( target2 ) {
 
 			if ( ! target2.point ) target2.point = tempTargetDest2.clone();
 			else target2.point.copy( tempTargetDest2 );
-			target2.distance = closestDistance,
+			target2.point.applyMatrix4( tempMatrix );
+			tempTargetDest1.applyMatrix4( tempMatrix )
+			target2.distance = tempTargetDest1.sub( target2.point ).length();
 			target2.faceIndex = closestDistanceOtherTriIndex;
 
 		}
 
-		if ( target1 ) {
-
-			if ( ! target1.point ) target1.point = tempTargetDest1.clone();
-			else target1.point.copy( tempTargetDest1 );
-			target1.distance = closestDistance,
-			target1.faceIndex = closestDistanceTriIndex;
-
-			return target1;
-
-		}
-
-		return {
-			point: tempTargetDest1.clone(),
-			distance: closestDistance,
-			faceIndex: closestDistanceTriIndex
-		};
+		return target1;
 
 	}
 
-	closestPointToPoint( point, target, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
 		// early out if under minThreshold
 		// skip checking if over maxThreshold
@@ -966,25 +951,12 @@ export class MeshBVH {
 
 		const closestDistance = Math.sqrt( closestDistanceSq );
 
-		if ( target ) {
+		if ( ! target.point ) target.point = temp1.clone();
+		else target.point.copy( temp1 );
+		target.distance = closestDistance,
+		target.faceIndex = closestDistanceTriIndex;
 
-			if ( ! target.point ) target.point = temp1.clone();
-			else target.point.copy( temp1 );
-			target.distance = closestDistance,
-			target.faceIndex = closestDistanceTriIndex;
-			return target;
-
-		} else {
-
-			return {
-
-				point: temp1.clone(),
-				distance: closestDistance,
-				faceIndex: closestDistanceTriIndex
-
-			};
-
-		}
+		return target;
 
 	}
 

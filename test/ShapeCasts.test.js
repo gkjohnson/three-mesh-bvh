@@ -537,7 +537,7 @@ function runSuiteWithOptions( defaultOptions ) {
 		// not being perfectly round
 		const EPSILON = 0.001;
 		let bvh = null;
-		let target = null;
+		let target = undefined;
 
 		beforeAll( () => {
 
@@ -591,15 +591,14 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		let geometry = null;
 		let bvh = null;
-		let target1 = null;
-		let target2 = null;
+		let target1 = undefined;
+		let target2 = undefined;
 
 		beforeEach( () => {
 
 			const geom = new SphereBufferGeometry( 1, 20, 20 );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
-			target1 = null;
 			target2 = { };
 
 			geometry = new SphereBufferGeometry( 1, 5, 5 );
