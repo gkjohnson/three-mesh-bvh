@@ -140,6 +140,34 @@ function init() {
 	window.addEventListener( 'resize', onResize, false );
 	onResize();
 
+	// Load sphere
+	models[ 'Sphere' ] = null;
+	{
+
+		const sphereMesh = new THREE.Mesh(
+			new THREE.SphereBufferGeometry(),
+			new THREE.MeshStandardMaterial(),
+		);
+
+		const planeMesh = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(),
+			new THREE.MeshStandardMaterial( { color: 0x7f7f7f } ),
+		);
+
+		planeMesh.rotation.x = - Math.PI / 2;
+		planeMesh.scale.setScalar( 10 );
+		planeMesh.position.y = - 1;
+
+		const { geometry, materials } = mergeMeshes( [ sphereMesh, planeMesh ], true );
+		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+		scene.add( merged );
+
+		bvh = new MeshBVH( geometry, { strategy: SAH, maxLeafTris: 1 } );
+
+		models[ 'Sphere' ] = { mesh: merged, bvh, materials };
+
+	}
+
 	// Load dragon
 	models[ 'Dragon' ] = null;
 	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
