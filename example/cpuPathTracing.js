@@ -516,6 +516,25 @@ function* runPathTracing() {
 
 	}
 
+	function refract( dir, norm, iorRatio, target ) {
+
+		// snell's law
+		// ior1 * sin( t1 ) = ior2 * sin( t2 )
+		let cosTheta = Math.min( - dir.dot( norm ), 1.0 );
+
+		tempVector
+			.copy( dir )
+			.addScaledVector( norm, cosTheta )
+			.multiplyScalar( iorRatio );
+
+		target
+			.copy( norm )
+			.multiplyScalar( - Math.sqrt( Math.abs( 1.0 - tempVector.lengthSq() ) ) )
+			.add( tempVector );
+
+
+	}
+
 	function getColorSample( ray, targetColor, depth = 1 ) {
 
 		const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
