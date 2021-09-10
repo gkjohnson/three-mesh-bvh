@@ -100,7 +100,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 	if ( target ) {
 
 		if ( ! target.point ) target.point = new Vector3();
-		target.point.copy( temp1 );
+		target.point.copy( point );
 
 		if ( ! target.face ) target.face = { };
 		target.face.a = a;
@@ -116,8 +116,8 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 
 		return target;
 
-	}
-	else {
+	} else {
+
 		return {
 			point: point.clone(),
 			distance: 0,
