@@ -17,6 +17,7 @@ import {
 import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
+import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, reflectance, refract } from './pathtracing/utils.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -35,23 +36,12 @@ const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
 const normal2 = new THREE.Vector3();
 const barycoord = new THREE.Vector3();
-const tempVector = new THREE.Vector3();
 const spherical = new THREE.Spherical();
 const colorStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Color() );
 const rayStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Ray() );
 const normalStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Vector3() );
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
-const EPSILON = 1e-7;
-
-// https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
-const ANTIALIAS_WIDTH = 16;
-const ANTIALIAS_OFFSETS = [
-	[ 1, 1 ], [ - 1, - 3 ], [ - 3, 2 ], [ 4, - 1 ],
-	[ - 5, - 2 ], [ 2, 5 ], [ 5, 3 ], [ 3, - 5 ],
-	[ - 2, 6 ], [ 0, - 7 ], [ - 4, - 6 ], [ - 6, 4 ],
-	[ - 8, 0 ], [ 7, - 4 ], [ 6, 7 ], [ - 7, - 8 ],
-];
 
 
 const models = {};
@@ -516,32 +506,6 @@ function* runPathTracing() {
 
 	}
 
-	function reflectance( cosine, iorRatio ) {
-
-		// Schlick approximation
-		const r0 = Math.pow( ( 1 - iorRatio ) / ( 1 + iorRatio ), 2 );
-		return r0 + ( 1 - r0 ) * Math.pow( 1.0 - cosine, 5 );
-
-	}
-
-	function refract( dir, norm, iorRatio, target ) {
-
-		// snell's law
-		// ior1 * sin( t1 ) = ior2 * sin( t2 )
-		let cosTheta = Math.min( - dir.dot( norm ), 1.0 );
-
-		tempVector
-			.copy( dir )
-			.addScaledVector( norm, cosTheta )
-			.multiplyScalar( iorRatio );
-
-		target
-			.copy( norm )
-			.multiplyScalar( - Math.sqrt( Math.abs( 1.0 - tempVector.lengthSq() ) ) )
-			.add( tempVector );
-
-	}
-
 	function expandHitInformation( hit, ray, depth ) {
 
 		const normal = normalStack[ depth ];
@@ -628,7 +592,7 @@ function* runPathTracing() {
 						direction.normalize().add( normal ).normalize();
 						sampleColor = true;
 
-					} else if ( true ) {
+					} else if ( false ) {
 
 						// specular
 						// TODO: Sampling the color makes it metal but if we want a shiny surface we can't multiply the color
