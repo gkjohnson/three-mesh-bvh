@@ -80,7 +80,7 @@ const params = {
 		emissiveIntensity: 1,
 		roughness: 1.0,
 		metalness: 0.0,
-		ior: 1.5,
+		ior: 1.8,
 		transmission: 0.0,
 	},
 };
@@ -516,6 +516,14 @@ function* runPathTracing() {
 
 	}
 
+	function reflectance( cosine, iorRatio ) {
+
+		// Schlick approximation
+		const r0 = Math.pow( ( 1 - iorRatio ) / ( 1 + iorRatio ), 2 );
+		return r0 + ( 1 - r0 ) * Math.pow( 1.0 - cosine, 5 );
+
+	}
+
 	function refract( dir, norm, iorRatio, target ) {
 
 		// snell's law
@@ -531,7 +539,6 @@ function* runPathTracing() {
 			.copy( norm )
 			.multiplyScalar( - Math.sqrt( Math.abs( 1.0 - tempVector.lengthSq() ) ) )
 			.add( tempVector );
-
 
 	}
 
@@ -572,10 +579,12 @@ function* runPathTracing() {
 
 				}
 
+				normal.normalize();
 				const hitFrontFace = normal.dot( ray.direction ) < 0;
 				if ( ! hitFrontFace ) {
 
 					normal.multiplyScalar( - 1 );
+					geometryNormal.multiplyScalar( - 1 );
 
 				}
 
@@ -594,22 +603,67 @@ function* runPathTracing() {
 				const count = depth > 1 ? 1 : raysPerHit;
 				for ( let i = 0; i < count; i ++ ) {
 
+					let sampleColor = false;
 					direction.random();
 					direction.x -= 0.5;
 					direction.y -= 0.5;
 					direction.z -= 0.5;
 
-					// lambertian
-					direction.normalize().add( normal ).normalize();
+					// TODO: need to absorb if we scatter below the surface for lambert, metals
+					if ( materialIndex !== 0 ) {
 
-					// specular
-					// normal0.copy( ray.direction ).reflect( normal );
-					// direction.normalize().multiplyScalar( material.roughness ).add( normal0 ).normalize();
+						// lambertian
+						direction.normalize().add( normal ).normalize();
+						sampleColor = true;
 
+					} else if ( true ) {
+
+						// specular
+						// TODO: Sampling the color makes it metal but if we want a shiny surface we can't multiply the color
+						normal0.copy( ray.direction ).reflect( normal );
+						direction.normalize().multiplyScalar( material.roughness ).add( normal0 );
+						sampleColor = true;
+
+					} else {
+
+						// transmissive
+						// TODO: there are black edges around rim of the sphere
+						const ratio = hitFrontFace ? 1 / ior : ior;
+						const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
+						const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
+
+						const cannotRefract = ratio * sinTheta > 1.0;
+						if ( cannotRefract || reflectance( cosTheta, ratio ) > Math.random() ) {
+
+							// TODO: there seems to be a strange reflection -- possibly from internal reflectance?
+							normal0.copy( ray.direction ).reflect( normal );
+							direction.normalize().multiplyScalar( material.roughness ).add( normal0 );
+
+						} else {
+
+							sampleColor = true;
+							refract( ray.direction, normal, ratio, normal0 );
+							direction.normalize().multiplyScalar( material.roughness ).add( normal0 );
+
+							origin.copy( hit.point ).addScaledVector( geometryNormal, - EPSILON );
+
+						}
+
+					}
+
+					direction.normalize();
 					getColorSample( tempRay, tempColor, depth + 1 );
-					targetColor.r += ( emissiveIntensity * emissive.r + color.r * tempColor.r ) / count;
-					targetColor.g += ( emissiveIntensity * emissive.g + color.g * tempColor.g ) / count;
-					targetColor.b += ( emissiveIntensity * emissive.b + color.b * tempColor.b ) / count;
+					if ( sampleColor ) {
+
+						tempColor.r *= color.r;
+						tempColor.g *= color.g;
+						tempColor.b *= color.b;
+
+					}
+
+					targetColor.r += ( emissiveIntensity * emissive.r + tempColor.r ) / count;
+					targetColor.g += ( emissiveIntensity * emissive.g + tempColor.g ) / count;
+					targetColor.b += ( emissiveIntensity * emissive.b + tempColor.b ) / count;
 
 				}
 
