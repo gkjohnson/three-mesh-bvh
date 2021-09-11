@@ -13,7 +13,7 @@ export const ANTIALIAS_OFFSETS = [
 	[ - 8, 0 ], [ 7, - 4 ], [ 6, 7 ], [ - 7, - 8 ],
 ];
 
-export function reflectance( cosine, iorRatio ) {
+export function schlickFresnelReflectance( cosine, iorRatio ) {
 
 	// Schlick approximation
 	const r0 = Math.pow( ( 1 - iorRatio ) / ( 1 + iorRatio ), 2 );

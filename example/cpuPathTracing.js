@@ -17,7 +17,7 @@ import {
 import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
-import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, reflectance, refract } from './pathtracing/utils.js';
+import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, schlickFresnelReflectance, refract } from './pathtracing/utils.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -609,7 +609,7 @@ function* runPathTracing() {
 						const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
 
 						const cannotRefract = ratio * sinTheta > 1.0;
-						if ( cannotRefract || reflectance( cosTheta, ratio ) > Math.random() ) {
+						if ( cannotRefract || schlickFresnelReflectance( cosTheta, ratio ) > Math.random() ) {
 
 							// TODO: there seems to be a strange reflection -- possibly from internal reflectance?
 							normal0.copy( ray.direction ).reflect( normal );
