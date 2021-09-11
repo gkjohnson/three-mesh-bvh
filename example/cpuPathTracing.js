@@ -542,6 +542,55 @@ function* runPathTracing() {
 
 	}
 
+	function expandHitInformation( hit, ray, depth ) {
+
+		const normal = normalStack[ depth ];
+		const face = hit.face;
+		const geometryNormal = hit.face.normal;
+		if ( smoothNormals ) {
+
+			const point = hit.point;
+			triangle.a.fromBufferAttribute( posAttr, face.a );
+			triangle.b.fromBufferAttribute( posAttr, face.b );
+			triangle.c.fromBufferAttribute( posAttr, face.c );
+
+			normal0.fromBufferAttribute( normalAttr, face.a );
+			normal1.fromBufferAttribute( normalAttr, face.b );
+			normal2.fromBufferAttribute( normalAttr, face.c );
+
+			triangle.getBarycoord( point, barycoord );
+
+			normal
+				.setScalar( 0 )
+				.addScaledVector( normal0, barycoord.x )
+				.addScaledVector( normal1, barycoord.y )
+				.addScaledVector( normal2, barycoord.z );
+
+		} else {
+
+			normal.copy( geometryNormal );
+
+		}
+
+		const hitFrontFace = normal.dot( ray.direction ) < 0;
+		if ( ! hitFrontFace ) {
+
+			normal.multiplyScalar( - 1 );
+			geometryNormal.multiplyScalar( - 1 );
+
+		}
+
+		const materialIndex = materialAttr.getX( face.a );
+		const material = materials[ materialIndex ];
+		hit.material = material;
+		hit.materialIndex = materialIndex;
+		hit.normal = normal;
+		hit.geometryNormal = geometryNormal;
+		hit.frontFace = hitFrontFace;
+		normal.normalize();
+
+	}
+
 	function getColorSample( ray, targetColor, depth = 1 ) {
 
 		const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
@@ -551,45 +600,8 @@ function* runPathTracing() {
 
 			if ( depth !== bounces ) {
 
-				const normal = normalStack[ depth ];
-				const face = hit.face;
-				const geometryNormal = hit.face.normal;
-				if ( smoothNormals ) {
-
-					const point = hit.point;
-					triangle.a.fromBufferAttribute( posAttr, face.a );
-					triangle.b.fromBufferAttribute( posAttr, face.b );
-					triangle.c.fromBufferAttribute( posAttr, face.c );
-
-					normal0.fromBufferAttribute( normalAttr, face.a );
-					normal1.fromBufferAttribute( normalAttr, face.b );
-					normal2.fromBufferAttribute( normalAttr, face.c );
-
-					triangle.getBarycoord( point, barycoord );
-
-					normal
-						.setScalar( 0 )
-						.addScaledVector( normal0, barycoord.x )
-						.addScaledVector( normal1, barycoord.y )
-						.addScaledVector( normal2, barycoord.z );
-
-				} else {
-
-					normal.copy( geometryNormal );
-
-				}
-
-				normal.normalize();
-				const hitFrontFace = normal.dot( ray.direction ) < 0;
-				if ( ! hitFrontFace ) {
-
-					normal.multiplyScalar( - 1 );
-					geometryNormal.multiplyScalar( - 1 );
-
-				}
-
-				const materialIndex = materialAttr.getX( face.a );
-				const material = materials[ materialIndex ];
+				expandHitInformation( hit, ray, depth );
+				const { geometryNormal, normal, material, frontFace, materialIndex } = hit;
 				const tempRay = rayStack[ depth ];
 				const tempColor = colorStack[ depth ];
 				const origin = tempRay.origin;
@@ -628,7 +640,7 @@ function* runPathTracing() {
 
 						// transmissive
 						// TODO: there are black edges around rim of the sphere
-						const ratio = hitFrontFace ? 1 / ior : ior;
+						const ratio = frontFace ? 1 / ior : ior;
 						const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
 						const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
 
