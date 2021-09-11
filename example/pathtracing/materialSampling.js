@@ -7,6 +7,11 @@ export function getBSDFDirection( ray, hit, material, rayTarget ) {
 	// the probability of each type of ray (transmissive, specular, diffuse) of
 	// being used. Use a random number to select the incident ray.
 
+	// TODO:
+	// We need to return our PDF for this direction so we can multiply it into our result
+	// to offset the PDF weighting from the BSDF color hit
+	// https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html#importancesamplingmaterials
+
 }
 
 export function getBSDFColorFromHit( ray, hit, material, incidentColor, colorTarget ) {
