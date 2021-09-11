@@ -18,5 +18,9 @@ export function getBSDFColorFromHit( ray, hit, material, incidentColor, colorTar
 	// the color contribution from the material given the incidentColor to the colorTarget.
 	// Account for contributions from transmissive, specular, and diffuse BRDFs
 
+	// TODO: how do we determine the weight for something like diffuse when it's been tempered by
+	// the direction sampling (cosine weighted) already? Does it need to be cosine weighted here, too?
+	// (read area light sampling section)
+
 }
 
