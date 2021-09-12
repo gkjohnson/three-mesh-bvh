@@ -701,10 +701,13 @@ function render() {
 		material.color.set( params.material.color ).convertSRGBToLinear();
 		material.emissive.set( params.material.emissive ).convertSRGBToLinear();
 		material.emissiveIntensity = parseFloat( params.material.emissiveIntensity );
-		material.roughness = parseFloat( params.material.roughness );
 		material.ior = parseFloat( params.material.ior );
 		material.metalness = parseFloat( params.material.metalness );
 		material.transmission = parseFloat( params.material.transmission );
+
+		// use a "perceptualRoughness" concept when interpreting user input
+		// https://google.github.io/filament/Filament.html#materialsystem/standardmodelsummary
+		material.roughness = Math.pow( parseFloat( params.material.roughness ), 2.0 );
 
 	} else {
 
