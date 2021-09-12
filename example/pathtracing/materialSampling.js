@@ -25,8 +25,9 @@ function diffuseDirection( ray, hit, material, rayTarget ) {
 	direction.x -= 0.5;
 	direction.y -= 0.5;
 	direction.z -= 0.5;
-	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 	direction.normalize().add( normal ).normalize();
+
+	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 }
 
@@ -48,7 +49,6 @@ function specularDirection( ray, hit, material, rayTarget ) {
 	const { roughness } = material;
 	const { origin, direction } = rayTarget;
 	const { geometryNormal, normal } = hit;
-	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 	direction.random();
 	direction.x -= 0.5;
@@ -56,6 +56,8 @@ function specularDirection( ray, hit, material, rayTarget ) {
 	direction.z -= 0.5;
 	tempVector.copy( ray.direction ).reflect( normal );
 	direction.normalize().multiplyScalar( roughness ).add( tempVector );
+
+	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 }
 
@@ -79,6 +81,10 @@ function transmissionDirection( ray, hit, material, rayTarget ) {
 	const { geometryNormal, normal, frontFace } = hit;
 	const ratio = frontFace ? 1 / ior : ior;
 
+	direction.random();
+	direction.x -= 0.5;
+	direction.y -= 0.5;
+	direction.z -= 0.5;
 	refract( ray.direction, normal, ratio, tempVector );
 	direction.normalize().multiplyScalar( roughness ).add( tempVector );
 

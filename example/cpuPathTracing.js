@@ -692,8 +692,8 @@ function render() {
 		// initialize ior and transmission not present on materials already
 		materials.forEach( m => {
 
-			m.ior = 1;
-			m.transmission = 0.0;
+			if ( m.ior === undefined ) m.ior = 1;
+			if ( m.transmission === undefined ) m.transmission = 0.0;
 
 		} );
 
