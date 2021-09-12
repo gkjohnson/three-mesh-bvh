@@ -1,6 +1,8 @@
 import { Vector3 } from 'three';
 
 const tempVector = new Vector3();
+const tempVector1 = new Vector3();
+const tempVector2 = new Vector3();
 
 export const EPSILON = 1e-7;
 
@@ -36,5 +38,23 @@ export function refract( dir, norm, iorRatio, target ) {
 		.copy( norm )
 		.multiplyScalar( - Math.sqrt( Math.abs( 1.0 - tempVector.lengthSq() ) ) )
 		.add( tempVector );
+
+}
+
+export function basisFromNormal( normal, targetMatrix ) {
+
+	if ( normal.x > 0.5 ) {
+
+		tempVector.set( 0, 1, 0 );
+
+	} else {
+
+		tempVector.set( 1, 0, 0 );
+
+	}
+
+	tempVector1.crossVectors( normal, tempVector );
+	tempVector2.crossVectors( normal, tempVector2 );
+	targetMatrix.makeBasis( tempVector2, tempVector1, normal );
 
 }
