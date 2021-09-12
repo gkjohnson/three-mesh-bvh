@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { bsdfDirection } from './pathtracing/materialSampling.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -536,7 +537,7 @@ function* runPathTracing() {
 
 		}
 
-		const hitFrontFace = normal.dot( ray.direction ) < 0;
+		const hitFrontFace = geometryNormal.dot( ray.direction ) < 0;
 		if ( ! hitFrontFace ) {
 
 			normal.multiplyScalar( - 1 );
@@ -565,77 +566,29 @@ function* runPathTracing() {
 			if ( depth !== bounces ) {
 
 				expandHitInformation( hit, ray, depth );
-				const { geometryNormal, normal, material, frontFace, materialIndex } = hit;
+				const { geometryNormal, material } = hit;
 				const tempRay = rayStack[ depth ];
 				const tempColor = colorStack[ depth ];
 				const origin = tempRay.origin;
-				const direction = tempRay.direction;
+
 				// TODO: Should this instead be offset by the direction vector? If a glossy vector
 				// scatters inside the model we need to exclude its light contribution.
 				origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
-				const { color, emissive, emissiveIntensity, ior } = material;
+				const { color, emissive, emissiveIntensity } = material;
 
 				const count = depth > 1 ? 1 : raysPerHit;
 				for ( let i = 0; i < count; i ++ ) {
 
-					let sampleColor = false;
-					direction.random();
-					direction.x -= 0.5;
-					direction.y -= 0.5;
-					direction.z -= 0.5;
+					ray.direction.normalize();
 
-					// TODO: need to absorb if we scatter below the surface for lambert, metals
-					if ( materialIndex !== 0 ) {
+					const colorWeight = bsdfDirection( ray, hit, material, tempRay );
+					tempRay.direction.normalize();
 
-						// lambertian
-						direction.normalize().add( normal ).normalize();
-						sampleColor = true;
-
-					} else if ( false ) {
-
-						// specular
-						// TODO: Sampling the color makes it metal but if we want a shiny surface we can't multiply the color
-						normal0.copy( ray.direction ).reflect( normal );
-						direction.normalize().multiplyScalar( material.roughness ).add( normal0 );
-						sampleColor = true;
-
-					} else {
-
-						// transmissive
-						// TODO: there are black edges around rim of the sphere
-						const ratio = frontFace ? 1 / ior : ior;
-						const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
-						const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
-
-						const cannotRefract = ratio * sinTheta > 1.0;
-						if ( cannotRefract || schlickFresnelReflectance( cosTheta, ratio ) > Math.random() ) {
-
-							// TODO: there seems to be a strange reflection -- possibly from internal reflectance?
-							normal0.copy( ray.direction ).reflect( normal );
-							direction.normalize().multiplyScalar( material.roughness ).add( normal0 );
-
-						} else {
-
-							sampleColor = true;
-							refract( ray.direction, normal, ratio, normal0 );
-							direction.normalize().multiplyScalar( material.roughness ).add( normal0 );
-
-							origin.copy( hit.point ).addScaledVector( geometryNormal, - EPSILON );
-
-						}
-
-					}
-
-					direction.normalize();
 					getColorSample( tempRay, tempColor, depth + 1 );
-					if ( sampleColor ) {
-
-						tempColor.r *= color.r;
-						tempColor.g *= color.g;
-						tempColor.b *= color.b;
-
-					}
+					tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );
+					tempColor.g = THREE.MathUtils.lerp( tempColor.g, tempColor.g * color.g, colorWeight );
+					tempColor.b = THREE.MathUtils.lerp( tempColor.b, tempColor.b * color.b, colorWeight );
 
 					targetColor.r += ( emissiveIntensity * emissive.r + tempColor.r ) / count;
 					targetColor.g += ( emissiveIntensity * emissive.g + tempColor.g ) / count;
@@ -736,12 +689,22 @@ function render() {
 		bvh = model.bvh;
 		materials = model.materials;
 
+		// initialize ior and transmission not present on materials already
+		materials.forEach( m => {
+
+			m.ior = 1;
+			m.transmission = 0.0;
+
+		} );
+
 		const material = materials[ 0 ];
 		material.color.set( params.material.color ).convertSRGBToLinear();
 		material.emissive.set( params.material.emissive ).convertSRGBToLinear();
 		material.emissiveIntensity = parseFloat( params.material.emissiveIntensity );
 		material.roughness = parseFloat( params.material.roughness );
 		material.ior = parseFloat( params.material.ior );
+		material.metalness = parseFloat( params.material.metalness );
+		material.transmission = parseFloat( params.material.transmission );
 
 	} else {
 

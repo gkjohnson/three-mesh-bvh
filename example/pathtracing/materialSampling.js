@@ -12,6 +12,8 @@ function diffuseWeight( reflectance, metalness, transmission ) {
 
 function diffusePDF( direction, normal, roughness ) {
 
+	return 1; // TODO
+
 }
 
 function diffuseDirection( ray, hit, material, rayTarget ) {
@@ -36,6 +38,8 @@ function specularWeight( reflectance, metalness, transmission ) {
 }
 
 function specularPDF( direction, normal, roughness ) {
+
+	return 1; // TODO
 
 }
 
@@ -64,6 +68,8 @@ function transmissionWeight( reflectance, metalness, transmission ) {
 
 function transmissionPDF( direction, normal, roughness ) {
 
+	return 1; // TODO
+
 }
 
 function transmissionDirection( ray, hit, material, rayTarget ) {
@@ -90,15 +96,22 @@ export function bsdfDirection( ray, hit, material, rayTarget ) {
 
 	let randomValue = Math.random();
 	const { ior, metalness, roughness, transmission } = material;
-	const { normal } = hit;
-	const { direction } = ray.direction;
+	const { normal, frontFace } = hit;
 
-	const cosine = ray.direction.dot( hit.normal );
-	const reflectance = schlickFresnelReflectance( cosine, ior );
+	const ratio = frontFace ? 1 / ior : ior;
+	const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
+	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
+	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
+	const cannotRefract = ratio * sinTheta > 1.0;
+	if ( cannotRefract ) {
+
+		reflectance = 1;
+
+	}
 
 	// specular
 	const sW = specularWeight( reflectance, metalness, transmission );
-	const sPdf = specularPDF( direction, normal, roughness );
+	const sPdf = specularPDF( ray.direction, normal, roughness );
 	const sVal = sW * sPdf;
 
 	if ( randomValue <= sVal ) {
@@ -108,11 +121,11 @@ export function bsdfDirection( ray, hit, material, rayTarget ) {
 
 	}
 
-	randomValue -= sVal;
+	randomValue -= sW;
 
 	// diffuse
 	const dW = diffuseWeight( reflectance, metalness, transmission );
-	const dPdf = diffusePDF( direction, normal, roughness );
+	const dPdf = diffusePDF( ray.direction, normal, roughness );
 	const dVal = dW * dPdf;
 
 	if ( randomValue <= dVal ) {
@@ -136,12 +149,10 @@ export function bsdfPDF( ray, hit, material ) {
 	const { direction } = ray.direction;
 
 	// TODO: do we need to handle the case where the ray is underneath the sphere on the shading normal?
-	const cosine = ray.direction.dot( hit.normal );
-	let reflectance = schlickFresnelReflectance( cosine, ior );
-
 	const ratio = frontFace ? 1 / ior : ior;
 	const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
+	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
 	const cannotRefract = ratio * sinTheta > 1.0;
 	if ( cannotRefract ) {
 
