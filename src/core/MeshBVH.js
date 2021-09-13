@@ -884,7 +884,7 @@ export class MeshBVH {
 			if ( ! target2.point ) target2.point = tempTargetDest2.clone();
 			else target2.point.copy( tempTargetDest2 );
 			target2.point.applyMatrix4( tempMatrix );
-			tempTargetDest1.applyMatrix4( tempMatrix )
+			tempTargetDest1.applyMatrix4( tempMatrix );
 			target2.distance = tempTargetDest1.sub( target2.point ).length();
 			target2.faceIndex = closestDistanceOtherTriIndex;
 
