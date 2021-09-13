@@ -192,11 +192,17 @@ function init() {
 
 		const { geometry, materials } = mergeMeshes( [ mesh, ground ], true );
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-		scene.add( merged );
 
-		bvh = new MeshBVH( geometry, { strategy: SAH, maxLeafTris: 1 } );
+		const generator = new GenerateMeshBVHWorker();
+		generator
+			.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
+			.then( bvh => {
 
-		models[ 'Dragon' ] = { mesh: merged, bvh, materials };
+				models[ 'Dragon' ] = { mesh: merged, bvh, materials };
+				scene.add( merged );
+				generator.terminate();
+
+			} );
 
 	} );
 
@@ -284,10 +290,17 @@ function init() {
 		geometry.center();
 
 		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-		const bvh = new MeshBVH( geometry, { strategy: SAH, maxLeafTris: 1 } );
+		const generator = new GenerateMeshBVHWorker();
+		generator
+			.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
+			.then( bvh => {
 
-		scene.add( mesh );
-		models[ 'Rover' ] = { mesh, bvh, materials };
+				scene.add( mesh );
+				models[ 'Rover' ] = { mesh, bvh, materials };
+
+				generator.terminate();
+
+			} );
 
 	} );
 
@@ -552,6 +565,7 @@ function* runPathTracing() {
 		hit.normal = normal;
 		hit.geometryNormal = geometryNormal;
 		hit.frontFace = hitFrontFace;
+
 		normal.normalize();
 
 	}
