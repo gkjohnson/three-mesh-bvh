@@ -58,3 +58,19 @@ export function basisFromNormal( normal, targetMatrix ) {
 	targetMatrix.makeBasis( tempVector2, tempVector1, normal );
 
 }
+
+export function getHalfVector( a, b, target ) {
+
+	return target.addVectors( a, b ).normalize();
+
+}
+
+export function getRandomUnitDirection( target ) {
+
+	target.random();
+	target.x -= 0.5;
+	target.y -= 0.5;
+	target.z -= 0.5;
+	return target.normalize();
+
+}

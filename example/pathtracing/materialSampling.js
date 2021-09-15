@@ -1,4 +1,4 @@
-import { EPSILON, schlickFresnelReflectance, refract } from './utils.js';
+import { EPSILON, schlickFresnelReflectance, refract, getRandomUnitDirection } from './utils.js';
 import { MathUtils, Vector3 } from 'three';
 
 const tempVector = new Vector3();
@@ -21,12 +21,7 @@ function diffuseDirection( ray, hit, material, rayTarget ) {
 	const { origin, direction } = rayTarget;
 	const { geometryNormal, normal } = hit;
 
-	direction.random();
-	direction.x -= 0.5;
-	direction.y -= 0.5;
-	direction.z -= 0.5;
-	direction.normalize().add( normal ).normalize();
-
+	getRandomUnitDirection( direction ).add( normal ).normalize();
 	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 }
@@ -50,12 +45,8 @@ function specularDirection( ray, hit, material, rayTarget ) {
 	const { origin, direction } = rayTarget;
 	const { geometryNormal, normal } = hit;
 
-	direction.random();
-	direction.x -= 0.5;
-	direction.y -= 0.5;
-	direction.z -= 0.5;
 	tempVector.copy( ray.direction ).reflect( normal );
-	direction.normalize().multiplyScalar( roughness ).add( tempVector );
+	getRandomUnitDirection( direction ).multiplyScalar( roughness ).add( tempVector );
 
 	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
@@ -81,12 +72,8 @@ function transmissionDirection( ray, hit, material, rayTarget ) {
 	const { geometryNormal, normal, frontFace } = hit;
 	const ratio = frontFace ? 1 / ior : ior;
 
-	direction.random();
-	direction.x -= 0.5;
-	direction.y -= 0.5;
-	direction.z -= 0.5;
 	refract( ray.direction, normal, ratio, tempVector );
-	direction.normalize().multiplyScalar( roughness ).add( tempVector );
+	getRandomUnitDirection( direction ).multiplyScalar( roughness ).add( tempVector );
 
 	origin.copy( hit.point ).addScaledVector( geometryNormal, - EPSILON );
 
