@@ -83,6 +83,23 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 	tempV2.fromBufferAttribute( positions, b );
 	tempV3.fromBufferAttribute( positions, c );
 
+	// find the associated material index
+	let materialIndex = 0;
+	const groups = geometry.groups;
+	for ( let i = 0, l = groups.length; i < l; i ++ ) {
+
+		const group = groups[ i ];
+		const { offset, count } = group;
+		if ( triangleIndex >= count && triangleIndex < offset + count ) {
+
+			materialIndex = group.materialIndex;
+			break;
+
+		}
+
+	}
+
+	// extract uvs
 	let uv = null;
 	if ( uvs ) {
 
@@ -97,6 +114,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 
 	}
 
+	// adjust the provided target or create a new one
 	if ( target ) {
 
 		if ( ! target.point ) target.point = new Vector3();
@@ -106,7 +124,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		target.face.a = a;
 		target.face.b = b;
 		target.face.c = c;
-		target.face.materialIndex = 0;
+		target.face.materialIndex = materialIndex;
 		if ( ! target.face.normal ) target.face.normal = new Vector3();
 		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 
@@ -124,7 +142,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 				a: a,
 				b: b,
 				c: c,
-				materialIndex: 0,
+				materialIndex: materialIndex,
 				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
 			},
 			uv: uv
