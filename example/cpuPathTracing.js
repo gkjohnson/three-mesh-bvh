@@ -18,7 +18,7 @@ import {
 import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
-import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, schlickFresnelReflectance, refract } from './pathtracing/utils.js';
+import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, } from './pathtracing/utils.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -165,7 +165,7 @@ function init() {
 	models[ 'Dragon' ] = null;
 	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
 
-		let mesh, bvh;
+		let mesh;
 		gltf.scene.traverse( c => {
 
 			if ( c.isMesh && c.name === 'Dragon' ) {
@@ -187,7 +187,7 @@ function init() {
 
 		const ground = new THREE.Mesh(
 			plane,
-			new THREE.MeshStandardMaterial( { color: 0x7f7f7f } ),
+			new THREE.MeshStandardMaterial( { color: 0x7f7f7f, roughness: 0.2, metalness: 1 } ),
 		);
 
 		const { geometry, materials } = mergeMeshes( [ mesh, ground ], true );
@@ -474,6 +474,8 @@ function* runPathTracing() {
 
 				ssPoint.set( randomOffsetX + x / ( width - 1 ), randomOffsetY + y / ( height - 1 ) );
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
+				// TODO: transform ray into local space of bvh -- multiply by inverse of mesh.matrixWorld
+
 				getColorSample( raycaster.ray, color );
 
 				color.r = Math.min( color.r, 1.0 );
@@ -750,8 +752,6 @@ function render() {
 		scanLineElement.style.borderBottomWidth = '1px';
 
 	}
-
-
 
 	renderer.render( scene, camera );
 	renderer.autoClear = false;

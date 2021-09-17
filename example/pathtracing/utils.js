@@ -67,10 +67,14 @@ export function getHalfVector( a, b, target ) {
 
 export function getRandomUnitDirection( target ) {
 
-	target.random();
-	target.x -= 0.5;
-	target.y -= 0.5;
-	target.z -= 0.5;
-	return target.normalize();
+	const u = ( Math.random() - 0.5 ) * 2;
+	const t = Math.random() * Math.PI * 2;
+	const f = Math.sqrt( 1 - u ** 2 );
+
+	target.x = f * Math.cos( t );
+	target.y = f * Math.sin( t );
+	target.z = u;
+
+	return target;
 
 }
