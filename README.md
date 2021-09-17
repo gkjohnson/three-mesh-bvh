@@ -336,27 +336,25 @@ Performance improves considerably if the provided geometry _also_ has a `boundsT
 ```js
 closestPointToPoint(
 	point : Vector3,
-	target : Vector3,
+	target : Object = { },
 	minThreshold : Number = 0,
 	maxThreshold : Number = Infinity
 ) : Number
 ```
 
-Returns the closest distance from the point to the mesh and puts the closest point on the mesh in `target`.
+Computes the closest distance from the point to the mesh and gives additional information in `target`. The target can be left undefined to default to a new object.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
-### .distanceToPoint
-
 ```js
-distanceToPoint(
+target : {
 	point : Vector3,
-	minThreshold : Number = 0,
-	maxThreshold : Number = Infinity
-) : Number
+	distance : Number,
+	faceIndex: Number
+}
 ```
 
-Convenience function for just getting the distance returned by calling [closestPointToPoint](#closestPointToPoint).
+The returned faceIndex can be used with the standalone function [getTriangleHitPointInfo](#getTriangleHitPointInfo) to obtain more information like UV coordinates, triangle normal and materialIndex.
 
 ### .closestPointToGeometry
 
@@ -371,26 +369,17 @@ closestPointToGeometry(
 ) : Number
 ```
 
-Returns the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` and the closest point on the other geometry in `target2` in the frame of the BVH.
+Computes the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` (in the frame of the BVH) and the closest point on the other geometry in `target2` (in the geometry frame).
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
 
+`target1` and `target2` are optional objects equal to the `target` parameter in [closestPointPoint](#closestPointToPoint)
+
+The returned in `target1` and `target2` can be used with the standalone function [getTriangleHitPointInfo](#getTriangleHitPointInfo) to obtain more information like UV coordinates, triangle normal and materialIndex.
+
 _Note that this function can be very slow if `geometry` does not have a `geometry.boundsTree` computed._
-
-### .distanceToGeometry
-
-```js
-distanceToGeometry(
-	geometry : BufferGeometry,
-	geometryToBvh : Matrix4,
-	minThreshold : Number = 0,
-	maxThreshold : Number = Infinity
-) : Number
-```
-
-Convenience function for just getting the distance returned by calling [closestPointToGeometry](#closestPointToGeometry).
 
 ### .shapecast
 
@@ -498,6 +487,41 @@ getBoundingBox( target : Box3 ) : Box3
 ```
 
 Get the bounding box of the geometry computed from the root node bounds of the BVH. Significantly faster than `BufferGeometry.computeBoundingBox`.
+
+### getTriangleHitPointInfo
+
+```js
+getTriangleHitPointInfo(
+	point: Vector3,
+	geometry : BufferGeometry,
+	triangleIndex: Number
+	target: Object
+): Object
+```
+
+This function returns information of a point related to a geometry. It returns the `target` object or a new one if passed `undefined`:
+
+```js
+target : {
+	point: Vector3,
+	face: {
+		a: Number,
+		b: Number,
+		c: Number,
+		materialIndex: Number,
+		normal: Vector3
+	},
+	uv: Vector2
+}
+```
+
+- `point`: The same point
+- `a`, `b`, `c`: Triangle indices
+- `materialIndex`: Face material index or 0 if not available.
+- `normal`: Face normal
+- `uv`: UV coordinates.
+
+This function would normally be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry).
 
 ## SerializedBVH
 

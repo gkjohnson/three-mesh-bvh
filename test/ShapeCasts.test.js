@@ -537,19 +537,19 @@ function runSuiteWithOptions( defaultOptions ) {
 		// not being perfectly round
 		const EPSILON = 0.001;
 		let bvh = null;
-		let target = null;
+		let target = undefined;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 200, 200 );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			target = new Vector3();
 
 		} );
 
 		it( 'should return the radius if at the center of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( new Vector3(), target );
+			target = bvh.closestPointToPoint( new Vector3(), target );
+			const dist = target.distance;
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -557,7 +557,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return 0 if on the surface of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( new Vector3( 0, 1, 0 ), target );
+			target = bvh.closestPointToPoint( new Vector3( 0, 1, 0 ), target );
+			const dist = target.distance;
 			expect( dist ).toBe( 0 );
 
 		} );
@@ -575,7 +576,8 @@ function runSuiteWithOptions( defaultOptions ) {
 				vec.normalize().multiplyScalar( length );
 
 				const expectedDist = Math.abs( 1 - length );
-				const dist = bvh.closestPointToPoint( vec, target );
+				target = bvh.closestPointToPoint( vec, target );
+				const dist = target.distance;
 				expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 				expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 
@@ -589,16 +591,15 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		let geometry = null;
 		let bvh = null;
-		let target1 = null;
-		let target2 = null;
+		let target1 = undefined;
+		let target2 = undefined;
 
 		beforeEach( () => {
 
 			const geom = new SphereBufferGeometry( 1, 20, 20 );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
-			target1 = new Vector3();
-			target2 = new Vector3();
+			target2 = { };
 
 			geometry = new SphereBufferGeometry( 1, 5, 5 );
 
@@ -615,7 +616,8 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.001, 0.001, 0.001 )
 				);
-			const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+			target1 = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+			const dist = target1.distance;
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -629,7 +631,8 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 )
 				);
-			const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+			target1 = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+			const dist = target1.distance;
 			expect( dist ).toBe( 0 );
 
 		} );
@@ -659,7 +662,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const distToCenter = Math.abs( 1 - length );
 				const expectedDist = distToCenter < radius ? 0 : distToCenter - radius;
-				const dist = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+				target1 = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+				const dist = target1.distance;
 				expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 				expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 

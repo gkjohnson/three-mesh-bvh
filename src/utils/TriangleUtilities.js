@@ -1,3 +1,6 @@
+
+import { Vector2, Vector3, Triangle } from 'three';
+
 // sets the vertices of triangle `tri` with the 3 vertices after i
 export function setTriangle( tri, i, index, pos ) {
 
@@ -56,5 +59,77 @@ export function iterateOverTriangles(
 	}
 
 	return false;
+
+}
+
+const tempV1 = /* @__PURE__ */ new Vector3();
+const tempV2 = /* @__PURE__ */ new Vector3();
+const tempV3 = /* @__PURE__ */ new Vector3();
+const tempUV1 = /* @__PURE__ */ new Vector2();
+const tempUV2 = /* @__PURE__ */ new Vector2();
+const tempUV3 = /* @__PURE__ */ new Vector2();
+
+export function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
+
+	const indices = geometry.getIndex().array;
+	const positions = geometry.getAttribute( 'position' );
+	const uvs = geometry.getAttribute( 'uv' );
+
+	const a = indices[ triangleIndex * 3 ];
+	const b = indices[ triangleIndex * 3 + 1 ];
+	const c = indices[ triangleIndex * 3 + 2 ];
+
+	tempV1.fromBufferAttribute( positions, a );
+	tempV2.fromBufferAttribute( positions, b );
+	tempV3.fromBufferAttribute( positions, c );
+
+	let uv = null;
+	if ( uvs ) {
+
+		tempUV1.fromBufferAttribute( uvs, a );
+		tempUV2.fromBufferAttribute( uvs, b );
+		tempUV3.fromBufferAttribute( uvs, c );
+
+		if ( target && target.uv ) uv = target.uv;
+		else uv = new Vector2();
+
+		Triangle.getUV( point, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv );
+
+	}
+
+	if ( target ) {
+
+		if ( ! target.point ) target.point = new Vector3();
+		target.point.copy( point );
+
+		if ( ! target.face ) target.face = { };
+		target.face.a = a;
+		target.face.b = b;
+		target.face.c = c;
+		target.face.materialIndex = 0;
+		if ( ! target.face.normal ) target.face.normal = new Vector3();
+		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
+
+		target.distance = 0;
+		if ( ! target.uv ) target.uv = new Vector2();
+		target.uv.copy( uv );
+
+		return target;
+
+	} else {
+
+		return {
+			point: point.clone(),
+			face: {
+				a: a,
+				b: b,
+				c: c,
+				materialIndex: 0,
+				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
+			},
+			uv: uv
+		};
+
+	}
 
 }
