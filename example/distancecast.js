@@ -281,12 +281,27 @@ function updateDistanceCheck( fastCheck ) {
 			.multiply( targetContainer.matrixWorld );
 
 	// get the closest point
-	const distance = params.volume.distance;
-	const maxDistance = distance;
-	const minDistance = fastCheck ? distance : 0;
+	const volumeDistance = params.volume.distance;
+	const maxDistance = volumeDistance;
+	const minDistance = fastCheck ? volumeDistance : 0;
 
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, minDistance, maxDistance );
-	const hit = dist < distance;
+	const distanceResult1 = {};
+	const distanceResult2 = {};
+	terrain.geometry.boundsTree.closestPointToGeometry(
+		targetMesh.geometry,
+		targetToBvh,
+		distanceResult1,
+		distanceResult2,
+		minDistance,
+		maxDistance,
+	);
+
+	// the resulting points are provided in the local frame of the the geometries
+	sphere1.position.copy( distanceResult1.point );
+	sphere2.position.copy( distanceResult2.point ).applyMatrix4( targetToBvh );
+
+	const dist = distanceResult1.distance;
+	const hit = dist < volumeDistance;
 	targetMesh.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	targetMesh.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
@@ -374,9 +389,9 @@ function* updateMarchingCubes() {
 
 	marchingCubes.reset();
 
-	// get the world
+	// get the world distance
+	const distanceResult = {};
 	let count = 0;
-
 	for ( let y = 0; y < size; y ++ ) {
 
 		for ( let x = 0; x < size; x ++ ) {
@@ -391,7 +406,8 @@ function* updateMarchingCubes() {
 
 					pos.applyMatrix4( worldToBvh );
 
-					const dist = distanceMesh.geometry.boundsTree.distanceToPoint( pos, distance, distance );
+					distanceMesh.geometry.boundsTree.closestPointToPoint( pos, distanceResult, distance, distance );
+					const dist = distanceResult.distance;
 					const result = dist < distance;
 					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
 

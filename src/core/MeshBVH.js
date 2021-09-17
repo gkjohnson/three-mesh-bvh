@@ -1034,12 +1034,26 @@ MeshBVH.prototype.raycastFirst = function ( ...args ) {
 const originalClosestPointToPoint = MeshBVH.prototype.closestPointToPoint;
 MeshBVH.prototype.closestPointToPoint = function ( ...args ) {
 
-	const target = args[ 1 ];
 
-	if ( target && target.isVector3 ) {
+	if ( args[ 0 ].isMesh ) {
 
 		console.warn( 'MeshBVH: The function signature and results frame for "closestPointToPoint" has changed. See docs for new signature.' );
-		return null;
+
+		args.unshift();
+
+		const target = args[ 1 ];
+		const result = {};
+		args[ 1 ] = result;
+
+		originalClosestPointToPoint.apply( this, args );
+
+		if ( target ) {
+
+			target.copy( result.point );
+
+		}
+
+		return result.distance;
 
 	} else {
 
@@ -1054,11 +1068,31 @@ MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
 
 	const target1 = args[ 2 ];
 	const target2 = args[ 3 ];
-
-	if ( ( target1 && target1.isVector3 ) || ( target2 && target2.isVector3 ) ) {
+	if ( target1 && target1.isVector3 || target2 && target2.isVector3 ) {
 
 		console.warn( 'MeshBVH: The function signature and results frame for "closestPointToGeometry" has changed. See docs for new signature.' );
-		return null;
+
+		const result1 = {};
+		const result2 = {};
+		const geometryToBvh = args[ 1 ];
+		args[ 2 ] = result1;
+		args[ 3 ] = result2;
+
+		originalClosestPointToGeometry.apply( this, args );
+
+		if ( target1 ) {
+
+			target1.copy( result1.point );
+
+		}
+
+		if ( target2 ) {
+
+			target2.copy( result2.point ).applyMatrix4( geometryToBvh );
+
+		}
+
+		return result1.distance;
 
 	} else {
 
@@ -1073,10 +1107,6 @@ MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
 	'shapecast',
 	'intersectsBox',
 	'intersectsSphere',
-	'closestPointToGeometry',
-	'distanceToGeometry',
-	'closestPointToPoint',
-	'distanceToPoint',
 ].forEach( name => {
 
 	const originalFunc = MeshBVH.prototype[ name ];
