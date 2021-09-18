@@ -503,7 +503,6 @@ This function returns information of a point related to a geometry. It returns t
 
 ```js
 target : {
-	point: Vector3,
 	face: {
 		a: Number,
 		b: Number,
@@ -515,13 +514,12 @@ target : {
 }
 ```
 
-- `point`: The same point
 - `a`, `b`, `c`: Triangle indices
 - `materialIndex`: Face material index or 0 if not available.
 - `normal`: Face normal
 - `uv`: UV coordinates.
 
-This function would normally be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry).
+This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
 
 ## SerializedBVH
 
