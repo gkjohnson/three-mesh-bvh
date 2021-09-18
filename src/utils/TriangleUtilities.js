@@ -118,9 +118,6 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 	// adjust the provided target or create a new one
 	if ( target ) {
 
-		if ( ! target.point ) target.point = new Vector3();
-		target.point.copy( point );
-
 		if ( ! target.face ) target.face = { };
 		target.face.a = a;
 		target.face.b = b;
@@ -129,7 +126,6 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		if ( ! target.face.normal ) target.face.normal = new Vector3();
 		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 
-		target.distance = 0;
 		if ( ! target.uv ) target.uv = new Vector2();
 		target.uv.copy( uv );
 
@@ -138,7 +134,6 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 	} else {
 
 		return {
-			point: point.clone(),
 			face: {
 				a: a,
 				b: b,
