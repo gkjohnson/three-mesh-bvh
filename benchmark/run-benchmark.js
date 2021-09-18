@@ -18,8 +18,8 @@ box.min.set( 1, 1, 1 );
 const intersectGeometry = new THREE.TorusBufferGeometry( 5, 5, 100, 50 );
 const geomMat = new THREE.Matrix4().compose( new THREE.Vector3(), new THREE.Quaternion(), new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-const target1 = new THREE.Vector3();
-const target2 = new THREE.Vector3();
+const target1 = {};
+const target2 = {};
 
 const geometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
@@ -255,7 +255,7 @@ function runSuite( strategy ) {
 
 		'DistanceToGeometry w/ BVH',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToGeometry( intersectGeometry, geomMat, target1, target2 ),
+		() => mesh.geometry.boundsTree.closestPointToGeometry( intersectGeometry, geomMat, target1, target2 ).distance,
 		3000
 
 	);
@@ -265,7 +265,7 @@ function runSuite( strategy ) {
 
 		'DistanceToPoint',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToPoint( vec, target1 ),
+		() => mesh.geometry.boundsTree.closestPointToPoint( vec, target1 ).distance,
 		3000
 
 	);

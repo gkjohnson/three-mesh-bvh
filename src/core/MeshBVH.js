@@ -26,6 +26,8 @@ const obb2 = /* @__PURE__ */ new OrientedBox();
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
 const temp2 = /* @__PURE__ */ new Vector3();
+const temp3 = /* @__PURE__ */ new Vector3();
+const temp4 = /* @__PURE__ */ new Vector3();
 const tempBox = /* @__PURE__ */ new Box3();
 const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
 
@@ -684,7 +686,7 @@ export class MeshBVH {
 
 	}
 
-	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = null, target2 = null, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = { }, target2 = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
 		if ( ! otherGeometry.boundingBox ) {
 
@@ -703,22 +705,23 @@ export class MeshBVH {
 		const triangle = trianglePool.getPrimitive();
 		const triangle2 = trianglePool.getPrimitive();
 
-		let tempTarget1 = null;
+		let tempTarget1 = temp1;
+		let tempTargetDest1 = temp2;
 		let tempTarget2 = null;
-		if ( target1 ) {
-
-			tempTarget1 = temp1;
-
-		}
+		let tempTargetDest2 = null;
 
 		if ( target2 ) {
 
-			tempTarget2 = temp2;
+			tempTarget2 = temp3;
+			tempTargetDest2 = temp4;
 
 		}
 
 		let closestDistance = Infinity;
-		obb2.matrix.copy( geometryToBvh ).invert();
+		let closestDistanceTriIndex = null;
+		let closestDistanceOtherTriIndex = null;
+		tempMatrix.copy( geometryToBvh ).invert();
+		obb2.matrix.copy( tempMatrix );
 		this.shapecast(
 			{
 
@@ -787,19 +790,17 @@ export class MeshBVH {
 										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 										if ( dist < closestDistance ) {
 
-											if ( target1 ) {
+											tempTargetDest1.copy( tempTarget1 );
 
-												target1.copy( tempTarget1 );
+											if ( tempTargetDest2 ) {
 
-											}
-
-											if ( target2 ) {
-
-												target2.copy( tempTarget2 );
+												tempTargetDest2.copy( tempTarget2 );
 
 											}
 
 											closestDistance = dist;
+											closestDistanceTriIndex = i / 3;
+											closestDistanceOtherTriIndex = i2 / 3;
 
 										}
 
@@ -837,19 +838,17 @@ export class MeshBVH {
 								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
 								if ( dist < closestDistance ) {
 
-									if ( target1 ) {
+									tempTargetDest1.copy( tempTarget1 );
 
-										target1.copy( tempTarget1 );
+									if ( tempTargetDest2 ) {
 
-									}
-
-									if ( target2 ) {
-
-										target2.copy( tempTarget2 );
+										tempTargetDest2.copy( tempTarget2 );
 
 									}
 
 									closestDistance = dist;
+									closestDistanceTriIndex = i / 3;
+									closestDistanceOtherTriIndex = i2 / 3;
 
 								}
 
@@ -875,17 +874,27 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
-		return closestDistance;
+		if ( ! target1.point ) target1.point = tempTargetDest1.clone();
+		else target1.point.copy( tempTargetDest1 );
+		target1.distance = closestDistance,
+		target1.faceIndex = closestDistanceTriIndex;
+
+		if ( target2 ) {
+
+			if ( ! target2.point ) target2.point = tempTargetDest2.clone();
+			else target2.point.copy( tempTargetDest2 );
+			target2.point.applyMatrix4( tempMatrix );
+			tempTargetDest1.applyMatrix4( tempMatrix );
+			target2.distance = tempTargetDest1.sub( target2.point ).length();
+			target2.faceIndex = closestDistanceOtherTriIndex;
+
+		}
+
+		return target1;
 
 	}
 
-	distanceToGeometry( geom, matrix, minThreshold, maxThreshold ) {
-
-		return this.closestPointToGeometry( geom, matrix, null, null, minThreshold, maxThreshold );
-
-	}
-
-	closestPointToPoint( point, target, minThreshold = 0, maxThreshold = Infinity ) {
+	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
 		// early out if under minThreshold
 		// skip checking if over maxThreshold
@@ -894,6 +903,7 @@ export class MeshBVH {
 		const minThresholdSq = minThreshold * minThreshold;
 		const maxThresholdSq = maxThreshold * maxThreshold;
 		let closestDistanceSq = Infinity;
+		let closestDistanceTriIndex = null;
 		this.shapecast(
 
 			{
@@ -911,19 +921,15 @@ export class MeshBVH {
 
 				},
 
-				intersectsTriangle: tri => {
+				intersectsTriangle: ( tri, triIndex ) => {
 
 					tri.closestPointToPoint( point, temp );
 					const distSq = point.distanceToSquared( temp );
 					if ( distSq < closestDistanceSq ) {
 
-						if ( target ) {
-
-							target.copy( temp );
-
-						}
-
+						temp1.copy( temp );
 						closestDistanceSq = distSq;
+						closestDistanceTriIndex = triIndex;
 
 					}
 
@@ -943,13 +949,14 @@ export class MeshBVH {
 
 		);
 
-		return Math.sqrt( closestDistanceSq );
+		const closestDistance = Math.sqrt( closestDistanceSq );
 
-	}
+		if ( ! target.point ) target.point = temp1.clone();
+		else target.point.copy( temp1 );
+		target.distance = closestDistance,
+		target.faceIndex = closestDistanceTriIndex;
 
-	distanceToPoint( point, minThreshold, maxThreshold ) {
-
-		return this.closestPointToPoint( point, null, minThreshold, maxThreshold );
+		return target;
 
 	}
 
@@ -1024,15 +1031,82 @@ MeshBVH.prototype.raycastFirst = function ( ...args ) {
 
 };
 
+const originalClosestPointToPoint = MeshBVH.prototype.closestPointToPoint;
+MeshBVH.prototype.closestPointToPoint = function ( ...args ) {
+
+
+	if ( args[ 0 ].isMesh ) {
+
+		console.warn( 'MeshBVH: The function signature and results frame for "closestPointToPoint" has changed. See docs for new signature.' );
+
+		args.unshift();
+
+		const target = args[ 1 ];
+		const result = {};
+		args[ 1 ] = result;
+
+		originalClosestPointToPoint.apply( this, args );
+
+		if ( target ) {
+
+			target.copy( result.point );
+
+		}
+
+		return result.distance;
+
+	} else {
+
+		return originalClosestPointToPoint.apply( this, args );
+
+	}
+
+};
+
+const originalClosestPointToGeometry = MeshBVH.prototype.closestPointToGeometry;
+MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
+
+	const target1 = args[ 2 ];
+	const target2 = args[ 3 ];
+	if ( target1 && target1.isVector3 || target2 && target2.isVector3 ) {
+
+		console.warn( 'MeshBVH: The function signature and results frame for "closestPointToGeometry" has changed. See docs for new signature.' );
+
+		const result1 = {};
+		const result2 = {};
+		const geometryToBvh = args[ 1 ];
+		args[ 2 ] = result1;
+		args[ 3 ] = result2;
+
+		originalClosestPointToGeometry.apply( this, args );
+
+		if ( target1 ) {
+
+			target1.copy( result1.point );
+
+		}
+
+		if ( target2 ) {
+
+			target2.copy( result2.point ).applyMatrix4( geometryToBvh );
+
+		}
+
+		return result1.distance;
+
+	} else {
+
+		return originalClosestPointToGeometry.apply( this, args );
+
+	}
+
+};
+
 [
 	'intersectsGeometry',
 	'shapecast',
 	'intersectsBox',
 	'intersectsSphere',
-	'closestPointToGeometry',
-	'distanceToGeometry',
-	'closestPointToPoint',
-	'distanceToPoint',
 ].forEach( name => {
 
 	const originalFunc = MeshBVH.prototype[ name ];
