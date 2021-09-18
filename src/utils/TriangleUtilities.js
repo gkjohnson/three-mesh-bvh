@@ -90,8 +90,8 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 	for ( let i = 0, l = groups.length; i < l; i ++ ) {
 
 		const group = groups[ i ];
-		const { offset, count } = group;
-		if ( firstVertexIndex >= count && firstVertexIndex < offset + count ) {
+		const { start, count } = group;
+		if ( firstVertexIndex >= start && firstVertexIndex < start + count ) {
 
 			materialIndex = group.materialIndex;
 			break;
