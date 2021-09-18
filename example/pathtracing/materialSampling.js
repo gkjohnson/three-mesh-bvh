@@ -16,7 +16,9 @@ function diffuseWeight( reflectance, metalness, transmission ) {
 
 function diffusePDF( direction, normal, roughness ) {
 
-	return 1; // TODO
+	// https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html#lightscattering/thescatteringpdf
+	const cosValue = direction.dot( normal );
+	return cosValue / Math.PI;
 
 }
 
