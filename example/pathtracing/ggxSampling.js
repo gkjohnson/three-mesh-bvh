@@ -1,8 +1,6 @@
 import { Vector3 } from 'three';
 import { getHalfVector } from './utils.js';
 
-const _temp1 = new Vector3();
-const _temp2 = new Vector3();
 const _V = new Vector3();
 const _T1 = new Vector3();
 const _T2 = new Vector3();
@@ -32,9 +30,9 @@ export function ggxvndfDirection( incidentDir, roughnessX, roughnessY, random1, 
 	const P2 = r * Math.sin( phi ) * ( ( random2 < a ) ? 1.0 : V.z );
 
 	// compute normal
-	_temp1.multiplyVectors( P1, T1 );
-	_temp2.multiplyVectors( P2, T2 );
-	const N = _N.addVectors( _temp1, _temp2 ).addScaledVector( V, Math.sqrt( Math.max( 0.0, 1.0 - P1 * P1 - P2 * P2 ) ) );
+	T1.multiplyScalar( P1 );
+	T2.multiplyScalar( P2 );
+	const N = _N.addVectors( T1, T2 ).addScaledVector( V, Math.sqrt( Math.max( 0.0, 1.0 - P1 * P1 - P2 * P2 ) ) );
 
 	// unstretch
 	N.x *= roughnessX;

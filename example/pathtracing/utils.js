@@ -41,7 +41,7 @@ export function refract( dir, norm, iorRatio, target ) {
 
 }
 
-export function basisFromNormal( normal, targetMatrix ) {
+export function getBasisFromNormal( normal, targetMatrix ) {
 
 	if ( normal.x > 0.5 ) {
 
@@ -54,7 +54,7 @@ export function basisFromNormal( normal, targetMatrix ) {
 	}
 
 	tempVector1.crossVectors( normal, tempVector );
-	tempVector2.crossVectors( normal, tempVector2 );
+	tempVector2.crossVectors( normal, tempVector1 );
 	targetMatrix.makeBasis( tempVector2, tempVector1, normal );
 
 }

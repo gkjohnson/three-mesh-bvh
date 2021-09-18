@@ -44,7 +44,6 @@ const normalStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Vector3
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
 
-
 const models = {};
 const params = {
 	model: 'Dragon',
