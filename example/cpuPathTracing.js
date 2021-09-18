@@ -590,18 +590,9 @@ function* runPathTracing() {
 				// scatters inside the model we need to exclude its light contribution.
 				origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
-				const { color, emissive, emissiveIntensity, roughness } = material;
+				const { color, emissive, emissiveIntensity } = material;
 
-				let count = 1;
-				if ( depth === 1 ) {
-
-					// scale the number of rays by the roughness with the max number of rays
-					// being used after half max roughness is reached.
-					const roughnessScale = Math.min( roughness * 2, 1.0 );
-					count = Math.max( 1, Math.ceil( roughnessScale * raysPerHit ) );
-
-				}
-
+				const count = depth === 1 ? raysPerHit : 1;
 				for ( let i = 0; i < count; i ++ ) {
 
 					ray.direction.normalize();
