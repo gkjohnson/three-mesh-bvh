@@ -23,12 +23,11 @@ function diffusePDF( direction, normal, roughness ) {
 function diffuseDirection( wo, hit, material, rayTarget ) {
 
 	const { origin, direction } = rayTarget;
-	const { geometryNormal } = hit;
 
 	getRandomUnitDirection( direction );
 	direction.z += 1;
 	direction.normalize();
-	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
+	origin.set( 0, 0, EPSILON );
 
 }
 
@@ -49,7 +48,6 @@ function specularDirection( wo, hit, material, rayTarget ) {
 
 	const { roughness } = material;
 	const { origin, direction } = rayTarget;
-	const { geometryNormal } = hit;
 
 	// sample ggx vndf distribution which gives a new normal
 	ggxvndfDirection(
@@ -63,7 +61,7 @@ function specularDirection( wo, hit, material, rayTarget ) {
 
 	// apply to new ray by reflecting off the new normal
 	direction.copy( wo ).reflect( tempVector ).multiplyScalar( - 1 );
-	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
+	origin.set( 0, 0, EPSILON );
 
 	// // basic implementation
 	// const { roughness } = material;
@@ -93,7 +91,7 @@ function transmissionDirection( wo, hit, material, rayTarget ) {
 
 	const { roughness, ior } = material;
 	const { origin, direction } = rayTarget;
-	const { geometryNormal, frontFace } = hit;
+	const { frontFace } = hit;
 	const ratio = frontFace ? 1 / ior : ior;
 
 	// sample ggx vndf distribution which gives a new normal
@@ -109,7 +107,7 @@ function transmissionDirection( wo, hit, material, rayTarget ) {
 	// apply to new ray by reflecting off the new normal
 	tempDir.copy( wo ).multiplyScalar( - 1 );
 	refract( tempDir, tempVector, ratio, direction );
-	origin.copy( hit.point ).addScaledVector( geometryNormal, - EPSILON );
+	origin.set( 0, 0, - EPSILON );
 
 }
 

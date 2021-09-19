@@ -600,6 +600,7 @@ function* runPathTracing() {
 
 					const colorWeight = bsdfDirection( localDirection, hit, material, tempRay );
 					tempRay.direction.applyMatrix4( normalBasis ).normalize();
+					tempRay.origin.applyMatrix4( normalBasis ).add( hit.point );
 
 					getColorSample( tempRay, tempColor, depth + 1 );
 					tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );
