@@ -1,11 +1,9 @@
-import { EPSILON, schlickFresnelReflectance, refract, getRandomUnitDirection, getBasisFromNormal } from './utils.js';
+import { EPSILON, schlickFresnelReflectance, refract, getRandomUnitDirection } from './utils.js';
 import { ggxvndfDirection } from './ggxSampling.js';
-import { MathUtils, Vector3, Matrix4 } from 'three';
+import { MathUtils, Vector3 } from 'three';
 
 const tempVector = new Vector3();
 const tempDir = new Vector3();
-const tempMat = new Matrix4();
-const tempInvMat = new Matrix4();
 
 // diffuse
 function diffuseWeight( reflectance, metalness, transmission ) {
@@ -22,12 +20,14 @@ function diffusePDF( direction, normal, roughness ) {
 
 }
 
-function diffuseDirection( ray, hit, material, rayTarget ) {
+function diffuseDirection( wo, hit, material, rayTarget ) {
 
 	const { origin, direction } = rayTarget;
-	const { geometryNormal, normal } = hit;
+	const { geometryNormal } = hit;
 
-	getRandomUnitDirection( direction ).add( normal ).normalize();
+	getRandomUnitDirection( direction );
+	direction.z += 1;
+	direction.normalize();
 	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 }
@@ -45,22 +45,15 @@ function specularPDF( direction, normal, roughness ) {
 
 }
 
-function specularDirection( ray, hit, material, rayTarget ) {
+function specularDirection( wo, hit, material, rayTarget ) {
 
 	const { roughness } = material;
 	const { origin, direction } = rayTarget;
 	const { geometryNormal } = hit;
 
-	// get the basis matrix and invert from the hit normal
-	getBasisFromNormal( hit.normal, tempMat );
-	tempInvMat.copy( tempMat ).invert();
-
-	// convert the hit direction into the local frame facing away from the origin
-	tempDir.copy( ray.direction ).applyMatrix4( tempInvMat ).multiplyScalar( - 1 ).normalize();
-
 	// sample ggx vndf distribution which gives a new normal
 	ggxvndfDirection(
-		tempDir,
+		wo,
 		roughness,
 		roughness,
 		Math.random(),
@@ -68,11 +61,8 @@ function specularDirection( ray, hit, material, rayTarget ) {
 		tempVector,
 	);
 
-	// transform normal back into world space
-	tempVector.applyMatrix4( tempMat );
-
 	// apply to new ray by reflecting off the new normal
-	direction.copy( ray.direction ).reflect( tempVector );
+	direction.copy( wo ).reflect( tempVector ).multiplyScalar( - 1 );
 	origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 	// // basic implementation
@@ -99,16 +89,26 @@ function transmissionPDF( direction, normal, roughness ) {
 
 }
 
-function transmissionDirection( ray, hit, material, rayTarget ) {
+function transmissionDirection( wo, hit, material, rayTarget ) {
 
 	const { roughness, ior } = material;
 	const { origin, direction } = rayTarget;
-	const { geometryNormal, normal, frontFace } = hit;
+	const { geometryNormal, frontFace } = hit;
 	const ratio = frontFace ? 1 / ior : ior;
 
-	refract( ray.direction, normal, ratio, tempVector );
-	getRandomUnitDirection( direction ).multiplyScalar( roughness ).add( tempVector );
+	// sample ggx vndf distribution which gives a new normal
+	ggxvndfDirection(
+		wo,
+		roughness,
+		roughness,
+		Math.random(),
+		Math.random(),
+		tempVector,
+	);
 
+	// apply to new ray by reflecting off the new normal
+	tempDir.copy( wo ).multiplyScalar( - 1 );
+	refract( tempDir, tempVector, ratio, direction );
 	origin.copy( hit.point ).addScaledVector( geometryNormal, - EPSILON );
 
 }
@@ -119,14 +119,14 @@ export function bsdfColor( ray, hit, material, colorTarget ) {
 
 }
 
-export function bsdfDirection( ray, hit, material, rayTarget ) {
+export function bsdfDirection( wo, hit, material, rayTarget ) {
 
 	let randomValue = Math.random();
-	const { ior, metalness, roughness, transmission } = material;
-	const { normal, frontFace } = hit;
+	const { ior, metalness, transmission } = material;
+	const { frontFace } = hit;
 
 	const ratio = frontFace ? 1 / ior : ior;
-	const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
+	const cosTheta = Math.min( wo.z, 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
 	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
 	const cannotRefract = ratio * sinTheta > 1.0;
@@ -138,12 +138,11 @@ export function bsdfDirection( ray, hit, material, rayTarget ) {
 
 	// specular
 	const sW = specularWeight( reflectance, metalness, transmission );
-	const sPdf = specularPDF( ray.direction, normal, roughness );
-	const sVal = sW * sPdf;
+	const sVal = sW;
 
 	if ( randomValue <= sVal ) {
 
-		specularDirection( ray, hit, material, rayTarget );
+		specularDirection( wo, hit, material, rayTarget );
 		return metalness;
 
 	}
@@ -152,18 +151,17 @@ export function bsdfDirection( ray, hit, material, rayTarget ) {
 
 	// diffuse
 	const dW = diffuseWeight( reflectance, metalness, transmission );
-	const dPdf = diffusePDF( ray.direction, normal, roughness );
-	const dVal = dW * dPdf;
+	const dVal = dW;
 
 	if ( randomValue <= dVal ) {
 
-		diffuseDirection( ray, hit, material, rayTarget );
+		diffuseDirection( wo, hit, material, rayTarget );
 		return 1;
 
 	}
 
 	// transmission
-	transmissionDirection( ray, hit, material, rayTarget );
+	transmissionDirection( wo, hit, material, rayTarget );
 	return 1.0;
 
 }

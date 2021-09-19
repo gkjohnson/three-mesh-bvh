@@ -18,7 +18,7 @@ import {
 import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
-import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, } from './pathtracing/utils.js';
+import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, getBasisFromNormal } from './pathtracing/utils.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -38,6 +38,9 @@ const normal1 = new THREE.Vector3();
 const normal2 = new THREE.Vector3();
 const barycoord = new THREE.Vector3();
 const spherical = new THREE.Spherical();
+const normalBasis = new THREE.Matrix4();
+const invBasis = new THREE.Matrix4();
+const localDirection = new THREE.Vector3();
 const colorStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Color() );
 const rayStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Ray() );
 const normalStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Vector3() );
@@ -581,24 +584,22 @@ function* runPathTracing() {
 			if ( depth !== bounces ) {
 
 				expandHitInformation( hit, ray, depth );
-				const { geometryNormal, material } = hit;
+				const { material } = hit;
 				const tempRay = rayStack[ depth ];
 				const tempColor = colorStack[ depth ];
-				const origin = tempRay.origin;
-
-				// TODO: Should this instead be offset by the direction vector? If a glossy vector
-				// scatters inside the model we need to exclude its light contribution.
-				origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
 
 				const { color, emissive, emissiveIntensity } = material;
-
 				const count = depth === 1 ? raysPerHit : 1;
 				for ( let i = 0; i < count; i ++ ) {
 
-					ray.direction.normalize();
+					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
+					// incident light vector.
+					getBasisFromNormal( hit.normal, normalBasis );
+					invBasis.copy( normalBasis ).invert();
+					localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-					const colorWeight = bsdfDirection( ray, hit, material, tempRay );
-					tempRay.direction.normalize();
+					const colorWeight = bsdfDirection( localDirection, hit, material, tempRay );
+					tempRay.direction.applyMatrix4( normalBasis ).normalize();
 
 					getColorSample( tempRay, tempColor, depth + 1 );
 					tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );
