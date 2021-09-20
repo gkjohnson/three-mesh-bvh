@@ -1,9 +1,10 @@
-import { EPSILON, schlickFresnelReflectance, refract, getRandomUnitDirection } from './utils.js';
-import { ggxvndfDirection } from './ggxSampling.js';
+import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVector } from './utils.js';
+import { ggxvndfDirection, ggxvndfPDF } from './ggxSampling.js';
 import { MathUtils, Vector3 } from 'three';
 
 const tempVector = new Vector3();
 const tempDir = new Vector3();
+const halfVector = new Vector3();
 
 // diffuse
 function diffuseWeight( reflectance, metalness, transmission ) {
@@ -12,10 +13,10 @@ function diffuseWeight( reflectance, metalness, transmission ) {
 
 }
 
-function diffusePDF( direction, normal, roughness ) {
+function diffusePDF( wo, wi, material ) {
 
 	// https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html#lightscattering/thescatteringpdf
-	const cosValue = direction.dot( normal );
+	const cosValue = wi.z;
 	return cosValue / Math.PI;
 
 }
@@ -35,9 +36,11 @@ function specularWeight( reflectance, metalness, transmission ) {
 
 }
 
-function specularPDF( direction, normal, roughness ) {
+function specularPDF( wo, wi, material ) {
 
-	return 1; // TODO
+	// See equation (17) in http://jcgt.org/published/0003/02/03/
+	getHalfVector( wi, wo, halfVector );
+	return ggxvndfPDF( wi, halfVector, material.roughness ) / ( 4 * wi.dot( wo ) );
 
 }
 
@@ -67,9 +70,21 @@ function transmissionWeight( reflectance, metalness, transmission ) {
 
 }
 
-function transmissionPDF( direction, normal, roughness ) {
+function transmissionPDF( wo, wi, material ) {
 
-	return 1; // TODO
+	// Is this needed?
+
+	// const { roughness, ior } = material;
+	// const { frontFace } = hit;
+	// const ratio = frontFace ? 1 / ior : ior;
+
+
+	// // See equation (17) in http://jcgt.org/published/0003/02/03/
+	// getHalfVector( wi, wo, halfVector );
+	// return ggxvndfPDF( wi, halfVector, material.roughness ) / ( 4 * wi.dot( wo ) );
+
+
+	// return 1; // TODO
 
 }
 
@@ -119,9 +134,7 @@ export function bsdfDirection( wo, hit, material, lightDirection ) {
 	}
 
 	// specular
-	const sW = specularWeight( reflectance, metalness, transmission );
-	const sVal = sW;
-
+	const sVal = specularWeight( reflectance, metalness, transmission );
 	if ( randomValue <= sVal ) {
 
 		// TODO: need to account for equation 15 in http://jcgt.org/published/0007/04/01/
@@ -130,12 +143,10 @@ export function bsdfDirection( wo, hit, material, lightDirection ) {
 
 	}
 
-	randomValue -= sW;
+	randomValue -= sVal;
 
 	// diffuse
-	const dW = diffuseWeight( reflectance, metalness, transmission );
-	const dVal = dW;
-
+	const dVal = diffuseWeight( reflectance, metalness, transmission );
 	if ( randomValue <= dVal ) {
 
 		diffuseDirection( wo, hit, material, lightDirection );
