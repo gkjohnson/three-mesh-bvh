@@ -598,9 +598,19 @@ function* runPathTracing() {
 					invBasis.copy( normalBasis ).invert();
 					localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-					const colorWeight = bsdfDirection( localDirection, hit, material, tempRay );
+					const colorWeight = bsdfDirection( localDirection, hit, material, tempRay.direction );
 					tempRay.direction.applyMatrix4( normalBasis ).normalize();
-					tempRay.origin.applyMatrix4( normalBasis ).add( hit.point );
+
+					tempRay.origin.copy( hit.point );
+					if ( tempRay.direction.dot( hit.geometryNormal ) < 0 ) {
+
+						tempRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
+
+					} else {
+
+						tempRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
+
+					}
 
 					getColorSample( tempRay, tempColor, depth + 1 );
 					tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );

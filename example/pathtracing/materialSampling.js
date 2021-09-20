@@ -20,14 +20,11 @@ function diffusePDF( direction, normal, roughness ) {
 
 }
 
-function diffuseDirection( wo, hit, material, rayTarget ) {
+function diffuseDirection( wo, hit, material, lightDirection ) {
 
-	const { origin, direction } = rayTarget;
-
-	getRandomUnitDirection( direction );
-	direction.z += 1;
-	direction.normalize();
-	origin.set( 0, 0, EPSILON );
+	getRandomUnitDirection( lightDirection );
+	lightDirection.z += 1;
+	lightDirection.normalize();
 
 }
 
@@ -44,10 +41,9 @@ function specularPDF( direction, normal, roughness ) {
 
 }
 
-function specularDirection( wo, hit, material, rayTarget ) {
+function specularDirection( wo, hit, material, lightDirection ) {
 
 	const { roughness } = material;
-	const { origin, direction } = rayTarget;
 
 	// sample ggx vndf distribution which gives a new normal
 	ggxvndfDirection(
@@ -60,17 +56,7 @@ function specularDirection( wo, hit, material, rayTarget ) {
 	);
 
 	// apply to new ray by reflecting off the new normal
-	direction.copy( wo ).reflect( tempVector ).multiplyScalar( - 1 );
-	origin.set( 0, 0, EPSILON );
-
-	// // basic implementation
-	// const { roughness } = material;
-	// const { origin, direction } = rayTarget;
-	// const { geometryNormal, normal } = hit;
-
-	// tempVector.copy( ray.direction ).reflect( normal );
-	// getRandomUnitDirection( direction ).multiplyScalar( roughness ).add( tempVector );
-	// origin.copy( hit.point ).addScaledVector( geometryNormal, EPSILON );
+	lightDirection.copy( wo ).reflect( tempVector ).multiplyScalar( - 1 );
 
 }
 
@@ -87,10 +73,9 @@ function transmissionPDF( direction, normal, roughness ) {
 
 }
 
-function transmissionDirection( wo, hit, material, rayTarget ) {
+function transmissionDirection( wo, hit, material, lightDirection ) {
 
 	const { roughness, ior } = material;
-	const { origin, direction } = rayTarget;
 	const { frontFace } = hit;
 	const ratio = frontFace ? 1 / ior : ior;
 
@@ -106,8 +91,7 @@ function transmissionDirection( wo, hit, material, rayTarget ) {
 
 	// apply to new ray by reflecting off the new normal
 	tempDir.copy( wo ).multiplyScalar( - 1 );
-	refract( tempDir, tempVector, ratio, direction );
-	origin.set( 0, 0, - EPSILON );
+	refract( tempDir, tempVector, ratio, lightDirection );
 
 }
 
@@ -117,7 +101,7 @@ export function bsdfColor( ray, hit, material, colorTarget ) {
 
 }
 
-export function bsdfDirection( wo, hit, material, rayTarget ) {
+export function bsdfDirection( wo, hit, material, lightDirection ) {
 
 	let randomValue = Math.random();
 	const { ior, metalness, transmission } = material;
@@ -140,7 +124,8 @@ export function bsdfDirection( wo, hit, material, rayTarget ) {
 
 	if ( randomValue <= sVal ) {
 
-		specularDirection( wo, hit, material, rayTarget );
+		// TODO: need to account for equation 15 in http://jcgt.org/published/0007/04/01/
+		specularDirection( wo, hit, material, lightDirection );
 		return metalness;
 
 	}
@@ -153,13 +138,13 @@ export function bsdfDirection( wo, hit, material, rayTarget ) {
 
 	if ( randomValue <= dVal ) {
 
-		diffuseDirection( wo, hit, material, rayTarget );
+		diffuseDirection( wo, hit, material, lightDirection );
 		return 1;
 
 	}
 
 	// transmission
-	transmissionDirection( wo, hit, material, rayTarget );
+	transmissionDirection( wo, hit, material, lightDirection );
 	return 1.0;
 
 }
