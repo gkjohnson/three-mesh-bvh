@@ -27,7 +27,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, light, clock;
 let fsQuad, controls;
-let raycaster, dataTexture, samples, ssPoint, color, task, delay, scanLinePercent;
+let raycaster, dataTexture, samples, ssPoint, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
 let mesh, bvh, materials;
@@ -41,7 +41,7 @@ const spherical = new THREE.Spherical();
 const normalBasis = new THREE.Matrix4();
 const invBasis = new THREE.Matrix4();
 const localDirection = new THREE.Vector3();
-const colorStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Color() );
+const tempColor = new THREE.Color();
 const rayStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Ray() );
 const normalStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Vector3() );
 const DELAY_TIME = 300;
@@ -307,7 +307,6 @@ function init() {
 	raycaster = new THREE.Raycaster();
 	ssPoint = new THREE.Vector3();
 	samples = 0;
-	color = new THREE.Color();
 	clock = new THREE.Clock();
 
 	const gui = new GUI();
@@ -452,6 +451,8 @@ function* runPathTracing() {
 	const posAttr = bvh.geometry.attributes.position;
 	const normalAttr = bvh.geometry.attributes.normal;
 	const materialAttr = bvh.geometry.attributes.materialIndex;
+	const radianceColor = new THREE.Color();
+	const throughputColor = new THREE.Color();
 	renderStartTime = performance.now();
 	computationTime = 0;
 	scanLinePercent = 100;
@@ -473,18 +474,20 @@ function* runPathTracing() {
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
 				// TODO: transform ray into local space of bvh -- multiply by inverse of mesh.matrixWorld
 
-				getColorSample( raycaster.ray, color );
+				throughputColor.set( 0xffffff );
+				radianceColor.set( 0 );
+				getColorSample( raycaster.ray, throughputColor, radianceColor );
 
-				color.r = Math.min( color.r, 1.0 );
-				color.g = Math.min( color.g, 1.0 );
-				color.b = Math.min( color.b, 1.0 );
+				radianceColor.r = Math.min( radianceColor.r, 1.0 );
+				radianceColor.g = Math.min( radianceColor.g, 1.0 );
+				radianceColor.b = Math.min( radianceColor.b, 1.0 );
 
 				const index = ( y * width + x ) * 4;
 				if ( samples === 0 ) {
 
-					data[ index + 0 ] = color.r;
-					data[ index + 1 ] = color.g;
-					data[ index + 2 ] = color.b;
+					data[ index + 0 ] = radianceColor.r;
+					data[ index + 1 ] = radianceColor.g;
+					data[ index + 2 ] = radianceColor.b;
 					data[ index + 3 ] = 1.0;
 
 				} else {
@@ -494,9 +497,9 @@ function* runPathTracing() {
 					const r = data[ index + 0 ];
 					const g = data[ index + 1 ];
 					const b = data[ index + 2 ];
-					data[ index + 0 ] += ( color.r - r ) / ( samples + 1 );
-					data[ index + 1 ] += ( color.g - g ) / ( samples + 1 );
-					data[ index + 2 ] += ( color.b - b ) / ( samples + 1 );
+					data[ index + 0 ] += ( radianceColor.r - r ) / ( samples + 1 );
+					data[ index + 1 ] += ( radianceColor.g - g ) / ( samples + 1 );
+					data[ index + 2 ] += ( radianceColor.b - b ) / ( samples + 1 );
 
 				}
 
@@ -569,19 +572,16 @@ function* runPathTracing() {
 
 	}
 
-	function getColorSample( ray, targetColor, depth = 1 ) {
+	function getColorSample( ray, throughput, targetColor, depth = 1 ) {
 
 		const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
 		if ( hit ) {
-
-			targetColor.set( 0 );
 
 			if ( depth !== bounces ) {
 
 				expandHitInformation( hit, ray, depth );
 				const { material } = hit;
 				const tempRay = rayStack[ depth ];
-				const tempColor = colorStack[ depth ];
 
 				const { color, emissive, emissiveIntensity } = material;
 
@@ -605,21 +605,21 @@ function* runPathTracing() {
 
 				}
 
-				getColorSample( tempRay, tempColor, depth + 1 );
-				tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );
-				tempColor.g = THREE.MathUtils.lerp( tempColor.g, tempColor.g * color.g, colorWeight );
-				tempColor.b = THREE.MathUtils.lerp( tempColor.b, tempColor.b * color.b, colorWeight );
+				targetColor.r += ( emissiveIntensity * emissive.r * throughput.r );
+				targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
+				targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
 
-				targetColor.r += ( emissiveIntensity * emissive.r + tempColor.r );
-				targetColor.g += ( emissiveIntensity * emissive.g + tempColor.g );
-				targetColor.b += ( emissiveIntensity * emissive.b + tempColor.b );
+				throughput.r *= THREE.MathUtils.lerp( 1.0, color.r, colorWeight );
+				throughput.g *= THREE.MathUtils.lerp( 1.0, color.g, colorWeight );
+				throughput.b *= THREE.MathUtils.lerp( 1.0, color.b, colorWeight );
+
+				getColorSample( tempRay, throughput, targetColor, depth + 1 );
 
 			}
 
 		} else {
 
 			const direction = ray.direction;
-
 			if ( skyMode === 'checkerboard' ) {
 
 				spherical.setFromVector3( direction );
@@ -628,8 +628,8 @@ function* runPathTracing() {
 				const thetaEven = Math.floor( spherical.theta / angleStep ) % 2 === 0;
 				const phiEven = Math.floor( spherical.phi / angleStep ) % 2 === 0;
 				const isBlack = thetaEven === phiEven;
-				targetColor.set( isBlack ? 0 : 0xffffff ).multiplyScalar( 1.5 );
-				targetColor.multiplyScalar( skyIntensity );
+				tempColor.set( isBlack ? 0 : 0xffffff ).multiplyScalar( 1.5 );
+				tempColor.multiplyScalar( skyIntensity );
 
 			} else if ( skyMode === 'sun' ) {
 
@@ -637,32 +637,35 @@ function* runPathTracing() {
 
 				let value = Math.max( 0.0, direction.dot( normal0 ) + 1.0 ) / 2.0;
 				value *= value;
-				targetColor.r = THREE.MathUtils.lerp( 0.01, 0.5, value );
-				targetColor.g = THREE.MathUtils.lerp( 0.01, 0.7, value );
-				targetColor.b = THREE.MathUtils.lerp( 0.01, 1.0, value );
+				tempColor.r = THREE.MathUtils.lerp( 0.01, 0.5, value );
+				tempColor.g = THREE.MathUtils.lerp( 0.01, 0.7, value );
+				tempColor.b = THREE.MathUtils.lerp( 0.01, 1.0, value );
 
 				if ( value > 0.95 ) {
 
 					let value2 = ( value - 0.95 ) / 0.05;
 					value2 *= value2;
-					targetColor.r = THREE.MathUtils.lerp( 0.5, 20.0, value2 );
-					targetColor.g = THREE.MathUtils.lerp( 0.7, 20.0, value2 );
-					targetColor.b = THREE.MathUtils.lerp( 1.0, 20.0, value2 );
+					tempColor.r = THREE.MathUtils.lerp( 0.5, 20.0, value2 );
+					tempColor.g = THREE.MathUtils.lerp( 0.7, 20.0, value2 );
+					tempColor.b = THREE.MathUtils.lerp( 1.0, 20.0, value2 );
 
 
 				}
 
-				targetColor.multiplyScalar( skyIntensity );
+				tempColor.multiplyScalar( skyIntensity );
 
 			} else {
 
 				const value = ( direction.y + 0.5 ) / 2.0;
-				targetColor.r = THREE.MathUtils.lerp( 1.0, 0.5, value );
-				targetColor.g = THREE.MathUtils.lerp( 1.0, 0.7, value );
-				targetColor.b = THREE.MathUtils.lerp( 1.0, 1.0, value );
-				targetColor.multiplyScalar( skyIntensity );
+				tempColor.r = THREE.MathUtils.lerp( 1.0, 0.5, value );
+				tempColor.g = THREE.MathUtils.lerp( 1.0, 0.7, value );
+				tempColor.b = THREE.MathUtils.lerp( 1.0, 1.0, value );
+				tempColor.multiplyScalar( skyIntensity );
 
 			}
+
+			tempColor.multiply( throughput );
+			targetColor.add( tempColor );
 
 		}
 
