@@ -15,6 +15,13 @@ export const ANTIALIAS_OFFSETS = [
 	[ - 8, 0 ], [ 7, - 4 ], [ 6, 7 ], [ - 7, - 8 ],
 ];
 
+export function schlickFresnel( cosine, f0 ) {
+
+	// https://google.github.io/filament/Filament.md.html#materialsystem/diffusebrdf
+	return f0 + ( 1.0 - f0 ) * Math.pow( 1.0 - cosine, 5.0 );
+
+}
+
 export function schlickFresnelReflectance( cosine, iorRatio ) {
 
 	// Schlick approximation

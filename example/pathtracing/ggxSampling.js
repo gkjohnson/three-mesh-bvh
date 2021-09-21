@@ -78,7 +78,8 @@ export function ggxShadowMaskG2( wi, wo, roughness ) {
 
 }
 
-function ggxDistribution( theta, roughness ) {
+// TODO: where is this from?
+export function ggxDistribution( theta, roughness ) {
 
 	const cosTheta = Math.cos( theta );
 	const cosTheta2 = cosTheta * cosTheta;

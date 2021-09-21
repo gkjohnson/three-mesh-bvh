@@ -1,10 +1,14 @@
-import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVector } from './utils.js';
-import { ggxvndfDirection, ggxvndfPDF } from './ggxSampling.js';
-import { MathUtils, Vector3 } from 'three';
+import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVector, schlickFresnel } from './utils.js';
+import { ggxvndfDirection, ggxvndfPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSampling.js';
+import { MathUtils, Vector3, Color } from 'three';
 
 const tempVector = new Vector3();
 const tempDir = new Vector3();
 const halfVector = new Vector3();
+const tempSpecularColor = new Color();
+const tempMetallicColor = new Color();
+const tempDiffuseColor = new Color();
+
 
 // diffuse
 function diffuseWeight( reflectance, metalness, transmission ) {
@@ -110,18 +114,14 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 }
 
-export function bsdfColor( ray, hit, material, colorTarget ) {
-
-
-
-}
-
 export function bsdfDirection( wo, hit, material, lightDirection ) {
 
 	let randomValue = Math.random();
 	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
 
+	// TODO: this schlick fresnel is just for dialectrics because it uses ior interally
+	// Change this to use a common fresnel function
 	const ratio = frontFace ? 1 / ior : ior;
 	const cosTheta = Math.min( wo.z, 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
@@ -160,34 +160,43 @@ export function bsdfDirection( wo, hit, material, lightDirection ) {
 
 }
 
-export function bsdfPDF( ray, hit, material ) {
+// IN PROGRESS
+export function getMaterialColor( wo, wi, material, hit, targetColor ) {
 
-	// TODO: include "cannotRefract" in transmission / specular weight
-	const { ior, metalness, roughness, transmission } = material;
-	const { normal, frontFace } = hit;
-	const { direction } = ray.direction;
+	const { metalness, roughness, color } = material;
+	getHalfVector( wo, wi, halfVector );
 
-	// TODO: do we need to handle the case where the ray is underneath the sphere on the shading normal?
-	const ratio = frontFace ? 1 / ior : ior;
-	const cosTheta = Math.min( - ray.direction.dot( normal ), 1.0 );
-	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
-	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
-	const cannotRefract = ratio * sinTheta > 1.0;
-	if ( cannotRefract ) {
+	if ( wi.z < 0 ) {
 
-		reflectance = 1;
+		// transmissive
+
+	} else {
+
+		// specular, diffuse
+		const cosTheta = wi.dot( halfVector );
+		const theta = Math.acos( cosTheta );
+		const F = schlickFresnel( wi.dot( halfVector ), 0.16 );
+		const D = ggxDistribution( theta, roughness );
+		const G = ggxShadowMaskG2( wi, wo, roughness );
+
+		// specular contribution
+		tempSpecularColor
+			.set( 0xffffff )
+			.multiplyScalar( F * G * D / ( 4 * wo.z * wi.z ) );
+
+		tempMetallicColor
+			.copy( tempSpecularColor )
+			.multiply( color );
+
+		// diffuse contribution
+		tempDiffuseColor
+			.copy( color )
+			.multiplyScalar( ( 1.0 - metalness ) * ( 1.0 - F ) / Math.PI );
+
+		targetColor
+			.lerpColors( tempSpecularColor, tempMetallicColor, metalness )
+			.add( tempDiffuseColor );
 
 	}
-
-	const dW = diffuseWeight( reflectance, metalness, transmission );
-	const dPdf = diffusePDF( direction, normal, roughness );
-
-	const sW = specularWeight( reflectance, metalness, transmission );
-	const sPdf = specularPDF( direction, normal, roughness );
-
-	const tW = transmissionWeight( reflectance, metalness, transmission );
-	const tPdf = transmissionPDF( direction, normal, roughness );
-
-	return dW * dPdf + sW * sPdf + tW * tPdf;
 
 }
