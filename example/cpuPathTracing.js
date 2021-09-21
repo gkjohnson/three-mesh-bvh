@@ -60,10 +60,8 @@ const params = {
 		displayScanLine: false,
 		antialiasing: true,
 		bounces: 5,
-		raysPerHit: 1,
 		smoothNormals: true,
 		directLightSampling: true,
-		importanceSampling: true,
 	},
 	material: {
 		skyMode: 'sky',
@@ -330,10 +328,8 @@ function init() {
 	} );
 	pathTracingFolder.add( params.pathTracing, 'antialiasing' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'importanceSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'smoothNormals' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, MAX_BOUNCES, 1 ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'raysPerHit', 1, 10, 1 ).onChange( resetImage );
 	pathTracingFolder.open();
 
 	const materialFolder = gui.addFolder( 'material' );
@@ -450,7 +446,6 @@ function* runPathTracing() {
 	let lastStartTime = performance.now();
 	const { width, height, data } = dataTexture.image;
 	const bounces = parseInt( params.pathTracing.bounces );
-	const raysPerHit = parseInt( params.pathTracing.raysPerHit );
 	const skyIntensity = parseFloat( params.material.skyIntensity );
 	const skyMode = params.material.skyMode;
 	const smoothNormals = params.pathTracing.smoothNormals;
@@ -589,39 +584,35 @@ function* runPathTracing() {
 				const tempColor = colorStack[ depth ];
 
 				const { color, emissive, emissiveIntensity } = material;
-				const count = depth === 1 ? raysPerHit : 1;
-				for ( let i = 0; i < count; i ++ ) {
 
-					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
-					// incident light vector.
-					getBasisFromNormal( hit.normal, normalBasis );
-					invBasis.copy( normalBasis ).invert();
-					localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
+				// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
+				// incident light vector.
+				getBasisFromNormal( hit.normal, normalBasis );
+				invBasis.copy( normalBasis ).invert();
+				localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-					const colorWeight = bsdfDirection( localDirection, hit, material, tempRay.direction );
-					tempRay.direction.applyMatrix4( normalBasis ).normalize();
+				const colorWeight = bsdfDirection( localDirection, hit, material, tempRay.direction );
+				tempRay.direction.applyMatrix4( normalBasis ).normalize();
 
-					tempRay.origin.copy( hit.point );
-					if ( tempRay.direction.dot( hit.geometryNormal ) < 0 ) {
+				tempRay.origin.copy( hit.point );
+				if ( tempRay.direction.dot( hit.geometryNormal ) < 0 ) {
 
-						tempRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
+					tempRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
 
-					} else {
+				} else {
 
-						tempRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
-
-					}
-
-					getColorSample( tempRay, tempColor, depth + 1 );
-					tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );
-					tempColor.g = THREE.MathUtils.lerp( tempColor.g, tempColor.g * color.g, colorWeight );
-					tempColor.b = THREE.MathUtils.lerp( tempColor.b, tempColor.b * color.b, colorWeight );
-
-					targetColor.r += ( emissiveIntensity * emissive.r + tempColor.r ) / count;
-					targetColor.g += ( emissiveIntensity * emissive.g + tempColor.g ) / count;
-					targetColor.b += ( emissiveIntensity * emissive.b + tempColor.b ) / count;
+					tempRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
 
 				}
+
+				getColorSample( tempRay, tempColor, depth + 1 );
+				tempColor.r = THREE.MathUtils.lerp( tempColor.r, tempColor.r * color.r, colorWeight );
+				tempColor.g = THREE.MathUtils.lerp( tempColor.g, tempColor.g * color.g, colorWeight );
+				tempColor.b = THREE.MathUtils.lerp( tempColor.b, tempColor.b * color.b, colorWeight );
+
+				targetColor.r += ( emissiveIntensity * emissive.r + tempColor.r );
+				targetColor.g += ( emissiveIntensity * emissive.g + tempColor.g );
+				targetColor.b += ( emissiveIntensity * emissive.b + tempColor.b );
 
 			}
 

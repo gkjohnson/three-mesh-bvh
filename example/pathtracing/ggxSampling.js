@@ -94,7 +94,7 @@ export function ggxDistribution( theta, roughness ) {
 }
 
 // See equation (3)
-function ggxvndfPDF( wi, halfVector, roughness ) {
+export function ggxvndfPDF( wi, halfVector, roughness ) {
 
 	const incidentTheta = Math.acos( wi.z );
 	const halfTheta = Math.acos( wi.z );
@@ -103,13 +103,5 @@ function ggxvndfPDF( wi, halfVector, roughness ) {
 	const G1 = ggxShadowMaskG1( incidentTheta, roughness );
 
 	return D * G1 * Math.max( 0.0, wi.dot( halfVector ) ) / wi.z;
-
-}
-
-// See equation (17)
-export function sampledGGXPDF( wi, wo, roughness ) {
-
-	const halfVector = getHalfVector( wi, wo, _HALF_VECTOR );
-	return ggxvndfPDF( wi, halfVector, roughness ) / ( 4 * wi.dot( wo ) );
 
 }
