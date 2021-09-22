@@ -100,7 +100,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	const lightDirection = sampleInfo.direction;
 	const color = sampleInfo.color;
-	const { ior, metalness, transmission } = material;
+	const { ior, metalness, transmission, roughness } = material;
 	const { frontFace } = hit;
 
 	// TODO: this schlick fresnel is just for dialectrics because it uses ior interally
@@ -117,11 +117,13 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	}
 
 	const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
+	let pdf = 0;
 	if ( Math.random() < transmission ) {
 
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
+			pdf = specularPDF( wo, lightDirection, material );
 			color.lerpColors( whiteColor, material.color, metalness );
 
 		} else {
@@ -133,17 +135,38 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	} else {
 
-		if ( Math.random() < specularProb ) {
+		if ( Math.random() < 1.0 ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			color.lerpColors( whiteColor, material.color, metalness );
+			pdf = Math.abs( specularPDF( wo, lightDirection, material ) );
+
+			getHalfVector( wo, lightDirection, halfVector );
+			const F = schlickFresnel( lightDirection.dot( halfVector ), 0.1 );
+			const G = ggxShadowMaskG2( lightDirection, wo, roughness );
+			const D = ggxDistribution( Math.acos( halfVector.z ), roughness );
+			// TODO: D is REALLY high at small roughness values
+			// TODO: sometimes the incoming vector is negative (surface vs geom normal issue)
+
+			color.lerpColors( whiteColor, material.color, metalness ).multiplyScalar( G * F * D / ( 4 * Math.abs( lightDirection.z * wo.z ) ) );
+
+			color.setRGB( G, G, G )
 
 		} else {
 
+
 			diffuseDirection( wo, hit, material, lightDirection );
-			color.copy( material.color );
+			pdf = diffusePDF( wo, lightDirection, material );
+
+			// const F = schlickFresnel( wo.z, 0.16 );
+			color.copy( material.color )
+				// .lerp( whiteColor, F )
+				.multiplyScalar( pdf * 1.0 / Math.PI );
 
 		}
+
+		// pdf *= 2.0;
+		pdf = 1.0;
+		color.multiplyScalar( 1 / pdf );
 
 	}
 
