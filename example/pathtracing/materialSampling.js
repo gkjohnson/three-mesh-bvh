@@ -11,12 +11,6 @@ const tempDiffuseColor = new Color();
 
 
 // diffuse
-function diffuseWeight( reflectance, metalness, transmission ) {
-
-	return ( 1.0 - reflectance ) * ( 1.0 - metalness ) * ( 1.0 - transmission );
-
-}
-
 function diffusePDF( wo, wi, material ) {
 
 	// https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html#lightscattering/thescatteringpdf
@@ -34,12 +28,6 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 }
 
 // specular
-function specularWeight( reflectance, metalness, transmission ) {
-
-	return MathUtils.lerp( reflectance, 1.0, metalness );
-
-}
-
 function specularPDF( wo, wi, material ) {
 
 	// See equation (17) in http://jcgt.org/published/0003/02/03/
@@ -68,12 +56,6 @@ function specularDirection( wo, hit, material, lightDirection ) {
 }
 
 // transmission
-function transmissionWeight( reflectance, metalness, transmission ) {
-
-	return ( 1.0 - reflectance ) * ( 1.0 - metalness ) * transmission;
-
-}
-
 function transmissionPDF( wo, wi, material ) {
 
 	// Is this needed?
@@ -116,7 +98,6 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 export function bsdfDirection( wo, hit, material, lightDirection ) {
 
-	let randomValue = Math.random();
 	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
 
@@ -133,30 +114,36 @@ export function bsdfDirection( wo, hit, material, lightDirection ) {
 
 	}
 
-	// specular
-	const sVal = specularWeight( reflectance, metalness, transmission );
-	if ( randomValue <= sVal ) {
+	const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
+	if ( Math.random() < transmission ) {
 
-		// TODO: need to account for equation 15 in http://jcgt.org/published/0007/04/01/
-		specularDirection( wo, hit, material, lightDirection );
-		return metalness;
+		if ( Math.random() < specularProb ) {
+
+			specularDirection( wo, hit, material, lightDirection );
+			return metalness;
+
+		} else {
+
+			transmissionDirection( wo, hit, material, lightDirection );
+			return 1.0;
+
+		}
+
+	} else {
+
+		if ( Math.random() < specularProb ) {
+
+			specularDirection( wo, hit, material, lightDirection );
+			return metalness;
+
+		} else {
+
+			diffuseDirection( wo, hit, material, lightDirection );
+			return 1;
+
+		}
 
 	}
-
-	randomValue -= sVal;
-
-	// diffuse
-	const dVal = diffuseWeight( reflectance, metalness, transmission );
-	if ( randomValue <= dVal ) {
-
-		diffuseDirection( wo, hit, material, lightDirection );
-		return 1;
-
-	}
-
-	// transmission
-	transmissionDirection( wo, hit, material, lightDirection );
-	return 1.0;
 
 }
 
