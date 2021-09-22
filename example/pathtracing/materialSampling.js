@@ -32,20 +32,20 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 function specularPDF( wo, wi, material ) {
 
 	// See equation (17) in http://jcgt.org/published/0003/02/03/
+	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
 	getHalfVector( wi, wo, halfVector );
-	return ggxvndfPDF( wi, halfVector, Math.max( material.roughness, MIN_ROUGHNESS ) ) / ( 4 * wi.dot( wo ) );
+	return ggxvndfPDF( wi, halfVector, minRoughness ) / ( 4 * wi.dot( halfVector ) );
 
 }
 
 function specularDirection( wo, hit, material, lightDirection ) {
 
-	const { roughness } = material;
-
 	// sample ggx vndf distribution which gives a new normal
+	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
 	ggxvndfDirection(
 		wo,
-		roughness,
-		roughness,
+		minRoughness,
+		minRoughness,
 		Math.random(),
 		Math.random(),
 		tempVector,
@@ -139,7 +139,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 		if ( Math.random() < 0.5 ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			pdf = Math.abs( specularPDF( wo, lightDirection, material ) );
+			pdf = specularPDF( wo, lightDirection, material );
 
 			// if roughness is set to 0 then D === NaN which results in black pixels
 			const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
@@ -156,7 +156,6 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 				.multiplyScalar( G * D / ( 4 * Math.abs( lightDirection.z * wo.z ) ) )
 				.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) );
 
-			color.setRGB( D, D, D )
 
 		} else {
 
@@ -168,8 +167,6 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 			color.copy( material.color )
 				// .lerp( whiteColor, F )
 				.multiplyScalar( ( 1.0 - metalness ) * pdf * 1.0 );
-
-			color.set( 0 );
 
 		}
 
