@@ -453,6 +453,11 @@ function* runPathTracing() {
 	const materialAttr = bvh.geometry.attributes.materialIndex;
 	const radianceColor = new THREE.Color();
 	const throughputColor = new THREE.Color();
+	const sampleInfo = {
+		pdf: 0,
+		color: new THREE.Color(),
+		direction: new THREE.Vector3(),
+	};
 	renderStartTime = performance.now();
 	computationTime = 0;
 	scanLinePercent = 100;
@@ -583,7 +588,7 @@ function* runPathTracing() {
 				const { material } = hit;
 				const tempRay = rayStack[ depth ];
 
-				const { color, emissive, emissiveIntensity } = material;
+				const { emissive, emissiveIntensity } = material;
 
 				// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
 				// incident light vector.
@@ -591,9 +596,11 @@ function* runPathTracing() {
 				invBasis.copy( normalBasis ).invert();
 				localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-				const colorWeight = bsdfSample( localDirection, hit, material, tempRay.direction );
-				tempRay.direction.applyMatrix4( normalBasis ).normalize();
+				// sample the surface to get the pdf, reflected color, and direction
+				bsdfSample( localDirection, hit, material, sampleInfo );
 
+				// transform ray back to world frame and offset from surface
+				tempRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
 				tempRay.origin.copy( hit.point );
 				if ( tempRay.direction.dot( hit.geometryNormal ) < 0 ) {
 
@@ -609,9 +616,7 @@ function* runPathTracing() {
 				targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
 				targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
 
-				throughput.r *= THREE.MathUtils.lerp( 1.0, color.r, colorWeight );
-				throughput.g *= THREE.MathUtils.lerp( 1.0, color.g, colorWeight );
-				throughput.b *= THREE.MathUtils.lerp( 1.0, color.b, colorWeight );
+				throughput.multiply( sampleInfo.color );
 
 				getColorSample( tempRay, throughput, targetColor, depth + 1 );
 

@@ -8,7 +8,7 @@ const halfVector = new Vector3();
 const tempSpecularColor = new Color();
 const tempMetallicColor = new Color();
 const tempDiffuseColor = new Color();
-
+const whiteColor = new Color( 0xffffff );
 
 // diffuse
 function diffusePDF( wo, wi, material ) {
@@ -96,8 +96,10 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 }
 
-export function bsdfSample( wo, hit, material, lightDirection ) {
+export function bsdfSample( wo, hit, material, sampleInfo ) {
 
+	const lightDirection = sampleInfo.direction;
+	const color = sampleInfo.color;
 	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
 
@@ -120,12 +122,12 @@ export function bsdfSample( wo, hit, material, lightDirection ) {
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			return metalness;
+			color.lerpColors( whiteColor, material.color, metalness );
 
 		} else {
 
 			transmissionDirection( wo, hit, material, lightDirection );
-			return 1.0;
+			color.copy( material.color );
 
 		}
 
@@ -134,12 +136,12 @@ export function bsdfSample( wo, hit, material, lightDirection ) {
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			return metalness;
+			color.lerpColors( whiteColor, material.color, metalness );
 
 		} else {
 
 			diffuseDirection( wo, hit, material, lightDirection );
-			return 1;
+			color.copy( material.color );
 
 		}
 
