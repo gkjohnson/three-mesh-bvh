@@ -2,6 +2,7 @@ import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVect
 import { ggxvndfDirection, ggxvndfPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSampling.js';
 import { MathUtils, Vector3, Color } from 'three';
 
+const MIN_ROUGHNESS = 1e-6;
 const tempVector = new Vector3();
 const tempDir = new Vector3();
 const halfVector = new Vector3();
@@ -32,7 +33,7 @@ function specularPDF( wo, wi, material ) {
 
 	// See equation (17) in http://jcgt.org/published/0003/02/03/
 	getHalfVector( wi, wo, halfVector );
-	return ggxvndfPDF( wi, halfVector, material.roughness ) / ( 4 * wi.dot( wo ) );
+	return ggxvndfPDF( wi, halfVector, Math.max( material.roughness, MIN_ROUGHNESS ) ) / ( 4 * wi.dot( wo ) );
 
 }
 
@@ -135,21 +136,27 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	} else {
 
-		if ( Math.random() < 1.0 ) {
+		if ( Math.random() < 0.5 ) {
 
 			specularDirection( wo, hit, material, lightDirection );
 			pdf = Math.abs( specularPDF( wo, lightDirection, material ) );
 
+			// if roughness is set to 0 then D === NaN which results in black pixels
+			const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
+
 			getHalfVector( wo, lightDirection, halfVector );
 			const F = schlickFresnel( lightDirection.dot( halfVector ), 0.1 );
-			const G = ggxShadowMaskG2( lightDirection, wo, roughness );
-			const D = ggxDistribution( Math.acos( halfVector.z ), roughness );
-			// TODO: D is REALLY high at small roughness values
+			const G = ggxShadowMaskG2( lightDirection, wo, minRoughness );
+			const D = ggxDistribution( halfVector, minRoughness );
 			// TODO: sometimes the incoming vector is negative (surface vs geom normal issue)
+			// TODO: D results in some odd circle pattern at the moment
 
-			color.lerpColors( whiteColor, material.color, metalness ).multiplyScalar( G * F * D / ( 4 * Math.abs( lightDirection.z * wo.z ) ) );
+			color
+				.lerpColors( whiteColor, material.color, metalness )
+				.multiplyScalar( G * D / ( 4 * Math.abs( lightDirection.z * wo.z ) ) )
+				.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) );
 
-			color.setRGB( G, G, G )
+			color.setRGB( D, D, D )
 
 		} else {
 
@@ -160,12 +167,14 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 			// const F = schlickFresnel( wo.z, 0.16 );
 			color.copy( material.color )
 				// .lerp( whiteColor, F )
-				.multiplyScalar( pdf * 1.0 / Math.PI );
+				.multiplyScalar( ( 1.0 - metalness ) * pdf * 1.0 );
+
+			color.set( 0 );
 
 		}
 
-		// pdf *= 2.0;
-		pdf = 1.0;
+		pdf *= 2.0;
+		// pdf *= 1.0;
 		color.multiplyScalar( 1 / pdf );
 
 	}
