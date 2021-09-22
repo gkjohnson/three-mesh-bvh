@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { bsdfDirection } from './pathtracing/materialSampling.js';
+import { bsdfSample } from './pathtracing/materialSampling.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -591,7 +591,7 @@ function* runPathTracing() {
 				invBasis.copy( normalBasis ).invert();
 				localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-				const colorWeight = bsdfDirection( localDirection, hit, material, tempRay.direction );
+				const colorWeight = bsdfSample( localDirection, hit, material, tempRay.direction );
 				tempRay.direction.applyMatrix4( normalBasis ).normalize();
 
 				tempRay.origin.copy( hit.point );

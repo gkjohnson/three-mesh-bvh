@@ -96,7 +96,7 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 }
 
-export function bsdfDirection( wo, hit, material, lightDirection ) {
+export function bsdfSample( wo, hit, material, lightDirection ) {
 
 	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
