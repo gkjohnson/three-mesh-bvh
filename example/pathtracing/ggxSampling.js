@@ -1,5 +1,4 @@
 import { Vector3 } from 'three';
-import { getHalfVector } from './utils.js';
 
 const _V = new Vector3();
 const _T1 = new Vector3();
@@ -78,22 +77,6 @@ export function ggxShadowMaskG2( wi, wo, roughness ) {
 
 }
 
-// See equation (33) in https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
-// export function ggxDistribution( theta, roughness ) {
-
-// 	const cosTheta = Math.cos( theta );
-// 	const cosTheta2 = cosTheta * cosTheta;
-// 	const cosTheta4 = cosTheta2 * cosTheta2;
-// 	const tanTheta = Math.tan( theta );
-// 	const tanTheta2 = tanTheta * tanTheta;
-// 	const alpha2 = roughness * roughness;
-
-// 	const denom = M_PI * cosTheta4 * Math.pow( alpha2 + tanTheta2, 2 );
-// 	return alpha2 / denom;
-
-// }
-
-
 // See equation (1)
 export function ggxDistribution( halfVector, roughness ) {
 
@@ -110,8 +93,6 @@ export function ggxDistribution( halfVector, roughness ) {
 export function ggxvndfPDF( wi, halfVector, roughness ) {
 
 	const incidentTheta = Math.acos( wi.z );
-	const halfTheta = Math.acos( wi.z );
-
 	const D = ggxDistribution( halfVector, roughness );
 	const G1 = ggxShadowMaskG1( incidentTheta, roughness );
 

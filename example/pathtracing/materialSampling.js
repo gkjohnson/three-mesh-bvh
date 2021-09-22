@@ -12,7 +12,7 @@ const tempDiffuseColor = new Color();
 const whiteColor = new Color( 0xffffff );
 
 // diffuse
-function diffusePDF( wo, wi, material ) {
+function diffusePDF( wo, wi, material, hit ) {
 
 	// https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html#lightscattering/thescatteringpdf
 	const cosValue = wi.z;
@@ -28,8 +28,15 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 
 }
 
+function diffuseColor( wo, wi, material, colorTarget ) {
+
+	const { metalness } = material;
+	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI );
+
+}
+
 // specular
-function specularPDF( wo, wi, material ) {
+function specularPDF( wo, wi, material, hit ) {
 
 	// See equation (17) in http://jcgt.org/published/0003/02/03/
 	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
@@ -56,22 +63,41 @@ function specularDirection( wo, hit, material, lightDirection ) {
 
 }
 
+function specularColor( wo, wi, material, colorTarget ) {
+
+	// if roughness is set to 0 then D === NaN which results in black pixels
+	const { metalness, roughness } = material;
+	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
+
+	getHalfVector( wo, wi, halfVector );
+	const F = schlickFresnel( wi.dot( halfVector ), 0.1 );
+	const G = ggxShadowMaskG2( wi, wo, minRoughness );
+	const D = ggxDistribution( halfVector, minRoughness );
+	// TODO: sometimes the incoming vector is negative (surface vs geom normal issue)
+	// TODO: And even with flat normals we sometimes get a light direction below the surface? (negative z)
+	// It's because with the roughness direction we get a normal that's really skewed and reflects to below z
+
+	colorTarget
+		.lerpColors( whiteColor, material.color, metalness )
+		.multiplyScalar( G * D / ( 4 * Math.abs( wi.z * wo.z ) ) )
+		.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) );
+
+}
+
 // transmission
-function transmissionPDF( wo, wi, material ) {
+function transmissionPDF( wo, wi, material, hit ) {
 
-	// Is this needed?
+	// See section 4.2 in https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
 
-	// const { roughness, ior } = material;
-	// const { frontFace } = hit;
-	// const ratio = frontFace ? 1 / ior : ior;
+	const { roughness, ior } = material;
+	const { frontFace } = hit;
+	const ratio = frontFace ? 1 / ior : ior;
+	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
 
-
-	// // See equation (17) in http://jcgt.org/published/0003/02/03/
-	// getHalfVector( wi, wo, halfVector );
-	// return ggxvndfPDF( wi, halfVector, material.roughness ) / ( 4 * wi.dot( wo ) );
-
-
-	// return 1; // TODO
+	// TODO: check this is on the hit side
+	halfVector.set( 0, 0, 0 ).addScaledVector( wi, ratio ).addScaledVector( wo, 1.0 ).normalize().multiplyScalar( - 1 );
+	const denom = Math.pow( ratio * halfVector.dot( wi ) + 1.0 * halfVector.dot( wo ), 2.0 );
+	return ggxvndfPDF( wi, halfVector, minRoughness ) / denom;
 
 }
 
@@ -97,6 +123,13 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 }
 
+function transmissionColor( wo, wi, material, colorTarget ) {
+
+	const { metalness } = material;
+	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wo.z / Math.PI );
+
+}
+
 export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	const lightDirection = sampleInfo.direction;
@@ -117,62 +150,59 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	}
 
-	const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
 	let pdf = 0;
 	if ( Math.random() < transmission ) {
 
+		const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			pdf = specularPDF( wo, lightDirection, material );
-			color.lerpColors( whiteColor, material.color, metalness );
+			pdf = specularPDF( wo, lightDirection, material, hit );
+
+			specularColor( wo, lightDirection, material, color );
+
+			pdf *= specularProb;
 
 		} else {
 
+			// TODO
 			transmissionDirection( wo, hit, material, lightDirection );
-			color.copy( material.color );
+			pdf = 1.0; //transmissionPDF( wo, lightDirection, material, hit );
+
+			transmissionColor( wo, lightDirection, material, color );
+
+			pdf *= ( 1.0 - specularProb );
 
 		}
+
+		pdf *= transmission;
+		color.multiplyScalar( 1 / pdf );
 
 	} else {
 
+		// TODO: is there a better way to determine probability here?
 		if ( Math.random() < 0.5 ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			pdf = specularPDF( wo, lightDirection, material );
+			pdf = specularPDF( wo, lightDirection, material, hit );
 
-			// if roughness is set to 0 then D === NaN which results in black pixels
-			const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
+			specularColor( wo, lightDirection, material, color );
 
-			getHalfVector( wo, lightDirection, halfVector );
-			const F = schlickFresnel( lightDirection.dot( halfVector ), 0.1 );
-			const G = ggxShadowMaskG2( lightDirection, wo, minRoughness );
-			const D = ggxDistribution( halfVector, minRoughness );
-			// TODO: sometimes the incoming vector is negative (surface vs geom normal issue)
-			// TODO: D results in some odd circle pattern at the moment
-
-			color
-				.lerpColors( whiteColor, material.color, metalness )
-				.multiplyScalar( G * D / ( 4 * Math.abs( lightDirection.z * wo.z ) ) )
-				.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) );
-
+			pdf *= 0.5;
 
 		} else {
 
-
 			diffuseDirection( wo, hit, material, lightDirection );
-			pdf = diffusePDF( wo, lightDirection, material );
+			pdf = diffusePDF( wo, lightDirection, material, hit );
 
-			// const F = schlickFresnel( wo.z, 0.16 );
-			color.copy( material.color )
-				// .lerp( whiteColor, F )
-				.multiplyScalar( ( 1.0 - metalness ) * pdf * 1.0 );
+			diffuseColor( wo, lightDirection, material, color );
+
+			pdf *= 0.5;
 
 		}
 
-		pdf *= 2.0;
-		// pdf *= 1.0;
-		color.multiplyScalar( 1 / pdf );
+		pdf *= ( 1.0 - transmission );
+		color.multiplyScalar( 1.0 / pdf );
 
 	}
 
