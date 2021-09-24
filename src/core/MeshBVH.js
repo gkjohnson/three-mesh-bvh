@@ -890,6 +890,8 @@ export class MeshBVH {
 
 		}
 
+		if ( closestDistance === Infinity ) return null;
+
 		return target1;
 
 	}
@@ -955,6 +957,8 @@ export class MeshBVH {
 		else target.point.copy( temp1 );
 		target.distance = closestDistance,
 		target.faceIndex = closestDistanceTriIndex;
+
+		if ( closestDistanceSq === Infinity ) return null;
 
 		return target;
 

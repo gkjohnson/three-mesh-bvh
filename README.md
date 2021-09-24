@@ -344,7 +344,7 @@ closestPointToPoint(
 
 Computes the closest distance from the point to the mesh and gives additional information in `target`. The target can be left undefined to default to a new object.
 
-If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
+If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found, ```null``` is returned.
 
 ```js
 target : {
@@ -373,7 +373,7 @@ Computes the closest distance from the geometry to the mesh and puts the closest
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
-If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored.
+If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found, ```null``` is returned.
 
 `target1` and `target2` are optional objects equal to the `target` parameter in [closestPointPoint](#closestPointToPoint)
 
