@@ -191,6 +191,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 			pdf = 1.0;
 			color
 				.copy( material.color )
+				.multiplyScalar( 1.0 - metalness )
 				.multiplyScalar( Math.abs( lightDirection.z ) );
 
 			// Color is clamped to [0, 1] to make up for incorrect PDF and over sampling
@@ -218,7 +219,6 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 			pdf = specularPDF( wo, lightDirection, material, hit );
 
 			specularColor( wo, lightDirection, material, hit, color );
-			color.multiplyScalar( lightDirection.z );
 
 			pdf *= 0.5;
 
