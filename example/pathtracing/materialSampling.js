@@ -166,6 +166,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	let pdf = 0;
 	if ( Math.random() < transmission ) {
 
+		// TODO: 1.0 metalness and 1.0 transmission needs to be fixed
 		const specularProb = 0.5;//MathUtils.lerp( reflectance, 1.0, metalness );
 
 		if ( Math.random() < specularProb ) {
@@ -191,6 +192,11 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 			color
 				.copy( material.color )
 				.multiplyScalar( Math.abs( lightDirection.z ) );
+
+			// Color is clamped to [0, 1] to make up for incorrect PDF and over sampling
+			color.r = Math.min( color.r, 1.0 );
+			color.g = Math.min( color.g, 1.0 );
+			color.b = Math.min( color.b, 1.0 );
 
 			// transmissionDirection( wo, hit, material, lightDirection );
 			// pdf = transmissionPDF( wo, lightDirection, material, hit );
