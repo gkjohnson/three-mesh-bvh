@@ -31,8 +31,12 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 
 function diffuseColor( wo, wi, material, colorTarget ) {
 
+	// note on division by PI
+	// https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
 	const { metalness } = material;
-	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI / Math.PI );
+	colorTarget
+		.copy( material.color )
+		.multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI );
 
 }
 
