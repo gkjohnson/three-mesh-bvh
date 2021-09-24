@@ -2,8 +2,9 @@ import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVect
 import { ggxvndfDirection, ggxvndfPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSampling.js';
 import { MathUtils, Vector3, Color } from 'three';
 
+// Technically this value should be based on the index of refraction of the given dielectric.
+const SCHLICK_FRESNEL_FACTOR = 0.05;
 const MIN_ROUGHNESS = 1e-6;
-const tempVector = new Vector3();
 const tempDir = new Vector3();
 const halfVector = new Vector3();
 const tempSpecularColor = new Color();
@@ -31,7 +32,7 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 function diffuseColor( wo, wi, material, colorTarget ) {
 
 	const { metalness } = material;
-	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI );
+	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI / Math.PI );
 
 }
 
@@ -55,32 +56,43 @@ function specularDirection( wo, hit, material, lightDirection ) {
 		minRoughness,
 		Math.random(),
 		Math.random(),
-		tempVector,
+		halfVector,
 	);
 
 	// apply to new ray by reflecting off the new normal
-	lightDirection.copy( wo ).reflect( tempVector ).multiplyScalar( - 1 );
+	lightDirection.copy( wo ).reflect( halfVector ).multiplyScalar( - 1 );
 
 }
 
-function specularColor( wo, wi, material, colorTarget ) {
+function specularColor( wo, wi, material, hit, colorTarget ) {
 
 	// if roughness is set to 0 then D === NaN which results in black pixels
-	const { metalness, roughness } = material;
+	const { metalness, roughness, ior } = material;
+	const { frontFace } = hit;
 	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
 
 	getHalfVector( wo, wi, halfVector );
-	const F = schlickFresnel( wi.dot( halfVector ), 0.1 );
+	const iorRatio = frontFace ? 1 / ior : ior;
 	const G = ggxShadowMaskG2( wi, wo, minRoughness );
 	const D = ggxDistribution( halfVector, minRoughness );
 	// TODO: sometimes the incoming vector is negative (surface vs geom normal issue)
-	// TODO: And even with flat normals we sometimes get a light direction below the surface? (negative z)
-	// It's because with the roughness direction we get a normal that's really skewed and reflects to below z
+
+	let F = schlickFresnelReflectance( wi.dot( halfVector ), iorRatio );
+	const cosTheta = Math.min( wo.z, 1.0 );
+	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
+	const cannotRefract = iorRatio * sinTheta > 1.0;
+	if ( cannotRefract ) {
+
+		F = 1;
+
+	}
 
 	colorTarget
 		.lerpColors( whiteColor, material.color, metalness )
 		.multiplyScalar( G * D / ( 4 * Math.abs( wi.z * wo.z ) ) )
-		.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) );
+		.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) )
+		.multiplyScalar( wi.z ); // scale the light by the direction the light is coming in from
+
 
 }
 
@@ -91,13 +103,13 @@ function transmissionPDF( wo, wi, material, hit ) {
 
 	const { roughness, ior } = material;
 	const { frontFace } = hit;
-	const ratio = frontFace ? 1 / ior : ior;
+	const ratio = frontFace ? ior : 1 / ior;
 	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
 
-	// TODO: check this is on the hit side
 	halfVector.set( 0, 0, 0 ).addScaledVector( wi, ratio ).addScaledVector( wo, 1.0 ).normalize().multiplyScalar( - 1 );
+
 	const denom = Math.pow( ratio * halfVector.dot( wi ) + 1.0 * halfVector.dot( wo ), 2.0 );
-	return ggxvndfPDF( wi, halfVector, minRoughness ) / denom;
+	return ggxvndfPDF( wo, halfVector, minRoughness ) / denom;
 
 }
 
@@ -106,6 +118,7 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 	const { roughness, ior } = material;
 	const { frontFace } = hit;
 	const ratio = frontFace ? 1 / ior : ior;
+	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
 
 	// sample ggx vndf distribution which gives a new normal
 	ggxvndfDirection(
@@ -114,12 +127,12 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 		roughness,
 		Math.random(),
 		Math.random(),
-		tempVector,
+		halfVector,
 	);
 
 	// apply to new ray by reflecting off the new normal
 	tempDir.copy( wo ).multiplyScalar( - 1 );
-	refract( tempDir, tempVector, ratio, lightDirection );
+	refract( tempDir, halfVector, ratio, lightDirection );
 
 }
 
@@ -134,7 +147,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	const lightDirection = sampleInfo.direction;
 	const color = sampleInfo.color;
-	const { ior, metalness, transmission } = material;
+	const { ior, metalness, transmission, roughness } = material;
 	const { frontFace } = hit;
 
 	// TODO: this schlick fresnel is just for dialectrics because it uses ior interally
@@ -153,23 +166,35 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	let pdf = 0;
 	if ( Math.random() < transmission ) {
 
-		const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
+		const specularProb = 0.5;//MathUtils.lerp( reflectance, 1.0, metalness );
+
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
 			pdf = specularPDF( wo, lightDirection, material, hit );
 
-			specularColor( wo, lightDirection, material, color );
+			specularColor( wo, lightDirection, material, hit, color );
 
 			pdf *= specularProb;
 
 		} else {
 
-			// TODO
-			transmissionDirection( wo, hit, material, lightDirection );
-			pdf = 1.0; //transmissionPDF( wo, lightDirection, material, hit );
+			// TODO: This is just using a basic cosine-weighted specular distribution with an
+			// incorrect PDF value at the moment. Update it to correctly use a GGX distribution
+			tempDir.copy( wo ).multiplyScalar( - 1 );
+			refract( tempDir, new Vector3( 0, 0, 1 ), ratio, lightDirection );
+			getRandomUnitDirection( tempDir );
+			tempDir.multiplyScalar( roughness );
+			lightDirection.add( tempDir );
 
-			transmissionColor( wo, lightDirection, material, color );
+			pdf = 1.0;
+			color
+				.copy( material.color )
+				.multiplyScalar( Math.abs( lightDirection.z ) );
+
+			// transmissionDirection( wo, hit, material, lightDirection );
+			// pdf = transmissionPDF( wo, lightDirection, material, hit );
+			// transmissionColor( wo, lightDirection, material, color );
 
 			pdf *= ( 1.0 - specularProb );
 
@@ -180,12 +205,14 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	} else {
 
 		// TODO: is there a better way to determine probability here?
-		if ( Math.random() < 0.5 ) {
+		const specProb = 0.5;// + 0.5 * metalness;
+		if ( Math.random() < specProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
 			pdf = specularPDF( wo, lightDirection, material, hit );
 
-			specularColor( wo, lightDirection, material, color );
+			specularColor( wo, lightDirection, material, hit, color );
+			color.multiplyScalar( lightDirection.z );
 
 			pdf *= 0.5;
 
@@ -223,7 +250,9 @@ export function getMaterialColor( wo, wi, material, hit, targetColor ) {
 		// specular, diffuse
 		const cosTheta = wi.dot( halfVector );
 		const theta = Math.acos( cosTheta );
-		const F = schlickFresnel( wi.dot( halfVector ), 0.16 );
+
+		// TODO: use IOR here, instead
+		const F = schlickFresnel( wi.dot( halfVector ), SCHLICK_FRESNEL_FACTOR );
 		const D = ggxDistribution( theta, roughness );
 		const G = ggxShadowMaskG2( wi, wo, roughness );
 

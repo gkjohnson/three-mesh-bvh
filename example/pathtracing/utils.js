@@ -26,6 +26,8 @@ export function schlickFresnelReflectance( cosine, iorRatio ) {
 
 	// Schlick approximation
 	const r0 = Math.pow( ( 1 - iorRatio ) / ( 1 + iorRatio ), 2 );
+
+	// https://google.github.io/filament/Filament.md.html#materialsystem/diffusebrdf
 	return r0 + ( 1 - r0 ) * Math.pow( 1.0 - cosine, 5 );
 
 }

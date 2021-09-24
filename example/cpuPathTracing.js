@@ -144,7 +144,7 @@ function init() {
 
 		const planeMesh = new THREE.Mesh(
 			new THREE.PlaneBufferGeometry(),
-			new THREE.MeshStandardMaterial( { color: 0x7f7f7f } ),
+			new THREE.MeshStandardMaterial( { color: 0x7f7f7f, roughness: 0.5, metalness: 0.0 } ),
 		);
 
 		planeMesh.rotation.x = - Math.PI / 2;
@@ -483,10 +483,6 @@ function* runPathTracing() {
 				radianceColor.set( 0 );
 				getColorSample( raycaster.ray, throughputColor, radianceColor );
 
-				radianceColor.r = Math.min( radianceColor.r, 1.0 );
-				radianceColor.g = Math.min( radianceColor.g, 1.0 );
-				radianceColor.b = Math.min( radianceColor.b, 1.0 );
-
 				const index = ( y * width + x ) * 4;
 				if ( samples === 0 ) {
 
@@ -656,10 +652,9 @@ function* runPathTracing() {
 
 					let value2 = ( value - 0.95 ) / 0.05;
 					value2 *= value2;
-					tempColor.r = THREE.MathUtils.lerp( 0.5, 20.0, value2 );
-					tempColor.g = THREE.MathUtils.lerp( 0.7, 20.0, value2 );
-					tempColor.b = THREE.MathUtils.lerp( 1.0, 20.0, value2 );
-
+					tempColor.r = THREE.MathUtils.lerp( 0.5, 10.0, value2 );
+					tempColor.g = THREE.MathUtils.lerp( 0.7, 10.0, value2 );
+					tempColor.b = THREE.MathUtils.lerp( 1.0, 10.0, value2 );
 
 				}
 
