@@ -134,7 +134,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	const lightDirection = sampleInfo.direction;
 	const color = sampleInfo.color;
-	const { ior, metalness, transmission, roughness } = material;
+	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
 
 	// TODO: this schlick fresnel is just for dialectrics because it uses ior interally
@@ -176,7 +176,6 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 		}
 
 		pdf *= transmission;
-		color.multiplyScalar( 1 / pdf );
 
 	} else {
 
@@ -202,9 +201,10 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 		}
 
 		pdf *= ( 1.0 - transmission );
-		color.multiplyScalar( 1.0 / pdf );
 
 	}
+
+	sampleInfo.pdf = pdf;
 
 }
 

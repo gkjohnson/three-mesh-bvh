@@ -616,9 +616,15 @@ function* runPathTracing() {
 				targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
 				targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
 
-				throughput.multiply( sampleInfo.color );
+				// If our PDF indicates there's a less than 0 probability of sampling this direction then
+				// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
+				if ( sampleInfo.pdf > 0 ) {
 
-				getColorSample( tempRay, throughput, targetColor, depth + 1 );
+					sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
+					throughput.multiply( sampleInfo.color );
+					getColorSample( tempRay, throughput, targetColor, depth + 1 );
+
+				}
 
 			}
 
