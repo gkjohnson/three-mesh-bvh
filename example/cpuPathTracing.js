@@ -6,7 +6,7 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { bsdfSample } from './pathtracing/materialSampling.js';
 
-import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
+import { GUI } from 'dat.gui';
 import {
 	acceleratedRaycast,
 	computeBoundsTree,
@@ -60,11 +60,11 @@ const params = {
 		directLightSampling: true,
 	},
 	material: {
-		color: '#bbbbbb',
+		color: '#0099ff',
 		emissive: '#000000',
 		emissiveIntensity: 1,
-		roughness: 1.0,
-		metalness: 0.0,
+		roughness: 0.1,
+		metalness: 0.1,
 		ior: 1.8,
 		transmission: 0.0,
 	},
@@ -333,19 +333,6 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 30, 1 ).onChange( resetImage );
 	pathTracingFolder.open();
 
-	const lightFolder = gui.addFolder( 'light' );
-	lightFolder.add( params.light, 'enable' ).onChange( resetImage );
-	lightFolder.addColor( params.light, 'color' ).onChange( resetImage );
-	lightFolder.add( params.light, 'intensity', 0, 20, 0.0001 ).onChange( resetImage );
-	lightFolder.add( params.light, 'width', 0, 5, 0.0001 ).onChange( resetImage );
-	lightFolder.add( params.light, 'height', 0, 5, 0.0001 ).onChange( resetImage );
-	lightFolder.open();
-
-	const envFolder = gui.addFolder( 'environment' );
-	envFolder.add( params.environment, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
-	envFolder.add( params.environment, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
-	envFolder.open();
-
 	const materialFolder = gui.addFolder( 'model' );
 	materialFolder.addColor( params.material, 'color' ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'emissive' ).onChange( resetImage );
@@ -360,7 +347,17 @@ function init() {
 	floorFolder.addColor( params.floor, 'color' ).onChange( resetImage );
 	floorFolder.add( params.floor, 'roughness', 0, 1, 0.001 ).onChange( resetImage );
 	floorFolder.add( params.floor, 'metalness', 0, 1, 0.001 ).onChange( resetImage );
-	floorFolder.open();
+
+	const lightFolder = gui.addFolder( 'light' );
+	lightFolder.add( params.light, 'enable' ).onChange( resetImage );
+	lightFolder.addColor( params.light, 'color' ).onChange( resetImage );
+	lightFolder.add( params.light, 'intensity', 0, 20, 0.0001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'width', 0, 5, 0.0001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'height', 0, 5, 0.0001 ).onChange( resetImage );
+
+	const envFolder = gui.addFolder( 'environment' );
+	envFolder.add( params.environment, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
+	envFolder.add( params.environment, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
 
 	onResize();
 
