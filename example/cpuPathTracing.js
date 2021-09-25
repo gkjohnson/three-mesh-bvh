@@ -6,7 +6,7 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { bsdfSample } from './pathtracing/materialSampling.js';
 
-import { GUI } from 'dat.gui';
+import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
 import {
 	acceleratedRaycast,
 	computeBoundsTree,
@@ -29,7 +29,7 @@ let fsQuad, controls;
 let dataTexture, samples, ssPoint, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
-let mesh, materials, lightMesh;
+let mesh, materials, lightMesh, floorMesh;
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
 const triangle = new THREE.Triangle();
@@ -67,6 +67,12 @@ const params = {
 		metalness: 0.0,
 		ior: 1.8,
 		transmission: 0.0,
+	},
+	floor: {
+		enable: true,
+		color: '#7f7f7f',
+		roughness: 0.5,
+		metalness: 0.5,
 	},
 	light: {
 		enable: true,
@@ -135,8 +141,17 @@ function init() {
 	lightMesh.lookAt( 0, 0, 0 );
 	scene.add( lightMesh );
 
-	controls = new OrbitControls( camera, renderer.domElement );
+	floorMesh = new THREE.Mesh(
+		new THREE.PlaneBufferGeometry( 10, 10, 1, 1 ),
+		new THREE.MeshStandardMaterial( { side: THREE.DoubleSide } ),
+	);
+	floorMesh.rotation.x = - Math.PI / 2;
+	floorMesh.scale.setScalar( 1 );
+	floorMesh.material.ior = 1.6;
+	floorMesh.material.transmission = 0;
+	scene.add( floorMesh );
 
+	controls = new OrbitControls( camera, renderer.domElement );
 	controls.addEventListener( 'change', resetImage );
 
 	window.addEventListener( 'resize', onResize, false );
@@ -151,21 +166,12 @@ function init() {
 			new THREE.MeshStandardMaterial(),
 		);
 
-		const planeMesh = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(),
-			new THREE.MeshStandardMaterial( { color: 0x7f7f7f, roughness: 0.5, metalness: 0.0 } ),
-		);
-
-		planeMesh.rotation.x = - Math.PI / 2;
-		planeMesh.scale.setScalar( 10 );
-		planeMesh.position.y = - 1;
-
-		const { geometry, materials } = mergeMeshes( [ sphereMesh, planeMesh ], true );
+		const { geometry, materials } = mergeMeshes( [ sphereMesh ], true );
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		scene.add( merged );
 
 		geometry.computeBoundsTree( { strategy: SAH, maxLeafTris: 1 } );
-		models[ 'Sphere' ] = { mesh: merged, materials };
+		models[ 'Sphere' ] = { mesh: merged, materials, floorHeight: - 1 };
 
 	}
 
@@ -190,23 +196,14 @@ function init() {
 		mesh.scale.set( 1, 1, 1 );
 		mesh.quaternion.identity();
 
-		const plane = new THREE.PlaneBufferGeometry();
-		plane.rotateX( - Math.PI / 2 ).translate( 0, mesh.geometry.boundingBox.min.y, 0 ).scale( 10, 1, 10 );
-
-		const ground = new THREE.Mesh(
-			plane,
-			new THREE.MeshStandardMaterial( { color: 0x7f7f7f, roughness: 0.2, metalness: 1 } ),
-		);
-
-		const { geometry, materials } = mergeMeshes( [ mesh, ground ], true );
+		const { geometry, materials } = mergeMeshes( [ mesh ], true );
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-
 		const generator = new GenerateMeshBVHWorker();
 		generator
 			.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
 			.then( bvh => {
 
-				models[ 'Dragon' ] = { mesh: merged, materials };
+				models[ 'Dragon' ] = { mesh: merged, materials, floorHeight: mesh.geometry.boundingBox.min.y };
 				geometry.boundsTree = bvh;
 				generator.terminate();
 				scene.add( merged );
@@ -246,6 +243,7 @@ function init() {
 		newGeometry.setAttribute( 'materialIndex', new THREE.BufferAttribute( new Uint8Array( posAttr.count ), 1, false ) );
 		newGeometry.setIndex( originalGeometry.index );
 		newGeometry.applyMatrix4( originalMesh.matrixWorld ).center();
+		newGeometry.computeBoundingBox();
 
 		const mesh = new THREE.Mesh( newGeometry, new THREE.MeshStandardMaterial() );
 		const generator = new GenerateMeshBVHWorker();
@@ -253,7 +251,7 @@ function init() {
 			.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
 			.then( bvh => {
 
-				models[ 'Engine' ] = { mesh, materials: [ new THREE.MeshStandardMaterial() ] };
+				models[ 'Engine' ] = { mesh, materials: [ new THREE.MeshStandardMaterial() ], floorHeight: newGeometry.boundingBox.min.y };
 				newGeometry.boundsTree = bvh;
 				generator.terminate();
 
@@ -289,15 +287,9 @@ function init() {
 
 		} );
 
-		const plane = new THREE.PlaneBufferGeometry();
-		delete plane.attributes.uv;
-
-		const planeMesh = new THREE.Mesh( plane, new THREE.MeshStandardMaterial( { color: 0x7f7f7f } ) );
-		planeMesh.rotateX( - Math.PI / 2 );
-		planeMesh.scale.setScalar( 10 );
-
-		const { geometry, materials } = mergeMeshes( [ ...meshes, planeMesh ], true );
+		const { geometry, materials } = mergeMeshes( [ ...meshes ], true );
 		geometry.center();
+		geometry.computeBoundingBox();
 
 		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		const generator = new GenerateMeshBVHWorker();
@@ -305,7 +297,7 @@ function init() {
 			.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
 			.then( bvh => {
 
-				models[ 'Rover' ] = { mesh, materials };
+				models[ 'Rover' ] = { mesh, materials, floorHeight: geometry.boundingBox.min.y };
 				geometry.boundsTree = bvh;
 				generator.terminate();
 
@@ -354,7 +346,7 @@ function init() {
 	envFolder.add( params.environment, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
 	envFolder.open();
 
-	const materialFolder = gui.addFolder( 'material' );
+	const materialFolder = gui.addFolder( 'model' );
 	materialFolder.addColor( params.material, 'color' ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'emissive' ).onChange( resetImage );
 	materialFolder.add( params.material, 'emissiveIntensity', 0, 5, 0.001 ).onChange( resetImage );
@@ -363,6 +355,12 @@ function init() {
 	materialFolder.add( params.material, 'transmission', 0, 1.0, 0.001 ).onChange( resetImage );
 	materialFolder.add( params.material, 'ior', 0.5, 2.5, 0.001 ).onChange( resetImage );
 	materialFolder.open();
+
+	const floorFolder = gui.addFolder( 'floor' );
+	floorFolder.addColor( params.floor, 'color' ).onChange( resetImage );
+	floorFolder.add( params.floor, 'roughness', 0, 1, 0.001 ).onChange( resetImage );
+	floorFolder.add( params.floor, 'metalness', 0, 1, 0.001 ).onChange( resetImage );
+	floorFolder.open();
 
 	onResize();
 
@@ -462,6 +460,10 @@ function resetImage() {
 	lightMesh.scale.set( params.light.width, params.light.height, 1 );
 	lightMesh.material.color.set( params.light.color ).multiplyScalar( params.light.intensity );
 
+	floorMesh.material.color.set( params.floor.color );
+	floorMesh.material.roughness = Math.pow( params.floor.roughness, 2.0 );
+	floorMesh.material.metalness = params.floor.metalness, 2.0;
+
 }
 
 function* runPathTracingLoop() {
@@ -472,9 +474,6 @@ function* runPathTracingLoop() {
 	const skyIntensity = parseFloat( params.environment.skyIntensity );
 	const skyMode = params.environment.skyMode;
 	const smoothNormals = params.pathTracing.smoothNormals;
-	const posAttr = mesh.geometry.attributes.position;
-	const normalAttr = mesh.geometry.attributes.normal;
-	const materialAttr = mesh.geometry.attributes.materialIndex;
 	const radianceColor = new THREE.Color();
 	const throughputColor = new THREE.Color();
 	const normal = new THREE.Vector3();
@@ -516,9 +515,8 @@ function* runPathTracingLoop() {
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
 				// TODO: transform ray into local space of bvh -- multiply by inverse of mesh.matrixWorld
 
-				throughputColor.set( 0xffffff );
 				radianceColor.set( 0 );
-				pathTrace( raycaster.ray, throughputColor, radianceColor );
+				pathTrace( raycaster.ray, radianceColor );
 
 				const index = ( y * width + x ) * 4;
 				if ( samples === 0 ) {
@@ -562,6 +560,11 @@ function* runPathTracingLoop() {
 
 	function expandHitInformation( hit, ray ) {
 
+		const object = hit.object;
+		const posAttr = object.geometry.attributes.position;
+		const normalAttr = object.geometry.attributes.normal;
+		const materialAttr = object.geometry.attributes.materialIndex;
+
 		const face = hit.face;
 		const geometryNormal = hit.face.normal;
 		if ( smoothNormals ) {
@@ -589,6 +592,9 @@ function* runPathTracingLoop() {
 
 		}
 
+		geometryNormal.transformDirection( object.matrixWorld );
+		normal.transformDirection( object.matrixWorld );
+
 		const hitFrontFace = geometryNormal.dot( ray.direction ) < 0;
 		if ( ! hitFrontFace ) {
 
@@ -597,10 +603,15 @@ function* runPathTracingLoop() {
 
 		}
 
-		const materialIndex = materialAttr.getX( face.a );
-		const material = materials[ materialIndex ];
+		let material = object.material;
+		if ( materialAttr ) {
+
+			const materialIndex = materialAttr.getX( face.a );
+			material = materials[ materialIndex ];
+
+		}
+
 		hit.material = material;
-		hit.materialIndex = materialIndex;
 		hit.normal = normal;
 		hit.geometryNormal = geometryNormal;
 		hit.frontFace = hitFrontFace;
@@ -609,82 +620,97 @@ function* runPathTracingLoop() {
 
 	}
 
-	// TODO: convert to for loop instead of recursion
-	function pathTrace( ray, throughput, targetColor, depth = 0 ) {
+	function pathTrace( ray, targetColor ) {
 
-		let hit;
-		raycaster.ray.copy( ray );
-		if ( params.light.enable ) {
+		let currentRay = ray;
+		throughputColor.set( 0xffffff );
+		for ( let i = 0; i < bounces; i ++ ) {
 
-			hit = raycaster.intersectObjects( [ lightMesh, mesh ], true )[ 0 ];
+			let hit;
+			raycaster.ray.copy( currentRay );
 
-		} else {
+			const objects = [ mesh ];
+			if ( params.light.enable ) {
 
-			hit = raycaster.intersectObject( mesh, true )[ 0 ];
-
-		}
-
-		// check if we hit the light or the model
-		if ( hit ) {
-
-			if ( hit.object === lightMesh ) {
-
-				// TODO: is it correct to attenuate on the cosine of the hit direction?
-				const weight = Math.max( - ray.direction.dot( lightForward ), 0.0 );
-				targetColor.r += weight * throughput.r * lightMesh.material.color.r;
-				targetColor.g += weight * throughput.g * lightMesh.material.color.g;
-				targetColor.b += weight * throughput.b * lightMesh.material.color.b;
-
-			} else {
-
-				expandHitInformation( hit, ray );
-				const { material } = hit;
-				const nextRay = rayStack[ depth ];
-
-				// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
-				// incident light vector.
-				getBasisFromNormal( hit.normal, normalBasis );
-				invBasis.copy( normalBasis ).invert();
-				localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
-
-				// sample the surface to get the pdf, reflected color, and direction
-				bsdfSample( localDirection, hit, material, sampleInfo );
-
-				// transform ray back to world frame and offset from surface
-				nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
-				nextRay.origin.copy( hit.point );
-				if ( nextRay.direction.dot( hit.geometryNormal ) < 0 ) {
-
-					nextRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
-
-				} else {
-
-					nextRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
-
-				}
-
-				const { emissive, emissiveIntensity } = material;
-				targetColor.r += ( emissiveIntensity * emissive.r * throughput.r );
-				targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
-				targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
-
-				// If our PDF indicates there's a less than 0 probability of sampling this direction then
-				// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
-				if ( sampleInfo.pdf > 0 && depth < bounces - 1 ) {
-
-					sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
-					throughput.multiply( sampleInfo.color );
-					pathTrace( nextRay, throughput, targetColor, depth + 1 );
-
-				}
+				objects.push( lightMesh );
 
 			}
 
-		} else {
+			if ( params.floor.enable ) {
 
-			sampleSkyBox( ray.direction, tempColor );
-			tempColor.multiply( throughput );
-			targetColor.add( tempColor );
+				objects.push( floorMesh );
+
+			}
+
+			hit = raycaster.intersectObjects( objects, true )[ 0 ];
+
+			// check if we hit the light or the model
+			if ( hit ) {
+
+				if ( hit.object === lightMesh ) {
+
+					// TODO: is it correct to attenuate on the cosine of the hit direction?
+					const weight = Math.max( - currentRay.direction.dot( lightForward ), 0.0 );
+					targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
+					targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
+					targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
+					break;
+
+				} else {
+
+					expandHitInformation( hit, currentRay );
+					const { material } = hit;
+					const nextRay = rayStack[ i ];
+
+					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
+					// incident light vector.
+					getBasisFromNormal( hit.normal, normalBasis );
+					invBasis.copy( normalBasis ).invert();
+					localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
+
+					// sample the surface to get the pdf, reflected color, and direction
+					bsdfSample( localDirection, hit, material, sampleInfo );
+
+					// transform ray back to world frame and offset from surface
+					nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
+					nextRay.origin.copy( hit.point );
+					if ( nextRay.direction.dot( hit.geometryNormal ) < 0 ) {
+
+						nextRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
+
+					} else {
+
+						nextRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
+
+					}
+
+					const { emissive, emissiveIntensity } = material;
+					targetColor.r += ( emissiveIntensity * emissive.r * throughputColor.r );
+					targetColor.g += ( emissiveIntensity * emissive.g * throughputColor.g );
+					targetColor.b += ( emissiveIntensity * emissive.b * throughputColor.b );
+
+					// If our PDF indicates there's a less than 0 probability of sampling this direction then
+					// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
+					if ( sampleInfo.pdf <= 0 ) {
+
+						break;
+
+					}
+
+					sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
+					throughputColor.multiply( sampleInfo.color );
+					currentRay = nextRay;
+
+				}
+
+			} else {
+
+				sampleSkyBox( currentRay.direction, tempColor );
+				tempColor.multiply( throughputColor );
+				targetColor.add( tempColor );
+				break;
+
+			}
 
 		}
 
@@ -775,6 +801,7 @@ function render() {
 		model.mesh.visible = true;
 		mesh = model.mesh;
 		materials = model.materials;
+		floorMesh.position.y = model.floorHeight || 0;
 
 		// initialize ior and transmission not present on materials already
 		materials.forEach( m => {
@@ -800,6 +827,7 @@ function render() {
 
 		mesh = null;
 		materials = null;
+		floorMesh.position.y = 0;
 
 	}
 
