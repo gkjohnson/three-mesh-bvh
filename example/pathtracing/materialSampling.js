@@ -36,7 +36,7 @@ function diffuseColor( wo, wi, material, colorTarget ) {
 	const { metalness } = material;
 	colorTarget
 		.copy( material.color )
-		.multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI );
+		.multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI / Math.PI );
 
 }
 
@@ -154,8 +154,6 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	const { ior, metalness, transmission, roughness } = material;
 	const { frontFace } = hit;
 
-	// TODO: this schlick fresnel is just for dialectrics because it uses ior interally
-	// Change this to use a common fresnel function
 	const ratio = frontFace ? 1 / ior : ior;
 	const cosTheta = Math.min( wo.z, 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
@@ -170,9 +168,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	let pdf = 0;
 	if ( Math.random() < transmission ) {
 
-		// TODO: 1.0 metalness and 1.0 transmission needs to be fixed
-		const specularProb = 0.5;//MathUtils.lerp( reflectance, 1.0, metalness );
-
+		const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
@@ -215,8 +211,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	} else {
 
-		// TODO: is there a better way to determine probability here?
-		const specProb = 0.5;// + 0.5 * metalness;
+		const specProb = 0.5 + 0.5 * metalness;
 		if ( Math.random() < specProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
@@ -224,7 +219,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 			specularColor( wo, lightDirection, material, hit, color );
 
-			pdf *= 0.5;
+			pdf *= specProb;
 
 		} else {
 
@@ -233,7 +228,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 			diffuseColor( wo, lightDirection, material, color );
 
-			pdf *= 0.5;
+			pdf *= ( 1.0 - specProb );
 
 		}
 
