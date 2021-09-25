@@ -100,6 +100,7 @@ function specularColor( wo, wi, material, hit, colorTarget ) {
 
 }
 
+/*
 // transmission
 function transmissionPDF( wo, wi, material, hit ) {
 
@@ -127,8 +128,8 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 	// sample ggx vndf distribution which gives a new normal
 	ggxvndfDirection(
 		wo,
-		roughness,
-		roughness,
+		minRoughness,
+		minRoughness,
 		Math.random(),
 		Math.random(),
 		halfVector,
@@ -146,6 +147,7 @@ function transmissionColor( wo, wi, material, colorTarget ) {
 	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wo.z / Math.PI );
 
 }
+*/
 
 export function bsdfSample( wo, hit, material, sampleInfo ) {
 

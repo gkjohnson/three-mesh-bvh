@@ -26,11 +26,10 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, light, clock;
 let fsQuad, controls;
-let raycaster, dataTexture, samples, ssPoint, task, delay, scanLinePercent;
+let dataTexture, samples, ssPoint, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
 let mesh, materials, lightMesh;
-const MAX_BOUNCES = 30;
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
 const triangle = new THREE.Triangle();
@@ -319,8 +318,6 @@ function init() {
 	ssPoint = new THREE.Vector3();
 	samples = 0;
 	clock = new THREE.Clock();
-	raycaster = new THREE.Raycaster();
-	raycaster.firstHitOnly = true;
 
 	const gui = new GUI();
 	gui.add( params, 'model', Object.keys( models ) ).onChange( resetImage );
@@ -341,7 +338,7 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'antialiasing' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'smoothNormals' ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'bounces', 1, MAX_BOUNCES, 1 ).onChange( resetImage );
+	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 30, 1 ).onChange( resetImage );
 	pathTracingFolder.open();
 
 	const lightFolder = gui.addFolder( 'light' );
@@ -483,6 +480,8 @@ function* runPathTracing() {
 	const normal = new THREE.Vector3();
 	const rayStack = new Array( bounces ).fill().map( () => new THREE.Ray() );
 	const lightForward = new THREE.Vector3( 0, 0, 1 ).transformDirection( lightMesh.matrixWorld );
+	const raycaster = new THREE.Raycaster();
+	raycaster.firstHitOnly = true;
 
 	const sampleInfo = {
 		pdf: 0,
