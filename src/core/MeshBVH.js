@@ -874,6 +874,8 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
+		if ( closestDistance === Infinity ) return null;
+
 		if ( ! target1.point ) target1.point = tempTargetDest1.clone();
 		else target1.point.copy( tempTargetDest1 );
 		target1.distance = closestDistance,
@@ -948,6 +950,8 @@ export class MeshBVH {
 			}
 
 		);
+
+		if ( closestDistanceSq === Infinity ) return null;
 
 		const closestDistance = Math.sqrt( closestDistanceSq );
 
@@ -1112,7 +1116,7 @@ MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
 	const originalFunc = MeshBVH.prototype[ name ];
 	MeshBVH.prototype[ name ] = function ( ...args ) {
 
-		if ( args[ 0 ].isMesh ) {
+		if ( args[ 0 ] === null || args[ 0 ].isMesh ) {
 
 			args.shift();
 			console.warn( `MeshBVH: The function signature for "${ name }" has changed and no longer takes Mesh. See docs for new signature.` );
