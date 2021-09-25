@@ -454,7 +454,7 @@ function resetImage() {
 	dataTexture.image.data.fill( 0 );
 	dataTexture.needsUpdate = true;
 	samples = 0;
-	task = runPathTracing();
+	task = runPathTracingLoop();
 	delay = 0;
 	scanLineElement.style.visibility = 'hidden';
 	scanLinePercent = 100;
@@ -464,7 +464,7 @@ function resetImage() {
 
 }
 
-function* runPathTracing() {
+function* runPathTracingLoop() {
 
 	let lastStartTime = performance.now();
 	const { width, height, data } = dataTexture.image;
@@ -518,7 +518,7 @@ function* runPathTracing() {
 
 				throughputColor.set( 0xffffff );
 				radianceColor.set( 0 );
-				getColorSample( raycaster.ray, throughputColor, radianceColor );
+				pathTrace( raycaster.ray, throughputColor, radianceColor );
 
 				const index = ( y * width + x ) * 4;
 				if ( samples === 0 ) {
@@ -610,10 +610,10 @@ function* runPathTracing() {
 	}
 
 	// TODO: convert to for loop instead of recursion
-	function getColorSample( ray, throughput, targetColor, depth = 1 ) {
+	function pathTrace( ray, throughput, targetColor, depth = 1 ) {
 
-		raycaster.ray.copy( ray );
 		let hit;
+		raycaster.ray.copy( ray );
 		if ( params.light.enable ) {
 
 			hit = raycaster.intersectObjects( [ lightMesh, mesh ], true )[ 0 ];
@@ -641,9 +641,7 @@ function* runPathTracing() {
 
 					expandHitInformation( hit, ray );
 					const { material } = hit;
-					const tempRay = rayStack[ depth ];
-
-					const { emissive, emissiveIntensity } = material;
+					const nextRay = rayStack[ depth ];
 
 					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
 					// incident light vector.
@@ -655,18 +653,19 @@ function* runPathTracing() {
 					bsdfSample( localDirection, hit, material, sampleInfo );
 
 					// transform ray back to world frame and offset from surface
-					tempRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
-					tempRay.origin.copy( hit.point );
-					if ( tempRay.direction.dot( hit.geometryNormal ) < 0 ) {
+					nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
+					nextRay.origin.copy( hit.point );
+					if ( nextRay.direction.dot( hit.geometryNormal ) < 0 ) {
 
-						tempRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
+						nextRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
 
 					} else {
 
-						tempRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
+						nextRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
 
 					}
 
+					const { emissive, emissiveIntensity } = material;
 					targetColor.r += ( emissiveIntensity * emissive.r * throughput.r );
 					targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
 					targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
@@ -677,7 +676,7 @@ function* runPathTracing() {
 
 						sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
 						throughput.multiply( sampleInfo.color );
-						getColorSample( tempRay, throughput, targetColor, depth + 1 );
+						pathTrace( nextRay, throughput, targetColor, depth + 1 );
 
 					}
 
