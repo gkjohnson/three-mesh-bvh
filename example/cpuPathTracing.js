@@ -30,7 +30,7 @@ let fsQuad, controls;
 let raycaster, dataTexture, samples, ssPoint, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
-let mesh, bvh, materials;
+let mesh, bvh, materials, lightMesh;
 const MAX_BOUNCES = 30;
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
@@ -62,8 +62,6 @@ const params = {
 		directLightSampling: true,
 	},
 	material: {
-		skyMode: 'sky',
-		skyIntensity: 1.0,
 		color: '#bbbbbb',
 		emissive: '#000000',
 		emissiveIntensity: 1,
@@ -72,6 +70,17 @@ const params = {
 		ior: 1.8,
 		transmission: 0.0,
 	},
+	light: {
+		enable: true,
+		intensity: 5.0,
+		color: '#ffffff',
+		width: 1,
+		height: 1,
+	},
+	environment: {
+		skyMode: 'sky',
+		skyIntensity: 1.0,
+	}
 };
 
 init();
@@ -117,12 +126,16 @@ function init() {
 	camera.updateProjectionMatrix();
 
 	// light
-	light = new THREE.DirectionalLight();
-	light.position.set( 1, 1, 1 );
-	// scene.add( light );
-
 	light = new THREE.HemisphereLight( 0xffffff, 0x666666, 1 );
 	scene.add( light );
+
+	lightMesh = new THREE.Mesh(
+		new THREE.PlaneBufferGeometry( 1, 1, 1, 1 ),
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } ),
+	);
+	lightMesh.position.set( 3, 3, 3 );
+	lightMesh.lookAt( 0, 0, 0 );
+	scene.add( lightMesh );
 
 	controls = new OrbitControls( camera, renderer.domElement );
 
@@ -329,9 +342,20 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, MAX_BOUNCES, 1 ).onChange( resetImage );
 	pathTracingFolder.open();
 
+	const lightFolder = gui.addFolder( 'light' );
+	lightFolder.add( params.light, 'enable' ).onChange( resetImage );
+	lightFolder.addColor( params.light, 'color' ).onChange( resetImage );
+	lightFolder.add( params.light, 'intensity', 0, 20, 0.0001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'width', 0, 5, 0.0001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'height', 0, 5, 0.0001 ).onChange( resetImage );
+	lightFolder.open();
+
+	const envFolder = gui.addFolder( 'environment' );
+	envFolder.add( params.environment, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
+	envFolder.add( params.environment, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
+	envFolder.open();
+
 	const materialFolder = gui.addFolder( 'material' );
-	materialFolder.add( params.material, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
-	materialFolder.add( params.material, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'color' ).onChange( resetImage );
 	materialFolder.addColor( params.material, 'emissive' ).onChange( resetImage );
 	materialFolder.add( params.material, 'emissiveIntensity', 0, 5, 0.001 ).onChange( resetImage );
@@ -436,6 +460,9 @@ function resetImage() {
 	scanLineElement.style.visibility = 'hidden';
 	scanLinePercent = 100;
 
+	lightMesh.scale.set( params.light.width, params.light.height, 1 );
+	lightMesh.material.color.set( params.light.color ).multiplyScalar( params.light.intensity );
+
 }
 
 function* runPathTracing() {
@@ -443,8 +470,8 @@ function* runPathTracing() {
 	let lastStartTime = performance.now();
 	const { width, height, data } = dataTexture.image;
 	const bounces = parseInt( params.pathTracing.bounces );
-	const skyIntensity = parseFloat( params.material.skyIntensity );
-	const skyMode = params.material.skyMode;
+	const skyIntensity = parseFloat( params.environment.skyIntensity );
+	const skyMode = params.environment.skyMode;
 	const smoothNormals = params.pathTracing.smoothNormals;
 	const posAttr = bvh.geometry.attributes.position;
 	const normalAttr = bvh.geometry.attributes.normal;
@@ -453,6 +480,7 @@ function* runPathTracing() {
 	const throughputColor = new THREE.Color();
 	const normal = new THREE.Vector3();
 	const rayStack = new Array( bounces ).fill().map( () => new THREE.Ray() );
+	const lightForward = new THREE.Vector3( 0, 0, 1 ).transformDirection( lightMesh.matrixWorld );
 
 	const sampleInfo = {
 		pdf: 0,
@@ -575,8 +603,20 @@ function* runPathTracing() {
 
 	function getColorSample( ray, throughput, targetColor, depth = 1 ) {
 
+		raycaster.ray.copy( ray );
 		const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
-		if ( hit ) {
+		const lightHit = raycaster.intersectObject( lightMesh, true )[ 0 ];
+
+		// check if we hit the light or the model
+		if ( lightHit && ( ! hit || hit && hit.distance > lightHit.distance ) ) {
+
+			// TODO: is it correct to attenuate on the cosine of the hit direction?
+			const weight = Math.max( - ray.direction.dot( lightForward ), 0.0 );
+			targetColor.r += weight * throughput.r * lightMesh.material.color.r;
+			targetColor.g += weight * throughput.g * lightMesh.material.color.g;
+			targetColor.b += weight * throughput.b * lightMesh.material.color.b;
+
+		} else if ( hit ) {
 
 			if ( depth !== bounces ) {
 
@@ -708,6 +748,7 @@ function render() {
 
 	}
 
+	// select the model and initialize set the 0 material with the user settings
 	if ( models[ params.model ] ) {
 
 		const model = models[ params.model ];
@@ -770,8 +811,7 @@ function render() {
 	renderer.autoClear = true;
 
 	// run the path tracing
-	scene.updateMatrixWorld( true );
-	camera.updateMatrixWorld( true );
+	// world matrices are up to date because of the above render
 	if ( bvh && ! params.pathTracing.pause ) {
 
 		task.next();
