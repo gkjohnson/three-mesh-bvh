@@ -874,6 +874,8 @@ export class MeshBVH {
 		trianglePool.releasePrimitive( triangle );
 		trianglePool.releasePrimitive( triangle2 );
 
+		if ( closestDistance === Infinity ) return null;
+
 		if ( ! target1.point ) target1.point = tempTargetDest1.clone();
 		else target1.point.copy( tempTargetDest1 );
 		target1.distance = closestDistance,
@@ -948,6 +950,8 @@ export class MeshBVH {
 			}
 
 		);
+
+		if ( closestDistanceSq === Infinity ) return null;
 
 		const closestDistance = Math.sqrt( closestDistanceSq );
 
