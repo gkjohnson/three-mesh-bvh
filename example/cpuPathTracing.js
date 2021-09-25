@@ -610,7 +610,7 @@ function* runPathTracingLoop() {
 	}
 
 	// TODO: convert to for loop instead of recursion
-	function pathTrace( ray, throughput, targetColor, depth = 1 ) {
+	function pathTrace( ray, throughput, targetColor, depth = 0 ) {
 
 		let hit;
 		raycaster.ray.copy( ray );
@@ -637,48 +637,44 @@ function* runPathTracingLoop() {
 
 			} else {
 
-				if ( depth !== bounces ) {
+				expandHitInformation( hit, ray );
+				const { material } = hit;
+				const nextRay = rayStack[ depth ];
 
-					expandHitInformation( hit, ray );
-					const { material } = hit;
-					const nextRay = rayStack[ depth ];
+				// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
+				// incident light vector.
+				getBasisFromNormal( hit.normal, normalBasis );
+				invBasis.copy( normalBasis ).invert();
+				localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
-					// incident light vector.
-					getBasisFromNormal( hit.normal, normalBasis );
-					invBasis.copy( normalBasis ).invert();
-					localDirection.copy( ray.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
+				// sample the surface to get the pdf, reflected color, and direction
+				bsdfSample( localDirection, hit, material, sampleInfo );
 
-					// sample the surface to get the pdf, reflected color, and direction
-					bsdfSample( localDirection, hit, material, sampleInfo );
+				// transform ray back to world frame and offset from surface
+				nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
+				nextRay.origin.copy( hit.point );
+				if ( nextRay.direction.dot( hit.geometryNormal ) < 0 ) {
 
-					// transform ray back to world frame and offset from surface
-					nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
-					nextRay.origin.copy( hit.point );
-					if ( nextRay.direction.dot( hit.geometryNormal ) < 0 ) {
+					nextRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
 
-						nextRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
+				} else {
 
-					} else {
+					nextRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
 
-						nextRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
+				}
 
-					}
+				const { emissive, emissiveIntensity } = material;
+				targetColor.r += ( emissiveIntensity * emissive.r * throughput.r );
+				targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
+				targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
 
-					const { emissive, emissiveIntensity } = material;
-					targetColor.r += ( emissiveIntensity * emissive.r * throughput.r );
-					targetColor.g += ( emissiveIntensity * emissive.g * throughput.g );
-					targetColor.b += ( emissiveIntensity * emissive.b * throughput.b );
+				// If our PDF indicates there's a less than 0 probability of sampling this direction then
+				// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
+				if ( sampleInfo.pdf > 0 && depth < bounces - 1 ) {
 
-					// If our PDF indicates there's a less than 0 probability of sampling this direction then
-					// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
-					if ( sampleInfo.pdf > 0 ) {
-
-						sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
-						throughput.multiply( sampleInfo.color );
-						pathTrace( nextRay, throughput, targetColor, depth + 1 );
-
-					}
+					sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
+					throughput.multiply( sampleInfo.color );
+					pathTrace( nextRay, throughput, targetColor, depth + 1 );
 
 				}
 
