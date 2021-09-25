@@ -32,6 +32,8 @@ let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
 let mesh, bvh, materials;
 const MAX_BOUNCES = 30;
+const DELAY_TIME = 300;
+const FADE_DELAY = 150;
 const triangle = new THREE.Triangle();
 const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
@@ -42,10 +44,6 @@ const normalBasis = new THREE.Matrix4();
 const invBasis = new THREE.Matrix4();
 const localDirection = new THREE.Vector3();
 const tempColor = new THREE.Color();
-const rayStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Ray() );
-const normalStack = new Array( MAX_BOUNCES ).fill().map( () => new THREE.Vector3() );
-const DELAY_TIME = 300;
-const FADE_DELAY = 150;
 
 const models = {};
 const params = {
@@ -453,6 +451,9 @@ function* runPathTracing() {
 	const materialAttr = bvh.geometry.attributes.materialIndex;
 	const radianceColor = new THREE.Color();
 	const throughputColor = new THREE.Color();
+	const normal = new THREE.Vector3();
+	const rayStack = new Array( bounces ).fill().map( () => new THREE.Ray() );
+
 	const sampleInfo = {
 		pdf: 0,
 		color: new THREE.Color(),
@@ -523,9 +524,8 @@ function* runPathTracing() {
 
 	}
 
-	function expandHitInformation( hit, ray, depth ) {
+	function expandHitInformation( hit, ray ) {
 
-		const normal = normalStack[ depth ];
 		const face = hit.face;
 		const geometryNormal = hit.face.normal;
 		if ( smoothNormals ) {
@@ -580,7 +580,7 @@ function* runPathTracing() {
 
 			if ( depth !== bounces ) {
 
-				expandHitInformation( hit, ray, depth );
+				expandHitInformation( hit, ray );
 				const { material } = hit;
 				const tempRay = rayStack[ depth ];
 
