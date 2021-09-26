@@ -3,13 +3,10 @@ import { ggxvndfDirection, ggxvndfPDF, ggxShadowMaskG2, ggxDistribution } from '
 import { MathUtils, Vector3, Color } from 'three';
 
 // Technically this value should be based on the index of refraction of the given dielectric.
-const SCHLICK_FRESNEL_FACTOR = 0.05;
 const MIN_ROUGHNESS = 1e-6;
 const tempDir = new Vector3();
 const halfVector = new Vector3();
-const tempSpecularColor = new Color();
-const tempMetallicColor = new Color();
-const tempDiffuseColor = new Color();
+const tempColor = new Color();
 const whiteColor = new Color( 0xffffff );
 
 // diffuse
@@ -29,11 +26,11 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 
 }
 
-function diffuseColor( wo, wi, material, colorTarget ) {
+function diffuseColor( wo, wi, material, hit, colorTarget ) {
 
 	// note on division by PI
 	// https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
-	const { metalness } = material;
+	const { metalness, transmission } = material;
 	colorTarget
 		.copy( material.color )
 		.multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI / Math.PI );
@@ -149,11 +146,109 @@ function transmissionColor( wo, wi, material, colorTarget ) {
 }
 */
 
+// TODO: This is just using a basic cosine-weighted specular distribution with an
+// incorrect PDF value at the moment. Update it to correctly use a GGX distribution
+function transmissionPDF( wo, wi, material, hit ) {
+
+	return 1.0;
+
+}
+
+function transmissionDirection( wo, hit, material, lightDirection ) {
+
+	const { roughness, ior } = material;
+	const { frontFace } = hit;
+	const ratio = frontFace ? 1 / ior : ior;
+
+	tempDir.copy( wo ).multiplyScalar( - 1 );
+	refract( tempDir, new Vector3( 0, 0, 1 ), ratio, lightDirection );
+	getRandomUnitDirection( tempDir );
+	tempDir.multiplyScalar( roughness );
+	lightDirection.add( tempDir );
+
+}
+
+function transmissionColor( wo, wi, material, hit, colorTarget ) {
+
+	const { metalness } = material;
+	colorTarget
+		.copy( material.color )
+		.multiplyScalar( 1.0 - metalness )
+		.multiplyScalar( Math.abs( wi.z ) );
+
+	// Color is clamped to [0, 1] to make up for incorrect PDF and over sampling
+	colorTarget.r = Math.min( colorTarget.r, 1.0 );
+	colorTarget.g = Math.min( colorTarget.g, 1.0 );
+	colorTarget.b = Math.min( colorTarget.b, 1.0 );
+
+}
+
+export function bsdfPdf( wo, wi, material, hit ) {
+
+	const { ior, metalness, transmission } = material;
+	const { frontFace } = hit;
+
+	const ratio = frontFace ? 1 / ior : ior;
+	const cosTheta = Math.min( wo.z, 1.0 );
+	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
+	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
+	const cannotRefract = ratio * sinTheta > 1.0;
+	if ( cannotRefract ) {
+
+		reflectance = 1;
+
+	}
+
+	let spdf = 0;
+	let dpdf = 0;
+	let tpdf = 0;
+
+	if ( wi.z < 0 ) {
+
+		tpdf = transmissionPDF( wo, wi, material, hit );
+
+	} else {
+
+		spdf = specularPDF( wo, wi, material, hit );
+		dpdf = diffusePDF( wo, wi, material, hit );
+
+	}
+
+	const transSpecularProb = MathUtils.lerp( reflectance, 1.0, metalness );
+	const diffSpecularProb = 0.5 + 0.5 * metalness;
+	const pdf =
+		spdf * transmission * transSpecularProb
+		+ tpdf * transmission * ( 1.0 - transSpecularProb ) * tpdf
+		+ spdf * ( 1.0 - transmission ) * diffSpecularProb
+		+ dpdf * ( 1.0 - transmission ) * ( 1.0 - diffSpecularProb ) * dpdf;
+
+	return pdf;
+
+}
+
+export function bsdfColor( wo, wi, material, hit, targetColor ) {
+
+	if ( wi.z < 0 ) {
+
+		transmissionColor( wo, wi, material, hit, targetColor );
+
+	} else {
+
+		diffuseColor( wo, wi, material, hit, targetColor );
+		targetColor.multiplyScalar( 1.0 - material.transmission );
+
+		specularColor( wo, wi, material, hit, tempColor );
+		targetColor.add( tempColor );
+
+	}
+
+}
+
 export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	const lightDirection = sampleInfo.direction;
 	const color = sampleInfo.color;
-	const { ior, metalness, transmission, roughness } = material;
+	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
 
 	const ratio = frontFace ? 1 / ior : ior;
@@ -175,35 +270,15 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 			specularDirection( wo, hit, material, lightDirection );
 			pdf = specularPDF( wo, lightDirection, material, hit );
-
 			specularColor( wo, lightDirection, material, hit, color );
 
 			pdf *= specularProb;
 
 		} else {
 
-			// TODO: This is just using a basic cosine-weighted specular distribution with an
-			// incorrect PDF value at the moment. Update it to correctly use a GGX distribution
-			tempDir.copy( wo ).multiplyScalar( - 1 );
-			refract( tempDir, new Vector3( 0, 0, 1 ), ratio, lightDirection );
-			getRandomUnitDirection( tempDir );
-			tempDir.multiplyScalar( roughness );
-			lightDirection.add( tempDir );
-
-			pdf = 1.0;
-			color
-				.copy( material.color )
-				.multiplyScalar( 1.0 - metalness )
-				.multiplyScalar( Math.abs( lightDirection.z ) );
-
-			// Color is clamped to [0, 1] to make up for incorrect PDF and over sampling
-			color.r = Math.min( color.r, 1.0 );
-			color.g = Math.min( color.g, 1.0 );
-			color.b = Math.min( color.b, 1.0 );
-
-			// transmissionDirection( wo, hit, material, lightDirection );
-			// pdf = transmissionPDF( wo, lightDirection, material, hit );
-			// transmissionColor( wo, lightDirection, material, color );
+			transmissionDirection( wo, hit, material, lightDirection );
+			pdf = transmissionPDF( wo, lightDirection, material, hit );
+			transmissionColor( wo, lightDirection, material, hit, color );
 
 			pdf *= ( 1.0 - specularProb );
 
@@ -213,24 +288,22 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	} else {
 
-		const specProb = 0.5 + 0.5 * metalness;
-		if ( Math.random() < specProb ) {
+		const specularProb = 0.5 + 0.5 * metalness;
+		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
 			pdf = specularPDF( wo, lightDirection, material, hit );
-
 			specularColor( wo, lightDirection, material, hit, color );
 
-			pdf *= specProb;
+			pdf *= specularProb;
 
 		} else {
 
 			diffuseDirection( wo, hit, material, lightDirection );
 			pdf = diffusePDF( wo, lightDirection, material, hit );
+			diffuseColor( wo, lightDirection, material, hit, color );
 
-			diffuseColor( wo, lightDirection, material, color );
-
-			pdf *= ( 1.0 - specProb );
+			pdf *= ( 1.0 - specularProb );
 
 		}
 
@@ -242,45 +315,3 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 }
 
-// IN PROGRESS
-export function getMaterialColor( wo, wi, material, hit, targetColor ) {
-
-	const { metalness, roughness, color } = material;
-	getHalfVector( wo, wi, halfVector );
-
-	if ( wi.z < 0 ) {
-
-		// transmissive
-
-	} else {
-
-		// specular, diffuse
-		const cosTheta = wi.dot( halfVector );
-		const theta = Math.acos( cosTheta );
-
-		// TODO: use IOR here, instead
-		const F = schlickFresnel( wi.dot( halfVector ), SCHLICK_FRESNEL_FACTOR );
-		const D = ggxDistribution( theta, roughness );
-		const G = ggxShadowMaskG2( wi, wo, roughness );
-
-		// specular contribution
-		tempSpecularColor
-			.set( 0xffffff )
-			.multiplyScalar( F * G * D / ( 4 * wo.z * wi.z ) );
-
-		tempMetallicColor
-			.copy( tempSpecularColor )
-			.multiply( color );
-
-		// diffuse contribution
-		tempDiffuseColor
-			.copy( color )
-			.multiplyScalar( ( 1.0 - metalness ) * ( 1.0 - F ) / Math.PI );
-
-		targetColor
-			.lerpColors( tempSpecularColor, tempMetallicColor, metalness )
-			.add( tempDiffuseColor );
-
-	}
-
-}
