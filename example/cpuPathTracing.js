@@ -42,6 +42,7 @@ const normalBasis = new THREE.Matrix4();
 const invBasis = new THREE.Matrix4();
 const localDirection = new THREE.Vector3();
 const tempColor = new THREE.Color();
+const tempVector = new THREE.Vector3();
 
 const models = {};
 const params = {
@@ -137,7 +138,7 @@ function init() {
 		new THREE.PlaneBufferGeometry( 1, 1, 1, 1 ),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } ),
 	);
-	lightMesh.position.set( 3, 3, 3 );
+	lightMesh.position.set( 2, 2, 2 );
 	lightMesh.lookAt( 0, 0, 0 );
 	scene.add( lightMesh );
 
@@ -476,6 +477,8 @@ function* runPathTracingLoop() {
 	const normal = new THREE.Vector3();
 	const rayStack = new Array( bounces ).fill().map( () => new THREE.Ray() );
 	const lightForward = new THREE.Vector3( 0, 0, 1 ).transformDirection( lightMesh.matrixWorld );
+	const lightWidth = lightMesh.scale.x;
+	const lightHeight = lightMesh.scale.y;
 	const raycaster = new THREE.Raycaster();
 	raycaster.firstHitOnly = true;
 
@@ -607,6 +610,7 @@ function* runPathTracingLoop() {
 
 	}
 
+	// trace a path starting at the given ray
 	function pathTrace( ray, targetColor ) {
 
 		let currentRay = ray;
@@ -650,6 +654,57 @@ function* runPathTracingLoop() {
 					const { material } = hit;
 					const nextRay = rayStack[ i ];
 
+					// /* Direct Light Sampling */
+					// // get a random point on the surface of the light
+					// tempVector
+					// 	.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
+					// 	.applyMatrix4( lightMesh.matrixWorld );
+
+					// // get a ray to the light point
+					// nextRay.origin.copy( hit.point ).addScaledVector( nextRay.direction, EPSILON );
+					// nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
+
+					// // compute the probability of hitting the light on the hemisphere
+					// const lightAttenuation =
+					// 	Math.max( 0.0, hit.normal.dot( nextRay.direction ) ) *
+					// 	Math.max( 0.0, - lightForward.dot( nextRay.direction ) );
+
+					// // TODO: we should leave this attenuation check up to the PDF of a sample -- what about transmission?
+					// if ( lightAttenuation > 0 ) {
+
+					// 	const lightArea = lightWidth * lightHeight;
+					// 	const lightPdf =
+					// 		nextRay.origin.distanceToSquared( tempVector ) / (
+					// 			Math.max( 0.0, hit.normal.dot( nextRay.direction ) ) *
+					// 			Math.max( 0.0, - lightForward.dot( nextRay.direction ) ) *
+					// 			lightArea
+					// 		);
+
+					// 	raycaster.ray.copy( nextRay );
+					// 	const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
+					// 	if ( shadowHit && shadowHit.object === lightMesh ) {
+
+					// 		// TODO
+					// 		// - get the BSDF PDF for this direction
+					// 		// - get the BSDF color for this direction
+					// 		// - weight the PDF for this sample by the average of the two PDFs for this direction
+					// 		// - add light output
+					// 		// - continue to accumulate throughput based on surface quality to multiply here and
+					// 		// continue to check for direct lighting / skybox to weight in the other direction
+					// 		// (is that the same as MIS?)
+
+					// 		const weight = hit.normal.dot( nextRay.direction ) * - lightForward.dot( nextRay.direction );
+					// 		targetColor.r += lightMesh.material.color.r * material.color.r * weight / lightPdf;
+					// 		targetColor.g += lightMesh.material.color.g * material.color.g * weight / lightPdf;
+					// 		targetColor.b += lightMesh.material.color.b * material.color.b * weight / lightPdf;
+
+					// 	}
+
+					// }
+
+					// break;
+
+					/* BSDF Sampling */
 					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
 					// incident light vector.
 					getBasisFromNormal( hit.normal, normalBasis );
@@ -704,6 +759,7 @@ function* runPathTracingLoop() {
 
 	}
 
+	// sample the skybox in the given direction and put the sampled color into "target"
 	function sampleSkyBox( direction, target ) {
 
 		if ( skyMode === 'checkerboard' ) {
