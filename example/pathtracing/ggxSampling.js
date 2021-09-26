@@ -80,6 +80,7 @@ export function ggxShadowMaskG2( wi, wo, roughness ) {
 // See equation (1)
 export function ggxDistribution( halfVector, roughness ) {
 
+	// TODO: replace with equation (33) from https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
 	const { x, y, z } = halfVector;
 	const a2 = roughness * roughness;
 	const mult = x * x / a2 + y * y / a2 + z * z;
