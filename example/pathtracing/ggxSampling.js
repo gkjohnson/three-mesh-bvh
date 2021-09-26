@@ -9,11 +9,18 @@ const M_PI = Math.PI;
 
 // The GGX functions provide sampling and distribution information for normals as output so
 // in order to get probability of scatter direction the half vector must be computed and provided.
-// https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
-// https://hal.archives-ouvertes.fr/hal-01509746/document
-// http://jcgt.org/published/0007/04/01/
+// [0] https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
+// [1] https://hal.archives-ouvertes.fr/hal-01509746/document
+// [2] http://jcgt.org/published/0007/04/01/
+// [4] http://jcgt.org/published/0003/02/03/
+
+// TODO: rename function to ggx (not vndf)
 export function ggxvndfDirection( incidentDir, roughnessX, roughnessY, random1, random2, target ) {
 
+	// TODO: try GGXVNDF implementation from reference [2], here. Needs to update ggxDistribution
+	// function below, as well
+
+	// Implementation from reference [1]
 	// stretch view
 	const V = _V.set( roughnessX * incidentDir.x, roughnessY * incidentDir.y, incidentDir.z ).normalize();
 
@@ -47,9 +54,7 @@ export function ggxvndfDirection( incidentDir, roughnessX, roughnessY, random1, 
 
 // Below are PDF and related functions for use in a Monte Carlo path tracer
 // as specified in Appendix B of the following paper
-// http://jcgt.org/published/0007/04/01/paper.pdf
-
-// See equation (2)
+// See equation (2) from reference [2]
 function ggxLamda( theta, roughness ) {
 
 	const tanTheta = Math.tan( theta );
@@ -61,14 +66,14 @@ function ggxLamda( theta, roughness ) {
 
 }
 
-// See equation (2)
+// See equation (2) from reference [2]
 export function ggxShadowMaskG1( theta, roughness ) {
 
 	return 1.0 / ( 1.0 + ggxLamda( theta, roughness ) );
 
 }
 
-// See equation (125) in http://jcgt.org/published/0003/02/03/
+// See equation (125) from reference [4]
 export function ggxShadowMaskG2( wi, wo, roughness ) {
 
 	const incidentTheta = Math.acos( wi.z );
@@ -77,20 +82,33 @@ export function ggxShadowMaskG2( wi, wo, roughness ) {
 
 }
 
-// See equation (1)
 export function ggxDistribution( halfVector, roughness ) {
 
-	// TODO: replace with equation (33) from https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
-	const { x, y, z } = halfVector;
+	// See equation (33) from reference [0]
 	const a2 = roughness * roughness;
-	const mult = x * x / a2 + y * y / a2 + z * z;
-	const mult2 = mult * mult;
+	const cosTheta = halfVector.z;
+	const cosTheta4 = Math.pow( cosTheta, 4 );
 
-	return 1.0 / Math.PI * a2 * mult2;
+	if ( cosTheta === 0 ) return 0;
+
+	const theta = Math.acos( halfVector.z );
+	const tanTheta = Math.tan( theta );
+	const tanTheta2 = Math.pow( tanTheta, 2 );
+
+	const denom = Math.PI * cosTheta4 * Math.pow( a2 + tanTheta2, 2 );
+	return a2 / denom;
+
+	// See equation (1) from reference [2]
+	// const { x, y, z } = halfVector;
+	// const a2 = roughness * roughness;
+	// const mult = x * x / a2 + y * y / a2 + z * z;
+	// const mult2 = mult * mult;
+
+	// return 1.0 / Math.PI * a2 * mult2;
 
 }
 
-// See equation (3)
+// See equation (3) from reference [2]
 export function ggxvndfPDF( wi, halfVector, roughness ) {
 
 	const incidentTheta = Math.acos( wi.z );

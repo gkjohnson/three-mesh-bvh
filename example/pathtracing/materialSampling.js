@@ -313,11 +313,8 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	}
 
-	sampleInfo.pdf = pdf;
-
-	// TODO: how is this supposed to work?
-	// sampleInfo.pdf = bsdfPdf( wo, lightDirection, material, hit );
-	// bsdfColor( wo, lightDirection, material, hit, color );
+	sampleInfo.pdf = bsdfPdf( wo, lightDirection, material, hit );
+	bsdfColor( wo, lightDirection, material, hit, sampleInfo.color );
 
 }
 
