@@ -341,7 +341,7 @@ function init() {
 	materialFolder.add( params.material, 'roughness', 0, 1.0, 0.001 ).onChange( resetImage );
 	materialFolder.add( params.material, 'metalness', 0, 1.0, 0.001 ).onChange( resetImage );
 	materialFolder.add( params.material, 'transmission', 0, 1.0, 0.001 ).onChange( resetImage );
-	materialFolder.add( params.material, 'ior', 0.5, 2.5, 0.001 ).onChange( resetImage );
+	materialFolder.add( params.material, 'ior', 1.0, 2.5, 0.001 ).onChange( resetImage );
 	materialFolder.open();
 
 	const floorFolder = gui.addFolder( 'floor' );
