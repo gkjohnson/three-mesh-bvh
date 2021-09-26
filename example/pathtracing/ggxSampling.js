@@ -14,8 +14,7 @@ const M_PI = Math.PI;
 // [2] http://jcgt.org/published/0007/04/01/
 // [4] http://jcgt.org/published/0003/02/03/
 
-// TODO: rename function to ggx (not vndf)
-export function ggxvndfDirection( incidentDir, roughnessX, roughnessY, random1, random2, target ) {
+export function ggxDirection( incidentDir, roughnessX, roughnessY, random1, random2, target ) {
 
 	// TODO: try GGXVNDF implementation from reference [2], here. Needs to update ggxDistribution
 	// function below, as well
@@ -109,7 +108,7 @@ export function ggxDistribution( halfVector, roughness ) {
 }
 
 // See equation (3) from reference [2]
-export function ggxvndfPDF( wi, halfVector, roughness ) {
+export function ggxPDF( wi, halfVector, roughness ) {
 
 	const incidentTheta = Math.acos( wi.z );
 	const D = ggxDistribution( halfVector, roughness );

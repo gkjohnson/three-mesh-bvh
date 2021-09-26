@@ -1,5 +1,5 @@
-import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVector, schlickFresnel } from './utils.js';
-import { ggxvndfDirection, ggxvndfPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSampling.js';
+import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVector } from './utils.js';
+import { ggxDirection, ggxPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSampling.js';
 import { MathUtils, Vector3, Color } from 'three';
 
 // Technically this value should be based on the index of refraction of the given dielectric.
@@ -28,6 +28,7 @@ function diffuseDirection( wo, hit, material, lightDirection ) {
 
 function diffuseColor( wo, wi, material, hit, colorTarget ) {
 
+	// TODO: scale by 1 - F here
 	// note on division by PI
 	// https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
 	const { metalness, transmission } = material;
@@ -44,7 +45,7 @@ function specularPDF( wo, wi, material, hit ) {
 	// See equation (17) in http://jcgt.org/published/0003/02/03/
 	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
 	getHalfVector( wi, wo, halfVector );
-	return ggxvndfPDF( wi, halfVector, minRoughness ) / ( 4 * wi.dot( halfVector ) );
+	return ggxPDF( wi, halfVector, minRoughness ) / ( 4 * wi.dot( halfVector ) );
 
 }
 
@@ -52,7 +53,7 @@ function specularDirection( wo, hit, material, lightDirection ) {
 
 	// sample ggx vndf distribution which gives a new normal
 	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
-	ggxvndfDirection(
+	ggxDirection(
 		wo,
 		minRoughness,
 		minRoughness,
@@ -249,7 +250,6 @@ export function bsdfColor( wo, wi, material, hit, targetColor ) {
 export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	const lightDirection = sampleInfo.direction;
-	const color = sampleInfo.color;
 	const { ior, metalness, transmission } = material;
 	const { frontFace } = hit;
 
@@ -264,29 +264,26 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 
 	}
 
-	let pdf = 0;
 	if ( Math.random() < transmission ) {
 
 		const specularProb = MathUtils.lerp( reflectance, 1.0, metalness );
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			pdf = specularPDF( wo, lightDirection, material, hit );
-			specularColor( wo, lightDirection, material, hit, color );
-
-			pdf *= specularProb;
+			// pdf = specularPDF( wo, lightDirection, material, hit );
+			// specularColor( wo, lightDirection, material, hit, color );
+			// pdf *= specularProb;
 
 		} else {
 
 			transmissionDirection( wo, hit, material, lightDirection );
-			pdf = transmissionPDF( wo, lightDirection, material, hit );
-			transmissionColor( wo, lightDirection, material, hit, color );
-
-			pdf *= ( 1.0 - specularProb );
+			// pdf = transmissionPDF( wo, lightDirection, material, hit );
+			// transmissionColor( wo, lightDirection, material, hit, color );
+			// pdf *= ( 1.0 - specularProb );
 
 		}
 
-		pdf *= transmission;
+		// pdf *= transmission;
 
 	} else {
 
@@ -294,22 +291,20 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			pdf = specularPDF( wo, lightDirection, material, hit );
-			specularColor( wo, lightDirection, material, hit, color );
-
-			pdf *= specularProb;
+			// pdf = specularPDF( wo, lightDirection, material, hit );
+			// specularColor( wo, lightDirection, material, hit, color );
+			// pdf *= specularProb;
 
 		} else {
 
 			diffuseDirection( wo, hit, material, lightDirection );
-			pdf = diffusePDF( wo, lightDirection, material, hit );
-			diffuseColor( wo, lightDirection, material, hit, color );
-
-			pdf *= ( 1.0 - specularProb );
+			// pdf = diffusePDF( wo, lightDirection, material, hit );
+			// diffuseColor( wo, lightDirection, material, hit, color );
+			// pdf *= ( 1.0 - specularProb );
 
 		}
 
-		pdf *= ( 1.0 - transmission );
+		// pdf *= ( 1.0 - transmission );
 
 	}
 
