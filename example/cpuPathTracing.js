@@ -42,7 +42,6 @@ const normalBasis = new THREE.Matrix4();
 const invBasis = new THREE.Matrix4();
 const localDirection = new THREE.Vector3();
 const tempColor = new THREE.Color();
-const tempVector = new THREE.Vector3();
 
 const models = {};
 const params = {
@@ -173,6 +172,87 @@ function init() {
 
 		geometry.computeBoundsTree( { strategy: SAH, maxLeafTris: 1 } );
 		models[ 'Sphere' ] = { mesh: merged, materials, floorHeight: - 1 };
+
+	}
+
+	models[ 'Cornell Box' ] = null;
+	{
+
+		const planeGeom = new THREE.PlaneBufferGeometry( 1, 1, 1, 1 );
+		const leftWall = new THREE.Mesh(
+			planeGeom,
+			new THREE.MeshStandardMaterial( {
+				color: 0x00ee00,
+				side: THREE.DoubleSide,
+				// roughness: 0.5,
+			} )
+		);
+		leftWall.rotation.y = Math.PI / 2;
+		leftWall.position.x = - 2;
+		leftWall.scale.setScalar( 4 );
+		leftWall.updateMatrixWorld( true );
+
+		const rightWall = new THREE.Mesh(
+			planeGeom,
+			new THREE.MeshStandardMaterial( {
+				color: 0xee0000,
+			} ),
+		);
+		rightWall.rotation.y = Math.PI / 2;
+		rightWall.position.x = 2;
+		rightWall.scale.setScalar( 4 );
+		rightWall.updateMatrixWorld( true );
+
+		const backWall = new THREE.Mesh(
+			planeGeom,
+			new THREE.MeshStandardMaterial( {
+				color: 0xeeeeee,
+			} ),
+		);
+		backWall.position.z = - 2;
+		backWall.scale.setScalar( 4 );
+		backWall.updateMatrixWorld( true );
+
+		const ceiling = new THREE.Mesh(
+			planeGeom.clone(),
+			new THREE.MeshStandardMaterial( {
+				color: 0xeeeeee,
+			} ),
+		);
+		ceiling.rotation.x = Math.PI / 2;
+		ceiling.position.y = 2;
+		ceiling.scale.setScalar( 4 );
+		ceiling.updateMatrixWorld( true );
+
+		const light = new THREE.Mesh(
+			planeGeom.clone(),
+			new THREE.MeshStandardMaterial( {
+				color: 0x7f7f7f,
+				emissive: 0xffffff,
+				emissiveIntensity: 15.0,
+			} ),
+		);
+		light.rotation.x = Math.PI / 2;
+		light.position.y = 1.999;
+		light.scale.setScalar( 1 );
+		light.updateMatrixWorld( true );
+
+		const box = new THREE.Mesh(
+			new THREE.BoxBufferGeometry( 1, 2, 1 ),
+			new THREE.MeshStandardMaterial( {
+				side: THREE.DoubleSide,
+			} ),
+		);
+		box.position.y = - 1.0;
+		box.position.x = - 0.5;
+		box.rotation.y = Math.PI / 4;
+
+		const { geometry, materials } = mergeMeshes( [ box, leftWall, rightWall, backWall, ceiling, light ], true );
+		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+		scene.add( merged );
+
+		geometry.computeBoundsTree( { strategy: SAH, maxLeafTris: 1 } );
+		models[ 'Cornell Box' ] = { mesh: merged, materials, floorHeight: - 2 };
 
 	}
 
@@ -498,6 +578,8 @@ function* runPathTracingLoop() {
 		material.side = THREE.DoubleSide;
 
 	} );
+
+	mesh.material.side = THREE.DoubleSide;
 
 	while ( true ) {
 
