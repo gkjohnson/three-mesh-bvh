@@ -573,13 +573,13 @@ function* runPathTracingLoop() {
 	scanLineElement.style.visibility = params.pathTracing.displayScanLine ? 'visible' : 'hidden';
 
 	// ensure the materials are all set to double side for transmissive rendering
+	mesh.material.side = THREE.DoubleSide;
 	materials.forEach( material => {
 
 		material.side = THREE.DoubleSide;
 
 	} );
 
-	mesh.material.side = THREE.DoubleSide;
 
 	while ( true ) {
 
