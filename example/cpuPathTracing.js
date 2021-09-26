@@ -496,46 +496,36 @@ function* runPathTracingLoop() {
 
 	} );
 
-	let aaIndex = 0;
 	while ( true ) {
 
-		let [ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ aaIndex ];
+		const antiAliasIndex = ( samples ) % ANTIALIAS_OFFSETS.length;
+		let [ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ antiAliasIndex ];
 		randomOffsetX = ( randomOffsetX / ANTIALIAS_WIDTH ) / width;
 		randomOffsetY = ( randomOffsetY / ANTIALIAS_WIDTH ) / height;
-		aaIndex = ( aaIndex + 1 ) % ANTIALIAS_OFFSETS.length;
 
 		for ( let y = height - 1; y >= 0; y -- ) {
 
 			for ( let x = 0; x < width; x ++ ) {
 
+				// get the camera ray
 				ssPoint.set( randomOffsetX + x / ( width - 1 ), randomOffsetY + y / ( height - 1 ) );
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
-				// TODO: transform ray into local space of bvh -- multiply by inverse of mesh.matrixWorld
 
+				// run the path trace
 				radianceColor.set( 0 );
 				pathTrace( raycaster.ray, radianceColor );
 
+				// accumulate a rolling average color into the data texture
 				const index = ( y * width + x ) * 4;
-				if ( samples === 0 ) {
+				const r = data[ index + 0 ];
+				const g = data[ index + 1 ];
+				const b = data[ index + 2 ];
+				data[ index + 0 ] += ( radianceColor.r - r ) / ( samples + 1 );
+				data[ index + 1 ] += ( radianceColor.g - g ) / ( samples + 1 );
+				data[ index + 2 ] += ( radianceColor.b - b ) / ( samples + 1 );
+				data[ index + 3 ] = 1.0;
 
-					data[ index + 0 ] = radianceColor.r;
-					data[ index + 1 ] = radianceColor.g;
-					data[ index + 2 ] = radianceColor.b;
-					data[ index + 3 ] = 1.0;
-
-				} else {
-
-					// TODO: see if we can just accumulate and divide the total values out in a shader
-					// to skip these calculations
-					const r = data[ index + 0 ];
-					const g = data[ index + 1 ];
-					const b = data[ index + 2 ];
-					data[ index + 0 ] += ( radianceColor.r - r ) / ( samples + 1 );
-					data[ index + 1 ] += ( radianceColor.g - g ) / ( samples + 1 );
-					data[ index + 2 ] += ( radianceColor.b - b ) / ( samples + 1 );
-
-				}
-
+				// if we've rendered for ~16ms then wait for the next tick
 				const delta = performance.now() - lastStartTime;
 				if ( delta > 16 ) {
 
@@ -623,6 +613,7 @@ function* runPathTracingLoop() {
 		throughputColor.set( 0xffffff );
 		for ( let i = 0; i < bounces; i ++ ) {
 
+			// get the ray intersection
 			let hit;
 			raycaster.ray.copy( currentRay );
 
