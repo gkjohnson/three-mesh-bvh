@@ -33,7 +33,8 @@ function diffuseColor( wo, wi, material, hit, colorTarget ) {
 	const { metalness, transmission } = material;
 	colorTarget
 		.copy( material.color )
-		.multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI / Math.PI );
+		.multiplyScalar( ( 1.0 - metalness ) * wi.z / Math.PI / Math.PI )
+		.multiplyScalar( 1.0 - transmission );
 
 }
 
@@ -170,11 +171,12 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 function transmissionColor( wo, wi, material, hit, colorTarget ) {
 
-	const { metalness } = material;
+	const { metalness, transmission } = material;
 	colorTarget
 		.copy( material.color )
 		.multiplyScalar( 1.0 - metalness )
-		.multiplyScalar( Math.abs( wi.z ) );
+		.multiplyScalar( Math.abs( wi.z ) )
+		.multiplyScalar( transmission );
 
 	// Color is clamped to [0, 1] to make up for incorrect PDF and over sampling
 	colorTarget.r = Math.min( colorTarget.r, 1.0 );
@@ -218,9 +220,9 @@ export function bsdfPdf( wo, wi, material, hit ) {
 	const diffSpecularProb = 0.5 + 0.5 * metalness;
 	const pdf =
 		spdf * transmission * transSpecularProb
-		+ tpdf * transmission * ( 1.0 - transSpecularProb ) * tpdf
+		+ tpdf * transmission * ( 1.0 - transSpecularProb )
 		+ spdf * ( 1.0 - transmission ) * diffSpecularProb
-		+ dpdf * ( 1.0 - transmission ) * ( 1.0 - diffSpecularProb ) * dpdf;
+		+ dpdf * ( 1.0 - transmission ) * ( 1.0 - diffSpecularProb );
 
 	return pdf;
 
@@ -312,6 +314,10 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	}
 
 	sampleInfo.pdf = pdf;
+
+	// TODO: how is this supposed to work?
+	// sampleInfo.pdf = bsdfPdf( wo, lightDirection, material, hit );
+	// bsdfColor( wo, lightDirection, material, hit, color );
 
 }
 
