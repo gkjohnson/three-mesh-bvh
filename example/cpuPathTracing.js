@@ -79,7 +79,7 @@ const params = {
 	},
 	light: {
 		enable: true,
-		position: 'Default',
+		position: 'Diagonal',
 		intensity: 5.0,
 		color: '#ffffff',
 		width: 1,
@@ -433,7 +433,7 @@ function init() {
 	lightFolder.add( params.light, 'intensity', 0, 30, 0.001 ).onChange( resetImage );
 	lightFolder.add( params.light, 'width', 0, 5, 0.001 ).onChange( resetImage );
 	lightFolder.add( params.light, 'height', 0, 5, 0.001 ).onChange( resetImage );
-	lightFolder.add( params.light, 'position', [ 'Default', 'Below', 'Above' ] ).onChange( resetImage );
+	lightFolder.add( params.light, 'position', [ 'Diagonal', 'Above', 'Below' ] ).onChange( resetImage );
 
 	const envFolder = gui.addFolder( 'environment' );
 	envFolder.add( params.environment, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
