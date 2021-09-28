@@ -736,12 +736,15 @@ function* runPathTracingLoop() {
 					// only add light on one side
 					if ( currentRay.direction.dot( lightForward ) < 0 ) {
 
-						const weight = 1.0;
-						targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
-						targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
-						targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
+						// const weight = 1.0;
+						// targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
+						// targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
+						// targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
 
 					}
+
+					if ( i === 0 )
+						targetColor.set( 0xffffff )
 
 					break;
 
@@ -751,54 +754,53 @@ function* runPathTracingLoop() {
 					const { material } = hit;
 					const nextRay = rayStack[ i ];
 
-					// /* Direct Light Sampling */
-					// // get a random point on the surface of the light
-					// tempVector
-					// 	.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
-					// 	.applyMatrix4( lightMesh.matrixWorld );
+					/* Direct Light Sampling */
+					// get a random point on the surface of the light
+					tempVector
+						.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
+						.applyMatrix4( lightMesh.matrixWorld );
 
-					// // get a ray to the light point
-					// nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
-					// nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
+					// get a ray to the light point
+					nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
+					nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
 
-					// // TODO: we should leave this attenuation check up to the PDF of a sample -- what about transmission?
-					// if ( nextRay.direction.dot( lightForward ) < 0 ) {
+					// TODO: we should leave this attenuation check up to the PDF of a sample -- what about transmission?
+					if ( nextRay.direction.dot( lightForward ) < 0 ) {
 
-					// 	// compute the probability of hitting the light on the hemisphere
-					// 	const lightArea = lightWidth * lightHeight;
-					// 	const lightDistSq = nextRay.origin.distanceToSquared( tempVector );
-					// 	const lightPdf = lightDistSq / ( lightArea * - nextRay.direction.dot( lightForward ) );
+						// compute the probability of hitting the light on the hemisphere
+						const lightArea = lightWidth * lightHeight;
+						const lightDistSq = nextRay.origin.distanceToSquared( tempVector );
+						const lightPdf = lightDistSq / ( lightArea * - nextRay.direction.dot( lightForward ) );
 
-					// 	raycaster.ray.copy( nextRay );
-					// 	const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
-					// 	if ( shadowHit && shadowHit.object === lightMesh ) {
+						raycaster.ray.copy( nextRay );
+						const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
+						if ( shadowHit && shadowHit.object === lightMesh ) {
 
-					// 		// TODO
-					// 		// - get the BSDF PDF for this direction
-					// 		// - get the BSDF color for this direction
-					// 		// - weight the PDF for this sample by the average of the two PDFs for this direction
-					// 		// - add light output
-					// 		// - continue to accumulate throughput based on surface quality to multiply here and
-					// 		// continue to check for direct lighting / skybox to weight in the other direction
-					// 		// (is that the same as MIS?)
+							// TODO
+							// - get the BSDF PDF for this direction
+							// - get the BSDF color for this direction
+							// - weight the PDF for this sample by the average of the two PDFs for this direction
+							// - add light output
+							// - continue to accumulate throughput based on surface quality to multiply here and
+							// continue to check for direct lighting / skybox to weight in the other direction
+							// (is that the same as MIS?)
 
-					// 		getBasisFromNormal( hit.normal, normalBasis );
-					// 		invBasis.copy( normalBasis ).invert();
-					// 		localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
+							getBasisFromNormal( hit.normal, normalBasis );
+							invBasis.copy( normalBasis ).invert();
+							localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-					// 		tempVector.copy( nextRay.direction ).applyMatrix4( invBasis ).normalize();
-					// 		localDirection.normalize();
-					// 		bsdfColor( localDirection, tempVector, material, hit, tempColor );
+							tempVector.copy( nextRay.direction ).applyMatrix4( invBasis ).normalize();
+							localDirection.normalize();
+							bsdfColor( localDirection, tempVector, material, hit, tempColor );
 
-					// 		const weight = 1.0;
-					// 		throughputColor.set( 0xffffff );
-					// 		targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * weight / lightPdf;
-					// 		targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * weight / lightPdf;
-					// 		targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * weight / lightPdf;
+							const weight = 1.0;
+							targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * weight / lightPdf;
+							targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * weight / lightPdf;
+							targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * weight / lightPdf;
 
-					// 	}
+						}
 
-					// }
+					}
 
 					/* BSDF Sampling */
 					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
