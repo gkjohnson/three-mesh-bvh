@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { bsdfSample } from './pathtracing/materialSampling.js';
+import { bsdfSample, bsdfColor } from './pathtracing/materialSampling.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -42,6 +42,7 @@ const normalBasis = new THREE.Matrix4();
 const invBasis = new THREE.Matrix4();
 const localDirection = new THREE.Vector3();
 const tempColor = new THREE.Color();
+const tempVector = new THREE.Vector3();
 
 const models = {};
 const params = {
@@ -73,9 +74,12 @@ const params = {
 		color: '#7f7f7f',
 		roughness: 0.5,
 		metalness: 0.5,
+		width: 10,
+		height: 10,
 	},
 	light: {
 		enable: true,
+		position: 'Default',
 		intensity: 5.0,
 		color: '#ffffff',
 		width: 1,
@@ -142,7 +146,7 @@ function init() {
 	scene.add( lightMesh );
 
 	floorMesh = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry( 10, 10, 1, 1 ),
+		new THREE.PlaneBufferGeometry( 1, 1, 1, 1 ),
 		new THREE.MeshStandardMaterial( { side: THREE.DoubleSide } ),
 	);
 	floorMesh.rotation.x = - Math.PI / 2;
@@ -224,19 +228,6 @@ function init() {
 		ceiling.scale.setScalar( 4 );
 		ceiling.updateMatrixWorld( true );
 
-		const light = new THREE.Mesh(
-			planeGeom.clone(),
-			new THREE.MeshStandardMaterial( {
-				color: 0x7f7f7f,
-				emissive: 0xffffff,
-				emissiveIntensity: 15.0,
-			} ),
-		);
-		light.rotation.x = Math.PI / 2;
-		light.position.y = 1.999;
-		light.scale.setScalar( 1 );
-		light.updateMatrixWorld( true );
-
 		const box = new THREE.Mesh(
 			new THREE.BoxBufferGeometry( 1, 2, 1 ),
 			new THREE.MeshStandardMaterial( {
@@ -247,7 +238,7 @@ function init() {
 		box.position.x = - 0.5;
 		box.rotation.y = Math.PI / 4;
 
-		const { geometry, materials } = mergeMeshes( [ box, leftWall, rightWall, backWall, ceiling, light ], true );
+		const { geometry, materials } = mergeMeshes( [ box, leftWall, rightWall, backWall, ceiling ], true );
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		scene.add( merged );
 
@@ -332,7 +323,11 @@ function init() {
 			.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
 			.then( bvh => {
 
-				models[ 'Engine' ] = { mesh, materials: [ new THREE.MeshStandardMaterial() ], floorHeight: newGeometry.boundingBox.min.y };
+				models[ 'Engine' ] = {
+					mesh,
+					materials: [ new THREE.MeshStandardMaterial() ],
+					floorHeight: newGeometry.boundingBox.min.y,
+				};
 				newGeometry.boundsTree = bvh;
 				generator.terminate();
 
@@ -425,16 +420,20 @@ function init() {
 	materialFolder.open();
 
 	const floorFolder = gui.addFolder( 'floor' );
+	floorFolder.add( params.floor, 'enable' ).onChange( resetImage );
 	floorFolder.addColor( params.floor, 'color' ).onChange( resetImage );
 	floorFolder.add( params.floor, 'roughness', 0, 1, 0.001 ).onChange( resetImage );
 	floorFolder.add( params.floor, 'metalness', 0, 1, 0.001 ).onChange( resetImage );
+	floorFolder.add( params.floor, 'width', 3, 15, 0.001 ).onChange( resetImage );
+	floorFolder.add( params.floor, 'height', 3, 15, 0.001 ).onChange( resetImage );
 
 	const lightFolder = gui.addFolder( 'light' );
 	lightFolder.add( params.light, 'enable' ).onChange( resetImage );
 	lightFolder.addColor( params.light, 'color' ).onChange( resetImage );
-	lightFolder.add( params.light, 'intensity', 0, 20, 0.0001 ).onChange( resetImage );
-	lightFolder.add( params.light, 'width', 0, 5, 0.0001 ).onChange( resetImage );
-	lightFolder.add( params.light, 'height', 0, 5, 0.0001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'intensity', 0, 30, 0.001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'width', 0, 5, 0.001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'height', 0, 5, 0.001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'position', [ 'Default', 'Below', 'Above' ] ).onChange( resetImage );
 
 	const envFolder = gui.addFolder( 'environment' );
 	envFolder.add( params.environment, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
@@ -537,10 +536,13 @@ function resetImage() {
 
 	lightMesh.scale.set( params.light.width, params.light.height, 1 );
 	lightMesh.material.color.set( params.light.color ).multiplyScalar( params.light.intensity );
+	lightMesh.visible = params.light.enable;
 
+	floorMesh.scale.set( params.floor.width, params.floor.height, 1 );
 	floorMesh.material.color.set( params.floor.color );
 	floorMesh.material.roughness = Math.pow( params.floor.roughness, 2.0 );
 	floorMesh.material.metalness = params.floor.metalness, 2.0;
+	floorMesh.visible = params.floor.enable;
 
 }
 
@@ -560,6 +562,7 @@ function* runPathTracingLoop() {
 	const lightWidth = lightMesh.scale.x;
 	const lightHeight = lightMesh.scale.y;
 	const raycaster = new THREE.Raycaster();
+	const seedRay = new THREE.Ray();
 	raycaster.firstHitOnly = true;
 
 	const sampleInfo = {
@@ -583,10 +586,16 @@ function* runPathTracingLoop() {
 
 	while ( true ) {
 
-		const antiAliasIndex = ( samples ) % ANTIALIAS_OFFSETS.length;
-		let [ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ antiAliasIndex ];
-		randomOffsetX = ( randomOffsetX / ANTIALIAS_WIDTH ) / width;
-		randomOffsetY = ( randomOffsetY / ANTIALIAS_WIDTH ) / height;
+		let randomOffsetX = 0;
+		let randomOffsetY = 0;
+		if ( params.pathTracing.antialiasing ) {
+
+			const antiAliasIndex = ( samples ) % ANTIALIAS_OFFSETS.length;
+			[ randomOffsetX, randomOffsetY ] = ANTIALIAS_OFFSETS[ antiAliasIndex ];
+			randomOffsetX = ( randomOffsetX / ANTIALIAS_WIDTH ) / width;
+			randomOffsetY = ( randomOffsetY / ANTIALIAS_WIDTH ) / height;
+
+		}
 
 		for ( let y = height - 1; y >= 0; y -- ) {
 
@@ -595,10 +604,11 @@ function* runPathTracingLoop() {
 				// get the camera ray
 				ssPoint.set( randomOffsetX + x / ( width - 1 ), randomOffsetY + y / ( height - 1 ) );
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
+				seedRay.copy( raycaster.ray );
 
 				// run the path trace
 				radianceColor.set( 0 );
-				pathTrace( raycaster.ray, radianceColor );
+				pathTrace( seedRay, radianceColor );
 
 				// accumulate a rolling average color into the data texture
 				const index = ( y * width + x ) * 4;
@@ -736,59 +746,58 @@ function* runPathTracingLoop() {
 					const { material } = hit;
 					const nextRay = rayStack[ i ];
 
-					// /* Direct Light Sampling */
-					// // get a random point on the surface of the light
-					// tempVector
-					// 	.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
-					// 	.applyMatrix4( lightMesh.matrixWorld );
+					/* Direct Light Sampling */
+					// get a random point on the surface of the light
+					tempVector
+						.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
+						.applyMatrix4( lightMesh.matrixWorld );
 
-					// // get a ray to the light point
-					// nextRay.origin.copy( hit.point ).addScaledVector( nextRay.direction, EPSILON );
-					// nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
+					// get a ray to the light point
+					nextRay.origin.copy( hit.point ).addScaledVector( nextRay.direction, EPSILON );
+					nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
 
-					// // compute the probability of hitting the light on the hemisphere
-					// const lightAttenuation =
-					// 	Math.max( 0.0, hit.normal.dot( nextRay.direction ) ) *
-					// 	Math.max( 0.0, - lightForward.dot( nextRay.direction ) );
+					// TODO: we should leave this attenuation check up to the PDF of a sample -- what about transmission?
+					if ( nextRay.direction.dot( lightForward ) < 0 ) {
 
-					// // TODO: we should leave this attenuation check up to the PDF of a sample -- what about transmission?
-					// if ( lightAttenuation > 0 ) {
+						// compute the probability of hitting the light on the hemisphere
+						const lightArea = lightWidth * lightHeight;
+						const lightDistSq = nextRay.origin.distanceToSquared( tempVector );
+						const lightPdf = lightDistSq / ( lightArea * - nextRay.direction.dot( lightForward ) );
 
-					// 	const lightArea = lightWidth * lightHeight;
-					// 	const lightPdf =
-					// 		nextRay.origin.distanceToSquared( tempVector ) / (
-					// 			Math.max( 0.0, hit.normal.dot( nextRay.direction ) ) *
-					// 			Math.max( 0.0, - lightForward.dot( nextRay.direction ) ) *
-					// 			lightArea
-					// 		);
+						raycaster.ray.copy( nextRay );
+						const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
+						if ( shadowHit && shadowHit.object === lightMesh ) {
 
-					// 	raycaster.ray.copy( nextRay );
-					// 	const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
-					// 	if ( shadowHit && shadowHit.object === lightMesh ) {
+							// TODO
+							// - get the BSDF PDF for this direction
+							// - get the BSDF color for this direction
+							// - weight the PDF for this sample by the average of the two PDFs for this direction
+							// - add light output
+							// - continue to accumulate throughput based on surface quality to multiply here and
+							// continue to check for direct lighting / skybox to weight in the other direction
+							// (is that the same as MIS?)
 
-					// 		// TODO
-					// 		// - get the BSDF PDF for this direction
-					// 		// - get the BSDF color for this direction
-					// 		// - weight the PDF for this sample by the average of the two PDFs for this direction
-					// 		// - add light output
-					// 		// - continue to accumulate throughput based on surface quality to multiply here and
-					// 		// continue to check for direct lighting / skybox to weight in the other direction
-					// 		// (is that the same as MIS?)
+							getBasisFromNormal( hit.normal, normalBasis );
+							invBasis.copy( normalBasis ).invert();
+							localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
-					// 		const weight = hit.normal.dot( nextRay.direction ) * - lightForward.dot( nextRay.direction );
-					// 		targetColor.r += lightMesh.material.color.r * material.color.r * weight / lightPdf;
-					// 		targetColor.g += lightMesh.material.color.g * material.color.g * weight / lightPdf;
-					// 		targetColor.b += lightMesh.material.color.b * material.color.b * weight / lightPdf;
+							tempVector.copy( nextRay.direction ).applyMatrix4( invBasis ).normalize();
+							localDirection.normalize();
+							bsdfColor( localDirection, tempVector, material, hit, tempColor );
 
-					// 	}
+							const weight = 1.0;
+							targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * weight / lightPdf;
+							targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * weight / lightPdf;
+							targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * weight / lightPdf;
 
-					// }
+						}
 
-					// break;
+					}
 
 					/* BSDF Sampling */
 					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
 					// incident light vector.
+					raycaster.ray.copy( currentRay );
 					getBasisFromNormal( hit.normal, normalBasis );
 					invBasis.copy( normalBasis ).invert();
 					localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
@@ -832,7 +841,7 @@ function* runPathTracingLoop() {
 
 				sampleSkyBox( currentRay.direction, tempColor );
 				tempColor.multiply( throughputColor );
-				targetColor.add( tempColor );
+				// targetColor.add( tempColor );
 				break;
 
 			}
@@ -927,7 +936,7 @@ function render() {
 		model.mesh.visible = true;
 		mesh = model.mesh;
 		materials = model.materials;
-		floorMesh.position.y = model.floorHeight || 0;
+		floorMesh.position.y = model.floorHeight;
 
 		// initialize ior and transmission not present on materials already
 		materials.forEach( m => {
@@ -948,6 +957,25 @@ function render() {
 		// use a "perceptualRoughness" concept when interpreting user input
 		// https://google.github.io/filament/Filament.html#materialsystem/standardmodelsummary
 		material.roughness = Math.pow( parseFloat( params.material.roughness ), 2.0 );
+
+		switch ( params.light.position ) {
+
+			case 'Below':
+				lightMesh.rotation.set( - Math.PI / 2, 0, 0 );
+				lightMesh.position.set( 0, model.floorHeight + 1e-3, 0 );
+				break;
+
+			case 'Above':
+				lightMesh.rotation.set( Math.PI / 2, 0, 0 );
+				lightMesh.position.set( 0, - model.floorHeight - 1e-3, 0 );
+				break;
+
+			default:
+				lightMesh.position.set( 2, 2, 2 );
+				lightMesh.lookAt( 0, 0, 0 );
+				break;
+
+		}
 
 	} else {
 
