@@ -108,6 +108,7 @@ function init() {
 	containerElement.style.position = 'absolute';
 	containerElement.style.inset = '0';
 	containerElement.style.margin = 'auto';
+	containerElement.style.zIndex = '-1';
 	document.body.appendChild( containerElement );
 	containerElement.appendChild( renderer.domElement );
 
@@ -774,7 +775,6 @@ function* runPathTracingLoop() {
 					nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
 					nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
 
-					// TODO: we should leave this attenuation check up to the PDF of a sample -- what about transmission?
 					if ( nextRay.direction.dot( lightForward ) < 0 ) {
 
 						// compute the probability of hitting the light on the hemisphere
