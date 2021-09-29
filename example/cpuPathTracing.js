@@ -188,7 +188,6 @@ function init() {
 			new THREE.MeshStandardMaterial( {
 				color: 0x00ee00,
 				side: THREE.DoubleSide,
-				// roughness: 0.5,
 			} )
 		);
 		leftWall.rotation.y = Math.PI / 2;
@@ -706,11 +705,12 @@ function* runPathTracingLoop() {
 	function pathTrace( ray, targetColor ) {
 
 		let currentRay = ray;
+		let lastPdf = 0;
 		throughputColor.set( 0xffffff );
 		for ( let i = 0; i < bounces; i ++ ) {
 
 			// get the ray intersection
-			let hit;
+			let hit = null;
 			raycaster.ray.copy( currentRay );
 
 			const objects = [ mesh ];
@@ -747,10 +747,10 @@ function* runPathTracingLoop() {
 						// TODO: we need the material sample PDF here so we should probably get and look at the hit on
 						// the previous iteration rather than this next one
 
-						// const weight = 0.5;
-						// targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
-						// targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
-						// targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
+						const weight = lastPdf / ( lastPdf + lightPdf );
+						targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
+						targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
+						targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
 
 					}
 
@@ -844,16 +844,16 @@ function* runPathTracingLoop() {
 					sampleInfo.color.multiplyScalar( 1 / sampleInfo.pdf );
 					throughputColor.multiply( sampleInfo.color );
 					currentRay = nextRay;
+					lastPdf = sampleInfo.pdf;
 
 				}
 
 			} else {
 
+				// TODO: is this contribution supposed to be weighted with multiple importance sampling, as well?
 				sampleSkyBox( currentRay.direction, tempColor );
 				tempColor.multiply( throughputColor );
-				// targetColor.add( tempColor );
-
-				// TODO: we need to weight his PDF with the light PDF here
+				targetColor.add( tempColor );
 
 				break;
 
