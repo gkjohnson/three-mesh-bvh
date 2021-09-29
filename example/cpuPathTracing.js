@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { bsdfSample, bsdfColor } from './pathtracing/materialSampling.js';
+import { bsdfSample, bsdfColor, bsdfPdf } from './pathtracing/materialSampling.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -741,7 +741,13 @@ function* runPathTracingLoop() {
 					} else if ( currentRay.direction.dot( lightForward ) < 0 ) {
 
 						// only add light on one side
-						// const weight = 1.0;
+						const lightDistSq = hit.distance * hit.distance;
+						const lightArea = lightWidth * lightHeight;
+						const lightPdf = lightDistSq / ( lightArea * - currentRay.direction.dot( lightForward ) );
+						// TODO: we need the material sample PDF here so we should probably get and look at the hit on
+						// the previous iteration rather than this next one
+
+						// const weight = 0.5;
 						// targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
 						// targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
 						// targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
@@ -755,6 +761,10 @@ function* runPathTracingLoop() {
 					expandHitInformation( hit, currentRay );
 					const { material } = hit;
 					const nextRay = rayStack[ i ];
+
+					// get the local normal frame
+					getBasisFromNormal( hit.normal, normalBasis );
+					invBasis.copy( normalBasis ).invert();
 
 					/* Direct Light Sampling */
 					// get a random point on the surface of the light
@@ -778,27 +788,19 @@ function* runPathTracingLoop() {
 						const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
 						if ( shadowHit && shadowHit.object === lightMesh ) {
 
-							// TODO
-							// - get the BSDF PDF for this direction
-							// - get the BSDF color for this direction
-							// - weight the PDF for this sample by the average of the two PDFs for this direction
-							// - add light output
-							// - continue to accumulate throughput based on surface quality to multiply here and
-							// continue to check for direct lighting / skybox to weight in the other direction
-							// (is that the same as MIS?)
-
-							getBasisFromNormal( hit.normal, normalBasis );
-							invBasis.copy( normalBasis ).invert();
+							// get the incoming and outgoing directions in the normal frame
 							localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
-
 							tempVector.copy( nextRay.direction ).applyMatrix4( invBasis ).normalize();
 							localDirection.normalize();
-							bsdfColor( localDirection, tempVector, material, hit, tempColor );
 
-							const weight = 1.0;
-							targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * weight / lightPdf;
-							targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * weight / lightPdf;
-							targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * weight / lightPdf;
+							// get the material color and pdf
+							bsdfColor( localDirection, tempVector, material, hit, tempColor );
+							const materialPdf = bsdfPdf( localDirection, tempVector, material, hit );
+							// const misWeight = lightPdf / ( materialPdf + lightPdf );
+							const misWeight = 1.0;
+							targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * misWeight / lightPdf;
+							targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * misWeight / lightPdf;
+							targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * misWeight / lightPdf;
 
 						}
 
@@ -808,8 +810,6 @@ function* runPathTracingLoop() {
 					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
 					// incident light vector.
 					raycaster.ray.copy( currentRay );
-					getBasisFromNormal( hit.normal, normalBasis );
-					invBasis.copy( normalBasis ).invert();
 					localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
 
 					// sample the surface to get the pdf, reflected color, and direction
@@ -852,6 +852,9 @@ function* runPathTracingLoop() {
 				sampleSkyBox( currentRay.direction, tempColor );
 				tempColor.multiply( throughputColor );
 				// targetColor.add( tempColor );
+
+				// TODO: we need to weight his PDF with the light PDF here
+
 				break;
 
 			}
