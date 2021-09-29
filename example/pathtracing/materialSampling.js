@@ -113,7 +113,7 @@ function transmissionPDF( wo, wi, material, hit ) {
 	halfVector.set( 0, 0, 0 ).addScaledVector( wi, ratio ).addScaledVector( wo, 1.0 ).normalize().multiplyScalar( - 1 );
 
 	const denom = Math.pow( ratio * halfVector.dot( wi ) + 1.0 * halfVector.dot( wo ), 2.0 );
-	return ggxvndfPDF( wo, halfVector, minRoughness ) / denom;
+	return ggxPDF( wo, halfVector, minRoughness ) / denom;
 
 }
 
@@ -125,7 +125,7 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
 
 	// sample ggx vndf distribution which gives a new normal
-	ggxvndfDirection(
+	ggxDirection(
 		wo,
 		minRoughness,
 		minRoughness,
@@ -140,10 +140,13 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 }
 
-function transmissionColor( wo, wi, material, colorTarget ) {
+function transmissionColor( wo, wi, material, hit, colorTarget ) {
 
-	const { metalness } = material;
-	colorTarget.copy( material.color ).multiplyScalar( ( 1.0 - metalness ) * wo.z / Math.PI );
+	const { metalness, transmission } = material;
+	colorTarget
+		.copy( material.color )
+		.multiplyScalar( ( 1.0 - metalness ) * wo.z )
+		.multiplyScalar( transmission );
 
 }
 */
