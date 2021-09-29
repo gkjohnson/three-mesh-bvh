@@ -539,8 +539,8 @@ function resetImage() {
 
 	floorMesh.scale.set( params.floor.width, params.floor.height, 1 );
 	floorMesh.material.color.set( params.floor.color );
-	floorMesh.material.roughness = Math.pow( params.floor.roughness, 2.0 );
-	floorMesh.material.metalness = params.floor.metalness, 2.0;
+	floorMesh.material.roughness = Math.pow( params.floor.roughness, 2.0 ); // perceptual roughness
+	floorMesh.material.metalness = params.floor.metalness;
 	floorMesh.visible = params.floor.enable;
 
 }
@@ -977,7 +977,7 @@ function render() {
 
 			case 'Above':
 				lightMesh.rotation.set( Math.PI / 2, 0, 0 );
-				lightMesh.position.set( 0, - model.floorHeight - 1e-3, 0 );
+				lightMesh.position.set( 0, 2 - 1e-3, 0 );
 				break;
 
 			default:
