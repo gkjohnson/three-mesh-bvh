@@ -17,7 +17,7 @@ import {
 import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
-import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, getBasisFromNormal } from './pathtracing/utils.js';
+import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, getBasisFromNormal, isDirectionValid } from './pathtracing/utils.js';
 import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -80,7 +80,7 @@ const params = {
 	light: {
 		enable: true,
 		position: 'Diagonal',
-		intensity: 5.0,
+		intensity: 15.0,
 		color: '#ffffff',
 		width: 1,
 		height: 1,
@@ -167,7 +167,7 @@ function init() {
 	{
 
 		const sphereMesh = new THREE.Mesh(
-			new THREE.SphereBufferGeometry(),
+			new THREE.SphereBufferGeometry( 1, 100, 50 ),
 			new THREE.MeshStandardMaterial(),
 		);
 
@@ -604,7 +604,16 @@ function* runPathTracingLoop() {
 				// get the camera ray
 				ssPoint.set( randomOffsetX + x / ( width - 1 ), randomOffsetY + y / ( height - 1 ) );
 				raycaster.setFromCamera( { x: ssPoint.x * 2 - 1, y: ssPoint.y * 2 - 1 }, camera );
-				seedRay.copy( raycaster.ray );
+
+				// get the camera look direction
+				tempVector.set( 0, 0, - 1 ).transformDirection( camera.matrixWorld );
+
+				// copy the ray to the starting ray to pass into the pathTrace function and adjust it
+				// so ti starts at the camera near clip plane
+				seedRay.direction.copy( raycaster.ray.direction );
+				seedRay.origin
+					.copy( raycaster.ray.origin )
+					.addScaledVector( raycaster.ray.direction, camera.near / raycaster.ray.direction.dot( tempVector ) );
 
 				// run the path trace
 				radianceColor.set( 0 );
@@ -737,7 +746,10 @@ function* runPathTracingLoop() {
 					// only add light on one side
 					if ( i === 0 ) {
 
-						targetColor.copy( lightMesh.material.color );
+						const lightColor = lightMesh.material.color;
+						targetColor.r = Math.min( lightColor.r, 1.0 );
+						targetColor.g = Math.min( lightColor.g, 1.0 );
+						targetColor.b = Math.min( lightColor.b, 1.0 );
 
 					} else if ( currentRay.direction.dot( lightForward ) < 0 ) {
 
@@ -775,7 +787,10 @@ function* runPathTracingLoop() {
 					nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
 					nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
 
-					if ( nextRay.direction.dot( lightForward ) < 0 ) {
+					if (
+						nextRay.direction.dot( lightForward ) < 0
+						&& isDirectionValid( nextRay.direction, hit.normal, hit.geometryNormal )
+					) {
 
 						// compute the probability of hitting the light on the hemisphere
 						const lightArea = lightWidth * lightHeight;
@@ -832,7 +847,10 @@ function* runPathTracingLoop() {
 
 					// If our PDF indicates there's a less than 0 probability of sampling this direction then
 					// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
-					if ( sampleInfo.pdf <= 0 ) {
+					if (
+						sampleInfo.pdf <= 0
+						|| ! isDirectionValid( nextRay.direction, hit.normal, hit.geometryNormal )
+					) {
 
 						break;
 

@@ -75,6 +75,7 @@ export function getHalfVector( a, b, target ) {
 
 }
 
+// from three.js
 export function getRandomUnitDirection( target ) {
 
 	const u = ( Math.random() - 0.5 ) * 2;
@@ -86,5 +87,17 @@ export function getRandomUnitDirection( target ) {
 	target.z = u;
 
 	return target;
+
+}
+
+// The discrepancy between interpolated surface normal and geometry normal can cause issues when a ray
+// is cast that is on the top side of the geometry normal plane but below the surface normal plane. If
+// we find a ray like that we ignore it to avoid artifacts.
+// This function returns if the direction is on the same side of both planes.
+export function isDirectionValid( direction, surfaceNormal, geometryNormal ) {
+
+	const aboveSurfaceNormal = direction.dot( surfaceNormal ) > 0;
+	const aboveGeometryNormal = direction.dot( geometryNormal ) > 0;
+	return aboveSurfaceNormal === aboveGeometryNormal;
 
 }
