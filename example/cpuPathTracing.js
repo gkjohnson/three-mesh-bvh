@@ -744,8 +744,6 @@ function* runPathTracingLoop() {
 						const lightDistSq = hit.distance * hit.distance;
 						const lightArea = lightWidth * lightHeight;
 						const lightPdf = lightDistSq / ( lightArea * - currentRay.direction.dot( lightForward ) );
-						// TODO: we need the material sample PDF here so we should probably get and look at the hit on
-						// the previous iteration rather than this next one
 
 						const weight = lastPdf / ( lastPdf + lightPdf );
 						targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
@@ -796,8 +794,7 @@ function* runPathTracingLoop() {
 							// get the material color and pdf
 							bsdfColor( localDirection, tempVector, material, hit, tempColor );
 							const materialPdf = bsdfPdf( localDirection, tempVector, material, hit );
-							// const misWeight = lightPdf / ( materialPdf + lightPdf );
-							const misWeight = 1.0;
+							const misWeight = lightPdf / ( materialPdf + lightPdf );
 							targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * misWeight / lightPdf;
 							targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * misWeight / lightPdf;
 							targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * misWeight / lightPdf;
