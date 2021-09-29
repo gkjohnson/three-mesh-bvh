@@ -734,17 +734,19 @@ function* runPathTracingLoop() {
 				if ( hit.object === lightMesh ) {
 
 					// only add light on one side
-					if ( currentRay.direction.dot( lightForward ) < 0 ) {
+					if ( i === 0 ) {
 
+						targetColor.copy( lightMesh.material.color );
+
+					} else if ( currentRay.direction.dot( lightForward ) < 0 ) {
+
+						// only add light on one side
 						// const weight = 1.0;
 						// targetColor.r += weight * throughputColor.r * lightMesh.material.color.r;
 						// targetColor.g += weight * throughputColor.g * lightMesh.material.color.g;
 						// targetColor.b += weight * throughputColor.b * lightMesh.material.color.b;
 
 					}
-
-					if ( i === 0 )
-						targetColor.set( 0xffffff )
 
 					break;
 
