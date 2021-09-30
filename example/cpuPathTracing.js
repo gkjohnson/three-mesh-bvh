@@ -57,6 +57,7 @@ const params = {
 		displayScanLine: false,
 		antialiasing: true,
 		bounces: 5,
+		filterGlossyFactor: 0.5,
 		smoothNormals: true,
 		directLightSampling: true,
 	},
@@ -407,6 +408,7 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'smoothNormals' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 30, 1 ).onChange( resetImage );
+	pathTracingFolder.add( params.pathTracing, 'filterGlossyFactor', 0, 1, 0.001 ).onChange( resetImage );
 	pathTracingFolder.open();
 
 	const materialFolder = gui.addFolder( 'model' );
@@ -556,6 +558,7 @@ function* runPathTracingLoop() {
 	const smoothNormals = params.pathTracing.smoothNormals;
 	const radianceColor = new THREE.Color();
 	const throughputColor = new THREE.Color();
+	const halfVector = new THREE.Vector3();
 	const normal = new THREE.Vector3();
 	const rayStack = new Array( bounces ).fill().map( () => new THREE.Ray() );
 	const lightForward = new THREE.Vector3( 0, 0, 1 ).transformDirection( lightMesh.matrixWorld );
@@ -649,7 +652,7 @@ function* runPathTracingLoop() {
 
 	}
 
-	function expandHitInformation( hit, ray ) {
+	function expandHitInformation( hit, ray, accumulatedRoughness ) {
 
 		const object = hit.object;
 		const posAttr = object.geometry.attributes.position;
@@ -675,7 +678,8 @@ function* runPathTracingLoop() {
 				.setScalar( 0 )
 				.addScaledVector( normal0, barycoord.x )
 				.addScaledVector( normal1, barycoord.y )
-				.addScaledVector( normal2, barycoord.z );
+				.addScaledVector( normal2, barycoord.z )
+				.normalize();
 
 		} else {
 
@@ -707,7 +711,18 @@ function* runPathTracingLoop() {
 		hit.geometryNormal = geometryNormal;
 		hit.frontFace = hitFrontFace;
 
-		normal.normalize();
+		// compute the filtered roughness value to use during specular reflection computations. A minimum
+		// value of 1e-6 is needed because the GGX functions do not work with a roughness value of 0 and
+		// the accumulated roughness value is scaled by a user setting and a "magic value" of 5.0.
+		hit.filteredSurfaceRoughness = Math.min(
+			Math.max(
+				1e-6,
+				material.roughness,
+				accumulatedRoughness * params.pathTracing.filterGlossyFactor * 5.0,
+			),
+			1.0,
+		);
+
 
 	}
 
@@ -716,6 +731,7 @@ function* runPathTracingLoop() {
 
 		let currentRay = ray;
 		let lastPdf = 0;
+		let accumulatedRoughness = 0;
 		throughputColor.set( 0xffffff );
 		for ( let i = 0; i < bounces; i ++ ) {
 
@@ -769,7 +785,7 @@ function* runPathTracingLoop() {
 
 				} else {
 
-					expandHitInformation( hit, currentRay );
+					expandHitInformation( hit, currentRay, accumulatedRoughness );
 					const { material } = hit;
 					const nextRay = rayStack[ i ];
 
@@ -830,6 +846,11 @@ function* runPathTracingLoop() {
 
 					// sample the surface to get the pdf, reflected color, and direction
 					bsdfSample( localDirection, hit, material, sampleInfo );
+
+					// accumulate a roughness based on the sin of the half vector with the surface normal which
+					// can be used with subsequent ray bounces to avoid fireflies similar to Blender functionality
+					halfVector.addVectors( localDirection, sampleInfo.direction ).normalize();
+					accumulatedRoughness += Math.sin( Math.acos( halfVector.z ) );
 
 					// transform ray back to world frame and offset from surface
 					nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();

@@ -3,7 +3,6 @@ import { ggxDirection, ggxPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSam
 import { MathUtils, Vector3, Color } from 'three';
 
 // Technically this value should be based on the index of refraction of the given dielectric.
-const MIN_ROUGHNESS = 1e-6;
 const tempDir = new Vector3();
 const halfVector = new Vector3();
 const tempColor = new Color();
@@ -43,20 +42,20 @@ function diffuseColor( wo, wi, material, hit, colorTarget ) {
 function specularPDF( wo, wi, material, hit ) {
 
 	// See equation (17) in http://jcgt.org/published/0003/02/03/
-	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
+	const filteredRoughness = hit.filteredSurfaceRoughness;
 	getHalfVector( wi, wo, halfVector );
-	return ggxPDF( wi, halfVector, minRoughness ) / ( 4 * wi.dot( halfVector ) );
+	return ggxPDF( wi, halfVector, filteredRoughness ) / ( 4 * wi.dot( halfVector ) );
 
 }
 
 function specularDirection( wo, hit, material, lightDirection ) {
 
 	// sample ggx vndf distribution which gives a new normal
-	const minRoughness = Math.max( material.roughness, MIN_ROUGHNESS );
+	const filteredRoughness = hit.filteredSurfaceRoughness;
 	ggxDirection(
 		wo,
-		minRoughness,
-		minRoughness,
+		filteredRoughness,
+		filteredRoughness,
 		Math.random(),
 		Math.random(),
 		halfVector,
@@ -70,15 +69,14 @@ function specularDirection( wo, hit, material, lightDirection ) {
 function specularColor( wo, wi, material, hit, colorTarget ) {
 
 	// if roughness is set to 0 then D === NaN which results in black pixels
-	const { metalness, roughness, ior } = material;
+	const { metalness, ior } = material;
 	const { frontFace } = hit;
-	const minRoughness = Math.max( roughness, MIN_ROUGHNESS );
+	const filteredRoughness = hit.filteredSurfaceRoughness;
 
 	getHalfVector( wo, wi, halfVector );
 	const iorRatio = frontFace ? 1 / ior : ior;
-	const G = ggxShadowMaskG2( wi, wo, minRoughness );
-	const D = ggxDistribution( halfVector, minRoughness );
-	// TODO: sometimes the incoming vector is negative (surface vs geom normal issue)
+	const G = ggxShadowMaskG2( wi, wo, filteredRoughness );
+	const D = ggxDistribution( halfVector, filteredRoughness );
 
 	let F = schlickFresnelReflectance( wi.dot( halfVector ), iorRatio );
 	const cosTheta = Math.min( wo.z, 1.0 );
@@ -95,7 +93,6 @@ function specularColor( wo, wi, material, hit, colorTarget ) {
 		.multiplyScalar( G * D / ( 4 * Math.abs( wi.z * wo.z ) ) )
 		.multiplyScalar( MathUtils.lerp( F, 1.0, metalness ) )
 		.multiplyScalar( wi.z ); // scale the light by the direction the light is coming in from
-
 
 }
 
