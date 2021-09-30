@@ -778,41 +778,45 @@ function* runPathTracingLoop() {
 					invBasis.copy( normalBasis ).invert();
 
 					/* Direct Light Sampling */
-					// get a random point on the surface of the light
-					tempVector
-						.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
-						.applyMatrix4( lightMesh.matrixWorld );
+					if ( params.light.enable ) {
 
-					// get a ray to the light point
-					nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
-					nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
+						// get a random point on the surface of the light
+						tempVector
+							.set( Math.random() - 0.5, Math.random() - 0.5, 0 )
+							.applyMatrix4( lightMesh.matrixWorld );
 
-					if (
-						nextRay.direction.dot( lightForward ) < 0
-						&& isDirectionValid( nextRay.direction, hit.normal, hit.geometryNormal )
-					) {
+						// get a ray to the light point
+						nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
+						nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
 
-						// compute the probability of hitting the light on the hemisphere
-						const lightArea = lightWidth * lightHeight;
-						const lightDistSq = nextRay.origin.distanceToSquared( tempVector );
-						const lightPdf = lightDistSq / ( lightArea * - nextRay.direction.dot( lightForward ) );
+						if (
+							nextRay.direction.dot( lightForward ) < 0
+							&& isDirectionValid( nextRay.direction, hit.normal, hit.geometryNormal )
+						) {
 
-						raycaster.ray.copy( nextRay );
-						const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
-						if ( shadowHit && shadowHit.object === lightMesh ) {
+							// compute the probability of hitting the light on the hemisphere
+							const lightArea = lightWidth * lightHeight;
+							const lightDistSq = nextRay.origin.distanceToSquared( tempVector );
+							const lightPdf = lightDistSq / ( lightArea * - nextRay.direction.dot( lightForward ) );
 
-							// get the incoming and outgoing directions in the normal frame
-							localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
-							tempVector.copy( nextRay.direction ).applyMatrix4( invBasis ).normalize();
-							localDirection.normalize();
+							raycaster.ray.copy( nextRay );
+							const shadowHit = raycaster.intersectObjects( objects, true )[ 0 ];
+							if ( shadowHit && shadowHit.object === lightMesh ) {
 
-							// get the material color and pdf
-							bsdfColor( localDirection, tempVector, material, hit, tempColor );
-							const materialPdf = bsdfPdf( localDirection, tempVector, material, hit );
-							const misWeight = lightPdf / ( materialPdf + lightPdf );
-							targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * misWeight / lightPdf;
-							targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * misWeight / lightPdf;
-							targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * misWeight / lightPdf;
+								// get the incoming and outgoing directions in the normal frame
+								localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
+								tempVector.copy( nextRay.direction ).applyMatrix4( invBasis ).normalize();
+								localDirection.normalize();
+
+								// get the material color and pdf
+								bsdfColor( localDirection, tempVector, material, hit, tempColor );
+								const materialPdf = bsdfPdf( localDirection, tempVector, material, hit );
+								const misWeight = lightPdf / ( materialPdf + lightPdf );
+								targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * misWeight / lightPdf;
+								targetColor.g += lightMesh.material.color.g * throughputColor.g * tempColor.g * misWeight / lightPdf;
+								targetColor.b += lightMesh.material.color.b * throughputColor.b * tempColor.b * misWeight / lightPdf;
+
+							}
 
 						}
 

@@ -273,20 +273,12 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			// pdf = specularPDF( wo, lightDirection, material, hit );
-			// specularColor( wo, lightDirection, material, hit, color );
-			// pdf *= specularProb;
 
 		} else {
 
 			transmissionDirection( wo, hit, material, lightDirection );
-			// pdf = transmissionPDF( wo, lightDirection, material, hit );
-			// transmissionColor( wo, lightDirection, material, hit, color );
-			// pdf *= ( 1.0 - specularProb );
 
 		}
-
-		// pdf *= transmission;
 
 	} else {
 
@@ -294,20 +286,12 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 		if ( Math.random() < specularProb ) {
 
 			specularDirection( wo, hit, material, lightDirection );
-			// pdf = specularPDF( wo, lightDirection, material, hit );
-			// specularColor( wo, lightDirection, material, hit, color );
-			// pdf *= specularProb;
 
 		} else {
 
 			diffuseDirection( wo, hit, material, lightDirection );
-			// pdf = diffusePDF( wo, lightDirection, material, hit );
-			// diffuseColor( wo, lightDirection, material, hit, color );
-			// pdf *= ( 1.0 - specularProb );
 
 		}
-
-		// pdf *= ( 1.0 - transmission );
 
 	}
 
