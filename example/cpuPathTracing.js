@@ -814,6 +814,8 @@ function* runPathTracingLoop() {
 							.applyMatrix4( lightMesh.matrixWorld );
 
 						// get a ray to the light point
+						// note that the ray always starts on the front side of the face implying that transmissive
+						// contributions are not included here.
 						nextRay.origin.copy( hit.point ).addScaledVector( hit.geometryNormal, EPSILON );
 						nextRay.direction.subVectors( tempVector, nextRay.origin ).normalize();
 
@@ -871,12 +873,13 @@ function* runPathTracingLoop() {
 					nextRay.origin.copy( hit.point )
 						.addScaledVector( hit.geometryNormal, isBelowSurface ? - EPSILON : EPSILON );
 
+					// emission contribution
 					const { emissive, emissiveIntensity } = material;
 					targetColor.r += ( emissiveIntensity * emissive.r * throughputColor.r );
 					targetColor.g += ( emissiveIntensity * emissive.g * throughputColor.g );
 					targetColor.b += ( emissiveIntensity * emissive.b * throughputColor.b );
 
-					// If our PDF indicates there's a less than 0 probability of sampling this direction then
+					// If our PDF indicates there's a less than 0 probability of sampling this new direction then
 					// don't include it in our sampling and terminate the ray modeling that the ray has been absorbed.
 					if (
 						sampleInfo.pdf <= 0
