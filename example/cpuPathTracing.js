@@ -1059,8 +1059,7 @@ function render() {
 
 	}
 
-	fsQuad.material.map = dataTexture;
-	fsQuad.material.opacity = fade;
+	// update the scan line
 	scanLineElement.style.bottom = `${ scanLinePercent }%`;
 	if ( params.resolution.stretchImage ) {
 
@@ -1072,8 +1071,13 @@ function render() {
 
 	}
 
+	// render the scene
 	renderer.render( scene, camera );
 	renderer.autoClear = false;
+
+	// overlay the path traced image
+	fsQuad.material.map = dataTexture;
+	fsQuad.material.opacity = fade;
 	fsQuad.render( renderer );
 	renderer.autoClear = true;
 
