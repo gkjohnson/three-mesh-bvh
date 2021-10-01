@@ -853,8 +853,8 @@ function* runPathTracingLoop() {
 					/* BSDF Sampling */
 					// compute the outgoing vector (towards the camera) to feed into the bsdf to get the
 					// incident light vector.
-					raycaster.ray.copy( currentRay );
-					localDirection.copy( currentRay.direction ).applyMatrix4( invBasis ).multiplyScalar( - 1 ).normalize();
+					localDirection.copy( currentRay.direction ).applyMatrix4( invBasis )
+						.multiplyScalar( - 1 ).normalize();
 
 					// sample the surface to get the pdf, reflected color, and direction
 					bsdfSample( localDirection, hit, material, sampleInfo );
@@ -866,16 +866,10 @@ function* runPathTracingLoop() {
 
 					// transform ray back to world frame and offset from surface
 					nextRay.direction.copy( sampleInfo.direction ).applyMatrix4( normalBasis ).normalize();
-					nextRay.origin.copy( hit.point );
-					if ( nextRay.direction.dot( hit.geometryNormal ) < 0 ) {
 
-						nextRay.origin.addScaledVector( hit.geometryNormal, - EPSILON );
-
-					} else {
-
-						nextRay.origin.addScaledVector( hit.geometryNormal, EPSILON );
-
-					}
+					const isBelowSurface = nextRay.direction.dot( hit.geometryNormal ) < 0;
+					nextRay.origin.copy( hit.point )
+						.addScaledVector( hit.geometryNormal, isBelowSurface ? - EPSILON : EPSILON );
 
 					const { emissive, emissiveIntensity } = material;
 					targetColor.r += ( emissiveIntensity * emissive.r * throughputColor.r );
