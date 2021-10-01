@@ -236,10 +236,22 @@ function init() {
 			} ),
 		);
 		box.position.y = - 1.0;
-		box.position.x = - 0.5;
+		box.position.x = - 0.6;
+		box.position.z = - 0.25;
 		box.rotation.y = Math.PI / 4;
 
-		const { geometry, materials } = mergeMeshes( [ box, leftWall, rightWall, backWall, ceiling ], true );
+		const box2 = new THREE.Mesh(
+			new THREE.BoxBufferGeometry( 1, 1, 1 ),
+			new THREE.MeshStandardMaterial( {
+				side: THREE.DoubleSide,
+			} ),
+		);
+		box2.position.y = - 1.5;
+		box2.position.x = 0.75;
+		box2.position.z = 0.5;
+		box2.rotation.y = - Math.PI / 8;
+
+		const { geometry, materials } = mergeMeshes( [ box, box2, leftWall, rightWall, backWall, ceiling ], true );
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		scene.add( merged );
 
@@ -1011,6 +1023,7 @@ function render() {
 		// https://google.github.io/filament/Filament.html#materialsystem/standardmodelsummary
 		material.roughness = Math.pow( parseFloat( params.material.roughness ), 2.0 );
 
+		// adjust the position of the area light before rendering
 		switch ( params.light.position ) {
 
 			case 'Below':
@@ -1038,6 +1051,7 @@ function render() {
 
 	}
 
+	// Fade the path traced image in after the user stops moving the camera
 	let fade = 0;
 	if ( delay > FADE_DELAY ) {
 
