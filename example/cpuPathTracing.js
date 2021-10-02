@@ -570,7 +570,6 @@ function resetImage() {
 
 function* runPathTracingLoop() {
 
-	let lastStartTime = performance.now();
 	// extract options
 	const { width, height, data } = dataTexture.image;
 	const bounces = parseInt( params.pathTracing.bounces );
