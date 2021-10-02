@@ -511,6 +511,7 @@ function onResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
+	// compute the new resolution based on the use parameters
 	const dpr = window.devicePixelRatio;
 	const divisor = Math.pow( 2, parseFloat( params.resolution.resolutionScale ) - 1 );
 	if ( params.resolution.stretchImage ) {
@@ -546,6 +547,7 @@ function onResize() {
 
 function resetImage() {
 
+	// clear the draw buffer and restart the path tracing loop
 	dataTexture.image.data.fill( 0 );
 	dataTexture.needsUpdate = true;
 	samples = 0;
