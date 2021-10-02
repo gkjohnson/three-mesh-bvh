@@ -30,8 +30,12 @@ let dataTexture, samples, ssPoint, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
 let mesh, materials, lightMesh, floorMesh;
+
+// constants
 const DELAY_TIME = 300;
 const FADE_DELAY = 150;
+
+// reusable fields
 const triangle = new THREE.Triangle();
 const normal0 = new THREE.Vector3();
 const normal1 = new THREE.Vector3();
@@ -457,6 +461,8 @@ function init() {
 
 }
 
+// Merges meshes into a single geometry, returns a series of materials and geometry with a vertex attribute buffer
+// containing information about the material index to use
 function mergeMeshes( meshes, cloneGeometry = true ) {
 
 	const transformedGeometry = [];
@@ -563,11 +569,14 @@ function resetImage() {
 function* runPathTracingLoop() {
 
 	let lastStartTime = performance.now();
+	// extract options
 	const { width, height, data } = dataTexture.image;
 	const bounces = parseInt( params.pathTracing.bounces );
 	const skyIntensity = parseFloat( params.environment.skyIntensity );
 	const skyMode = params.environment.skyMode;
 	const smoothNormals = params.pathTracing.smoothNormals;
+
+	// reusable variables
 	const radianceColor = new THREE.Color();
 	const throughputColor = new THREE.Color();
 	const halfVector = new THREE.Vector3();
@@ -577,14 +586,17 @@ function* runPathTracingLoop() {
 	const lightWidth = lightMesh.scale.x;
 	const lightHeight = lightMesh.scale.y;
 	const raycaster = new THREE.Raycaster();
-	const seedRay = new THREE.Ray();
 	raycaster.firstHitOnly = true;
 
+	const seedRay = new THREE.Ray();
 	const sampleInfo = {
 		pdf: 0,
 		color: new THREE.Color(),
 		direction: new THREE.Vector3(),
 	};
+
+	// initialization of progress variables
+	let lastStartTime = performance.now();
 	renderStartTime = performance.now();
 	computationTime = 0;
 	scanLinePercent = 100;
@@ -597,7 +609,6 @@ function* runPathTracingLoop() {
 		material.side = THREE.DoubleSide;
 
 	} );
-
 
 	while ( true ) {
 
@@ -664,6 +675,7 @@ function* runPathTracingLoop() {
 
 	}
 
+	// extract other necessary information from the hit
 	function expandHitInformation( hit, ray, accumulatedRoughness ) {
 
 		const object = hit.object;
@@ -840,6 +852,8 @@ function* runPathTracingLoop() {
 
 								// get the material color and pdf
 								bsdfColor( localDirection, tempVector, material, hit, tempColor );
+
+								// add light contribution to the final color
 								const materialPdf = bsdfPdf( localDirection, tempVector, material, hit );
 								const misWeight = lightPdf / ( materialPdf + lightPdf );
 								targetColor.r += lightMesh.material.color.r * throughputColor.r * tempColor.r * misWeight / lightPdf;
