@@ -1,4 +1,4 @@
-import { schlickFresnelReflectance, refract, getRandomUnitDirection, getHalfVector } from './utils.js';
+import { schlickFresnelFromIor, refract, getHalfVector } from './utils.js';
 import { ggxDirection, ggxPDF, ggxShadowMaskG2, ggxDistribution } from './ggxSampling.js';
 import { MathUtils, Vector3, Color } from 'three';
 
@@ -19,7 +19,7 @@ function diffusePDF( wo, wi, material, hit ) {
 
 function diffuseDirection( wo, hit, material, lightDirection ) {
 
-	getRandomUnitDirection( lightDirection );
+	lightDirection.randomDirection();
 	lightDirection.z += 1;
 	lightDirection.normalize();
 
@@ -78,7 +78,7 @@ function specularColor( wo, wi, material, hit, colorTarget ) {
 	const G = ggxShadowMaskG2( wi, wo, filteredRoughness );
 	const D = ggxDistribution( halfVector, filteredRoughness );
 
-	let F = schlickFresnelReflectance( wi.dot( halfVector ), iorRatio );
+	let F = schlickFresnelFromIor( wi.dot( halfVector ), iorRatio );
 	const cosTheta = Math.min( wo.z, 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
 	const cannotRefract = iorRatio * sinTheta > 1.0;
@@ -164,8 +164,7 @@ function transmissionDirection( wo, hit, material, lightDirection ) {
 
 	tempDir.copy( wo ).multiplyScalar( - 1 );
 	refract( tempDir, new Vector3( 0, 0, 1 ), ratio, lightDirection );
-	getRandomUnitDirection( tempDir );
-	tempDir.multiplyScalar( roughness );
+	tempDir.randomDirection().multiplyScalar( roughness );
 	lightDirection.add( tempDir );
 
 }
@@ -194,7 +193,7 @@ export function bsdfPdf( wo, wi, material, hit ) {
 	const ratio = frontFace ? 1 / ior : ior;
 	const cosTheta = Math.min( wo.z, 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
-	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
+	let reflectance = schlickFresnelFromIor( cosTheta, ratio );
 	const cannotRefract = ratio * sinTheta > 1.0;
 	if ( cannotRefract ) {
 
@@ -256,7 +255,7 @@ export function bsdfSample( wo, hit, material, sampleInfo ) {
 	const ratio = frontFace ? 1 / ior : ior;
 	const cosTheta = Math.min( wo.z, 1.0 );
 	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
-	let reflectance = schlickFresnelReflectance( cosTheta, ratio );
+	let reflectance = schlickFresnelFromIor( cosTheta, ratio );
 	const cannotRefract = ratio * sinTheta > 1.0;
 	if ( cannotRefract ) {
 

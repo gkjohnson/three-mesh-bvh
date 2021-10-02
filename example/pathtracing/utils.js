@@ -15,20 +15,19 @@ export const ANTIALIAS_OFFSETS = [
 	[ - 8, 0 ], [ 7, - 4 ], [ 6, 7 ], [ - 7, - 8 ],
 ];
 
+// https://google.github.io/filament/Filament.md.html#materialsystem/diffusebrdf
 export function schlickFresnel( cosine, f0 ) {
 
-	// https://google.github.io/filament/Filament.md.html#materialsystem/diffusebrdf
 	return f0 + ( 1.0 - f0 ) * Math.pow( 1.0 - cosine, 5.0 );
 
 }
 
-export function schlickFresnelReflectance( cosine, iorRatio ) {
+// https://raytracing.github.io/books/RayTracingInOneWeekend.html#dielectrics/schlickapproximation
+export function schlickFresnelFromIor( cosine, iorRatio ) {
 
 	// Schlick approximation
 	const r0 = Math.pow( ( 1 - iorRatio ) / ( 1 + iorRatio ), 2 );
-
-	// https://google.github.io/filament/Filament.md.html#materialsystem/diffusebrdf
-	return r0 + ( 1 - r0 ) * Math.pow( 1.0 - cosine, 5 );
+	return schlickFresnel( cosine, r0 );
 
 }
 
@@ -72,21 +71,6 @@ export function getBasisFromNormal( normal, targetMatrix ) {
 export function getHalfVector( a, b, target ) {
 
 	return target.addVectors( a, b ).normalize();
-
-}
-
-// from three.js
-export function getRandomUnitDirection( target ) {
-
-	const u = ( Math.random() - 0.5 ) * 2;
-	const t = Math.random() * Math.PI * 2;
-	const f = Math.sqrt( 1 - u ** 2 );
-
-	target.x = f * Math.cos( t );
-	target.y = f * Math.sin( t );
-	target.z = u;
-
-	return target;
 
 }
 
