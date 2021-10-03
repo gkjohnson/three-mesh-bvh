@@ -17,6 +17,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Sculpting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
 
+[CPU Path Tracing demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
+
 [Clipped edges demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
 
 [Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
