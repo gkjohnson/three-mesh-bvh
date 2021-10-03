@@ -26,7 +26,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let scene, camera, renderer, light, clock;
 let fsQuad, controls;
-let dataTexture, samples, ssPoint, task, delay, scanLinePercent;
+let dataTexture, samples, task, delay, scanLinePercent;
 let scanLineElement, containerElement, outputContainer;
 let renderStartTime, computationTime;
 let mesh, materials, lightMesh, floorMesh;
@@ -60,7 +60,7 @@ const params = {
 		pause: false,
 		displayScanLine: false,
 		antialiasing: true,
-		bounces: 5,
+		bounces: 10,
 		filterGlossyFactor: 0.5,
 		smoothNormals: true,
 		directLightSampling: true,
@@ -70,29 +70,29 @@ const params = {
 		emissive: '#000000',
 		emissiveIntensity: 1,
 		roughness: 0.1,
-		metalness: 0.1,
+		metalness: 0.0,
 		ior: 1.8,
 		transmission: 0.0,
 	},
 	floor: {
 		enable: true,
 		color: '#7f7f7f',
-		roughness: 0.5,
-		metalness: 0.5,
+		roughness: 0.1,
+		metalness: 0.1,
 		width: 10,
 		height: 10,
 	},
 	light: {
 		enable: true,
 		position: 'Diagonal',
-		intensity: 15.0,
+		intensity: 30.0,
 		color: '#ffffff',
 		width: 1,
 		height: 1,
 	},
 	environment: {
 		skyMode: 'sky',
-		skyIntensity: 1.0,
+		skyIntensity: 0.025,
 	}
 };
 
@@ -354,53 +354,6 @@ function init() {
 
 	} );
 
-	models[ 'Rover' ] = null;
-	new GLTFLoader().load( '../models/Perseverance.glb', gltf => {
-
-		const meshes = [];
-		gltf.scene.updateMatrixWorld( true );
-		gltf.scene.traverse( c => {
-
-			if ( c.isMesh ) {
-
-				const g = c.geometry;
-				for ( const key in g.attributes ) {
-
-					if ( key !== 'position' && key !== 'normal' ) {
-
-						delete g.attributes[ key ];
-
-					}
-
-				}
-
-				meshes.push( c );
-
-			}
-
-		} );
-
-		const { geometry, materials } = mergeMeshes( [ ...meshes ], true );
-		geometry.center();
-		geometry.computeBoundingBox();
-
-		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-		const generator = new GenerateMeshBVHWorker();
-		generator
-			.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
-			.then( bvh => {
-
-				models[ 'Rover' ] = { mesh, materials, floorHeight: geometry.boundingBox.min.y };
-				geometry.boundsTree = bvh;
-				generator.terminate();
-
-				scene.add( mesh );
-
-			} );
-
-	} );
-
-	ssPoint = new THREE.Vector3();
 	samples = 0;
 	clock = new THREE.Clock();
 
@@ -423,7 +376,7 @@ function init() {
 	pathTracingFolder.add( params.pathTracing, 'antialiasing' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'directLightSampling' ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'smoothNormals' ).onChange( resetImage );
-	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 30, 1 ).onChange( resetImage );
+	pathTracingFolder.add( params.pathTracing, 'bounces', 1, 50, 1 ).onChange( resetImage );
 	pathTracingFolder.add( params.pathTracing, 'filterGlossyFactor', 0, 1, 0.001 ).onChange( resetImage );
 	pathTracingFolder.open();
 
@@ -442,20 +395,20 @@ function init() {
 	floorFolder.addColor( params.floor, 'color' ).onChange( resetImage );
 	floorFolder.add( params.floor, 'roughness', 0, 1, 0.001 ).onChange( resetImage );
 	floorFolder.add( params.floor, 'metalness', 0, 1, 0.001 ).onChange( resetImage );
-	floorFolder.add( params.floor, 'width', 3, 15, 0.001 ).onChange( resetImage );
-	floorFolder.add( params.floor, 'height', 3, 15, 0.001 ).onChange( resetImage );
+	floorFolder.add( params.floor, 'width', 3, 20, 0.001 ).onChange( resetImage );
+	floorFolder.add( params.floor, 'height', 3, 20, 0.001 ).onChange( resetImage );
 
 	const lightFolder = gui.addFolder( 'light' );
 	lightFolder.add( params.light, 'enable' ).onChange( resetImage );
 	lightFolder.addColor( params.light, 'color' ).onChange( resetImage );
-	lightFolder.add( params.light, 'intensity', 0, 30, 0.001 ).onChange( resetImage );
+	lightFolder.add( params.light, 'intensity', 0, 100, 0.001 ).onChange( resetImage );
 	lightFolder.add( params.light, 'width', 0, 5, 0.001 ).onChange( resetImage );
 	lightFolder.add( params.light, 'height', 0, 5, 0.001 ).onChange( resetImage );
 	lightFolder.add( params.light, 'position', [ 'Diagonal', 'Above', 'Below' ] ).onChange( resetImage );
 
 	const envFolder = gui.addFolder( 'environment' );
 	envFolder.add( params.environment, 'skyMode', [ 'sky', 'sun', 'checkerboard' ] ).onChange( resetImage );
-	envFolder.add( params.environment, 'skyIntensity', 0, 2, 0.001 ).onChange( resetImage );
+	envFolder.add( params.environment, 'skyIntensity', 0, 5, 0.001 ).onChange( resetImage );
 
 	onResize();
 
@@ -582,6 +535,7 @@ function* runPathTracingLoop() {
 	const throughputColor = new THREE.Color();
 	const halfVector = new THREE.Vector3();
 	const normal = new THREE.Vector3();
+	const ssPoint = new THREE.Vector2();
 	const rayStack = new Array( bounces ).fill().map( () => new THREE.Ray() );
 	const lightForward = new THREE.Vector3( 0, 0, 1 ).transformDirection( lightMesh.matrixWorld );
 	const lightWidth = lightMesh.scale.x;
