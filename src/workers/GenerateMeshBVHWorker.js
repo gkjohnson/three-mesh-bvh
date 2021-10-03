@@ -1,4 +1,4 @@
-import { Box3 } from 'three';
+import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 export class GenerateMeshBVHWorker {
@@ -48,6 +48,11 @@ export class GenerateMeshBVHWorker {
 					if ( geometry.index ) {
 
 						geometry.index.array = serialized.index;
+
+					} else {
+
+						const newIndex = new BufferAttribute( serialized.index, 1, false );
+						geometry.setIndex( newIndex );
 
 					}
 
