@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Case where the BVH root bounds would be incorrect if the geometry bounding box was incorrect / out of date.
 - MeshBBH.closestPointTGeometry not returning a proper intersection point if triangles intersect.
 - Shapecast function will now ensure a unique triangle / box is provided for each recursive call.
+- Fix `GenerateMeshBVHWorker` not setting the geometry index correctly on return.
 
 ### Changed
 - Changed function signature for `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`, `closestPointToGeometry`, `distanceToGeometry`, `closestPointToPoint`, `distanceToPoint`, `raycast`, and `raycastFirst`. Calling functions with the old signature will log a warning. See documentation for more details.
