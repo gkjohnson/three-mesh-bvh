@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `MeshBVHDebug` class has been removed and the function `getJSONStructure` and `validateBounds` are now exported individually.
 - Small observed performance improvements possibly a result of simplified function arguments.
 - The function signatures and options for `MeshBVH.serialize` and `MeshBVH.deserialize` have changed. See documentation for more new signature.
+- Changed `refit` function to take just a single argument with traversed node indices. Calling the function with the old signature will log a warning. See documentation for current signature.
 
 ### Removed
 - `distanceToGeometry` and `distanceToPoint` functions.
