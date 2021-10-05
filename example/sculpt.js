@@ -2,7 +2,7 @@ import Stats from 'stats.js/src/Stats';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
 	acceleratedRaycast,
 	computeBoundsTree,
@@ -318,7 +318,6 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedFields
 		accumulatedTriangles = new Set(),
 		accumulatedIndices = new Set(),
 		accumulatedTraversedNodeIndices = new Set(),
-		accumulatedEndNodeIndices = new Set(),
 	} = accumulatedFields;
 
 	const inverseMatrix = new THREE.Matrix4();
@@ -375,12 +374,6 @@ function performStroke( point, brushObject, brushOnly = false, accumulatedFields
 			}
 
 			return intersects ? INTERSECTED : NOT_INTERSECTED;
-
-		},
-
-		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
-
-			accumulatedEndNodeIndices.add( nodeIndex );
 
 		},
 
@@ -669,13 +662,11 @@ function render() {
 				const changedTriangles = new Set();
 				const changedIndices = new Set();
 				const traversedNodeIndices = new Set();
-				const endNodeIndices = new Set();
 				const sets = {
 
 					accumulatedTriangles: changedTriangles,
 					accumulatedIndices: changedIndices,
 					accumulatedTraversedNodeIndices: traversedNodeIndices,
-					accumulatedEndNodeIndices: endNodeIndices,
 
 				};
 				while ( castDist > step && mdist > params.size * 200 / hit.distance ) {
@@ -711,7 +702,7 @@ function render() {
 					// so it's up to date for the next one because both of those are used when updating
 					// the model but it's faster to do them here.
 					updateNormals( changedTriangles, changedIndices );
-					targetMesh.geometry.boundsTree.refit( traversedNodeIndices, endNodeIndices );
+					targetMesh.geometry.boundsTree.refit( traversedNodeIndices );
 
 					if ( bvhHelper.parent !== null ) {
 
