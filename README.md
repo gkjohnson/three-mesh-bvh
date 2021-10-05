@@ -285,7 +285,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Array<RaycastHit>
 ```
 ```js
-raycast( ray : Ray, material : Material | Array<Material> ) : Array<RaycastHit>
+raycast( ray : Ray, material : Array<Material> | Material ) : Array<RaycastHit>
 ```
 
 Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
@@ -298,7 +298,7 @@ Unlike three.js' Raycaster restults the points and distances in the intersection
 raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : RaycastHit
 ```
 ```js
-raycastFirst( ray : Ray, material : Material | Array<Material> ) : RaycastHit
+raycastFirst( ray : Ray, material : Array<Material> | Material ) : RaycastHit
 ```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits. See [raycast](#raycast) for information on the side and material options as well as the frame of the returned intersections.
