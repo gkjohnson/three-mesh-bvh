@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { MeshBVH, MeshBVHVisualizer } from '../src/index.js';
