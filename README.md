@@ -490,39 +490,6 @@ getBoundingBox( target : Box3 ) : Box3
 
 Get the bounding box of the geometry computed from the root node bounds of the BVH. Significantly faster than `BufferGeometry.computeBoundingBox`.
 
-### getTriangleHitPointInfo
-
-```js
-getTriangleHitPointInfo(
-	point: Vector3,
-	geometry : BufferGeometry,
-	triangleIndex: Number
-	target: Object
-): Object
-```
-
-This function returns information of a point related to a geometry. It returns the `target` object or a new one if passed `undefined`:
-
-```js
-target : {
-	face: {
-		a: Number,
-		b: Number,
-		c: Number,
-		materialIndex: Number,
-		normal: Vector3
-	},
-	uv: Vector2
-}
-```
-
-- `a`, `b`, `c`: Triangle indices
-- `materialIndex`: Face material index or 0 if not available.
-- `normal`: Face normal
-- `uv`: UV coordinates.
-
-This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
-
 ## SerializedBVH
 
 ### .roots
@@ -747,22 +714,46 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 
 _NOTE The when using the [refit](#refit) function the `surfaceAreaScore` can be used to check how significantly the structure of the BVH has degraded and rebuild it if it has changed beyond some threshold ratio._
 
-## Extra Functions
+## Individual Functions
 
-List of functions stored in the `src/workers/` and are not exported via index.js because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
+Functions exported individually not part of a class.
 
-### generateAsync
+### getTriangleHitPointInfo
 
 ```js
-generateAsync( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+getTriangleHitPointInfo(
+	point: Vector3,
+	geometry : BufferGeometry,
+	triangleIndex: Number
+	target: Object
+): Object
 ```
 
-Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
+This function returns information of a point related to a geometry. It returns the `target` object or a new one if passed `undefined`:
+
+```js
+target : {
+	face: {
+		a: Number,
+		b: Number,
+		c: Number,
+		materialIndex: Number,
+		normal: Vector3
+	},
+	uv: Vector2
+}
+```
+
+- `a`, `b`, `c`: Triangle indices
+- `materialIndex`: Face material index or 0 if not available.
+- `normal`: Face normal
+- `uv`: UV coordinates.
+
+This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
 
 ## Gotchas
 
 - When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
-- This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
   be produced and retained as a side effect of the construction.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.
