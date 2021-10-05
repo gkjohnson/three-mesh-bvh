@@ -165,17 +165,11 @@ export class MeshBVH {
 
 	}
 
-	refit( nodeIndices = null, terminationIndices = null ) {
+	refit( nodeIndices = null ) {
 
 		if ( nodeIndices && Array.isArray( nodeIndices ) ) {
 
 			nodeIndices = new Set( nodeIndices );
-
-		}
-
-		if ( terminationIndices && Array.isArray( terminationIndices ) ) {
-
-			terminationIndices = new Set( terminationIndices );
 
 		}
 
@@ -272,31 +266,51 @@ export class MeshBVH {
 				const left = node32Index + 8;
 				const right = uint32Array[ node32Index + 6 ];
 
-				// the indentifying node indices provided by the shapecast function include offsets of all
+				// the identifying node indices provided by the shapecast function include offsets of all
 				// root buffers to guarantee they're unique between roots so offset left and right indices here.
 				const offsetLeft = left + byteOffset;
 				const offsetRight = right + byteOffset;
+				let forceChildren = force;
+				let includesLeft = false;
+				let includesRight = false;
+
+				if ( nodeIndices ) {
+
+					// if we see that neither the left or right child are included in the set that need to be updated
+					// then we assume that all children need to be updated.
+					if ( ! forceChildren ) {
+
+						includesLeft = nodeIndices.has( offsetLeft );
+						includesRight = nodeIndices.has( offsetRight );
+						forceChildren = ! includesLeft && ! includesRight;
+
+					}
+
+				} else {
+
+					includesLeft = true;
+					includesRight = true;
+
+				}
+
+				const traverseLeft = forceChildren || includesLeft;
+				const traverseRight = forceChildren || includesRight;
 
 				let leftChange = false;
-				let forceLeft = force || terminationIndices && terminationIndices.has( offsetLeft );
-				let traverseLeft = forceLeft || ( nodeIndices ? nodeIndices.has( offsetLeft ) : true );
 				if ( traverseLeft ) {
 
-					leftChange = _traverse( left, byteOffset, forceLeft );
+					leftChange = _traverse( left, byteOffset, forceChildren );
 
 				}
 
 				let rightChange = false;
-				let forceRight = force || terminationIndices && terminationIndices.has( offsetRight );
-				let traverseRight = forceRight || ( nodeIndices ? nodeIndices.has( offsetRight ) : true );
 				if ( traverseRight ) {
 
-					rightChange = _traverse( right, byteOffset, forceRight );
+					rightChange = _traverse( right, byteOffset, forceChildren );
 
 				}
 
 				const didChange = leftChange || rightChange;
-
 				if ( didChange ) {
 
 					for ( let i = 0; i < 3; i ++ ) {
@@ -1101,6 +1115,33 @@ MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
 	} else {
 
 		return originalClosestPointToGeometry.apply( this, args );
+
+	}
+
+};
+
+const originalRefit = MeshBVH.prototype.refit;
+MeshBVH.prototype.refit = function ( ...args ) {
+
+	const nodeIndices = args[ 0 ];
+	const terminationIndices = args[ 1 ];
+	if ( terminationIndices && ( terminationIndices instanceof Set || Array.isArray( terminationIndices ) ) ) {
+
+		console.warn( 'MeshBVH: The function signature for "refit" has changed. See docs for new signature.' );
+
+		const newNodeIndices = new Set();
+		terminationIndices.forEach( v => newNodeIndices.add( v ) );
+		if ( nodeIndices ) {
+
+			nodeIndices.forEach( v => newNodeIndices.add( v ) );
+
+		}
+
+		originalRefit.call( this, newNodeIndices );
+
+	} else {
+
+		originalRefit.apply( this, args );
 
 	}
 
