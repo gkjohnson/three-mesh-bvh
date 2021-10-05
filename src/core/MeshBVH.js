@@ -1120,6 +1120,33 @@ MeshBVH.prototype.closestPointToGeometry = function ( ...args ) {
 
 };
 
+const originalRefit = MeshBVH.prototype.refit;
+MeshBVH.prototype.refit = function ( ...args ) {
+
+	const nodeIndices = args[ 0 ];
+	const terminationIndices = args[ 1 ];
+	if ( terminationIndices && ( terminationIndices instanceof Set || Array.isArray( terminationIndices ) ) ) {
+
+		console.warn( 'MeshBVH: The function signature for "refit" has changed. See docs for new signature.' );
+
+		const newNodeIndices = new Set();
+		terminationIndices.forEach( v => newNodeIndices.add( v ) );
+		if ( nodeIndices ) {
+
+			nodeIndices.forEach( v => newNodeIndices.add( v ) );
+
+		}
+
+		originalRefit.call( this, newNodeIndices );
+
+	} else {
+
+		originalRefit.apply( this, args );
+
+	}
+
+};
+
 [
 	'intersectsGeometry',
 	'shapecast',

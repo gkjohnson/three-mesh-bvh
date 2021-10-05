@@ -436,19 +436,15 @@ A generalized cast function that can be used to implement intersection logic for
 ### .refit
 
 ```js
-refit(
-	traversedNodeIndices : Array<Number> | Set<Number> = null,
-	endNodeIndices : Array<Number> | Set<Number> = null
-) : void
+refit( nodeIndices : Array<Number> | Set<Number> = null ) : void
 ```
 
-Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices. `traversedNodeIndices` is a set of node indices (provided by the [shapecast](#shapecast) function) that need to be refit including all internal nodes. `endNodeIndices` is the set of nodes that traversal ended at and that triangles need to be updated for. If neither index set is provided then the whole BVH is updated which is significantly slower than surgically updating the nodes that need to be updated.
+Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices. `nodeIndices` is a set of node indices (provided by the [shapecast](#shapecast) function, see example snippet below) that need to be refit including all internal nodes. If one of a nodes children is also included in the set of node indices then only the included child bounds are traversed. If neither child index is included in the `nodeIndices` set, though, then it is assumed that every child below that node needs to be updated.
 
 Here's how to get the set of indices that need to be refit:
 
 ```js
-const traversedNodeIndices = new Set();
-const endNodeIndices = new Set();
+const nodeIndices = new Set();
 bvh.shapecast(
 
 	{
@@ -457,7 +453,7 @@ bvh.shapecast(
 
 			if ( /* intersects shape */ ) {
 
-				traversedNodeIndices.add( nodeIndex );
+				nodeIndices.add( nodeIndex );
 				return INTERSECTED;
 
 			}
@@ -468,8 +464,11 @@ bvh.shapecast(
 
 		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
 
-			// collect triangles to update
-			endNodeIndices.add( nodeIndex );
+			/* collect triangles / vertices to move */
+
+			// the nodeIndex here will have always already been added to the set in the
+			// `intersectsBounds` callback.
+			nodeIndices.add( nodeIndex );
 
 		}
 
@@ -477,9 +476,10 @@ bvh.shapecast(
 
 );
 
-// update the positions of the triangle vertices
+/* update the positions of the triangle vertices */
 
-bvh.refit( traversedNodeIndices, endNodeIndices );
+// update the BVH bounds of just the bounds that need to be updated
+bvh.refit( nodeIndices );
 ```
 
 ### .getBoundingBox

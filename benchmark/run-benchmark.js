@@ -53,7 +53,6 @@ function runSuite( strategy ) {
 
 	// generate a set of node indices to use with an optimized refit function
 	const refitIndices = new Set();
-	const terminationIndices = new Set();
 	const newSphere = new THREE.Sphere(
 		new THREE.Vector3( 0, 0, 0 ),
 		0.5,
@@ -70,12 +69,6 @@ function runSuite( strategy ) {
 			}
 
 			return false;
-
-		},
-
-		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
-
-			refitIndices.add( nodeIndex );
 
 		}
 
@@ -151,7 +144,7 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			geometry.boundsTree.refit( refitIndices, terminationIndices );
+			geometry.boundsTree.refit( refitIndices );
 
 
 		},
