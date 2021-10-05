@@ -27,11 +27,11 @@ const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 10, 20, 30 );
 raycaster.ray.direction.set( - 1, - 2, - 3 );
 
-function logExtremes( bvh, geometry ) {
+function logExtremes( bvh ) {
 
 	const extremes = getBVHExtremes( bvh )[ 0 ];
 	const bvhSize = estimateMemoryInBytes( bvh._roots );
-	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh, geometry ).roots );
+	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh ).roots );
 
 	console.log(
 		`\tExtremes:\n` +
@@ -75,13 +75,13 @@ function runSuite( strategy ) {
 
 		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
 
-			terminationIndices.add( nodeIndex );
+			refitIndices.add( nodeIndex );
 
 		}
 
 	} );
 
-	logExtremes( geometry.boundsTree, geometry );
+	logExtremes( geometry.boundsTree );
 
 	geometry.computeBoundingBox();
 	runBenchmark(
@@ -166,7 +166,7 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			MeshBVH.serialize( geometry.boundsTree, geometry );
+			MeshBVH.serialize( geometry.boundsTree );
 
 		},
 		3000,
@@ -174,7 +174,7 @@ function runSuite( strategy ) {
 
 	);
 
-	const serialized = MeshBVH.serialize( geometry.boundsTree, geometry );
+	const serialized = MeshBVH.serialize( geometry.boundsTree );
 	runBenchmark(
 
 		'Deserialize',
@@ -357,7 +357,7 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree, towerGeometry );
+logExtremes( towerGeometry.boundsTree );
 
 towerGeometry.computeBoundsTree( { strategy: AVERAGE } );
 runBenchmark(
@@ -368,7 +368,7 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree, towerGeometry );
+logExtremes( towerGeometry.boundsTree );
 
 towerGeometry.computeBoundsTree( { strategy: SAH } );
 runBenchmark(
@@ -379,4 +379,4 @@ runBenchmark(
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree, towerGeometry );
+logExtremes( towerGeometry.boundsTree );
