@@ -211,9 +211,11 @@ Generates a representation of the complete bounds tree and the geometry index bu
 ```js
 {
 
-	// if true then a copy of the `geometry.index.array` is made which is slower but useful
-	// if the geometry index is intended to be modified.
-	copyIndexBuffer: true
+	// if true then a clone of the `geometry.index.array` and MeshBVH buffers are made which slightly slower but
+	// ensures modifications do not affect the serialized content. Can be set to "false" if it is guaranteed that
+	// no modifications will be made, to save memory, or transfer and share them across WebWorkers if SharedArrayBuffers
+	// are being used.
+	cloneBuffers: true
 
 }
 ```
