@@ -338,13 +338,13 @@ Performance improves considerably if the provided geometry _also_ has a `boundsT
 ```js
 closestPointToPoint(
 	point : Vector3,
-	target : Object = { },
+	target : Object = {},
 	minThreshold : Number = 0,
 	maxThreshold : Number = Infinity
-) : Number
+) : target
 ```
 
-Computes the closest distance from the point to the mesh and gives additional information in `target`. The target can be left undefined to default to a new object.
+Computes the closest distance from the point to the mesh and gives additional information in `target`. The target can be left undefined to default to a new object which is ultimately returned by the function.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found within the min / max thresholds then `null` is returned and the `target` object is not modified.
 
@@ -352,7 +352,7 @@ If a point is found that is closer than `minThreshold` then the function will re
 target : {
 	point : Vector3,
 	distance : Number,
-	faceIndex: Number
+	faceIndex : Number
 }
 ```
 
@@ -364,20 +364,20 @@ The returned faceIndex can be used with the standalone function [getTriangleHitP
 closestPointToGeometry(
 	geometry : BufferGeometry,
 	geometryToBvh : Matrix4,
-	target1 : Vector3 = null,
-	target2 : Vector3 = null,
+	target1 : Object = {},
+	target2 : Object = {},
 	minThreshold : Number = 0,
 	maxThreshold : Number = Infinity
-) : Number
+) : target1
 ```
 
-Computes the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` (in the frame of the BVH) and the closest point on the other geometry in `target2` (in the geometry frame).
+Computes the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` (in the frame of the BVH) and the closest point on the other geometry in `target2` (in the geometry frame). If `target1` is not provided a new Object is created and returned from the function.
 
 The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found within the min / max thresholds then `null` is returned and the target objects are not modified.
 
-`target1` and `target2` are optional objects equal to the `target` parameter in [closestPointPoint](#closestPointToPoint)
+`target1` and `target2` are optional objects that similar to the `target` parameter in [closestPointPoint](#closestPointToPoint) and set with the same fields as that function.
 
 The returned in `target1` and `target2` can be used with the standalone function [getTriangleHitPointInfo](#getTriangleHitPointInfo) to obtain more information like UV coordinates, triangle normal and materialIndex.
 
@@ -495,7 +495,7 @@ Get the bounding box of the geometry computed from the root node bounds of the B
 ### .roots
 
 ```js
-roots : Array< ArrayBuffer >
+roots : Array<ArrayBuffer>
 ```
 
 ### .index
@@ -598,7 +598,7 @@ Disposes of the material used.
 firstHitOnly = false : Boolean
 ```
 
-The the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRaycast](#acceleratedRaycast) function will call the [.raycastFirst](#raycastFirst) function to retrieve hits which is generally faster.
+If the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRaycast](#acceleratedRaycast) function will call the [.raycastFirst](#raycastFirst) function to retrieve hits which is generally faster.
 
 ### .computeBoundsTree
 
