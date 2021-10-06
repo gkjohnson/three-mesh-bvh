@@ -8,43 +8,44 @@
 // Lille-Université de Lille, CRIStAL.
 // https://loki.lille.inria.fr
 
-// LICENCE: Licence.md 
-
 import {BufferGeometry, Ray, Mesh, Raycaster, Material, FrontSide, BackSide, 
   Face, Vector2, Vector3, Matrix4, DoubleSide, Box3, Sphere, Triangle, Color,
   LineBasicMaterial, MeshBasicMaterial, Intersection, Side} from 'three';
 
 /** Split each BVH node down the center of the longest axis of the bounds. */
-export type CENTER = 0;
+export const CENTER = 0;
 /** Split each BVH node at the average point along the longest axis for all triangle centroids in the bounds. */
-export type AVERAGE = 1;
-/** Split the bounds more optimally using a Surface Area Heuristic */
-export type SAH = 2;
-/** Split Strategy Constants */
-export type SplitStrategy = CENTER | AVERAGE | SAH;
+export const AVERAGE = 1;
+/** Split the bounds more optimally using a Surface Area Heuristic. */
+export const SAH = 2;
+/** Split Strategy Constants. */
+export type SplitStrategy = typeof CENTER | typeof AVERAGE | typeof SAH;
 
 /** Indicates the shape did not intersect the given bounding box. */
-export type NOT_INTERSECTED = 0;
+export const NOT_INTERSECTED = 0;
 /** Indicates the shape did intersect the given bounding box. */
-export type INTERSECTED = 1;
+export const INTERSECTED = 1;
 /** Indicate the shape entirely contains the given bounding box. */
-export type CONTAINED = 2;
+export const CONTAINED = 2;
 /** Shapecast Intersection Constants */
-export type ShapecastIntersection = NOT_INTERSECTED | INTERSECTED | CONTAINED;
+export type ShapecastIntersection = typeof NOT_INTERSECTED | typeof INTERSECTED | typeof CONTAINED;
 
-export type TRIANGLE_INTERSECT_COST = 1.25;
-export type TRAVERSAL_COST = 1;
-export type SAHCost = TRIANGLE_INTERSECT_COST | TRAVERSAL_COST;
+/** */
+export const TRIANGLE_INTERSECT_COST = 1.25;
+/** */
+export const TRAVERSAL_COST = 1;
+/** SAH Cost Constants */
+export type SAHCost = typeof TRIANGLE_INTERSECT_COST | typeof TRAVERSAL_COST;
 
 // ######################### Data interfaces #########################
 
 /** Information about the triangle hit */
 export interface HitPointInfo {
-  /** hit point */
+  /** Hit point location */
   point: Vector3;
-  /** distance */
+  /** Distance between the point and the target */
   distance: number;
-  /** hit face buffer geometry index */
+  /** Hit face buffer geometry index */
   faceIndex: number;
 }
 
@@ -70,6 +71,9 @@ export interface HitTriangleInfo {
   uv: Vector2
 }
 
+/**
+ * Information about the extremes of thre BVH tree.
+ */
 export interface ExtremeInfo {
   /** The total number of nodes in the tree including leaf nodes. */
   nodeCount: number;
@@ -79,84 +83,11 @@ export interface ExtremeInfo {
   surfaceAreaScore: number;
   /** The min and max of leaf nodes in the tree. */
   depth: {min: number, max: number};
-  /** The min and max number of triangles contained within the bounds the leaf nodes. */
+  /** The min and max number of triangles contained within the bounds of the leaf nodes. */
   tris: {min: number, max: number};
   /** The number of splits on any given axis. */
   splits: [number, number, number];
 }
-
-// ###################  Callbacks types ###################
-
-
-export type TraverseBoundsOrderShapecastCallback = (
-  box: Box3
-) => number;
-
-export type IntersectsBoundsShapecastCallback = (
-  box: Box3,
-  isLeaf: boolean,
-  score: number | undefined,
-  depth: number,
-  nodeIndex: number
-) => ShapecastIntersection;
-
-export type IntersectsRangeShapecastCallback = (
-  triangleOffset: number,
-  triangleCount: number,
-  contained: boolean,
-  depth: number,
-  nodeIndex: number,
-  box: Box3
-) => boolean;
-
-export type IntersectsTriangleShapecastCallback = (
-  triangle: Triangle,
-  triangleIndex: number,
-  contained: boolean,
-  depth: number
-) => boolean;
-
-export type IntersectsTrianglesBvhcastCallback = (
-  /** first tested triangle */
-  triangle1: Triangle,
-  /** second tested triangle */
-  triangle2: Triangle, 
-  /** triangle 1 index in the first buffer geometry */
-  i1: number, 
-  /** triangle 2 index in the second buffer geometry */
-  i2: number, 
-  /** triangle 1 depth level in the first bvh */
-  depth1: number, 
-  index1: number,
-  /** triangle 2 depth level in the second bvh */
-  depth2: number, 
-  index2: number,
-) => boolean;
-
-export type IntersectsRangesBvhcastCallback = (
-  /** offset of triangles iteration begin in first bvh */
-  offset1: number, 
-  /** number of triangles iterated from offset in first bvh */
-  count1: number, 
-  /** offset of triangles iteration begin in second bvh */
-  offset2: number,
-  /** number of triangles iterated from offset in second bvh */ 
-  count2: number, 
-  /** triangle 1 depth level in the first bvh */
-  depth1: number, 
-  index1: number, 
-  /** triangle 2 depth level in the second bvh */
-  depth2: number, 
-  index2: number
-) => boolean;
-
-export type TraverseBVHCallback = (
-  depth: number, 
-  isLeaf: boolean, 
-  boundingData: ArrayBuffer, 
-  offsetOrSplit: number, 
-  count: number 
-) => void;
 
 // ############################### MeshBVH class ###############################
 
@@ -307,24 +238,159 @@ export class MeshBVH {
     maxThreshold?: number
   ): HitPointInfo;
 
+  /**
+   * A generalized cast function that can be used to implement intersection logic for custom shapes.
+   * 
+   * @param      {ShapecastCallbacks}  callbacks   Shapecast callbacks
+   * @return     {boolean}             returns true if a triangle has been intersected
+   */
   shapecast(
     callbacks: {
-      traverseBoundsOrder?: TraverseBoundsOrderShapecastCallback
-      intersectsBounds: IntersectsBoundsShapecastCallback,
-      intersectsRange?: IntersectsRangeShapecastCallback,
-      intersectsTriangle?: IntersectsTriangleShapecastCallback,
+      /**
+       * Returns a score (often distance) used to determine whether the left or right node should be traversed first.
+       *
+       * @param      {Box3}    box     Axis aligned bounding box of the BVH node
+       * @return     {number}  The score given to the BVH node.
+       */
+      traverseBoundsOrder?: (
+        box: Box3
+      ) => number,
+
+      /**
+       * Returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue
+       *
+       * @param      {Box3}                    box        Axis aligned bounding box of the BVH node
+       * @param      {boolean}                 isLeaf     Indicates if node is BVH tree leaf
+       * @param      {(number|undefined)}      score      The score given to a BVH node
+       * @param      {number}                  depth      Depth of the bounds the box or triangles belong or depth of the parent bounds if triangles are marked as contained
+       * @param      {number}                  nodeIndex  Index of the current traversed node
+       * @return     {ShapecastIntersection}   Intersection status of the bounds
+       */
+      intersectsBounds: (
+        box: Box3,
+        isLeaf: boolean,
+        score: number | undefined,
+        depth: number,
+        nodeIndex: number
+      ) => ShapecastIntersection,
+
+      /**
+       * Returns whether or not the triangles in range has been intersected
+       *
+       * @param      {number}   triangleOffset  Starting offset of the geometry triangles to intersect
+       * @param      {number}   triangleCount   Number of triangles of the geometry to intersect
+       * @param      {boolean}  contained       Tell if triangle are completely contained whithin the node
+       * @param      {number}   depth           Depth of the bounds the box or triangles belong or depth of the parent bounds if triangles are marked as contained
+       * @param      {number}   nodeIndex       Index of the current traversed node
+       * @param      {Box3}     box             Axis aligned bounding box of the BVH node
+       * @return     {boolean}  Triangles in range has been intersected
+       */
+      intersectsRange?: (
+        triangleOffset: number,
+        triangleCount: number,
+        contained: boolean,
+        depth: number,
+        nodeIndex: number,
+        box: Box3
+      ) => boolean,
+
+      /**
+       * Returns whether or not the triangle has been intersected
+       *
+       * @param      {Triangle}  triangle       The triangle
+       * @param      {number}    triangleIndex  The triangle index
+       * @param      {boolean}   contained      Indicates if parent is contained
+       * @param      {number}    depth          Depth of the bounds the box or triangles belong or depth of the parent bounds if triangles are marked as contained
+       * @return     {boolean}   Triangle has been intersected
+       */
+      intersectsTriangle?: (
+        triangle: Triangle,
+        triangleIndex: number,
+        contained: boolean,
+        depth: number
+      ) => boolean,
     }
   ): boolean;
+
 
   bvhcast(
     otherBVH: MeshBVH, 
     matrixToLocal: Matrix4, 
     callbacks?: {
-      intersectsRanges?: IntersectsRangesBvhcastCallback,
-      intersectsTriangles?: IntersectsTrianglesBvhcastCallback,
+
+      /**
+       * <TODO>
+       *
+       * @param      {number}  offset1  offset of triangles iteration begin in first bvh
+       * @param      {number}  count1   number of triangles iterated from offset in first bvh
+       * @param      {number}  offset2  offset of triangles iteration begin in second bvh
+       * @param      {number}  count2   number of triangles iterated from offset in second bvh
+       * @param      {number}  depth1   triangle 1 depth level in the first bvh
+       * @param      {number}  index1   Index of the BVH node in the first geometry node containing triangle 1
+       * @param      {number}  depth2   triangle 2 depth level in the second bvh
+       * @param      {number}  index2   Index of the BVH node in the second geometry node containing triangle 2
+       * @return     {boolean}  <TODO>
+       */
+      intersectsRanges?: (
+        offset1: number, 
+        count1: number, 
+        offset2: number,
+        count2: number, 
+        depth1: number, 
+        index1: number, 
+        depth2: number, 
+        index2: number
+      ) => boolean,
+
+      /**
+       * <TODO>
+       *
+       * @param      {Triangle}  triangle1  first tested triangle
+       * @param      {Triangle}  triangle2  second tested triangle
+       * @param      {number}    i1         triangle 1 index in the first buffer geometry
+       * @param      {number}    i2         triangle 2 index in the second buffer geometry
+       * @param      {number}    depth1     triangle 1 depth level in the first bvh
+       * @param      {number}    index1     Index of the BVH node in the first geometry node containing triangle 1
+       * @param      {number}    depth2     triangle 2 depth level in the second bvh
+       * @param      {number}    index2     Index of the BVH node in the second geometry contaiing triangle 2
+       * @return     {boolean}   <TODO>
+       */
+      intersectsTriangles?: (
+        triangle1: Triangle,
+        triangle2: Triangle, 
+        i1: number, 
+        i2: number, 
+        depth1: number, 
+        index1: number,
+        depth2: number, 
+        index2: number,
+      ) => boolean,
     }): boolean;
 
-  traverse(callback: TraverseBVHCallback, rootIndex?: number): void;
+  /**
+   * { function_description }
+   *
+   * @param      {number}  rootIndex  Index of the node to start the traversal
+   */
+  traverse(
+    /**
+     * Traverse the BVH nodes.
+     *
+     * @param      {number}       depth          The depth
+     * @param      {boolean}      isLeaf         Indicates if leaf
+     * @param      {ArrayBuffer}  boundingData   The bounding data
+     * @param      {number}       offsetOrSplit  The offset or split
+     * @param      {number}       count          The count
+     */
+    callback: (
+      depth: number, 
+      isLeaf: boolean, 
+      boundingData: ArrayBuffer, 
+      offsetOrSplit: number, 
+      count: number 
+    ) => void, 
+    rootIndex?: number
+  ): void;
 
   /**
    * Refit the node bounds to the current triangle positions
@@ -498,15 +564,39 @@ export class GenerateMeshBVHWorker {
  */
 export function estimateMemoryInBytes(bvh: MeshBVH ): number;
 
+/**
+ * Gets the bvh extremes.
+ *
+ * @param      {MeshBVH}              bvh     The bvh
+ * @return     {Array<ExtremeInfo>}   Array of ExtremeInfo objects
+ */
 export function getBVHExtremes(bvh :MeshBVH ): Array<ExtremeInfo>;
 
+/**
+ * <TODO>
+ *
+ * @param      {MeshBVH}  bvh     The bvh
+ * @return     {boolean}  <TODO>
+ */
 export function validateBounds(bvh: MeshBVH): boolean;
 
-// TODO: Set the return type
-export function getJSONStructure(bvh: MeshBVH): any;
+/**
+ * Gets the json structure.
+ *
+ * @param      {MeshBVH}  bvh     The bvh
+ * @return     {any}      The json structure.
+ */
+export function getJSONStructure(bvh: MeshBVH): any; // Return type?
 
 //############################## Extra functions ###############################
 
+/**
+ * Generates a MeshBVH structure for the given geometry asynchronously.
+ *
+ * @param      {BufferGeometry}    geometry  The Buffer Geometry
+ * @param      {MeshBVHOptions}    options   MeshBVH build options
+ * @return     {Promise<MeshBVH>}  MeshBVH as a promise.
+ */
 export function generateAsync(geometry: BufferGeometry, 
   options?: MeshBVHOptions): Promise<MeshBVH>;
 

@@ -350,7 +350,6 @@ describe( 'Options', () => {
 			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
 
 		} );
-
 	} );
 
 	describe( 'useSharedArrayBuffer', () => {
