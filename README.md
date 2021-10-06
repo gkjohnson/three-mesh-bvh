@@ -196,7 +196,7 @@ Indicate the shape entirely contains the given bounding box.
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
 
-Note that all query functions expect arguments in local space of the mesh and return results in local space, as well. If world space results are needed (as three.js' raycaster returns) they must be transformed into world space using `object.matrixWorld`.
+Note that all query functions expect arguments in local space of the BVH and return results in local space, as well. If world space results are needed they must be transformed into world space using `object.matrixWorld`.
 
 ### static .serialize
 
@@ -285,12 +285,12 @@ Constructs the bounds tree for the given geometry and produces a new index attri
 raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Array<RaycastHit>
 ```
 ```js
-raycast( ray : Ray, material : Material | Array<Material> ) : Array<RaycastHit>
+raycast( ray : Ray, material : Array<Material> | Material ) : Array<RaycastHit>
 ```
 
-Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the mesh being raycast against and that the geometry on `mesh` is the same as the one used to generate the bvh. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
+Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the BVH already. Likewise the returned results are also provided in the local frame of the BVH. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
 
-Unlike three.js' Raycaster restults the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function as an override for `Mesh.raycast` they are transformed into world space to be consistent with three's results.
+Note that unlike three.js' Raycaster results the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function as an override for `Mesh.raycast` they are transformed into world space to be consistent with three's results.
 
 ### .raycastFirst
 
@@ -298,7 +298,7 @@ Unlike three.js' Raycaster restults the points and distances in the intersection
 raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : RaycastHit
 ```
 ```js
-raycastFirst( ray : Ray, material : Material | Array<Material> ) : RaycastHit
+raycastFirst( ray : Ray, material : Array<Material> | Material ) : RaycastHit
 ```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits. See [raycast](#raycast) for information on the side and material options as well as the frame of the returned intersections.
@@ -329,7 +329,7 @@ intersectsGeometry( geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boole
 
 Returns whether or not the mesh intersects the given geometry.
 
-The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+The `geometryToBvh` parameter is the transform of the geometry in the BVH's local frame.
 
 Performance improves considerably if the provided geometry _also_ has a `boundsTree`.
 
@@ -338,13 +338,13 @@ Performance improves considerably if the provided geometry _also_ has a `boundsT
 ```js
 closestPointToPoint(
 	point : Vector3,
-	target : Object = { },
+	target : Object = {},
 	minThreshold : Number = 0,
 	maxThreshold : Number = Infinity
-) : Number
+) : target
 ```
 
-Computes the closest distance from the point to the mesh and gives additional information in `target`. The target can be left undefined to default to a new object.
+Computes the closest distance from the point to the mesh and gives additional information in `target`. The target can be left undefined to default to a new object which is ultimately returned by the function.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found within the min / max thresholds then `null` is returned and the `target` object is not modified.
 
@@ -352,7 +352,7 @@ If a point is found that is closer than `minThreshold` then the function will re
 target : {
 	point : Vector3,
 	distance : Number,
-	faceIndex: Number
+	faceIndex : Number
 }
 ```
 
@@ -364,20 +364,20 @@ The returned faceIndex can be used with the standalone function [getTriangleHitP
 closestPointToGeometry(
 	geometry : BufferGeometry,
 	geometryToBvh : Matrix4,
-	target1 : Vector3 = null,
-	target2 : Vector3 = null,
+	target1 : Object = {},
+	target2 : Object = {},
 	minThreshold : Number = 0,
 	maxThreshold : Number = Infinity
-) : Number
+) : target1
 ```
 
-Computes the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` (in the frame of the BVH) and the closest point on the other geometry in `target2` (in the geometry frame).
+Computes the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` (in the frame of the BVH) and the closest point on the other geometry in `target2` (in the geometry frame). If `target1` is not provided a new Object is created and returned from the function.
 
-The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+The `geometryToBvh` parameter is the transform of the geometry in the BVH's local frame.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found within the min / max thresholds then `null` is returned and the target objects are not modified.
 
-`target1` and `target2` are optional objects equal to the `target` parameter in [closestPointPoint](#closestPointToPoint)
+`target1` and `target2` are optional objects that similar to the `target` parameter in [closestPointPoint](#closestPointToPoint) and set with the same fields as that function.
 
 The returned in `target1` and `target2` can be used with the standalone function [getTriangleHitPointInfo](#getTriangleHitPointInfo) to obtain more information like UV coordinates, triangle normal and materialIndex.
 
@@ -422,33 +422,28 @@ shapecast(
 ) : Boolean
 ```
 
-A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox), [intersectsSphere](#intersectsSphere), and more. The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `traverseBoundsOrder`, `intersectsBoundsFunc`, `intersectsRange`, and `intersectsTriangle` for each node and using the results to determine traversal depth. The `depth` value passed to callbacks indicates the depth of the bounds the provided box or bounds belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. It can be used to precompute, cache, and then read information about a parent bound to improve performance while traversing. The `triangleIndex` parameter specifies the index of the triangle in the index buffer. The three vertex indices can be computed as `triangleIndex * 3 + 0`, `triangleIndex * 3 + 1`, `triangleIndex * 3 + 2`.
+A generalized cast function that can be used to implement intersection logic for custom shapes. This is used internally for [intersectsBox](#intersectsBox), [intersectsSphere](#intersectsSphere), and more. The function returns as soon as a triangle has been reported as intersected and returns `true` if a triangle has been intersected. The bounds are traversed in depth first order calling `traverseBoundsOrder`, `intersectsBoundsFunc`, `intersectsRange`, and `intersectsTriangle` for each node and using the results to determine when to end traversal. The `depth` value passed to callbacks indicates the depth of the bounds the provided box or triangle range belongs to unless the triangles are indicated to be `CONTAINED`, in which case depth is the depth of the parent bounds that were contained. The depth field can be used to precompute, cache to an array, and then read information about a parent bound to improve performance while traversing because nodes are traversed in a dpeth first order. The `triangleIndex` parameter specifies the index of the triangle in the index buffer. The three vertex indices can be computed as `triangleIndex * 3 + 0`, `triangleIndex * 3 + 1`, `triangleIndex * 3 + 2`.
 
-`traverseBoundsOrder` takes the axis aligned bounding box representing an internal node local to the bvh and returns a score (often distance) used to determine whether the left or right node should be traversed first. The shape with the lowest score is traversed first.
+`traverseBoundsOrder` takes as an argument the axis aligned bounding box representing an internal node local to the BVH and returns a score (often distance) used to determine whether the left or right node should be traversed first. The shape with the lowest score is traversed first.
 
-`intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, and the score calculated by `orderNodesFunc`, the node depth, and the node index (for use with the [refit](#refit) function) and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned (meaning the bounds is entirely encapsulated by the shape) then an optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
+`intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, the score calculated by `traverseBoundsOrder`, the node depth, and the node index (for use with the [refit](#refit) function) and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned (meaning the bounds is entirely encapsulated by the shape) then an optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
 
 `intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
 
-`intersectsTriangle` takes a triangle and the triangle index and returns whether or not the triangle has been intersected. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained in the `intersectsBoundsFunc` function.
-
+`intersectsTriangle` takes a triangle and the triangle index and returns whether or not the triangle has been intersected. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained (returned `CONTAINED`) in the `intersectsBoundsFunc` function.
 
 ### .refit
 
 ```js
-refit(
-	traversedNodeIndices : Array<Number> | Set<Number> = null,
-	endNodeIndices : Array<Number> | Set<Number> = null
-) : void
+refit( nodeIndices : Array<Number> | Set<Number> = null ) : void
 ```
 
-Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices. `traversedNodeIndices` is a set of node indices (provided by the [shapecast](#shapecast) function) that need to be refit including all internal nodes. `endNodeIndices` is the set of nodes that traversal ended at and that triangles need to be updated for. If neither index set is provided then the whole BVH is updated which is significantly slower than surgically updating the nodes that need to be updated.
+Refit the node bounds to the current triangle positions. This is quicker than regenerating a new BVH but will not be optimal after significant changes to the vertices. `nodeIndices` is a set of node indices (provided by the [shapecast](#shapecast) function, see example snippet below) that need to be refit including all internal nodes. If one of a nodes children is also included in the set of node indices then only the included child bounds are traversed. If neither child index is included in the `nodeIndices` set, though, then it is assumed that every child below that node needs to be updated.
 
 Here's how to get the set of indices that need to be refit:
 
 ```js
-const traversedNodeIndices = new Set();
-const endNodeIndices = new Set();
+const nodeIndices = new Set();
 bvh.shapecast(
 
 	{
@@ -457,7 +452,7 @@ bvh.shapecast(
 
 			if ( /* intersects shape */ ) {
 
-				traversedNodeIndices.add( nodeIndex );
+				nodeIndices.add( nodeIndex );
 				return INTERSECTED;
 
 			}
@@ -468,8 +463,11 @@ bvh.shapecast(
 
 		intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
 
-			// collect triangles to update
-			endNodeIndices.add( nodeIndex );
+			/* collect triangles / vertices to move */
+
+			// the nodeIndex here will have always already been added to the set in the
+			// `intersectsBounds` callback.
+			nodeIndices.add( nodeIndex );
 
 		}
 
@@ -477,9 +475,10 @@ bvh.shapecast(
 
 );
 
-// update the positions of the triangle vertices
+/* update the positions of the triangle vertices */
 
-bvh.refit( traversedNodeIndices, endNodeIndices );
+// update the BVH bounds of just the bounds that need to be updated
+bvh.refit( nodeIndices );
 ```
 
 ### .getBoundingBox
@@ -490,45 +489,12 @@ getBoundingBox( target : Box3 ) : Box3
 
 Get the bounding box of the geometry computed from the root node bounds of the BVH. Significantly faster than `BufferGeometry.computeBoundingBox`.
 
-### getTriangleHitPointInfo
-
-```js
-getTriangleHitPointInfo(
-	point: Vector3,
-	geometry : BufferGeometry,
-	triangleIndex: Number
-	target: Object
-): Object
-```
-
-This function returns information of a point related to a geometry. It returns the `target` object or a new one if passed `undefined`:
-
-```js
-target : {
-	face: {
-		a: Number,
-		b: Number,
-		c: Number,
-		materialIndex: Number,
-		normal: Vector3
-	},
-	uv: Vector2
-}
-```
-
-- `a`, `b`, `c`: Triangle indices
-- `materialIndex`: Face material index or 0 if not available.
-- `normal`: Face normal
-- `uv`: UV coordinates.
-
-This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
-
 ## SerializedBVH
 
 ### .roots
 
 ```js
-roots : Array< ArrayBuffer >
+roots : Array<ArrayBuffer>
 ```
 
 ### .index
@@ -631,7 +597,7 @@ Disposes of the material used.
 firstHitOnly = false : Boolean
 ```
 
-The the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRaycast](#acceleratedRaycast) function will call the [.raycastFirst](#raycastFirst) function to retrieve hits which is generally faster.
+If the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRaycast](#acceleratedRaycast) function will call the [.raycastFirst](#raycastFirst) function to retrieve hits which is generally faster.
 
 ### .computeBoundsTree
 
@@ -663,7 +629,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 acceleratedRaycast( ... )
 ```
 
-An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach.
+An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach. The results of the function are designed to be identical to the results of the conventional `THREE.Mesh.raycast` results.
 
 If the raycaster object being used has a property `firstHitOnly` set to `true`, then the raycasting will terminate as soon as it finds the closest intersection to the ray's origin and return only that intersection. This is typically several times faster than searching for all intersections.
 
@@ -747,22 +713,46 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 
 _NOTE The when using the [refit](#refit) function the `surfaceAreaScore` can be used to check how significantly the structure of the BVH has degraded and rebuild it if it has changed beyond some threshold ratio._
 
-## Extra Functions
+## Individual Functions
 
-List of functions stored in the `src/workers/` and are not exported via index.js because they require extra effort to integrate with some build processes. UMD variants of these functions are not provided.
+Functions exported individually not part of a class.
 
-### generateAsync
+### getTriangleHitPointInfo
 
 ```js
-generateAsync( geometry : BufferGeometry, options : Object ) : Promise<MeshBVH>
+getTriangleHitPointInfo(
+	point: Vector3,
+	geometry : BufferGeometry,
+	triangleIndex: Number
+	target: Object
+) : Object
 ```
 
-Generates a BVH for the given geometry in a WebWorker so it can be created asynchronously. A Promise is returned that resolves with the generated BVH. During the generation the `geometry.attributes.position` array and `geometry.index` array (if it exists) are transferred to the worker so the geometry will not be usable until the BVH generation is complete and the arrays are transferred back.
+This function returns information of a point related to a geometry. It returns the `target` object or a new one if passed `undefined`:
+
+```js
+target : {
+	face: {
+		a: Number,
+		b: Number,
+		c: Number,
+		materialIndex: Number,
+		normal: Vector3
+	},
+	uv: Vector2
+}
+```
+
+- `a`, `b`, `c`: Triangle indices
+- `materialIndex`: Face material index or 0 if not available.
+- `normal`: Face normal
+- `uv`: UV coordinates.
+
+This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
 
 ## Gotchas
 
 - When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
-- This is intended to be used with complicated, high-poly meshes. With less complex meshes, the benefits are negligible.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
   be produced and retained as a side effect of the construction.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -187,7 +187,7 @@ function init() {
 		// internalFormat: 'R16UI'
 	} );
 
-	fsQuad = new Pass.FullScreenQuad( new TraverseMaterial( {
+	fsQuad = new FullScreenQuad( new TraverseMaterial( {
 
 		map: renderTarget.texture,
 		depthWrite: false,
