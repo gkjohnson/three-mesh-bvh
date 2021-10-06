@@ -630,7 +630,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 acceleratedRaycast( ... )
 ```
 
-An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach.
+An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH for raycasting if it's available otherwise it falls back to the built-in approach. The results of the function are designed to be identical to the results of the conventional `THREE.Mesh.raycast` results.
 
 If the raycaster object being used has a property `firstHitOnly` set to `true`, then the raycasting will terminate as soon as it finds the closest intersection to the ray's origin and return only that intersection. This is typically several times faster than searching for all intersections.
 
