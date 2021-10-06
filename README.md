@@ -196,7 +196,7 @@ Indicate the shape entirely contains the given bounding box.
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
 
-Note that all query functions expect arguments in local space of the mesh and return results in local space, as well. If world space results are needed (as three.js' raycaster returns) they must be transformed into world space using `object.matrixWorld`.
+Note that all query functions expect arguments in local space of the BVH and return results in local space, as well. If world space results are needed they must be transformed into world space using `object.matrixWorld`.
 
 ### static .serialize
 
@@ -288,9 +288,9 @@ raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Arr
 raycast( ray : Ray, material : Array<Material> | Material ) : Array<RaycastHit>
 ```
 
-Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the BVH already. If calling `raycast` directly rather than through the `Raycaster.intersectObject(s)` functions this will usually meaning applying the inverse world matrix transformation of a mesh to the ray beforehand. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
+Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the BVH already. Likewise the returned results are also provided in the local frame of the BVH. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
 
-Unlike three.js' Raycaster results the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function as an override for `Mesh.raycast` they are transformed into world space to be consistent with three's results.
+Note that unlike three.js' Raycaster results the points and distances in the intersections returned from this function are relative to the local frame of the MeshBVH. When using the [acceleratedRaycast](#acceleratedRaycast) function as an override for `Mesh.raycast` they are transformed into world space to be consistent with three's results.
 
 ### .raycastFirst
 
@@ -329,7 +329,7 @@ intersectsGeometry( geometry : BufferGeometry, geometryToBvh : Matrix4 ) : Boole
 
 Returns whether or not the mesh intersects the given geometry.
 
-The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+The `geometryToBvh` parameter is the transform of the geometry in the BVH's local frame.
 
 Performance improves considerably if the provided geometry _also_ has a `boundsTree`.
 
@@ -373,7 +373,7 @@ closestPointToGeometry(
 
 Computes the closest distance from the geometry to the mesh and puts the closest point on the mesh in `target1` (in the frame of the BVH) and the closest point on the other geometry in `target2` (in the geometry frame). If `target1` is not provided a new Object is created and returned from the function.
 
-The `geometryToBvh` parameter is the transform of the geometry in the mesh's frame.
+The `geometryToBvh` parameter is the transform of the geometry in the BVH's local frame.
 
 If a point is found that is closer than `minThreshold` then the function will return that result early. Any triangles or points outside of `maxThreshold` are ignored. If no point is found within the min / max thresholds then `null` is returned and the target objects are not modified.
 
@@ -725,7 +725,7 @@ getTriangleHitPointInfo(
 	geometry : BufferGeometry,
 	triangleIndex: Number
 	target: Object
-): Object
+) : Object
 ```
 
 This function returns information of a point related to a geometry. It returns the `target` object or a new one if passed `undefined`:
