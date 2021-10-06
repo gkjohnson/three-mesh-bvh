@@ -69,7 +69,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData,
 				index: indexAttribute.array,
-			}
+			};
 
 		}
 
