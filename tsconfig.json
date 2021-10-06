@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "outDir": "./build/app",
+    "module": "ES6",
+    "target": "ES6",
+    "jsx": "react",
+    "moduleResolution": "node",
+    "downlevelIteration": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "removeComments": true,
+    "strictNullChecks":true,
+    "strict": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,    
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+
+    "baseUrl": ".",
+
+    // "typeRoots": [
+    //   "src/index.d.ts",
+    // ],
+
+    "lib": [
+      "dom",
+      "ES6",
+      "ES2020.Promise",
+    ]
+  },
+  "include": [
+    "src",
+  ],
+  "files" : [
+    // "src/index.d.ts",
+    "test/Typescript.test.ts"
+  ]
+}
