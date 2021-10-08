@@ -222,8 +222,17 @@ describe( 'Serialization', () => {
 		const geom = new SphereBufferGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 
-		expect( geom.index.array ).not.toBe( MeshBVH.serialize( bvh ).index );
-		expect( geom.index.array ).toBe( MeshBVH.serialize( bvh, { copyIndexBuffer: false } ).index );
+		const serialized1 = MeshBVH.serialize( bvh );
+		expect( geom.index.array ).not.toBe( serialized1.index );
+		expect( bvh._roots ).not.toBe( serialized1.roots );
+		expect( bvh._roots[ 0 ] ).not.toBe( serialized1.roots[ 0 ] );
+		expect( bvh._roots ).toEqual( serialized1.roots );
+
+		const serialized2 = MeshBVH.serialize( bvh, { cloneBuffers: false } );
+		expect( geom.index.array ).toBe( serialized2.index );
+		expect( bvh._roots ).toBe( serialized2.roots );
+		expect( bvh._roots[ 0 ] ).toBe( serialized2.roots[ 0 ] );
+		expect( bvh._roots ).toEqual( serialized2.roots );
 
 	} );
 
