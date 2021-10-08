@@ -645,6 +645,8 @@ Helper class for generating a MeshBVH for a given geometry in asynchronously in 
 
 _NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating a new Worker._
 
+_See note in [Asyncronous Generation](#asynchronous-generation) use snippet._
+
 ### .running
 
 ```js
