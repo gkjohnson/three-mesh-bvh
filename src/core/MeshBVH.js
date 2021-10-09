@@ -1,6 +1,6 @@
 import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
-import { CENTER } from './Constants.js';
-import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, buildPackedTree } from './buildFunctions.js';
+import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
+import { buildPackedTree } from './buildFunctions.js';
 import {
 	raycast,
 	raycastFirst,
@@ -368,6 +368,7 @@ export class MeshBVH {
 
 			} else {
 
+				// TODO: use node functions here
 				const left = node32Index + BYTES_PER_NODE / 4;
 				const right = uint32Array[ node32Index + 6 ];
 				const splitAxis = uint32Array[ node32Index + 7 ];
