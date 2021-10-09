@@ -3,6 +3,8 @@ import {
 	FloatType,
 	IntType,
 	UnsignedIntType,
+	ByteType,
+	UnsignedByteType,
 
 	RedFormat,
 	RGFormat,
@@ -58,6 +60,40 @@ function countToIntFormat( count ) {
 
 }
 
+export class UnsignedIntVertexAttributeTexture extends VertexAttributeTexture {
+
+	constructor() {
+
+		super();
+		this._forcedType = UnsignedIntType;
+
+	}
+
+}
+
+export class IntVertexAttributeTexture extends VertexAttributeTexture {
+
+	constructor() {
+
+		super();
+		this._forcedType = IntType;
+
+	}
+
+
+}
+
+export class FloatVertexAttributeTexture extends VertexAttributeTexture {
+
+	constructor() {
+
+		super();
+		this._forcedType = FloatType;
+
+	}
+
+}
+
 export class VertexAttributeTexture extends DataTexture {
 
 	constructor() {
@@ -65,6 +101,7 @@ export class VertexAttributeTexture extends DataTexture {
 		this.minFilter = NearestFilter;
 		this.magFilter = NearestFilter;
 		this.generateMipmaps = false;
+		this._forcedType = null;
 
 	}
 
@@ -72,59 +109,126 @@ export class VertexAttributeTexture extends DataTexture {
 
 		const itemSize = attr.itemSize;
 		const normalized = attr.normalized;
-		const bufferCons = attr.array.constructor;
+		const originalBufferCons = attr.array.constructor;
 		const count = attr.count;
+		const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
+		let targetType = this._forcedType;
 
-		let type, format, normalizeValue;
+		// derive the type of texture this should be in the shader
+		if ( targetType === null ) {
+
+			switch ( originalBufferCons ) {
+
+				case Float32Array:
+					targetType = FloatType;
+					break;
+
+				case Uint8Array:
+				case Uint16Array:
+				case Uint32Array:
+					targetType = UnsignedIntType;
+					break;
+
+				case Int8Array:
+				case Int16Array:
+				case Int32Array:
+					targetType = IntType;
+					break;
+
+			}
+
+		}
+
+		// get the target format to store the texture as
+		let type, format, normalizeValue, targetBufferCons;
 		let internalFormat = countToStringFormat( itemSize );
-		switch ( bufferCons ) {
+		switch ( targetType ) {
 
-			case Float32Array:
-				type = FloatType;
-				format = countToFormat( itemSize );
-				internalFormat += '32F';
+			case FloatType:
 				normalizeValue = 1.0;
+				format = countToFormat( byteCount );
+
+				if ( normalized && byteCount === 1 ) {
+
+					targetBufferCons = originalBufferCons;
+					internalFormat += '8';
+
+					if ( originalBufferCons === Uint8Array ) {
+
+						type = UnsignedByteType;
+						internalFormat += '_SNORM';
+
+					} else {
+
+						type = ByteType;
+
+					}
+
+				} else {
+
+					targetBufferCons = Float32Array;
+					internalFormat += '32F';
+					type = FloatType;
+
+				}
+
 				break;
 
-			case Uint8Array:
-			case Uint16Array:
-			case Uint32Array:
-				type = UnsignedIntType;
-				format = countToIntFormat( itemSize );
-				internalFormat += bufferCons.BYTES_PER_ELEMENT * 8 + 'UI';
-				normalizeValue = Math.pow( 2, bufferCons.BYTES_PER_ELEMENT * 8 );
-				break;
-
-			case Int8Array:
-			case Int16Array:
-			case Int32Array:
+			case IntType:
+				internalFormat += byteCount * 8 + 'I';
 				type = IntType;
-				format = countToIntFormat( itemSize );
-				internalFormat += bufferCons.BYTES_PER_ELEMENT * 8 + 'I';
-				normalizeValue = Math.pow( 2, bufferCons.BYTES_PER_ELEMENT * 8 - 1 );
+				normalizeValue = normalized ? Math.pow( 2, originalBufferCons.BYTES_PER_ELEMENT * 8 - 1 ) : 1.0;
+				format = countToIntFormat( byteCount );
+
+				if ( byteCount === 1 ) {
+
+					targetBufferCons = Int8Array;
+
+				} else if ( targetBufferCons === 2 ) {
+
+					targetBufferCons = Int16Array;
+
+				} else {
+
+					targetBufferCons = Int32Array;
+
+				}
+
+				break;
+
+			case UnsignedIntType:
+				internalFormat += byteCount * 8 + 'UI';
+				type = UnsignedIntType;
+				normalizeValue = normalized ? Math.pow( 2, originalBufferCons.BYTES_PER_ELEMENT * 8 - 1 ) : 1.0;
+				format = countToIntFormat( byteCount );
+
+				if ( byteCount === 1 ) {
+
+					targetBufferCons = Uint8Array;
+
+				} else if ( targetBufferCons === 2 ) {
+
+					targetBufferCons = Uint16Array;
+
+				} else {
+
+					targetBufferCons = Uint32Array;
+
+				}
+
 				break;
 
 		}
 
-		if ( normalized ) {
-
-			type = FloatType;
-			format = countToFormat( itemSize );
-			internalFormat = `${ countToStringFormat( itemSize ) }32F`;
-
-		} else {
-
-			normalizeValue = 1.0;
-
-		}
-
+		// copy the data over to the new texture array
 		const dimension = Math.ceil( Math.sqrt( count ) );
 		const length = dimension * dimension;
-		const dataArray = new bufferCons( length );
+		const dataArray = new originalBufferCons( length );
 		for ( let i = 0; i < count; i ++ ) {
 
 			const ii = itemSize * i;
 			dataArray[ ii ] = attr.getX( i ) / normalizeValue;
+
 			if ( itemSize >= 2 ) {
 
 				dataArray[ ii + 1 ] = attr.getY( i ) / normalizeValue;
