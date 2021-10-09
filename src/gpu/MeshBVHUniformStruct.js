@@ -33,25 +33,37 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	const boundsDimension = Math.ceil( Math.sqrt( nodeCount / 2 ) );
 	const boundsArray = new Float32Array( 2 * 2 * boundsDimension * boundsDimension );
 
-	const contentsDimension = Math.ceil( Math.ceil( nodeCount / 4 ) );
-	const contentsArray = new Uint8Array( 4 * 4 * contentsDimension * contentsDimension );
+	const contentsDimension = Math.ceil( Math.ceil( nodeCount / 2 ) );
+	const contentsArray = new Uint32Array( 2 * 2 * contentsDimension * contentsDimension );
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 
 		// TODO: adjust the original buffer to not store data in bytes
 		const nodeIndex = i * BYTES_PER_NODE;
 		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex );
+		for ( let b = 0; b < 6; b ++ ) {
+
+			boundsArray[ b ] = float32Array[ boundsIndex + b ];
+
+		}
 
 		if ( IS_LEAF( nodeIndex ) ) {
 
 			const count = COUNT( nodeIndex * 2, uint16Array );
 			const offset = OFFSET( nodeIndex, uint32Array );
 
+			const mergedLeafCount = 0xffff0000 | count;
+			contentsArray[ i * 2 + 0 ] = mergedLeafCount;
+			contentsArray[ i * 2 + 1 ] = offset;
+
 		} else {
 
+			// const rightIndex = RIGHT_NODE( nodeIndex, uint32Array ) / BYTES_PER_NODE;
 			const leftIndex = LEFT_NODE( nodeIndex ) / BYTES_PER_NODE;
-			const rightIndex = RIGHT_NODE( nodeIndex, uint32Array ) / BYTES_PER_NODE;
 			const splitAxis = SPLIT_AXIS( nodeIndex, uint32Array );
+
+			contentsArray[ i * 2 + 0 ] = leftIndex;
+			contentsArray[ i * 2 + 1 ] = splitAxis;
 
 		}
 
