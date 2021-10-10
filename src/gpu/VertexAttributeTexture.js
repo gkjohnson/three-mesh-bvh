@@ -151,7 +151,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 					targetBufferCons = Int8Array;
 
-				} else if ( targetBufferCons === 2 ) {
+				} else if ( byteCount === 2 ) {
 
 					targetBufferCons = Int16Array;
 
@@ -173,7 +173,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 					targetBufferCons = Uint8Array;
 
-				} else if ( targetBufferCons === 2 ) {
+				} else if ( byteCount === 2 ) {
 
 					targetBufferCons = Uint16Array;
 
@@ -190,7 +190,7 @@ export class VertexAttributeTexture extends DataTexture {
 		// copy the data over to the new texture array
 		const dimension = Math.ceil( Math.sqrt( count ) );
 		const length = dimension * dimension;
-		const dataArray = new originalBufferCons( length );
+		const dataArray = new targetBufferCons( length );
 		for ( let i = 0; i < count; i ++ ) {
 
 			const ii = itemSize * i;
