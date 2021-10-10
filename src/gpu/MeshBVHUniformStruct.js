@@ -46,11 +46,11 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 
-		const nodeIndex = i * BYTES_PER_NODE;
+		const nodeIndex = i * BYTES_PER_NODE / 4;
 		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex );
 		for ( let b = 0; b < 6; b ++ ) {
 
-			boundsArray[ b ] = float32Array[ boundsIndex + b ];
+			boundsArray[ 6 * i + b ] = float32Array[ boundsIndex + b ];
 
 		}
 
