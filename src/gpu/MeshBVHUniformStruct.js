@@ -36,7 +36,8 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	const uint32Array = new Uint32Array( root );
 	const float32Array = new Float32Array( root );
 
-	// TODO: comment on logic here
+	// Both bounds need two elements per node so compute the height so it's twice as long as
+	// the width so we can expand the row by two and still have a square texture
 	const nodeCount = root.length / BYTES_PER_NODE;
 	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
 	const boundsArray = new Float32Array( boundsDimension * boundsDimension );
@@ -85,6 +86,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	boundsTexture.minFilter = NearestFilter;
 	boundsTexture.magFilter = NearestFilter;
 	boundsTexture.generateMipmaps = false;
+	boundsTexture.needsUpdate = true;
 
 	contentsTexture.image.data = contentsArray;
 	contentsTexture.image.width = contentsDimension;
@@ -95,6 +97,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	contentsTexture.minFilter = NearestFilter;
 	contentsTexture.magFilter = NearestFilter;
 	contentsTexture.generateMipmaps = false;
+	contentsTexture.needsUpdate = true;
 
 }
 
