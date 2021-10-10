@@ -7,14 +7,14 @@ struct BVH {
 	sampler2D bvhBounds;
 	usampler2D bvhContents;
 
-}
+};
 
 struct Ray {
 
 	vec3 origin;
 	vec3 direction;
 
-}
+};
 
 struct Face {
 
@@ -23,7 +23,7 @@ struct Face {
 	vec3 c;
 	vec3 normal;
 
-}
+};
 
 struct RayHit {
 
@@ -31,7 +31,7 @@ struct RayHit {
 	vec3 point;
 	float dist;
 
-}
+};
 `;
 
 export const shaderIntersectFunction = /* glsl */`

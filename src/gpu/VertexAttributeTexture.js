@@ -5,6 +5,8 @@ import {
 	UnsignedIntType,
 	ByteType,
 	UnsignedByteType,
+	ShortType,
+	UnsignedShortType,
 
 	RedFormat,
 	RGFormat,
@@ -113,7 +115,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 			case FloatType:
 				normalizeValue = 1.0;
-				format = countToFormat( byteCount );
+				format = countToFormat( itemSize );
 
 				if ( normalized && byteCount === 1 ) {
 
@@ -143,21 +145,23 @@ export class VertexAttributeTexture extends DataTexture {
 
 			case IntType:
 				internalFormat += byteCount * 8 + 'I';
-				type = IntType;
 				normalizeValue = normalized ? Math.pow( 2, originalBufferCons.BYTES_PER_ELEMENT * 8 - 1 ) : 1.0;
-				format = countToIntFormat( byteCount );
+				format = countToIntFormat( itemSize );
 
 				if ( byteCount === 1 ) {
 
 					targetBufferCons = Int8Array;
+					type = ByteType;
 
 				} else if ( byteCount === 2 ) {
 
 					targetBufferCons = Int16Array;
+					type = ShortType;
 
 				} else {
 
 					targetBufferCons = Int32Array;
+					type = IntType;
 
 				}
 
@@ -165,21 +169,23 @@ export class VertexAttributeTexture extends DataTexture {
 
 			case UnsignedIntType:
 				internalFormat += byteCount * 8 + 'UI';
-				type = UnsignedIntType;
 				normalizeValue = normalized ? Math.pow( 2, originalBufferCons.BYTES_PER_ELEMENT * 8 - 1 ) : 1.0;
-				format = countToIntFormat( byteCount );
+				format = countToIntFormat( itemSize );
 
 				if ( byteCount === 1 ) {
 
 					targetBufferCons = Uint8Array;
+					type = UnsignedByteType;
 
 				} else if ( byteCount === 2 ) {
 
 					targetBufferCons = Uint16Array;
+					type = UnsignedShortType;
 
 				} else {
 
 					targetBufferCons = Uint32Array;
+					type = UnsignedIntType;
 
 				}
 
@@ -189,7 +195,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 		// copy the data over to the new texture array
 		const dimension = Math.ceil( Math.sqrt( count ) );
-		const length = dimension * dimension;
+		const length = itemSize * dimension * dimension;
 		const dataArray = new targetBufferCons( length );
 		for ( let i = 0; i < count; i ++ ) {
 

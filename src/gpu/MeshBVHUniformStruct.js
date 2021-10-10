@@ -37,12 +37,12 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 
 	// Both bounds need two elements per node so compute the height so it's twice as long as
 	// the width so we can expand the row by two and still have a square texture
-	const nodeCount = root.length / BYTES_PER_NODE;
+	const nodeCount = root.byteLength / BYTES_PER_NODE;
 	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
-	const boundsArray = new Float32Array( boundsDimension * boundsDimension );
+	const boundsArray = new Float32Array( 3 * boundsDimension * boundsDimension );
 
-	const contentsDimension = 2 * Math.ceil( Math.ceil( nodeCount / 2 ) );
-	const contentsArray = new Uint32Array( contentsDimension * contentsDimension );
+	const contentsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
+	const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 
@@ -54,7 +54,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 
 		}
 
-		if ( IS_LEAF( nodeIndex ) ) {
+		if ( IS_LEAF( nodeIndex, uint16Array ) ) {
 
 			const count = COUNT( nodeIndex * 2, uint16Array );
 			const offset = OFFSET( nodeIndex, uint32Array );
