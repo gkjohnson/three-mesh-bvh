@@ -17,7 +17,6 @@ import {
 	IS_LEAF,
 	LEFT_NODE,
 	OFFSET,
-	RIGHT_NODE,
 	SPLIT_AXIS,
 } from '../core/nodeBufferFunctions.js';
 

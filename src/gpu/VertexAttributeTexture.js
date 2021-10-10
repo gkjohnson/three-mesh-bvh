@@ -60,44 +60,11 @@ function countToIntFormat( count ) {
 
 }
 
-export class UnsignedIntVertexAttributeTexture extends VertexAttributeTexture {
-
-	constructor() {
-
-		super();
-		this._forcedType = UnsignedIntType;
-
-	}
-
-}
-
-export class IntVertexAttributeTexture extends VertexAttributeTexture {
-
-	constructor() {
-
-		super();
-		this._forcedType = IntType;
-
-	}
-
-
-}
-
-export class FloatVertexAttributeTexture extends VertexAttributeTexture {
-
-	constructor() {
-
-		super();
-		this._forcedType = FloatType;
-
-	}
-
-}
-
 export class VertexAttributeTexture extends DataTexture {
 
 	constructor() {
 
+		super();
 		this.minFilter = NearestFilter;
 		this.magFilter = NearestFilter;
 		this.generateMipmaps = false;
@@ -256,6 +223,40 @@ export class VertexAttributeTexture extends DataTexture {
 		this.image.height = dimension;
 		this.image.data = dataArray;
 		this.needsUpdate = true;
+
+	}
+
+}
+
+export class UnsignedIntVertexAttributeTexture extends VertexAttributeTexture {
+
+	constructor() {
+
+		super();
+		this._forcedType = UnsignedIntType;
+
+	}
+
+}
+
+export class IntVertexAttributeTexture extends VertexAttributeTexture {
+
+	constructor() {
+
+		super();
+		this._forcedType = IntType;
+
+	}
+
+
+}
+
+export class FloatVertexAttributeTexture extends VertexAttributeTexture {
+
+	constructor() {
+
+		super();
+		this._forcedType = FloatType;
 
 	}
 
