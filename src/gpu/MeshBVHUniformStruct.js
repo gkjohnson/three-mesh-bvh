@@ -1,4 +1,11 @@
-import { DataTexture } from 'three';
+import {
+	DataTexture,
+	FloatType,
+	UnsignedIntType,
+	RGBFormat,
+	RGFormat,
+	NearestFilter,
+} from 'three';
 import {
 	FloatVertexAttributeTexture,
 	UnsignedIntVertexAttributeTexture,
@@ -29,16 +36,16 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	const uint32Array = new Uint32Array( root );
 	const float32Array = new Float32Array( root );
 
+	// TODO: comment on logic here
 	const nodeCount = root.length / BYTES_PER_NODE;
-	const boundsDimension = Math.ceil( Math.sqrt( nodeCount / 2 ) );
-	const boundsArray = new Float32Array( 2 * 2 * boundsDimension * boundsDimension );
+	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
+	const boundsArray = new Float32Array( boundsDimension * boundsDimension );
 
-	const contentsDimension = Math.ceil( Math.ceil( nodeCount / 2 ) );
-	const contentsArray = new Uint32Array( 2 * 2 * contentsDimension * contentsDimension );
+	const contentsDimension = 2 * Math.ceil( Math.ceil( nodeCount / 2 ) );
+	const contentsArray = new Uint32Array( contentsDimension * contentsDimension );
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 
-		// TODO: adjust the original buffer to not store data in bytes
 		const nodeIndex = i * BYTES_PER_NODE;
 		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex );
 		for ( let b = 0; b < 6; b ++ ) {
@@ -68,6 +75,26 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 		}
 
 	}
+
+	boundsTexture.image.data = boundsArray;
+	boundsTexture.image.width = boundsDimension;
+	boundsTexture.image.height = boundsDimension;
+	boundsTexture.format = RGBFormat;
+	boundsTexture.type = FloatType;
+	boundsTexture.internalFormat = 'RGB32F';
+	boundsTexture.minFilter = NearestFilter;
+	boundsTexture.magFilter = NearestFilter;
+	boundsTexture.generateMipmaps = false;
+
+	contentsTexture.image.data = contentsArray;
+	contentsTexture.image.width = contentsDimension;
+	contentsTexture.image.height = contentsDimension;
+	contentsTexture.format = RGFormat;
+	contentsTexture.type = UnsignedIntType;
+	contentsTexture.internalFormat = 'RG32UI';
+	contentsTexture.minFilter = NearestFilter;
+	contentsTexture.magFilter = NearestFilter;
+	contentsTexture.generateMipmaps = false;
 
 }
 
