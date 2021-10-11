@@ -3,7 +3,7 @@ import {
 	FloatType,
 	UnsignedIntType,
 	RGBFormat,
-	RGFormat,
+	RGIntegerFormat,
 	NearestFilter,
 } from 'three';
 import {
@@ -41,23 +41,24 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
 	const boundsArray = new Float32Array( 3 * boundsDimension * boundsDimension );
 
-	const contentsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
+	const contentsDimension = Math.ceil( Math.sqrt( nodeCount ) );
 	const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 
-		const nodeIndex = i * BYTES_PER_NODE / 4;
-		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex );
+		const nodeIndex32 = i * BYTES_PER_NODE / 4;
+		const nodeIndex16 = nodeIndex32 * 2;
+		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex32 );
 		for ( let b = 0; b < 6; b ++ ) {
 
 			boundsArray[ 6 * i + b ] = float32Array[ boundsIndex + b ];
 
 		}
 
-		if ( IS_LEAF( nodeIndex, uint16Array ) ) {
+		if ( IS_LEAF( nodeIndex32, uint16Array ) ) {
 
-			const count = COUNT( nodeIndex * 2, uint16Array );
-			const offset = OFFSET( nodeIndex, uint32Array );
+			const count = COUNT( nodeIndex16, uint16Array );
+			const offset = OFFSET( nodeIndex32, uint32Array );
 
 			const mergedLeafCount = 0xffff0000 | count;
 			contentsArray[ i * 2 + 0 ] = mergedLeafCount;
@@ -66,8 +67,8 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 		} else {
 
 			// const rightIndex = RIGHT_NODE( nodeIndex, uint32Array ) / BYTES_PER_NODE;
-			const leftIndex = LEFT_NODE( nodeIndex ) / BYTES_PER_NODE;
-			const splitAxis = SPLIT_AXIS( nodeIndex, uint32Array );
+			const leftIndex = LEFT_NODE( nodeIndex32 ) / BYTES_PER_NODE;
+			const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
 
 			contentsArray[ i * 2 + 0 ] = leftIndex;
 			contentsArray[ i * 2 + 1 ] = splitAxis;
@@ -90,7 +91,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	contentsTexture.image.data = contentsArray;
 	contentsTexture.image.width = contentsDimension;
 	contentsTexture.image.height = contentsDimension;
-	contentsTexture.format = RGFormat;
+	contentsTexture.format = RGIntegerFormat;
 	contentsTexture.type = UnsignedIntType;
 	contentsTexture.internalFormat = 'RG32UI';
 	contentsTexture.minFilter = NearestFilter;
