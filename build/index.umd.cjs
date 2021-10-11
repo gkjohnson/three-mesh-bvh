@@ -1,8 +1,8 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'three'], factory) :
-	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
-})(this, (function (exports, three) { 'use strict';
+	(global = global || self, factory(global.MeshBVHLib = global.MeshBVHLib || {}, global.THREE));
+}(this, function (exports, three) { 'use strict';
 
 	// Split strategy constants
 	const CENTER = 0;
@@ -2361,7 +2361,7 @@
 
 	}
 
-	const boundingBox$1 = new three.Box3();
+	const boundingBox = new three.Box3();
 	const boxIntersection = new three.Vector3();
 	const xyzFields = [ 'x', 'y', 'z' ];
 
@@ -2792,16 +2792,16 @@
 				const left = nodeIndex32 + 8;
 				const right = uint32Array[ nodeIndex32 + 6 ];
 
-				arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox$1 );
+				arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 				const leftIntersection =
-					cachedObb.intersectsBox( boundingBox$1 ) &&
+					cachedObb.intersectsBox( boundingBox ) &&
 					intersectsGeometry( left, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 				if ( leftIntersection ) return true;
 
-				arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox$1 );
+				arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox );
 				const rightIntersection =
-					cachedObb.intersectsBox( boundingBox$1 ) &&
+					cachedObb.intersectsBox( boundingBox ) &&
 					intersectsGeometry( right, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 				if ( rightIntersection ) return true;
@@ -2816,8 +2816,8 @@
 
 	function intersectRay( nodeIndex32, array, ray, target ) {
 
-		arrayToBox( nodeIndex32, array, boundingBox$1 );
-		return ray.intersectBox( boundingBox$1, target );
+		arrayToBox( nodeIndex32, array, boundingBox );
+		return ray.intersectBox( boundingBox, target );
 
 	}
 
@@ -2882,24 +2882,36 @@
 				return MeshBVH.serialize(
 					arguments[ 0 ],
 					{
-						copyIndexBuffer: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
+						cloneBuffers: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
 					}
 				);
 
 			}
 
 			options = {
-				copyIndexBuffer: true,
+				cloneBuffers: true,
 				...options,
 			};
 
 			const geometry = bvh.geometry;
 			const rootData = bvh._roots;
 			const indexAttribute = geometry.getIndex();
-			const result = {
-				roots: rootData,
-				index: options.copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
-			};
+			let result;
+			if ( options.cloneBuffers ) {
+
+				result = {
+					roots: rootData.map( root => root.slice() ),
+					index: indexAttribute.array.slice(),
+				};
+
+			} else {
+
+				result = {
+					roots: rootData,
+					index: indexAttribute.array,
+				};
+
+			}
 
 			return result;
 
@@ -4010,7 +4022,7 @@
 
 	} );
 
-	const boundingBox = /* @__PURE__ */ new three.Box3();
+	const boundingBox$1 = /* @__PURE__ */ new three.Box3();
 	class MeshBVHRootVisualizer extends three.Object3D {
 
 		get isMesh() {
@@ -4084,9 +4096,9 @@
 					const terminate = depth === targetDepth || isLeaf;
 					if ( terminate || displayParents ) {
 
-						arrayToBox( 0, boundingData, boundingBox );
+						arrayToBox( 0, boundingData, boundingBox$1 );
 
-						const { min, max } = boundingBox;
+						const { min, max } = boundingBox$1;
 						for ( let x = - 1; x <= 1; x += 2 ) {
 
 							const xVal = x < 0 ? min.x : max.x;
@@ -4666,22 +4678,22 @@
 
 	}
 
-	exports.AVERAGE = AVERAGE;
-	exports.CENTER = CENTER;
-	exports.CONTAINED = CONTAINED;
-	exports.INTERSECTED = INTERSECTED;
 	exports.MeshBVH = MeshBVH;
 	exports.MeshBVHVisualizer = MeshBVHVisualizer;
-	exports.NOT_INTERSECTED = NOT_INTERSECTED;
+	exports.CENTER = CENTER;
+	exports.AVERAGE = AVERAGE;
 	exports.SAH = SAH;
+	exports.NOT_INTERSECTED = NOT_INTERSECTED;
+	exports.INTERSECTED = INTERSECTED;
+	exports.CONTAINED = CONTAINED;
+	exports.getBVHExtremes = getBVHExtremes;
+	exports.estimateMemoryInBytes = estimateMemoryInBytes;
+	exports.getJSONStructure = getJSONStructure;
+	exports.validateBounds = validateBounds;
 	exports.acceleratedRaycast = acceleratedRaycast;
 	exports.computeBoundsTree = computeBoundsTree;
 	exports.disposeBoundsTree = disposeBoundsTree;
-	exports.estimateMemoryInBytes = estimateMemoryInBytes;
-	exports.getBVHExtremes = getBVHExtremes;
-	exports.getJSONStructure = getJSONStructure;
 	exports.getTriangleHitPointInfo = getTriangleHitPointInfo;
-	exports.validateBounds = validateBounds;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

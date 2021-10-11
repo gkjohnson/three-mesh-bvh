@@ -1,6 +1,6 @@
 export default {
   "preset": "ts-jest/presets/js-with-babel-esm",
-  "verbose": false,
+  "verbose": true,
   "moduleFileExtensions": [
     "ts",
     "js",

@@ -1,5 +1,3 @@
-_[Click here](https://github.com/gkjohnson/three-mesh-bvh/tree/v0.4.3) for the latest v0.4.3 release documentation._
-
 # three-mesh-bvh
 
 [![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
@@ -211,9 +209,11 @@ Generates a representation of the complete bounds tree and the geometry index bu
 ```js
 {
 
-	// if true then a copy of the `geometry.index.array` is made which is slower but useful
-	// if the geometry index is intended to be modified.
-	copyIndexBuffer: true
+	// if true then a clone of the `geometry.index.array` and MeshBVH buffers are made which slightly slower but
+	// ensures modifications do not affect the serialized content. Can be set to "false" if it is guaranteed that
+	// no modifications will be made, to save memory, or transfer and share them across WebWorkers if SharedArrayBuffers
+	// are being used.
+	cloneBuffers: true
 
 }
 ```
@@ -642,6 +642,8 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while the BVH is being generated meaning the geometry will be unavailable to use while the BVH is being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when the MeshBVH is finished generating.
 
 _NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating a new Worker._
+
+_See note in [Asyncronous Generation](#asynchronous-generation) use snippet._
 
 ### .running
 

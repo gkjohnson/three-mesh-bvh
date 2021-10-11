@@ -1,6 +1,6 @@
 import { BufferGeometry, Ray, Mesh, Raycaster, Material, Vector2, Vector3, Box3,
   Matrix4, Sphere, Triangle, Color, LineBasicMaterial, MeshBasicMaterial, Side,
-  Intersection } from 'three';
+  Intersection, BufferAttribute } from 'three';
 
 // ################################## Contants #################################
 
@@ -14,39 +14,13 @@ export const NOT_INTERSECTED: ShapecastIntersection;
 export const INTERSECTED: ShapecastIntersection;
 export const CONTAINED: ShapecastIntersection;
 
-export enum SAHCost {}
-export const TRIANGLE_INTERSECT_COST: SAHCost;
-export const TRAVERSAL_COST: SAHCost;
-
-// #################################### Data ###################################
+// ################################## MeshBVH ##################################
 
 export interface HitPointInfo {
   point: Vector3;
   distance: number;
   faceIndex: number;
 }
-
-export interface HitTriangleInfo {
-  face: {
-    a: number,
-    b: number,
-    c: number,
-    materialIndex: number,
-    normal: Vector3
-  },
-  uv: Vector2
-}
-
-export interface ExtremeInfo {
-  nodeCount: number;
-  leafNodeCount: number;
-  surfaceAreaScore: number;
-  depth: {min: number, max: number};
-  tris: {min: number, max: number};
-  splits: [number, number, number];
-}
-
-// ################################## MeshBVH ##################################
 
 export interface MeshBVHOptions {
   strategy?: SplitStrategy;
@@ -58,7 +32,7 @@ export interface MeshBVHOptions {
 }
 
 export interface MeshBVHSerializeOptions {
-  copyIndexBuffer?: boolean;
+  cloneBuffers?: boolean;
 }
 
 export interface MeshBVHDeserializeOptions {
@@ -80,9 +54,9 @@ export class MeshBVH {
 
   constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
 
-  raycast( ray: Ray, materialOrSide: Side | Material ): Array<Intersection>
+  raycast( ray: Ray, materialOrSide: Side | Array<Material> | Material ): Array<Intersection>
 
-  raycastFirst( ray: Ray, materialOrSide: Side | Material ): Intersection;
+  raycastFirst( ray: Ray, materialOrSide: Side | Array<Material> | Material ): Intersection;
 
   intersectsSphere( sphere: Sphere ): boolean;
 
@@ -104,7 +78,7 @@ export class MeshBVH {
     target2?: HitPointInfo,
     minThreshold?: number,
     maxThreshold?: number
-  ): HitPointInfo;
+  ): HitPointInfo | null;
 
   shapecast(
     callbacks: {
@@ -183,13 +157,6 @@ export class MeshBVH {
 
   getBoundingBox( target: Box3 ): Box3;
 
-  getTriangleHitPointInfo(
-    point: Vector3,
-    geometry : BufferGeometry,
-    triangleIndex: number,
-    target?: HitTriangleInfo
-  ): HitTriangleInfo
-
 }
 
 //############################### SerializedBVH ################################
@@ -206,8 +173,6 @@ export class SerializedBVH {
 export class MeshBVHVisualizer {
 
   depth: number;
-  color: Color;
-  opacity: number;
   displayParents: boolean;
   displayEdges: boolean;
   edgeMaterial: LineBasicMaterial;
@@ -217,7 +182,17 @@ export class MeshBVHVisualizer {
 
   update(): void;
 
+  copy( source: MeshBVHVisualizer ): void;
+
+  clone(): MeshBVHVisualizer;
+
   dispose(): void;
+
+  get color(): Color;
+
+  set opacity( opacity: number );
+
+  get opacity(): number;
 
 }
 
@@ -262,15 +237,67 @@ export class GenerateMeshBVHWorker {
 
 export function estimateMemoryInBytes( bvh: MeshBVH ): number;
 
+export interface ExtremeInfo {
+  nodeCount: number;
+  leafNodeCount: number;
+  surfaceAreaScore: number;
+  depth: {min: number, max: number};
+  tris: {min: number, max: number};
+  splits: [number, number, number];
+}
+
 export function getBVHExtremes( bvh :MeshBVH ): Array<ExtremeInfo>;
 
 export function validateBounds( bvh: MeshBVH ): boolean;
 
-export function getJSONStructure( bvh: MeshBVH ): any; // Return type?
+export interface TreeNode {
+  bounds: Box3;
+  count: number;
+  offset: number;
+  left?: TreeNode;
+  right?: TreeNode;
+}
 
-//############################## Extra functions ###############################
+export function getJSONStructure( bvh: MeshBVH ): TreeNode;
 
-export function generateAsync(
+//############################ Triangle Utilities ##############################
+
+export function setTriangle(
+  triangle: Triangle,
+  i: number,
+  indexBuuferAttribute: BufferAttribute,
+  positionBufferAttribute: BufferAttribute
+): void;
+
+export function iterateOverTriangles(
+  offset: number,
+  count: number,
   geometry: BufferGeometry,
-  options?: MeshBVHOptions
-): Promise<MeshBVH>;
+  intersectsTriangleFunc: ( (
+    triangle: Triangle,
+    triangleIndex: number,
+    contained: boolean,
+    depth: number
+  ) => boolean ) | null,
+  contained: boolean,
+  depth: number,
+  triangle: Triangle
+): boolean;
+
+export interface HitTriangleInfo {
+  face: {
+    a: number,
+    b: number,
+    c: number,
+    materialIndex: number,
+    normal: Vector3
+  },
+  uv: Vector2
+}
+
+export function getTriangleHitPointInfo(
+  point: Vector3,
+  geometry : BufferGeometry,
+  triangleIndex: number,
+  target?: HitTriangleInfo
+): HitTriangleInfo

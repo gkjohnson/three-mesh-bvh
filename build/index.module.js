@@ -2357,7 +2357,7 @@ function BOUNDING_DATA_INDEX( n32 ) {
 
 }
 
-const boundingBox$1 = new Box3();
+const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
 
@@ -2788,16 +2788,16 @@ const intersectsGeometry = ( function () {
 			const left = nodeIndex32 + 8;
 			const right = uint32Array[ nodeIndex32 + 6 ];
 
-			arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox$1 );
+			arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 			const leftIntersection =
-				cachedObb.intersectsBox( boundingBox$1 ) &&
+				cachedObb.intersectsBox( boundingBox ) &&
 				intersectsGeometry( left, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( leftIntersection ) return true;
 
-			arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox$1 );
+			arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox );
 			const rightIntersection =
-				cachedObb.intersectsBox( boundingBox$1 ) &&
+				cachedObb.intersectsBox( boundingBox ) &&
 				intersectsGeometry( right, geometry, otherGeometry, geometryToBvh, cachedObb );
 
 			if ( rightIntersection ) return true;
@@ -2812,8 +2812,8 @@ const intersectsGeometry = ( function () {
 
 function intersectRay( nodeIndex32, array, ray, target ) {
 
-	arrayToBox( nodeIndex32, array, boundingBox$1 );
-	return ray.intersectBox( boundingBox$1, target );
+	arrayToBox( nodeIndex32, array, boundingBox );
+	return ray.intersectBox( boundingBox, target );
 
 }
 
@@ -2878,24 +2878,36 @@ class MeshBVH {
 			return MeshBVH.serialize(
 				arguments[ 0 ],
 				{
-					copyIndexBuffer: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
+					cloneBuffers: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
 				}
 			);
 
 		}
 
 		options = {
-			copyIndexBuffer: true,
+			cloneBuffers: true,
 			...options,
 		};
 
 		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
 		const indexAttribute = geometry.getIndex();
-		const result = {
-			roots: rootData,
-			index: options.copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
-		};
+		let result;
+		if ( options.cloneBuffers ) {
+
+			result = {
+				roots: rootData.map( root => root.slice() ),
+				index: indexAttribute.array.slice(),
+			};
+
+		} else {
+
+			result = {
+				roots: rootData,
+				index: indexAttribute.array,
+			};
+
+		}
 
 		return result;
 
@@ -4006,7 +4018,7 @@ MeshBVH.prototype.refit = function ( ...args ) {
 
 } );
 
-const boundingBox = /* @__PURE__ */ new Box3();
+const boundingBox$1 = /* @__PURE__ */ new Box3();
 class MeshBVHRootVisualizer extends Object3D {
 
 	get isMesh() {
@@ -4080,9 +4092,9 @@ class MeshBVHRootVisualizer extends Object3D {
 				const terminate = depth === targetDepth || isLeaf;
 				if ( terminate || displayParents ) {
 
-					arrayToBox( 0, boundingData, boundingBox );
+					arrayToBox( 0, boundingData, boundingBox$1 );
 
-					const { min, max } = boundingBox;
+					const { min, max } = boundingBox$1;
 					for ( let x = - 1; x <= 1; x += 2 ) {
 
 						const xVal = x < 0 ? min.x : max.x;
@@ -4662,5 +4674,5 @@ function disposeBoundsTree() {
 
 }
 
-export { AVERAGE, CENTER, CONTAINED, INTERSECTED, MeshBVH, MeshBVHVisualizer, NOT_INTERSECTED, SAH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, estimateMemoryInBytes, getBVHExtremes, getJSONStructure, getTriangleHitPointInfo, validateBounds };
+export { MeshBVH, MeshBVHVisualizer, CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED, getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getTriangleHitPointInfo };
 //# sourceMappingURL=index.module.js.map

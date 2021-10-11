@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.5.0] - 2021-10-10
 ### Added
-- `useSharedArrayBuffer` option to `MeshBVH` so it creates `SharedArrayBuffers` rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
+- `useSharedArrayBuffer` option to `MeshBVH` so `SharedArrayBuffers` are created rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
 - SeparatingAxisTriangle.intersectsTriangle: added `target` field to retrieve the edge describing the intersection.
 - "box" argument to shapecast "intersectsRange" function.
 - `/* @__PURE__ */` indicator to reusable variables.
@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
 - Case where the BVH root bounds would be incorrect if the geometry bounding box was incorrect / out of date.
-- MeshBBH.closestPointTGeometry not returning a proper intersection point if triangles intersect.
+- MeshBVH.closestPointTGeometry not returning a proper intersection point if triangles intersect.
 - Shapecast function will now ensure a unique triangle / box is provided for each recursive call.
 - Fix `GenerateMeshBVHWorker` not setting the geometry index correctly on return.
 

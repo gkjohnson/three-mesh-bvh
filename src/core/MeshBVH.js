@@ -42,24 +42,36 @@ export class MeshBVH {
 			return MeshBVH.serialize(
 				arguments[ 0 ],
 				{
-					copyIndexBuffer: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
+					cloneBuffers: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
 				}
 			);
 
 		}
 
 		options = {
-			copyIndexBuffer: true,
+			cloneBuffers: true,
 			...options,
 		};
 
 		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
 		const indexAttribute = geometry.getIndex();
-		const result = {
-			roots: rootData,
-			index: options.copyIndexBuffer ? indexAttribute.array.slice() : indexAttribute.array,
-		};
+		let result;
+		if ( options.cloneBuffers ) {
+
+			result = {
+				roots: rootData.map( root => root.slice() ),
+				index: indexAttribute.array.slice(),
+			};
+
+		} else {
+
+			result = {
+				roots: rootData,
+				index: indexAttribute.array,
+			};
+
+		}
 
 		return result;
 

@@ -1,6 +1,9 @@
 import { BufferGeometry, Mesh, TorusBufferGeometry, Box3, Raycaster, FrontSide,
-  Ray, Material, Intersection, Matrix4, Sphere } from 'three';
-import { MeshBVH, MeshBVHOptions } from '../src/index';
+  Ray, Material, Intersection, Matrix4, Sphere, LineBasicMaterial, MeshBasicMaterial,
+  Color, Triangle } from 'three';
+import { MeshBVH, MeshBVHOptions, SerializedBVH, MeshBVHVisualizer, INTERSECTED,
+
+} from '../src/index';
 import { expectType, expectNotType } from 'tsd';
 
 const geometry = new TorusBufferGeometry( 5, 5, 400, 100 );
@@ -24,8 +27,8 @@ const raycaster = new Raycaster();
 
     geometry.computeBoundsTree();
     expectType<MeshBVH>( geometry.boundsTree! );
-    expectType<() => void>( geometry.disposeBoundsTree );
 
+    expectType<() => void>( geometry.disposeBoundsTree );
     geometry.disposeBoundsTree();
     expectNotType<MeshBVH>( geometry.boundsTree );
 
@@ -56,8 +59,6 @@ const raycaster = new Raycaster();
   // Raycast
   expectType<Array<Intersection>>( bvh.raycast( ray, material ) );
   expectType<Array<Intersection>>( bvh.raycast( ray, FrontSide ) );
-
-  // Raycast First
   expectType<Intersection>( bvh.raycastFirst( ray, material ) );
   expectType<Intersection>( bvh.raycastFirst( ray, FrontSide ) );
 
@@ -65,5 +66,132 @@ const raycaster = new Raycaster();
   expectType<boolean>( bvh.intersectsBox( box, matrix4 ) );
   expectType<boolean>( bvh.intersectsSphere( sphere ) );
   expectType<boolean>( bvh.intersectsGeometry( geometry, matrix4 ) );
+
+  // Callback functions
+  expectType<void>(
+    bvh.traverse( ( depth, isLeaf, boundingData, offsetOrSplit, count ) => {
+
+      expectType<number>( depth );
+      expectType<boolean>( isLeaf );
+      expectType<ArrayBuffer>( boundingData );
+      expectType<number>( offsetOrSplit );
+      expectType<number>( count );
+
+    } )
+  );
+
+  expectType<boolean>(
+    bvh.shapecast( {
+
+      traverseBoundsOrder: ( box ) => {
+
+        expectType<Box3>( box );
+        return 99;
+
+      },
+      intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+
+        expectType<Box3>( box );
+        expectType<boolean>( isLeaf );
+        expectType<number | undefined>( score );
+        expectType<number>( depth );
+        expectType<number>( nodeIndex );
+        return INTERSECTED;
+
+      },
+      intersectsRange: ( triOffset, triCount, contained, depth, nodeIndex, box ) => {
+
+        expectType<number>( triOffset );
+        expectType<number>( triCount );
+        expectType<boolean>( contained );
+        expectType<number>( depth );
+        expectType<number>( nodeIndex );
+        expectType<Box3>( box );
+        return true;
+
+      },
+      intersectsTriangle: ( triangle, triangleIndex, contained, depth ) => {
+
+        expectType<Triangle>( triangle );
+        expectType<number>( triangleIndex );
+        expectType<boolean>( contained );
+        expectType<number>( depth );
+        return true;
+
+      }
+    } )
+  );
+
+  expectType<boolean>(
+    bvh.bvhcast(
+      bvh,
+      matrix4,
+      {
+
+        intersectsRanges: ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) => {
+
+          expectType<number>( offset1 );
+          expectType<number>( count1 );
+          expectType<number>( offset2 );
+          expectType<number>( count2 );
+          expectType<number>( depth1 );
+          expectType<number>( index1 );
+          expectType<number>( depth2 );
+          expectType<number>( index2 );
+          return true;
+
+        },
+
+        intersectsTriangles: ( triangle1, triangle2, i1, i2, depth1, index1, depth2, index2 ) => {
+
+          expectType<Triangle>( triangle1 );
+          expectType<Triangle>( triangle2 );
+          expectType<number>( i1 );
+          expectType<number>( i2 );
+          expectType<number>( depth1 );
+          expectType<number>( index1 );
+          expectType<number>( depth2 );
+          expectType<number>( index2 );
+          return true;
+
+        },
+
+      }
+    )
+  );
+
+}
+
+// SerializedBVH
+{
+
+  const data = MeshBVH.serialize( bvh );
+  expectType<SerializedBVH>( data );
+  expectType<Array<ArrayBuffer>>( data.roots );
+  expectType<ArrayBufferView>( data.index );
+
+  const deserializedBVH = MeshBVH.deserialize( data, bvh.geometry );
+  expectType<MeshBVH>( deserializedBVH );
+
+}
+
+// MeshBVHVisualizer
+{
+
+  const visualizer = new MeshBVHVisualizer( mesh, 20 );
+  expectType<number>( visualizer.depth );
+  expectType<boolean>( visualizer.displayParents );
+  expectType<boolean>( visualizer.displayEdges );
+  expectType<LineBasicMaterial>( visualizer.edgeMaterial );
+  expectType<MeshBasicMaterial>( visualizer.meshMaterial );
+
+  expectType<Color>( visualizer.color );
+
+  visualizer.opacity = 10;
+  expectType<number>( visualizer.opacity );
+
+  expectType<MeshBVHVisualizer>( visualizer.clone() );
+
+  expectType<void>( visualizer.copy( visualizer ) );
 
 }

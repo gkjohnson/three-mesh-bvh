@@ -1,6 +1,6 @@
 {
   "name": "three-mesh-bvh",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "A BVH implementation to speed up raycasting against three.js meshes.",
   "module": "src/index.js",
   "main": "build/index.umd.cjs",
@@ -12,7 +12,7 @@
     "build": "rollup -c",
     "build-examples": "parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
-    "test-types": "tsd",
+    "test-ts": "tsd",
     "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\"",
     "benchmark": "node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"
