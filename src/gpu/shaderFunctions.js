@@ -109,6 +109,8 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 	dist = t;
 	side = sign( det );
 
+	norm = normalize( norm );
+
 	return /* det >= 1e-6 && */ t >= 0.0 && u >= 0.0 && v >= 0.0 && ( u + v ) <= 1.0;
 
 }
