@@ -37,8 +37,7 @@ struct BVHRayHit {
 `;
 
 export const shaderIntersectFunction = /* glsl */`
-
-uvec4 texelFetch1D( usampler2D tex, uint index ) {
+uvec4 uTexelFetch1D( usampler2D tex, uint index ) {
 
 	uint width = uint( textureSize( tex, 0 ).x );
 	uvec2 uv;
@@ -122,9 +121,9 @@ bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float 
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
 		uint index3 = i * 3u;
-		uint i0 = texelFetch1D( bvh.index, index3 + 0u ).r;
-		uint i1 = texelFetch1D( bvh.index, index3 + 1u ).r;
-		uint i2 = texelFetch1D( bvh.index, index3 + 2u ).r;
+		uint i0 = uTexelFetch1D( bvh.index, index3 + 0u ).r;
+		uint i1 = uTexelFetch1D( bvh.index, index3 + 1u ).r;
+		uint i2 = uTexelFetch1D( bvh.index, index3 + 2u ).r;
 
 		vec3 a = texelFetch1D( bvh.position, i0 ).rgb;
 		vec3 b = texelFetch1D( bvh.position, i1 ).rgb;
@@ -180,7 +179,7 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
 		}
 
-		uvec2 boundsInfo = texelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		uvec2 boundsInfo = uTexelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
 		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 
 		if ( isLeaf ) {
