@@ -25,7 +25,7 @@ struct Face {
 
 };
 
-struct RayHit {
+struct BVHRayHit {
 
 	Face face;
 	vec3 point;
@@ -38,23 +38,23 @@ export const shaderIntersectFunction = /* glsl */`
 
 uvec4 texelFetch1D( usampler2D tex, uint index ) {
 
-	uint width = textureSize( tex ).x;
-	uvec2 uv;
-	uv.x = index % width;
-	uv.y = index / width;
+	int width = textureSize( tex, 0 ).x;
+	ivec2 uv;
+	uv.x = int( index ) % width;
+	uv.y = int( index ) / width;
 
-	return texelFetch( tex, uv );
+	return texelFetch( tex, uv, 0 );
 
 }
 
 vec4 texelFetch1D( sampler2D tex, uint index ) {
 
-	uint width = textureSize( tex ).x;
-	uvec2 uv;
-	uv.x = index % width;
-	uv.y = index / width;
+	int width = textureSize( tex, 0 ).x;
+	ivec2 uv;
+	uv.x = int( index ) % width;
+	uv.y = int( index ) / width;
 
-	return texelFetch( tex, uv );
+	return texelFetch( tex, uv, 0 );
 
 }
 
@@ -62,8 +62,8 @@ bool intersectsBounds( Ray ray, vec3 boundsMin, vec3 boundsMax, out float dist )
 
 	// https://www.reddit.com/r/opengl/comments/8ntzz5/fast_glsl_ray_box_intersection/
 	vec3 invDir = 1.0 / ray.direction;
-	vec3 tbot = invDir * ( boundsMin - r.origin );
-	vec3 ttop = invDir * ( boundsMax - r.origin );
+	vec3 tbot = invDir * ( boundsMin - ray.origin );
+	vec3 ttop = invDir * ( boundsMax - ray.origin );
 	vec3 tmin = min( ttop, tbot );
 	vec3 tmax = max( ttop, tbot );
 	vec2 t = max( tmin.xx, tmin.yz );
@@ -79,44 +79,82 @@ bool intersectsBounds( Ray ray, vec3 boundsMin, vec3 boundsMax, out float dist )
 
 }
 
-bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c ) {
+// TODO: take intersection side
+bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, inout float minDistance, out BVHRayHit hit ) {
 
-
-}
-
-bool intersectsTriangle( BVH bvh, Ray ray, uint index ) {
-
+	return false;
 
 }
 
-bool intersectBVH( BVH bvh, Ray ray, out RayHit hit ) {
+bool intersectsTriangle( BVH bvh, Ray ray, uint index, inout float minDistance, out BVHRayHit hit ) {
 
-	int stack[ 40 ];
-	uint ptr = 1;
-	stack[ 0 ] = - 1;
+	uint index3 = index * 3u;
+	uint i0 = texelFetch1D( bvh.index, index3 + 0u ).r;
+	uint i1 = texelFetch1D( bvh.index, index3 + 1u ).r;
+	uint i2 = texelFetch1D( bvh.index, index3 + 2u ).r;
 
-	uint currNodeIndex = 0;
-	while ( currNodeIndex != - 1 ) {
+	vec3 v0 = texelFetch1D( bvh.position, i0 ).rgb;
+	vec3 v1 = texelFetch1D( bvh.position, i1 ).rgb;
+	vec3 v2 = texelFetch1D( bvh.position, i2 ).rgb;
 
-		vec3 boundsCenter = textureFetch1D( bvh.bvhBounds, currNodeIndex * 2 + 0 ).xyz;
-		vec3 boundsSize = textureFetch1D( bvh.bvhBounds, currNodeIndex * 2 + 1 ).xyz;
+	return intersectsTriangle( ray, v0, v1, v2, minDistance, hit );
 
-		uvec2 boundsInfo = textureFetch1D( bvh.bvhContents, currNodeIndex ).xy;
-		bool isLeaf = boundsInfo.x & 0xffff0000 != 0;
+}
+
+bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float minDistance, out BVHRayHit hit ) {
+
+	bool found = false;
+	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
+
+		found = intersectsTriangle( bvh, ray, i, minDistance, hit ) || found;
+
+	}
+
+	return found;
+
+}
+
+bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
+
+	uint stack[ 40 ];
+	int ptr = 1;
+	stack[ 0 ] = 0u;
+
+	float triangleDistance = 1e20;
+	uint currNodeIndex = 0u;
+	bool found = false;
+	while ( ptr != - 1 ) {
+
+		// check if we intersect the current bounds
+		float dist;
+		vec3 boundsCenter = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+		vec3 boundsSize = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+
+		vec3 boundsMin = boundsCenter - boundsSize;
+		vec3 boundsMax = boundsCenter + boundsSize;
+		if ( ! intersectsBounds( ray, boundsMin, boundsMax, dist ) || dist > triangleDistance ) {
+
+			continue;
+
+		}
+
+		uvec2 boundsInfo = texelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 
 		if ( isLeaf ) {
 
-			int offset = boundsInfo.x;
-			int count = boundsInfo.y;
+			uint offset = boundsInfo.x;
+			uint count = boundsInfo.y;
 
-			// TODO: intersect triangles
+			found = intersectTriangles( bvh, ray, offset, count, triangleDistance, hit ) || found;
+
 			currNodeIndex = stack[ ptr ];
 			ptr --;
 
 		} else {
 
-			uint splitAxis = boundsInfo.x | 0x0000ffff;
-			uint leftIndex = currNodeIndex + 1;
+			uint splitAxis = boundsInfo.x | 0x0000ffffu;
+			uint leftIndex = currNodeIndex + 1u;
 			uint rightIndex = boundsInfo.y;
 
 			uint c1 = ray.direction[ splitAxis ] < 0.0 ? rightIndex : leftIndex;
@@ -132,6 +170,8 @@ bool intersectBVH( BVH bvh, Ray ray, out RayHit hit ) {
 		}
 
 	}
+
+	return found;
 
 }
 `;
