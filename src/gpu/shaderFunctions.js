@@ -18,9 +18,9 @@ struct Ray {
 
 struct Face {
 
-	vec3 a;
-	vec3 b;
-	vec3 c;
+	uint a;
+	uint b;
+	uint c;
 	vec3 normal;
 
 };
@@ -29,6 +29,8 @@ struct BVHRayHit {
 
 	Face face;
 	vec3 point;
+	vec3 barycoord;
+	float side;
 	float dist;
 
 };
@@ -87,34 +89,62 @@ bool intersectsBounds( Ray ray, vec3 boundsMin, vec3 boundsMax, out float dist )
 
 }
 
-// TODO: take intersection side
-bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, inout float minDistance, out BVHRayHit hit ) {
+bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, out vec3 norm, out float dist, out float side ) {
 
-	return false;
+	// https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
+	vec3 edge1 = b - a;
+	vec3 edge2 = c - a;
+	norm = cross( edge1, edge2 );
 
-}
+	float det = - dot( ray.direction, norm );
+	float invdet = 1.0 / det;
 
-bool intersectsTriangle( BVH bvh, Ray ray, uint index, inout float minDistance, out BVHRayHit hit ) {
+	vec3 AO = ray.origin - a;
+	vec3 DAO = cross( AO, ray.direction );
+	float u = dot( edge2, DAO ) * invdet;
+	float v = - dot( edge1, DAO ) * invdet;
+	float t = dot( AO, norm ) * invdet;
 
-	uint index3 = index * 3u;
-	uint i0 = texelFetch1D( bvh.index, index3 + 0u ).r;
-	uint i1 = texelFetch1D( bvh.index, index3 + 1u ).r;
-	uint i2 = texelFetch1D( bvh.index, index3 + 2u ).r;
+	// set the hit information
+	barycoord = vec3( u, v, 1.0 - u - v );
+	dist = t;
+	side = sign( det );
 
-	vec3 v0 = texelFetch1D( bvh.position, i0 ).rgb;
-	vec3 v1 = texelFetch1D( bvh.position, i1 ).rgb;
-	vec3 v2 = texelFetch1D( bvh.position, i2 ).rgb;
-
-	return intersectsTriangle( ray, v0, v1, v2, minDistance, hit );
+	return det >= 1e-6 && t >= 0.0 && u >= 0.0 && v >= 0.0 && ( u + v ) <= 1.0;
 
 }
 
 bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float minDistance, out BVHRayHit hit ) {
 
 	bool found = false;
+	vec3 barycoord, norm;
+	float dist, side;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
-		found = intersectsTriangle( bvh, ray, i, minDistance, hit ) || found;
+		uint index3 = i * 3u;
+		uint i0 = texelFetch1D( bvh.index, index3 + 0u ).r;
+		uint i1 = texelFetch1D( bvh.index, index3 + 1u ).r;
+		uint i2 = texelFetch1D( bvh.index, index3 + 2u ).r;
+
+		vec3 a = texelFetch1D( bvh.position, i0 ).rgb;
+		vec3 b = texelFetch1D( bvh.position, i1 ).rgb;
+		vec3 c = texelFetch1D( bvh.position, i2 ).rgb;
+
+		if ( intersectsTriangle( ray, a, b, c, barycoord, norm, dist, side ) && dist < minDistance ) {
+
+			found = true;
+			minDistance = dist;
+			hit.face.a = i0;
+			hit.face.b = i1;
+			hit.face.c = i2;
+			hit.face.normal = norm;
+
+			hit.side = side;
+			hit.barycoord = barycoord;
+			hit.dist = dist;
+			hit.point = ray.origin + ray.direction * dist;
+
+		}
 
 	}
 
