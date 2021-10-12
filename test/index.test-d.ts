@@ -1,8 +1,8 @@
 import { BufferGeometry, Mesh, TorusBufferGeometry, Box3, Raycaster, FrontSide,
   Ray, Material, Intersection, Matrix4, Sphere, LineBasicMaterial, MeshBasicMaterial,
-  Color, Triangle } from 'three';
+  Color } from 'three';
 import { MeshBVH, MeshBVHOptions, SerializedBVH, MeshBVHVisualizer, INTERSECTED,
-
+  SeparatingAxisTriangle
 } from '../src/index';
 import { expectType, expectNotType } from 'tsd';
 
@@ -112,7 +112,7 @@ const raycaster = new Raycaster();
       },
       intersectsTriangle: ( triangle, triangleIndex, contained, depth ) => {
 
-        expectType<Triangle>( triangle );
+        expectType<SeparatingAxisTriangle>( triangle );
         expectType<number>( triangleIndex );
         expectType<boolean>( contained );
         expectType<number>( depth );
@@ -144,8 +144,8 @@ const raycaster = new Raycaster();
 
         intersectsTriangles: ( triangle1, triangle2, i1, i2, depth1, index1, depth2, index2 ) => {
 
-          expectType<Triangle>( triangle1 );
-          expectType<Triangle>( triangle2 );
+          expectType<SeparatingAxisTriangle>( triangle1 );
+          expectType<SeparatingAxisTriangle>( triangle2 );
           expectType<number>( i1 );
           expectType<number>( i2 );
           expectType<number>( depth1 );

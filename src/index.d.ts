@@ -1,6 +1,6 @@
 import { BufferGeometry, Ray, Mesh, Raycaster, Material, Vector2, Vector3, Box3,
   Matrix4, Sphere, Triangle, Color, LineBasicMaterial, MeshBasicMaterial, Side,
-  Intersection, BufferAttribute } from 'three';
+  Intersection, BufferAttribute, Line3, Plane } from 'three';
 
 // ################################## Contants #################################
 
@@ -105,7 +105,7 @@ export class MeshBVH {
       ) => boolean,
 
       intersectsTriangle?: (
-        triangle: Triangle,
+        triangle: SeparatingAxisTriangle,
         triangleIndex: number,
         contained: boolean,
         depth: number
@@ -130,8 +130,8 @@ export class MeshBVH {
       ) => boolean,
 
       intersectsTriangles?: (
-        triangle1: Triangle,
-        triangle2: Triangle,
+        triangle1: SeparatingAxisTriangle,
+        triangle2: SeparatingAxisTriangle,
         i1: number,
         i2: number,
         depth1: number,
@@ -301,3 +301,70 @@ export function getTriangleHitPointInfo(
   triangleIndex: number,
   target?: HitTriangleInfo
 ): HitTriangleInfo
+
+//############################## Math Utilities ################################
+
+export function closestPointLineToLine(
+  line1: Line3,
+  line2: Line3,
+  result: Vector2
+): Vector2;
+
+export function closestPointsSegmentToSegment(
+  line1: Line3,
+  line2: Line3,
+  target1: Vector2,
+  target2: Vector2,
+): void;
+
+export function sphereIntersectTriangle(
+  sphere: Sphere,
+  triangle: SeparatingAxisTriangle
+): boolean;
+
+//########################## SeparatingAxisTriangle ############################
+
+export class SeparatingAxisBounds {
+
+  constructor();
+
+  setFromPoints( axis: Vector3, points: Array<Vector3> ): void;
+
+  isSeparated( other: SeparatingAxisBounds ): boolean;
+
+}
+
+//########################## SeparatingAxisTriangle ############################
+
+export class SeparatingAxisTriangle extends Triangle {
+
+  readonly isSeparatingAxisTriangle: boolean;
+  readonly points: Array<Vector3>;
+  readonly sphere: Sphere;
+  readonly plane: Plane;
+  readonly satAxes: Array<Vector3>;
+  readonly satBounds: Array<SeparatingAxisBounds>;
+  needsUpdate: boolean;
+
+  intersectsSphere( sphere: Sphere ): boolean;
+
+  update(): void;
+
+  closestPointsToSegment(
+    segment: Line3,
+    target1?: Vector3,
+    target2?: Vector3
+  ): number;
+
+  intersectsTriangle( other: SeparatingAxisTriangle, target?: Line3 ): boolean;
+
+  distanceToPoint( point: Vector3 ): number;
+
+  distanceToTriangle(
+    other: SeparatingAxisTriangle,
+    target1?: Vector3,
+    target2?: Vector3
+  ): number;
+
+}
+
