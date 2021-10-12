@@ -40,23 +40,23 @@ export const shaderIntersectFunction = /* glsl */`
 
 uvec4 texelFetch1D( usampler2D tex, uint index ) {
 
-	int width = textureSize( tex, 0 ).x;
-	ivec2 uv;
-	uv.x = int( index ) % width;
-	uv.y = int( index ) / width;
+	uint width = uint( textureSize( tex, 0 ).x );
+	uvec2 uv;
+	uv.x = index % width;
+	uv.y = index / width;
 
-	return texelFetch( tex, uv, 0 );
+	return texelFetch( tex, ivec2( uv ), 0 );
 
 }
 
 vec4 texelFetch1D( sampler2D tex, uint index ) {
 
-	int width = textureSize( tex, 0 ).x;
-	ivec2 uv;
-	uv.x = int( index ) % width;
-	uv.y = int( index ) / width;
+	uint width = uint( textureSize( tex, 0 ).x );
+	uvec2 uv;
+	uv.x = index % width;
+	uv.y = index / width;
 
-	return texelFetch( tex, uv, 0 );
+	return texelFetch( tex, ivec2( uv ), 0 );
 
 }
 
@@ -154,23 +154,27 @@ bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float 
 
 bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
-	uint stack[ 40 ];
-	int ptr = 1;
+	// stack needs to be twice as long as the deepest tree we expect because
+	// we push both the left and right child onto the stack every traversal
+	int ptr = 0;
+	uint stack[ 60 ];
 	stack[ 0 ] = 0u;
 
 	float triangleDistance = 1e20;
-	uint currNodeIndex = 0u;
 	bool found = false;
 	while ( ptr != - 1 ) {
 
+		uint currNodeIndex = stack[ ptr ];
+		ptr --;
+
 		// check if we intersect the current bounds
-		float dist;
+		float boundsHitDistance;
 		vec3 boundsCenter = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
 		vec3 boundsSize = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
 
 		vec3 boundsMin = boundsCenter - boundsSize;
 		vec3 boundsMax = boundsCenter + boundsSize;
-		if ( ! intersectsBounds( ray, boundsMin, boundsMax, dist ) || dist > triangleDistance ) {
+		if ( ! intersectsBounds( ray, boundsMin, boundsMax, boundsHitDistance ) || boundsHitDistance > triangleDistance ) {
 
 			continue;
 
@@ -186,9 +190,6 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
 			found = intersectTriangles( bvh, ray, offset, count, triangleDistance, hit ) || found;
 
-			currNodeIndex = stack[ ptr ];
-			ptr --;
-
 		} else {
 
 			uint splitAxis = boundsInfo.x | 0x0000ffffu;
@@ -198,12 +199,13 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 			uint c1 = ray.direction[ splitAxis ] < 0.0 ? rightIndex : leftIndex;
 			uint c2 = ray.direction[ splitAxis ] < 0.0 ? leftIndex : rightIndex;
 
-
 			// set c2 in the stack so we traverse it later. We need to keep track of a pointer in
 			// the stack while we traverse.
-			currNodeIndex = c1;
-			stack[ ptr ] = c2;
 			ptr ++;
+			stack[ ptr ] = c1;
+
+			ptr ++;
+			stack[ ptr ] = c2;
 
 		}
 
