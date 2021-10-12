@@ -168,11 +168,8 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
 		// check if we intersect the current bounds
 		float boundsHitDistance;
-		vec3 boundsCenter = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
-		vec3 boundsSize = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
-
-		vec3 boundsMin = boundsCenter - boundsSize;
-		vec3 boundsMax = boundsCenter + boundsSize;
+		vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+		vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
 		if ( ! intersectsBounds( ray, boundsMin, boundsMax, boundsHitDistance ) || boundsHitDistance > triangleDistance ) {
 
 			continue;
