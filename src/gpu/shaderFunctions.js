@@ -109,7 +109,7 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 	dist = t;
 	side = sign( det );
 
-	return det >= 1e-6 && t >= 0.0 && u >= 0.0 && v >= 0.0 && ( u + v ) <= 1.0;
+	return /* det >= 1e-6 && */ t >= 0.0 && u >= 0.0 && v >= 0.0 && ( u + v ) <= 1.0;
 
 }
 
@@ -189,8 +189,8 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 		} else {
 
 			uint leftIndex = currNodeIndex + 1u;
-			uint rightIndex = boundsInfo.x;
-			uint splitAxis = boundsInfo.y & 0x0000ffffu;
+			uint splitAxis = boundsInfo.x & 0x0000ffffu;
+			uint rightIndex = boundsInfo.y;
 
 			uint c1 = ray.direction[ splitAxis ] < 0.0 ? rightIndex : leftIndex;
 			uint c2 = ray.direction[ splitAxis ] < 0.0 ? leftIndex : rightIndex;

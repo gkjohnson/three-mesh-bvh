@@ -69,8 +69,8 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 			const rightIndex = 4 * RIGHT_NODE( nodeIndex32, uint32Array ) / BYTES_PER_NODE;
 			const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
 
-			contentsArray[ i * 2 + 0 ] = rightIndex;
-			contentsArray[ i * 2 + 1 ] = splitAxis;
+			contentsArray[ i * 2 + 0 ] = splitAxis;
+			contentsArray[ i * 2 + 1 ] = rightIndex;
 
 		}
 
