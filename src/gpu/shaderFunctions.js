@@ -61,21 +61,29 @@ vec4 texelFetch1D( sampler2D tex, uint index ) {
 bool intersectsBounds( Ray ray, vec3 boundsMin, vec3 boundsMax, out float dist ) {
 
 	// https://www.reddit.com/r/opengl/comments/8ntzz5/fast_glsl_ray_box_intersection/
+	// https://tavianator.com/2011/ray_box.html
 	vec3 invDir = 1.0 / ray.direction;
-	vec3 tbot = invDir * ( boundsMin - ray.origin );
-	vec3 ttop = invDir * ( boundsMax - ray.origin );
-	vec3 tmin = min( ttop, tbot );
-	vec3 tmax = max( ttop, tbot );
-	vec2 t = max( tmin.xx, tmin.yz );
 
+	// find intersection distances for each plane
+	vec3 tMinPlane = invDir * ( boundsMin - ray.origin );
+	vec3 tMaxPlane = invDir * ( boundsMax - ray.origin );
+
+	// get the min and max distances from each intersection
+	vec3 tMinHit = min( tMaxPlane, tMinPlane );
+	vec3 tMaxHit = max( tMaxPlane, tMinPlane );
+
+	// get the furthest hit distance
+	vec2 t = max( tMinHit.xx, tMinHit.yz );
 	float t0 = max( t.x, t.y );
-	t = min( tmax.xx, tmax.yz );
 
+	// get the minimum hit distance
+	t = min( tMaxHit.xx, tMaxHit.yz );
 	float t1 = min( t.x, t.y );
 
-	dist = t0;
+	// set distance to 0.0 if the ray starts inside the box
+	dist = max( t0, 0.0 );
 
-	return t1 > max( t0, 0.0 );
+	return t1 >= max( t0, 0.0 );
 
 }
 
