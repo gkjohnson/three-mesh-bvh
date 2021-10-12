@@ -161,7 +161,7 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
 	float triangleDistance = 1e20;
 	bool found = false;
-	while ( ptr != - 1 ) {
+	while ( ptr > - 1 && ptr < 60 ) {
 
 		uint currNodeIndex = stack[ ptr ];
 		ptr --;
@@ -181,16 +181,16 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
 		if ( isLeaf ) {
 
-			uint offset = boundsInfo.x;
-			uint count = boundsInfo.y;
+			uint count = boundsInfo.x & 0x0000ffffu;
+			uint offset = boundsInfo.y;
 
 			found = intersectTriangles( bvh, ray, offset, count, triangleDistance, hit ) || found;
 
 		} else {
 
-			uint splitAxis = boundsInfo.x | 0x0000ffffu;
 			uint leftIndex = currNodeIndex + 1u;
-			uint rightIndex = boundsInfo.y;
+			uint rightIndex = boundsInfo.x;
+			uint splitAxis = boundsInfo.y & 0x0000ffffu;
 
 			uint c1 = ray.direction[ splitAxis ] < 0.0 ? rightIndex : leftIndex;
 			uint c2 = ray.direction[ splitAxis ] < 0.0 ? leftIndex : rightIndex;
