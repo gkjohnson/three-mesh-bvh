@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "noEmit": true,
+    "strict": true,
+    "noUnusedParameters": true,
+    "strictNullChecks":true,
   },
   "include": [
     "src",
+    "test"
   ],
-  "files" : [
-    "test/index.test-d.ts"
+  "exclude": [
+    "node_modules"
   ]
 }
