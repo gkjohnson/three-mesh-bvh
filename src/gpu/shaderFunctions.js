@@ -61,6 +61,26 @@ vec4 texelFetch1D( sampler2D tex, uint index ) {
 
 }
 
+Ray ndcToCameraRay( vec2 coord, mat4 cameraWorld, mat4 invProjectionMatrix ) {
+
+	// get camera look direction and near plane for camera clipping
+	vec4 lookDirection = cameraWorld * vec4( 0.0, 0.0, - 1.0, 0.0 );
+	vec4 nearVector = invProjectionMatrix * vec4( 0.0, 0.0, - 1.0, 1.0 );
+	float near = abs( nearVector.z / nearVector.w );
+
+	// get the camera direction and position from camera matrices
+	vec4 origin = cameraWorld * vec4( 0.0, 0.0, 0.0, 1.0 );
+	vec4 direction = invProjectionMatrix * vec4( coord, 0.5, 1.0 );
+	direction /= direction.w;
+	direction = cameraWorld * direction - origin;
+
+	// slide the origin along the ray until it sits at the near clip plane position
+	origin.xyz += direction.xyz * near / dot( direction, lookDirection );
+
+	return Ray( origin.xyz, direction.xyz );
+
+}
+
 bool intersectsBounds( Ray ray, vec3 boundsMin, vec3 boundsMax, out float dist ) {
 
 	// https://www.reddit.com/r/opengl/comments/8ntzz5/fast_glsl_ray_box_intersection/
