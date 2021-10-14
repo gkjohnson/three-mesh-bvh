@@ -37,6 +37,8 @@ struct BVHRayHit {
 `;
 
 export const shaderIntersectFunction = /* glsl */`
+
+// TODO: use templates for creating these functions?
 uvec4 uTexelFetch1D( usampler2D tex, uint index ) {
 
 	uint width = uint( textureSize( tex, 0 ).x );
@@ -153,7 +155,7 @@ bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float 
 
 }
 
-bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
+bool bvhIntersect( BVH bvh, Ray ray, bool anyHit, out BVHRayHit hit ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
@@ -188,6 +190,13 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 
 			found = intersectTriangles( bvh, ray, offset, count, triangleDistance, hit ) || found;
 
+			// TODO: Should an "any hit" variation of the function be created?
+			if ( found && anyHit ) {
+
+				return true;
+
+			}
+
 		} else {
 
 			uint leftIndex = currNodeIndex + 1u;
@@ -210,6 +219,18 @@ bool intersectBVH( BVH bvh, Ray ray, out BVHRayHit hit ) {
 	}
 
 	return found;
+
+}
+
+bool bvhIntersectFirstHit( BVH bvh, Ray ray, out BVHRayHit hit ) {
+
+	return bvhIntersect( bvh, ray, false, hit );
+
+}
+
+bool bvhIntersectAnyHit( BVH bvh, Ray ray, out BVHRayHit hit ) {
+
+	return bvhIntersect( bvh, ray, true, hit );
 
 }
 `;
