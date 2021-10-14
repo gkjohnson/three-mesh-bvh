@@ -17,9 +17,6 @@
     "benchmark": "node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"
   },
-  "tsd": {
-    "directory": "test"
-  },
   "files": [
     "src/*",
     "build/*"
