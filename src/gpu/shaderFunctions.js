@@ -1,4 +1,6 @@
 export const shaderStructs = /* glsl */`
+#define TRI_INTERSECT_EPSILON 1e-5
+
 struct BVH {
 
 	usampler2D index;
@@ -122,18 +124,23 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 
 	vec3 AO = ray.origin - a;
 	vec3 DAO = cross( AO, ray.direction );
-	float u = dot( edge2, DAO ) * invdet;
-	float v = - dot( edge1, DAO ) * invdet;
-	float t = dot( AO, norm ) * invdet;
+
+	vec4 uvt;
+	uvt.x = dot( edge2, DAO ) * invdet;
+	uvt.y = - dot( edge1, DAO ) * invdet;
+	uvt.z = dot( AO, norm ) * invdet;
+	uvt.w = 1.0 - uvt.x - uvt.y;
 
 	// set the hit information
-	barycoord = vec3( u, v, 1.0 - u - v );
-	dist = t;
+	barycoord = uvt.xyw;
+	dist = uvt.z;
 	side = sign( det );
-
 	norm = normalize( norm );
 
-	return /* det >= 1e-6 && */ t >= 0.0 && u >= 0.0 && v >= 0.0 && ( u + v ) <= 1.0;
+	// add an epsilon to avoid misses between triangles
+	uvt += vec4( TRI_INTERSECT_EPSILON );
+
+	return all( greaterThanEqual( uvt, vec4( 0.0 ) ) );
 
 }
 
@@ -223,16 +230,18 @@ bool bvhIntersect( BVH bvh, Ray ray, bool anyHit, out BVHRayHit hit ) {
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
 			uint rightIndex = boundsInfo.y;
 
-			uint c1 = ray.direction[ splitAxis ] < 0.0 ? rightIndex : leftIndex;
-			uint c2 = ray.direction[ splitAxis ] < 0.0 ? leftIndex : rightIndex;
+			bool leftToRight = ray.direction[ splitAxis ] >= 0.0;
+			uint c1 = leftToRight ? leftIndex : rightIndex;
+			uint c2 = leftToRight ? rightIndex : leftIndex;
 
 			// set c2 in the stack so we traverse it later. We need to keep track of a pointer in
-			// the stack while we traverse.
-			ptr ++;
-			stack[ ptr ] = c1;
-
+			// the stack while we traverse. The second pointer added is the one that will be
+			// traversed first
 			ptr ++;
 			stack[ ptr ] = c2;
+
+			ptr ++;
+			stack[ ptr ] = c1;
 
 		}
 
