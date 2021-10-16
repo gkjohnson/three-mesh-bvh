@@ -12,15 +12,17 @@ import {
 
 const params = {
 	enableRaytracing: true,
+	smoothImageScaling: true,
 	mode: 0,
-	resolutionScale: 1,
-	bounces: 5,
+	resolutionScale: 2,
+	bounces: 10,
 	smoothNormals: true,
 };
 
 let renderer, camera, scene, gui, stats;
 let rtQuad, finalQuad, renderTarget;
 let samples = 0;
+let outputContainer;
 
 init();
 render();
@@ -30,10 +32,12 @@ function init() {
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: false } );
 	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setClearColor( 0x09141a );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.outputEncoding = THREE.sRGBEncoding;
-	renderer.domElement.style.imageRendering = 'pixelated';
 	document.body.appendChild( renderer.domElement );
+
+	outputContainer = document.getElementById( 'output' );
 
 	// scene setup
 	scene = new THREE.Scene();
@@ -56,7 +60,7 @@ function init() {
 	const knot = new THREE.TorusKnotBufferGeometry( 1, 0.3, 1300, 150 );
 	const bvh = new MeshBVH( knot, { maxLeafTris: 1, strategy: SAH } );
 
-	const knotMesh = new THREE.Mesh( knot, new THREE.MeshNormalMaterial() );
+	const knotMesh = new THREE.Mesh( knot, new THREE.MeshStandardMaterial() );
 	scene.add( knotMesh );
 
 	const rtMaterial = new THREE.ShaderMaterial( {
@@ -131,29 +135,35 @@ function init() {
 
 						}
 
-						throughputColor *= vec3( 0.9 );
+						throughputColor *= vec3( 0.75 );
 
 						randomPoint = vec3(
-							rand( vUv + float( i ) + time ),
-							rand( - vUv + float( i ) - time ),
-							rand( - vUv - float( i ) - time )
+							rand( vUv + float( i ) + vec2( time, - time ) ),
+							rand( - vUv * time + float( i ) - time ),
+							rand( - vUv * float( i + 1 ) - vec2( time, - time ) )
 						);
 						randomPoint -= 0.5;
 						randomPoint *= 2.0;
 
-						// TODO: this makes things really slow for some reason? Possibly due to divide by 0
-						// and this randomized sphere doesn't look great. Possibly distribution is bad and
-						// normalizing makes it worse
+						// TODO: this makes things really slow for some reason doesn't look great?
+						// Possibly due to divide by 0. And distribution could be bad and
+						// normalizing makes it worse.
 						// if ( length( randomPoint ) > 0.01 )
 						// 	randomPoint = normalize( randomPoint );
 
 						#if SMOOTH_NORMALS
 
-						vec3 normal = textureSampleBarycoord( normalAttribute, hit.barycoord, hit.face.a, hit.face.b, hit.face.c ).xyz;
+							vec3 normal = textureSampleBarycoord(
+								normalAttribute,
+								hit.barycoord,
+								hit.face.a,
+								hit.face.b,
+								hit.face.c
+							).xyz;
 
 						#else
 
-						vec3 normal = hit.face.normal;
+							vec3 normal = hit.face.normal;
 
 						#endif
 
@@ -235,6 +245,7 @@ function init() {
 		resetSamples();
 
 	} );
+	rtFolder.add( params, 'smoothImageScaling' );
 	rtFolder.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
 	rtFolder.add( params, 'bounces', 1, 30, 1 ).onChange( v => {
 
@@ -281,7 +292,7 @@ function render() {
 	stats.update();
 	requestAnimationFrame( render );
 
-
+	renderer.domElement.style.imageRendering = params.smoothImageScaling ? 'auto' : 'pixelated';
 
 	if ( params.enableRaytracing ) {
 
@@ -296,7 +307,7 @@ function render() {
 		camera.updateMatrixWorld();
 
 		// update material
-		const time = ( rtQuad.material.uniforms.time.value + 0.1 ) % 2;
+		const time = ( rtQuad.material.uniforms.time.value + 0.1111 ) % 2;
 		rtQuad.material.uniforms.time.value = time;
 		rtQuad.material.uniforms.cameraWorldMatrix.value.copy( camera.matrixWorld );
 		rtQuad.material.uniforms.invProjectionMatrix.value.copy( camera.projectionMatrixInverse );
@@ -316,9 +327,12 @@ function render() {
 
 	} else {
 
+		resetSamples();
 		camera.clearViewOffset();
 		renderer.render( scene, camera );
 
 	}
+
+	outputContainer.innerText = `samples: ${ samples }`;
 
 }
