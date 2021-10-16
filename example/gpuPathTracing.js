@@ -76,7 +76,7 @@ function init() {
 			normalAttribute: { value: new FloatVertexAttributeTexture() },
 			cameraWorldMatrix: { value: new THREE.Matrix4() },
 			invProjectionMatrix: { value: new THREE.Matrix4() },
-			time: { value: 0 },
+			seed: { value: 0 },
 			opacity: { value: 1 },
 		},
 
@@ -105,7 +105,7 @@ function init() {
 			uniform mat4 invProjectionMatrix;
 			uniform sampler2D normalAttribute;
 			uniform BVH bvh;
-			uniform float time;
+			uniform float seed;
 			uniform float opacity;
 			varying vec2 vUv;
 
@@ -138,9 +138,9 @@ function init() {
 						throughputColor *= vec3( 0.75 );
 
 						randomPoint = vec3(
-							rand( vUv + float( i ) + vec2( time, - time ) ),
-							rand( - vUv * time + float( i ) - time ),
-							rand( - vUv * float( i + 1 ) - vec2( time, - time ) )
+							rand( vUv + float( i ) + vec2( seed, - seed ) ),
+							rand( - vUv * seed + float( i ) - seed ),
+							rand( - vUv * float( i + 1 ) - vec2( seed, - seed ) )
 						);
 						randomPoint -= 0.5;
 						randomPoint *= 2.0;
@@ -307,8 +307,9 @@ function render() {
 		camera.updateMatrixWorld();
 
 		// update material
-		const time = ( rtQuad.material.uniforms.time.value + 0.1111 ) % 2;
-		rtQuad.material.uniforms.time.value = time;
+		// keep appending a value that doesn't divide evenly into 2 so we have a different seed every frame
+		const seed = ( rtQuad.material.uniforms.seed.value + 0.11111 ) % 2;
+		rtQuad.material.uniforms.seed.value = seed;
 		rtQuad.material.uniforms.cameraWorldMatrix.value.copy( camera.matrixWorld );
 		rtQuad.material.uniforms.invProjectionMatrix.value.copy( camera.projectionMatrixInverse );
 		rtQuad.material.uniforms.opacity.value = 1 / ( samples + 1 );
