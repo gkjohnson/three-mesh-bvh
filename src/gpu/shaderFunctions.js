@@ -40,8 +40,18 @@ struct BVHRayHit {
 
 export const shaderIntersectFunction = /* glsl */`
 
-// TODO: use templates for creating these functions?
 uvec4 uTexelFetch1D( usampler2D tex, uint index ) {
+
+	uint width = uint( textureSize( tex, 0 ).x );
+	uvec2 uv;
+	uv.x = index % width;
+	uv.y = index / width;
+
+	return texelFetch( tex, ivec2( uv ), 0 );
+
+}
+
+ivec4 iTexelFetch1D( isampler2D tex, uint index ) {
 
 	uint width = uint( textureSize( tex, 0 ).x );
 	uvec2 uv;
@@ -60,6 +70,15 @@ vec4 texelFetch1D( sampler2D tex, uint index ) {
 	uv.y = index / width;
 
 	return texelFetch( tex, ivec2( uv ), 0 );
+
+}
+
+vec4 textureSampleBarycoord( sampler2D tex, vec3 barycoord, uint a, uint b, uint c ) {
+
+	return
+		barycoord.x * texelFetch1D( tex, a ) +
+		barycoord.y * texelFetch1D( tex, b ) +
+		barycoord.z * texelFetch1D( tex, c );
 
 }
 
