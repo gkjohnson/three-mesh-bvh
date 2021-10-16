@@ -125,11 +125,11 @@ export class VertexAttributeTexture extends DataTexture {
 					if ( originalBufferCons === Uint8Array ) {
 
 						type = UnsignedByteType;
-						internalFormat += '_SNORM';
 
 					} else {
 
 						type = ByteType;
+						internalFormat += '_SNORM';
 
 					}
 

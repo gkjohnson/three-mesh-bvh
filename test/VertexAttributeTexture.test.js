@@ -49,10 +49,6 @@ describe( 'VertexAttributeTexture', () => {
 
 	it( 'should choose correct type, format, and internal format based on attribute parameters.', () => {
 
-		// TODO
-		// - R, RG, RGB, RGBA
-		// - Uint, Int, Float
-
 		{
 
 			const ba = new BufferAttribute( new Float32Array( 6 ), 2, false );
