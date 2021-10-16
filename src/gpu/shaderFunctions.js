@@ -1,5 +1,7 @@
 export const shaderStructs = /* glsl */`
+#ifndef TRI_INTERSECT_EPSILON
 #define TRI_INTERSECT_EPSILON 1e-5
+#endif
 
 struct BVH {
 

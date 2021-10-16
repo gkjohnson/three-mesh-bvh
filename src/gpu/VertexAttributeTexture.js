@@ -234,7 +234,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 }
 
-export class UnsignedIntVertexAttributeTexture extends VertexAttributeTexture {
+export class UIntVertexAttributeTexture extends VertexAttributeTexture {
 
 	constructor() {
 

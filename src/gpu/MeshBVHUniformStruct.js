@@ -8,7 +8,7 @@ import {
 } from 'three';
 import {
 	FloatVertexAttributeTexture,
-	UnsignedIntVertexAttributeTexture,
+	UIntVertexAttributeTexture,
 } from './VertexAttributeTexture.js';
 import { BYTES_PER_NODE } from '../core/Constants.js';
 import {
@@ -105,7 +105,7 @@ export class MeshBVHUniformStruct {
 	constructor() {
 
 		this.autoDispose = true;
-		this.index = new UnsignedIntVertexAttributeTexture();
+		this.index = new UIntVertexAttributeTexture();
 		this.position = new FloatVertexAttributeTexture();
 		this.bvhBounds = new DataTexture();
 		this.bvhContents = new DataTexture();
