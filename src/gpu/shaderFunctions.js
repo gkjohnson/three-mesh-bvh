@@ -75,10 +75,11 @@ vec4 texelFetch1D( sampler2D tex, uint index ) {
 
 vec4 textureSampleBarycoord( sampler2D tex, vec3 barycoord, uint a, uint b, uint c ) {
 
+	// TODO: our barycentric coordinates are incorrectly ordered here. Need to fix the intersectsTriangle function
 	return
-		barycoord.x * texelFetch1D( tex, a ) +
-		barycoord.y * texelFetch1D( tex, b ) +
-		barycoord.z * texelFetch1D( tex, c );
+		barycoord.x * texelFetch1D( tex, b ) +
+		barycoord.y * texelFetch1D( tex, c ) +
+		barycoord.z * texelFetch1D( tex, a );
 
 }
 
