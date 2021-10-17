@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import {
@@ -18,7 +20,7 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats;
-let rtQuad, finalQuad, renderTarget;
+let rtQuad, finalQuad, renderTarget, mesh;
 let samples = 0;
 let outputContainer;
 
@@ -47,18 +49,13 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 0, 0, 4 );
+	camera.position.set( - 2, 2, 3 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
 	// stats setup
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
-
-	const knot = new THREE.TorusKnotBufferGeometry( 1, 0.3, 300, 50 );
-	const bvh = new MeshBVH( knot, { maxLeafTris: 1, strategy: SAH } );
-	const knotMesh = new THREE.Mesh( knot, new THREE.MeshStandardMaterial() );
-	scene.add( knotMesh );
 
 	const rtMaterial = new THREE.ShaderMaterial( {
 
@@ -120,39 +117,42 @@ function init() {
 					BVHRayHit hit;
 					if ( ! bvhIntersectFirstHit( bvh, ray, hit ) ) {
 
-						float value = ( ray.direction.y + 0.5 ) / 2.0;
+						float value = ( ray.direction.y + 0.5 ) / 1.5;
 						vec3 skyColor = mix( vec3( 1.0 ), vec3( 0.75, 0.85, 1.0 ), value );
 
-						gl_FragColor = vec4( skyColor * throughputColor, 1.0 );
+						gl_FragColor = vec4( skyColor * throughputColor * 2.0, 1.0 );
 
 						break;
 
 					}
 
-					throughputColor *= vec3( 0.75 );
+					throughputColor *= 1.0 / PI;
 
 					randomPoint = vec3(
-						rand( vUv + float( i ) + vec2( seed, - seed ) ),
+						rand( vUv + float( i + 1 ) + vec2( seed, seed ) ),
 						rand( - vUv * seed + float( i ) - seed ),
 						rand( - vUv * float( i + 1 ) - vec2( seed, - seed ) )
 					);
 					randomPoint -= 0.5;
 					randomPoint *= 2.0;
 
-					// TODO: this makes things really slow for some reason doesn't look great?
-					// Possibly due to divide by 0. And distribution could be bad and
-					// normalizing makes it worse. Find a better random function for 3d points.
-					// if ( length( randomPoint ) > 0.01 )
-					// 	randomPoint = normalize( randomPoint );
+					// ensure the random vector is not 0,0,0 and that it won't exactly negate
+					// the surface normal
+
+					float pointLength = max( length( randomPoint ), 1e-2 );
+					randomPoint /= pointLength;
+					randomPoint *= 0.999;
 
 					// fetch the interpolated smooth normal
-					vec3 normal = textureSampleBarycoord(
-						normalAttribute,
-						hit.barycoord,
-						hit.face.a,
-						hit.face.b,
-						hit.face.c
-					).xyz;
+					vec3 normal =
+						hit.side *
+						textureSampleBarycoord(
+							normalAttribute,
+							hit.barycoord,
+							hit.face.a,
+							hit.face.b,
+							hit.face.c
+						).xyz;
 
 					ray.direction = normalize( normal + randomPoint );
 					ray.origin = hit.point + hit.face.normal * 1e-5;
@@ -168,10 +168,40 @@ function init() {
 	} );
 
 	rtQuad = new FullScreenQuad( rtMaterial );
-	rtMaterial.uniforms.bvh.value.updateFrom( bvh );
-	rtMaterial.uniforms.normalAttribute.value.updateFrom( knot.attributes.normal );
 	rtMaterial.transparent = true;
 	rtMaterial.depthWrite = false;
+
+	// load mesh and set up material BVH attributes
+	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
+
+		let dragonMesh;
+		gltf.scene.traverse( c => {
+
+			if ( c.isMesh && c.name === 'Dragon' ) {
+
+				dragonMesh = c;
+				c.geometry.center().scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
+
+			}
+
+		} );
+
+		dragonMesh.geometry.computeBoundingBox();
+
+		const planeGeom = new THREE.PlaneBufferGeometry( 5, 5, 1, 1 );
+		planeGeom.rotateX( - Math.PI / 2 ).translate( 0, dragonMesh.geometry.boundingBox.min.y, 0 );
+
+		const merged = mergeBufferGeometries( [ planeGeom, dragonMesh.geometry ], false );
+
+		mesh = new THREE.Mesh( merged, new THREE.MeshStandardMaterial() );
+		scene.add( mesh );
+
+		const bvh = new MeshBVH( mesh.geometry, { maxLeafTris: 1, strategy: SAH } );
+		rtMaterial.uniforms.bvh.value.updateFrom( bvh );
+		rtMaterial.uniforms.normalAttribute.value.updateFrom( mesh.geometry.attributes.normal );
+
+	} );
+
 
 	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
 
@@ -246,7 +276,7 @@ function render() {
 
 	renderer.domElement.style.imageRendering = params.smoothImageScaling ? 'auto' : 'pixelated';
 
-	if ( params.enableRaytracing ) {
+	if ( mesh && params.enableRaytracing ) {
 
 		// jitter camera for AA
 		const w = renderTarget.width;

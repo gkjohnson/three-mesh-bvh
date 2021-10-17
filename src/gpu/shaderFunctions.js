@@ -157,7 +157,7 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 	barycoord = uvt.wxy; // arranged in A, B, C order
 	dist = uvt.z;
 	side = sign( det );
-	norm = normalize( norm );
+	norm = side * normalize( norm );
 
 	// add an epsilon to avoid misses between triangles
 	uvt += vec4( TRI_INTERSECT_EPSILON );
