@@ -250,7 +250,6 @@ OrientedBox.prototype.distanceToPoint = ( function () {
 
 } )();
 
-
 OrientedBox.prototype.distanceToBox = ( function () {
 
 	const xyzFields = [ 'x', 'y', 'z' ];
