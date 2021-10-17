@@ -79,9 +79,9 @@ vec4 textureSampleBarycoord( sampler2D tex, vec3 barycoord, uint a, uint b, uint
 
 	// TODO: our barycentric coordinates are incorrectly ordered here. Need to fix the intersectsTriangle function
 	return
-		barycoord.x * texelFetch1D( tex, b ) +
-		barycoord.y * texelFetch1D( tex, c ) +
-		barycoord.z * texelFetch1D( tex, a );
+		barycoord.x * texelFetch1D( tex, a ) +
+		barycoord.y * texelFetch1D( tex, b ) +
+		barycoord.z * texelFetch1D( tex, c );
 
 }
 
@@ -154,7 +154,7 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 	uvt.w = 1.0 - uvt.x - uvt.y;
 
 	// set the hit information
-	barycoord = uvt.xyw;
+	barycoord = uvt.wxy; // arranged in A, B, C order
 	dist = uvt.z;
 	side = sign( det );
 	norm = normalize( norm );
@@ -205,6 +205,16 @@ bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float 
 }
 
 bool bvhIntersect( BVH bvh, Ray ray, bool anyHit, out BVHRayHit hit ) {
+
+	// initialize the hit with default values because shader compilation will complain otherwise
+	hit.face.a = 0u;
+	hit.face.b = 0u;
+	hit.face.c = 0u;
+	hit.face.normal = vec3( 0.0, 0.0, 1.0 );
+	hit.point = vec3( 0.0 );
+	hit.barycoord = vec3( 0.0 );
+	hit.side = 1.0;
+	hit.dist = 0.0;
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal

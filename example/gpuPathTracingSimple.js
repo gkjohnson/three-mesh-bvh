@@ -12,6 +12,9 @@ import {
 
 const params = {
 	enableRaytracing: true,
+	animate: true,
+	resolutionScale: 2,
+	smoothNormals: true,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -58,6 +61,12 @@ function init() {
 
 	const rtMaterial = new THREE.ShaderMaterial( {
 
+		defines: {
+
+			SMOOTH_NORMALS: 1,
+
+		},
+
 		uniforms: {
 			bvh: { value: new MeshBVHUniformStruct() },
 			normalAttribute: { value: new FloatVertexAttributeTexture() },
@@ -97,23 +106,30 @@ function init() {
 
 				// get [-1, 1] normalized device coordinates
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
-				Ray ray = ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix );
+				Ray ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
 
 				// get intersection
 				BVHRayHit hit;
 				bool didHit = bvhIntersectFirstHit( bvh, ray, hit );
 
-				// fetch interpolated normal
-				vec3 normal = textureSampleBarycoord(
-					normalAttribute,
-					hit.barycoord,
-					hit.face.a,
-					hit.face.b,
-					hit.face.c
-				).xyz;
+				#if SMOOTH_NORMALS
+
+					vec3 normal = textureSampleBarycoord(
+						normalAttribute,
+						hit.barycoord,
+						hit.face.a,
+						hit.face.b,
+						hit.face.c
+					).xyz;
+
+				#else
+
+					vec3 normal = hit.face.normal;
+
+				#endif
 
 				// set the color
-				gl_FragColor = ! didHit ? vec4( 0.0075, 0.015, 0.0225, 1.0 ) : vec4( normal, 1.0 );
+				gl_FragColor = ! didHit ? vec4( 0.0366, 0.0813, 0.1057, 1.0 ) : vec4( normal, 1.0 );
 
 			}
 		`
@@ -129,6 +145,13 @@ function init() {
 	gui = new GUI();
 	gui.add( params, 'enableRaytracing' );
 	gui.add( params, 'animate' );
+	gui.add( params, 'smoothNormals' ).onChange( v => {
+
+		rtQuad.material.defines.SMOOTH_NORMALS = Number( v );
+		rtQuad.material.needsUpdate = true;
+
+	} );
+	gui.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
 	gui.open();
 
 	window.addEventListener( 'resize', resize, false );
@@ -164,6 +187,7 @@ function render() {
 	if ( params.enableRaytracing ) {
 
 		camera.updateMatrixWorld();
+		mesh.updateMatrixWorld();
 
 		// update material
 		const uniforms = rtQuad.material.uniforms;
