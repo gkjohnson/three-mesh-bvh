@@ -59,7 +59,6 @@ function init() {
 
 	const knot = new THREE.TorusKnotBufferGeometry( 1, 0.3, 1300, 150 );
 	const bvh = new MeshBVH( knot, { maxLeafTris: 1, strategy: SAH } );
-
 	const knotMesh = new THREE.Mesh( knot, new THREE.MeshStandardMaterial() );
 	scene.add( knotMesh );
 
@@ -147,7 +146,7 @@ function init() {
 
 						// TODO: this makes things really slow for some reason doesn't look great?
 						// Possibly due to divide by 0. And distribution could be bad and
-						// normalizing makes it worse.
+						// normalizing makes it worse. Find a better random function for 3d points.
 						// if ( length( randomPoint ) > 0.01 )
 						// 	randomPoint = normalize( randomPoint );
 
