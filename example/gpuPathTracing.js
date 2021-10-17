@@ -13,10 +13,8 @@ import {
 const params = {
 	enableRaytracing: true,
 	smoothImageScaling: true,
-	mode: 0,
 	resolutionScale: 2,
 	bounces: 10,
-	smoothNormals: true,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -57,7 +55,7 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	const knot = new THREE.TorusKnotBufferGeometry( 1, 0.3, 1300, 150 );
+	const knot = new THREE.TorusKnotBufferGeometry( 1, 0.3, 300, 50 );
 	const bvh = new MeshBVH( knot, { maxLeafTris: 1, strategy: SAH } );
 	const knotMesh = new THREE.Mesh( knot, new THREE.MeshStandardMaterial() );
 	scene.add( knotMesh );
@@ -65,9 +63,7 @@ function init() {
 	const rtMaterial = new THREE.ShaderMaterial( {
 
 		defines: {
-			MODE: 0,
 			BOUNCES: 5,
-			SMOOTH_NORMALS: 1,
 		},
 
 		uniforms: {
@@ -114,82 +110,54 @@ function init() {
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
 				Ray ray = ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix );
 
-				#if MODE == 0
+				// Lambertian render
+				gl_FragColor = vec4( 0.0 );
 
-					gl_FragColor = vec4( 0.0 );
+				vec3 throughputColor = vec3( 1.0 );
+				vec3 randomPoint = vec3( .0 );
+				for ( int i = 0; i < BOUNCES; i ++ ) {
 
-					vec3 throughputColor = vec3( 1.0 );
-					vec3 randomPoint = vec3( .0 );
-					for ( int i = 0; i < BOUNCES; i ++ ) {
+					BVHRayHit hit;
+					if ( ! bvhIntersectFirstHit( bvh, ray, hit ) ) {
 
-						BVHRayHit hit;
-						if ( ! bvhIntersectFirstHit( bvh, ray, hit ) ) {
+						float value = ( ray.direction.y + 0.5 ) / 2.0;
+						vec3 skyColor = mix( vec3( 1.0 ), vec3( 0.75, 0.85, 1.0 ), value );
 
-							float value = ( ray.direction.y + 0.5 ) / 2.0;
-							vec3 skyColor = mix( vec3( 1.0 ), vec3( 0.75, 0.85, 1.0 ), value );
+						gl_FragColor = vec4( skyColor * throughputColor, 1.0 );
 
-							gl_FragColor = vec4( skyColor * throughputColor, 1.0 );
-
-							break;
-
-						}
-
-						throughputColor *= vec3( 0.75 );
-
-						randomPoint = vec3(
-							rand( vUv + float( i ) + vec2( seed, - seed ) ),
-							rand( - vUv * seed + float( i ) - seed ),
-							rand( - vUv * float( i + 1 ) - vec2( seed, - seed ) )
-						);
-						randomPoint -= 0.5;
-						randomPoint *= 2.0;
-
-						// TODO: this makes things really slow for some reason doesn't look great?
-						// Possibly due to divide by 0. And distribution could be bad and
-						// normalizing makes it worse. Find a better random function for 3d points.
-						// if ( length( randomPoint ) > 0.01 )
-						// 	randomPoint = normalize( randomPoint );
-
-						#if SMOOTH_NORMALS
-
-							vec3 normal = textureSampleBarycoord(
-								normalAttribute,
-								hit.barycoord,
-								hit.face.a,
-								hit.face.b,
-								hit.face.c
-							).xyz;
-
-						#else
-
-							vec3 normal = hit.face.normal;
-
-						#endif
-
-						ray.direction = normalize( normal + randomPoint );
-						ray.origin = hit.point + hit.face.normal * 1e-5;
+						break;
 
 					}
 
+					throughputColor *= vec3( 0.75 );
 
-				#elif MODE == 1
+					randomPoint = vec3(
+						rand( vUv + float( i ) + vec2( seed, - seed ) ),
+						rand( - vUv * seed + float( i ) - seed ),
+						rand( - vUv * float( i + 1 ) - vec2( seed, - seed ) )
+					);
+					randomPoint -= 0.5;
+					randomPoint *= 2.0;
 
-					BVHRayHit hit;
-					bool didHit = bvhIntersectFirstHit( bvh, ray, hit );
+					// TODO: this makes things really slow for some reason doesn't look great?
+					// Possibly due to divide by 0. And distribution could be bad and
+					// normalizing makes it worse. Find a better random function for 3d points.
+					// if ( length( randomPoint ) > 0.01 )
+					// 	randomPoint = normalize( randomPoint );
 
-					#if SMOOTH_NORMALS
+					// fetch the interpolated smooth normal
+					vec3 normal = textureSampleBarycoord(
+						normalAttribute,
+						hit.barycoord,
+						hit.face.a,
+						hit.face.b,
+						hit.face.c
+					).xyz;
 
-					vec3 normal = textureSampleBarycoord( normalAttribute, hit.barycoord, hit.face.a, hit.face.b, hit.face.c ).xyz;
+					ray.direction = normalize( normal + randomPoint );
+					ray.origin = hit.point + hit.face.normal * 1e-5;
 
-					#else
-
-					vec3 normal = hit.face.normal;
-
-					#endif
-
-					gl_FragColor = ! didHit ? vec4( 0.0075, 0.015, 0.0225, 1.0 ) : vec4( normal, 1.0 );
-
-				#endif
+				}
 
 				gl_FragColor.a = opacity;
 
@@ -202,7 +170,6 @@ function init() {
 	rtQuad = new FullScreenQuad( rtMaterial );
 	rtMaterial.uniforms.bvh.value.updateFrom( bvh );
 	rtMaterial.uniforms.normalAttribute.value.updateFrom( knot.attributes.normal );
-	rtMaterial.opacity = 0.5;
 	rtMaterial.transparent = true;
 	rtMaterial.depthWrite = false;
 
@@ -230,20 +197,6 @@ function init() {
 
 	const rtFolder = gui.addFolder( 'raytracing' );
 	rtFolder.add( params, 'enableRaytracing' ).name( 'enable' );
-	rtFolder.add( params, 'smoothNormals' ).onChange( v => {
-
-		rtMaterial.defines.SMOOTH_NORMALS = v ? 1 : 0;
-		rtMaterial.needsUpdate = true;
-		resetSamples();
-
-	} );
-	rtFolder.add( params, 'mode', { LAMBERT: 0, NORMALS: 1 } ).onChange( v => {
-
-		rtMaterial.defines.MODE = parseInt( v );
-		rtMaterial.needsUpdate = true;
-		resetSamples();
-
-	} );
 	rtFolder.add( params, 'smoothImageScaling' );
 	rtFolder.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
 	rtFolder.add( params, 'bounces', 1, 30, 1 ).onChange( v => {

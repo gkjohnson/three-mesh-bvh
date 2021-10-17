@@ -154,7 +154,7 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 	uvt.w = 1.0 - uvt.x - uvt.y;
 
 	// set the hit information
-	barycoord = uvt.wxy;
+	barycoord = uvt.wxy; // arranged in A, B, C order
 	dist = uvt.z;
 	side = sign( det );
 	norm = normalize( norm );
