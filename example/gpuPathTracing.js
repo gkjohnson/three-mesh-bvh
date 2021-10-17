@@ -180,18 +180,17 @@ function init() {
 			if ( c.isMesh && c.name === 'Dragon' ) {
 
 				dragonMesh = c;
-				c.geometry.center().scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
+				c.geometry.scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
 
 			}
 
 		} );
 
-		dragonMesh.geometry.computeBoundingBox();
-
 		const planeGeom = new THREE.PlaneBufferGeometry( 5, 5, 1, 1 );
-		planeGeom.rotateX( - Math.PI / 2 ).translate( 0, dragonMesh.geometry.boundingBox.min.y, 0 );
+		planeGeom.rotateX( - Math.PI / 2 );
 
 		const merged = mergeBufferGeometries( [ planeGeom, dragonMesh.geometry ], false );
+		merged.translate( 0, - 0.5, 0 );
 
 		mesh = new THREE.Mesh( merged, new THREE.MeshStandardMaterial() );
 		scene.add( mesh );
