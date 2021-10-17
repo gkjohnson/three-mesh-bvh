@@ -12,6 +12,8 @@ import {
 
 const params = {
 	enableRaytracing: true,
+	animate: true,
+	resolutionScale: 1,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -97,7 +99,7 @@ function init() {
 
 				// get [-1, 1] normalized device coordinates
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
-				Ray ray = ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix );
+				Ray ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
 
 				// get intersection
 				BVHRayHit hit;
@@ -113,7 +115,7 @@ function init() {
 				).xyz;
 
 				// set the color
-				gl_FragColor = ! didHit ? vec4( 0.0075, 0.015, 0.0225, 1.0 ) : vec4( normal, 1.0 );
+				gl_FragColor = ! didHit ? vec4( 0.0366, 0.0813, 0.1057, 1.0 ) : vec4( normal, 1.0 );
 
 			}
 		`
@@ -129,6 +131,7 @@ function init() {
 	gui = new GUI();
 	gui.add( params, 'enableRaytracing' );
 	gui.add( params, 'animate' );
+	gui.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
 	gui.open();
 
 	window.addEventListener( 'resize', resize, false );
@@ -164,6 +167,7 @@ function render() {
 	if ( params.enableRaytracing ) {
 
 		camera.updateMatrixWorld();
+		mesh.updateMatrixWorld();
 
 		// update material
 		const uniforms = rtQuad.material.uniforms;
