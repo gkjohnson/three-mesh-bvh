@@ -287,7 +287,7 @@ function updateDistanceCheck( fastCheck ) {
 
 	const distanceResult1 = {};
 	const distanceResult2 = {};
-	terrain.geometry.boundsTree.closestPointToGeometry(
+	const foundPoint = ! ! terrain.geometry.boundsTree.closestPointToGeometry(
 		targetMesh.geometry,
 		targetToBvh,
 		distanceResult1,
@@ -296,26 +296,29 @@ function updateDistanceCheck( fastCheck ) {
 		maxDistance,
 	);
 
-	// the resulting points are provided in the local frame of the the geometries
-	sphere1.position.copy( distanceResult1.point );
-	sphere2.position.copy( distanceResult2.point ).applyMatrix4( targetToBvh );
+	const hit = foundPoint && distanceResult1.distance < volumeDistance;
+	if ( hit ) {
 
-	const dist = distanceResult1.distance;
-	const hit = dist < volumeDistance;
+		// the resulting points are provided in the local frame of the the geometries
+		sphere1.position.copy( distanceResult1.point );
+		sphere2.position.copy( distanceResult2.point ).applyMatrix4( targetToBvh );
+
+		// update the line indicating closest point
+		sphere1.position.applyMatrix4( terrain.matrixWorld );
+		sphere2.position.applyMatrix4( terrain.matrixWorld );
+
+		line.position.copy( sphere1.position );
+		line.lookAt( sphere2.position );
+		line.scale.set(
+			0.01,
+			0.01,
+			sphere1.position.distanceTo( sphere2.position )
+		);
+
+	}
+
 	targetMesh.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	targetMesh.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	// update the line indicating closest point
-	sphere1.position.applyMatrix4( terrain.matrixWorld );
-	sphere2.position.applyMatrix4( terrain.matrixWorld );
-
-	line.position.copy( sphere1.position );
-	line.lookAt( sphere2.position );
-	line.scale.set(
-		0.01,
-		0.01,
-		sphere1.position.distanceTo( sphere2.position )
-	);
 
 	const areVisible = hit && ! fastCheck;
 	line.visible = areVisible;
@@ -406,10 +409,14 @@ function* updateMarchingCubes() {
 
 					pos.applyMatrix4( worldToBvh );
 
-					distanceMesh.geometry.boundsTree.closestPointToPoint( pos, distanceResult, distance, distance );
-					const dist = distanceResult.distance;
-					const result = dist < distance;
-					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
+					const foundPoint = ! ! distanceMesh.geometry.boundsTree.closestPointToPoint(
+						pos,
+						distanceResult,
+						distance,
+						distance,
+					);
+					const result = distanceResult.distance < distance;
+					marchingCubes.setCell( x, y, z, foundPoint && result ? 0 : 1 );
 
 				}
 
