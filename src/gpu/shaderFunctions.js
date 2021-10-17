@@ -79,9 +79,9 @@ vec4 textureSampleBarycoord( sampler2D tex, vec3 barycoord, uint a, uint b, uint
 
 	// TODO: our barycentric coordinates are incorrectly ordered here. Need to fix the intersectsTriangle function
 	return
-		barycoord.x * texelFetch1D( tex, b ) +
-		barycoord.y * texelFetch1D( tex, c ) +
-		barycoord.z * texelFetch1D( tex, a );
+		barycoord.x * texelFetch1D( tex, a ) +
+		barycoord.y * texelFetch1D( tex, b ) +
+		barycoord.z * texelFetch1D( tex, c );
 
 }
 
@@ -154,7 +154,7 @@ bool intersectsTriangle( Ray ray, vec3 a, vec3 b, vec3 c, out vec3 barycoord, ou
 	uvt.w = 1.0 - uvt.x - uvt.y;
 
 	// set the hit information
-	barycoord = uvt.xyw;
+	barycoord = uvt.wxy;
 	dist = uvt.z;
 	side = sign( det );
 	norm = normalize( norm );
