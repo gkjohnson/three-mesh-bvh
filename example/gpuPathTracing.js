@@ -209,7 +209,7 @@ function init() {
 
 	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
 
-		format: THREE.RGBFormat,
+		format: THREE.RGBAFormat,
 		type: THREE.FloatType,
 
 	} );
