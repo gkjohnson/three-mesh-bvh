@@ -25,7 +25,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [BVH options inspector demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
 
-### Tools
+**Tools**
 
 [Sculpting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
 
@@ -35,13 +35,13 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Lasso selection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
 
-### Games
+**Games**
 
 [Sphere physics collision demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
 
 [Player movement demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/characterMovement.html)
 
-### Path Tracing
+**Path Tracing**
 
 [Simple GPU Path Tracing demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracingSimple.html)
 
