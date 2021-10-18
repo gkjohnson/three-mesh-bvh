@@ -8,4 +8,8 @@ BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 const mesh = new Mesh();
 mesh.geometry.computeBoundsTree();
 mesh.geometry.disposeBoundsTree();
-mesh.raycast( new Raycaster(), [] );
+
+const raycaster = new Raycaster();
+raycaster.firstHitOnly = true;
+
+mesh.raycast( raycaster, [] );
