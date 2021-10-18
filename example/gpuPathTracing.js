@@ -112,9 +112,9 @@ function init() {
 
 				vec3 throughputColor = vec3( 1.0 );
 				vec3 randomPoint = vec3( .0 );
+				BVHRayHit hit = emptyBVHRayHit();
 				for ( int i = 0; i < BOUNCES; i ++ ) {
 
-					BVHRayHit hit;
 					if ( ! bvhIntersectFirstHit( bvh, ray, hit ) ) {
 
 						float value = ( ray.direction.y + 0.5 ) / 1.5;

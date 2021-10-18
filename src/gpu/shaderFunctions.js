@@ -204,9 +204,9 @@ bool intersectTriangles( BVH bvh, Ray ray, uint offset, uint count, inout float 
 
 }
 
-bool bvhIntersect( BVH bvh, Ray ray, bool anyHit, out BVHRayHit hit ) {
+BVHRayHit emptyBVHRayHit() {
 
-	// initialize the hit with default values because shader compilation will complain otherwise
+	BVHRayHit hit;
 	hit.face.a = 0u;
 	hit.face.b = 0u;
 	hit.face.c = 0u;
@@ -215,6 +215,11 @@ bool bvhIntersect( BVH bvh, Ray ray, bool anyHit, out BVHRayHit hit ) {
 	hit.barycoord = vec3( 0.0 );
 	hit.side = 1.0;
 	hit.dist = 0.0;
+	return hit;
+
+}
+
+bool bvhIntersect( BVH bvh, Ray ray, bool anyHit, out BVHRayHit hit ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal

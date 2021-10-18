@@ -109,7 +109,7 @@ function init() {
 				Ray ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
 
 				// get intersection
-				BVHRayHit hit;
+				BVHRayHit hit = emptyBVHRayHit();
 				bool didHit = bvhIntersectFirstHit( bvh, ray, hit );
 
 				#if SMOOTH_NORMALS
