@@ -28,9 +28,22 @@
             pointer-events: none;
             white-space: pre;
         }
+
+        #info {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            color: #777;
+            font-family: monospace;
+            text-align: center;
+            padding: 5px 0;
+		}
     </style>
 </head>
 <body>
+	<div id="info">
+		Basic Lambertian material Path Tracer implemented using BVH intersections on the GPU.
+	</div>
 	<div id="output"></div>
     <script src="./gpuPathTracing.js"></script>
 </body>
