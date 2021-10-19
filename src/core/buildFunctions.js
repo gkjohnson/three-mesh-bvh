@@ -1,10 +1,10 @@
 import { BufferAttribute } from 'three';
 import { MeshBVHNode } from './MeshBVHNode.js';
 import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from '../utils/ArrayBoxUtilities.js';
-import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from './Constants.js';
-
-// https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
-const FLOAT32_EPSILON = Math.pow( 2, - 24 );
+import {
+	CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST,
+	BYTES_PER_NODE, FLOAT32_EPSILON, IS_LEAFNODE_FLAG,
+} from './Constants.js';
 
 function ensureIndex( geo, options ) {
 
@@ -632,10 +632,6 @@ export function buildTree( geo, options ) {
 	return roots;
 
 }
-
-export const BYTES_PER_NODE = 6 * 4 + 4 + 4;
-
-export const IS_LEAFNODE_FLAG = 0xFFFF;
 
 export function buildPackedTree( geo, options ) {
 
