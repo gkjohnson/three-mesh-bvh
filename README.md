@@ -11,43 +11,43 @@ A BVH implementation to speed up raycasting and enable spatial queries against t
 
 Casting 500 rays against an 80,000 polygon model at 60fps!
 
-# Demos
+# Examples
 
-[Raycasting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
+[Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
 
-[Clipped edges demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
+[Clipped edges](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
 
-[Point cloud interesection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+[Point cloud interesection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
-[Shape intersection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
+[Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
-[WebWorker generation demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
+[WebWorker generation](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
-[BVH options inspector demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
+[BVH options inspector](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
 
 **Tools**
 
-[Sculpting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
+[Sculpting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
 
-[Distance comparison demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
+[Distance comparison](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
 
-[Triangle painting demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
+[Triangle painting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
-[Lasso selection demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
+[Lasso selection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
 
 **Games**
 
-[Sphere physics collision demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
+[Sphere physics collision](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
 
-[Player movement demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/characterMovement.html)
+[Player movement](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/characterMovement.html)
 
 **Path Tracing**
 
-[Simple GPU Path Tracing demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracingSimple.html)
+[Simple GPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracingSimple.html)
 
-[Lambert GPU Path Tracing demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracing.html)
+[Lambert GPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracing.html)
 
-[CPU Path Tracing demo](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
+[CPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
 
 
 # Use
