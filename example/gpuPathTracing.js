@@ -139,7 +139,7 @@ function init() {
 					// ensure the random vector is not 0,0,0 and that it won't exactly negate
 					// the surface normal
 
-					float pointLength = max( length( randomPoint ), 1e-2 );
+					float pointLength = max( length( randomPoint ), 1e-4 );
 					randomPoint /= pointLength;
 					randomPoint *= 0.999;
 
@@ -155,7 +155,7 @@ function init() {
 						).xyz;
 
 					ray.direction = normalize( normal + randomPoint );
-					ray.origin = hit.point + hit.face.normal * 1e-5;
+					ray.origin = hit.point + hit.face.normal * 1e-4;
 
 				}
 
