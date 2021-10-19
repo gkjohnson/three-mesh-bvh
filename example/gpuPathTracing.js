@@ -17,6 +17,7 @@ const params = {
 	smoothImageScaling: true,
 	resolutionScale: 2,
 	bounces: 10,
+	accumulate: true,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -226,6 +227,7 @@ function init() {
 
 	const rtFolder = gui.addFolder( 'raytracing' );
 	rtFolder.add( params, 'enableRaytracing' ).name( 'enable' );
+	rtFolder.add( params, 'accumulate' );
 	rtFolder.add( params, 'smoothImageScaling' );
 	rtFolder.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
 	rtFolder.add( params, 'bounces', 1, 30, 1 ).onChange( v => {
@@ -278,13 +280,22 @@ function render() {
 	if ( mesh && params.enableRaytracing ) {
 
 		// jitter camera for AA
-		const w = renderTarget.width;
-		const h = renderTarget.height;
-		camera.setViewOffset(
-			w, h,
-			Math.random(), Math.random(),
-			w, h,
-		);
+		if ( params.accumulate ) {
+
+			const w = renderTarget.width;
+			const h = renderTarget.height;
+			camera.setViewOffset(
+				w, h,
+				Math.random(), Math.random(),
+				w, h,
+			);
+
+		} else {
+
+			resetSamples();
+
+		}
+
 		camera.updateMatrixWorld();
 
 		// update material
