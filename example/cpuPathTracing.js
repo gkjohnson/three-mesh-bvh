@@ -466,30 +466,30 @@ function onResize() {
 
 	// compute the new resolution based on the use parameters
 	const dpr = window.devicePixelRatio;
-	const divisor = 1 / params.resolution.resolutionScale;
+	const resolutionScale = params.resolution.resolutionScale;
 	if ( params.resolution.stretchImage ) {
 
 		containerElement.style.width = `${ window.innerWidth }px`;
 		containerElement.style.height = `${ window.innerHeight }px`;
 		renderer.setSize( window.innerWidth, window.innerHeight );
-		renderer.setPixelRatio( dpr / divisor );
+		renderer.setPixelRatio( dpr * resolutionScale );
 		resizeDataTexture(
-			Math.floor( window.innerWidth * dpr / divisor ),
-			Math.floor( window.innerHeight * dpr / divisor ),
+			Math.floor( window.innerWidth * dpr * resolutionScale ),
+			Math.floor( window.innerHeight * dpr * resolutionScale ),
 		);
 
 	} else {
 
-		containerElement.style.width = `${ window.innerWidth / divisor }px`;
-		containerElement.style.height = `${ window.innerHeight / divisor }px`;
+		containerElement.style.width = `${ window.innerWidth * resolutionScale }px`;
+		containerElement.style.height = `${ window.innerHeight * resolutionScale }px`;
 		renderer.setSize(
-			Math.floor( window.innerWidth / divisor ),
-			Math.floor( window.innerHeight / divisor )
+			Math.floor( window.innerWidth * resolutionScale ),
+			Math.floor( window.innerHeight * resolutionScale )
 		);
 		renderer.setPixelRatio( dpr );
 		resizeDataTexture(
-			Math.floor( window.innerWidth * dpr / divisor ),
-			Math.floor( window.innerHeight * dpr / divisor ),
+			Math.floor( window.innerWidth * dpr * resolutionScale ),
+			Math.floor( window.innerHeight * dpr * resolutionScale ),
 		);
 
 	}
