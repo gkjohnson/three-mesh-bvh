@@ -13,7 +13,7 @@ import {
 const params = {
 	enableRaytracing: true,
 	smoothImageScaling: true,
-	resolutionScale: 2,
+	resolutionScale: Math.min( 0.5, 1 / window.devicePixelRatio ),
 	bounces: 3,
 	accumulate: true,
 };
@@ -222,22 +222,17 @@ function init() {
 	} );
 
 	gui = new GUI();
-
-	const rtFolder = gui.addFolder( 'raytracing' );
-	rtFolder.add( params, 'enableRaytracing' ).name( 'enable' );
-	rtFolder.add( params, 'accumulate' );
-	rtFolder.add( params, 'smoothImageScaling' );
-	rtFolder.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
-	rtFolder.add( params, 'bounces', 1, 10, 1 ).onChange( v => {
+	gui.add( params, 'enableRaytracing' ).name( 'enable' );
+	gui.add( params, 'accumulate' );
+	gui.add( params, 'smoothImageScaling' );
+	gui.add( params, 'resolutionScale', 0.1, 1, 0.01 ).onChange( resize );
+	gui.add( params, 'bounces', 1, 10, 1 ).onChange( v => {
 
 		rtMaterial.defines.BOUNCES = parseInt( v );
 		rtMaterial.needsUpdate = true;
 		resetSamples();
 
 	} );
-
-	rtFolder.open();
-
 	gui.open();
 
 	window.addEventListener( 'resize', resize, false );
@@ -258,7 +253,7 @@ function resize() {
 
 	const w = window.innerWidth;
 	const h = window.innerHeight;
-	const dpr = window.devicePixelRatio * Math.pow( 2, - ( params.resolutionScale - 1 ) );
+	const dpr = window.devicePixelRatio * params.resolutionScale;
 	renderer.setSize( w, h );
 	renderer.setPixelRatio( dpr );
 

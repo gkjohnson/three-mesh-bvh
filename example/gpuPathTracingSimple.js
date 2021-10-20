@@ -13,7 +13,7 @@ import {
 const params = {
 	enableRaytracing: true,
 	animate: true,
-	resolutionScale: 2,
+	resolutionScale: Math.min( 0.5, 1 / 3 ),
 	smoothNormals: true,
 };
 
@@ -151,7 +151,7 @@ function init() {
 		rtQuad.material.needsUpdate = true;
 
 	} );
-	gui.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
+	gui.add( params, 'resolutionScale', 0.1, 1, 0.01 ).onChange( resize );
 	gui.open();
 
 	window.addEventListener( 'resize', resize, false );
@@ -166,7 +166,7 @@ function resize() {
 
 	const w = window.innerWidth;
 	const h = window.innerHeight;
-	const dpr = window.devicePixelRatio * Math.pow( 2, - ( params.resolutionScale - 1 ) );
+	const dpr = window.devicePixelRatio * params.resolutionScale;
 	renderer.setSize( w, h );
 	renderer.setPixelRatio( dpr );
 
