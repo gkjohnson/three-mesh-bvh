@@ -16,7 +16,7 @@ const params = {
 	enableRaytracing: true,
 	smoothImageScaling: true,
 	resolutionScale: 2,
-	bounces: 10,
+	bounces: 3,
 	accumulate: true,
 };
 
@@ -230,7 +230,7 @@ function init() {
 	rtFolder.add( params, 'accumulate' );
 	rtFolder.add( params, 'smoothImageScaling' );
 	rtFolder.add( params, 'resolutionScale', 1, 5, 1 ).onChange( resize );
-	rtFolder.add( params, 'bounces', 1, 30, 1 ).onChange( v => {
+	rtFolder.add( params, 'bounces', 1, 10, 1 ).onChange( v => {
 
 		rtMaterial.defines.BOUNCES = parseInt( v );
 		rtMaterial.needsUpdate = true;
