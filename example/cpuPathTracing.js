@@ -52,7 +52,7 @@ const models = {};
 const params = {
 	model: 'Dragon',
 	resolution: {
-		resolutionScale: 2,
+		resolutionScale: 0.5,
 		smoothImageScaling: false,
 		stretchImage: true,
 	},
@@ -361,7 +361,7 @@ function init() {
 	gui.add( params, 'model', Object.keys( models ) ).onChange( resetImage );
 
 	const resolutionFolder = gui.addFolder( 'resolution' );
-	resolutionFolder.add( params.resolution, 'resolutionScale', 1, 5, 1 ).onChange( onResize );
+	resolutionFolder.add( params.resolution, 'resolutionScale', 0.1, 1, 0.01 ).onChange( onResize );
 	resolutionFolder.add( params.resolution, 'smoothImageScaling' ).onChange( onResize );
 	resolutionFolder.add( params.resolution, 'stretchImage' ).onChange( onResize );
 	resolutionFolder.open();
@@ -466,7 +466,7 @@ function onResize() {
 
 	// compute the new resolution based on the use parameters
 	const dpr = window.devicePixelRatio;
-	const divisor = Math.pow( 2, parseFloat( params.resolution.resolutionScale ) - 1 );
+	const divisor = 1 / params.resolution.resolutionScale;
 	if ( params.resolution.stretchImage ) {
 
 		containerElement.style.width = `${ window.innerWidth }px`;
@@ -1029,7 +1029,7 @@ function render() {
 	scanLineElement.style.bottom = `${ scanLinePercent }%`;
 	if ( params.resolution.stretchImage ) {
 
-		scanLineElement.style.borderBottomWidth = `${ Math.pow( 2, params.resolution.resolutionScale - 1 ) }px`;
+		scanLineElement.style.borderBottomWidth = `${ Math.ceil( 1 / params.resolution.resolutionScale ) }px`;
 
 	} else {
 
