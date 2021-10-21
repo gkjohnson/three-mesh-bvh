@@ -771,11 +771,11 @@ In addition to queries in Javascript the BVH can be packed into a series of text
 
 ## *VertexAttributeTexture
 
-**FloatVertexAttributeTexture**
+### FloatVertexAttributeTexture
 
-**UIntVertexAttributeTexture**
+### UIntVertexAttributeTexture
 
-**IntVertexAttributeTexture**
+### IntVertexAttributeTexture
 
 _extends THREE.DataTexture_
 
