@@ -807,6 +807,14 @@ updateFrom( bvh : MeshBVH ) : void
 
 Updates the object and associated textures with data from the provided BVH.
 
+### .dispose
+
+```js
+dispose() : void
+```
+
+Dispose of the associated textures.
+
 ## Shader Function and Struct Exports
 
 ### shaderStructs
