@@ -518,6 +518,8 @@ index : TypedArray
 
 ## MeshBVHVisualizer
 
+_extends THREE.Group_
+
 Displays a view of the bounds tree up to the given depth of the tree. Update() must be called after any fields that affect visualization geometry are changed.
 
 _Note: The visualizer is expected to be a sibling of the mesh being visualized._
