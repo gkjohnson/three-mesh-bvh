@@ -728,9 +728,9 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 
 _NOTE The when using the [refit](#refit) function the `surfaceAreaScore` can be used to check how significantly the structure of the BVH has degraded and rebuild it if it has changed beyond some threshold ratio._
 
-## Individual Exports
+## Individual Functions
 
-Functions and constants exported individually not part of a class.
+Functions exported individually not part of a class.
 
 ### getTriangleHitPointInfo
 
@@ -764,6 +764,58 @@ target : {
 - `uv`: UV coordinates.
 
 This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
+
+# Shader and Texture Packing API
+
+In addition to queries in Javascript the BVH can be packed into a series of textures so raycast queries can be performed in a shader using provided WebGL shader functions.
+
+## *VertexAttributeTexture
+
+**FloatVertexAttributeTexture**
+
+**UIntVertexAttributeTexture**
+
+**IntVertexAttributeTexture**
+
+_extends THREE.DataTexture_
+
+Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a texture and when passing as a uniform to a shader they should be used as a `sampler2d`, `usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
+
+### .updateFrom
+
+```js
+updateFrom( attribute : THREE.BufferAttribute ) : void
+```
+
+Updates the texture to have the data contained in the passed BufferAttribute using the BufferAttribute `itemSize` field, `normalized` field, and TypedArray layout to determine the appropriate texture layout, format, and type. The texture dimensions will always be square. Because these are intended to be sampled as 1D arrays the width of the texture msut be taken into account to derive a sampling uv. See `texelFetch1D` in [shaderFunctions](#shaderFunctions).
+
+## MeshBVHUniformStruct
+
+### .updateFrame
+
+```js
+updateFrame( bvh : MeshBVH ) : void
+```
+
+TODO
+
+## Shader Function and Struct Exports
+
+### shaderStructs
+
+```js
+shaderStructs : string
+```
+
+TODO
+
+### shaderFunctions
+
+```js
+shaderFunctions : string
+```
+
+TODO
 
 ## Gotchas
 
