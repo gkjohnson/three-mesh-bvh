@@ -267,7 +267,9 @@ export function getTriangleHitPointInfo(
 
 // Shader Utilities
 class VertexAttributeTexture extends DataTexture {
-	updateFrom( attribute: BufferAttribute ): void;
+
+  updateFrom( attribute: BufferAttribute ): void;
+
 }
 
 export class FloatVertexAttributeTexture extends VertexAttributeTexture {}
@@ -275,8 +277,10 @@ export class UIntVertexAttributeTexture extends VertexAttributeTexture {}
 export class IntVertexAttributeTexture extends VertexAttributeTexture {}
 
 export class MeshBVHUniformStruct {
-	updateFrom( bvh: MeshBVH ): void;
-	dispose(): void;
+
+  updateFrom( bvh: MeshBVH ): void;
+  dispose(): void;
+
 }
 
 export const shaderStructs: string;
