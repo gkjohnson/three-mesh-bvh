@@ -728,9 +728,9 @@ Measures the min and max extremes of the tree including node depth, leaf triangl
 
 _NOTE The when using the [refit](#refit) function the `surfaceAreaScore` can be used to check how significantly the structure of the BVH has degraded and rebuild it if it has changed beyond some threshold ratio._
 
-## Individual Functions
+## Individual Exports
 
-Functions exported individually not part of a class.
+Functions and constants exported individually not part of a class.
 
 ### getTriangleHitPointInfo
 
