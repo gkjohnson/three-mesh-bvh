@@ -793,13 +793,15 @@ Updates the texture to have the data contained in the passed BufferAttribute usi
 
 ## MeshBVHUniformStruct
 
-### .updateFrame
+A shader uniform object corresponding to the `BVH` shader struct defined in [shaderStructs](#shaderStructs). The object contains four textures containing information about the BVH and geometry so it can be queried in a shader using the bvh intersection functions defined in [shaderFunctions](#shaderFunctions). This object is intended to be used as a shader uniform and read in the shader as a `BVH` struct.
+
+### .updateFrom
 
 ```js
-updateFrame( bvh : MeshBVH ) : void
+updateFrom( bvh : MeshBVH ) : void
 ```
 
-TODO
+Updates the object and associated textures with data from the provided BVH.
 
 ## Shader Function and Struct Exports
 
@@ -809,7 +811,7 @@ TODO
 shaderStructs : string
 ```
 
-TODO
+Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/gpu/shaderFunctions.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/gpu/shaderFunctions.js) for full implementations and declarations.
 
 ### shaderFunctions
 
@@ -817,7 +819,7 @@ TODO
 shaderFunctions : string
 ```
 
-TODO
+Set of shader functions used for interacting with the packed BVH in a shader and sampling [VertexAttributeTextures](#VertexAttributeTexture). See [src/gpu/shaderFunctions.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/gpu/shaderFunctions.js) for full implementations and declarations.
 
 ## Gotchas
 
