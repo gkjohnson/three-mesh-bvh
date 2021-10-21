@@ -1,9 +1,8 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
   Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
-  LineBasicMaterial, Mesh } from 'three';
+  LineBasicMaterial, Mesh, DataTexture, BufferAttribute } from 'three';
 
-// ################################## Contants #################################
-
+// Contants
 export enum SplitStrategy {}
 export const CENTER: SplitStrategy;
 export const AVERAGE: SplitStrategy;
@@ -14,8 +13,7 @@ export const NOT_INTERSECTED: ShapecastIntersection;
 export const INTERSECTED: ShapecastIntersection;
 export const CONTAINED: ShapecastIntersection;
 
-// ################################## MeshBVH ##################################
-
+// MeshBVH
 export interface HitPointInfo {
   point: Vector3;
   distance: number;
@@ -159,8 +157,7 @@ export class MeshBVH {
 
 }
 
-//############################### SerializedBVH ################################
-
+// SerializedBVH
 export class SerializedBVH {
 
   roots: Array<ArrayBuffer>;
@@ -168,8 +165,7 @@ export class SerializedBVH {
 
 }
 
-//############################# MeshBVHVisualizer ##############################
-
+// MeshBVHVisualizer
 export class MeshBVHVisualizer extends Group {
 
   opacity: number;
@@ -187,7 +183,7 @@ export class MeshBVHVisualizer extends Group {
 
 }
 
-//############################ THREE.js Extensions #############################
+// THREE.js Extensions
 
 export function computeBoundsTree( options?: MeshBVHOptions ): void;
 
@@ -212,8 +208,7 @@ declare module 'three/src/core/Raycaster' {
   }
 }
 
-//########################### GenerateMeshBVHWorker ############################
-
+// GenerateMeshBVHWorker
 export class GenerateMeshBVHWorker {
 
   running: boolean;
@@ -224,7 +219,7 @@ export class GenerateMeshBVHWorker {
 
 }
 
-//############################## Debug functions ###############################
+// Debug functions
 
 export function estimateMemoryInBytes( bvh: MeshBVH ): number;
 
@@ -251,8 +246,7 @@ export interface TreeNode {
 
 export function getJSONStructure( bvh: MeshBVH ): TreeNode;
 
-//############################ Triangle Utilities ##############################
-
+// Triangle Utilities
 export interface HitTriangleInfo {
   face: {
     a: number,
@@ -270,3 +264,20 @@ export function getTriangleHitPointInfo(
   triangleIndex: number,
   target?: HitTriangleInfo
 ): HitTriangleInfo
+
+// Shader Utilities
+class VertexAttributeTexture extends DataTexture {
+	updateFrom( attribute: BufferAttribute ): void;
+}
+
+export class FloatVertexAttributeTexture extends VertexAttributeTexture {}
+export class UIntVertexAttributeTexture extends VertexAttributeTexture {}
+export class IntVertexAttributeTexture extends VertexAttributeTexture {}
+
+export class MeshBVHUniformStruct {
+	updateFrom( bvh: MeshBVH ): void;
+	dispose(): void;
+}
+
+export const shaderStructs: string;
+export const shaderFunctions: string;
