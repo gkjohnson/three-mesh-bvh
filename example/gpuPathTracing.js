@@ -15,6 +15,7 @@ const params = {
 	smoothImageScaling: true,
 	resolutionScale: Math.min( 0.5, 1 / window.devicePixelRatio ),
 	bounces: 3,
+	rayOffsetExponent: - 4,
 	accumulate: true,
 };
 
@@ -60,6 +61,7 @@ function init() {
 
 		defines: {
 			BOUNCES: 5,
+			RAY_OFFSET: '1e-4',
 		},
 
 		uniforms: {
@@ -91,6 +93,10 @@ function init() {
 			${ shaderStructs }
 			${ shaderIntersectFunction }
 			#include <common>
+
+			#ifndef RAY_OFFSET
+			#define RAY_OFFSET 1e-4
+			#endif
 
 			uniform mat4 cameraWorldMatrix;
 			uniform mat4 invProjectionMatrix;
@@ -154,7 +160,7 @@ function init() {
 						).xyz;
 
 					ray.direction = normalize( normal + randomPoint );
-					ray.origin = hit.point + hit.face.normal * 1e-4;
+					ray.origin = hit.point + hit.face.normal * RAY_OFFSET;
 
 				}
 
@@ -226,6 +232,15 @@ function init() {
 	gui.add( params, 'accumulate' );
 	gui.add( params, 'smoothImageScaling' );
 	gui.add( params, 'resolutionScale', 0.1, 1, 0.01 ).onChange( resize );
+	gui.add( params, 'rayOffsetExponent', - 7, 0, 0.01 ).onChange( v => {
+
+		// specifies the ray offset on subsequent bounce because some mobile devices need larger offsets
+		// presumably due to precision issues.
+		rtMaterial.defines.RAY_OFFSET = Math.pow( 10, parseFloat( v ) );
+		rtMaterial.needsUpdate = true;
+		resetSamples();
+
+	} );
 	gui.add( params, 'bounces', 1, 10, 1 ).onChange( v => {
 
 		rtMaterial.defines.BOUNCES = parseInt( v );
