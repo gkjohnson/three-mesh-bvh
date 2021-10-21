@@ -169,7 +169,7 @@ worker.generate( geometry ).then( bvh => {
 
 ## BVH Raycasting in a Shader
 
-See the shader implementation in the [simple GPU Path Tracing example](https://github.com/gkjohnson/three-mesh-bvh/blob/master/example/gpuPathTracingSimple.js) for an example on how to perform BVH ray queries in a shader..
+See the shader implementation in the [simple GPU Path Tracing example](https://github.com/gkjohnson/three-mesh-bvh/blob/master/example/gpuPathTracingSimple.js) for an example on how to perform BVH ray queries in a shader.
 
 # Exports
 
