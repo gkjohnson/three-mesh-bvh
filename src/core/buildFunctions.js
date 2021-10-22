@@ -429,6 +429,10 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 		}
 
+	} else {
+
+		console.warn( `MeshBVH: Invalid build strategy value ${ strategy } used.` );
+
 	}
 
 	return { axis, pos };

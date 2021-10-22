@@ -227,7 +227,10 @@ function updateFromOptions() {
 	if ( params.mesh.useBoundsTree && ! geometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
-		geometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
+		geometry.computeBoundsTree( {
+			maxLeafTris: 5,
+			strategy: parseFloat( params.mesh.splitStrategy ),
+		} );
 		geometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
