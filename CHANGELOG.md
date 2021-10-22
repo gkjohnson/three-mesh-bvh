@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Typescript definition files.
 - `VertexAttributeTexture`, `BVHStructUniform`, and associated helper shader functions for performing raytracing in a fragment shader.
+- Warning when passing in an unknown split strategy option value.
 
 ## [0.5.0] - 2021-10-10
 ### Added
