@@ -106,20 +106,19 @@ function init() {
 
 				// get [-1, 1] normalized device coordinates
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
-				Ray ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
+				vec3 rayOrigin, rayDirection;
+				ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix, rayOrigin, rayDirection );
 
 				// get intersection
 				BVHRayHit hit = emptyBVHRayHit();
-				bool didHit = bvhIntersectFirstHit( bvh, ray, hit );
+				bool didHit = bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, hit );
 
 				#if SMOOTH_NORMALS
 
 					vec3 normal = textureSampleBarycoord(
 						normalAttribute,
 						hit.barycoord,
-						hit.face.a,
-						hit.face.b,
-						hit.face.c
+						hit.faceIndices.xyz
 					).xyz;
 
 				#else

@@ -110,7 +110,8 @@ function init() {
 
 				// get [-1, 1] normalized device coordinates
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
-				Ray ray = ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix );
+				vec3 rayOrigin, rayDirection;
+				ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix, rayOrigin, rayDirection );
 
 				// Lambertian render
 				gl_FragColor = vec4( 0.0 );
@@ -120,9 +121,9 @@ function init() {
 				BVHRayHit hit = emptyBVHRayHit();
 				for ( int i = 0; i < BOUNCES; i ++ ) {
 
-					if ( ! bvhIntersectFirstHit( bvh, ray, hit ) ) {
+					if ( ! bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, hit ) ) {
 
-						float value = ( ray.direction.y + 0.5 ) / 1.5;
+						float value = ( rayDirection.y + 0.5 ) / 1.5;
 						vec3 skyColor = mix( vec3( 1.0 ), vec3( 0.75, 0.85, 1.0 ), value );
 
 						gl_FragColor = vec4( skyColor * throughputColor * 2.0, 1.0 );
@@ -154,18 +155,17 @@ function init() {
 						textureSampleBarycoord(
 							normalAttribute,
 							hit.barycoord,
-							hit.face.a,
-							hit.face.b,
-							hit.face.c
+							hit.faceIndices.xyz
 						).xyz;
 
 					// adjust the hit point by the surface normal by a factor of some offset and the
 					// maximum component-wise value of the current point to accommodate floating point
 					// error as values increase.
-					vec3 absPoint = abs( hit.point );
+					vec3 point = rayOrigin + rayDirection * hit.dist;
+					vec3 absPoint = abs( point );
 					float maxPoint = max( absPoint.x, max( absPoint.y, absPoint.z ) );
-					ray.origin = hit.point + hit.face.normal * ( maxPoint + 1.0 ) * RAY_OFFSET;
-					ray.direction = normalize( normal + randomPoint );
+					rayOrigin = point + hit.faceNormal * ( maxPoint + 1.0 ) * RAY_OFFSET;
+					rayDirection = normalize( normal + randomPoint );
 
 				}
 
