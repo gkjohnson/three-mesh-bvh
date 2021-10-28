@@ -107,7 +107,10 @@ function init() {
 				// get [-1, 1] normalized device coordinates
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
 				vec3 rayOrigin, rayDirection;
-				ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix, rayOrigin, rayDirection );
+				ndcToCameraRay(
+					ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix,
+					rayOrigin, rayDirection
+				);
 
 				// get intersection
 				BVHRayHit hit = emptyBVHRayHit();

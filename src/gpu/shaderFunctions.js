@@ -199,7 +199,7 @@ BVHRayHit emptyBVHRayHit() {
 
 }
 
-bool bvhIntersect( BVH bvh, vec3 rayOrigin, vec3 rayDirection, bool anyHit, out BVHRayHit hit ) {
+bool bvhIntersectFirstHit( BVH bvh, vec3 rayOrigin, vec3 rayDirection, out BVHRayHit hit ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
@@ -234,13 +234,6 @@ bool bvhIntersect( BVH bvh, vec3 rayOrigin, vec3 rayDirection, bool anyHit, out 
 
 			found = intersectTriangles( bvh, rayOrigin, rayDirection, offset, count, triangleDistance, hit ) || found;
 
-			// TODO: Should an "any hit" variation of the function be created?
-			if ( found && anyHit ) {
-
-				return true;
-
-			}
-
 		} else {
 
 			uint leftIndex = currNodeIndex + 1u;
@@ -268,15 +261,4 @@ bool bvhIntersect( BVH bvh, vec3 rayOrigin, vec3 rayDirection, bool anyHit, out 
 
 }
 
-bool bvhIntersectFirstHit( BVH bvh, vec3 rayOrigin, vec3 rayDirection, out BVHRayHit hit ) {
-
-	return bvhIntersect( bvh, rayOrigin, rayDirection, false, hit );
-
-}
-
-bool bvhIntersectAnyHit( BVH bvh, vec3 rayOrigin, vec3 rayDirection, out BVHRayHit hit ) {
-
-	return bvhIntersect( bvh, rayOrigin, rayDirection, true, hit );
-
-}
 `;
