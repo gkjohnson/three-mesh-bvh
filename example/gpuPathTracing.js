@@ -290,7 +290,7 @@ function render() {
 			const h = renderTarget.height;
 			camera.setViewOffset(
 				w, h,
-				Math.random(), Math.random(),
+				Math.random() - 0.5, Math.random() - 0.5,
 				w, h,
 			);
 
