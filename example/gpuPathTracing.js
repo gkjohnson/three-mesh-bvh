@@ -59,7 +59,7 @@ function init() {
 	// hand-tuned ray origin offset values to accommodate floating point error. Mobile offset
 	// tuned from Pixel 3 device that reports as highp but seemingly has low precision.
 	const isMobile = 'ontouchstart' in window && navigator.maxTouchPoints > 0;
-	const rayOffsetExponent = isMobile ? - 3 : - 5;
+	const rayOffsetExponent = isMobile ? - 2.75 : - 5.75;
 
 	const rtMaterial = new THREE.ShaderMaterial( {
 
