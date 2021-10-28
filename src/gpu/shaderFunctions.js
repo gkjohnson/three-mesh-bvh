@@ -13,19 +13,11 @@ struct BVH {
 
 };
 
-struct Ray {
-
-	vec3 origin;
-	vec3 direction;
-
-};
-
 struct BVHRayHit {
 
 	uvec4 faceIndices;
 	vec3 faceNormal;
 
-	vec3 point;
 	vec3 barycoord;
 	float side;
 	float dist;
