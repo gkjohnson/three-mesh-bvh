@@ -110,6 +110,8 @@ export class MeshBVHUniformStruct {
 		this.bvhBounds = new DataTexture();
 		this.bvhContents = new DataTexture();
 
+		this.index.overrideItemSize = 3;
+
 	}
 
 	updateFrom( bvh ) {

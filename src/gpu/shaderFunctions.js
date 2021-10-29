@@ -167,14 +167,10 @@ bool intersectTriangles(
 	float localDist, localSide;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
-		uint index3 = i * 3u;
-		uint i0 = uTexelFetch1D( bvh.index, index3 + 0u ).r;
-		uint i1 = uTexelFetch1D( bvh.index, index3 + 1u ).r;
-		uint i2 = uTexelFetch1D( bvh.index, index3 + 2u ).r;
-
-		vec3 a = texelFetch1D( bvh.position, i0 ).rgb;
-		vec3 b = texelFetch1D( bvh.position, i1 ).rgb;
-		vec3 c = texelFetch1D( bvh.position, i2 ).rgb;
+		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
+		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
+		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
+		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
 
 		if (
 			intersectsTriangle( rayOrigin, rayDirection, a, b, c, localBarycoord, localNormal, localDist, localSide )
@@ -184,7 +180,7 @@ bool intersectTriangles(
 			found = true;
 			minDistance = localDist;
 
-			faceIndices = uvec4( i0, i1, i2, i );
+			faceIndices = uvec4( indices.xyz, i );
 			faceNormal = localNormal;
 
 			side = localSide;
