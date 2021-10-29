@@ -12,8 +12,7 @@
     "build": "rollup -c",
     "build-examples": "parcel build ./example/*.html --out-dir ./example/bundle/ --public-url . --no-cache --no-source-maps --no-content-hash",
     "test": "jest",
-    "tsc": "tsc --noEmit",
-    "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\"",
+    "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" && tsc --noEmit",
     "benchmark": "node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"
   },
