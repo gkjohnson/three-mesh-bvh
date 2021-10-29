@@ -267,7 +267,7 @@ export function getTriangleHitPointInfo(
 // Shader Utilities
 declare class VertexAttributeTexture extends DataTexture {
 
-	overrideItemSize: Number | null;
+  overrideItemSize: Number | null;
   updateFrom( attribute: BufferAttribute ): void;
 
 }
