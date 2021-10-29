@@ -220,7 +220,10 @@ BVHRayHit emptyBVHRayHit() {
 
 bool bvhIntersectFirstHit(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
-	out BVHRayHit hit
+
+	// output variables
+	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
+	out float side, out float dist
 ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
@@ -256,7 +259,7 @@ bool bvhIntersectFirstHit(
 
 			found = intersectTriangles(
 				bvh, rayOrigin, rayDirection, offset, count, triangleDistance,
-				hit.faceIndices, hit.faceNormal, hit.barycoord, hit.side, hit.dist
+				faceIndices, faceNormal, barycoord, side, dist
 			) || found;
 
 		} else {

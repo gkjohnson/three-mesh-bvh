@@ -118,10 +118,17 @@ function init() {
 
 				vec3 throughputColor = vec3( 1.0 );
 				vec3 randomPoint = vec3( .0 );
-				BVHRayHit hit = emptyBVHRayHit();
+
+				// hit results
+				uvec4 faceIndices = uvec4( 0u );
+				vec3 faceNormal = vec3( 0.0, 0.0, 1.0 );
+				vec3 barycoord = vec3( 0.0 );
+				float side = 1.0;
+				float dist = 0.0;
+
 				for ( int i = 0; i < BOUNCES; i ++ ) {
 
-					if ( ! bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, hit ) ) {
+					if ( ! bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist ) ) {
 
 						float value = ( rayDirection.y + 0.5 ) / 1.5;
 						vec3 skyColor = mix( vec3( 1.0 ), vec3( 0.75, 0.85, 1.0 ), value );
@@ -151,20 +158,20 @@ function init() {
 
 					// fetch the interpolated smooth normal
 					vec3 normal =
-						hit.side *
+						side *
 						textureSampleBarycoord(
 							normalAttribute,
-							hit.barycoord,
-							hit.faceIndices.xyz
+							barycoord,
+							faceIndices.xyz
 						).xyz;
 
 					// adjust the hit point by the surface normal by a factor of some offset and the
 					// maximum component-wise value of the current point to accommodate floating point
 					// error as values increase.
-					vec3 point = rayOrigin + rayDirection * hit.dist;
+					vec3 point = rayOrigin + rayDirection * dist;
 					vec3 absPoint = abs( point );
 					float maxPoint = max( absPoint.x, max( absPoint.y, absPoint.z ) );
-					rayOrigin = point + hit.faceNormal * ( maxPoint + 1.0 ) * RAY_OFFSET;
+					rayOrigin = point + faceNormal * ( maxPoint + 1.0 ) * RAY_OFFSET;
 					rayDirection = normalize( normal + randomPoint );
 
 				}
