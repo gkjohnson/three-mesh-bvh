@@ -7,6 +7,7 @@ import {
 	BufferAttribute,
 	RedFormat,
 	RGFormat,
+	RGBFormat,
 	RGBAFormat,
 	RGBIntegerFormat,
 	RGBAIntegerFormat,
@@ -18,6 +19,45 @@ import {
 } from 'three';
 
 describe( 'VertexAttributeTexture', () => {
+
+	describe( 'overrideItemSize', () => {
+
+		it( 'should reset the itemSize if it is set.', () => {
+
+			const ba = new BufferAttribute( new Uint8Array( 6 ), 1, false );
+			const tex = new UIntVertexAttributeTexture();
+			tex.overrideItemSize = 3;
+			tex.updateFrom( ba );
+
+			expect( tex.type ).toBe( UnsignedByteType );
+			expect( tex.format ).toBe( RGBIntegerFormat );
+			expect( tex.internalFormat ).toBe( 'RGB8UI' );
+			expect( ba.itemSize ).toBe( 1 );
+
+		} );
+
+		it( 'should throw an error if it does not divide evenly into buffer length.', () => {
+
+			const ba = new BufferAttribute( new Uint8Array( 8 ), 1, false );
+			const tex = new UIntVertexAttributeTexture();
+			tex.overrideItemSize = 3;
+
+			let caught = false;
+			try {
+
+				tex.updateFrom( ba );
+
+			} catch {
+
+				caught = true;
+
+			}
+
+			expect( caught ).toBe( true );
+
+		} );
+
+	} );
 
 	it( 'should create a large enough texture to store all data.', () => {
 

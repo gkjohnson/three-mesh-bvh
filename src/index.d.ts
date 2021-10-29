@@ -220,7 +220,6 @@ export class GenerateMeshBVHWorker {
 }
 
 // Debug functions
-
 export function estimateMemoryInBytes( bvh: MeshBVH ): number;
 
 export interface ExtremeInfo {
@@ -266,8 +265,9 @@ export function getTriangleHitPointInfo(
 ): HitTriangleInfo
 
 // Shader Utilities
-class VertexAttributeTexture extends DataTexture {
+declare class VertexAttributeTexture extends DataTexture {
 
+  overrideItemSize: Number | null;
   updateFrom( attribute: BufferAttribute ): void;
 
 }

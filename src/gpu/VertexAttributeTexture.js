@@ -70,16 +70,31 @@ export class VertexAttributeTexture extends DataTexture {
 		this.minFilter = NearestFilter;
 		this.magFilter = NearestFilter;
 		this.generateMipmaps = false;
+		this.overrideItemSize = null;
 		this._forcedType = null;
 
 	}
 
 	updateFrom( attr ) {
 
+		const count = attr.count;
+		const overrideItemSize = this.overrideItemSize;
+		let originalItemSize = attr.itemSize;
+		if ( overrideItemSize !== null ) {
+
+			if ( ( originalItemSize * count ) % overrideItemSize !== 0.0 ) {
+
+				throw new Error( 'VertexAttributeTexture: overrideItemSize must divide evenly into buffer length.' );
+
+			}
+
+			attr.itemSize = this.overrideItemSize;
+
+		}
+
 		const itemSize = attr.itemSize;
 		const normalized = attr.normalized;
 		const originalBufferCons = attr.array.constructor;
-		const count = attr.count;
 		const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
 		let targetType = this._forcedType;
 
@@ -229,6 +244,8 @@ export class VertexAttributeTexture extends DataTexture {
 		this.image.height = dimension;
 		this.image.data = dataArray;
 		this.needsUpdate = true;
+
+		attr.itemSize = originalItemSize;
 
 	}
 
