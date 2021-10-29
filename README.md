@@ -787,6 +787,16 @@ _extends THREE.DataTexture_
 
 Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a texture and when passing as a uniform to a shader they should be used as a `sampler2d`, `usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
 
+### .overrideItemSize
+
+```js
+overrideItemSize : Number = null
+```
+
+Treats `BufferAttribute.itemSize` as though it were set to this value when packing the buffer attribute texture. Throws an error if the value does not divide evenly into the length of the BufferAttribute buffer (`count * itemSize % overrideItemSize`).
+
+Specifically used to pack geometry indices into an RGB texture rather than an Red texture.
+
 ### .updateFrom
 
 ```js
