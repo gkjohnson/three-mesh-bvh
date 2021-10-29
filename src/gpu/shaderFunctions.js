@@ -69,7 +69,10 @@ vec4 textureSampleBarycoord( sampler2D tex, vec3 barycoord, uvec3 faceIndices ) 
 
 }
 
-void ndcToCameraRay( vec2 coord, mat4 cameraWorld, mat4 invProjectionMatrix, out vec3 rayOrigin, out vec3 rayDirection ) {
+void ndcToCameraRay(
+	vec2 coord, mat4 cameraWorld, mat4 invProjectionMatrix,
+	out vec3 rayOrigin, out vec3 rayDirection
+) {
 
 	// get camera look direction and near plane for camera clipping
 	vec4 lookDirection = cameraWorld * vec4( 0.0, 0.0, - 1.0, 0.0 );
@@ -90,7 +93,10 @@ void ndcToCameraRay( vec2 coord, mat4 cameraWorld, mat4 invProjectionMatrix, out
 
 }
 
-bool intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax, out float dist ) {
+bool intersectsBounds(
+	vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax,
+	out float dist
+) {
 
 	// https://www.reddit.com/r/opengl/comments/8ntzz5/fast_glsl_ray_box_intersection/
 	// https://tavianator.com/2011/ray_box.html
@@ -119,7 +125,10 @@ bool intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 b
 
 }
 
-bool intersectsTriangle( vec3 rayOrigin, vec3 rayDirection, vec3 a, vec3 b, vec3 c, out vec3 barycoord, out vec3 norm, out float dist, out float side ) {
+bool intersectsTriangle(
+	vec3 rayOrigin, vec3 rayDirection, vec3 a, vec3 b, vec3 c,
+	out vec3 barycoord, out vec3 norm, out float dist, out float side
+) {
 
 	// https://stackoverflow.com/questions/42740765/intersection-between-line-and-triangle-in-3d
 	vec3 edge1 = b - a;
@@ -151,11 +160,18 @@ bool intersectsTriangle( vec3 rayOrigin, vec3 rayDirection, vec3 a, vec3 b, vec3
 
 }
 
-bool intersectTriangles( BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count, inout float minDistance, out BVHRayHit hit ) {
+bool intersectTriangles(
+	BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count,
+	inout float minDistance,
+
+	// output variables
+	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
+	out float side, out float dist
+) {
 
 	bool found = false;
-	vec3 barycoord, norm;
-	float dist, side;
+	vec3 localBarycoord, localNormal;
+	float localDist, localSide;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
 		uint index3 = i * 3u;
@@ -167,17 +183,20 @@ bool intersectTriangles( BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset
 		vec3 b = texelFetch1D( bvh.position, i1 ).rgb;
 		vec3 c = texelFetch1D( bvh.position, i2 ).rgb;
 
-		if ( intersectsTriangle( rayOrigin, rayDirection, a, b, c, barycoord, norm, dist, side ) && dist < minDistance ) {
+		if (
+			intersectsTriangle( rayOrigin, rayDirection, a, b, c, localBarycoord, localNormal, localDist, localSide )
+			&& localDist < minDistance
+		) {
 
 			found = true;
-			minDistance = dist;
+			minDistance = localDist;
 
-			hit.faceIndices = uvec4( i0, i1, i2, i );
-			hit.faceNormal = norm;
+			faceIndices = uvec4( i0, i1, i2, i );
+			faceNormal = localNormal;
 
-			hit.side = side;
-			hit.barycoord = barycoord;
-			hit.dist = dist;
+			side = localSide;
+			barycoord = localBarycoord;
+			dist = localDist;
 
 		}
 
@@ -199,7 +218,10 @@ BVHRayHit emptyBVHRayHit() {
 
 }
 
-bool bvhIntersectFirstHit( BVH bvh, vec3 rayOrigin, vec3 rayDirection, out BVHRayHit hit ) {
+bool bvhIntersectFirstHit(
+	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
+	out BVHRayHit hit
+) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
@@ -232,7 +254,10 @@ bool bvhIntersectFirstHit( BVH bvh, vec3 rayOrigin, vec3 rayDirection, out BVHRa
 			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 
-			found = intersectTriangles( bvh, rayOrigin, rayDirection, offset, count, triangleDistance, hit ) || found;
+			found = intersectTriangles(
+				bvh, rayOrigin, rayDirection, offset, count, triangleDistance,
+				hit.faceIndices, hit.faceNormal, hit.barycoord, hit.side, hit.dist
+			) || found;
 
 		} else {
 
