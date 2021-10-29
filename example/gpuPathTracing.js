@@ -58,14 +58,10 @@ function init() {
 
 	// hand-tuned ray origin offset values to accommodate floating point error. Mobile offset
 	// tuned from Pixel 3 device that reports as highp but seemingly has low precision.
-	const isMobile = 'ontouchstart' in window && navigator.maxTouchPoints > 0;
-	const rayOffsetExponent = isMobile ? - 2.75 : - 5;
-
 	const rtMaterial = new THREE.ShaderMaterial( {
 
 		defines: {
 			BOUNCES: 5,
-			RAY_OFFSET: Math.pow( 10, rayOffsetExponent ),
 		},
 
 		uniforms: {
@@ -93,6 +89,8 @@ function init() {
 		`,
 
 		fragmentShader: /* glsl */`
+			#define RAY_OFFSET 1e-5
+
 			precision highp usampler2D;
 			${ shaderStructs }
 			${ shaderIntersectFunction }
@@ -110,19 +108,27 @@ function init() {
 
 				// get [-1, 1] normalized device coordinates
 				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
-				Ray ray = ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix );
+				vec3 rayOrigin, rayDirection;
+				ndcToCameraRay( ndc, cameraWorldMatrix, invProjectionMatrix, rayOrigin, rayDirection );
 
 				// Lambertian render
 				gl_FragColor = vec4( 0.0 );
 
 				vec3 throughputColor = vec3( 1.0 );
 				vec3 randomPoint = vec3( .0 );
-				BVHRayHit hit = emptyBVHRayHit();
+
+				// hit results
+				uvec4 faceIndices = uvec4( 0u );
+				vec3 faceNormal = vec3( 0.0, 0.0, 1.0 );
+				vec3 barycoord = vec3( 0.0 );
+				float side = 1.0;
+				float dist = 0.0;
+
 				for ( int i = 0; i < BOUNCES; i ++ ) {
 
-					if ( ! bvhIntersectFirstHit( bvh, ray, hit ) ) {
+					if ( ! bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist ) ) {
 
-						float value = ( ray.direction.y + 0.5 ) / 1.5;
+						float value = ( rayDirection.y + 0.5 ) / 1.5;
 						vec3 skyColor = mix( vec3( 1.0 ), vec3( 0.75, 0.85, 1.0 ), value );
 
 						gl_FragColor = vec4( skyColor * throughputColor * 2.0, 1.0 );
@@ -150,22 +156,21 @@ function init() {
 
 					// fetch the interpolated smooth normal
 					vec3 normal =
-						hit.side *
+						side *
 						textureSampleBarycoord(
 							normalAttribute,
-							hit.barycoord,
-							hit.face.a,
-							hit.face.b,
-							hit.face.c
+							barycoord,
+							faceIndices.xyz
 						).xyz;
 
 					// adjust the hit point by the surface normal by a factor of some offset and the
 					// maximum component-wise value of the current point to accommodate floating point
 					// error as values increase.
-					vec3 absPoint = abs( hit.point );
+					vec3 point = rayOrigin + rayDirection * dist;
+					vec3 absPoint = abs( point );
 					float maxPoint = max( absPoint.x, max( absPoint.y, absPoint.z ) );
-					ray.origin = hit.point + hit.face.normal * ( maxPoint + 1.0 ) * RAY_OFFSET;
-					ray.direction = normalize( normal + randomPoint );
+					rayOrigin = point + faceNormal * ( maxPoint + 1.0 ) * RAY_OFFSET;
+					rayDirection = normalize( normal + randomPoint );
 
 				}
 
