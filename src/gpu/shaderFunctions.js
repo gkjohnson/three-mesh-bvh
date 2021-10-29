@@ -13,16 +13,9 @@ struct BVH {
 
 };
 
-struct BVHRayHit {
-
-	uvec4 faceIndices;
-	vec3 faceNormal;
-
-	vec3 barycoord;
-	float side;
-	float dist;
-
-};
+// Note that a struct cannot be used for the hit record including faceIndices, faceNormal, barycoord,
+// side, and dist because on some mobile GPUS (such as Adreno) numbers are afforded less precision specifically
+// when in a struct leading to inaccurate hit results. See KhronosGroup/WebGL#3351 for more details.
 `;
 
 export const shaderIntersectFunction = /* glsl */`
@@ -203,18 +196,6 @@ bool intersectTriangles(
 	}
 
 	return found;
-
-}
-
-BVHRayHit emptyBVHRayHit() {
-
-	BVHRayHit hit;
-	hit.faceIndices = uvec4( 0u );
-	hit.faceNormal = vec3( 0.0, 0.0, 1.0 );
-	hit.barycoord = vec3( 0.0 );
-	hit.side = 1.0;
-	hit.dist = 0.0;
-	return hit;
 
 }
 
