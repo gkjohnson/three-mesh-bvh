@@ -33,6 +33,8 @@ describe( 'VertexAttributeTexture', () => {
 			expect( tex.format ).toBe( RGBIntegerFormat );
 			expect( tex.internalFormat ).toBe( 'RGB8UI' );
 			expect( ba.itemSize ).toBe( 1 );
+			expect( ba.count ).toBe( 6 );
+			expect( tex.image.width ).toBe( 4 );
 
 		} );
 

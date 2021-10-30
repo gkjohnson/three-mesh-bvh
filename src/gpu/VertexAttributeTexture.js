@@ -77,22 +77,24 @@ export class VertexAttributeTexture extends DataTexture {
 
 	updateFrom( attr ) {
 
-		const count = attr.count;
 		const overrideItemSize = this.overrideItemSize;
-		let originalItemSize = attr.itemSize;
+		const originalItemSize = attr.itemSize;
+		const originalCount = attr.count;
 		if ( overrideItemSize !== null ) {
 
-			if ( ( originalItemSize * count ) % overrideItemSize !== 0.0 ) {
+			if ( ( originalItemSize * originalCount ) % overrideItemSize !== 0.0 ) {
 
 				throw new Error( 'VertexAttributeTexture: overrideItemSize must divide evenly into buffer length.' );
 
 			}
 
-			attr.itemSize = this.overrideItemSize;
+			attr.itemSize = overrideItemSize;
+			attr.count = originalCount * originalItemSize / overrideItemSize;
 
 		}
 
 		const itemSize = attr.itemSize;
+		const count = attr.count;
 		const normalized = attr.normalized;
 		const originalBufferCons = attr.array.constructor;
 		const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
@@ -246,6 +248,7 @@ export class VertexAttributeTexture extends DataTexture {
 		this.needsUpdate = true;
 
 		attr.itemSize = originalItemSize;
+		attr.count = originalCount;
 
 	}
 
