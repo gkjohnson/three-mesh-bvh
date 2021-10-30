@@ -7,7 +7,6 @@ import {
 	BufferAttribute,
 	RedFormat,
 	RGFormat,
-	RGBFormat,
 	RGBAFormat,
 	RGBIntegerFormat,
 	RGBAIntegerFormat,
