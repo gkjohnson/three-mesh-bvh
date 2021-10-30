@@ -4,10 +4,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { MarchingCubes } from 'three/examples/jsm/objects/MarchingCubes.js';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer } from '../src/index.js';
 import SimplexNoise from 'simplex-noise';
-import "@babel/polyfill";
+import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -282,25 +281,44 @@ function updateDistanceCheck( fastCheck ) {
 			.multiply( targetContainer.matrixWorld );
 
 	// get the closest point
-	const distance = params.volume.distance;
-	const maxDistance = distance;
-	const minDistance = fastCheck ? distance : 0;
-	const dist = terrain.geometry.boundsTree.closestPointToGeometry( terrain, targetMesh.geometry, targetToBvh, sphere1.position, sphere2.position, minDistance, maxDistance );
-	const hit = dist < distance;
+	const volumeDistance = params.volume.distance;
+	const maxDistance = volumeDistance;
+	const minDistance = fastCheck ? volumeDistance : 0;
+
+	const distanceResult1 = {};
+	const distanceResult2 = {};
+	const foundPoint = ! ! terrain.geometry.boundsTree.closestPointToGeometry(
+		targetMesh.geometry,
+		targetToBvh,
+		distanceResult1,
+		distanceResult2,
+		minDistance,
+		maxDistance,
+	);
+
+	const hit = foundPoint && distanceResult1.distance < volumeDistance;
+	if ( hit ) {
+
+		// the resulting points are provided in the local frame of the the geometries
+		sphere1.position.copy( distanceResult1.point );
+		sphere2.position.copy( distanceResult2.point ).applyMatrix4( targetToBvh );
+
+		// update the line indicating closest point
+		sphere1.position.applyMatrix4( terrain.matrixWorld );
+		sphere2.position.applyMatrix4( terrain.matrixWorld );
+
+		line.position.copy( sphere1.position );
+		line.lookAt( sphere2.position );
+		line.scale.set(
+			0.01,
+			0.01,
+			sphere1.position.distanceTo( sphere2.position )
+		);
+
+	}
+
 	targetMesh.material.color.set( hit ? 0xE91E63 : 0x666666 );
 	targetMesh.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	// update the line indicating closest point
-	sphere1.position.applyMatrix4( terrain.matrixWorld );
-	sphere2.position.applyMatrix4( terrain.matrixWorld );
-
-	line.position.copy( sphere1.position );
-	line.lookAt( sphere2.position );
-	line.scale.set(
-		0.01,
-		0.01,
-		sphere1.position.distanceTo( sphere2.position )
-	);
 
 	const areVisible = hit && ! fastCheck;
 	line.visible = areVisible;
@@ -374,9 +392,9 @@ function* updateMarchingCubes() {
 
 	marchingCubes.reset();
 
-	// get the world
+	// get the world distance
+	const distanceResult = {};
 	let count = 0;
-
 	for ( let y = 0; y < size; y ++ ) {
 
 		for ( let x = 0; x < size; x ++ ) {
@@ -391,9 +409,14 @@ function* updateMarchingCubes() {
 
 					pos.applyMatrix4( worldToBvh );
 
-					const dist = distanceMesh.geometry.boundsTree.distanceToPoint( distanceMesh, pos, distance, distance );
-					const result = dist < distance;
-					marchingCubes.setCell( x, y, z, result ? 0 : 1 );
+					const foundPoint = ! ! distanceMesh.geometry.boundsTree.closestPointToPoint(
+						pos,
+						distanceResult,
+						distance,
+						distance,
+					);
+					const result = distanceResult.distance < distance;
+					marchingCubes.setCell( x, y, z, foundPoint && result ? 0 : 1 );
 
 				}
 

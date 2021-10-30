@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { runBenchmark } from './utils.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, AVERAGE, SAH, estimateMemoryInBytes, getBVHExtremes, MeshBVH } from '../src/index.js';
+import {
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes,
+	CENTER, AVERAGE, SAH, estimateMemoryInBytes, MeshBVH,
+} from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -15,8 +18,8 @@ box.min.set( 1, 1, 1 );
 const intersectGeometry = new THREE.TorusBufferGeometry( 5, 5, 100, 50 );
 const geomMat = new THREE.Matrix4().compose( new THREE.Vector3(), new THREE.Quaternion(), new THREE.Vector3( 0.1, 0.1, 0.1 ) );
 
-const target1 = new THREE.Vector3();
-const target2 = new THREE.Vector3();
+const target1 = {};
+const target2 = {};
 
 const geometry = new THREE.TorusBufferGeometry( 5, 5, 700, 300 );
 const mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
@@ -24,11 +27,11 @@ const raycaster = new THREE.Raycaster();
 raycaster.ray.origin.set( 10, 20, 30 );
 raycaster.ray.direction.set( - 1, - 2, - 3 );
 
-function logExtremes( bvh, geometry ) {
+function logExtremes( bvh ) {
 
 	const extremes = getBVHExtremes( bvh )[ 0 ];
 	const bvhSize = estimateMemoryInBytes( bvh._roots );
-	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh, geometry ).roots );
+	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh ).roots );
 
 	console.log(
 		`\tExtremes:\n` +
@@ -50,64 +53,35 @@ function runSuite( strategy ) {
 
 	// generate a set of node indices to use with an optimized refit function
 	const refitIndices = new Set();
-	const terminationIndices = new Set();
 	const newSphere = new THREE.Sphere(
 		new THREE.Vector3( 0, 0, 0 ),
 		0.5,
 	);
-	geometry.boundsTree.shapecast(
-		mesh,
-		{
+	geometry.boundsTree.shapecast( {
 
-			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+		intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
 
-				if ( box.intersectsSphere( newSphere ) ) {
+			if ( box.intersectsSphere( newSphere ) ) {
 
-					refitIndices.add( nodeIndex );
-					return true;
-
-				}
-
-				return false;
-
-			},
-
-			intersectsRange: ( offset, count, contained, depth, nodeIndex ) => {
-
-				terminationIndices.add( nodeIndex );
+				refitIndices.add( nodeIndex );
+				return true;
 
 			}
 
-		}
-	);
+			return false;
 
-	logExtremes( geometry.boundsTree, geometry );
+		}
+
+	} );
+
+	logExtremes( geometry.boundsTree );
 
 	geometry.computeBoundingBox();
 	runBenchmark(
 
-		'Compute BVH w/ BB',
+		'Compute BVH',
 		() => {
 
-			geometry.boundsTree = null;
-
-		},
-		() => {
-
-			geometry.computeBoundsTree( options );
-
-		},
-		3000,
-		50
-
-	);
-
-	runBenchmark(
-
-		'Compute BVH w/o BB',
-		() => {
-
-			geometry.boundingBox = null;
 			geometry.boundsTree = null;
 
 		},
@@ -170,7 +144,7 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			geometry.boundsTree.refit( refitIndices, terminationIndices );
+			geometry.boundsTree.refit( refitIndices );
 
 
 		},
@@ -185,7 +159,7 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			MeshBVH.serialize( geometry.boundsTree, geometry );
+			MeshBVH.serialize( geometry.boundsTree );
 
 		},
 		3000,
@@ -193,7 +167,7 @@ function runSuite( strategy ) {
 
 	);
 
-	const serialized = MeshBVH.serialize( geometry.boundsTree, geometry );
+	const serialized = MeshBVH.serialize( geometry.boundsTree );
 	runBenchmark(
 
 		'Deserialize',
@@ -235,7 +209,7 @@ function runSuite( strategy ) {
 		null,
 		() => {
 
-			mesh.geometry.boundsTree.shapecast( mesh, {
+			mesh.geometry.boundsTree.shapecast( {
 
 				intersectsBounds: box => sphere.intersectsBox( box ),
 
@@ -256,7 +230,7 @@ function runSuite( strategy ) {
 
 		'IntersectsSphere',
 		null,
-		() => mesh.geometry.boundsTree.intersectsSphere( mesh, sphere ),
+		() => mesh.geometry.boundsTree.intersectsSphere( sphere ),
 		3000
 
 	);
@@ -265,7 +239,7 @@ function runSuite( strategy ) {
 
 		'IntersectsBox',
 		null,
-		() => mesh.geometry.boundsTree.intersectsBox( mesh, box, boxMat ),
+		() => mesh.geometry.boundsTree.intersectsBox( box, boxMat ),
 		3000
 
 	);
@@ -274,7 +248,7 @@ function runSuite( strategy ) {
 
 		'DistanceToGeometry w/ BVH',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToGeometry( mesh, intersectGeometry, geomMat, target1, target2 ),
+		() => mesh.geometry.boundsTree.closestPointToGeometry( intersectGeometry, geomMat, target1, target2 ).distance,
 		3000
 
 	);
@@ -284,7 +258,7 @@ function runSuite( strategy ) {
 
 		'DistanceToPoint',
 		null,
-		() => mesh.geometry.boundsTree.closestPointToPoint( mesh, vec, target1 ),
+		() => mesh.geometry.boundsTree.closestPointToPoint( vec, target1 ).distance,
 		3000
 
 	);
@@ -295,7 +269,7 @@ function runSuite( strategy ) {
 
 		'IntersectsGeometry w/ BVH',
 		null,
-		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
+		() => mesh.geometry.boundsTree.intersectsGeometry( intersectGeometry, geomMat ),
 		3000
 
 	);
@@ -306,7 +280,7 @@ function runSuite( strategy ) {
 
 		'IntersectsGeometry w/o BVH',
 		null,
-		() => mesh.geometry.boundsTree.intersectsGeometry( mesh, intersectGeometry, geomMat ),
+		() => mesh.geometry.boundsTree.intersectsGeometry( intersectGeometry, geomMat ),
 		3000
 
 	);
@@ -372,30 +346,30 @@ runBenchmark(
 
 	'CENTER raycast',
 	null,
-	() => mesh.raycast( raycaster ),
+	() => mesh.raycast( raycaster, [] ),
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree, towerGeometry );
+logExtremes( towerGeometry.boundsTree );
 
 towerGeometry.computeBoundsTree( { strategy: AVERAGE } );
 runBenchmark(
 
 	'AVERAGE raycast',
 	null,
-	() => mesh.raycast( raycaster ),
+	() => mesh.raycast( raycaster, [] ),
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree, towerGeometry );
+logExtremes( towerGeometry.boundsTree );
 
 towerGeometry.computeBoundsTree( { strategy: SAH } );
 runBenchmark(
 
 	'SAH raycast',
 	null,
-	() => mesh.raycast( raycaster ),
+	() => mesh.raycast( raycaster, [] ),
 	3000
 
 );
-logExtremes( towerGeometry.boundsTree, towerGeometry );
+logExtremes( towerGeometry.boundsTree );

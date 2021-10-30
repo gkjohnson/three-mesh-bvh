@@ -13,6 +13,9 @@ import {
 	Scene,
 	TorusBufferGeometry,
 	MeshBasicMaterial,
+	BoxBufferGeometry,
+	FrontSide,
+	BackSide,
 } from 'three';
 import {
 	MeshBVH as _MeshBVH,
@@ -44,7 +47,6 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'Shapecast containment', () => {
 
-		let mesh = null;
 		let bvh = null;
 		let intersectGeometry = null;
 
@@ -93,7 +95,6 @@ function runSuiteWithOptions( defaultOptions ) {
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 			intersectGeometry.computeBoundsTree();
@@ -108,7 +109,6 @@ function runSuiteWithOptions( defaultOptions ) {
 			let allContained = true;
 			let numContained = 0;
 			bvh.shapecast(
-				mesh,
 				{
 					intersectsBounds: getIntersectsBoxFunction( sphere ),
 					intersectsTriangle: ( tri, index, contained ) => {
@@ -134,7 +134,6 @@ function runSuiteWithOptions( defaultOptions ) {
 			let allContained = true;
 			let numContained = 0;
 			bvh.shapecast(
-				mesh,
 				{
 					intersectsBounds: getIntersectsBoxFunction( sphere ),
 					intersectsTriangle: ( tri, index, contained ) => {
@@ -163,7 +162,6 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			let trianglesIterated = 0;
 			bvh.shapecast(
-				mesh,
 				{
 					intersectsBounds: getIntersectsBoxFunction( sphere ),
 					intersectsTriangle: () => {
@@ -178,18 +176,116 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
+		it( 'should not use the same triangle twice when being recursively called.', () => {
+
+			const geometry = new SphereBufferGeometry();
+			const bvh = new MeshBVH( geometry );
+
+			let checks = 0;
+			bvh.shapecast( {
+
+				intersectsBounds: () => true,
+				intersectsTriangle: tri => {
+
+					bvh.shapecast( {
+
+						intersectsBounds: () => true,
+						intersectsTriangle: tri2 => {
+
+							expect( tri2 ).not.toBe( tri );
+							checks ++;
+							return true;
+
+						}
+
+					} );
+
+					return true;
+
+				}
+
+			} );
+
+			expect( checks ).not.toBe( 0 );
+
+		} );
+
+		it( 'should not use the same box twice when being recursively called.', () => {
+
+			const geometry = new SphereBufferGeometry();
+			const bvh = new MeshBVH( geometry );
+
+			let boundsChecks = 0;
+			let rangeChecks = 0;
+			bvh.shapecast( {
+
+				intersectsBounds: box1 => {
+
+					bvh.shapecast( {
+
+						intersectsBounds: box2 => {
+
+							expect( box1 ).not.toBe( box2 );
+							boundsChecks ++;
+							return true;
+
+						},
+
+						intersectsRange: ( offset, count, contained, depth, nodeIndex, box2 ) => {
+
+							expect( box1 ).not.toBe( box2 );
+							boundsChecks ++;
+							return true;
+
+						}
+
+					} );
+					return true;
+
+				},
+				intersectsRange: ( offset, count, contained, depth, nodeIndex, box1 ) => {
+
+					bvh.shapecast( {
+
+						intersectsBounds: box2 => {
+
+							expect( box1 ).not.toBe( box2 );
+							rangeChecks ++;
+							return true;
+
+						},
+
+						intersectsRange: ( offset, count, contained, depth, nodeIndex, box2 ) => {
+
+							expect( box1 ).not.toBe( box2 );
+							rangeChecks ++;
+							return true;
+
+						}
+
+					} );
+
+					return true;
+
+				}
+
+			} );
+
+			expect( rangeChecks ).not.toEqual( 0 );
+			expect( boundsChecks ).not.toEqual( 0 );
+
+		} );
+
 	} );
 
 	describe( 'IntersectsGeometry with BVH', () => {
 
-		let mesh = null;
 		let bvh = null;
 		let intersectGeometry = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 			intersectGeometry.computeBoundsTree();
@@ -204,7 +300,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 ) );
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( true );
 
 		} );
 
@@ -216,7 +312,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 ) );
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( false );
 
 		} );
 
@@ -228,7 +324,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.5, 0.5, 0.5 ) );
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( false );
 
 		} );
 
@@ -236,7 +332,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			const geomToWorld = new Matrix4().identity();
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( true );
 
 		} );
 
@@ -245,14 +341,12 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'IntersectsGeometry', () => {
 
-		let mesh = null;
 		let bvh = null;
 		let intersectGeometry = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
 
@@ -266,7 +360,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 ) );
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( true );
 
 		} );
 
@@ -278,7 +372,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 ) );
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( false );
 
 		} );
 
@@ -290,7 +384,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.5, 0.5, 0.5 ) );
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( false );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( false );
 
 		} );
 
@@ -298,7 +392,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			const geomToWorld = new Matrix4().identity();
 
-			expect( bvh.intersectsGeometry( mesh, intersectGeometry, geomToWorld ) ).toBe( true );
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( true );
 
 		} );
 
@@ -306,13 +400,11 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'IntersectsSphere', () => {
 
-		let mesh = null;
 		let bvh = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -322,7 +414,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			const sphere = new Sphere();
 			sphere.radius = .01;
 			sphere.center.set( 0, 1, 0 );
-			expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( true );
+			expect( bvh.intersectsSphere( sphere ) ).toBe( true );
 
 		} );
 
@@ -331,7 +423,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			const sphere = new Sphere();
 			sphere.radius = 0.9;
 			sphere.center.set( 0, 0, 0 );
-			expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( false );
+			expect( bvh.intersectsSphere( sphere ) ).toBe( false );
 
 		} );
 
@@ -340,7 +432,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			const sphere = new Sphere();
 			sphere.radius = 0.9;
 			sphere.center.set( 0, 2.01, 0 );
-			expect( bvh.intersectsSphere( mesh, sphere ) ).toBe( false );
+			expect( bvh.intersectsSphere( sphere ) ).toBe( false );
 
 		} );
 
@@ -348,13 +440,11 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'IntersectsBox', () => {
 
-		let mesh = null;
 		let bvh = null;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 50, 50 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -371,7 +461,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 					new Vector3( 1, 1, 1 ) );
 
-			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( false );
+			expect( bvh.intersectsBox( box, boxToWorld ) ).toBe( false );
 
 		} );
 
@@ -387,7 +477,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 					new Vector3( 1, 1, 1 ) );
 
-			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
+			expect( bvh.intersectsBox( box, boxToWorld ) ).toBe( true );
 
 		} );
 
@@ -403,7 +493,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 					new Vector3( 1, 1, 1 ) );
 
-			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
+			expect( bvh.intersectsBox( box, boxToWorld ) ).toBe( true );
 
 		} );
 
@@ -419,7 +509,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 					new Vector3( 1, 1, 1 ) );
 
-			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( false );
+			expect( bvh.intersectsBox( box, boxToWorld ) ).toBe( false );
 
 		} );
 
@@ -435,7 +525,7 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion().setFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) ),
 					new Vector3( 1, 1, 1 ) );
 
-			expect( bvh.intersectsBox( mesh, box, boxToWorld ) ).toBe( true );
+			expect( bvh.intersectsBox( box, boxToWorld ) ).toBe( true );
 
 		} );
 
@@ -446,22 +536,20 @@ function runSuiteWithOptions( defaultOptions ) {
 		// error to account for the geometry
 		// not being perfectly round
 		const EPSILON = 0.001;
-		let mesh = null;
 		let bvh = null;
-		let target = null;
+		let target = undefined;
 
 		beforeAll( () => {
 
 			const geom = new SphereBufferGeometry( 1, 200, 200 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			target = new Vector3();
 
 		} );
 
 		it( 'should return the radius if at the center of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( mesh, new Vector3(), target );
+			target = bvh.closestPointToPoint( new Vector3(), target );
+			const dist = target.distance;
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -469,7 +557,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should return 0 if on the surface of the geometry', () => {
 
-			const dist = bvh.closestPointToPoint( mesh, new Vector3( 0, 1, 0 ), target );
+			target = bvh.closestPointToPoint( new Vector3( 0, 1, 0 ), target );
+			const dist = target.distance;
 			expect( dist ).toBe( 0 );
 
 		} );
@@ -487,7 +576,8 @@ function runSuiteWithOptions( defaultOptions ) {
 				vec.normalize().multiplyScalar( length );
 
 				const expectedDist = Math.abs( 1 - length );
-				const dist = bvh.closestPointToPoint( mesh, vec, target );
+				target = bvh.closestPointToPoint( vec, target );
+				const dist = target.distance;
 				expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 				expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 
@@ -499,20 +589,17 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'Distance To Geometry', () => {
 
-		let mesh = null;
 		let geometry = null;
 		let bvh = null;
-		let target1 = null;
-		let target2 = null;
+		let target1 = undefined;
+		let target2 = undefined;
 
 		beforeEach( () => {
 
 			const geom = new SphereBufferGeometry( 1, 20, 20 );
-			mesh = new Mesh( geom );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
-			target1 = new Vector3();
-			target2 = new Vector3();
+			target2 = { };
 
 			geometry = new SphereBufferGeometry( 1, 5, 5 );
 
@@ -529,7 +616,8 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.001, 0.001, 0.001 )
 				);
-			const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
+			target1 = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+			const dist = target1.distance;
 			expect( dist ).toBeLessThanOrEqual( 1 );
 			expect( dist ).toBeGreaterThanOrEqual( 1 - EPSILON );
 
@@ -543,7 +631,8 @@ function runSuiteWithOptions( defaultOptions ) {
 					new Quaternion(),
 					new Vector3( 0.1, 0.1, 0.1 )
 				);
-			const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
+			target1 = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+			const dist = target1.distance;
 			expect( dist ).toBe( 0 );
 
 		} );
@@ -573,7 +662,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const distToCenter = Math.abs( 1 - length );
 				const expectedDist = distToCenter < radius ? 0 : distToCenter - radius;
-				const dist = bvh.closestPointToGeometry( mesh, geometry, matrix, target1, target2 );
+				target1 = bvh.closestPointToGeometry( geometry, matrix, target1, target2 );
+				const dist = target1.distance;
 				expect( dist ).toBeLessThanOrEqual( expectedDist + EPSILON );
 				expect( dist ).toBeGreaterThanOrEqual( expectedDist - EPSILON );
 
@@ -639,6 +729,56 @@ function runSuiteWithOptions( defaultOptions ) {
 
 				const res = raycaster.intersectObject( scene, true );
 				expect( res ).toHaveLength( 110 );
+
+			} );
+
+			it( 'should support correct use of groups', () => {
+
+				const backSideMaterial = new MeshBasicMaterial( {
+					side: BackSide,
+				} );
+
+				const frontSideMaterial = new MeshBasicMaterial( {
+					side: FrontSide,
+				} );
+
+				const box = new Mesh(
+					new BoxBufferGeometry(),
+					[
+						backSideMaterial, frontSideMaterial,
+						backSideMaterial, frontSideMaterial,
+						backSideMaterial, frontSideMaterial,
+					],
+				);
+
+				const raycaster = new Raycaster();
+				raycaster.ray.origin.set( 0, 0.25, - 10 );
+				raycaster.ray.direction.set( 0, 0, 1 );
+
+				// all hits
+				const results = raycaster.intersectObject( box, true );
+				box.geometry.computeBoundsTree();
+				const results2 = raycaster.intersectObject( box, true );
+
+				expect( results ).toEqual( results2 );
+				expect( results ).toHaveLength( 2 );
+
+				// first hit
+				raycaster.firstHitOnly = true;
+				box.material = [
+					frontSideMaterial, frontSideMaterial,
+					frontSideMaterial, frontSideMaterial,
+					backSideMaterial, backSideMaterial,
+				];
+
+				box.geometry.disposeBoundsTree();
+				const firstHit = raycaster.intersectObject( box, true )[ 0 ];
+
+				box.geometry.computeBoundsTree();
+				const firstHit2 = raycaster.intersectObject( box, true )[ 0 ];
+
+				expect( firstHit ).toEqual( firstHit2 );
+				expect( firstHit.point.z ).toEqual( 0.5 );
 
 			} );
 

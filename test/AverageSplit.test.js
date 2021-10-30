@@ -1,5 +1,19 @@
-import { Mesh, BufferGeometry, BufferAttribute, Vector3, Raycaster } from 'three';
-import { MeshBVH, acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
+import {
+	Mesh,
+	BufferGeometry,
+	BufferAttribute,
+	Vector3,
+	Raycaster,
+} from 'three';
+import {
+	MeshBVH,
+	acceleratedRaycast,
+	computeBoundsTree,
+	disposeBoundsTree,
+	CENTER,
+	SAH,
+	AVERAGE,
+} from '../src/index.js';
 import fs from 'fs';
 import path from 'path';
 

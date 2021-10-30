@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-// import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+// import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { MeshBVH, MeshBVHVisualizer, CONTAINED } from '../src/index.js';
@@ -51,7 +51,7 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	renderer.localClippingEnabled = true;
 	document.body.appendChild( renderer.domElement );
 
@@ -373,7 +373,7 @@ function render() {
 		let index = 0;
 		const posAttr = outlineLines.geometry.attributes.position;
 		const startTime = window.performance.now();
-		colliderBvh.shapecast( null, {
+		colliderBvh.shapecast( {
 
 			intersectsBounds: box => {
 

@@ -1,8 +1,10 @@
 import Stats from 'stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, CENTER, SAH, AVERAGE } from '../src/index.js';
+import {
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
+	CENTER, SAH, AVERAGE, MeshBVHVisualizer,
+} from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -10,53 +12,21 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const bgColor = 0x263238 / 2;
 
-// renderer setup
-const renderer = new THREE.WebGLRenderer( { antialias: true } );
-renderer.setPixelRatio( window.devicePixelRatio );
-renderer.setSize( window.innerWidth, window.innerHeight );
-renderer.setClearColor( bgColor, 1 );
-document.body.appendChild( renderer.domElement );
-
-// scene setup
-const scene = new THREE.Scene();
-scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
-const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
-light.position.set( 1, 1, 1 );
-scene.add( light );
-scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
-
-// geometry setup
-const radius = 1;
-const tube = 0.4;
-const tubularSegments = 400;
-const radialSegments = 100;
-
-let boundsViz = null;
-const containerObj = new THREE.Object3D();
-const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
-// const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
-const material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
-containerObj.scale.multiplyScalar( 10 );
-scene.add( containerObj );
-
-// camera setup
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-camera.position.z = 40;
-camera.far = 100;
-camera.updateProjectionMatrix();
-
-// stats setup
-const stats = new Stats();
-document.body.appendChild( stats.dom );
+let renderer, scene, stats, camera;
+let geometry, material, boundsViz, containerObj;
+const knots = [];
+const rayCasterObjects = [];
 
 // Create ray casters in the scene
-const rayCasterObjects = [];
 const raycaster = new THREE.Raycaster();
 const sphere = new THREE.SphereGeometry( 0.25, 20, 20 );
 const cylinder = new THREE.CylinderGeometry( 0.01, 0.01 );
 const pointDist = 25;
 
-const knots = [];
+// Delta timer
+let lastFrameTime = null;
+let deltaTime = 0;
+
 const params = {
 	raycasters: {
 		count: 150,
@@ -74,21 +44,92 @@ const params = {
 	}
 };
 
-// Delta timer
-let lastFrameTime = null;
-let deltaTime = 0;
+init();
+updateFromOptions();
+render();
 
-const addKnot = () => {
+function init() {
 
-	const mesh = new THREE.Mesh( knotGeometry, material );
+	// renderer setup
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setClearColor( bgColor, 1 );
+	document.body.appendChild( renderer.domElement );
+
+	// scene setup
+	scene = new THREE.Scene();
+	scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
+
+	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	light.position.set( 1, 1, 1 );
+	scene.add( light );
+	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
+
+	// geometry setup
+	const radius = 1;
+	const tube = 0.4;
+	const tubularSegments = 400;
+	const radialSegments = 100;
+
+	containerObj = new THREE.Object3D();
+	geometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+	// const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
+	material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
+	containerObj.scale.multiplyScalar( 10 );
+	containerObj.rotation.x = 10.989999999999943;
+	containerObj.rotation.y = 10.989999999999943;
+	scene.add( containerObj );
+
+	// camera setup
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	camera.position.z = 40;
+	camera.far = 100;
+	camera.updateProjectionMatrix();
+
+	// stats setup
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// Run
+	const gui = new dat.GUI();
+	const rcFolder = gui.addFolder( 'Raycasters' );
+	rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
+	rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
+	rcFolder.open();
+
+	const meshFolder = gui.addFolder( 'Mesh' );
+	meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
+	meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'displayParents' ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
+	meshFolder.open();
+
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
+
+}
+
+function addKnot() {
+
+	const mesh = new THREE.Mesh( geometry, material );
 	mesh.rotation.x = Math.random() * 10;
 	mesh.rotation.y = Math.random() * 10;
 	knots.push( mesh );
 	containerObj.add( mesh );
 
-};
+}
 
-const addRaycaster = () => {
+function addRaycaster() {
 
 	// Objects
 	const obj = new THREE.Object3D();
@@ -150,9 +191,9 @@ const addRaycaster = () => {
 		}
 	} );
 
-};
+}
 
-const updateFromOptions = () => {
+function updateFromOptions() {
 
 	// Update raycaster count
 	while ( rayCasterObjects.length > params.raycasters.count ) {
@@ -167,21 +208,30 @@ const updateFromOptions = () => {
 
 	}
 
-	// Update whether or not to use the bounds tree
-	if (
-		! params.mesh.useBoundsTree && knotGeometry.boundsTree ||
-		knotGeometry.boundsTree && params.mesh.splitStrategy !== knotGeometry.boundsTree.splitStrategy
-	) {
+	if ( ! geometry ) {
 
-		knotGeometry.disposeBoundsTree();
+		return;
 
 	}
 
-	if ( params.mesh.useBoundsTree && ! knotGeometry.boundsTree ) {
+	// Update whether or not to use the bounds tree
+	if (
+		! params.mesh.useBoundsTree && geometry.boundsTree ||
+		geometry.boundsTree && params.mesh.splitStrategy !== geometry.boundsTree.splitStrategy
+	) {
+
+		geometry.disposeBoundsTree();
+
+	}
+
+	if ( params.mesh.useBoundsTree && ! geometry.boundsTree ) {
 
 		console.time( 'computing bounds tree' );
-		knotGeometry.computeBoundsTree( { strategy: params.mesh.splitStrategy } );
-		knotGeometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
+		geometry.computeBoundsTree( {
+			maxLeafTris: 5,
+			strategy: parseFloat( params.mesh.splitStrategy ),
+		} );
+		geometry.boundsTree.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
 		if ( boundsViz ) {
@@ -229,7 +279,7 @@ const updateFromOptions = () => {
 	}
 
 	// Update bounds viz
-	const shouldDisplayBounds = params.mesh.visualizeBounds && knotGeometry.boundsTree;
+	const shouldDisplayBounds = params.mesh.visualizeBounds && geometry.boundsTree;
 	if ( boundsViz && ! shouldDisplayBounds ) {
 
 		containerObj.remove( boundsViz );
@@ -252,11 +302,9 @@ const updateFromOptions = () => {
 
 	}
 
-};
+}
 
-containerObj.rotation.x = 10.989999999999943;
-containerObj.rotation.y = 10.989999999999943;
-const render = () => {
+function render() {
 
 	stats.begin();
 
@@ -284,33 +332,4 @@ const render = () => {
 
 	requestAnimationFrame( render );
 
-};
-
-// Run
-const gui = new dat.GUI();
-const rcFolder = gui.addFolder( 'Raycasters' );
-rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
-rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
-rcFolder.open();
-
-const meshFolder = gui.addFolder( 'Mesh' );
-meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'count' ).min( 1 ).max( 300 ).step( 1 ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
-meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'displayParents' ).onChange( () => updateFromOptions() );
-meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
-meshFolder.open();
-
-window.addEventListener( 'resize', function () {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-}, false );
-
-updateFromOptions();
-render();
+}

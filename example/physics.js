@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { MeshBVH, MeshBVHVisualizer } from '../src/index.js';
@@ -56,7 +56,7 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -334,42 +334,41 @@ function updateSphereCollisions( deltaTime ) {
 		tempSphere.copy( sphere.collider );
 
 		let collided = false;
-		bvh.shapecast(
-			collider,
-			{
-				intersectsBounds: box => {
+		bvh.shapecast( {
 
-					return box.intersectsSphere( tempSphere );
+			intersectsBounds: box => {
 
-				},
+				return box.intersectsSphere( tempSphere );
 
-				intersectsTriangle: tri => {
+			},
 
-					// get delta between closest point and center
-					tri.closestPointToPoint( tempSphere.center, deltaVec );
-					deltaVec.sub( tempSphere.center );
-					const distance = deltaVec.length();
-					if ( distance < tempSphere.radius ) {
+			intersectsTriangle: tri => {
 
-						// move the sphere position to be outside the triangle
-						const radius = tempSphere.radius;
-						const depth = distance - radius;
-						deltaVec.multiplyScalar( 1 / distance );
-						tempSphere.center.addScaledVector( deltaVec, depth );
+				// get delta between closest point and center
+				tri.closestPointToPoint( tempSphere.center, deltaVec );
+				deltaVec.sub( tempSphere.center );
+				const distance = deltaVec.length();
+				if ( distance < tempSphere.radius ) {
 
-						collided = true;
+					// move the sphere position to be outside the triangle
+					const radius = tempSphere.radius;
+					const depth = distance - radius;
+					deltaVec.multiplyScalar( 1 / distance );
+					tempSphere.center.addScaledVector( deltaVec, depth );
 
-					}
+					collided = true;
 
-				},
+				}
 
-				traverseBoundsOrder: box => {
+			},
 
-					return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
+			traverseBoundsOrder: box => {
 
-				},
+				return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
 
-			} );
+			},
+
+		} );
 
 		if ( collided ) {
 

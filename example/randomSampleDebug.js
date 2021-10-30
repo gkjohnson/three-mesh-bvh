@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, AVERAGE } from '../src/index.js';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, AVERAGE, MeshBVHVisualizer } from '../src/index.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // Code for debugging issue #180 and other random raycast test associated issues.
@@ -37,7 +36,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -113,7 +112,7 @@ function init() {
 	const sphereGeom = new THREE.SphereBufferGeometry( 0.1 );
 	const sphereMesh = new THREE.Mesh( sphereGeom );
 
-	sphereMesh.position.copy( raycaster.ray.at( 0 ) );
+	sphereMesh.position.copy( raycaster.ray.at( 0, new THREE.Vector3() ) );
 	scene.add( sphereMesh );
 
 	// perform the hits

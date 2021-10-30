@@ -4,9 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.5.1] - Unreleased
+### Added
+- Typescript definition files.
+- `VertexAttributeTexture`, `BVHStructUniform`, and associated helper shader functions for performing raytracing in a fragment shader.
+- Warning when passing in an unknown split strategy option value.
+
+## [0.5.0] - 2021-10-10
+### Added
+- `useSharedArrayBuffer` option to `MeshBVH` so `SharedArrayBuffers` are created rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
+- SeparatingAxisTriangle.intersectsTriangle: added `target` field to retrieve the edge describing the intersection.
+- "box" argument to shapecast "intersectsRange" function.
+- `/* @__PURE__ */` indicator to reusable variables.
+
 ### Fixed
-- Fixed Surface Area Heuristic (SAH) split strategy to function correctly, improve build performance, produce more optimal bounds, and improved a memory footprint.
+- `raycast` and `raycastFirst` not properly accounting for material sidedness with geometry groups.
+- Case where the BVH root bounds would be incorrect if the geometry bounding box was incorrect / out of date.
+- MeshBVH.closestPointTGeometry not returning a proper intersection point if triangles intersect.
+- Shapecast function will now ensure a unique triangle / box is provided for each recursive call.
+- Fix `GenerateMeshBVHWorker` not setting the geometry index correctly on return.
+
+### Changed
+- Changed function signature for `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`, `closestPointToGeometry`, `closestPointToPoint`, `raycast`, and `raycastFirst`. Specifically at least the first "mesh" argument has been removed. Calling functions with the old signature will log a warning. See documentation for current signatures.
+- `raycast` and `raycastFirst` now return hits in the local space of the geometry rather than world space when querying the BVH directly to conform with other cast functions. Results still match three.js' original results when using `Raycaster.intersectObject(s)` functions. See documentation for more details.
+- `MeshBVHDebug` class has been removed and the function `getJSONStructure` and `validateBounds` are now exported individually.
+- Small observed performance improvements possibly a result of simplified function arguments.
+- The function signatures and options for `MeshBVH.serialize` and `MeshBVH.deserialize` have changed. See documentation for more new signature.
+- Changed `refit` function to take just a single argument with traversed node indices. Calling the function with the old signature will log a warning. See documentation for current signature.
+
+### Removed
+- `distanceToGeometry` and `distanceToPoint` functions.
+
+## [0.4.3] - 2021-08-20
+### Fixed
+- Fixed Surface Area Heuristic (SAH) split strategy to function correctly, improve build performance, and produce more optimal bounds and improved a memory footprint.
 
 ### Added
 - Return "surfaceAreaCost" in returned `getBVHExtremes` object to compare BVH structure quality.

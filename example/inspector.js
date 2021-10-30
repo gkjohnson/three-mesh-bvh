@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 import { GUI } from 'dat.gui';
 import {
@@ -36,8 +36,8 @@ const params = {
 
 		displayMesh: true,
 		simpleColors: false,
+		outline: true,
 		traversalThreshold: 50,
-		boundsOpacity: 5 / 255,
 
 	},
 
@@ -52,9 +52,9 @@ const params = {
 
 };
 
-const BOUNDS_COLOR = 0xffffff;
-const BG_COLOR = 0x001c15;
-const THRESHOLD_COLOR = 0xf44336;
+const BOUNDS_COLOR = 0xffca28;
+const BG_COLOR = 0x002027;
+const THRESHOLD_COLOR = 0xe91e63;
 
 class TraverseMaterial extends THREE.ShaderMaterial {
 
@@ -65,11 +65,12 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 			uniforms: {
 				map: { value: null },
 				threshold: { value: 35 },
-				boundsOpacity: { value: 5 },
 
 				boundsColor: { value: new THREE.Color( 0xffffff ) },
 				backgroundColor: { value: new THREE.Color( 0x000000 ) },
 				thresholdColor: { value: new THREE.Color( 0xff0000 ) },
+				resolution: { value: new THREE.Vector2() },
+				outlineAlpha: { value: 0.5 },
 			},
 
 			vertexShader: /* glsl */`
@@ -85,16 +86,36 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 			fragmentShader: /* glsl */`
 				uniform sampler2D map;
 				uniform float threshold;
-				uniform float boundsOpacity;
 
 				uniform vec3 thresholdColor;
 				uniform vec3 boundsColor;
 				uniform vec3 backgroundColor;
+				uniform vec2 resolution;
+				uniform float outlineAlpha;
 
 				varying vec2 vUv;
 				void main() {
 
 					float count = texture2D( map, vUv ).r;
+
+					if ( count == 0.0 ) {
+
+						vec2 offset = 1.0 / resolution;
+						float c1 = texture2D( map, vUv + offset * vec2( 1.0, 0.0 ) ).r;
+						float c2 = texture2D( map, vUv + offset * vec2( - 1.0, 0.0 ) ).r;
+						float c3 = texture2D( map, vUv + offset * vec2( 0.0, 1.0 ) ).r;
+						float c4 = texture2D( map, vUv + offset * vec2( 0.0, - 1.0 ) ).r;
+
+						float maxC = max( c1, max( c2, max( c3, c4 ) ) );
+						if ( maxC != 0.0 ) {
+
+							gl_FragColor.rgb = mix( backgroundColor, mix( boundsColor, vec3( 1.0 ), 0.5 ), outlineAlpha );
+							gl_FragColor.a = 1.0;
+							return;
+
+						}
+
+					}
 
 					if ( count > threshold ) {
 
@@ -103,8 +124,10 @@ class TraverseMaterial extends THREE.ShaderMaterial {
 
 					} else {
 
-						float alpha = min( boundsOpacity * count, 1.0 );
-						gl_FragColor.rgb = mix( backgroundColor, boundsColor, alpha ).rgb;
+						float alpha = count / threshold;
+						vec3 color = mix( boundsColor, vec3( 1.0 ), pow( alpha, 1.75 ) );
+
+						gl_FragColor.rgb = mix( backgroundColor, color, alpha ).rgb ;
 						gl_FragColor.a = 1.0;
 
 					}
@@ -164,7 +187,7 @@ function init() {
 		// internalFormat: 'R16UI'
 	} );
 
-	fsQuad = new Pass.FullScreenQuad( new TraverseMaterial( {
+	fsQuad = new FullScreenQuad( new TraverseMaterial( {
 
 		map: renderTarget.texture,
 		depthWrite: false,
@@ -210,7 +233,6 @@ function init() {
 		helper.color.set( 0xffffff );
 		helper.opacity = 1;
 		helper.depth = 40;
-		window.HELPER = helper;
 
 		const material = helper.meshMaterial;
 		material.blending = THREE.CustomBlending;
@@ -240,10 +262,10 @@ function init() {
 	bvhFolder.open();
 
 	const vizFolder = gui.addFolder( 'Visualization' );
-	// vizFolder.add( params.visualization, 'simpleColors' );
 	vizFolder.add( params.visualization, 'displayMesh' );
+	vizFolder.add( params.visualization, 'simpleColors' );
+	vizFolder.add( params.visualization, 'outline' );
 	vizFolder.add( params.visualization, 'traversalThreshold', 1, 300, 1 );
-	vizFolder.add( params.visualization, 'boundsOpacity', 0, 0.05, 0.001 );
 	vizFolder.open();
 
 	const benchmarkFolder = gui.addFolder( 'Benchmark' );
@@ -434,7 +456,8 @@ function render() {
 	}
 
 	fsQuad.material.threshold = params.visualization.traversalThreshold;
-	fsQuad.material.boundsOpacity = params.visualization.boundsOpacity;
+	fsQuad.material.outlineAlpha = params.visualization.outline ? 0.5 : 0.0;
+	fsQuad.material.resolution.set( renderTarget.width, renderTarget.height );
 
 	// render bvh
 	benchmarkViz.visible = false;

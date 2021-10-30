@@ -2,7 +2,7 @@ import {
 	BufferGeometry,
 	BufferAttribute,
 } from 'three';
-import MeshBVH from '../MeshBVH.js';
+import { MeshBVH } from '../core/MeshBVH.js';
 
 global.onmessage = function ( { data } ) {
 
@@ -19,7 +19,7 @@ global.onmessage = function ( { data } ) {
 
 		options.lazyGeneration = false;
 		const bvh = new MeshBVH( geometry, options );
-		const serialized = MeshBVH.serialize( bvh, geometry, false );
+		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
 
 		global.postMessage( {
 

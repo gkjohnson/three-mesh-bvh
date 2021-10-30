@@ -2,9 +2,7 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
-import { acceleratedRaycast } from '../src/index.js';
-import MeshBVHVisualizer from '../src/MeshBVHVisualizer.js';
-import MeshBVH from '../src/MeshBVH.js';
+import { acceleratedRaycast, MeshBVH, MeshBVHVisualizer } from '../src/index.js';
 
 THREE.Mesh.raycast = acceleratedRaycast;
 
@@ -41,7 +39,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.gammaOutput = true;
+	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
