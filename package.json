@@ -10,7 +10,7 @@
   "scripts": {
     "start": "concurrently \"cd example && parcel watch ./*.html --dist-dir ./dev-bundle/ --public-url . --no-cache --no-hmr\" \"static-server\"",
     "build": "rollup -c",
-    "build-examples": "cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-hmr --no-content-hash",
+    "build-examples": "cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-content-hash",
     "test": "cd test && jest",
     "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" && tsc --noEmit",
     "benchmark": "node benchmark/run-benchmark.js",
