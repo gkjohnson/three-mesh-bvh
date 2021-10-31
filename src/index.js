@@ -7,3 +7,4 @@ export { getTriangleHitPointInfo } from './utils/TriangleUtilities.js';
 export * from './gpu/MeshBVHUniformStruct.js';
 export * from './gpu/shaderFunctions.js';
 export * from './gpu/VertexAttributeTexture.js';
+export * from './workers/GenerateMeshBVHWorker.js';
