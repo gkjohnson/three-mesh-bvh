@@ -8,10 +8,10 @@
   "types": "src/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "start": "concurrently \"parcel watch ./example/*.html --dist-dir ./example/dev-bundle/ --public-url . --no-cache --no-hmr\" \"static-server\"",
+    "start": "concurrently \"cd example && parcel watch ./*.html --dist-dir ./dev-bundle/ --public-url . --no-cache --no-hmr\" \"static-server\"",
     "build": "rollup -c",
-    "build-examples": "parcel build ./example/*.html --dist-dir ./example/bundle/ --public-url . --no-cache --no-hmr --no-content-hash",
-    "test": "jest",
+    "build-examples": "cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-hmr --no-content-hash",
+    "test": "cd test && jest",
     "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" && tsc --noEmit",
     "benchmark": "node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"

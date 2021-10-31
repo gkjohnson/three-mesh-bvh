@@ -192,7 +192,7 @@ function addRaycaster() {
 	} );
 
 }
-alert('TEST')
+
 function updateFromOptions() {
 
 	// Update raycaster count
