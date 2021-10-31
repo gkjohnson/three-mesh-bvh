@@ -18,7 +18,6 @@ import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
 import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, getBasisFromNormal, isDirectionValid } from './pathtracing/utils.js';
-import '@babel/polyfill';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
