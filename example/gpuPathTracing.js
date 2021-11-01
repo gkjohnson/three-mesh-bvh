@@ -291,13 +291,21 @@ function render() {
 		// jitter camera for AA
 		if ( params.accumulate ) {
 
-			const w = renderTarget.width;
-			const h = renderTarget.height;
-			camera.setViewOffset(
-				w, h,
-				Math.random() - 0.5, Math.random() - 0.5,
-				w, h,
-			);
+			if ( samples === 0 ) {
+
+				camera.clearViewOffset();
+
+			} else {
+
+				const w = renderTarget.width;
+				const h = renderTarget.height;
+				camera.setViewOffset(
+					w, h,
+					Math.random() - 0.5, Math.random() - 0.5,
+					w, h,
+				);
+
+			}
 
 		} else {
 
