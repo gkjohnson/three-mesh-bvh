@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `VertexAttributeTexture`, `BVHStructUniform`, and associated helper shader functions for performing raytracing in a fragment shader.
 - Warning when passing in an unknown split strategy option value.
 
+### Changed
+- `src/workers/GenerateMeshBVHWorker` to use a proper webworker syntax compatible with esm-capable bundlers.
+
 ## [0.5.0] - 2021-10-10
 ### Added
 - `useSharedArrayBuffer` option to `MeshBVH` so `SharedArrayBuffers` are created rather than `ArrayBuffers` making it easier to share and reuse BVH memory across workers.
