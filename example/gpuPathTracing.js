@@ -137,6 +137,8 @@ function init() {
 
 					}
 
+					// 1 / PI attenuation for physically correct lambert model
+					// https://www.rorydriscoll.com/2009/01/25/energy-conservation-in-games/
 					throughputColor *= 1.0 / PI;
 
 					randomPoint = vec3(
