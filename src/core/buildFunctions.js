@@ -1,6 +1,6 @@
 import { BufferAttribute } from 'three';
 import { MeshBVHNode } from './MeshBVHNode.js';
-import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds } from '../utils/ArrayBoxUtilities.js';
+import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByTriangleBounds } from '../utils/ArrayBoxUtilities.js';
 import {
 	CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST,
 	BYTES_PER_NODE, FLOAT32_EPSILON, IS_LEAFNODE_FLAG,
@@ -249,6 +249,7 @@ function partition( index, triangleBounds, offset, count, split ) {
 }
 
 const BIN_COUNT = 32;
+const binsSort = ( a, b ) => a.candidate - b.candidate;
 const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 
 	return {
@@ -256,6 +257,7 @@ const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 		count: 0,
 		bounds: new Float32Array( 6 ),
 		rightCacheBounds: new Float32Array( 6 ),
+		leftCacheBounds: new Float32Array( 6 ),
 		candidate: 0,
 
 	};
@@ -302,126 +304,224 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			const axisLength = axisRight - axisLeft;
 			const binWidth = axisLength / BIN_COUNT;
 
-			// reset the bins
-			for ( let i = 0; i < BIN_COUNT; i ++ ) {
+			// If we have fewer triangles than we're planning to split then just check all
+			// the triangle positions because it will be faster.
+			if ( count < BIN_COUNT / 4 ) {
 
-				const bin = sahBins[ i ];
-				bin.count = 0;
-				bin.candidate = axisLeft + binWidth + i * binWidth;
+				// initialize the bin candidates
+				const truncatedBins = [ ...sahBins ];
+				truncatedBins.length = count;
 
-				const bounds = bin.bounds;
-				for ( let d = 0; d < 3; d ++ ) {
+				// set the candidates
+				let b = 0;
+				for ( let c = cStart; c < cEnd; c += 6, b ++ ) {
 
-					bounds[ d ] = Infinity;
-					bounds[ d + 3 ] = - Infinity;
+					const bin = truncatedBins[ b ];
+					bin.candidate = triangleBounds[ c + 2 * a ];
+					bin.count = 0;
 
-				}
+					const {
+						bounds,
+						leftCacheBounds,
+						rightCacheBounds,
+					} = bin;
+					for ( let d = 0; d < 3; d ++ ) {
 
-			}
+						rightCacheBounds[ d ] = Infinity;
+						rightCacheBounds[ d + 3 ] = - Infinity;
 
-			// iterate over all center positions
-			for ( let c = cStart; c < cEnd; c += 6 ) {
+						leftCacheBounds[ d ] = Infinity;
+						leftCacheBounds[ d + 3 ] = - Infinity;
 
-				const triCenter = triangleBounds[ c + 2 * a ];
-				const relativeCenter = triCenter - axisLeft;
-
-				// in the partition function if the centroid lies on the split plane then it is
-				// considered to be on the right side of the split
-				let binIndex = ~ ~ ( relativeCenter / binWidth );
-				if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
-
-				const bin = sahBins[ binIndex ];
-				bin.count ++;
-
-				const bounds = bin.bounds;
-				for ( let d = 0; d < 3; d ++ ) {
-
-					const tCenter = triangleBounds[ c + 2 * d ];
-					const tHalf = triangleBounds[ c + 2 * d + 1 ];
-
-					const tMin = tCenter - tHalf;
-					const tMax = tCenter + tHalf;
-
-					if ( tMin < bounds[ d ] ) {
-
-						bounds[ d ] = tMin;
+						bounds[ d ] = Infinity;
+						bounds[ d + 3 ] = - Infinity;
 
 					}
 
-					if ( tMax > bounds[ d + 3 ] ) {
-
-						bounds[ d + 3 ] = tMax;
-
-					}
+					expandByTriangleBounds( c, triangleBounds, bounds );
 
 				}
 
-			}
+				truncatedBins.sort( binsSort );
 
-			// cache the unioned bounds from right to left so we don't have to regenerate them each time
-			const lastBin = sahBins[ BIN_COUNT - 1 ];
-			copyBounds( lastBin.bounds, lastBin.rightCacheBounds );
-			for ( let i = BIN_COUNT - 2; i >= 0; i -- ) {
+				// remove redundant splits
+				let splitCount = count;
+				for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-				const bin = sahBins[ i ];
-				const nextBin = sahBins[ i + 1 ];
-				unionBounds( bin.bounds, nextBin.rightCacheBounds, bin.rightCacheBounds );
+					const bin = truncatedBins[ bi ];
+					while ( bi + 1 < splitCount && truncatedBins[ bi + 1 ].candidate === bin.candidate ) {
 
-			}
-
-			let leftCount = 0;
-			for ( let i = 0; i < BIN_COUNT - 1; i ++ ) {
-
-				const bin = sahBins[ i ];
-				const binCount = bin.count;
-				const bounds = bin.bounds;
-
-				const nextBin = sahBins[ i + 1 ];
-				const rightBounds = nextBin.rightCacheBounds;
-
-				// dont do anything with the bounds if the new bounds have no triangles
-				if ( binCount !== 0 ) {
-
-					if ( leftCount === 0 ) {
-
-						copyBounds( bounds, leftBounds );
-
-					} else {
-
-						unionBounds( bounds, leftBounds, leftBounds );
+						truncatedBins.splice( bi + 1, 1 );
+						splitCount --;
 
 					}
 
 				}
 
-				leftCount += binCount;
+				// find the appropriate bin for each triangle and expand the bounds.
+				for ( let c = cStart; c < cEnd; c += 6 ) {
 
-				// check the cost of this split
-				let leftProb = 0;
-				let rightProb = 0;
+					const center = triangleBounds[ c + 2 * a ];
+					for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-				if ( leftCount !== 0 ) {
+						const bin = truncatedBins[ bi ];
+						if ( center >= bin.candidate ) {
 
-					leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
+							expandByTriangleBounds( c, triangleBounds, bin.rightCacheBounds );
+
+						} else {
+
+							expandByTriangleBounds( c, triangleBounds, bin.leftCacheBounds );
+							bin.count ++;
+
+						}
+
+					}
 
 				}
 
-				const rightCount = count - leftCount;
-				if ( rightCount !== 0 ) {
+				// expand all the bounds
+				for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-					rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
+					const bin = truncatedBins[ bi ];
+					const leftCount = bin.count;
+					const rightCount = count - bin.count;
+
+					// check the cost of this split
+					const leftBounds = bin.leftCacheBounds;
+					const rightBounds = bin.rightCacheBounds;
+
+					let leftProb = 0;
+					if ( leftCount !== 0 ) {
+
+						leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
+
+					}
+
+					let rightProb = 0;
+					if ( rightCount !== 0 ) {
+
+						rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
+
+					}
+
+					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+						leftProb * leftCount + rightProb * rightCount
+					);
+
+					if ( cost < bestCost ) {
+
+						axis = a;
+						bestCost = cost;
+						pos = bin.candidate;
+
+					}
 
 				}
 
-				const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
-					leftProb * leftCount + rightProb * rightCount
-				);
+			} else {
 
-				if ( cost < bestCost ) {
+				// reset the bins
+				for ( let i = 0; i < BIN_COUNT; i ++ ) {
 
-					axis = a;
-					bestCost = cost;
-					pos = bin.candidate;
+					const bin = sahBins[ i ];
+					bin.count = 0;
+					bin.candidate = axisLeft + binWidth + i * binWidth;
+
+					const bounds = bin.bounds;
+					for ( let d = 0; d < 3; d ++ ) {
+
+						bounds[ d ] = Infinity;
+						bounds[ d + 3 ] = - Infinity;
+
+					}
+
+				}
+
+				// iterate over all center positions
+				for ( let c = cStart; c < cEnd; c += 6 ) {
+
+					const triCenter = triangleBounds[ c + 2 * a ];
+					const relativeCenter = triCenter - axisLeft;
+
+					// in the partition function if the centroid lies on the split plane then it is
+					// considered to be on the right side of the split
+					let binIndex = ~ ~ ( relativeCenter / binWidth );
+					if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
+
+					const bin = sahBins[ binIndex ];
+					bin.count ++;
+
+					expandByTriangleBounds( c, triangleBounds, bin.bounds );
+
+				}
+
+				// cache the unioned bounds from right to left so we don't have to regenerate them each time
+				const lastBin = sahBins[ BIN_COUNT - 1 ];
+				copyBounds( lastBin.bounds, lastBin.rightCacheBounds );
+				for ( let i = BIN_COUNT - 2; i >= 0; i -- ) {
+
+					const bin = sahBins[ i ];
+					const nextBin = sahBins[ i + 1 ];
+					unionBounds( bin.bounds, nextBin.rightCacheBounds, bin.rightCacheBounds );
+
+				}
+
+				let leftCount = 0;
+				for ( let i = 0; i < BIN_COUNT - 1; i ++ ) {
+
+					const bin = sahBins[ i ];
+					const binCount = bin.count;
+					const bounds = bin.bounds;
+
+					const nextBin = sahBins[ i + 1 ];
+					const rightBounds = nextBin.rightCacheBounds;
+
+					// dont do anything with the bounds if the new bounds have no triangles
+					if ( binCount !== 0 ) {
+
+						if ( leftCount === 0 ) {
+
+							copyBounds( bounds, leftBounds );
+
+						} else {
+
+							unionBounds( bounds, leftBounds, leftBounds );
+
+						}
+
+					}
+
+					leftCount += binCount;
+
+					// check the cost of this split
+					let leftProb = 0;
+					let rightProb = 0;
+
+					if ( leftCount !== 0 ) {
+
+						leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
+
+					}
+
+					const rightCount = count - leftCount;
+					if ( rightCount !== 0 ) {
+
+						rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
+
+					}
+
+					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+						leftProb * leftCount + rightProb * rightCount
+					);
+
+					if ( cost < bestCost ) {
+
+						axis = a;
+						bestCost = cost;
+						pos = bin.candidate;
+
+					}
 
 				}
 
