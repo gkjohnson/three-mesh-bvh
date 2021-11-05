@@ -307,7 +307,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 			// If we have fewer triangles than we're planning to split then just check all
 			// the triangle positions because it will be faster.
-			if ( count < BIN_COUNT ) {
+			if ( count < BIN_COUNT / 8 ) {
 
 				// initialize the bin candidates
 				for ( let i = 0; i < BIN_COUNT; i ++ ) {
@@ -325,6 +325,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 					const bin = sahBins[ b ];
 					bin.candidate = triangleBounds[ c + 2 * a ];
+					bin.count = 0;
 
 					const {
 						bounds,
@@ -350,19 +351,44 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				sahBins.sort( binsSort );
 
-				// compute and cache right bounds
-				b = count - 1;
-				for ( let i = cEnd - 6; i >= cStart; i -= 6, b -- ) {
 
-					const bin = sahBins[ b ];
+				for ( let c = cStart; c < cEnd; c += 6 ) {
+
+					for ( let bi = 0; bi < count; bi ++ ) {
+
+						const center = triangleBounds[ c + 2 * a ];
+						const bin = sahBins[ bi ];
+
+						if ( center >= bin.candidate ) {
+
+							expandByTriangleBounds( c, triangleBounds, bin.rightCacheBounds );
+
+						} else {
+
+							expandByTriangleBounds( c, triangleBounds, bin.leftCacheBounds );
+							bin.count ++;
+
+						}
+
+					}
+
+				}
+
+
+
+				/*
+				// compute and cache right bounds
+				for ( let bi = count - 1; bi >= 0; bi -- ) {
+
+					const bin = sahBins[ bi ];
 					const { rightCacheBounds, bounds } = bin;
-					if ( b === count - 1 ) {
+					if ( bi === count - 1 ) {
 
 						copyBounds( bounds, rightCacheBounds );
 
 					} else {
 
-						const rightBin = sahBins[ b + 1 ];
+						const rightBin = sahBins[ bi + 1 ];
 						unionBounds( bounds, rightBin.rightCacheBounds, rightCacheBounds );
 
 					}
@@ -373,58 +399,70 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				// split bounds. Any duplicate split bounds should be removed and the triangle bounds
 				// from each merged into one.
 				// compute and cache the left bounds
-				b = 1;
-				for ( let i = cStart + 6; i < cEnd; i += 6, b ++ ) {
+				for ( let bi = 0; bi < count; bi ++ ) {
 
-					const bin = sahBins[ b ];
-					if ( b === 1 ) {
+					const bin = sahBins[ bi ];
+					if ( bi !== 0 ) {
 
-						copyBounds( sahBins[ 0 ].bounds, bin.leftCacheBounds );
+						if ( bi === 1 ) {
 
-					} else {
+							copyBounds( sahBins[ 0 ].bounds, bin.leftCacheBounds );
 
-						const leftBin = sahBins[ b - 1 ];
-						unionBounds( leftBin.leftCacheBounds, leftBin.bounds, bin.leftCacheBounds );
+						} else {
 
-					}
-
-				}
-
-				// expand all the bounds
-				b = 1;
-				for ( let c2 = cStart + 6; c2 < cEnd; c2 += 6, b ++ ) {
-
-					// the first bin is guaranteed to have no triangle in the left bounds because
-					// triangles that fall on the split line are put in the right bounds so skip it
-					if ( b === 0 ) {
-
-						continue;
-
-					}
-
-					// if this split is the same as the next one then skip this split because this triangle
-					// will belong in the right bounds instead.
-					const bin = sahBins[ b ];
-					if ( b < count - 1 ) {
-
-						const nextBin = sahBins[ b + 1 ];
-						if ( bin.candidate === nextBin.candidate ) {
-
-							continue;
+							const leftBin = sahBins[ bi - 1 ];
+							unionBounds( leftBin.leftCacheBounds, leftBin.bounds, bin.leftCacheBounds );
 
 						}
 
 					}
 
+					if ( bi !== count - 1 ) {
+
+						const nextBin = sahBins[ bi + 1 ];
+						if ( bin.candidate === nextBin.candidate ) {
+
+							nextBin.count ++;
+							bin.count --;
+
+
+						}
+
+					}
+
+				}
+				*/
+
+
+
+
+				// expand all the bounds
+				b = 1;
+				for ( let c2 = cStart + 6; c2 < cEnd; c2 += 6, b ++ ) {
+
+					const bin = sahBins[ b ];
+					const leftCount = bin.count;
+					const rightCount = count - bin.count;
+
 					// check the cost of this split
 					const leftBounds = bin.leftCacheBounds;
 					const rightBounds = bin.rightCacheBounds;
 
-					const leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
-					const rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
 
-					const leftCount = b;
-					const rightCount = count - leftCount;
+					let leftProb = 0;
+					if ( leftCount !== 0 ) {
+
+						leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
+
+					}
+
+					let rightProb = 0;
+					if ( rightCount !== 0 ) {
+
+						rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
+
+					}
+
 					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
 						leftProb * leftCount + rightProb * rightCount
 					);
