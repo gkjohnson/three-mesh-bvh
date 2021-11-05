@@ -250,7 +250,7 @@ function partition( index, triangleBounds, offset, count, split ) {
 
 const BIN_COUNT = 32;
 const binsSort = ( a, b ) => a.candidate - b.candidate;
-const _sahBins = new Array( BIN_COUNT ).fill().map( () => {
+const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 
 	return {
 
@@ -303,21 +303,20 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			const axisRight = centroidBoundingData[ a + 3 ];
 			const axisLength = axisRight - axisLeft;
 			const binWidth = axisLength / BIN_COUNT;
-			let sahBins = _sahBins;
 
 			// If we have fewer triangles than we're planning to split then just check all
 			// the triangle positions because it will be faster.
 			if ( count < BIN_COUNT / 4 ) {
 
 				// initialize the bin candidates
-				sahBins = [ ...sahBins ];
-				sahBins.length = count;
+				const truncatedBins = [ ...sahBins ];
+				truncatedBins.length = count;
 
 				// set the candidates
 				let b = 0;
 				for ( let c = cStart; c < cEnd; c += 6, b ++ ) {
 
-					const bin = sahBins[ b ];
+					const bin = truncatedBins[ b ];
 					bin.candidate = triangleBounds[ c + 2 * a ];
 					bin.count = 0;
 
@@ -343,16 +342,16 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
-				sahBins.sort( binsSort );
+				truncatedBins.sort( binsSort );
 
 				// remove redundant splits
 				let splitCount = count;
 				for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-					const bin = sahBins[ bi ];
-					while ( bi + 1 < splitCount && sahBins[ bi + 1 ].candidate === bin.candidate ) {
+					const bin = truncatedBins[ bi ];
+					while ( bi + 1 < splitCount && truncatedBins[ bi + 1 ].candidate === bin.candidate ) {
 
-						sahBins.splice( bi + 1, 1 );
+						truncatedBins.splice( bi + 1, 1 );
 						splitCount --;
 
 					}
@@ -365,7 +364,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 					const center = triangleBounds[ c + 2 * a ];
 					for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-						const bin = sahBins[ bi ];
+						const bin = truncatedBins[ bi ];
 						if ( center >= bin.candidate ) {
 
 							expandByTriangleBounds( c, triangleBounds, bin.rightCacheBounds );
@@ -384,7 +383,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 				// expand all the bounds
 				for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-					const bin = sahBins[ bi ];
+					const bin = truncatedBins[ bi ];
 					const leftCount = bin.count;
 					const rightCount = count - bin.count;
 
