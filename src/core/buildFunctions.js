@@ -307,7 +307,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 			// If we have fewer triangles than we're planning to split then just check all
 			// the triangle positions because it will be faster.
-			if ( count < BIN_COUNT / 8 ) {
+			if ( count < BIN_COUNT / 4 ) {
 
 				// initialize the bin candidates
 				sahBins = [ ...sahBins ];
@@ -345,6 +345,19 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				sahBins.sort( binsSort );
 
+				// remove redundant splits
+				let splitCount = count;
+				for ( let bi = 0; bi < splitCount; bi ++ ) {
+
+					const bin = sahBins[ bi ];
+					while ( bi + 1 < splitCount && sahBins[ bi + 1 ].candidate === bin.candidate ) {
+
+						sahBins.splice( bi + 1, 1 );
+						splitCount --;
+
+					}
+
+				}
 
 				for ( let c = cStart; c < cEnd; c += 6 ) {
 
@@ -367,68 +380,6 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 					}
 
 				}
-
-
-
-				/*
-				// compute and cache right bounds
-				for ( let bi = count - 1; bi >= 0; bi -- ) {
-
-					const bin = sahBins[ bi ];
-					const { rightCacheBounds, bounds } = bin;
-					if ( bi === count - 1 ) {
-
-						copyBounds( bounds, rightCacheBounds );
-
-					} else {
-
-						const rightBin = sahBins[ bi + 1 ];
-						unionBounds( bounds, rightBin.rightCacheBounds, rightCacheBounds );
-
-					}
-
-				}
-
-				// TODO: These bounds cache functions need to account for triangles lying on the same
-				// split bounds. Any duplicate split bounds should be removed and the triangle bounds
-				// from each merged into one.
-				// compute and cache the left bounds
-				for ( let bi = 0; bi < count; bi ++ ) {
-
-					const bin = sahBins[ bi ];
-					if ( bi !== 0 ) {
-
-						if ( bi === 1 ) {
-
-							copyBounds( sahBins[ 0 ].bounds, bin.leftCacheBounds );
-
-						} else {
-
-							const leftBin = sahBins[ bi - 1 ];
-							unionBounds( leftBin.leftCacheBounds, leftBin.bounds, bin.leftCacheBounds );
-
-						}
-
-					}
-
-					if ( bi !== count - 1 ) {
-
-						const nextBin = sahBins[ bi + 1 ];
-						if ( bin.candidate === nextBin.candidate ) {
-
-							nextBin.count ++;
-							bin.count --;
-
-
-						}
-
-					}
-
-				}
-				*/
-
-
-
 
 				// expand all the bounds
 				for ( let bi = 0; bi < splitCount; bi ++ ) {
