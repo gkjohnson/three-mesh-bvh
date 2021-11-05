@@ -310,12 +310,6 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 			if ( count < BIN_COUNT / 8 ) {
 
 				// initialize the bin candidates
-				for ( let i = 0; i < BIN_COUNT; i ++ ) {
-
-					sahBins[ i ].candidate = Infinity;
-
-				}
-
 				sahBins = [ ...sahBins ];
 				sahBins.length = count;
 
@@ -354,7 +348,7 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				for ( let c = cStart; c < cEnd; c += 6 ) {
 
-					for ( let bi = 0; bi < count; bi ++ ) {
+					for ( let bi = 0; bi < splitCount; bi ++ ) {
 
 						const center = triangleBounds[ c + 2 * a ];
 						const bin = sahBins[ bi ];
@@ -437,10 +431,9 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 
 				// expand all the bounds
-				b = 1;
-				for ( let c2 = cStart + 6; c2 < cEnd; c2 += 6, b ++ ) {
+				for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-					const bin = sahBins[ b ];
+					const bin = sahBins[ bi ];
 					const leftCount = bin.count;
 					const rightCount = count - bin.count;
 
