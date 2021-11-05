@@ -359,13 +359,13 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 
 				}
 
+				// find the appropriate bin for each triangle and expand the bounds.
 				for ( let c = cStart; c < cEnd; c += 6 ) {
 
+					const center = triangleBounds[ c + 2 * a ];
 					for ( let bi = 0; bi < splitCount; bi ++ ) {
 
-						const center = triangleBounds[ c + 2 * a ];
 						const bin = sahBins[ bi ];
-
 						if ( center >= bin.candidate ) {
 
 							expandByTriangleBounds( c, triangleBounds, bin.rightCacheBounds );
