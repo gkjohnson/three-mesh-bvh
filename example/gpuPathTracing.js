@@ -137,6 +137,8 @@ function init() {
 
 					}
 
+					// 1 / PI attenuation for physically correct lambert model
+					// https://www.rorydriscoll.com/2009/01/25/energy-conservation-in-games/
 					throughputColor *= 1.0 / PI;
 
 					randomPoint = vec3(
@@ -291,13 +293,21 @@ function render() {
 		// jitter camera for AA
 		if ( params.accumulate ) {
 
-			const w = renderTarget.width;
-			const h = renderTarget.height;
-			camera.setViewOffset(
-				w, h,
-				Math.random() - 0.5, Math.random() - 0.5,
-				w, h,
-			);
+			if ( samples === 0 ) {
+
+				camera.clearViewOffset();
+
+			} else {
+
+				const w = renderTarget.width;
+				const h = renderTarget.height;
+				camera.setViewOffset(
+					w, h,
+					Math.random() - 0.5, Math.random() - 0.5,
+					w, h,
+				);
+
+			}
 
 		} else {
 
