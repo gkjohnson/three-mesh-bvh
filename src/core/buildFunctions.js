@@ -391,7 +391,6 @@ function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds
 					const leftBounds = bin.leftCacheBounds;
 					const rightBounds = bin.rightCacheBounds;
 
-
 					let leftProb = 0;
 					if ( leftCount !== 0 ) {
 
