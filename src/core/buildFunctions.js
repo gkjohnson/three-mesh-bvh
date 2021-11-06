@@ -617,7 +617,6 @@ function computeTriangleBounds( geo, fullBounds ) {
 
 export function buildTree( geo, options ) {
 
-	const totalTriangles = geo.index.count / 3;
 	function triggerProgress( trianglesProcessed ) {
 
 		if ( onProgress ) {
@@ -718,6 +717,7 @@ export function buildTree( geo, options ) {
 	const maxLeafTris = options.maxLeafTris;
 	const strategy = options.strategy;
 	const onProgress = options.onProgress;
+	const totalTriangles = geo.index.count / 3;
 	let reachedMaxDepth = false;
 
 	const roots = [];
