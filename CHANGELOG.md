@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.5.3] - Unreleased
 ### Changed
 - Improved SAH build time by ~20% by checking every triangle split once fewer than 8 triangles are present which also improves the split cost.
+- GenerateMeshBVHWorker / MeshBVH: Add `onProgress` callback option.
 
 ## [0.5.2] - 2021-11-02
 ### Fixed
