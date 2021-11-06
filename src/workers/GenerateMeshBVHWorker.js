@@ -26,15 +26,16 @@ export class GenerateMeshBVHWorker {
 			worker.onmessage = e => {
 
 				this.running = false;
-				worker.onmessage = null;
-				const { serialized, position, error } = e.data;
+				const { data } = e;
 
-				if ( error ) {
+				if ( data.error ) {
 
-					reject( new Error( error ) );
+					reject( new Error( data.error ) );
+					worker.onmessage = null;
 
-				} else {
+				} else if ( data.serialized ) {
 
+					const { serialized, position } = data;
 					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
 					const boundsOptions = Object.assign( {
 
@@ -63,9 +64,13 @@ export class GenerateMeshBVHWorker {
 					}
 
 					resolve( bvh );
+					worker.onmessage = null;
+
+				} else if ( options.onProgress ) {
+
+					options.onProgress( data.progress );
 
 				}
-
 
 			};
 
@@ -89,7 +94,11 @@ export class GenerateMeshBVHWorker {
 
 				index,
 				position,
-				options,
+				options: {
+					...options,
+					onProgress: null,
+					includedProgressCallback: Boolean( options.onProgress ),
+				},
 
 			}, transferrables.map( arr => arr.buffer ) );
 

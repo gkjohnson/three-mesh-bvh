@@ -144,11 +144,12 @@ export class MeshBVH {
 			verbose: true,
 			useSharedArrayBuffer: false,
 			setBoundingBox: true,
+			onProgress: null,
 
 			// undocumented options
 
 			// Whether to skip generating the tree. Used for deserialization.
-			[ SKIP_GENERATION ]: false
+			[ SKIP_GENERATION ]: false,
 
 		}, options );
 

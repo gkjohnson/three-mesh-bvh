@@ -617,6 +617,17 @@ function computeTriangleBounds( geo, fullBounds ) {
 
 export function buildTree( geo, options ) {
 
+	const totalTriangles = geo.index.count / 3;
+	function triggerProgress( trianglesProcessed ) {
+
+		if ( onProgress ) {
+
+			onProgress( trianglesProcessed / totalTriangles );
+
+		}
+
+	}
+
 	// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
 	// recording the offset and count of its triangles and writing them into the reordered geometry index.
 	function splitNode( node, offset, count, centroidBoundingData = null, depth = 0 ) {
@@ -636,6 +647,7 @@ export function buildTree( geo, options ) {
 		// early out if we've met our capacity
 		if ( count <= maxLeafTris || depth >= maxDepth ) {
 
+			triggerProgress( offset );
 			node.offset = offset;
 			node.count = count;
 			return node;
@@ -646,6 +658,7 @@ export function buildTree( geo, options ) {
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
+			triggerProgress( offset );
 			node.offset = offset;
 			node.count = count;
 			return node;
@@ -657,6 +670,7 @@ export function buildTree( geo, options ) {
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
 
+			triggerProgress( offset );
 			node.offset = offset;
 			node.count = count;
 
@@ -703,6 +717,7 @@ export function buildTree( geo, options ) {
 	const verbose = options.verbose;
 	const maxLeafTris = options.maxLeafTris;
 	const strategy = options.strategy;
+	const onProgress = options.onProgress;
 	let reachedMaxDepth = false;
 
 	const roots = [];

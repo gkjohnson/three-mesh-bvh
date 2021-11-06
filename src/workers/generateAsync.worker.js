@@ -6,6 +6,26 @@ import { MeshBVH } from '../core/MeshBVH.js';
 
 global.onmessage = function ( { data } ) {
 
+	let prevTime = global.performance.now();
+	function onProgressCallback( progress ) {
+
+		const currTime = global.performance.now();
+		if ( currTime - prevTime >= 10 ) {
+
+			global.postMessage( {
+
+				error: null,
+				serialized: null,
+				position: null,
+				progress,
+
+			} );
+			prevTime = currTime;
+
+		}
+
+	}
+
 	const { index, position, options } = data;
 	try {
 
@@ -17,7 +37,12 @@ global.onmessage = function ( { data } ) {
 
 		}
 
-		options.lazyGeneration = false;
+		if ( options.includedProgressCallback ) {
+
+			options.onProgress = onProgressCallback;
+
+		}
+
 		const bvh = new MeshBVH( geometry, options );
 		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
 
@@ -26,6 +51,7 @@ global.onmessage = function ( { data } ) {
 			error: null,
 			serialized,
 			position,
+			progress: 1,
 
 		}, [ serialized.index.buffer, position.buffer ] );
 
@@ -35,6 +61,8 @@ global.onmessage = function ( { data } ) {
 
 			error,
 			serialized: null,
+			position: null,
+			progress: 1,
 
 		} );
 
