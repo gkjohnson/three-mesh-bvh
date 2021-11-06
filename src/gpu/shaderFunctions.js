@@ -3,6 +3,10 @@ export const shaderStructs = /* glsl */`
 #define TRI_INTERSECT_EPSILON 1e-5
 #endif
 
+#ifndef INFINITY
+#define INFINITY 1e20
+#endif
+
 struct BVH {
 
 	usampler2D index;
@@ -86,10 +90,7 @@ void ndcToCameraRay(
 
 }
 
-bool intersectsBounds(
-	vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax,
-	out float dist
-) {
+float intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax ) {
 
 	// https://www.reddit.com/r/opengl/comments/8ntzz5/fast_glsl_ray_box_intersection/
 	// https://tavianator.com/2011/ray_box.html
@@ -112,9 +113,9 @@ bool intersectsBounds(
 	float t1 = min( t.x, t.y );
 
 	// set distance to 0.0 if the ray starts inside the box
-	dist = max( t0, 0.0 );
+	float dist = max( t0, 0.0 );
 
-	return t1 >= max( t0, 0.0 );
+	return t1 >= dist ? dist : INFINITY;
 
 }
 
@@ -195,6 +196,14 @@ bool intersectTriangles(
 
 }
 
+float intersectsBVHNodeBounds( vec3 rayOrigin, vec3 rayDirection, BVH bvh, uint currNodeIndex ) {
+
+	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+	return intersectsBounds( rayOrigin, rayDirection, boundsMin, boundsMax );
+
+}
+
 bool bvhIntersectFirstHit(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
 
@@ -217,10 +226,8 @@ bool bvhIntersectFirstHit(
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance;
-		vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
-		vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
-		if ( ! intersectsBounds( rayOrigin, rayDirection, boundsMin, boundsMax, boundsHitDistance ) || boundsHitDistance > triangleDistance ) {
+		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh, currNodeIndex );
+		if ( boundsHitDistance == INFINITY || boundsHitDistance > triangleDistance ) {
 
 			continue;
 
