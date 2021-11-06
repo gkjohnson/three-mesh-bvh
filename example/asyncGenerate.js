@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
-import { acceleratedRaycast, MeshBVH, MeshBVHVisualizer } from '../src/index.js';
+import { acceleratedRaycast, MeshBVH, MeshBVHVisualizer } from '..';
 
 THREE.Mesh.raycast = acceleratedRaycast;
 

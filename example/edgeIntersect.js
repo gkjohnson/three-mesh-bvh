@@ -2,7 +2,7 @@ import Stats from 'stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH } from '../src/index.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH } from '..';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

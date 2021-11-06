@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, AVERAGE, MeshBVHVisualizer } from '../src/index.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, AVERAGE, MeshBVHVisualizer } from '..';
 
 // Code for debugging issue #180 and other random raycast test associated issues.
 THREE.Mesh.prototype.raycast = acceleratedRaycast;

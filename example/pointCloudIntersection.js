@@ -6,7 +6,7 @@ import { GUI } from 'dat.gui';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer, INTERSECTED, NOT_INTERSECTED,
 	SAH, CENTER, AVERAGE,
-} from '../src/index.js';
+} from '..';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

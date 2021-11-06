@@ -8,7 +8,7 @@ import { GUI } from 'dat.gui';
 import {
 	MeshBVH, MeshBVHUniformStruct, FloatVertexAttributeTexture,
 	shaderStructs, shaderIntersectFunction, SAH,
-} from '../src/index.js';
+} from '..';
 
 const params = {
 	enableRaytracing: true,

@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { MeshBVH, MeshBVHVisualizer } from '../src/index.js';
+import { MeshBVH, MeshBVHVisualizer } from '..';
 
 const params = {
 

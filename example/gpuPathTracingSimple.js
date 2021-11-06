@@ -1,14 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
 import {
 	MeshBVH, MeshBVHUniformStruct, FloatVertexAttributeTexture,
 	shaderStructs, shaderIntersectFunction, SAH,
-} from '../src/index.js';
-import {
-	FullScreenQuad,
-} from 'three/examples/jsm/postprocessing/Pass.js';
+} from '..';
 
 const params = {
 	enableRaytracing: true,

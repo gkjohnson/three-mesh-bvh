@@ -13,7 +13,7 @@ import {
 	disposeBoundsTree,
 	SAH,
 	CENTER,
-} from '../src/index.js';
+} from '..';
 import {
 	GenerateMeshBVHWorker,
 } from '../src/workers/GenerateMeshBVHWorker.js';
