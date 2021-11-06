@@ -13,7 +13,7 @@ import {
 const params = {
 	enableRaytracing: true,
 	animate: true,
-	resolutionScale: Math.min( 0.5, 1 / 3 ),
+	resolutionScale: 0.5 / window.devicePixelRatio,
 	smoothNormals: true,
 };
 
