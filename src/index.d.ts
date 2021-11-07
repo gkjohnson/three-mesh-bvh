@@ -27,6 +27,7 @@ export interface MeshBVHOptions {
   setBoundingBox?: boolean;
   useSharedArrayBuffer?: boolean;
   verbose?: boolean;
+  onProgress?: ( progress: Number ) => void;
 }
 
 export interface MeshBVHSerializeOptions {
@@ -209,15 +210,15 @@ declare module 'three/src/core/Raycaster' {
 }
 
 // GenerateMeshBVHWorker
-export class GenerateMeshBVHWorker {
+// export class GenerateMeshBVHWorker {
 
-  running: boolean;
+//   running: boolean;
 
-  generate( geometry: BufferGeometry, options?: MeshBVHOptions ): Promise<MeshBVH>;
+//   generate( geometry: BufferGeometry, options?: MeshBVHOptions ): Promise<MeshBVH>;
 
-  terminate(): boolean;
+//   terminate(): boolean;
 
-}
+// }
 
 // Debug functions
 export function estimateMemoryInBytes( bvh: MeshBVH ): number;
