@@ -298,6 +298,35 @@ describe( 'Options', () => {
 
 	} );
 
+	describe( 'onProgress', () => {
+
+		it( 'should provide a progress update for every leaf node', () => {
+
+			let minProgress = Infinity;
+			let maxProgress = - Infinity;
+			let count = 0;
+
+			const bvh = new MeshBVH( mesh.geometry, {
+
+				onProgress( progress ) {
+
+					minProgress = Math.min( minProgress, progress );
+					maxProgress = Math.max( maxProgress, progress );
+					count ++;
+
+				}
+
+			} );
+
+			const leafNodeCount = getBVHExtremes( bvh )[ 0 ].leafNodeCount;
+			expect( maxProgress ).toBeGreaterThan( 99.9 );
+			expect( minProgress ).toBeLessThan( 0.1 );
+			expect( count ).toBe( leafNodeCount );
+
+		} );
+
+	} );
+
 	describe( 'setBoundingBox', () => {
 
 		it( 'should set the bounding box of the geometry when true.', () => {
