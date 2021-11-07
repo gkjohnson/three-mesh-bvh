@@ -288,10 +288,10 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // SharedArrayBuffer only if it needs to be created. Otherwise it is used as-is.
     useSharedArrayBuffer: false,
 
-	// An optional function that takes a "progress" argument in the range [0, 1]
-	// indicating the progress along BVH generation. Useful primarily when generating
-	// the BVH asynchronously with the GenerateMeshBVHWorker class.
-	onProgress: null,
+    // An optional function that takes a "progress" argument in the range [0, 1]
+    // indicating the progress along BVH generation. Useful primarily when generating
+    // the BVH asynchronously with the GenerateMeshBVHWorker class.
+    onProgress: null,
 
     // Print out warnings encountered during tree construction.
     verbose: true,
