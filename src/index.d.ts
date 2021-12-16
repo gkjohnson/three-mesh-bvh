@@ -115,7 +115,7 @@ export class MeshBVH {
   bvhcast(
     otherBVH: MeshBVH,
     matrixToLocal: Matrix4,
-    callbacks?: {
+    callbacks: {
 
       intersectsRanges?: (
         offset1: number,
@@ -128,7 +128,7 @@ export class MeshBVH {
         index2: number
       ) => boolean,
 
-      intersectsTriangles?: (
+      intersectsTriangles: (
         triangle1: Triangle,
         triangle2: Triangle,
         i1: number,

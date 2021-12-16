@@ -278,6 +278,58 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	} );
 
+	describe( 'Bvhcast', () => {
+
+		let bvhA = null;
+		let bvhB = null;
+		let matrix;
+
+		beforeAll( () => {
+
+			const cubeA = new BoxBufferGeometry( 2, 2, 2 );
+			bvhA = new MeshBVH( cubeA );
+			const cubeB = new BoxBufferGeometry( 2, 2, 2 );
+			bvhB = new MeshBVH( cubeB );
+			matrix = new Matrix4();
+
+		} );
+
+		it( 'should test all combination of geometries triangles', () => {
+
+			matrix.makeTranslation( 1, 1, 1 );
+			let nbTriangleTests = 0;
+			const intersectsTriangles = function () {
+
+				nbTriangleTests += 1;
+				return false;
+
+			};
+
+			bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+
+			expect( nbTriangleTests ).toBe( 144 );
+
+		} );
+
+		it( 'should stop iterating triangles', () => {
+
+			matrix.makeTranslation( 1, 1, 1 );
+			let nbTriangleTests = 0;
+			const intersectsTriangles = function () {
+
+				nbTriangleTests += 1;
+				return true;
+
+			};
+
+			bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+
+			expect( nbTriangleTests ).toBe( 1 );
+
+		} );
+
+	} );
+
 	describe( 'IntersectsGeometry with BVH', () => {
 
 		let bvh = null;

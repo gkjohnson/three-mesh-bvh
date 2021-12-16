@@ -595,20 +595,22 @@ export class MeshBVH {
 			intersectsTriangles,
 		} = callbacks;
 
-		const geometry = otherBvh.geometry;
-		const indexAttr = geometry.index;
-		const positionAttr = geometry.attributes.position;
+		const indexAttr = this.geometry.index;
+		const positionAttr = this.geometry.attributes.position;
 
-		tempMatrix.copy( matrixToLocal ).invert();
+		const otherIndexAttr = otherBvh.geometry.index;
+		const otherPositionAttr = otherBvh.geometry.attributes.position;
+
 		const triangle = trianglePool.getPrimitive();
 		const triangle2 = trianglePool.getPrimitive();
+
 		if ( intersectsTriangles ) {
 
 			function iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
 
 				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
-					setTriangle( triangle2, i2 * 3, indexAttr, positionAttr );
+					setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPositionAttr );
 					triangle2.a.applyMatrix4( matrixToLocal );
 					triangle2.b.applyMatrix4( matrixToLocal );
 					triangle2.c.applyMatrix4( matrixToLocal );
