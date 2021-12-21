@@ -284,47 +284,89 @@ function runSuiteWithOptions( defaultOptions ) {
 		let bvhB = null;
 		let matrix;
 
-		beforeAll( () => {
+		describe( 'Simple intersecting cubes', () => {
 
-			const cubeA = new BoxBufferGeometry( 2, 2, 2 );
-			bvhA = new MeshBVH( cubeA );
-			const cubeB = new BoxBufferGeometry( 2, 2, 2 );
-			bvhB = new MeshBVH( cubeB );
-			matrix = new Matrix4();
+			beforeAll( () => {
+
+				const cubeA = new BoxBufferGeometry( 2, 2, 2 );
+				bvhA = new MeshBVH( cubeA );
+				const cubeB = new BoxBufferGeometry( 2, 2, 2 );
+				bvhB = new MeshBVH( cubeB );
+				matrix = new Matrix4();
+
+			} );
+
+			it( 'should compare all geometries triangles', () => {
+
+				matrix.makeTranslation( 1, 1, 1 );
+				let nbTriangleTests = 0;
+				const intersectsTriangles = function () {
+
+					nbTriangleTests += 1;
+					return false;
+
+				};
+
+				bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+
+				expect( nbTriangleTests ).toBe( 144 );
+
+			} );
+
+			it( 'should stop iterating triangles', () => {
+
+				matrix.makeTranslation( 1, 1, 1 );
+				let nbTriangleTests = 0;
+				const intersectsTriangles = function () {
+
+					nbTriangleTests += 1;
+					return true;
+
+				};
+
+				bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+
+				expect( nbTriangleTests ).toBe( 1 );
+
+			} );
 
 		} );
 
-		it( 'should test all combination of geometries triangles', () => {
+		describe( 'Dense intersecting cubes', () => {
 
-			matrix.makeTranslation( 1, 1, 1 );
-			let nbTriangleTests = 0;
-			const intersectsTriangles = function () {
+			beforeAll( () => {
 
-				nbTriangleTests += 1;
-				return false;
+				const cubeA = new BoxBufferGeometry( 2, 2, 2, 2, 2, 2 );
+				bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
+				const cubeB = new BoxBufferGeometry( 2, 2, 2, 2, 2, 2 );
+				bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
+				matrix = new Matrix4();
 
-			};
+			} );
 
-			bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+			it( 'should not compare all geometries triangles', () => {
 
-			expect( nbTriangleTests ).toBe( 144 );
+				matrix.makeTranslation( 0, 1.5, 0 );
+				let nbTriangleTests = 0;
+				const intersectsTriangles = function () {
 
-		} );
+					nbTriangleTests += 1;
+					return false;
 
-		it( 'should stop iterating triangles', () => {
+				};
 
-			matrix.makeTranslation( 1, 1, 1 );
-			let nbTriangleTests = 0;
-			const intersectsTriangles = function () {
+				bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
 
-				nbTriangleTests += 1;
-				return true;
+				// Each cube is composed of 2*2*2*6 = 48 triangles.
+				// Only 1/4 geometry is intersected on 1 axis, so 24 triangles.
+				// Worst case scenario is to compare 24 triangles to the 24 others (i.e. 576)
+				// Since maxLeafTris === 1, triangle bounds have a size of (1,1,1) and
+				// cube size is (2,2,2), each triangle should be compared to a *maximum*
+				// of 16 others (8 on sides, 8 on front), i.e. 24x16 = 384.
 
-			};
+				expect( nbTriangleTests ).toBeLessThanOrEqual( 384 );
 
-			bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
-
-			expect( nbTriangleTests ).toBe( 1 );
+			} );
 
 		} );
 

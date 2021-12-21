@@ -601,6 +601,8 @@ export class MeshBVH {
 		const otherIndexAttr = otherBvh.geometry.index;
 		const otherPositionAttr = otherBvh.geometry.attributes.position;
 
+		tempMatrix.copy( matrixToLocal ).invert();
+
 		const triangle = trianglePool.getPrimitive();
 		const triangle2 = trianglePool.getPrimitive();
 
