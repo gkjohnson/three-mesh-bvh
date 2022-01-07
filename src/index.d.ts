@@ -106,7 +106,7 @@ export class MeshBVH {
         nodeIndex: number,
         box: Box3
       ) => boolean,
-			
+
     } | {
 
       intersectsTriangle: (
@@ -115,7 +115,7 @@ export class MeshBVH {
         contained: boolean,
         depth: number
       ) => boolean
-			
+
     } )
   ): boolean;
 
