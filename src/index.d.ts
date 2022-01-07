@@ -2,6 +2,14 @@ import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
   Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
   LineBasicMaterial, Mesh, DataTexture, BufferAttribute } from 'three';
 
+
+// Utils for typescript types
+// https://stackoverflow.com/questions/40510611/typescript-interface-require-one-of-two-properties-to-exist
+type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
+    Pick<T, Exclude<keyof T, Keys>> & {
+      [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>
+    }[Keys]
+
 // Contants
 export enum SplitStrategy {}
 export const CENTER: SplitStrategy;
@@ -115,7 +123,7 @@ export class MeshBVH {
   bvhcast(
     otherBVH: MeshBVH,
     matrixToLocal: Matrix4,
-    callbacks?: {
+    callbacks: RequireAtLeastOne<{
 
       intersectsRanges?: (
         offset1: number,
@@ -138,7 +146,7 @@ export class MeshBVH {
         depth2: number,
         index2: number,
       ) => boolean,
-    }
+    }, 'intersectsRanges' | 'intersectsTriangles'>
   ): boolean;
 
   traverse(
