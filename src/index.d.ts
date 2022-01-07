@@ -90,17 +90,21 @@ export class MeshBVH {
   shapecast(
     callbacks: {
 
-      traverseBoundsOrder?: (
-        box: Box3
-      ) => number,
-
       intersectsBounds: (
         box: Box3,
         isLeaf: boolean,
         score: number | undefined,
         depth: number,
         nodeIndex: number
-      ) => ShapecastIntersection,
+      ) => ShapecastIntersection
+
+		} & ( {
+			
+			traverseBoundsOrder?: (
+        box: Box3
+      ) => number,
+			
+		} | {
 
       intersectsRange?: (
         triangleOffset: number,
@@ -110,22 +114,25 @@ export class MeshBVH {
         nodeIndex: number,
         box: Box3
       ) => boolean,
+			
+		} | {
 
       intersectsTriangle?: (
         triangle: Triangle,
         triangleIndex: number,
         contained: boolean,
         depth: number
-      ) => boolean,
-    }
+      ) => boolean
+			
+    } )
   ): boolean;
 
   bvhcast(
     otherBVH: MeshBVH,
     matrixToLocal: Matrix4,
-    callbacks: RequireAtLeastOne<{
+    callbacks: ( {
 
-      intersectsRanges?: (
+      intersectsRanges: (
         offset1: number,
         count1: number,
         offset2: number,
@@ -134,9 +141,11 @@ export class MeshBVH {
         index1: number,
         depth2: number,
         index2: number
-      ) => boolean,
+      ) => boolean
 
-      intersectsTriangles?: (
+    } | {
+
+      intersectsTriangles: (
         triangle1: Triangle,
         triangle2: Triangle,
         i1: number,
@@ -146,7 +155,8 @@ export class MeshBVH {
         depth2: number,
         index2: number,
       ) => boolean,
-    }, 'intersectsRanges' | 'intersectsTriangles'>
+
+    } )
   ): boolean;
 
   traverse(
