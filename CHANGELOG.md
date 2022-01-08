@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - MeshBVH.bvhcast incorrectly using the same geometry for both bvh.
+- `shapecast` and `bvhcast` types to be more correct.
+- `bvhcast` not correctly using the different geometries for each bvh.
 
 ## [0.5.2] - 2021-11-02
 ### Fixed
