@@ -7,12 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.5.3] - 2022-01-08
 ### Changed
 - Improved SAH build time by ~20% by checking every triangle split once fewer than 8 triangles are present which also improves the split cost.
-- GenerateMeshBVHWorker / MeshBVH: Add `onProgress` callback option.
+- GenerateMeshBVHWorker / MeshBVH: Add `onProgress` callback option to enable the ability to display BVH build percentage.
 
 ### Fixed
 - MeshBVH.bvhcast incorrectly using the same geometry for both bvh.
 - `shapecast` and `bvhcast` types to be more correct.
-- `bvhcast` not correctly using the different geometries for each bvh.
 
 ## [0.5.2] - 2021-11-02
 ### Fixed
