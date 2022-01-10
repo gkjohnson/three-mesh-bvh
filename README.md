@@ -15,8 +15,6 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
 
-[Clipped edges](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
-
 [Point cloud interesection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
@@ -34,6 +32,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 [Triangle painting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
 
 [Lasso selection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
+
+[Clipped edges](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
 
 **Games**
 
