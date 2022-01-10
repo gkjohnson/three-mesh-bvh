@@ -89,6 +89,7 @@ function init() {
 		`,
 
 		fragmentShader: /* glsl */`
+			precision highp isampler2D;
 			precision highp usampler2D;
 			${ shaderStructs }
 			${ shaderIntersectFunction }
