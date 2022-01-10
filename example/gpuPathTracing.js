@@ -91,6 +91,7 @@ function init() {
 		fragmentShader: /* glsl */`
 			#define RAY_OFFSET 1e-5
 
+			precision highp isampler2D;
 			precision highp usampler2D;
 			${ shaderStructs }
 			${ shaderIntersectFunction }
