@@ -12,7 +12,6 @@ import {
 	RGFormat,
 	RGBAFormat,
 
-	RedIntegerFormat,
 	RGIntegerFormat,
 	RGBIntegerFormat,
 	RGBAIntegerFormat,
