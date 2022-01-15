@@ -2,7 +2,6 @@ import {
 	DataTexture,
 	FloatType,
 	UnsignedIntType,
-	RGBFormat,
 	RGIntegerFormat,
 	NearestFilter,
 } from 'three';
@@ -79,7 +78,6 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	boundsTexture.image.data = boundsArray;
 	boundsTexture.image.width = boundsDimension;
 	boundsTexture.image.height = boundsDimension;
-	boundsTexture.format = RGBFormat;
 	boundsTexture.type = FloatType;
 	boundsTexture.internalFormat = 'RGB32F';
 	boundsTexture.minFilter = NearestFilter;

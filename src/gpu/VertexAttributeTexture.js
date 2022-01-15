@@ -10,7 +10,6 @@ import {
 
 	RedFormat,
 	RGFormat,
-	RGBFormat,
 	RGBAFormat,
 
 	RedIntegerFormat,
@@ -27,8 +26,7 @@ function countToStringFormat( count ) {
 
 		case 1: return 'R';
 		case 2: return 'RG';
-		case 3: return 'RGB';
-		case 4: return 'RGBA';
+		case 3: return 'RGBA';
 
 	}
 
@@ -42,8 +40,7 @@ function countToFormat( count ) {
 
 		case 1: return RedFormat;
 		case 2: return RGFormat;
-		case 3: return RGBFormat;
-		case 4: return RGBAFormat;
+		case 3: return RGBAFormat;
 
 	}
 
@@ -55,8 +52,7 @@ function countToIntFormat( count ) {
 
 		case 1: return RedIntegerFormat;
 		case 2: return RGIntegerFormat;
-		case 3: return RGBIntegerFormat;
-		case 4: return RGBAIntegerFormat;
+		case 3: return RGBAIntegerFormat;
 
 	}
 
