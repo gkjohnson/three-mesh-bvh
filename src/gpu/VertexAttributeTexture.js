@@ -10,7 +10,6 @@ import {
 
 	RedFormat,
 	RGFormat,
-	RGBFormat,
 	RGBAFormat,
 
 	RedIntegerFormat,
@@ -21,13 +20,13 @@ import {
 	NearestFilter,
 } from 'three';
 
-function countToStringFormat( count ) {
+function countToStringFormat( count, integer = false ) {
 
 	switch ( count ) {
 
 		case 1: return 'R';
 		case 2: return 'RG';
-		case 3: return 'RGB';
+		case 3: return integer ? 'RGB' : 'RGBA';
 		case 4: return 'RGBA';
 
 	}
@@ -42,7 +41,7 @@ function countToFormat( count ) {
 
 		case 1: return RedFormat;
 		case 2: return RGFormat;
-		case 3: return RGBFormat;
+		case 3: return RGBAFormat;
 		case 4: return RGBAFormat;
 
 	}
@@ -99,6 +98,7 @@ export class VertexAttributeTexture extends DataTexture {
 		const originalBufferCons = attr.array.constructor;
 		const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
 		let targetType = this._forcedType;
+		let finalStride = itemSize;
 
 		// derive the type of texture this should be in the shader
 		if ( targetType === null ) {
@@ -126,8 +126,9 @@ export class VertexAttributeTexture extends DataTexture {
 		}
 
 		// get the target format to store the texture as
+		const isIntegerType = targetType !== FloatType;
 		let type, format, normalizeValue, targetBufferCons;
-		let internalFormat = countToStringFormat( itemSize );
+		let internalFormat = countToStringFormat( itemSize, isIntegerType );
 		switch ( targetType ) {
 
 			case FloatType:
@@ -210,13 +211,21 @@ export class VertexAttributeTexture extends DataTexture {
 
 		}
 
+		// there will be a mismatch between format length and final length because
+		// RGBFormat was removed
+		if ( finalStride === 3 && format === RGBAFormat ) {
+
+			finalStride = 4;
+
+		}
+
 		// copy the data over to the new texture array
 		const dimension = Math.ceil( Math.sqrt( count ) );
-		const length = itemSize * dimension * dimension;
+		const length = finalStride * dimension * dimension;
 		const dataArray = new targetBufferCons( length );
 		for ( let i = 0; i < count; i ++ ) {
 
-			const ii = itemSize * i;
+			const ii = finalStride * i;
 			dataArray[ ii ] = attr.getX( i ) / normalizeValue;
 
 			if ( itemSize >= 2 ) {
@@ -228,6 +237,12 @@ export class VertexAttributeTexture extends DataTexture {
 			if ( itemSize >= 3 ) {
 
 				dataArray[ ii + 2 ] = attr.getZ( i ) / normalizeValue;
+
+				if ( finalStride === 4 ) {
+
+					dataArray[ ii + 3 ] = 1.0;
+
+				}
 
 			}
 

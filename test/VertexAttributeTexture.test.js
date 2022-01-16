@@ -60,6 +60,19 @@ describe( 'VertexAttributeTexture', () => {
 
 	} );
 
+	it( 'should automatically use RGBAFormat when passing in an attribute with a stride of 3.', () => {
+
+		const ba = new BufferAttribute( new Float32Array( 6 ), 3, false );
+		const tex = new FloatVertexAttributeTexture();
+		tex.updateFrom( ba );
+
+		expect( tex.image.data ).toHaveLength( 16 );
+		expect( tex.image.data ).toEqual( new Float32Array( [ 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ] ) );
+		expect( tex.format ).toBe( RGBAFormat );
+		expect( tex.internalFormat ).toBe( 'RGBA32F' );
+
+	} );
+
 	it( 'should create a large enough texture to store all data.', () => {
 
 		{
