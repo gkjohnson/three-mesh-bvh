@@ -14,19 +14,18 @@ import {
 
 	RedIntegerFormat,
 	RGIntegerFormat,
-	RGBIntegerFormat,
 	RGBAIntegerFormat,
 
 	NearestFilter,
 } from 'three';
 
-function countToStringFormat( count, integer = false ) {
+function countToStringFormat( count ) {
 
 	switch ( count ) {
 
 		case 1: return 'R';
 		case 2: return 'RG';
-		case 3: return integer ? 'RGB' : 'RGBA';
+		case 3: return 'RGBA';
 		case 4: return 'RGBA';
 
 	}
@@ -54,7 +53,7 @@ function countToIntFormat( count ) {
 
 		case 1: return RedIntegerFormat;
 		case 2: return RGIntegerFormat;
-		case 3: return RGBIntegerFormat;
+		case 3: return RGBAIntegerFormat;
 		case 4: return RGBAIntegerFormat;
 
 	}
@@ -126,9 +125,8 @@ export class VertexAttributeTexture extends DataTexture {
 		}
 
 		// get the target format to store the texture as
-		const isIntegerType = targetType !== FloatType;
 		let type, format, normalizeValue, targetBufferCons;
-		let internalFormat = countToStringFormat( itemSize, isIntegerType );
+		let internalFormat = countToStringFormat( itemSize );
 		switch ( targetType ) {
 
 			case FloatType:
@@ -212,8 +210,8 @@ export class VertexAttributeTexture extends DataTexture {
 		}
 
 		// there will be a mismatch between format length and final length because
-		// RGBFormat was removed
-		if ( finalStride === 3 && format === RGBAFormat ) {
+		// RGBFormat and RGBIntegerFormat was removed
+		if ( finalStride === 3 && ( format === RGBAFormat || format === RGBAIntegerFormat ) ) {
 
 			finalStride = 4;
 
