@@ -10,12 +10,10 @@ import {
 
 	RedFormat,
 	RGFormat,
-	RGBFormat,
 	RGBAFormat,
 
 	RedIntegerFormat,
 	RGIntegerFormat,
-	RGBIntegerFormat,
 	RGBAIntegerFormat,
 
 	NearestFilter,
@@ -27,7 +25,7 @@ function countToStringFormat( count ) {
 
 		case 1: return 'R';
 		case 2: return 'RG';
-		case 3: return 'RGB';
+		case 3: return 'RGBA';
 		case 4: return 'RGBA';
 
 	}
@@ -42,7 +40,7 @@ function countToFormat( count ) {
 
 		case 1: return RedFormat;
 		case 2: return RGFormat;
-		case 3: return RGBFormat;
+		case 3: return RGBAFormat;
 		case 4: return RGBAFormat;
 
 	}
@@ -55,7 +53,7 @@ function countToIntFormat( count ) {
 
 		case 1: return RedIntegerFormat;
 		case 2: return RGIntegerFormat;
-		case 3: return RGBIntegerFormat;
+		case 3: return RGBAIntegerFormat;
 		case 4: return RGBAIntegerFormat;
 
 	}
@@ -99,6 +97,7 @@ export class VertexAttributeTexture extends DataTexture {
 		const originalBufferCons = attr.array.constructor;
 		const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
 		let targetType = this._forcedType;
+		let finalStride = itemSize;
 
 		// derive the type of texture this should be in the shader
 		if ( targetType === null ) {
@@ -210,13 +209,21 @@ export class VertexAttributeTexture extends DataTexture {
 
 		}
 
+		// there will be a mismatch between format length and final length because
+		// RGBFormat and RGBIntegerFormat was removed
+		if ( finalStride === 3 && ( format === RGBAFormat || format === RGBAIntegerFormat ) ) {
+
+			finalStride = 4;
+
+		}
+
 		// copy the data over to the new texture array
 		const dimension = Math.ceil( Math.sqrt( count ) );
-		const length = itemSize * dimension * dimension;
+		const length = finalStride * dimension * dimension;
 		const dataArray = new targetBufferCons( length );
 		for ( let i = 0; i < count; i ++ ) {
 
-			const ii = itemSize * i;
+			const ii = finalStride * i;
 			dataArray[ ii ] = attr.getX( i ) / normalizeValue;
 
 			if ( itemSize >= 2 ) {
@@ -228,6 +235,12 @@ export class VertexAttributeTexture extends DataTexture {
 			if ( itemSize >= 3 ) {
 
 				dataArray[ ii + 2 ] = attr.getZ( i ) / normalizeValue;
+
+				if ( finalStride === 4 ) {
+
+					dataArray[ ii + 3 ] = 1.0;
+
+				}
 
 			}
 

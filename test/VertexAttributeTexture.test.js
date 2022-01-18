@@ -8,7 +8,7 @@ import {
 	RedFormat,
 	RGFormat,
 	RGBAFormat,
-	RGBIntegerFormat,
+	RGIntegerFormat,
 	RGBAIntegerFormat,
 	FloatType,
 	UnsignedShortType,
@@ -23,16 +23,16 @@ describe( 'VertexAttributeTexture', () => {
 
 		it( 'should reset the itemSize if it is set.', () => {
 
-			const ba = new BufferAttribute( new Uint8Array( 6 ), 1, false );
+			const ba = new BufferAttribute( new Uint8Array( 8 ), 1, false );
 			const tex = new UIntVertexAttributeTexture();
-			tex.overrideItemSize = 3;
+			tex.overrideItemSize = 4;
 			tex.updateFrom( ba );
 
 			expect( tex.type ).toBe( UnsignedByteType );
-			expect( tex.format ).toBe( RGBIntegerFormat );
-			expect( tex.internalFormat ).toBe( 'RGB8UI' );
+			expect( tex.format ).toBe( RGBAIntegerFormat );
+			expect( tex.internalFormat ).toBe( 'RGBA8UI' );
 			expect( ba.itemSize ).toBe( 1 );
-			expect( ba.count ).toBe( 6 );
+			expect( ba.count ).toBe( 8 );
 			expect( tex.image.width ).toBe( 2 );
 
 		} );
@@ -60,6 +60,36 @@ describe( 'VertexAttributeTexture', () => {
 
 	} );
 
+	it( 'should automatically use RGBAFormat when passing in an attribute with a stride of 3.', () => {
+
+		{
+
+			const ba = new BufferAttribute( new Float32Array( 6 ), 3, false );
+			const tex = new FloatVertexAttributeTexture();
+			tex.updateFrom( ba );
+
+			expect( tex.image.data ).toHaveLength( 16 );
+			expect( tex.image.data ).toEqual( new Float32Array( [ 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ] ) );
+			expect( tex.format ).toBe( RGBAFormat );
+			expect( tex.internalFormat ).toBe( 'RGBA32F' );
+
+		}
+
+		{
+
+			const ba = new BufferAttribute( new Uint8Array( 6 ), 3, false );
+			const tex = new UIntVertexAttributeTexture();
+			tex.updateFrom( ba );
+
+			expect( tex.image.data ).toHaveLength( 16 );
+			expect( tex.image.data ).toEqual( new Uint8Array( [ 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ] ) );
+			expect( tex.format ).toBe( RGBAIntegerFormat );
+			expect( tex.internalFormat ).toBe( 'RGBA8UI' );
+
+		}
+
+	} );
+
 	it( 'should create a large enough texture to store all data.', () => {
 
 		{
@@ -76,13 +106,13 @@ describe( 'VertexAttributeTexture', () => {
 
 		{
 
-			const ba = new BufferAttribute( new Uint8Array( 18 ), 3, false );
+			const ba = new BufferAttribute( new Uint8Array( 20 ), 2, false );
 			const tex = new UIntVertexAttributeTexture();
 			tex.updateFrom( ba );
 
-			expect( tex.image.data ).toHaveLength( 27 );
-			expect( tex.image.width ).toBe( 3 );
-			expect( tex.image.height ).toBe( 3 );
+			expect( tex.image.data ).toHaveLength( 32 );
+			expect( tex.image.width ).toBe( 4 );
+			expect( tex.image.height ).toBe( 4 );
 
 		}
 
@@ -128,13 +158,13 @@ describe( 'VertexAttributeTexture', () => {
 
 		{
 
-			const ba = new BufferAttribute( new Uint16Array( 6 ), 3, false );
+			const ba = new BufferAttribute( new Uint16Array( 6 ), 2, false );
 			const tex = new UIntVertexAttributeTexture();
 			tex.updateFrom( ba );
 
 			expect( tex.type ).toBe( UnsignedShortType );
-			expect( tex.format ).toBe( RGBIntegerFormat );
-			expect( tex.internalFormat ).toBe( 'RGB16UI' );
+			expect( tex.format ).toBe( RGIntegerFormat );
+			expect( tex.internalFormat ).toBe( 'RG16UI' );
 
 		}
 
