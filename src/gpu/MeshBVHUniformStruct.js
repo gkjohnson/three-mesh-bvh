@@ -2,7 +2,7 @@ import {
 	DataTexture,
 	FloatType,
 	UnsignedIntType,
-	RGBFormat,
+	RGBAFormat,
 	RGIntegerFormat,
 	NearestFilter,
 } from 'three';
@@ -39,7 +39,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	// the width so we can expand the row by two and still have a square texture
 	const nodeCount = root.byteLength / BYTES_PER_NODE;
 	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
-	const boundsArray = new Float32Array( 3 * boundsDimension * boundsDimension );
+	const boundsArray = new Float32Array( 4 * boundsDimension * boundsDimension );
 
 	const contentsDimension = Math.ceil( Math.sqrt( nodeCount ) );
 	const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );
@@ -49,9 +49,10 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 		const nodeIndex32 = i * BYTES_PER_NODE / 4;
 		const nodeIndex16 = nodeIndex32 * 2;
 		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex32 );
-		for ( let b = 0; b < 6; b ++ ) {
+		for ( let b = 0; b < 3; b ++ ) {
 
-			boundsArray[ 6 * i + b ] = float32Array[ boundsIndex + b ];
+			boundsArray[ 8 * i + 0 + b ] = float32Array[ boundsIndex + 0 + b ];
+			boundsArray[ 8 * i + 4 + b ] = float32Array[ boundsIndex + 3 + b ];
 
 		}
 
@@ -79,9 +80,9 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	boundsTexture.image.data = boundsArray;
 	boundsTexture.image.width = boundsDimension;
 	boundsTexture.image.height = boundsDimension;
-	boundsTexture.format = RGBFormat;
+	boundsTexture.format = RGBAFormat;
 	boundsTexture.type = FloatType;
-	boundsTexture.internalFormat = 'RGB32F';
+	boundsTexture.internalFormat = 'RGBA32F';
 	boundsTexture.minFilter = NearestFilter;
 	boundsTexture.magFilter = NearestFilter;
 	boundsTexture.generateMipmaps = false;
