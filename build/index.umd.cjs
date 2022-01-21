@@ -4838,7 +4838,7 @@
 
 			case 1: return 'R';
 			case 2: return 'RG';
-			case 3: return 'RGB';
+			case 3: return 'RGBA';
 			case 4: return 'RGBA';
 
 		}
@@ -4853,7 +4853,7 @@
 
 			case 1: return three.RedFormat;
 			case 2: return three.RGFormat;
-			case 3: return three.RGBFormat;
+			case 3: return three.RGBAFormat;
 			case 4: return three.RGBAFormat;
 
 		}
@@ -4866,7 +4866,7 @@
 
 			case 1: return three.RedIntegerFormat;
 			case 2: return three.RGIntegerFormat;
-			case 3: return three.RGBIntegerFormat;
+			case 3: return three.RGBAIntegerFormat;
 			case 4: return three.RGBAIntegerFormat;
 
 		}
@@ -4910,6 +4910,7 @@
 			const originalBufferCons = attr.array.constructor;
 			const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
 			let targetType = this._forcedType;
+			let finalStride = itemSize;
 
 			// derive the type of texture this should be in the shader
 			if ( targetType === null ) {
@@ -5021,13 +5022,21 @@
 
 			}
 
+			// there will be a mismatch between format length and final length because
+			// RGBFormat and RGBIntegerFormat was removed
+			if ( finalStride === 3 && ( format === three.RGBAFormat || format === three.RGBAIntegerFormat ) ) {
+
+				finalStride = 4;
+
+			}
+
 			// copy the data over to the new texture array
 			const dimension = Math.ceil( Math.sqrt( count ) );
-			const length = itemSize * dimension * dimension;
+			const length = finalStride * dimension * dimension;
 			const dataArray = new targetBufferCons( length );
 			for ( let i = 0; i < count; i ++ ) {
 
-				const ii = itemSize * i;
+				const ii = finalStride * i;
 				dataArray[ ii ] = attr.getX( i ) / normalizeValue;
 
 				if ( itemSize >= 2 ) {
@@ -5039,6 +5048,12 @@
 				if ( itemSize >= 3 ) {
 
 					dataArray[ ii + 2 ] = attr.getZ( i ) / normalizeValue;
+
+					if ( finalStride === 4 ) {
+
+						dataArray[ ii + 3 ] = 1.0;
+
+					}
 
 				}
 
@@ -5118,7 +5133,7 @@
 		// the width so we can expand the row by two and still have a square texture
 		const nodeCount = root.byteLength / BYTES_PER_NODE;
 		const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
-		const boundsArray = new Float32Array( 3 * boundsDimension * boundsDimension );
+		const boundsArray = new Float32Array( 4 * boundsDimension * boundsDimension );
 
 		const contentsDimension = Math.ceil( Math.sqrt( nodeCount ) );
 		const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );
@@ -5128,9 +5143,10 @@
 			const nodeIndex32 = i * BYTES_PER_NODE / 4;
 			const nodeIndex16 = nodeIndex32 * 2;
 			const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex32 );
-			for ( let b = 0; b < 6; b ++ ) {
+			for ( let b = 0; b < 3; b ++ ) {
 
-				boundsArray[ 6 * i + b ] = float32Array[ boundsIndex + b ];
+				boundsArray[ 8 * i + 0 + b ] = float32Array[ boundsIndex + 0 + b ];
+				boundsArray[ 8 * i + 4 + b ] = float32Array[ boundsIndex + 3 + b ];
 
 			}
 
@@ -5158,9 +5174,9 @@
 		boundsTexture.image.data = boundsArray;
 		boundsTexture.image.width = boundsDimension;
 		boundsTexture.image.height = boundsDimension;
-		boundsTexture.format = three.RGBFormat;
+		boundsTexture.format = three.RGBAFormat;
 		boundsTexture.type = three.FloatType;
-		boundsTexture.internalFormat = 'RGB32F';
+		boundsTexture.internalFormat = 'RGBA32F';
 		boundsTexture.minFilter = three.NearestFilter;
 		boundsTexture.magFilter = three.NearestFilter;
 		boundsTexture.generateMipmaps = false;

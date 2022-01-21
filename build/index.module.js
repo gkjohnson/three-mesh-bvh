@@ -1,4 +1,4 @@
-import { BufferAttribute, Vector3, Vector2, Plane, Line3, Triangle, Sphere, Box3, Matrix4, BackSide, DoubleSide, FrontSide, Object3D, BufferGeometry, Group, LineBasicMaterial, MeshBasicMaterial, Ray, Mesh, RGBAFormat, RGBFormat, RGFormat, RedFormat, RGBAIntegerFormat, RGBIntegerFormat, RGIntegerFormat, RedIntegerFormat, DataTexture, NearestFilter, IntType, UnsignedIntType, FloatType, UnsignedByteType, UnsignedShortType, ByteType, ShortType } from 'three';
+import { BufferAttribute, Vector3, Vector2, Plane, Line3, Triangle, Sphere, Box3, Matrix4, BackSide, DoubleSide, FrontSide, Object3D, BufferGeometry, Group, LineBasicMaterial, MeshBasicMaterial, Ray, Mesh, RGBAFormat, RGFormat, RedFormat, RGBAIntegerFormat, RGIntegerFormat, RedIntegerFormat, DataTexture, NearestFilter, IntType, UnsignedIntType, FloatType, UnsignedByteType, UnsignedShortType, ByteType, ShortType } from 'three';
 
 // Split strategy constants
 const CENTER = 0;
@@ -4834,7 +4834,7 @@ function countToStringFormat( count ) {
 
 		case 1: return 'R';
 		case 2: return 'RG';
-		case 3: return 'RGB';
+		case 3: return 'RGBA';
 		case 4: return 'RGBA';
 
 	}
@@ -4849,7 +4849,7 @@ function countToFormat( count ) {
 
 		case 1: return RedFormat;
 		case 2: return RGFormat;
-		case 3: return RGBFormat;
+		case 3: return RGBAFormat;
 		case 4: return RGBAFormat;
 
 	}
@@ -4862,7 +4862,7 @@ function countToIntFormat( count ) {
 
 		case 1: return RedIntegerFormat;
 		case 2: return RGIntegerFormat;
-		case 3: return RGBIntegerFormat;
+		case 3: return RGBAIntegerFormat;
 		case 4: return RGBAIntegerFormat;
 
 	}
@@ -4906,6 +4906,7 @@ class VertexAttributeTexture extends DataTexture {
 		const originalBufferCons = attr.array.constructor;
 		const byteCount = originalBufferCons.BYTES_PER_ELEMENT;
 		let targetType = this._forcedType;
+		let finalStride = itemSize;
 
 		// derive the type of texture this should be in the shader
 		if ( targetType === null ) {
@@ -5017,13 +5018,21 @@ class VertexAttributeTexture extends DataTexture {
 
 		}
 
+		// there will be a mismatch between format length and final length because
+		// RGBFormat and RGBIntegerFormat was removed
+		if ( finalStride === 3 && ( format === RGBAFormat || format === RGBAIntegerFormat ) ) {
+
+			finalStride = 4;
+
+		}
+
 		// copy the data over to the new texture array
 		const dimension = Math.ceil( Math.sqrt( count ) );
-		const length = itemSize * dimension * dimension;
+		const length = finalStride * dimension * dimension;
 		const dataArray = new targetBufferCons( length );
 		for ( let i = 0; i < count; i ++ ) {
 
-			const ii = itemSize * i;
+			const ii = finalStride * i;
 			dataArray[ ii ] = attr.getX( i ) / normalizeValue;
 
 			if ( itemSize >= 2 ) {
@@ -5035,6 +5044,12 @@ class VertexAttributeTexture extends DataTexture {
 			if ( itemSize >= 3 ) {
 
 				dataArray[ ii + 2 ] = attr.getZ( i ) / normalizeValue;
+
+				if ( finalStride === 4 ) {
+
+					dataArray[ ii + 3 ] = 1.0;
+
+				}
 
 			}
 
@@ -5114,7 +5129,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	// the width so we can expand the row by two and still have a square texture
 	const nodeCount = root.byteLength / BYTES_PER_NODE;
 	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
-	const boundsArray = new Float32Array( 3 * boundsDimension * boundsDimension );
+	const boundsArray = new Float32Array( 4 * boundsDimension * boundsDimension );
 
 	const contentsDimension = Math.ceil( Math.sqrt( nodeCount ) );
 	const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );
@@ -5124,9 +5139,10 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 		const nodeIndex32 = i * BYTES_PER_NODE / 4;
 		const nodeIndex16 = nodeIndex32 * 2;
 		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex32 );
-		for ( let b = 0; b < 6; b ++ ) {
+		for ( let b = 0; b < 3; b ++ ) {
 
-			boundsArray[ 6 * i + b ] = float32Array[ boundsIndex + b ];
+			boundsArray[ 8 * i + 0 + b ] = float32Array[ boundsIndex + 0 + b ];
+			boundsArray[ 8 * i + 4 + b ] = float32Array[ boundsIndex + 3 + b ];
 
 		}
 
@@ -5154,9 +5170,9 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	boundsTexture.image.data = boundsArray;
 	boundsTexture.image.width = boundsDimension;
 	boundsTexture.image.height = boundsDimension;
-	boundsTexture.format = RGBFormat;
+	boundsTexture.format = RGBAFormat;
 	boundsTexture.type = FloatType;
-	boundsTexture.internalFormat = 'RGB32F';
+	boundsTexture.internalFormat = 'RGBA32F';
 	boundsTexture.minFilter = NearestFilter;
 	boundsTexture.magFilter = NearestFilter;
 	boundsTexture.generateMipmaps = false;
