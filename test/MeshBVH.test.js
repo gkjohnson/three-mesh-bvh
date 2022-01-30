@@ -319,7 +319,7 @@ describe( 'Options', () => {
 			} );
 
 			const leafNodeCount = getBVHExtremes( bvh )[ 0 ].leafNodeCount;
-			expect( maxProgress ).toBeGreaterThan( 0.999 );
+			expect( maxProgress ).toEqual( 1.0 );
 			expect( minProgress ).toBeLessThan( 0.001 );
 			expect( count ).toBe( leafNodeCount );
 

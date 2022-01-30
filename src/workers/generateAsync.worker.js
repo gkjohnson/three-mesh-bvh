@@ -10,7 +10,7 @@ global.onmessage = function ( { data } ) {
 	function onProgressCallback( progress ) {
 
 		const currTime = global.performance.now();
-		if ( currTime - prevTime >= 10 ) {
+		if ( currTime - prevTime >= 10 || progress === 1.0 ) {
 
 			global.postMessage( {
 
