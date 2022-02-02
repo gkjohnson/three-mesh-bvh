@@ -646,7 +646,7 @@ export function buildTree( geo, options ) {
 		// early out if we've met our capacity
 		if ( count <= maxLeafTris || depth >= maxDepth ) {
 
-			triggerProgress( offset );
+			triggerProgress( offset + count );
 			node.offset = offset;
 			node.count = count;
 			return node;
@@ -657,7 +657,7 @@ export function buildTree( geo, options ) {
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
-			triggerProgress( offset );
+			triggerProgress( offset + count );
 			node.offset = offset;
 			node.count = count;
 			return node;
@@ -669,7 +669,7 @@ export function buildTree( geo, options ) {
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
 
-			triggerProgress( offset );
+			triggerProgress( offset + count );
 			node.offset = offset;
 			node.count = count;
 
