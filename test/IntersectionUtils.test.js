@@ -1,4 +1,4 @@
-import { Vector3, Quaternion, Euler, Triangle, Sphere, Plane } from 'three';
+import { Vector3, Quaternion, Euler, Triangle, Sphere, Plane, Line3 } from 'three';
 import { sphereIntersectTriangle } from '../src/math/MathUtilities.js';
 import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
 import { OrientedBox } from '../src/math/OrientedBox.js';
@@ -172,6 +172,139 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+} );
+
+describe( 'Triangle Intersection line', () => {
+
+	const t1 = new SeparatingAxisTriangle();
+	const t2 = new Triangle();
+	const target = new Line3();
+	const expected = new Line3();
+
+	const expectVerticesToBeClose = ( a, b ) => {
+
+		expect( a.x ).toBeCloseTo( b.x );
+		expect( a.y ).toBeCloseTo( b.y );
+		expect( a.z ).toBeCloseTo( b.z );
+
+	};
+
+	const expectLinesToBeClose = ( a, b ) => {
+
+		try {
+
+			expectVerticesToBeClose( a.start, b.start );
+			expectVerticesToBeClose( a.end, b.end );
+
+		} catch {
+
+			expectVerticesToBeClose( a.end, b.start );
+			expectVerticesToBeClose( a.start, b.end );
+
+		}
+
+	};
+
+	it( "sould intersect on point", () => {
+
+		t1.a.set( 0, 0, 0 );
+		t1.b.set( 0, 0, 2 );
+		t1.c.set( 2, 0, 0 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 1, - 1, 0 );
+		t2.b.set( 1, 1, 0 );
+		t2.c.set( 1, 0, - 1 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+
+		expected.start.set( 1, 0, 0 );
+		expected.end.set( 1, 0, 0 );
+
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+	test( "should intersect in middle", () => {
+
+		t1.a.set( 0, 0, 0 );
+		t1.b.set( 0, 0, 5 );
+		t1.c.set( 5, 0, 0 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 1, - 1, 1 );
+		t2.b.set( 1, - 1, - 1 );
+		t2.c.set( 1, 1, 1 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+
+		expected.start.set( 1, 0, 0 );
+		expected.end.set( 1, 0, 1 );
+
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+
+	test( "should intersect on common side", () => {
+
+		t1.a.set( 0, 0, 0 );
+		t1.b.set( 3, 0, 0 );
+		t1.c.set( 0, 1, 2 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 1, 0, 0 );
+		t2.b.set( 2, 0, 0 );
+		t2.c.set( 0, 1, - 2 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+
+		expected.start.set( 1, 0, 0 );
+		expected.end.set( 2, 0, 0 );
+
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+	test( "should be coplanar and line is null", () => {
+
+		t1.a.set( 0, 0, 0 );
+		t1.b.set( 3, 0, 0 );
+		t1.c.set( 0, 0, 2 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 1, 0, 0 );
+		t2.b.set( 2, 0, 0 );
+		t2.c.set( 0, 0, - 2 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+
+		expected.start.set( 0, 0, 0 );
+		expected.end.set( 0, 0, 0 );
+
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+	test( "triangles almost coplanar should intersect on point", () => {
+
+		t1.a.set( 0.0720, 0.2096, 0.3220 );
+		t1.b.set( 0.0751, 0.2148, 0.3234 );
+		t1.c.set( 0.0693, 0.2129, 0.3209 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 0.0677, 0.2170, 0.3196 );
+		t2.b.set( 0.0607, 0.2135, 0.3165 );
+		t2.c.set( 0.0693, 0.2129, 0.3209 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+
+		expected.start.set( 0.0693, 0.2129, 0.3209 );
+		expected.end.set( 0.0693, 0.2129, 0.3209 );
+
+		expectLinesToBeClose( target, expected );
+
+	} );
 
 } );
 
