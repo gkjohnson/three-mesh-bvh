@@ -727,6 +727,7 @@ export class MeshBVH {
 		}
 
 		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
+		obb.matrix.copy( geometryToBvh );
 		obb.needsUpdate = true;
 
 		const geometry = this.geometry;
@@ -759,7 +760,7 @@ export class MeshBVH {
 
 				boundsTraverseOrder: box => {
 
-					return obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+					return obb.distanceToBox( box );
 
 				},
 
@@ -794,7 +795,7 @@ export class MeshBVH {
 						return otherGeometry.boundsTree.shapecast( {
 							boundsTraverseOrder: box => {
 
-								return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+								return obb2.distanceToBox( box );
 
 							},
 
