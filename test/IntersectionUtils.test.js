@@ -216,16 +216,15 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 1, 1, 0 );
 		t2.c.set( 1, 0, - 1 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 1, 0, 0 );
 
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
 
 	} );
 
-	test( "should intersect in middle", () => {
+	test( "should intersect", () => {
 
 		t1.a.set( 0, 0, 0 );
 		t1.b.set( 0, 0, 5 );
@@ -236,11 +235,10 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 1, - 1, - 1 );
 		t2.c.set( 1, 1, 1 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 1, 0, 1 );
 
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
 
 	} );
@@ -257,16 +255,15 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 2, 0, 0 );
 		t2.c.set( 0, 1, - 2 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 2, 0, 0 );
 
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
 
 	} );
 
-	test( "should be coplanar and line is null", () => {
+	test( "should be coplanar and line is zero", () => {
 
 		t1.a.set( 0, 0, 0 );
 		t1.b.set( 3, 0, 0 );
@@ -277,11 +274,10 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 2, 0, 0 );
 		t2.c.set( 0, 0, - 2 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-
 		expected.start.set( 0, 0, 0 );
 		expected.end.set( 0, 0, 0 );
 
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
 
 	} );
@@ -297,11 +293,10 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 0.0607, 0.2135, 0.3165 );
 		t2.c.set( 0.0693, 0.2129, 0.3209 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-
 		expected.start.set( 0.0693, 0.2129, 0.3209 );
 		expected.end.set( 0.0693, 0.2129, 0.3209 );
 
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
 
 	} );

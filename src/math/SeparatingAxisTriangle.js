@@ -1,6 +1,7 @@
 import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
+import { trianglesIntersectDevillers } from './TriangleIntersectDevillers.js';
 
 export class SeparatingAxisTriangle extends Triangle {
 
@@ -124,191 +125,12 @@ SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
 
 SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
-	const saTri2 = new SeparatingAxisTriangle();
-	const arr1 = new Array( 3 );
-	const arr2 = new Array( 3 );
-	const cachedSatBounds = new SeparatingAxisBounds();
-	const cachedSatBounds2 = new SeparatingAxisBounds();
-	const cachedAxis = new Vector3();
-	const dir1 = new Vector3();
-	const dir2 = new Vector3();
-	const tempDir = new Vector3();
-	const edge = new Line3();
-	const edge1 = new Line3();
-	const edge2 = new Line3();
-
-	// TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
-	// be a line contained by both triangles if not a different special case somehow represented in the return result.
+	// TODO: Handle the coplanar case and return the correct result instead of false
 	return function intersectsTriangle( other, target = null ) {
 
-		if ( this.needsUpdate ) {
+		return trianglesIntersectDevillers(this, other, target);
 
-			this.update();
-
-		}
-
-		if ( ! other.isSeparatingAxisTriangle ) {
-
-			saTri2.copy( other );
-			saTri2.update();
-			other = saTri2;
-
-		} else if ( other.needsUpdate ) {
-
-			other.update();
-
-		}
-
-		const satBounds1 = this.satBounds;
-		const satAxes1 = this.satAxes;
-		arr2[ 0 ] = other.a;
-		arr2[ 1 ] = other.b;
-		arr2[ 2 ] = other.c;
-		for ( let i = 0; i < 4; i ++ ) {
-
-			const sb = satBounds1[ i ];
-			const sa = satAxes1[ i ];
-			cachedSatBounds.setFromPoints( sa, arr2 );
-			if ( sb.isSeparated( cachedSatBounds ) ) return false;
-
-		}
-
-		const satBounds2 = other.satBounds;
-		const satAxes2 = other.satAxes;
-		arr1[ 0 ] = this.a;
-		arr1[ 1 ] = this.b;
-		arr1[ 2 ] = this.c;
-		for ( let i = 0; i < 4; i ++ ) {
-
-			const sb = satBounds2[ i ];
-			const sa = satAxes2[ i ];
-			cachedSatBounds.setFromPoints( sa, arr1 );
-			if ( sb.isSeparated( cachedSatBounds ) ) return false;
-
-		}
-
-		// check crossed axes
-		for ( let i = 0; i < 4; i ++ ) {
-
-			const sa1 = satAxes1[ i ];
-			for ( let i2 = 0; i2 < 4; i2 ++ ) {
-
-				const sa2 = satAxes2[ i2 ];
-				cachedAxis.crossVectors( sa1, sa2 );
-				cachedSatBounds.setFromPoints( cachedAxis, arr1 );
-				cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
-				if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
-
-			}
-
-		}
-
-		if ( target ) {
-
-			const plane1 = this.plane;
-			const plane2 = other.plane;
-
-			if ( Math.abs( plane1.normal.dot( plane2.normal ) ) > 1.0 - 1e-10 ) {
-
-				// TODO find two points that intersect on the edges and make that the result
-				console.warn( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
-				target.start.set( 0, 0, 0 );
-				target.end.set( 0, 0, 0 );
-
-			} else {
-
-				// find the edge that intersects the other triangle plane
-				const points1 = this.points;
-				let found1 = false;
-				for ( let i = 0; i < 3; i ++ ) {
-
-					const p1 = points1[ i ];
-					const p2 = points1[ ( i + 1 ) % 3 ];
-
-					edge.start.copy( p1 );
-					edge.end.copy( p2 );
-
-					if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
-
-						if ( found1 ) {
-
-							break;
-
-						}
-
-						found1 = true;
-
-					}
-
-				}
-
-				// find the other triangles edge that intersects this plane
-				const points2 = other.points;
-				let found2 = false;
-				for ( let i = 0; i < 3; i ++ ) {
-
-					const p1 = points2[ i ];
-					const p2 = points2[ ( i + 1 ) % 3 ];
-
-					edge.start.copy( p1 );
-					edge.end.copy( p2 );
-
-					if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
-
-						if ( found2 ) {
-
-							break;
-
-						}
-
-						found2 = true;
-
-					}
-
-				}
-
-				// find swap the second edge so both lines are running the same direction
-				edge1.delta( dir1 );
-				edge2.delta( dir2 );
-
-
-				if ( dir1.dot( dir2 ) < 0 ) {
-
-					let tmp = edge2.start;
-					edge2.start = edge2.end;
-					edge2.end = tmp;
-
-				}
-
-				tempDir.subVectors( edge1.start, edge2.start );
-				if ( tempDir.dot( dir1 ) > 0 ) {
-
-					target.start.copy( edge1.start );
-
-				} else {
-
-					target.start.copy( edge2.start );
-
-				}
-
-				tempDir.subVectors( edge1.end, edge2.end );
-				if ( tempDir.dot( dir1 ) < 0 ) {
-
-					target.end.copy( edge1.end );
-
-				} else {
-
-					target.end.copy( edge2.end );
-
-				}
-
-			}
-
-		}
-
-		return true;
-
-	};
+	}
 
 } )();
 
