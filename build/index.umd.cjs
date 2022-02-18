@@ -783,7 +783,7 @@
 			// early out if we've met our capacity
 			if ( count <= maxLeafTris || depth >= maxDepth ) {
 
-				triggerProgress( offset );
+				triggerProgress( offset + count );
 				node.offset = offset;
 				node.count = count;
 				return node;
@@ -794,7 +794,7 @@
 			const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, offset, count, strategy );
 			if ( split.axis === - 1 ) {
 
-				triggerProgress( offset );
+				triggerProgress( offset + count );
 				node.offset = offset;
 				node.count = count;
 				return node;
@@ -806,7 +806,7 @@
 			// create the two new child nodes
 			if ( splitOffset === offset || splitOffset === offset + count ) {
 
-				triggerProgress( offset );
+				triggerProgress( offset + count );
 				node.offset = offset;
 				node.count = count;
 
@@ -1743,7 +1743,7 @@
 		set( min, max, matrix ) {
 
 			super.set( min, max );
-			this.matrix = matrix;
+			this.matrix.copy( matrix );
 			this.needsUpdate = true;
 
 		}
@@ -3747,7 +3747,7 @@
 
 					boundsTraverseOrder: box => {
 
-						return obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+						return obb.distanceToBox( box );
 
 					},
 
@@ -3782,7 +3782,7 @@
 							return otherGeometry.boundsTree.shapecast( {
 								boundsTraverseOrder: box => {
 
-									return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+									return obb2.distanceToBox( box );
 
 								},
 

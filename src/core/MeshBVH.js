@@ -727,7 +727,6 @@ export class MeshBVH {
 		}
 
 		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
-		obb.matrix.copy( geometryToBvh );
 		obb.needsUpdate = true;
 
 		const geometry = this.geometry;
