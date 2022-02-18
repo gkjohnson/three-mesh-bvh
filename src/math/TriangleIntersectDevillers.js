@@ -1,7 +1,7 @@
 
 // From research papers https://hal.inria.fr/inria-00072100/document
 
-import { Triangle, Line3, Vector3, Matrix4 } from 'three';
+import { Vector3, Matrix4 } from 'three';
 
 const EPSILON = 1e-10;
 
@@ -99,7 +99,7 @@ export function trianglesIntersectDevillers( t1, t2, target = null ) {
 		if ( op1 === Orient3D.Coplanar ) {
 
 			console.warn( "Triangles are coplanar." );
-			return handleCoplanarTriangles( p1, q1, r1, p2, q2, r2, target );
+			return handleCoplanarTriangles();
 
 		} else {
 
@@ -279,7 +279,7 @@ function applyTriPermutations( p1, q1, r1, p2, q2, r2, op1, oq1, or1, op2, oq2, 
 
 }
 
-function handleCoplanarTriangles( _p1, _q1, _r1, _p2, _q2, _r2, _target ) {
+function handleCoplanarTriangles() {
 
 	return false;
 

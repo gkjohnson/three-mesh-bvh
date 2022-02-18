@@ -128,9 +128,9 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 	// TODO: Handle the coplanar case and return the correct result instead of false
 	return function intersectsTriangle( other, target = null ) {
 
-		return trianglesIntersectDevillers(this, other, target);
+		return trianglesIntersectDevillers( this, other, target );
 
-	}
+	};
 
 } )();
 

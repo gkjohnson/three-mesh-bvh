@@ -210,12 +210,9 @@ function updateTrianglesGeometry() {
 
 }
 
-let lastTime = window.performance.now();
-
 function render() {
 
-	const delta = window.performance.now() - lastTime;
-	lastTime = window.performance.now();
+	stats.begin();
 
 	// Hide and show intersection meshes
 	intersectionMesh.visible = false;
@@ -247,8 +244,6 @@ function render() {
 
 	gui.updateDisplay();
 
-
-	stats.begin();
 
 	renderer.render( scene, camera );
 	stats.end();
