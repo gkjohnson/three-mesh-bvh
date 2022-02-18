@@ -779,7 +779,7 @@ function buildTree( geo, options ) {
 		// early out if we've met our capacity
 		if ( count <= maxLeafTris || depth >= maxDepth ) {
 
-			triggerProgress( offset + count );
+			triggerProgress( offset );
 			node.offset = offset;
 			node.count = count;
 			return node;
@@ -790,7 +790,7 @@ function buildTree( geo, options ) {
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
-			triggerProgress( offset + count );
+			triggerProgress( offset );
 			node.offset = offset;
 			node.count = count;
 			return node;
@@ -802,7 +802,7 @@ function buildTree( geo, options ) {
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
 
-			triggerProgress( offset + count );
+			triggerProgress( offset );
 			node.offset = offset;
 			node.count = count;
 
@@ -1739,7 +1739,7 @@ class OrientedBox extends Box3 {
 	set( min, max, matrix ) {
 
 		super.set( min, max );
-		this.matrix.copy( matrix );
+		this.matrix = matrix;
 		this.needsUpdate = true;
 
 	}
@@ -3743,7 +3743,7 @@ class MeshBVH {
 
 				boundsTraverseOrder: box => {
 
-					return obb.distanceToBox( box );
+					return obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
 
 				},
 
@@ -3778,7 +3778,7 @@ class MeshBVH {
 						return otherGeometry.boundsTree.shapecast( {
 							boundsTraverseOrder: box => {
 
-								return obb2.distanceToBox( box );
+								return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
 
 							},
 
