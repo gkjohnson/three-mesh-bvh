@@ -765,6 +765,34 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
+		for ( let n of [ 4, 8, 16 ] ) {
+
+			it( `should handle case, n: ${n}`, () => {
+
+				const geom = new SphereBufferGeometry( 1, n * 2, n );
+				const otherGeom = new SphereBufferGeometry( 1, n * 2, n );
+				geom.boundsTree = new MeshBVH( geom );
+				const matrix = new Matrix4()
+					.compose(
+						new Vector3( 3, 0, 0 ),
+						new Quaternion(),
+						new Vector3( 1, 1, 1 )
+					);
+
+				const bvh1 = geom.boundsTree;
+
+				const target1 = {};
+				const target2 = {};
+				bvh1.closestPointToGeometry( otherGeom, matrix, target1, target2 );
+				const point1 = target1.point;
+				const point2 = target2.point.applyMatrix4( matrix );
+				const dist = point1.distanceTo( point2 );
+				expect( dist ).toBeCloseTo( 1, 1 );
+
+			} );
+
+		}
+
 	} );
 
 	describe( 'Raycaster', () => {

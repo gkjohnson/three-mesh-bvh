@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Fixed
+- Case where `MeshBVH.closestPointToGeometry` would return an incorrect value.
+
+## [0.5.5] - 2022-02-01
 ### Changed
 - `onProgress` callback now always reports `1.0` when the BVH creation is complete instead of just passing intermmediate progress.
 

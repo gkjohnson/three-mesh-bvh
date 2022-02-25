@@ -759,7 +759,7 @@ export class MeshBVH {
 
 				boundsTraverseOrder: box => {
 
-					return obb.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+					return obb.distanceToBox( box );
 
 				},
 
@@ -794,7 +794,7 @@ export class MeshBVH {
 						return otherGeometry.boundsTree.shapecast( {
 							boundsTraverseOrder: box => {
 
-								return obb2.distanceToBox( box, Math.min( closestDistance, maxThreshold ) );
+								return obb2.distanceToBox( box );
 
 							},
 
