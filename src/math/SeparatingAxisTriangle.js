@@ -174,6 +174,8 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
+			return false;
+
 		} else {
 
 			// find the edge that intersects the other triangle plane
@@ -254,11 +256,16 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			// TODO:
-			// we have to check to make sure the edges actually overlap here
-			// can use dot products to check distances to ensure they're overlapping
-			// possibly ensure that the start and end are in ascending order above
+			// check if the edges are overlapping
+			const separated1 = edge1.end.dot( dir1 ) < edge2.start.dot( dir1 );
+			const separated2 = edge1.start.dot( dir1 ) < edge2.end.dot( dir1 );
+			if ( separated1 !== separated2 ) {
 
+				return false;
+
+			}
+
+			// assign the target output
 			if ( target ) {
 
 				tempDir.subVectors( edge1.start, edge2.start );
@@ -285,9 +292,9 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-		}
+			return true;
 
-		return true;
+		}
 
 	};
 
