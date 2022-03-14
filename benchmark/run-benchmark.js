@@ -4,6 +4,9 @@ import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes,
 	CENTER, AVERAGE, SAH, estimateMemoryInBytes, MeshBVH,
 } from '../src/index.js';
+import {
+	SeparatingAxisTriangle,
+} from '../src/math/SeparatingAxisTriangle.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -287,10 +290,71 @@ function runSuite( strategy ) {
 
 }
 
+function mathFunctions() {
 
+	const tri1 = new SeparatingAxisTriangle();
+	const tri2 = new SeparatingAxisTriangle();
+	const target = new THREE.Line3();
+
+	tri1.a.set( - 1, 0, 0 );
+	tri1.b.set( 2, 0, - 2 );
+	tri1.c.set( 2, 0, 2 );
+
+	tri2.a.set( 1, 0, 0 );
+	tri2.b.set( - 2, - 2, 0 );
+	tri2.c.set( - 2, 2, 0 );
+
+	tri1.update();
+	tri2.update();
+
+	runBenchmark(
+
+		'IntersectTri w/o Target',
+		null,
+		() => {
+
+			tri1.intersectsTriangle( tri2 );
+
+		},
+		3000
+
+	);
+
+	runBenchmark(
+
+		'IntersectTri w/ Target',
+		null,
+		() => {
+
+			tri1.intersectsTriangle( tri2, target );
+
+		},
+		3000
+
+	);
+
+	runBenchmark(
+
+		'IntersectTri w/ Update',
+		null,
+		() => {
+
+			tri2.needsUpdate = true;
+			tri1.intersectsTriangle( tri2, target );
+
+		},
+		3000
+
+	);
+
+}
+
+console.log( '*Math*' );
+mathFunctions();
+
+console.log( '' );
 console.log( '*Strategy: CENTER*' );
 runSuite( CENTER );
-
 
 console.log( '' );
 console.log( '*Strategy: AVERAGE*' );
