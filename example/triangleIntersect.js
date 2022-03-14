@@ -6,7 +6,7 @@ import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
 
 
 const params = {
-	sphereSize: 0.05
+	sphereSize: 1
 };
 
 const t1 = new SeparatingAxisTriangle();
@@ -128,7 +128,7 @@ function initGUI() {
 
 	gui = new dat.GUI();
 
-	gui.add( params, 'sphereSize', 0, 1, 0.001 ).onChange( render );
+	gui.add( params, 'sphereSize', 0, 5, 0.001 ).onChange( render );
 
 
 	// Sphere positions
@@ -168,8 +168,8 @@ function updateIntersectionMesh( mesh, line ) {
 	mesh.geometry.dispose();
 
 	// edge from X to Y
-	var direction = new THREE.Vector3().subVectors( line.start, line.end );
-	mesh.geometry = new THREE.CylinderGeometry( params.sphereSize / 3, params.sphereSize / 3, direction.length(), 6, 4, true );
+	const direction = new THREE.Vector3().subVectors( line.start, line.end );
+	mesh.geometry = new THREE.CylinderGeometry( 1, 1, direction.length(), 6, 4, true );
 	mesh.geometry.applyMatrix4( new THREE.Matrix4().makeTranslation( 0, direction.length() / 2, 0 ) );
 	mesh.geometry.applyMatrix4( new THREE.Matrix4().makeRotationX( THREE.Math.degToRad( 90 ) ) );
 	mesh.geometry.computeVertexNormals();
@@ -239,11 +239,20 @@ function render() {
 	updateTrianglesGeometry();
 
 	// Update sphere scale
-	trispheres.forEach( s => s.scale.set( params.sphereSize, params.sphereSize, params.sphereSize ) );
-	interSpheres.forEach( s => s.scale.set( params.sphereSize * 1.1, params.sphereSize * 1.1, params.sphereSize * 1.1 ) );
+	const spheres = [ ... trispheres, ... interSpheres ];
+	spheres.forEach( sphere => {
+
+		sphere.scale.setScalar( 0.005 * params.sphereSize * sphere.position.distanceTo( camera.position ) );
+
+	} );
+	interSpheres.forEach( s => s.scale.multiplyScalar( 1.5 ) );
+
+	intersectionMesh.scale.setScalar(
+		0.5 * Math.min( interSpheres[ 0 ].scale.x, interSpheres[ 1 ].scale.x ),
+	);
+	intersectionMesh.scale.z = 1;
 
 	gui.updateDisplay();
-
 
 	renderer.render( scene, camera );
 	stats.end();

@@ -259,7 +259,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			// check if the edges are overlapping
 			const separated1 = edge1.end.dot( dir1 ) < edge2.start.dot( dir1 );
 			const separated2 = edge1.start.dot( dir1 ) < edge2.end.dot( dir1 );
-			if ( separated1 !== separated2 ) {
+			if ( separated1 === separated2 ) {
 
 				return false;
 
