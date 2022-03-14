@@ -87,6 +87,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	boundsTexture.magFilter = NearestFilter;
 	boundsTexture.generateMipmaps = false;
 	boundsTexture.needsUpdate = true;
+	boundsTexture.dispose();
 
 	contentsTexture.image.data = contentsArray;
 	contentsTexture.image.width = contentsDimension;
@@ -98,6 +99,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	contentsTexture.magFilter = NearestFilter;
 	contentsTexture.generateMipmaps = false;
 	contentsTexture.needsUpdate = true;
+	contentsTexture.dispose();
 
 }
 

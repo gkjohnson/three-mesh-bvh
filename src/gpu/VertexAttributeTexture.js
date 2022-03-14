@@ -259,6 +259,7 @@ export class VertexAttributeTexture extends DataTexture {
 		this.image.height = dimension;
 		this.image.data = dataArray;
 		this.needsUpdate = true;
+		this.dispose();
 
 		attr.itemSize = originalItemSize;
 		attr.count = originalCount;
