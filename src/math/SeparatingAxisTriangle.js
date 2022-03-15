@@ -234,8 +234,15 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 				edge.start.copy( p1 );
 				edge.end.copy( p2 );
+				edge.delta( dir1 );
+				if ( plane2.normal.dot( dir1 ) === 0 && plane2.distanceToPoint( edge.start ) === 0 ) {
 
-				if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
+					// if the edge lies on the plane then take the line
+					edge1.copy( edge );
+					count1 = 2;
+					break;
+
+				} else if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
 
 					count1 ++;
 					if ( found1 ) {
@@ -267,8 +274,15 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 				edge.start.copy( p1 );
 				edge.end.copy( p2 );
+				edge.delta( dir2 );
+				if ( plane1.normal.dot( dir2 ) === 0 && plane1.distanceToPoint( edge.start ) === 0 ) {
 
-				if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
+					// if the edge lies on the plane then take the line
+					edge2.copy( edge );
+					count2 = 2;
+					break;
+
+				} else if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
 
 					count2 ++;
 					if ( found2 ) {
