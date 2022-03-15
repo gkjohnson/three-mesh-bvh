@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Case where `MeshBVH.closestPointToGeometry` would return an incorrect value.
 - Automatically dispose of textures on update instead of just "needsUpdate".
-- Case where `SeparatingAxisTriangle.intersectTriangle` would return an incorrect intersectionline.
+- Case where `SeparatingAxisTriangle.intersectTriangle` would return incorrect intersection lines.
 
 ## [0.5.5] - 2022-02-01
 ### Changed
