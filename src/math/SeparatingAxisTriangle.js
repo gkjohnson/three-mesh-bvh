@@ -164,17 +164,62 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 		if ( Math.abs( plane1.normal.dot( plane2.normal ) ) > 1.0 - 1e-10 ) {
 
-			// TODO find two points that intersect on the edges and make that the result
-			console.warn( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+			// perform separating axis intersection test only for coplanar triangles
+			const satBounds1 = this.satBounds;
+			const satAxes1 = this.satAxes;
+			arr2[ 0 ] = other.a;
+			arr2[ 1 ] = other.b;
+			arr2[ 2 ] = other.c;
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const sb = satBounds1[ i ];
+				const sa = satAxes1[ i ];
+				cachedSatBounds.setFromPoints( sa, arr2 );
+				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			}
+
+			const satBounds2 = other.satBounds;
+			const satAxes2 = other.satAxes;
+			arr1[ 0 ] = this.a;
+			arr1[ 1 ] = this.b;
+			arr1[ 2 ] = this.c;
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const sb = satBounds2[ i ];
+				const sa = satAxes2[ i ];
+				cachedSatBounds.setFromPoints( sa, arr1 );
+				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			}
+
+			// check crossed axes
+			for ( let i = 0; i < 4; i ++ ) {
+
+				const sa1 = satAxes1[ i ];
+				for ( let i2 = 0; i2 < 4; i2 ++ ) {
+
+					const sa2 = satAxes2[ i2 ];
+					cachedAxis.crossVectors( sa1, sa2 );
+					cachedSatBounds.setFromPoints( cachedAxis, arr1 );
+					cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
+					if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+				}
+
+			}
 
 			if ( target ) {
+
+				// TODO find two points that intersect on the edges and make that the result
+				console.warn( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
 
 				target.start.set( 0, 0, 0 );
 				target.end.set( 0, 0, 0 );
 
 			}
 
-			return false;
+			return true;
 
 		} else {
 

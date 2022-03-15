@@ -20,6 +20,7 @@ const params = {
 let stats;
 let scene, camera, renderer, orbitControls;
 let mesh1, mesh2, lineGroup, line, bgLine;
+let depth1, depth2, group1, group2;
 let lastTime = window.performance.now();
 
 init();
@@ -60,6 +61,14 @@ function init() {
 		polygonOffset: true,
 		polygonOffsetFactor: 1,
 		polygonOffsetUnits: 1,
+		opacity: 0.5,
+		blending: THREE.CustomBlending
+	} );
+	const depthMaterial = new THREE.MeshBasicMaterial( {
+		polygonOffset: true,
+		polygonOffsetFactor: 1,
+		polygonOffsetUnits: 1,
+		colorWrite: false,
 	} );
 
 	// const geometry = new THREE.BoxBufferGeometry();
@@ -73,16 +82,34 @@ function init() {
 	// geometry.computeVertexNormals();
 	geometry.computeBoundsTree( { maxLeafTris: 1, strategy: SAH } );
 
+	group1 = new THREE.Group();
 	mesh1 = new THREE.Mesh( geometry, material );
+	mesh1.renderOrder = 2;
+	depth1 = new THREE.Mesh( geometry, depthMaterial );
+	depth1.renderOrder = 1;
+	group1.add( depth1, mesh1 );
+
+	group2 = new THREE.Group();
 	mesh2 = new THREE.Mesh( geometry, material );
-	scene.add( mesh1, mesh2 );
+	mesh2.renderOrder = 2;
+	depth2 = new THREE.Mesh( geometry, depthMaterial );
+	depth2.renderOrder = 1;
+	group2.add( depth2, mesh2 );
+
+	scene.add( group1, group2 );
 
 	const lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setFromPoints( [ new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, - 1, 0 ) ] );
 	line = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial( { color: 0xE91E63 } ) );
 
 	bgLine = line.clone();
-	bgLine.material = new THREE.LineBasicMaterial( { color: 0xE91E63, transparent: true, opacity: 0.25, depthTest: false } );
+	bgLine.material = new THREE.LineBasicMaterial( {
+		color: 0xE91E63,
+		transparent: true,
+		opacity: 0.25,
+		depthFunc: THREE.GreaterDepth,
+	} );
+	bgLine.renderOrder = 3;
 
 	lineGroup = new THREE.Group();
 	lineGroup.add( line, bgLine );
@@ -125,18 +152,17 @@ function render() {
 	const delta = window.performance.now() - lastTime;
 	lastTime = window.performance.now();
 
-	mesh1.position.y = - params.distance;
-	mesh1.rotation.x -= delta * 3 * 0.0001 * params.speed * 0.5;
-	mesh1.rotation.y -= delta * 1 * 0.0001 * params.speed * 0.5;
-	mesh1.rotation.z -= delta * 2 * 0.0001 * params.speed * 0.5;
+	group1.position.y = - params.distance;
+	group1.rotation.x -= delta * 3 * 0.0001 * params.speed * 0.5;
+	group1.rotation.y -= delta * 1 * 0.0001 * params.speed * 0.5;
+	group1.rotation.z -= delta * 2 * 0.0001 * params.speed * 0.5;
 
-	mesh2.position.y = params.distance;
-	mesh2.rotation.x += delta * 0.0001 * params.speed;
-	mesh2.rotation.y += delta * 2 * 0.0001 * params.speed;
-	mesh2.rotation.z += delta * 3 * 0.0001 * params.speed;
+	group2.position.y = params.distance;
+	group2.rotation.x += delta * 0.0001 * params.speed;
+	group2.rotation.y += delta * 2 * 0.0001 * params.speed;
+	group2.rotation.z += delta * 3 * 0.0001 * params.speed;
 
-	mesh1.updateMatrixWorld();
-	mesh2.updateMatrixWorld();
+	scene.updateMatrixWorld( true );
 
 	const matrix2to1 = new THREE.Matrix4()
 		.copy( mesh1.matrixWorld )
@@ -185,9 +211,9 @@ function render() {
 
 		geometry.setDrawRange( 0, results.length / 3 );
 		geometry.attributes.position.needsUpdate = true;
-		lineGroup.position.copy( mesh1.position );
-		lineGroup.rotation.copy( mesh1.rotation );
-		lineGroup.scale.copy( mesh1.scale );
+		lineGroup.position.copy( group1.position );
+		lineGroup.rotation.copy( group1.rotation );
+		lineGroup.scale.copy( group1.scale );
 		lineGroup.visible = true;
 
 	} else {
@@ -196,8 +222,8 @@ function render() {
 
 	}
 
-	mesh1.visible = params.displayMeshes;
-	mesh2.visible = params.displayMeshes;
+	group1.visible = params.displayMeshes;
+	group2.visible = params.displayMeshes;
 	renderer.render( scene, camera );
 
 	stats.begin();
