@@ -19,6 +19,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
+[Geometry edge intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/edgeIntersect.html)
+
 [WebWorker generation](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
 [BVH options inspector](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
