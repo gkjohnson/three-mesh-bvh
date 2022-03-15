@@ -113,7 +113,7 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
-	it( 'should return true if the are the same', () => {
+	it( 'should return true if the triangles are the same', () => {
 
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
