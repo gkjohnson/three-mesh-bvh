@@ -255,8 +255,8 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 2, 0, 0 );
 		t2.c.set( 0, 1, - 2 );
 
-		expected.start.set( - 1, 0, 0 );
-		expected.end.set( 1, 0, 0 );
+		expected.start.set( 1, 0, 0 );
+		expected.end.set( 2, 0, 0 );
 
 		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
@@ -276,8 +276,8 @@ describe( 'Triangle Intersection line', () => {
 		t2.c.set( - 2, 2, 0 );
 		t2.needsUpdate = true;
 
-		expected.start.set( 1, 0, 0 );
-		expected.end.set( 2, 0, 0 );
+		expected.start.set( - 1, 0, 0 );
+		expected.end.set( 1, 0, 0 );
 
 		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
