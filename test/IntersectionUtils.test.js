@@ -255,6 +255,27 @@ describe( 'Triangle Intersection line', () => {
 		t2.b.set( 2, 0, 0 );
 		t2.c.set( 0, 1, - 2 );
 
+		expected.start.set( - 1, 0, 0 );
+		expected.end.set( 1, 0, 0 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+	// coplanar cases
+	it( 'should support triangles that intersect along a coplanar edge.', () => {
+
+		t1.b.set( - 1, 0, 0 );
+		t1.c.set( 2, 0, 0 );
+		t1.a.set( 2, 0, 2 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 1, 0, 0 );
+		t2.b.set( - 2, - 2, 0 );
+		t2.c.set( - 2, 2, 0 );
+		t2.needsUpdate = true;
+
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 2, 0, 0 );
 
@@ -263,7 +284,6 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-	// coplanar cases
 	it( 'should be coplanar and line is zero', () => {
 
 		t1.a.set( 0, 0, 0 );
