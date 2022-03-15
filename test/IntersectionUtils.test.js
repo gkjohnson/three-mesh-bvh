@@ -52,81 +52,6 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
-	it( 'should return true if the are the same', () => {
-
-		t1.a.set( - 1, 0, 0 );
-		t1.b.set( 1, 0, 0 );
-		t1.c.set( 0, 1, 0 );
-		t1.needsUpdate = true;
-
-		t2.a.set( - 1, 0, 0 );
-		t2.b.set( 1, 0, 0 );
-		t2.c.set( 0, 1, 0 );
-
-		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
-
-	} );
-
-	it( 'should return false if they the same but offset on one axis', () => {
-
-		t1.a.set( - 1, 0, 0 );
-		t1.b.set( 1, 0, 0 );
-		t1.c.set( 0, 1, 0 );
-		t1.needsUpdate = true;
-
-		t2.a.set( - 1, 0, 0.01 );
-		t2.b.set( 1, 0, 0.01 );
-		t2.c.set( 0, 1, 0.01 );
-
-		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
-
-	} );
-
-	it( 'should return false if the triangles are on the same plane but separated', () => {
-
-		t1.a.set( - 1, 0, 0 );
-		t1.b.set( 1, 0, 0 );
-		t1.c.set( 0, 1, 0 );
-		t1.needsUpdate = true;
-
-		t2.a.set( - 3, 0, 0 );
-		t2.b.set( - 1.001, 0, 0 );
-		t2.c.set( - 2, 1, 0 );
-
-		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
-
-	} );
-
-	it( 'should return true if the triangles are on the same plane and overlapping', () => {
-
-		t1.a.set( - 1, 0, 0 );
-		t1.b.set( 1, 0, 0 );
-		t1.c.set( 0, 1, 0 );
-		t1.needsUpdate = true;
-
-		t2.a.set( - 2, 0, 0 );
-		t2.b.set( 0, 0, 0 );
-		t2.c.set( - 1, 1, 0 );
-
-		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
-
-	} );
-
-	it( 'should return true if just one vertex is overlapping', () => {
-
-		t1.a.set( - 1, 0, 0 );
-		t1.b.set( 1, 0, 0 );
-		t1.c.set( 0, 1, 0 );
-		t1.needsUpdate = true;
-
-		t2.a.set( - 1, 0, 0 );
-		t2.b.set( - 3, 0, 0 );
-		t2.c.set( - 2, 1, 0 );
-
-		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
-
-	} );
-
 	it( 'should return true if just one vertex is in the middle of a triangle', () => {
 
 		t1.a.set( - 1, 0, 0 );
@@ -142,16 +67,16 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
-	it( 'should return true if one triangle is completely inside the other', () => {
+	it( 'should return true if just one vertex is overlapping', () => {
 
 		t1.a.set( - 1, 0, 0 );
 		t1.b.set( 1, 0, 0 );
 		t1.c.set( 0, 1, 0 );
 		t1.needsUpdate = true;
 
-		t2.a.set( - 0.5, 0.25, 0 );
-		t2.b.set( 0.5, 0.25, 0 );
-		t2.c.set( 0, 0.75, 0 );
+		t2.a.set( - 1, 0, 0 );
+		t2.b.set( - 3, 0, 0 );
+		t2.c.set( - 2, 0, 1 );
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
@@ -171,6 +96,82 @@ describe( 'Triangle Intersections', () => {
 		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
 	} );
+
+	// coplanar cases
+	// it( 'should return false if the triangles are on the same plane but separated', () => {
+
+	// 	t1.a.set( - 1, 0, 0 );
+	// 	t1.b.set( 1, 0, 0 );
+	// 	t1.c.set( 0, 1, 0 );
+	// 	t1.needsUpdate = true;
+
+	// 	t2.a.set( - 3, 0, 0 );
+	// 	t2.b.set( - 1.001, 0, 0 );
+	// 	t2.c.set( - 2, 1, 0 );
+
+	// 	expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	// } );
+
+	// it( 'should return true if the are the same', () => {
+
+	// 	t1.a.set( - 1, 0, 0 );
+	// 	t1.b.set( 1, 0, 0 );
+	// 	t1.c.set( 0, 1, 0 );
+	// 	t1.needsUpdate = true;
+
+	// 	t2.a.set( - 1, 0, 0 );
+	// 	t2.b.set( 1, 0, 0 );
+	// 	t2.c.set( 0, 1, 0 );
+
+	// 	expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	// } );
+
+	// it( 'should return true if the triangles are on the same plane and overlapping', () => {
+
+	// 	t1.a.set( - 1, 0, 0 );
+	// 	t1.b.set( 1, 0, 0 );
+	// 	t1.c.set( 0, 1, 0 );
+	// 	t1.needsUpdate = true;
+
+	// 	t2.a.set( - 2, 0, 0 );
+	// 	t2.b.set( 0, 0, 0 );
+	// 	t2.c.set( - 1, 1, 0 );
+
+	// 	expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	// } );
+
+	// it( 'should return true if one triangle is completely inside the other', () => {
+
+	// 	t1.a.set( - 1, 0, 0 );
+	// 	t1.b.set( 1, 0, 0 );
+	// 	t1.c.set( 0, 1, 0 );
+	// 	t1.needsUpdate = true;
+
+	// 	t2.a.set( - 0.5, 0.25, 0 );
+	// 	t2.b.set( 0.5, 0.25, 0 );
+	// 	t2.c.set( 0, 0.75, 0 );
+
+	// 	expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	// } );
+
+	// it( 'should return false if they the same but offset on one axis', () => {
+
+	// 	t1.a.set( - 1, 0, 0 );
+	// 	t1.b.set( 1, 0, 0 );
+	// 	t1.c.set( 0, 1, 0 );
+	// 	t1.needsUpdate = true;
+
+	// 	t2.a.set( - 1, 0, 0.01 );
+	// 	t2.b.set( 1, 0, 0.01 );
+	// 	t2.c.set( 0, 1, 0.01 );
+
+	// 	expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	// } );
 
 } );
 
@@ -205,7 +206,7 @@ describe( 'Triangle Intersection line', () => {
 
 	};
 
-	it( "sould intersect on point", () => {
+	it( 'should intersect on point', () => {
 
 		t1.a.set( 0, 0, 0 );
 		t1.b.set( 0, 0, 2 );
@@ -224,7 +225,7 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-	test( "should intersect", () => {
+	it( 'should intersect', () => {
 
 		t1.a.set( 0, 0, 0 );
 		t1.b.set( 0, 0, 5 );
@@ -243,8 +244,7 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-
-	test( "should intersect on common side", () => {
+	it( 'should intersect on common side', () => {
 
 		t1.a.set( 0, 0, 0 );
 		t1.b.set( 3, 0, 0 );
@@ -263,43 +263,44 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-	test( "should be coplanar and line is zero", () => {
+	// coplanar cases
+	// it( 'should be coplanar and line is zero', () => {
 
-		t1.a.set( 0, 0, 0 );
-		t1.b.set( 3, 0, 0 );
-		t1.c.set( 0, 0, 2 );
-		t1.needsUpdate = true;
+	// 	t1.a.set( 0, 0, 0 );
+	// 	t1.b.set( 3, 0, 0 );
+	// 	t1.c.set( 0, 0, 2 );
+	// 	t1.needsUpdate = true;
 
-		t2.a.set( 1, 0, 0 );
-		t2.b.set( 2, 0, 0 );
-		t2.c.set( 0, 0, - 2 );
+	// 	t2.a.set( 1, 0, 0 );
+	// 	t2.b.set( 2, 0, 0 );
+	// 	t2.c.set( 0, 0, - 2 );
 
-		expected.start.set( 0, 0, 0 );
-		expected.end.set( 0, 0, 0 );
+	// 	expected.start.set( 0, 0, 0 );
+	// 	expected.end.set( 0, 0, 0 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-		expectLinesToBeClose( target, expected );
+	// 	expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+	// 	expectLinesToBeClose( target, expected );
 
-	} );
+	// } );
 
-	test( "triangles almost coplanar should intersect on point", () => {
+	// it( 'triangles almost coplanar should intersect on point', () => {
 
-		t1.a.set( 0.0720, 0.2096, 0.3220 );
-		t1.b.set( 0.0751, 0.2148, 0.3234 );
-		t1.c.set( 0.0693, 0.2129, 0.3209 );
-		t1.needsUpdate = true;
+	// 	t1.a.set( 0.0720, 0.2096, 0.3220 );
+	// 	t1.b.set( 0.0751, 0.2148, 0.3234 );
+	// 	t1.c.set( 0.0693, 0.2129, 0.3209 );
+	// 	t1.needsUpdate = true;
 
-		t2.a.set( 0.0677, 0.2170, 0.3196 );
-		t2.b.set( 0.0607, 0.2135, 0.3165 );
-		t2.c.set( 0.0693, 0.2129, 0.3209 );
+	// 	t2.a.set( 0.0677, 0.2170, 0.3196 );
+	// 	t2.b.set( 0.0607, 0.2135, 0.3165 );
+	// 	t2.c.set( 0.0693, 0.2129, 0.3209 );
 
-		expected.start.set( 0.0693, 0.2129, 0.3209 );
-		expected.end.set( 0.0693, 0.2129, 0.3209 );
+	// 	expected.start.set( 0.0693, 0.2129, 0.3209 );
+	// 	expected.end.set( 0.0693, 0.2129, 0.3209 );
 
-		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
-		expectLinesToBeClose( target, expected );
+	// 	expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+	// 	expectLinesToBeClose( target, expected );
 
-	} );
+	// } );
 
 } );
 
