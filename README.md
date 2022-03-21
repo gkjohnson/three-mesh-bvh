@@ -691,6 +691,8 @@ generate( geometry : BufferGeometry, options : Object ) : Promise< MeshBVH >;
 
 Generates a MeshBVH instance for the given geometry with the given options in a WebWorker. Returns a promise that resolves with the generated MeshBVH. This function will throw an error if it is already running.
 
+If you use merged geometry with groups, you need to add `{groups: my_geometry.groups}` under options, so these can be added to geometry in worker.
+
 ### .terminate
 
 ```js
