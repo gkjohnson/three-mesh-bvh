@@ -43,9 +43,14 @@ global.onmessage = function ( { data } ) {
 
 		}
 
-		if ( options.groups ) {
+		if ( options.groups && Array.isArray( options.groups ) ) {
 
-			geometry.groups = options.groups;
+			options.groups.forEach( ( group ) => {
+
+				geometry.addGroup( group.start, group.count, group.materialIndex );
+
+
+			} );
 
 		}
 
