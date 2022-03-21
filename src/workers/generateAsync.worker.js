@@ -42,12 +42,12 @@ global.onmessage = function ( { data } ) {
 			options.onProgress = onProgressCallback;
 
 		}
-		
+
 		if ( options.groups ) {
 
-            geometry.groups = options.groups;
-			
-        }
+			geometry.groups = options.groups;
+
+		}
 
 		const bvh = new MeshBVH( geometry, options );
 		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
