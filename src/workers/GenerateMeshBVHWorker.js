@@ -90,6 +90,12 @@ export class GenerateMeshBVHWorker {
 
 			}
 
+			if ( geometry.groups ) {
+
+				options.groups = geometry.groups;
+
+			}
+
 			worker.postMessage( {
 
 				index,
