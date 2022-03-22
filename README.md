@@ -439,7 +439,7 @@ shapecast(
 		) => Boolean = null,
 
 		intersectsTriangle : (
-			triangle : Triangle,
+			triangle : ExtendedTriangle,
 			triangleIndex : Number,
 			contained : Boolean,
 			depth : Number
@@ -632,7 +632,7 @@ update()
 ### intersectsTriangle
 
 ```js
-intersectsTriangle( other : Triangle, target = null : Line3  );
+intersectsTriangle( other : Triangle, target? : Line3  ) : Boolean;
 ```
 
 ### .intersectsSphere
@@ -644,7 +644,7 @@ intersectsSphere( sphere : Sphere ) : Boolean
 ### .closestPointToSegment
 
 ```js
-closestPointToSegment( segment : Line3, target1 = null : Vector3, target2 = null : Vector3 ) : Number
+closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number
 ```
 
 ### .distanceToPoint
@@ -662,6 +662,12 @@ distanceToTriangle( tri : Triangle ) : Number
 ## OrientedBox
 
 _extends THREE.Box3_
+
+### .matrix
+
+```js
+matrix : Matrix4
+```
 
 ### .update
 

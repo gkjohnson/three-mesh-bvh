@@ -110,7 +110,7 @@ export class MeshBVH {
     } | {
 
       intersectsTriangle: (
-        triangle: Triangle,
+        triangle: ExtendedTriangle,
         triangleIndex: number,
         contained: boolean,
         depth: number
@@ -140,8 +140,8 @@ export class MeshBVH {
     } | {
 
       intersectsTriangles: (
-        triangle1: Triangle,
-        triangle2: Triangle,
+        triangle1: ExtendedTriangle,
+        triangle2: ExtendedTriangle,
         i1: number,
         i2: number,
         depth1: number,
