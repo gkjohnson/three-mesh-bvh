@@ -90,12 +90,6 @@ export class GenerateMeshBVHWorker {
 
 			}
 
-			if ( geometry.groups ) {
-
-				options.groups = geometry.groups;
-
-			}
-
 			worker.postMessage( {
 
 				index,
@@ -104,6 +98,7 @@ export class GenerateMeshBVHWorker {
 					...options,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
+					groups: [ ... geometry.groups ],
 				},
 
 			}, transferrables.map( arr => arr.buffer ) );
