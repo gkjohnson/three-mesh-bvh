@@ -302,24 +302,24 @@ export const shaderFunctions: string;
 // Math classes
 export class ExtendedTriangle extends Triangle {
 
-	update() : void;
-	intersectsTriangle( other : Triangle, target? : Line3 ) : Boolean;
-	intersectsSphere( sphere : Sphere ) : Boolean;
-	closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number;
-	distanceToPoint( point : Vector3 ) : Number;
-	distanceToTriangle( tri : Triangle ) : Number;
+  update() : void;
+  intersectsTriangle( other : Triangle, target? : Line3 ) : Boolean;
+  intersectsSphere( sphere : Sphere ) : Boolean;
+  closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number;
+  distanceToPoint( point : Vector3 ) : Number;
+  distanceToTriangle( tri : Triangle ) : Number;
 
 }
 
 export class OrientedBox extends Box3 {
 
-	matrix : Matrix4;
-	update() : void;
-	set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
-	intersectsBox( box : Box3 ) : Boolean;
-	intersectsTriangle( tri : Triangle ) : Boolean;
-	closestPointToPoint( point : Vector3, target? : Vector3 ) : Number;
-	distanceToPoint( point : Vector3 ) : Number;
-	distanceToBox( box : Box3, threshold? : Number, target1? : Vector3, target2? : Vector3 ) : Number;
+  matrix : Matrix4;
+  update() : void;
+  set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
+  intersectsBox( box : Box3 ) : Boolean;
+  intersectsTriangle( tri : Triangle ) : Boolean;
+  closestPointToPoint( point : Vector3, target? : Vector3 ) : Number;
+  distanceToPoint( point : Vector3 ) : Number;
+  distanceToBox( box : Box3, threshold? : Number, target1? : Vector3, target2? : Vector3 ) : Number;
 
 }
