@@ -619,6 +619,92 @@ dispose() : void
 
 Disposes of the material used.
 
+## ExtendedTriangle
+
+_extends THREE.Triangle_
+
+### .update
+
+```js
+update()
+```
+
+### intersectsTriangle
+
+```js
+intersectsTriangle( other : Triangle, target = null : Line3  );
+```
+
+### .intersectsSphere
+
+```js
+intersectsSphere( sphere : Sphere ) : Boolean
+```
+
+### .closestPointToSegment
+
+```js
+closestPointToSegment( segment : Line3, target1 = null : Vector3, target2 = null : Vector3 ) : Number
+```
+
+### .distanceToPoint
+
+```js
+distanceToPoint( point : Vector3 ) : Number
+```
+
+### .distanceToTriangle
+
+```js
+distanceToTriangle( tri : Triangle ) : Number
+```
+
+## OrientedBox
+
+_extends THREE.Box3_
+
+### .update
+
+```js
+update() : void
+```
+
+### .set
+
+```js
+set( min : Vector3, max : Vector3, matrix : Matrix4 ) : this
+```
+
+### .intersectsBox
+
+```js
+intersectsBox( box : Box3 ) : Boolean
+```
+
+### .intersectsTriangle
+
+```js
+intersectsTriangle( tri : Triangle ) : Boolean
+```
+
+### .closestPointToPoint
+
+```js
+closestPointToPoint( point : Vector3, target = null : Vector3 ) : Number
+```
+
+### .distanceToPoint
+
+```js
+distanceToPoint( point : Vector3 ) : Number
+```
+
+### .distanceToBox
+
+```js
+distanceToBox( box : Box3, threshold = 0 : Number, target1 = null : Vector3, target2 = null : Vector3 ) : Number
+```
+
 ## Extensions
 
 ### Raycaster.firstHitOnly
