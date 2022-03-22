@@ -43,6 +43,17 @@ global.onmessage = function ( { data } ) {
 
 		}
 
+		if ( options.groups && Array.isArray( options.groups ) ) {
+
+			options.groups.forEach( ( group ) => {
+
+				geometry.addGroup( group.start, group.count, group.materialIndex );
+
+
+			} );
+
+		}
+
 		const bvh = new MeshBVH( geometry, options );
 		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
 
