@@ -11,8 +11,8 @@ const params = {
 	useWebWorker: true,
 	radius: 1,
 	tube: 0.3,
-	tubularSegments: 250,
-	radialSegments: 250,
+	tubularSegments: 500,
+	radialSegments: 500,
 	p: 3,
 	q: 5,
 
@@ -21,7 +21,8 @@ const params = {
 
 };
 
-let renderer, camera, scene, knot, clock, gui, outputContainer, helper, group, stats;
+let renderer, camera, scene, knot, clock, gui, helper, group, stats;
+let outputContainer, loadContainer, loadBar, loadText;
 let bvhGenerationWorker;
 let generating = false;
 
@@ -33,6 +34,9 @@ function init() {
 	const bgColor = 0xffca28;
 
 	outputContainer = document.getElementById( 'output' );
+	loadContainer = document.getElementById( 'loading-container' );
+	loadBar = document.querySelector( '#loading-container .bar' );
+	loadText = document.querySelector( '#loading-container .text' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -111,8 +115,8 @@ function init() {
 	knotFolder.add( params, 'useWebWorker' );
 	knotFolder.add( params, 'radius', 0.5, 2, 0.01 );
 	knotFolder.add( params, 'tube', 0.2, 1.2, 0.01 );
-	knotFolder.add( params, 'tubularSegments', 50, 1000, 1 );
-	knotFolder.add( params, 'radialSegments', 5, 1000, 1 );
+	knotFolder.add( params, 'tubularSegments', 50, 2000, 1 );
+	knotFolder.add( params, 'radialSegments', 5, 2000, 1 );
 	knotFolder.add( params, 'p', 1, 10, 1 );
 	knotFolder.add( params, 'q', 1, 10, 1 );
 	knotFolder.add( { regenerateKnot }, 'regenerateKnot' ).name( 'regenerate' );
@@ -172,7 +176,18 @@ function regenerateKnot() {
 	let totalStallTime;
 	if ( params.useWebWorker ) {
 
-		bvhGenerationWorker.generate( knot.geometry ).then( bvh => {
+		const onProgress = v => {
+
+			const perc = ( v * 100 ).toFixed( 0 );
+			loadContainer.style.visibility = 'visible';
+			loadBar.style.width = `${ perc }%`;
+			loadText.innerText = `${ perc }%`;
+
+		};
+
+		bvhGenerationWorker.generate( knot.geometry, { onProgress } ).then( bvh => {
+
+			loadContainer.style.visibility = 'hidden';
 
 			knot.geometry.boundsTree = bvh;
 			group.add( knot );
