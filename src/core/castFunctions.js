@@ -2,7 +2,7 @@ import { Box3, Vector3, Matrix4 } from 'three';
 import { CONTAINED } from './Constants.js';
 
 import { OrientedBox } from '../math/OrientedBox.js';
-import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersectUtilities.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
@@ -327,8 +327,8 @@ export const shapecast = ( function () {
 
 export const intersectsGeometry = ( function () {
 
-	const triangle = new SeparatingAxisTriangle();
-	const triangle2 = new SeparatingAxisTriangle();
+	const triangle = new ExtendedTriangle();
+	const triangle2 = new ExtendedTriangle();
 	const invertedMat = new Matrix4();
 
 	const obb = new OrientedBox();
