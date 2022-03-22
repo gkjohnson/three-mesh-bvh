@@ -302,7 +302,8 @@ export const shaderFunctions: string;
 // Math classes
 export class ExtendedTriangle extends Triangle {
 
-  update() : void;
+  needsUpdate : Boolean;
+
   intersectsTriangle( other : Triangle, target? : Line3 ) : Boolean;
   intersectsSphere( sphere : Sphere ) : Boolean;
   closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number;
@@ -314,9 +315,9 @@ export class ExtendedTriangle extends Triangle {
 export class OrientedBox {
 
   matrix : Matrix4;
+  needsUpdate : Boolean;
 
   constructor( min : Vector3, max : Vector3 );
-  update() : void;
   set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
   intersectsBox( box : Box3 ) : Boolean;
   intersectsTriangle( tri : Triangle ) : Boolean;
