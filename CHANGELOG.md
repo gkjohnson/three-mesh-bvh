@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Fixed
 - WebWorker BVH generation not accounting for geometry groups.
+- Export and document "OrientedBox" and "ExtendedTriangle" classes for more clarity and enable use of internal mathematical functions.
 
 ## [0.5.6] - 2022-03-15
 ### Fixed
