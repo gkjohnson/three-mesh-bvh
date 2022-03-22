@@ -311,9 +311,11 @@ export class ExtendedTriangle extends Triangle {
 
 }
 
-export class OrientedBox extends Box3 {
+export class OrientedBox {
 
   matrix : Matrix4;
+
+  constructor( min : Vector3, max : Vector3 );
   update() : void;
   set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
   intersectsBox( box : Box3 ) : Boolean;
