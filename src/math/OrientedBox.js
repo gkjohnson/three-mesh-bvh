@@ -1,6 +1,6 @@
 import { Box3, Vector3, Matrix4, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
-import { SeparatingAxisTriangle } from './SeparatingAxisTriangle.js';
+import { ExtendedTriangle } from './ExtendedTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
 export class OrientedBox extends Box3 {
@@ -141,7 +141,7 @@ OrientedBox.prototype.intersectsBox = ( function () {
 
 OrientedBox.prototype.intersectsTriangle = ( function () {
 
-	const saTri = new SeparatingAxisTriangle();
+	const saTri = new ExtendedTriangle();
 	const pointsArr = new Array( 3 );
 	const cachedSatBounds = new SeparatingAxisBounds();
 	const cachedSatBounds2 = new SeparatingAxisBounds();
@@ -154,7 +154,7 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		if ( ! triangle.isSeparatingAxisTriangle ) {
+		if ( ! triangle.isExtendedTriangle ) {
 
 			saTri.copy( triangle );
 			saTri.update();

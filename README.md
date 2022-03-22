@@ -439,7 +439,7 @@ shapecast(
 		) => Boolean = null,
 
 		intersectsTriangle : (
-			triangle : Triangle,
+			triangle : ExtendedTriangle,
 			triangleIndex : Number,
 			contained : Boolean,
 			depth : Number
@@ -618,6 +618,102 @@ dispose() : void
 ```
 
 Disposes of the material used.
+
+## ExtendedTriangle
+
+_extends THREE.Triangle_
+
+### .needsUpdate
+
+```js
+needsUpdate : Boolean
+```
+
+Indicates that the triangle fields have changed so cached variables to accelerate other function execution can be updated. Must be set to true after modifying the triangle `a`, `b`, `c` fields.
+
+### intersectsTriangle
+
+```js
+intersectsTriangle( other : Triangle, target? : Line3  ) : Boolean;
+```
+
+### .intersectsSphere
+
+```js
+intersectsSphere( sphere : Sphere ) : Boolean
+```
+
+### .closestPointToSegment
+
+```js
+closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number
+```
+
+### .distanceToPoint
+
+```js
+distanceToPoint( point : Vector3 ) : Number
+```
+
+### .distanceToTriangle
+
+```js
+distanceToTriangle( tri : Triangle ) : Number
+```
+
+## OrientedBox
+
+_extends THREE.Box3_
+
+### .matrix
+
+```js
+matrix : Matrix4
+```
+
+### .needsUpdate
+
+```js
+updateUpdate : Boolean
+```
+
+Indicates that the bounding box fields have changed so cached variables to accelerate other function execution can be updated. Must be set to true after modifying the oriented box `min`, `max`, `matrix` fields.
+
+### .set
+
+```js
+set( min : Vector3, max : Vector3, matrix : Matrix4 ) : this
+```
+
+### .intersectsBox
+
+```js
+intersectsBox( box : Box3 ) : Boolean
+```
+
+### .intersectsTriangle
+
+```js
+intersectsTriangle( tri : Triangle ) : Boolean
+```
+
+### .closestPointToPoint
+
+```js
+closestPointToPoint( point : Vector3, target = null : Vector3 ) : Number
+```
+
+### .distanceToPoint
+
+```js
+distanceToPoint( point : Vector3 ) : Number
+```
+
+### .distanceToBox
+
+```js
+distanceToBox( box : Box3, threshold = 0 : Number, target1 = null : Vector3, target2 = null : Vector3 ) : Number
+```
 
 ## Extensions
 

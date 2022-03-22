@@ -2,11 +2,8 @@ import * as THREE from 'three';
 import { runBenchmark } from './utils.js';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, getBVHExtremes,
-	CENTER, AVERAGE, SAH, estimateMemoryInBytes, MeshBVH,
+	CENTER, AVERAGE, SAH, estimateMemoryInBytes, MeshBVH, ExtendedTriangle,
 } from '../src/index.js';
-import {
-	SeparatingAxisTriangle,
-} from '../src/math/SeparatingAxisTriangle.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -292,8 +289,8 @@ function runSuite( strategy ) {
 
 function mathFunctions() {
 
-	const tri1 = new SeparatingAxisTriangle();
-	const tri2 = new SeparatingAxisTriangle();
+	const tri1 = new ExtendedTriangle();
+	const tri2 = new ExtendedTriangle();
 	const target = new THREE.Line3();
 
 	tri1.a.set( - 1, 0, 0 );
