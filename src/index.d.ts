@@ -1,6 +1,6 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
   Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
-  LineBasicMaterial, Mesh, DataTexture, BufferAttribute } from 'three';
+  LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3 } from 'three';
 
 // Contants
 export enum SplitStrategy {}
@@ -298,3 +298,28 @@ export class MeshBVHUniformStruct {
 
 export const shaderStructs: string;
 export const shaderFunctions: string;
+
+// Math classes
+export class ExtendedTriangle extends Triangle {
+
+	update() : void;
+	intersectsTriangle( other : Triangle, target? : Line3 ) : Boolean;
+	intersectsSphere( sphere : Sphere ) : Boolean;
+	closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number;
+	distanceToPoint( point : Vector3 ) : Number;
+	distanceToTriangle( tri : Triangle ) : Number;
+
+}
+
+export class OrientedBox extends Box3 {
+
+	matrix : Matrix4;
+	update() : void;
+	set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
+	intersectsBox( box : Box3 ) : Boolean;
+	intersectsTriangle( tri : Triangle ) : Boolean;
+	closestPointToPoint( point : Vector3, target? : Vector3 ) : Number;
+	distanceToPoint( point : Vector3 ) : Number;
+	distanceToBox( box : Box3, threshold? : Number, target1? : Vector3, target2? : Vector3 ) : Number;
+
+}
