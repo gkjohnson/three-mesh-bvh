@@ -2,15 +2,15 @@ import Stats from 'stats.js';
 import * as dat from 'dat.gui';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
+import { ExtendedTriangle } from '../src/index.js';
 
 
 const params = {
 	sphereSize: 1
 };
 
-const t1 = new SeparatingAxisTriangle();
-const t2 = new SeparatingAxisTriangle();
+const t1 = new ExtendedTriangle();
+const t2 = new ExtendedTriangle();
 t1.a.set( - 1, 0, 0 );
 t1.b.set( 2, 0, - 2 );
 t1.c.set( 2, 0, 2 );
