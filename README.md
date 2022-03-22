@@ -623,11 +623,13 @@ Disposes of the material used.
 
 _extends THREE.Triangle_
 
-### .update
+### .needsUpdate
 
 ```js
-update()
+needsUpdate : Boolean
 ```
+
+Indicates that the triangle fields have changed so cached variables to accelerate other function execution can be updated. Must be set to true after modifying the triangle `a`, `b`, `c` fields.
 
 ### intersectsTriangle
 
@@ -669,11 +671,13 @@ _extends THREE.Box3_
 matrix : Matrix4
 ```
 
-### .update
+### .needsUpdate
 
 ```js
-update() : void
+updateUpdate : Boolean
 ```
+
+Indicates that the bounding box fields have changed so cached variables to accelerate other function execution can be updated. Must be set to true after modifying the oriented box `min`, `max`, `matrix` fields.
 
 ### .set
 
