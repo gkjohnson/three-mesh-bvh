@@ -10,7 +10,7 @@ import {
 	clearBuffer,
 } from './castFunctions.js';
 import { OrientedBox } from '../math/OrientedBox.js';
-import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
@@ -29,7 +29,7 @@ const temp2 = /* @__PURE__ */ new Vector3();
 const temp3 = /* @__PURE__ */ new Vector3();
 const temp4 = /* @__PURE__ */ new Vector3();
 const tempBox = /* @__PURE__ */ new Box3();
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
+const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 
 export class MeshBVH {
 

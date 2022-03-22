@@ -1,6 +1,6 @@
 import { Vector3, Quaternion, Euler, Triangle, Sphere, Plane, Line3 } from 'three';
 import { sphereIntersectTriangle } from '../src/math/MathUtilities.js';
-import { SeparatingAxisTriangle } from '../src/math/SeparatingAxisTriangle.js';
+import { ExtendedTriangle } from '../src/math/ExtendedTriangle.js';
 import { OrientedBox } from '../src/math/OrientedBox.js';
 
 function setRandomVector( vector, length ) {
@@ -33,7 +33,7 @@ function getRandomOrientation( matrix, range ) {
 
 describe( 'Triangle Intersections', () => {
 
-	const t1 = new SeparatingAxisTriangle();
+	const t1 = new ExtendedTriangle();
 	const t2 = new Triangle();
 
 	it( 'should return false if they are at different angles but not intersecting', () => {
@@ -177,7 +177,7 @@ describe( 'Triangle Intersections', () => {
 
 describe( 'Triangle Intersection line', () => {
 
-	const t1 = new SeparatingAxisTriangle();
+	const t1 = new ExtendedTriangle();
 	const t2 = new Triangle();
 	const target = new Line3();
 	const expected = new Line3();

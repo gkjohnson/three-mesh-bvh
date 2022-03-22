@@ -14,9 +14,9 @@ import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from './nodeBufferFunctions.js';
 import { MeshBVH } from './MeshBVH.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
-import { SeparatingAxisTriangle } from '../math/SeparatingAxisTriangle.js';
+import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new SeparatingAxisTriangle() );
+const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 
 MeshBVH.prototype.bvhcast = function ( otherBvh, matrixToLocal, callbacks ) {
 

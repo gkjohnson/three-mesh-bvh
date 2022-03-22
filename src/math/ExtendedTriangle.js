@@ -2,13 +2,13 @@ import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
-export class SeparatingAxisTriangle extends Triangle {
+export class ExtendedTriangle extends Triangle {
 
 	constructor( ...args ) {
 
 		super( ...args );
 
-		this.isSeparatingAxisTriangle = true;
+		this.isExtendedTriangle = true;
 		this.satAxes = new Array( 4 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
@@ -62,7 +62,7 @@ export class SeparatingAxisTriangle extends Triangle {
 
 }
 
-SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
+ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
 	const point1 = new Vector3();
 	const point2 = new Vector3();
@@ -122,9 +122,9 @@ SeparatingAxisTriangle.prototype.closestPointToSegment = ( function () {
 
 } )();
 
-SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
+ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
-	const saTri2 = new SeparatingAxisTriangle();
+	const saTri2 = new ExtendedTriangle();
 	const arr1 = new Array( 3 );
 	const arr2 = new Array( 3 );
 	const cachedSatBounds = new SeparatingAxisBounds();
@@ -147,7 +147,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		if ( ! other.isSeparatingAxisTriangle ) {
+		if ( ! other.isExtendedTriangle ) {
 
 			saTri2.copy( other );
 			saTri2.update();
@@ -212,7 +212,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 			if ( target ) {
 
 				// TODO find two points that intersect on the edges and make that the result
-				console.warn( 'SeparatingAxisTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+				console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
 
 				target.start.set( 0, 0, 0 );
 				target.end.set( 0, 0, 0 );
@@ -364,7 +364,7 @@ SeparatingAxisTriangle.prototype.intersectsTriangle = ( function () {
 } )();
 
 
-SeparatingAxisTriangle.prototype.distanceToPoint = ( function () {
+ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
 	const target = new Vector3();
 	return function distanceToPoint( point ) {
@@ -377,7 +377,7 @@ SeparatingAxisTriangle.prototype.distanceToPoint = ( function () {
 } )();
 
 
-SeparatingAxisTriangle.prototype.distanceToTriangle = ( function () {
+ExtendedTriangle.prototype.distanceToTriangle = ( function () {
 
 	const point = new Vector3();
 	const point2 = new Vector3();
