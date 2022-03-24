@@ -623,6 +623,8 @@ Disposes of the material used.
 
 _extends THREE.Triangle_
 
+An extended version of three.js' Triangle class. A variety of derivative values are cached on the object to accelerate the intersection functions. `.needsUpdate` must be set to true when modifying the triangle parameters.
+
 ### .needsUpdate
 
 ```js
@@ -637,11 +639,15 @@ Indicates that the triangle fields have changed so cached variables to accelerat
 intersectsTriangle( other : Triangle, target? : Line3  ) : Boolean;
 ```
 
+Returns whether the triangles intersect. `target` is set to the line segment representing the intersection.
+
 ### .intersectsSphere
 
 ```js
 intersectsSphere( sphere : Sphere ) : Boolean
 ```
+
+Returns whether the triangle intersects the given sphere.
 
 ### .closestPointToSegment
 
@@ -649,17 +655,23 @@ intersectsSphere( sphere : Sphere ) : Boolean
 closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number
 ```
 
+Returns the distance to the provided line segment. `target1` and `target2` are set to the closest points on the triangle and segment respectively.
+
 ### .distanceToPoint
 
 ```js
 distanceToPoint( point : Vector3 ) : Number
 ```
 
+Returns the distance to the provided point.
+
 ### .distanceToTriangle
 
 ```js
 distanceToTriangle( tri : Triangle ) : Number
 ```
+
+Returns the distance to the provided triangle.
 
 ## OrientedBox
 
