@@ -633,7 +633,7 @@ needsUpdate : Boolean
 
 Indicates that the triangle fields have changed so cached variables to accelerate other function execution can be updated. Must be set to true after modifying the triangle `a`, `b`, `c` fields.
 
-### intersectsTriangle
+### .intersectsTriangle
 
 ```js
 intersectsTriangle( other : Triangle, target? : Line3  ) : Boolean;
