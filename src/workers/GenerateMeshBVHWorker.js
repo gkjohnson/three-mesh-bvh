@@ -107,9 +107,16 @@ export class GenerateMeshBVHWorker {
 
 	}
 
-	terminate() {
+	dispose() {
 
 		this.worker.terminate();
+
+	}
+
+	terminate() {
+
+		console.warn( 'GenerateMeshBVHWorker: "terminate" is deprecated. Use "dispose" instead.' );
+		this.dispose();
 
 	}
 

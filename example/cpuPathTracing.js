@@ -293,7 +293,7 @@ function init() {
 
 				models[ 'Dragon' ] = { mesh: merged, materials, floorHeight: mesh.geometry.boundingBox.min.y };
 				geometry.boundsTree = bvh;
-				generator.terminate();
+				generator.dispose();
 				scene.add( merged );
 
 			} );
@@ -345,7 +345,7 @@ function init() {
 					floorHeight: newGeometry.boundingBox.min.y,
 				};
 				newGeometry.boundsTree = bvh;
-				generator.terminate();
+				generator.dispose();
 
 				scene.add( mesh );
 
