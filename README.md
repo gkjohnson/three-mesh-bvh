@@ -665,11 +665,15 @@ distanceToTriangle( tri : Triangle ) : Number
 
 _extends THREE.Box3_
 
+An oriented version of three.js' Box3 class. A variety of derivative values are cached on the object to accelerate the intersection functions. `.needsUpdate` must be set to true when modifying the box parameters.
+
 ### .matrix
 
 ```js
 matrix : Matrix4
 ```
+
+Matrix transformation applied to the box.
 
 ### .needsUpdate
 
@@ -685,11 +689,15 @@ Indicates that the bounding box fields have changed so cached variables to accel
 set( min : Vector3, max : Vector3, matrix : Matrix4 ) : this
 ```
 
+Sets the oriented box parameters.
+
 ### .intersectsBox
 
 ```js
 intersectsBox( box : Box3 ) : Boolean
 ```
+
+Returns true if intersecting with the provided box.
 
 ### .intersectsTriangle
 
@@ -697,11 +705,16 @@ intersectsBox( box : Box3 ) : Boolean
 intersectsTriangle( tri : Triangle ) : Boolean
 ```
 
+Returns true if intersecting with the provided triangle.
+
 ### .closestPointToPoint
 
 ```js
 closestPointToPoint( point : Vector3, target = null : Vector3 ) : Number
 ```
+
+Returns the distance to the provided point. Sets `target` to the closest point on the surface of the box if provided.
+
 
 ### .distanceToPoint
 
@@ -709,11 +722,15 @@ closestPointToPoint( point : Vector3, target = null : Vector3 ) : Number
 distanceToPoint( point : Vector3 ) : Number
 ```
 
+Returns the distance to the provided point.
+
 ### .distanceToBox
 
 ```js
 distanceToBox( box : Box3, threshold = 0 : Number, target1 = null : Vector3, target2 = null : Vector3 ) : Number
 ```
+
+Returns the distance to the provided box. `threshold` is an optional distance to return early if the distance is found to be within it. `target1` and `target2` are set to the points on the surface of this box and the `box` argument respectively.
 
 ## Extensions
 
