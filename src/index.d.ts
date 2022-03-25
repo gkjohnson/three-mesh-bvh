@@ -27,7 +27,7 @@ export interface MeshBVHOptions {
   setBoundingBox?: boolean;
   useSharedArrayBuffer?: boolean;
   verbose?: boolean;
-  onProgress?: ( progress: Number ) => void;
+  onProgress?: ( progress: number ) => void;
 }
 
 export interface MeshBVHSerializeOptions {
@@ -90,7 +90,7 @@ export class MeshBVH {
         score: number | undefined,
         depth: number,
         nodeIndex: number
-      ) => ShapecastIntersection,
+      ) => ShapecastIntersection|boolean,
 
       traverseBoundsOrder?: (
         box: Box3
@@ -114,7 +114,7 @@ export class MeshBVH {
         triangleIndex: number,
         contained: boolean,
         depth: number
-      ) => boolean
+      ) => boolean|void
 
     } )
   ): boolean;
@@ -164,7 +164,7 @@ export class MeshBVH {
     rootIndex?: number
   ): void;
 
-  refit( nodeIndices?: Array<Number> | Set<Number> ): void;
+  refit( nodeIndices?: Array<number> | Set<number> ): void;
 
   getBoundingBox( target: Box3 ): Box3;
 
@@ -280,7 +280,7 @@ export function getTriangleHitPointInfo(
 // Shader Utilities
 declare class VertexAttributeTexture extends DataTexture {
 
-  overrideItemSize: Number | null;
+  overrideItemSize: number | null;
   updateFrom( attribute: BufferAttribute ): void;
 
 }
@@ -302,27 +302,27 @@ export const shaderFunctions: string;
 // Math classes
 export class ExtendedTriangle extends Triangle {
 
-  needsUpdate : Boolean;
+  needsUpdate : boolean;
 
-  intersectsTriangle( other : Triangle, target? : Line3 ) : Boolean;
-  intersectsSphere( sphere : Sphere ) : Boolean;
-  closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : Number;
-  distanceToPoint( point : Vector3 ) : Number;
-  distanceToTriangle( tri : Triangle ) : Number;
+  intersectsTriangle( other : Triangle, target? : Line3 ) : boolean;
+  intersectsSphere( sphere : Sphere ) : boolean;
+  closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : number;
+  distanceToPoint( point : Vector3 ) : number;
+  distanceToTriangle( tri : Triangle ) : number;
 
 }
 
 export class OrientedBox {
 
   matrix : Matrix4;
-  needsUpdate : Boolean;
+  needsUpdate : boolean;
 
   constructor( min : Vector3, max : Vector3 );
   set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
-  intersectsBox( box : Box3 ) : Boolean;
-  intersectsTriangle( tri : Triangle ) : Boolean;
-  closestPointToPoint( point : Vector3, target? : Vector3 ) : Number;
-  distanceToPoint( point : Vector3 ) : Number;
-  distanceToBox( box : Box3, threshold? : Number, target1? : Vector3, target2? : Vector3 ) : Number;
+  intersectsBox( box : Box3 ) : boolean;
+  intersectsTriangle( tri : Triangle ) : boolean;
+  closestPointToPoint( point : Vector3, target? : Vector3 ) : number;
+  distanceToPoint( point : Vector3 ) : number;
+  distanceToBox( box : Box3, threshold? : number, target1? : Vector3, target2? : Vector3 ) : number;
 
 }
