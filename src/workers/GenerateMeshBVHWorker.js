@@ -48,7 +48,15 @@ export class GenerateMeshBVHWorker {
 					geometry.attributes.position.array = position;
 					if ( geometry.index ) {
 
-						geometry.index.array = serialized.index;
+						if ( geometry.index instanceof InterleavedBufferAttribute ) {
+
+							geometry.index.data.array = serialized.index;
+
+						} else {
+
+							geometry.index.array = serialized.index;
+
+						}
 
 					} else {
 
