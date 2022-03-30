@@ -1,4 +1,4 @@
-import { Box3, BufferAttribute } from 'three';
+import { Box3, BufferAttribute, InterleavedBufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 export class GenerateMeshBVHWorker {
