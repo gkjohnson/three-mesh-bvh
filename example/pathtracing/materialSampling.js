@@ -152,7 +152,21 @@ function transmissionColor( wo, wi, material, hit, colorTarget ) {
 // incorrect PDF value at the moment. Update it to correctly use a GGX distribution
 function transmissionPDF( wo, wi, material, hit ) {
 
-	return 1.0;
+	const { ior } = material;
+	const { frontFace } = hit;
+
+	const ratio = frontFace ? 1 / ior : ior;
+	const cosTheta = Math.min( wo.z, 1.0 );
+	const sinTheta = Math.sqrt( 1.0 - cosTheta * cosTheta );
+	let reflectance = schlickFresnelFromIor( cosTheta, ratio );
+	const cannotRefract = ratio * sinTheta > 1.0;
+	if ( cannotRefract ) {
+
+		return 0.0;
+
+	}
+
+	return 1.0 / ( 1.0 - reflectance );
 
 }
 
@@ -175,13 +189,7 @@ function transmissionColor( wo, wi, material, hit, colorTarget ) {
 	colorTarget
 		.copy( material.color )
 		.multiplyScalar( 1.0 - metalness )
-		.multiplyScalar( Math.abs( wi.z ) )
 		.multiplyScalar( transmission );
-
-	// Color is clamped to [0, 1] to make up for incorrect PDF and over sampling
-	colorTarget.r = Math.min( colorTarget.r, 1.0 );
-	colorTarget.g = Math.min( colorTarget.g, 1.0 );
-	colorTarget.b = Math.min( colorTarget.b, 1.0 );
 
 }
 
