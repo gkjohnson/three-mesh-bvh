@@ -11,6 +11,14 @@ A BVH implementation to speed up raycasting and enable spatial queries against t
 
 Casting 500 rays against an 80,000 polygon model at 60fps!
 
+# Used and Supported by
+
+<a href="https://threekit.com/"><img src="https://user-images.githubusercontent.com/734200/162279085-c51103b9-9418-4624-8cbb-2762bb5a0127.svg" height="75px" /></a>
+
+<a href="https://flux.ai/"><img src="https://user-images.githubusercontent.com/734200/162279630-8c716cf0-7cc0-4d1e-b005-e33c7ba3788a.png" height="75px"/></a>
+
+<a href="https://ifc.js/"><img src="https://user-images.githubusercontent.com/734200/162280262-951dfef4-3304-47a9-85e9-40736f348fc2.png" height="75px"/></a>
+
 # Examples
 
 [Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
