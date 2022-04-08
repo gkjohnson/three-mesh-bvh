@@ -11,22 +11,6 @@ A BVH implementation to speed up raycasting and enable spatial queries against t
 
 Casting 500 rays against an 80,000 polygon model at 60fps!
 
-# Used and Supported by
-
-<a href="https://threekit.com/"><img src="https://user-images.githubusercontent.com/734200/162279085-c51103b9-9418-4624-8cbb-2762bb5a0127.svg" height="75px" /></a>
-
-<a href="https://flux.ai/"><img src="https://user-images.githubusercontent.com/734200/162279630-8c716cf0-7cc0-4d1e-b005-e33c7ba3788a.png" height="75px"/></a>
-
-<a href="https://ifc.js/"><img src="https://user-images.githubusercontent.com/734200/162280262-951dfef4-3304-47a9-85e9-40736f348fc2.png" height="75px"/></a>
-	
-<a href=""/><img src="https://user-images.githubusercontent.com/734200/162278419-1f88bde5-e99a-438e-a884-4416439018fd.png" height="75px" /></a>
-
-<a href=""/><img src="https://user-images.githubusercontent.com/734200/162278278-0df2fce7-4796-4991-bbe7-b614a37e4b43.png" width="300px" /></a>
-
-<a href=""/><img src="https://user-images.githubusercontent.com/734200/162278113-8ca688a9-8c79-4d09-8fb4-2a43ec398671.png" height="75px" /></a>
-
-<a href=""/><img src="https://user-images.githubusercontent.com/734200/162278024-d6b6e2e7-1b1e-41ad-9fd3-18c1b319b272.png" height="75px" /></a>
-
 # Examples
 
 [Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
@@ -1005,3 +989,8 @@ Set of shader functions used for interacting with the packed BVH in a shader and
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
 - A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in less than optimal raycast performance on geometry with lots of groups.
 - Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center so bounds tightly contain the geometry as much as possible.
+
+
+# Used and Supported by
+
+<a href="https://www.threekit.com/" title="threekit"><img src="https://user-images.githubusercontent.com/734200/162473920-813adb73-8885-4079-8465-21b6e2aea83e.png" width="25%"/></a><a href="https://matterport.com/" title="matterport"><img src="https://user-images.githubusercontent.com/734200/162473723-5285af83-61fe-4b59-b7a7-7af9b1b5eb02.png" width="25%"/></a><a href="https://www.flux.ai/" title="flux"><img src="https://user-images.githubusercontent.com/734200/162473717-2fddc7c9-e22a-43ca-b29a-51ae5810fbf9.png" width="25%"/></a><a href="https://www.sitescape.ai/" title="sitescape"><img src="https://user-images.githubusercontent.com/734200/162473725-1545aa4a-bad1-4fd0-9d51-f6495acb5c7c.png" width="25%"/></a><a href="https://ifcjs.github.io/info/" title="ifc.js"><img src="https://user-images.githubusercontent.com/734200/162473721-0e4b23d1-2f30-4340-ae57-65ebad18bf7d.png" width="25%"/></a><a href="https://utsubo.co/" title="utsubo"><img src="https://user-images.githubusercontent.com/734200/162473728-040a1f66-ab2a-4442-bfd8-af3dbf590bdd.png" width="25%"/></a><a href="https://polygonjs.com/" title="polygonjs"><img src="https://user-images.githubusercontent.com/734200/162473724-136077a8-29fd-4e64-ae77-723f67a45e9a.png" width="25%"/></a><a href="https://vartiste.xyz/" title="vartiste"><img src="https://user-images.githubusercontent.com/734200/162473730-2ccf077d-06a3-4661-b9b8-cbb75b0cff2a.png" width="25%"/></a>
