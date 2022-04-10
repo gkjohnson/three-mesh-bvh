@@ -52,6 +52,14 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should return a MeshBVH', () => {
+
+		const geom = new SphereBufferGeometry( 1, 1, 1 );
+
+		expect( geom.computeBoundsTree() ).toBeInstanceOf( MeshBVH );
+
+	} );
+
 	it( 'should throw an error if InterleavedBufferAttributes are used', () => {
 
 		const indexAttr = new InterleavedBufferAttribute( new InterleavedBuffer( new Uint32Array( [ 1, 2, 3 ] ), 1 ), 4, 0, false );
