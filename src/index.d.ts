@@ -198,7 +198,7 @@ export class MeshBVHVisualizer extends Group {
 
 // THREE.js Extensions
 
-export function computeBoundsTree( options?: MeshBVHOptions ): void;
+export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH;
 
 export function disposeBoundsTree(): void;
 
