@@ -42,7 +42,6 @@ If applicable, add screenshots to help explain your problem (drag and drop the i
 
  - Device: [Desktop, Mobile, ...]
  - OS: [Windows, MacOS, Linux, Android, iOS, ...]
- - GPU: [NVidia ??, Radeon ??, ...]
  - Browser: [Chrome, Firefox, Safari, Edge, ...]
  - Three.js version: [r???]
  - Library version: [v???]
