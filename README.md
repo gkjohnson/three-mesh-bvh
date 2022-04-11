@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
 [![lgtm code quality](https://img.shields.io/lgtm/grade/javascript/g/gkjohnson/three-mesh-bvh.svg?style=flat-square&label=code-quality)](https://lgtm.com/projects/g/gkjohnson/three-mesh-bvh/)
-[![build](https://img.shields.io/github/workflow/status/gkjohnson/three-mesh-bvh/Node.js%20CI?style=flat-square&label=build)](https://github.com/gkjohnson/three-mesh-bvh/actions)
+[![build](https://img.shields.io/github/workflow/status/gkjohnson/three-mesh-bvh/Node.js%20CI?style=flat-square&label=build)](https://github.com/gkjohnson/three-mesh-bvh/actions) [![](https://flat.badgen.net/badge/icon/github?icon=github&label)](https://github.com/gkjohnson/three-mesh-bvh/) [![](https://flat.badgen.net/twitter/follow/garrettkjohnson)](https://twitter.com/garrettkjohnson)
 
 
 A BVH implementation to speed up raycasting and enable spatial queries against three.js meshes.
