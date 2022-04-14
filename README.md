@@ -144,6 +144,22 @@ sphere.applyMatrix4( invMat );
 const intersects = bvh.intersectsSphere( sphere );
 ```
 
+## With a SkinnedMesh and Morph Targets
+
+```js
+import { StaticGeometryGenerator } from 'three-mesh-bvh';
+
+const generator = new StaticGeometryGenerator( [ ...skinnedMeshes ] );
+const geometry = generator.generate();
+geometry.computeBoundsTree();
+
+// ...
+
+// update the geometry in place
+generator.generate( geometry );
+geometry.boundsTree.refit();
+```
+
 ## Serialization and Deserialization
 
 ```js
@@ -792,6 +808,44 @@ If the raycaster object being used has a property `firstHitOnly` set to `true`, 
 
 ```js
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
+```
+
+## StaticGeometryGenerator
+
+### .retainGroups
+
+```js
+retainGroups = true : Boolean
+```
+
+### .attributes
+
+```js
+attributes = [ 'position', 'normal', 'tangent', 'uv', 'uv2' ] : Array<String>
+```
+
+### .applyWorldTransforms
+
+```js
+applyWorldTransforms = true : Boolean
+```
+
+### constructor
+
+```js
+constructor( meshes : Array<Mesh> )
+```
+
+### .getMaterials
+
+```js
+getMaterials() : Array<Material>
+```
+
+### .generate
+
+```js
+generate( target : BufferGeometry ) : BufferGeometry
 ```
 
 ## GenerateMeshBVHWorker
