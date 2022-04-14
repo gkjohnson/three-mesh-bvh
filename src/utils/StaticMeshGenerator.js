@@ -6,6 +6,7 @@ const _vector = /*@__PURE__*/ new Vector3();
 const _positionVector = /*@__PURE__*/ new Vector3();
 const _normalVector = /*@__PURE__*/ new Vector3();
 const _tangentVector = /*@__PURE__*/ new Vector3();
+const _tangentVector4 = /*@__PURE__*/ new Vector4();
 
 const _morphVector = /*@__PURE__*/ new Vector3();
 const _temp = /*@__PURE__*/ new Vector3();
@@ -177,10 +178,30 @@ export class StaticGeometryGenerator {
 		} );
 
 		this.meshes = finalMeshes;
-		this.retainGroups = false;
+		this.retainGroups = true;
 		this.applyWorldTransforms = true;
 		this.attributes = [ 'position', 'normal', 'tangent', 'uv', 'uv2' ];
 		this._intermediateGeometry = new Array( finalMeshes.length ).fill().map( () => new BufferGeometry() );
+
+	}
+
+	getMaterials() {
+
+		const materials = [];
+		this.meshes.forEach( mesh => {
+
+			if ( Array.isArray( mesh.material ) ) {
+
+				materials.push( ...mesh.material );
+
+			} else {
+
+				materials.push( mesh.material );
+
+			}
+
+		} );
+		return materials;
 
 	}
 
@@ -207,8 +228,7 @@ export class StaticGeometryGenerator {
 
 		targetGeometry.needsUpdate = true;
 
-		const materials = meshes.map( m => m.material );
-		return { geometry: targetGeometry, materials };
+		return targetGeometry;
 
 	}
 
@@ -285,6 +305,7 @@ export class StaticGeometryGenerator {
 
 			if ( tangent ) {
 
+				_tangentVector4.fromBufferAttribute( tangent, i );
 				_tangentVector.fromBufferAttribute( tangent, i );
 
 			}
@@ -298,7 +319,6 @@ export class StaticGeometryGenerator {
 
 				}
 
-				// TODO: this seems to be particularly slow when normals and tangents are included in the transforms
 				if ( morphNormal ) {
 
 					applyMorphTarget( morphNormal, morphInfluences, morphTargetsRelative, i, _normalVector );
@@ -356,11 +376,11 @@ export class StaticGeometryGenerator {
 
 				if ( applyWorldTransforms ) {
 
-					_tangentVector.applyNormalMatrix( normalMatrix );
+					_tangentVector.transformDirection( mesh.matrixWorld );
 
 				}
 
-				targetAttributes.tangent.setXYZ( i, _tangentVector.x, _tangentVector.y, _tangentVector.z );
+				targetAttributes.tangent.setXYZW( i, _tangentVector.x, _tangentVector.y, _tangentVector.z, _tangentVector4.w );
 
 			}
 
