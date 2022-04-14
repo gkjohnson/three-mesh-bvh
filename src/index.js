@@ -9,3 +9,4 @@ export * from './math/OrientedBox.js';
 export * from './gpu/MeshBVHUniformStruct.js';
 export * from './gpu/shaderFunctions.js';
 export * from './gpu/VertexAttributeTexture.js';
+export * from './utils/StaticGeometryGenerator.js';

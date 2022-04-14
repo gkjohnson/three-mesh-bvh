@@ -2,9 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { computeBoundsTree, MeshBVHVisualizer, getBVHExtremes } from '..';
+import { computeBoundsTree, MeshBVHVisualizer, getBVHExtremes, StaticGeometryGenerator } from '..';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { StaticGeometryGenerator } from '../src/utils/StaticMeshGenerator.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 
@@ -190,7 +189,6 @@ function init() {
 				meshHelper.material = normalMaterials;
 				break;
 			case 'original':
-				// TODO
 				meshHelper.material = originalMaterials;
 				break;
 
