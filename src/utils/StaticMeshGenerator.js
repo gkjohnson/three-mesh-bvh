@@ -27,6 +27,35 @@ function createAttributeClone( attr ) {
 
 }
 
+// target offset is the number of elements in the target buffer stride to skip before copying the
+// attributes contents in to.
+function copyAttributeContents( attr, target, targetOffset = 0 ) {
+
+	if ( attr.isInterleavedBufferAttribute ) {
+
+		const itemSize = attr.itemSize;
+		for ( let i = 0, l = attr.count; i < l; i ++ ) {
+
+			const io = i + targetOffset;
+			target.setX( io, attr.getX( i ) );
+			if ( itemSize >= 2 ) target.setY( io, attr.getY( i ) );
+			if ( itemSize >= 3 ) target.setZ( io, attr.getZ( i ) );
+			if ( itemSize >= 4 ) target.setW( io, attr.getW( i ) );
+
+		}
+
+	} else {
+
+		const array = target.array;
+		const cons = array.constructor;
+		const byteOffset = array.BYTES_PER_ELEMENT * attr.itemSize * targetOffset;
+		const temp = new cons( array.buffer, byteOffset, array.length );
+		temp.set( attr.array );
+
+	}
+
+}
+
 export class StaticMeshGenerator {
 
 	constructor( meshes ) {
