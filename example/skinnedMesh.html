@@ -30,9 +30,23 @@
 			margin-bottom: 10px;
 		}
 
+		#info {
+			top: 0;
+			width: 100%;
+			pointer-events: none;
+			position: absolute;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
     </style>
 </head>
 <body>
+	<div id="info">
+		SkinnedMesh and morph target BVH support by iteratively generating a static version of<br/>
+		the geometry and refitting the existing BVH.
+	</div>
 	<div id="model-info">
 		<div id="output"></div>
 		<div>Model by DailyArt on Sketchfab</div>
