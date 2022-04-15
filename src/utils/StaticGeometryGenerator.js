@@ -535,7 +535,7 @@ export class StaticGeometryGenerator {
 		for ( const i in this.attributes ) {
 
 			const key = this.attributes[ i ];
-			if ( key === 'position' || key === 'tangent' || key === 'normal' ) {
+			if ( key === 'position' || key === 'tangent' || key === 'normal' || ! ( key in attributes ) ) {
 
 				continue;
 

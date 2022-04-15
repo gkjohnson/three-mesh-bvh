@@ -152,8 +152,6 @@ function init() {
 		meshHelper.receiveShadow = true;
 		meshHelper.castShadow = true;
 
-		window.HELPER = meshHelper;
-
 		scene.add( meshHelper );
 
 		bvhHelper = new MeshBVHVisualizer( meshHelper, 10 );
