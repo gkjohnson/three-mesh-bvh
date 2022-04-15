@@ -317,7 +317,7 @@ function render() {
 	stats.update();
 	requestAnimationFrame( render );
 
-	const delta = Math.min( clock.getDelta(), 30 );
+	const delta = Math.min( clock.getDelta(), 30 * 0.001 );
 
 	// update animation and helpers
 	if ( mixer ) {
