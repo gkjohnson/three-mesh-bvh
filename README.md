@@ -144,7 +144,7 @@ sphere.applyMatrix4( invMat );
 const intersects = bvh.intersectsSphere( sphere );
 ```
 
-## With a SkinnedMesh and Morph Targets
+## With Skinned and Morph Target Meshes
 
 ```js
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
