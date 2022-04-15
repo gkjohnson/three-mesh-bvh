@@ -57,7 +57,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 **External Demo Repos**
 
-[three-gpu-pathtracer with Materials and Textures](https://github.com/gkjohnson/three-gpu-pathtracer)
+[three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer)
 
 
 # Use
