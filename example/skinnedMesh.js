@@ -269,7 +269,7 @@ function regenerateMesh() {
 		startTime = window.performance.now();
 		if ( ! meshHelper.geometry.boundsTree ) {
 
-			meshHelper.geometry.computeBoundsTree( { strategy: SAH } );
+			meshHelper.geometry.computeBoundsTree();
 			refitTime = '-';
 
 		} else {
