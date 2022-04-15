@@ -55,7 +55,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [CPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
 
-**External Demo Repos**
+**External Projects**
 
 [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer)
 
