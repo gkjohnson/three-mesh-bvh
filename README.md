@@ -17,6 +17,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
 
+[Skinned geometry](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/skinnedMesh.html)
+
 [Point cloud interesection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
