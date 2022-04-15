@@ -1,6 +1,6 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
   Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
-  LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3 } from 'three';
+  LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D } from 'three';
 
 // Contants
 export enum SplitStrategy {}
@@ -324,5 +324,17 @@ export class OrientedBox {
   closestPointToPoint( point : Vector3, target? : Vector3 ) : number;
   distanceToPoint( point : Vector3 ) : number;
   distanceToBox( box : Box3, threshold? : number, target1? : Vector3, target2? : Vector3 ) : number;
+
+}
+
+export class StaticGeometryGenerator {
+
+	useGroups : boolean;
+	attributes : Array<string>;
+	applyWorldTransforms : boolean;
+
+	constructor( objects : Array<Object3D> | Object3D );
+	getMaterials() : Array<Material>;
+	generate( target? : BufferGeometry ) : BufferGeometry;
 
 }
