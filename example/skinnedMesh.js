@@ -280,15 +280,22 @@ function regenerateMesh() {
 		bvhHelper.update();
 		timeSinceUpdate = 0;
 
-		const extremes = getBVHExtremes( meshHelper.geometry.boundsTree )[ 0 ];
+		const extremes = getBVHExtremes( meshHelper.geometry.boundsTree );
 		if ( initialExtremes === null ) {
 
 			initialExtremes = extremes;
 
 		}
 
-		const score = extremes.surfaceAreaScore;
-		const initialScore = initialExtremes.surfaceAreaScore;
+		let score = 0;
+		let initialScore = 0;
+		for ( const i in extremes ) {
+
+			score += extremes[ i ].surfaceAreaScore;
+			initialScore += initialExtremes[ i ].surfaceAreaScore;
+
+		}
+
 		const degradation = ( score / initialScore ) - 1.0;
 
 		// update time display
