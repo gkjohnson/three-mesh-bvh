@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
-- `StaticGeometryGenerator` to support skinned and morph target meshes.
+- `StaticGeometryGenerator` to enable skinned and morph target mesh support.
 
 ## [0.5.9] - 2022-04-11
 ### Fixed
