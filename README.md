@@ -144,6 +144,22 @@ sphere.applyMatrix4( invMat );
 const intersects = bvh.intersectsSphere( sphere );
 ```
 
+## With a SkinnedMesh and Morph Targets
+
+```js
+import { StaticGeometryGenerator } from 'three-mesh-bvh';
+
+const generator = new StaticGeometryGenerator( [ ...skinnedMeshes ] );
+const geometry = generator.generate();
+geometry.computeBoundsTree();
+
+// ...
+
+// update the geometry in place
+generator.generate( geometry );
+geometry.boundsTree.refit();
+```
+
 ## Serialization and Deserialization
 
 ```js
@@ -793,6 +809,60 @@ If the raycaster object being used has a property `firstHitOnly` set to `true`, 
 ```js
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 ```
+
+## StaticGeometryGenerator
+
+A utility class for taking a set of SkinnedMeshes or morph target geometry and baking it into a single, static geometry that a BVH can be generated for.
+
+### .useGroups
+
+```js
+useGroups = true : Boolean
+```
+
+If true then groups are used to support an array of materials on the mesh.
+
+### .attributes
+
+```js
+attributes = [ 'position', 'normal', 'tangent', 'uv', 'uv2' ] : Array<String>
+```
+
+The set of attributes to copy onto the static geometry.
+
+### .applyWorldTransforms
+
+```js
+applyWorldTransforms = true : Boolean
+```
+
+Whether to transform the vertices of the geometry by the world transforms of each mesh when generating.
+
+### constructor
+
+```js
+constructor( object : Array<Object3D> )
+```
+
+Takes an array of objects to bake into a single static geometry.
+
+### .getMaterials
+
+```js
+getMaterials() : Array<Material>
+```
+
+Returns an array of materials for the meshes to be merged. These can be used alongside the generated geometry when creating a mesh: `new Mesh( geometry, generator.getMaterials() )`.
+
+### .generate
+
+```js
+generate( target = new BufferGeometry() : BufferGeometry ) : BufferGeometry
+```
+
+Generates a single, static geometry for the passes meshes. When generating for the first time an empty target geometry is expected. The same generated geometry can be passed into the function on subsequent calls to update the geometry in place to save memory. An error will be thrown if the attributes or geometry on the meshes to bake has been changed and are incompatible lengths, types, etc.
+
+On subsequent calls the "index" buffer will not be modified so any BVH generated for the geometry is unaffected. Once the geometry is updated the `MeshBVH.refit` function can be called to update the BVH.
 
 ## GenerateMeshBVHWorker
 
