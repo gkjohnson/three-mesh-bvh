@@ -150,7 +150,6 @@ function init() {
 		} );
 		meshHelper = new THREE.Mesh( new THREE.BufferGeometry(), wireframeMaterial );
 		meshHelper.receiveShadow = true;
-		meshHelper.castShadow = true;
 
 		scene.add( meshHelper );
 
@@ -184,12 +183,15 @@ function init() {
 
 			case 'wireframe':
 				meshHelper.material = wireframeMaterial;
+				meshHelper.castShadow = false;
 				break;
 			case 'normal':
 				meshHelper.material = normalMaterials;
+				meshHelper.castShadow = true;
 				break;
 			case 'original':
 				meshHelper.material = originalMaterials;
+				meshHelper.castShadow = true;
 				break;
 
 		}
