@@ -149,6 +149,8 @@ function init() {
 			depthWrite: false,
 		} );
 		meshHelper = new THREE.Mesh( new THREE.BufferGeometry(), wireframeMaterial );
+		meshHelper.receiveShadow = true;
+		meshHelper.castShadow = true;
 
 		window.HELPER = meshHelper;
 
@@ -198,6 +200,16 @@ function init() {
 	staticFolder.add( params, 'updatePositionOnly' ).onChange( v => {
 
 		staticGeometryGenerator.attributes = v ? [ 'position' ] : [ 'position', 'normal', 'tangent', 'uv', 'uv2' ];
+
+		// TODO: if we don't dispose and create a new geometry then it seems like the performance gets slower with the
+		// original meshes??
+		const geometry = meshHelper.geometry;
+		geometry.dispose();
+		for ( const key in geometry.attributes ) {
+
+			geometry.deleteAttribute( key );
+
+		}
 
 	} );
 	staticFolder.open();

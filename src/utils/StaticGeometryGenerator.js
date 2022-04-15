@@ -1,8 +1,6 @@
 import { BufferAttribute, BufferGeometry, Vector3, Vector4, Matrix4, Matrix3 } from 'three';
-import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const _vector4 = /*@__PURE__*/ new Vector4();
-const _vector = /*@__PURE__*/ new Vector3();
 const _positionVector = /*@__PURE__*/ new Vector3();
 const _normalVector = /*@__PURE__*/ new Vector3();
 const _tangentVector = /*@__PURE__*/ new Vector3();
@@ -16,6 +14,7 @@ const _skinWeight = /*@__PURE__*/ new Vector4();
 const _matrix = /*@__PURE__*/ new Matrix4();
 const _boneMatrix = /*@__PURE__*/ new Matrix4();
 
+// Confirms that the two provided attributes are compatible
 function validateAttributes( attr1, attr2 ) {
 
 	if ( ! attr1 && ! attr2 ) {
@@ -37,12 +36,13 @@ function validateAttributes( attr1, attr2 ) {
 
 }
 
-function createAttributeClone( attr ) {
+// Clones the given attribute with a new compatible buffer attribute but no data
+function createAttributeClone( attr, countOverride = null ) {
 
 	const cons = attr.array.constructor;
 	const normalized = attr.normalized;
 	const itemSize = attr.itemSize;
-	const count = attr.count;
+	const count = countOverride === null ? attr.count : countOverride;
 
 	return new BufferAttribute( new cons( itemSize * count ), itemSize, normalized );
 
@@ -70,13 +70,14 @@ function copyAttributeContents( attr, target, targetOffset = 0 ) {
 		const array = target.array;
 		const cons = array.constructor;
 		const byteOffset = array.BYTES_PER_ELEMENT * attr.itemSize * targetOffset;
-		const temp = new cons( array.buffer, byteOffset, array.length );
+		const temp = new cons( array.buffer, byteOffset, attr.array.length );
 		temp.set( attr.array );
 
 	}
 
 }
 
+// Adds the "matrix" multiplied by "scale" to "target"
 function addScaledMatrix( target, matrix, scale ) {
 
 	const targetArray = target.elements;
@@ -89,6 +90,7 @@ function addScaledMatrix( target, matrix, scale ) {
 
 }
 
+// A version of "SkinnedMesh.boneTransform" for normals
 function boneNormalTransform( mesh, index, target ) {
 
 	const skeleton = mesh.skeleton;
@@ -114,8 +116,6 @@ function boneNormalTransform( mesh, index, target ) {
 
 	}
 
-	// debugger;
-
 	_matrix.multiply( mesh.bindMatrix ).premultiply( mesh.bindMatrixInverse );
 	_vector4.set( target.x, target.y, target.z, 0.0 ).applyMatrix4( _matrix );
 	target.set( _vector4.x, _vector4.y, _vector4.z );
@@ -124,6 +124,7 @@ function boneNormalTransform( mesh, index, target ) {
 
 }
 
+// Applies the morph target data to the target vector
 function applyMorphTarget( morphData, morphInfluences, morphTargetsRelative, i, target ) {
 
 	_morphVector.set( 0, 0, 0 );
@@ -142,13 +143,162 @@ function applyMorphTarget( morphData, morphInfluences, morphTargetsRelative, i, 
 
 		} else {
 
-			_morphVector.addScaledVector( _temp.sub( _vector ), influence );
+			_morphVector.addScaledVector( _temp.sub( target ), influence );
 
 		}
 
 	}
 
 	target.add( _morphVector );
+
+}
+
+// Modified version of BufferGeometryUtils.mergeBufferGeometries that ignores morph targets and updates a attributes in plac
+function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false }, targetGeometry = new BufferGeometry() ) {
+
+	const isIndexed = geometries[ 0 ].index !== null;
+	const { useGroups, updateIndex } = options;
+
+	const attributesUsed = new Set( Object.keys( geometries[ 0 ].attributes ) );
+	const attributes = {};
+
+	let offset = 0;
+
+	for ( let i = 0; i < geometries.length; ++ i ) {
+
+		const geometry = geometries[ i ];
+		let attributesCount = 0;
+
+		// ensure that all geometries are indexed, or none
+		if ( isIndexed !== ( geometry.index !== null ) ) {
+
+			throw new Error( 'StaticGeometryGenerator: All geometries must have compatible attributes; make sure index attribute exists among all geometries, or in none of them.' );
+
+		}
+
+		// gather attributes, exit early if they're different
+		for ( const name in geometry.attributes ) {
+
+			if ( ! attributesUsed.has( name ) ) {
+
+				throw new Error( 'StaticGeometryGenerator: All geometries must have compatible attributes; make sure "' + name + '" attribute exists among all geometries, or in none of them.' );
+
+			}
+
+			if ( attributes[ name ] === undefined ) {
+
+				attributes[ name ] = [];
+
+			}
+
+			attributes[ name ].push( geometry.attributes[ name ] );
+			attributesCount ++;
+
+		}
+
+		// ensure geometries have the same number of attributes
+		if ( attributesCount !== attributesUsed.size ) {
+
+			throw new Error( 'StaticGeometryGenerator: Make sure all geometries have the same number of attributes.' );
+
+		}
+
+		if ( useGroups ) {
+
+			let count;
+			if ( isIndexed ) {
+
+				count = geometry.index.count;
+
+			} else if ( geometry.attributes.position !== undefined ) {
+
+				count = geometry.attributes.position.count;
+
+			} else {
+
+				throw new Error( 'StaticGeometryGenerator: The geometry must have either an index or a position attribute' );
+
+			}
+
+			targetGeometry.addGroup( offset, count, i );
+			offset += count;
+
+		}
+
+	}
+
+	// merge indices
+	if ( isIndexed ) {
+
+		let forceUpateIndex = false;
+		if ( ! targetGeometry.index ) {
+
+			let indexCount = 0;
+			for ( let i = 0; i < geometries.length; ++ i ) {
+
+				indexCount += geometries[ i ].index.count;
+
+			}
+
+			targetGeometry.setIndex( new BufferAttribute( new Uint32Array( indexCount ), 1, false ) );
+			forceUpateIndex = true;
+
+		}
+
+		if ( updateIndex || forceUpateIndex ) {
+
+			const targetIndex = targetGeometry.index;
+			let targetOffset = 0;
+			let indexOffset = 0;
+			for ( let i = 0; i < geometries.length; ++ i ) {
+
+				const geometry = geometries[ i ];
+				const index = geometry.index;
+				for ( let j = 0; j < index.count; ++ j ) {
+
+					targetIndex.setX( targetOffset, index.getX( j ) + indexOffset );
+					targetOffset ++;
+
+				}
+
+				indexOffset += geometry.attributes.position.count;
+
+			}
+
+		}
+
+	}
+
+	// merge attributes
+	for ( const name in attributes ) {
+
+		const attrList = attributes[ name ];
+		if ( ! ( name in targetGeometry.attributes ) ) {
+
+			let count = 0;
+			for ( const key in attrList ) {
+
+				count += attrList[ key ].count;
+
+			}
+
+			targetGeometry.setAttribute( name, createAttributeClone( attributes[ name ][ 0 ], count ) );
+
+		}
+
+		const targetAttribute = targetGeometry.attributes[ name ];
+		let offset = 0;
+		for ( const key in attrList ) {
+
+			const attr = attrList[ key ];
+			copyAttributeContents( attr, targetAttribute, offset );
+			offset += attr.count;
+
+		}
+
+	}
+
+	return targetGeometry;
 
 }
 
@@ -178,7 +328,7 @@ export class StaticGeometryGenerator {
 		} );
 
 		this.meshes = finalMeshes;
-		this.retainGroups = true;
+		this.useGroups = true;
 		this.applyWorldTransforms = true;
 		this.attributes = [ 'position', 'normal', 'tangent', 'uv', 'uv2' ];
 		this._intermediateGeometry = new Array( finalMeshes.length ).fill().map( () => new BufferGeometry() );
@@ -207,7 +357,7 @@ export class StaticGeometryGenerator {
 
 	generate( targetGeometry = new BufferGeometry() ) {
 
-		const { meshes, retainGroups, _intermediateGeometry } = this;
+		const { meshes, useGroups, _intermediateGeometry } = this;
 		for ( let i = 0, l = meshes.length; i < l; i ++ ) {
 
 			const mesh = meshes[ i ];
@@ -216,17 +366,12 @@ export class StaticGeometryGenerator {
 
 		}
 
-		// TODO: change merge buffer geometries so it can be applied to an existing geometry
-		const newGeometry = mergeBufferGeometries( _intermediateGeometry, retainGroups, targetGeometry );
-		const prevIndex = targetGeometry.index;
-		targetGeometry.copy( newGeometry );
-		if ( prevIndex ) {
+		mergeBufferGeometries( _intermediateGeometry, { useGroups }, targetGeometry );
+		for ( const key in targetGeometry.attributes ) {
 
-			targetGeometry.index = prevIndex;
+			targetGeometry.attributes[ key ].needsUpdate = true;
 
 		}
-
-		targetGeometry.needsUpdate = true;
 
 		return targetGeometry;
 
