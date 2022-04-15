@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Stats from 'stats.js';
 import { GUI } from 'dat.gui';
-import { computeBoundsTree, MeshBVHVisualizer, getBVHExtremes, StaticGeometryGenerator } from '..';
+import { computeBoundsTree, MeshBVHVisualizer, getBVHExtremes, StaticGeometryGenerator, SAH } from '..';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -269,7 +269,7 @@ function regenerateMesh() {
 		startTime = window.performance.now();
 		if ( ! meshHelper.geometry.boundsTree ) {
 
-			meshHelper.geometry.computeBoundsTree();
+			meshHelper.geometry.computeBoundsTree( { strategy: SAH } );
 			refitTime = '-';
 
 		} else {
