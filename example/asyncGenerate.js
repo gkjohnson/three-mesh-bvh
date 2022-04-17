@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
-import { GUI } from 'dat.gui';
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
 import { acceleratedRaycast, MeshBVH, MeshBVHVisualizer } from '..';
 

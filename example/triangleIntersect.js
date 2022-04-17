@@ -1,5 +1,5 @@
 import Stats from 'stats.js';
-import * as dat from 'dat.gui';
+import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ExtendedTriangle } from '../src/index.js';
@@ -252,7 +252,7 @@ function render() {
 	);
 	intersectionMesh.scale.z = 1;
 
-	gui.updateDisplay();
+	gui.controllersRecursive().forEach( c => c.updateDisplay() );
 
 	renderer.render( scene, camera );
 	stats.end();

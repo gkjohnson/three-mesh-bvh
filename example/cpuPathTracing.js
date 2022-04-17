@@ -6,7 +6,7 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { bsdfSample, bsdfColor, bsdfPdf } from './pathtracing/materialSampling.js';
 
-import { GUI } from 'dat.gui';
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
 	acceleratedRaycast,
 	computeBoundsTree,

@@ -1,5 +1,5 @@
 import Stats from 'stats.js';
-import * as dat from 'dat.gui';
+import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,

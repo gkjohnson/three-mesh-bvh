@@ -1,5 +1,5 @@
 import Stats from 'stats.js/src/Stats';
-import * as dat from 'dat.gui';
+import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -289,8 +289,7 @@ function init() {
 
 		params.size += delta * 0.0001;
 		params.size = Math.max( Math.min( params.size, 0.25 ), 0.025 );
-
-		gui.updateDisplay();
+		gui.controllersRecursive().forEach( c => c.updateDisplay() );
 
 	} );
 
