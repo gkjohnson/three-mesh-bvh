@@ -134,7 +134,7 @@ invMat.copy( mesh.matrixWorld ).invert();
 // raycasting
 // ensure the ray is in the local space of the geometry being cast against
 raycaster.ray.applyMatrix4( invMat );
-const hit = bvh.raycastFirst( raycaster );
+const hit = bvh.raycastFirst( raycaster.ray );
 
 // results are returned in local spac, as well, so they must be transformed into
 // world space if needed.
