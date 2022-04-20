@@ -1,6 +1,5 @@
 import { BufferAttribute, BufferGeometry, Vector3, Vector4, Matrix4, Matrix3 } from 'three';
 
-const _vector4 = /*@__PURE__*/ new Vector4();
 const _positionVector = /*@__PURE__*/ new Vector3();
 const _normalVector = /*@__PURE__*/ new Vector3();
 const _tangentVector = /*@__PURE__*/ new Vector3();
@@ -95,6 +94,8 @@ function boneNormalTransform( mesh, index, target ) {
 
 	const skeleton = mesh.skeleton;
 	const geometry = mesh.geometry;
+	const bones = skeleton.bones;
+	const boneInverses = skeleton.boneInverses;
 
 	_skinIndex.fromBufferAttribute( geometry.attributes.skinIndex, index );
 	_skinWeight.fromBufferAttribute( geometry.attributes.skinWeight, index );
@@ -108,7 +109,7 @@ function boneNormalTransform( mesh, index, target ) {
 		if ( weight !== 0 ) {
 
 			const boneIndex = _skinIndex.getComponent( i );
-			_boneMatrix.multiplyMatrices( skeleton.bones[ boneIndex ].matrixWorld, skeleton.boneInverses[ boneIndex ] );
+			_boneMatrix.multiplyMatrices( bones[ boneIndex ].matrixWorld, boneInverses[ boneIndex ] );
 
 			addScaledMatrix( _matrix, _boneMatrix, weight );
 
@@ -117,8 +118,7 @@ function boneNormalTransform( mesh, index, target ) {
 	}
 
 	_matrix.multiply( mesh.bindMatrix ).premultiply( mesh.bindMatrixInverse );
-	_vector4.set( target.x, target.y, target.z, 0.0 ).applyMatrix4( _matrix );
-	target.set( _vector4.x, _vector4.y, _vector4.z );
+	target.transformDirection( _matrix );
 
 	return target;
 
