@@ -1,6 +1,5 @@
 import { BufferAttribute, BufferGeometry, Vector3, Vector4, Matrix4, Matrix3 } from 'three';
 
-const _vector4 = /*@__PURE__*/ new Vector4();
 const _positionVector = /*@__PURE__*/ new Vector3();
 const _normalVector = /*@__PURE__*/ new Vector3();
 const _tangentVector = /*@__PURE__*/ new Vector3();
