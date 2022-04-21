@@ -87,7 +87,7 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	// load the model
-	new GLTFLoader().load( 'https://raw.githubusercontent.com/gkjohnson/gltf-demo-models/main/trex/scene.gltf', gltf => {
+	new GLTFLoader().load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/trex/scene.gltf', gltf => {
 
 		// prep the model and add it to the scene
 		model = gltf.scene;
