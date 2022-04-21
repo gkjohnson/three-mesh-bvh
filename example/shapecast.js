@@ -144,8 +144,8 @@ function init() {
 		params.position.copy( shapes[ params.shape ].position );
 		params.rotation.copy( shapes[ params.shape ].rotation );
 		params.scale.copy( shapes[ params.shape ].scale );
-		gui.controllersRecursive().forEach( c => c.updateDisplay() );
-
+		// gui.controllersRecursive().forEach( c => c.updateDisplay() );
+		gui.updateDisplay();
 
 	} );
 
@@ -195,8 +195,8 @@ function init() {
 
 		}
 
-		gui.controllersRecursive().forEach( c => c.updateDisplay() );
-
+		// gui.controllersRecursive().forEach( c => c.updateDisplay() );
+		gui.updateDisplay();
 
 	} );
 

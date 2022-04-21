@@ -289,7 +289,8 @@ function init() {
 
 		params.size += delta * 0.0001;
 		params.size = Math.max( Math.min( params.size, 0.25 ), 0.025 );
-		gui.controllersRecursive().forEach( c => c.updateDisplay() );
+		// gui.controllersRecursive().forEach( c => c.updateDisplay() );
+		gui.updateDisplay();
 
 	} );
 

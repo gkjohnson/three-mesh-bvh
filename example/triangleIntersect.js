@@ -252,7 +252,8 @@ function render() {
 	);
 	intersectionMesh.scale.z = 1;
 
-	gui.controllersRecursive().forEach( c => c.updateDisplay() );
+	// gui.controllersRecursive().forEach( c => c.updateDisplay() );
+	gui.updateDisplay();
 
 	renderer.render( scene, camera );
 	stats.end();

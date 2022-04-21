@@ -240,7 +240,8 @@ function init() {
 
 		}
 
-		gui.controllersRecursive().forEach( c => c.updateDisplay() );
+		// gui.controllersRecursive().forEach( c => c.updateDisplay() );
+		gui.updateDisplay();
 
 	} );
 
