@@ -3,7 +3,7 @@ import * as dat from 'three/examples/jsm/libs/dat.gui.module.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import { MarchingCubes } from 'three/examples/jsm/objects/MarchingCubes.js';
+import { MarchingCubes } from './lib/MarchingCubes.js';
 import SimplexNoise from 'simplex-noise';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer } from '..';
 
@@ -32,7 +32,7 @@ const params = {
 let stats;
 let scene, camera, renderer, controls, boundsViz;
 let terrain, targetContainer, targetMesh, transformControls;
-let marchingCubes, marchingCubesMesh, marchingCubesMeshBack, marchingCubesContainer;
+let marchingCubes, marchingCubesContainer;
 let sphere1, sphere2, line;
 let needsUpdate = false;
 
@@ -72,7 +72,7 @@ function init() {
 	const planeGeom = new THREE.PlaneBufferGeometry( size, size, dim - 1, dim - 1 );
 	const posAttr = planeGeom.attributes.position;
 
-	const seed = ~ ~ ( Math.random() * 100 );
+	const seed = Math.floor( Math.random() * 100 );
 	const noise = new SimplexNoise( seed );
 	for ( let i = 0; i < dim * dim; i ++ ) {
 
@@ -85,7 +85,12 @@ function init() {
 	planeGeom.computeVertexNormals();
 	planeGeom.computeBoundsTree();
 
-	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( { color: 0xFFFFFF, metalness: 0.1, roughness: 0.9, side: THREE.DoubleSide } ) );
+	terrain = new THREE.Mesh( planeGeom, new THREE.MeshStandardMaterial( {
+		color: 0xFFFFFF,
+		metalness: 0.1,
+		roughness: 0.9,
+		side: THREE.DoubleSide,
+	} ) );
 	terrain.rotation.x = - Math.PI / 2;
 	terrain.position.y = - 3;
 	terrain.receiveShadow = true;
@@ -96,7 +101,6 @@ function init() {
 	camera.position.z = 5;
 	camera.far = 100;
 	camera.updateProjectionMatrix();
-
 
 	// stats setup
 	stats = new Stats();
@@ -130,15 +134,6 @@ function init() {
 	scene.add( transformControls );
 
 	const cubeMat = new THREE.MeshStandardMaterial( {
-		color: 0xE91E63,
-		metalness: 0.0,
-		roughness: 0.9,
-		side: THREE.DoubleSide,
-	} );
-	marchingCubes = new MarchingCubes( 100, cubeMat, false, false );
-	marchingCubes.isolation = 0;
-
-	const meshMat = new THREE.MeshStandardMaterial( {
 		flatShading: true,
 		color: 0xE91E63,
 		metalness: 0.0,
@@ -148,23 +143,14 @@ function init() {
 		opacity: 0.15,
 		premultipliedAlpha: true,
 	} );
-	marchingCubesMesh = new THREE.Mesh( undefined, meshMat );
-	marchingCubesMesh.visible = false;
-	marchingCubesMesh.receiveShadow = true;
-
-	const backMeshMat = meshMat.clone();
-	backMeshMat.side = THREE.BackSide;
-	marchingCubesMeshBack = new THREE.Mesh( undefined, backMeshMat );
-	marchingCubesMeshBack.receiveShadow = true;
-	marchingCubesMeshBack.visible = false;
+	marchingCubes = new MarchingCubes( 100, cubeMat, false, false, 1000000 );
+	marchingCubes.isolation = 0;
+	marchingCubes.autoUpdate = false;
 
 	marchingCubesContainer = new THREE.Group();
 	marchingCubesContainer.scale.multiplyScalar( 5 );
 	marchingCubesContainer.add( marchingCubes );
-	marchingCubesContainer.add( marchingCubesMeshBack );
-	marchingCubesContainer.add( marchingCubesMesh );
 	scene.add( marchingCubesContainer );
-
 
 	sphere1 = new THREE.Mesh(
 		new THREE.SphereBufferGeometry( 0.025, 20, 20 ),
@@ -193,7 +179,11 @@ function init() {
 	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 
 	const mcFolder = gui.addFolder( 'distanceVisualization' );
-	mcFolder.add( params.volume, 'display', { 'hide': 0, 'distance to terrain': 1, 'distance to mesh': 2 } ).onChange( () => regenerate = true );
+	mcFolder.add( params.volume, 'display', { 'hide': 0, 'distance to terrain': 1, 'distance to mesh': 2 } ).onChange( () => {
+
+		regenerate = true;
+
+	} );
 	mcFolder.add( params.volume, 'hideWhileGenerating' );
 	mcFolder.add( params.volume, 'alwaysShowDistance' );
 	mcFolder.add( params.volume, 'surfaceOnly' ).onChange( () => regenerate = true );
@@ -327,13 +317,6 @@ function updateDistanceCheck( fastCheck ) {
 
 }
 
-function regenerateMesh() {
-
-	marchingCubesMesh.geometry = marchingCubes.generateBufferGeometry();
-	marchingCubesMeshBack.geometry = marchingCubesMesh.geometry;
-
-}
-
 function* updateMarchingCubes() {
 
 	if ( params.volume.display == 0 ) return;
@@ -371,11 +354,7 @@ function* updateMarchingCubes() {
 	marchingCubesContainer.updateMatrixWorld();
 
 	// Create a new marching cubes container to update the resolution
-	marchingCubesContainer.remove( marchingCubes );
-	const newMarchingCubes = new MarchingCubes( resolution, marchingCubes.material, false, false );
-	newMarchingCubes.isolation = 0;
-	marchingCubes = newMarchingCubes;
-	marchingCubesContainer.add( marchingCubes );
+	marchingCubes.init( resolution );
 	marchingCubes.updateMatrixWorld();
 
 	// marching cubes ranges from -1 to 1
@@ -432,8 +411,6 @@ function* updateMarchingCubes() {
 
 	marchingCubes.blur( 1 );
 
-	regenerateMesh();
-
 }
 
 let currentTask = null;
@@ -475,7 +452,6 @@ function render() {
 
 			if ( res.done ) {
 
-				marchingCubes.visible = false;
 				currentTask = null;
 				break;
 
@@ -483,18 +459,16 @@ function render() {
 
 		}
 
+		marchingCubes.update();
+
 		marchingCubes.visible = ! params.volume.hideWhileGenerating && params.volume.display != 0;
-		marchingCubesMesh.visible = false;
-		marchingCubesMeshBack.visible = false;
 
 	}
 
 	// Update visibility of marching cubes mesh
 	if ( ! currentTask ) {
 
-		marchingCubes.visible = false;
-		marchingCubesMesh.visible = params.volume.display != 0;
-		marchingCubesMeshBack.visible = params.volume.display != 0;
+		marchingCubes.visible = true;
 
 	}
 
