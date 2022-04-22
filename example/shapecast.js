@@ -1,5 +1,5 @@
 import Stats from 'stats.js';
-import * as dat from 'three/examples/jsm/libs/dat.gui.module.js';
+import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
@@ -144,8 +144,7 @@ function init() {
 		params.position.copy( shapes[ params.shape ].position );
 		params.rotation.copy( shapes[ params.shape ].rotation );
 		params.scale.copy( shapes[ params.shape ].scale );
-		// gui.controllersRecursive().forEach( c => c.updateDisplay() );
-		gui.updateDisplay();
+		gui.controllersRecursive().forEach( c => c.updateDisplay() );
 
 	} );
 
@@ -195,8 +194,7 @@ function init() {
 
 		}
 
-		// gui.controllersRecursive().forEach( c => c.updateDisplay() );
-		gui.updateDisplay();
+		gui.controllersRecursive().forEach( c => c.updateDisplay() );
 
 	} );
 

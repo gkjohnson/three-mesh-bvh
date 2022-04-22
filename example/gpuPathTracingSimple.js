@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import Stats from 'stats.js';
-import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
 	MeshBVH, MeshBVHUniformStruct, FloatVertexAttributeTexture,
 	shaderStructs, shaderIntersectFunction, SAH,

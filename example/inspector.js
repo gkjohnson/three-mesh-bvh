@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
-import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer,
 	SAH, CENTER, AVERAGE, getBVHExtremes, estimateMemoryInBytes,
