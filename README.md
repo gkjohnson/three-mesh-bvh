@@ -177,7 +177,7 @@ geometry.boundsTree = deserializedBVH;
 
 ## Asynchronous Generation
 
-_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenereateMeshBVHWorker class is not exported from the package root. If needed the code from `src/worker` can be copied and modified to accomodate a particular build process._
+_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is not exported from the package root. If needed the code from `src/worker` can be copied and modified to accomodate a particular build process._
 
 ```js
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
