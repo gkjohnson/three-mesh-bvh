@@ -844,13 +844,7 @@ class MarchingCubes extends Mesh {
 
 			}
 
-			// reset unneeded data
-
-			for ( let i = this.count * 3; i < this.positionArray.length; i ++ ) {
-
-				this.positionArray[ i ] = 0.0;
-
-			}
+			this.geometry.setDrawRange( 0, this.count );
 
 			// update geometry data
 
