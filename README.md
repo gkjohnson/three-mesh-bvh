@@ -846,7 +846,7 @@ Whether to transform the vertices of the geometry by the world transforms of eac
 constructor( object : Array<Object3D> )
 ```
 
-Takes an array of objects to bake into a single static geometry.
+Takes an array of object hierarchies to bake into a single static geometry.
 
 ### .getMaterials
 
