@@ -306,8 +306,6 @@ function regenerateMesh() {
 			`refit time: ${ refitTime } ms\n` +
 			`bvh degradation: ${ ( 100 * degradation ).toFixed( 2 ) }%`;
 
-		window.MESH = meshHelper;
-
 	}
 
 }
