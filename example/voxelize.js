@@ -159,13 +159,14 @@ function* rebuildVoxels() {
 	const quaternion = new THREE.Quaternion();
 	const scale = new THREE.Vector3().setScalar( step );
 	const worldMatrix = new THREE.Matrix4();
-	const boxMat = new THREE.Matrix4();
 	const box = new THREE.Box3();
+	const invMat = new THREE.Matrix4().copy( model.matrixWorld ).invert();
+
 	const ray = new THREE.Ray();
 	ray.direction.set( 0, 0, 1 );
+
 	let voxelCount = 0;
 
-	// TODO: add animation
 	for ( let y = 0; y < resolution; y ++ ) {
 
 		for ( let x = 0; x < resolution; x ++ ) {
@@ -181,7 +182,7 @@ function* rebuildVoxels() {
 				box.min.setScalar( - 0.5 * step ).add( position );
 				box.max.setScalar( 0.5 * step ).add( position );
 
-				const res = bvh.intersectsBox( box, boxMat );
+				const res = bvh.intersectsBox( box, invMat );
 				if ( res ) {
 
 					if ( ! params.insideOnly ) {
@@ -199,7 +200,8 @@ function* rebuildVoxels() {
 
 				} else if ( params.solid ) {
 
-					ray.origin.copy( position );
+					// transform into the local frame of the model
+					ray.origin.copy( position ).applyMatrix4( invMat );
 
 					// If we hit a face backside we know we're inside the mesh. Alternatively we
 					// could check if we jot an odd number of faces when checking all intersections.
