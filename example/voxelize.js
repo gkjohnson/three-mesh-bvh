@@ -56,13 +56,11 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 10, 0, 0 );
+	camera.position.set( 2, 2, 2 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
 	controls = new OrbitControls( camera, renderer.domElement );
-
-	clock = new THREE.Clock();
 
 	// stats setup
 	stats = new Stats();
@@ -203,10 +201,10 @@ function* rebuildVoxels() {
 
 					ray.origin.copy( position );
 
-					// TODO: this would be faster if we could detect a backface hit
-					// If we hit an odd number of surfaces then we must be inside a mesh
-					const res = bvh.raycast( ray, 2 );
-					if ( res.length % 2 === 1 ) {
+					// If we hit a face backside we know we're inside the mesh. Alternatively we
+					// could check if we jot an odd number of faces when checking all intersections.
+					const res = bvh.raycastFirst( ray, 2 );
+					if ( res && res.face.normal.dot( ray.direction ) > 0.0 ) {
 
 						color.set( 0xFFC107 ).convertSRGBToLinear();
 						worldMatrix.compose( position, quaternion, scale );
