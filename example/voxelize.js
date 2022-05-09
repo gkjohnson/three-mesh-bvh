@@ -16,7 +16,7 @@ let voxelTask = null;
 const params = {
 	model: 'Torus Knot',
 	scale: 0.75,
-	resolution: 50,
+	resolution: 30,
 	solid: true,
 	displayMesh: true,
 	displayBounds: false,
