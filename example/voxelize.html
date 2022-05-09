@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Three-Mesh-BVH - Geometry Voxelization</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+			font-family: monospace;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#model-info {
+			color: white;
+			position: absolute;
+			left: 10px;
+			bottom: 10px;
+			opacity: 0.5;
+		}
+
+		#output {
+			white-space: pre;
+			margin-bottom: 10px;
+		}
+
+		#info {
+			top: 0;
+			width: 100%;
+			pointer-events: none;
+			position: absolute;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+    </style>
+</head>
+<body>
+	<div id="info">
+		Demonstration of voxelizing a mesh with the ability to detect the inside and outside of a model.
+	</div>
+	<div id="model-info">
+		<div id="output"></div>
+	</div>
+    <script type="module" src="./voxelize.js"></script>
+</body>
+</html>
