@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { MeshBVH } from '..';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
 
 let renderer, camera, scene, gui, stats, outputContainer;
 let bvh, model, voxels, controls, boxHelper;
@@ -12,7 +14,8 @@ let needsUpdate = false;
 let voxelTask = null;
 
 const params = {
-	scale: 3,
+	model: 'Torus Knot',
+	scale: 0.75,
 	resolution: 50,
 	solid: true,
 	displayMesh: true,
@@ -21,14 +24,14 @@ const params = {
 	rebuild: () => needsUpdate = true,
 };
 
+const models = {};
+
 init();
 render();
 
-// TODO: afford use of materials on the final model to validate
-
 function init() {
 
-	const bgColor = 0x111111;
+	const bgColor = 0x161e1d;
 
 	outputContainer = document.getElementById( 'output' );
 
@@ -56,7 +59,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 2, 2, 2 );
+	camera.position.set( 1, 0.5, 1 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -66,37 +69,99 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	const wireframeMaterial = new THREE.MeshBasicMaterial( {
+
+		transparent: true,
+		wireframe: true,
+		depthWrite: false,
+		opacity: 0.02,
+
+	} );
+
 	// load the model
-	setTimeout( () => {
+	new GLTFLoader().setMeshoptDecoder( MeshoptDecoder ).load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/happy-buddha/buddha.glb', gltf => {
 
-		model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( 1, 0.3, 200, 30 ), new THREE.MeshBasicMaterial( {
+		const model = gltf.scene.children[ 0 ];
+		model.geometry.center();
+		model.material = wireframeMaterial;
+		model.scale.setScalar( 1.5 );
+		model.rotation.y = - Math.PI / 2;
 
-			transparent: true,
-			wireframe: true,
-			depthWrite: false,
-			opacity: 0.1,
+		const generator = new GenerateMeshBVHWorker();
+		generator.generate( model.geometry ).then( bvh => {
 
-		} ) );
+			scene.add( model );
+			models[ 'Buddha' ] = { model, bvh };
+			if ( params.model === 'Buddha' ) {
+
+				needsUpdate = true;
+
+			}
+
+		} );
+
+	} );
+
+	new GLTFLoader().setMeshoptDecoder( MeshoptDecoder ).load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb', gltf => {
+
+		const model = gltf.scene.children[ 0 ];
+		model.geometry.center();
+		model.material = wireframeMaterial;
+		model.rotation.y = Math.PI / 2;
+		model.scale.setScalar( 0.65 );
+
+		const generator = new GenerateMeshBVHWorker();
+		generator.generate( model.geometry ).then( bvh => {
+
+			scene.add( model );
+			models[ 'Bunny' ] = { model, bvh };
+			if ( params.model === 'Bunny' ) {
+
+				needsUpdate = true;
+
+			}
+
+		} );
+
+	} );
+
+	{
+
+		const model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( 0.3, 0.1, 400, 60 ), wireframeMaterial );
+		const bvh = new MeshBVH( model.geometry );
 		scene.add( model );
 
-		bvh = new MeshBVH( model.geometry );
+		models[ 'Torus Knot' ] = {
+			bvh: bvh,
+			model: model,
+		};
+		needsUpdate = true;
 
-		const boxHelperMesh = new THREE.Mesh( new THREE.BoxBufferGeometry() );
-		boxHelper = new THREE.BoxHelper( boxHelperMesh, 0xffffff );
-		scene.add( boxHelper );
+	}
+
+	models[ 'Buddha' ] = { model: null, bvh: null };
+	models[ 'Bunny' ] = { model: null, bvh: null };
+
+	const boxHelperMesh = new THREE.Mesh( new THREE.BoxBufferGeometry() );
+	boxHelper = new THREE.BoxHelper( boxHelperMesh, 0xffffff );
+	boxHelper.material.opacity = 0.35;
+	boxHelper.material.transparent = true;
+	scene.add( boxHelper );
+
+	gui = new GUI();
+	gui.add( params, 'model', Object.keys( models ) ).onChange( () => {
 
 		needsUpdate = true;
 
-	}, 100 );
+	} );
 
-	gui = new GUI();
 	const computeFolder = gui.addFolder( 'voxelize' );
 	computeFolder.add( params, 'resolution', 5, 75, 1 ).onChange( () => {
 
 		needsUpdate = true;
 
 	} );
-	computeFolder.add( params, 'scale', 1, 10 ).onChange( () => {
+	computeFolder.add( params, 'scale', 0.1, 4 ).onChange( () => {
 
 		needsUpdate = true;
 
@@ -135,7 +200,8 @@ function* rebuildVoxels() {
 	const totalCount = resolution ** 3;
 	const dimensions = params.scale;
 	const step = dimensions / resolution;
-	const color = new THREE.Color( 0xffffff );
+	const outsideColor = new THREE.Color( 0xffffff );
+	const insideColor = new THREE.Color( 0xFFC107 ).convertSRGBToLinear();
 	if ( voxels && voxels.instanceMatrix.count !== totalCount ) {
 
 		voxels.material.dispose();
@@ -145,11 +211,18 @@ function* rebuildVoxels() {
 
 	}
 
+	const { model, bvh } = models[ params.model ];
+	if ( ! model ) {
+
+		return;
+
+	}
+
 	if ( ! voxels ) {
 
 		// set color here to force a color buffer to initialize
 		voxels = new THREE.InstancedMesh( new RoundedBoxGeometry( 1, 1, 1, 4, 0.1 ), new THREE.MeshStandardMaterial(), totalCount );
-		voxels.setColorAt( 0, color );
+		voxels.setColorAt( 0, outsideColor );
 		scene.add( voxels );
 
 	}
@@ -187,10 +260,9 @@ function* rebuildVoxels() {
 
 					if ( ! params.insideOnly ) {
 
-						color.set( 0xffffff );
 						worldMatrix.compose( position, quaternion, scale );
 						voxels.setMatrixAt( voxelCount, worldMatrix );
-						voxels.setColorAt( voxelCount, color );
+						voxels.setColorAt( voxelCount, outsideColor );
 						voxels.instanceMatrix.needsUpdate = true;
 						voxels.instanceColor.needsUpdate = true;
 
@@ -208,10 +280,9 @@ function* rebuildVoxels() {
 					const res = bvh.raycastFirst( ray, 2 );
 					if ( res && res.face.normal.dot( ray.direction ) > 0.0 ) {
 
-						color.set( 0xFFC107 ).convertSRGBToLinear();
 						worldMatrix.compose( position, quaternion, scale );
 						voxels.setMatrixAt( voxelCount, worldMatrix );
-						voxels.setColorAt( voxelCount, color );
+						voxels.setColorAt( voxelCount, insideColor );
 						voxels.instanceMatrix.needsUpdate = true;
 						voxels.instanceColor.needsUpdate = true;
 
@@ -241,6 +312,7 @@ function render() {
 
 	scene.updateMatrixWorld( true );
 
+	// kick off a new voxelization task
 	if ( needsUpdate ) {
 
 		voxelTask = rebuildVoxels();
@@ -248,6 +320,7 @@ function render() {
 
 	}
 
+	// tick the task forward
 	if ( voxelTask ) {
 
 		let startTime = window.performance.now();
@@ -270,6 +343,20 @@ function render() {
 		boxHelper.object.scale.setScalar( params.scale );
 		boxHelper.object.updateMatrixWorld( true );
 		boxHelper.update();
+
+	}
+
+	// hide the models
+	for ( const key in models ) {
+
+		const info = models[ key ];
+		if ( info.model ) info.model.visible = false;
+
+	}
+
+	// show the select model
+	const { model } = models[ params.model ];
+	if ( model ) {
 
 		model.visible = params.displayMesh;
 		boxHelper.visible = params.displayBounds;
