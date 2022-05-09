@@ -6,6 +6,11 @@ import { MeshBVH } from '..';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
+let renderer, camera, scene, gui, stats, outputContainer;
+let bvh, model, voxels, controls, boxHelper;
+let needsUpdate = false;
+let voxelTask = null;
+
 const params = {
 	scale: 3,
 	resolution: 50,
@@ -13,12 +18,8 @@ const params = {
 	displayMesh: true,
 	displayBounds: false,
 	insideOnly: false,
+	rebuild: () => needsUpdate = true,
 };
-
-let renderer, camera, scene, gui, stats, outputContainer;
-let bvh, model, voxels, controls, boxHelper;
-let needsUpdate = false;
-let voxelTask = null;
 
 init();
 render();
@@ -112,6 +113,7 @@ function init() {
 		needsUpdate = true;
 
 	} );
+	computeFolder.add( params, 'rebuild' );
 
 	const helpersFolder = gui.addFolder( 'helpers' );
 	helpersFolder.add( params, 'displayMesh' );
@@ -247,7 +249,6 @@ function render() {
 	}
 
 	if ( voxelTask ) {
-
 
 		let startTime = window.performance.now();
 		while ( window.performance.now() - startTime < 16 ) {
