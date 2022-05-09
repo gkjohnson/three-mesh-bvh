@@ -9,7 +9,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
 
 let renderer, camera, scene, gui, stats, outputContainer;
-let bvh, model, voxels, controls, boxHelper;
+let voxels, controls, boxHelper;
 let needsUpdate = false;
 let voxelTask = null;
 
