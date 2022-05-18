@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - "global" unnecessarily being used in the web worker.
 
+### Added
+- GenerateMeshBVHWorker.generate: reject when class has been disposed of or error is thrown in worker.
+
 ## [0.5.10] - 2022-04-15
 ### Added
 - `StaticGeometryGenerator` to enable skinned and morph target mesh support.
