@@ -7,6 +7,19 @@ export class GenerateMeshBVHWorker {
 
 		this.running = false;
 		this.worker = new Worker( new URL( './generateAsync.worker.js', import.meta.url ), { type: 'module' } );
+		this.worker.onerror = e => {
+
+			if ( e.message ) {
+
+				throw new Error( `GenerateMeshBVHWorker: Could not create Web Worker with error "${ e.message }"` );
+
+			} else {
+
+				throw new Error( 'GenerateMeshBVHWorker: Could not create Web Worker.' );
+
+			}
+
+		};
 
 	}
 
@@ -18,10 +31,23 @@ export class GenerateMeshBVHWorker {
 
 		}
 
+		if ( this.worker === null ) {
+
+			throw new Error( 'GenerateMeshBVHWorker: Worker has been disposed.' );
+
+		}
+
 		const { worker } = this;
 		this.running = true;
 
 		return new Promise( ( resolve, reject ) => {
+
+			worker.onerror = e => {
+
+				reject( new Error( `GenerateMeshBVHWorker: ${ e.message }` ) );
+				this.running = false;
+
+			};
 
 			worker.onmessage = e => {
 
@@ -110,6 +136,7 @@ export class GenerateMeshBVHWorker {
 	dispose() {
 
 		this.worker.terminate();
+		this.worker = null;
 
 	}
 
