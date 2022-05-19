@@ -4,7 +4,7 @@ export function intersectTris( geo, side, ray, offset, count, indirectBuffer, in
 
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		const tri = i;
+		let tri = i;
 		if ( indirectBuffer ) {
 
 			tri = indirectBuffer[ tri ];
@@ -23,7 +23,7 @@ export function intersectClosestTri( geo, side, ray, offset, count, indirectBuff
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		const tri = i;
+		let tri = i;
 		if ( indirectBuffer ) {
 
 			tri = indirectBuffer[ tri ];
