@@ -165,7 +165,11 @@ export class MeshBVH {
 			if ( options.indirectBuffer ) {
 
 				const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
-				const indirectBuffer = triCount > 2 ** 16 ? new Uint32Array( triCount ) : new Uint16Array( triCount );
+				const useUint32 = triCount > 2 ** 16;
+				const byteCount = useUint32 ? 4 : 2;
+
+				const buffer = options.useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+				const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
 				for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
 
 					indirectBuffer[ i ] = i;
