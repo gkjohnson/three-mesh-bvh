@@ -412,6 +412,7 @@ export class MeshBVH {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
+		const indirectBuffer = this.indirectBuffer;
 		const intersects = [];
 		const isMaterial = materialOrSide.isMaterial;
 		const isArrayMaterial = Array.isArray( materialOrSide );
@@ -424,7 +425,7 @@ export class MeshBVH {
 			const startCount = intersects.length;
 
 			setBuffer( roots[ i ] );
-			raycast( 0, geometry, materialSide, ray, intersects );
+			raycast( 0, geometry, materialSide, ray, indirectBuffer, intersects );
 			clearBuffer();
 
 			if ( isArrayMaterial ) {
@@ -448,6 +449,7 @@ export class MeshBVH {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
+		const indirectBuffer = this.indirectBuffer;
 		const isMaterial = materialOrSide.isMaterial;
 		const isArrayMaterial = Array.isArray( materialOrSide );
 
@@ -460,7 +462,7 @@ export class MeshBVH {
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 
 			setBuffer( roots[ i ] );
-			const result = raycastFirst( 0, geometry, materialSide, ray );
+			const result = raycastFirst( 0, geometry, materialSide, ray, indirectBuffer );
 			clearBuffer();
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {

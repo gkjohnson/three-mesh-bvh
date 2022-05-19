@@ -1,22 +1,36 @@
 import { intersectTri } from './ThreeRayIntersectUtilities.js';
 
-export function intersectTris( geo, side, ray, offset, count, intersections ) {
+export function intersectTris( geo, side, ray, offset, count, indirectBuffer, intersections ) {
 
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		intersectTri( geo, side, ray, i, intersections );
+		const tri = i;
+		if ( indirectBuffer ) {
+
+			tri = indirectBuffer[ tri ];
+
+		}
+
+		intersectTri( geo, side, ray, tri, intersections );
 
 	}
 
 }
 
-export function intersectClosestTri( geo, side, ray, offset, count ) {
+export function intersectClosestTri( geo, side, ray, offset, count, indirectBuffer ) {
 
 	let dist = Infinity;
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		const intersection = intersectTri( geo, side, ray, i );
+		const tri = i;
+		if ( indirectBuffer ) {
+
+			tri = indirectBuffer[ tri ];
+
+		}
+
+		const intersection = intersectTri( geo, side, ray, tri );
 		if ( intersection && intersection.distance < dist ) {
 
 			res = intersection;
