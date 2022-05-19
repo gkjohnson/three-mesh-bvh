@@ -54,12 +54,14 @@ export class MeshBVH {
 		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
 		const indexAttribute = geometry.getIndex();
+		const indirectBuffer = bvh.indirectBuffer;
 		let result;
 		if ( options.cloneBuffers ) {
 
 			result = {
 				roots: rootData.map( root => root.slice() ),
-				index: indexAttribute.array.slice(),
+				index: indexAttribute ? indexAttribute.array.slice() : null,
+				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
 			};
 
 		} else {
@@ -67,6 +69,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData,
 				index: indexAttribute.array,
+				indirectBuffer: indirectBuffer,
 			};
 
 		}
@@ -96,9 +99,10 @@ export class MeshBVH {
 			...options,
 		};
 
-		const { index, roots } = data;
+		const { index, roots, indirectBuffer } = data;
 		const bvh = new MeshBVH( geometry, { ...options, [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
+		bvh.indirectBuffer = indirectBuffer;
 
 		if ( options.setIndex ) {
 

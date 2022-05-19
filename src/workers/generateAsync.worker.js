@@ -57,6 +57,19 @@ onmessage = function ( { data } ) {
 
 		const bvh = new MeshBVH( geometry, options );
 		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
+		const transferBuffers = serialized.roots.map( arr => arr.buffer );
+		transferBuffers.push( position.buffer );
+		if ( serialized.index ) {
+
+			transferBuffers.push( serialized.index.buffer );
+
+		}
+
+		if ( serialized.indirectBuffer ) {
+
+			transferBuffers.push( serialized.indirectBuffer.buffer );
+
+		}
 
 		postMessage( {
 
@@ -65,7 +78,7 @@ onmessage = function ( { data } ) {
 			position,
 			progress: 1,
 
-		}, [ serialized.index.buffer, position.buffer ] );
+		}, transferBuffers );
 
 	} catch ( error ) {
 
