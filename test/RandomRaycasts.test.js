@@ -165,3 +165,5 @@ describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { st
 
 describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
 describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
+
+describe( 'Random Indirect intersections', () => runRandomTests( { indirectBuffer: true } ) );

@@ -32,6 +32,7 @@ BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 runSuiteWithOptions( {} );
+runSuiteWithOptions( { indirectBuffer: true } );
 
 function runSuiteWithOptions( defaultOptions ) {
 
