@@ -3,7 +3,7 @@ import { MeshBVHNode } from './MeshBVHNode.js';
 import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByTriangleBounds } from '../utils/ArrayBoxUtilities.js';
 import {
 	CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST,
-	BYTES_PER_NODE, FLOAT32_EPSILON, IS_LEAFNODE_FLAG,
+	BYTES_PER_NODE, FLOAT32_EPSILON, IS_LEAFNODE_FLAG, INDIRECT_BUFFER,
 } from './Constants.js';
 
 function ensureIndex( geo, options ) {
@@ -189,7 +189,7 @@ function getCentroidBounds( triangleBounds, offset, count, centroidTarget ) {
 // reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 // will be on the left and elements on the right side of the split will be on the right. returns the index
 // of the first element on the right side, or offset + count if there are no elements on the right side.
-function partition( index, triangleBounds, offset, count, split ) {
+function partition( indirectBuffer, index, triangleBounds, offset, count, split ) {
 
 	let left = offset;
 	let right = offset + count - 1;
@@ -219,19 +219,29 @@ function partition( index, triangleBounds, offset, count, split ) {
 			// left and right; that's the verts in the geometry index, the bounds,
 			// and perhaps the SAH planes
 
-			for ( let i = 0; i < 3; i ++ ) {
+			if ( indirectBuffer ) {
 
-				let t0 = index[ left * 3 + i ];
-				index[ left * 3 + i ] = index[ right * 3 + i ];
-				index[ right * 3 + i ] = t0;
+				let t0 = index[ left ];
+				indirectBuffer[ left ] = indirectBuffer[ right ];
+				indirectBuffer[ right ] = t0;
 
-				let t1 = triangleBounds[ left * 6 + i * 2 + 0 ];
-				triangleBounds[ left * 6 + i * 2 + 0 ] = triangleBounds[ right * 6 + i * 2 + 0 ];
-				triangleBounds[ right * 6 + i * 2 + 0 ] = t1;
+			} else {
 
-				let t2 = triangleBounds[ left * 6 + i * 2 + 1 ];
-				triangleBounds[ left * 6 + i * 2 + 1 ] = triangleBounds[ right * 6 + i * 2 + 1 ];
-				triangleBounds[ right * 6 + i * 2 + 1 ] = t2;
+				for ( let i = 0; i < 3; i ++ ) {
+
+					let t0 = index[ left * 3 + i ];
+					index[ left * 3 + i ] = index[ right * 3 + i ];
+					index[ right * 3 + i ] = t0;
+
+					let t1 = triangleBounds[ left * 6 + i * 2 + 0 ];
+					triangleBounds[ left * 6 + i * 2 + 0 ] = triangleBounds[ right * 6 + i * 2 + 0 ];
+					triangleBounds[ right * 6 + i * 2 + 0 ] = t1;
+
+					let t2 = triangleBounds[ left * 6 + i * 2 + 1 ];
+					triangleBounds[ left * 6 + i * 2 + 1 ] = triangleBounds[ right * 6 + i * 2 + 1 ];
+					triangleBounds[ right * 6 + i * 2 + 1 ] = t2;
+
+				}
 
 			}
 
@@ -664,7 +674,7 @@ export function buildTree( geo, options ) {
 
 		}
 
-		const splitOffset = partition( indexArray, triangleBounds, offset, count, split );
+		const splitOffset = partition( indirectBuffer, indexArray, triangleBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
@@ -703,7 +713,12 @@ export function buildTree( geo, options ) {
 
 	}
 
-	ensureIndex( geo, options );
+	const indirectBuffer = options[ INDIRECT_BUFFER ];
+	if ( ! indirectBuffer ) {
+
+		ensureIndex( geo, options );
+
+	}
 
 	// Compute the full bounds of the geometry at the same time as triangle bounds because
 	// we'll need it for the root bounds in the case with no groups and it should be fast here.

@@ -1,5 +1,5 @@
 import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
-import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
+import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION, INDIRECT_BUFFER } from './Constants.js';
 import { buildPackedTree } from './buildFunctions.js';
 import {
 	raycast,
@@ -15,8 +15,6 @@ import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
 import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
-
-const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
@@ -144,6 +142,7 @@ export class MeshBVH {
 			verbose: true,
 			useSharedArrayBuffer: false,
 			setBoundingBox: true,
+			indirectBuffer: false,
 			onProgress: null,
 
 			// undocumented options
@@ -160,7 +159,23 @@ export class MeshBVH {
 		}
 
 		this._roots = null;
+		this.indirectBuffer = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
+
+			if ( options.indirectBuffer ) {
+
+				const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+				const indirectBuffer = triCount > 2 ** 16 ? new Uint32Array( triCount ) : new Uint16Array( triCount );
+				for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+
+					indirectBuffer[ i ] = i;
+
+				}
+
+				options[ INDIRECT_BUFFER ] = indirectBuffer;
+				this.indirectBuffer = indirectBuffer;
+
+			}
 
 			this._roots = buildPackedTree( geometry, options );
 
