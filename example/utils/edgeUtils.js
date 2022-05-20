@@ -145,6 +145,12 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 
 	};
 
+	if ( triangle.getArea() < 1e-10 ) {
+
+		return null;
+
+	}
+
 	if ( triangle.needsUpdate ) {
 
 		triangle.update();

@@ -153,10 +153,7 @@ function updateEdges() {
 					const d0 = tempVec0.length() / tempDir.length();
 					const d1 = tempVec1.length() / tempDir.length();
 
-					if ( d0 < 1e-10 && d1 - 1 < 1e-10 || d0 === d1 ) {
-
-
-					} else {
+					if ( ! ( d0 < 1e-10 && d1 - 1 < 1e-10 || d0 === d1 ) ) {
 
 						overlaps.push( [ d0, d1 ] );
 
