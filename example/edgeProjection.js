@@ -69,9 +69,13 @@ function init() {
 function updateEdges() {
 
 	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 90 );
+	const finalEdges = [];
 	const tempLine = new THREE.Line3();
 	const tempRay = new THREE.Ray();
 	const tempVec = new THREE.Vector3();
+	const tempVec0 = new THREE.Vector3();
+	const tempVec1 = new THREE.Vector3();
+	const tempDir = new THREE.Vector3();
 	let target = {
 		line: new THREE.Line3(),
 		point: new THREE.Vector3(),
@@ -91,6 +95,8 @@ function updateEdges() {
 		bvh.shapecast( {
 
 			intersectsBounds: box => {
+
+				return true;
 
 				// check if the box bounds are above the lowest line point
 				box.min.y = Math.min( lowestLineY, box.min.y );
@@ -138,22 +144,74 @@ function updateEdges() {
 
 				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'line' ) {
 
-					// TODO:
-					// - find the overlap by using directions and dot products
-					// - The overlap should fall entirely on the edge we're checking
+					// find the overlap by using directions and dot products
+					tempLine.delta( tempDir );
+					tempVec0.subVectors( target.line.start, tempLine.start );
+					tempVec1.subVectors( target.line.end, tempLine.start );
+
+
+					const d0 = tempDir.dot( tempVec0 );
+					const d1 = tempDir.dot( tempVec1 );
+
+					overlaps.push( [ d0, d1 ] );
 
 				}
+
+				return false;
 
 			},
 
 		} );
 
 		// TODO: construct a final set of lines by sorting & merging the overlap lines and taking only the bits that don't overlap
+		overlaps.sort( ( a, b ) => {
+
+			return a[ 0 ] < b[ 0 ];
+
+		} );
+
+		for ( let i = 1; i < overlaps.length; i ++ ) {
+
+			const overlap = overlaps[ i ];
+			const lastOverlap = overlaps[ i - 1 ];
+
+			if ( overlap[ 0 ] <= lastOverlap[ 1 ] ) {
+
+				if ( lastOverlap[ 1 ] > overlap[ 1 ] ) {
+
+					overlap[ 1 ] = lastOverlap[ 1 ];
+
+				}
+
+				overlaps.splice( i, 1 );
+				i --;
+				continue;
+
+			}
+
+		}
+
+		const invOverlaps = [[ 0, 0 ]];
+		for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
+
+			invOverlaps[ i ][ 1 ] = overlaps[ i ][ 0 ];
+			invOverlaps.push( [ overlaps[ i ][ 1 ], 1 ] );
+
+		}
+
+		for ( let i = 0, l = invOverlaps.length; i < l; i ++ ) {
+
+			const newLine = new THREE.Line3();
+			newLine.start.lerpVectors( tempLine.start, tempLine.end, invOverlaps[ i ][ 0 ] );
+			newLine.end.lerpVectors( tempLine.start, tempLine.end, invOverlaps[ i ][ 1 ] );
+			finalEdges.push( newLine );
+
+		}
 
 	}
 
 	const edgeArray = [];
-	edges.forEach( l => {
+	finalEdges.forEach( l => {
 
 		edgeArray.push( l.start.x, - 2, l.start.z );
 		edgeArray.push( l.end.x, - 2, l.end.z );
