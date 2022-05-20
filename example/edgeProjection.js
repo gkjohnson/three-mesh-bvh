@@ -142,6 +142,26 @@ function updateEdges() {
 				tri.c.y = 0;
 				tri.needsUpdate = true;
 
+				const triPoints = tri.points;
+				for ( let i = 0; i < 3; i ++ ) {
+
+					const ni = ( i + 1 ) % 3;
+
+					const t0 = triPoints[ i ];
+					const t1 = triPoints[ ni ];
+
+					if (
+						tempLine.start.distanceTo( t0 ) < 1e-10 && tempLine.end.distanceTo( t1 ) < 1e-10 ||
+						tempLine.start.distanceTo( t1 ) < 1e-10 && tempLine.end.distanceTo( t0 ) < 1e-10
+					) {
+
+						return false;
+
+					}
+
+
+				}
+
 				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'line' ) {
 
 					// TODO: we need to make sure the d0 and 1 are always small -> large
@@ -153,7 +173,7 @@ function updateEdges() {
 					const d0 = tempVec0.length() / tempDir.length();
 					const d1 = tempVec1.length() / tempDir.length();
 
-					if ( ! ( d0 < 1e-10 && d1 - 1 < 1e-10 || d0 === d1 ) ) {
+					if ( ! ( Math.abs( d0 - d1 ) < 1e-10 ) ) {
 
 						overlaps.push( [ d0, d1 ] );
 
