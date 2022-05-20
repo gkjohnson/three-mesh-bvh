@@ -8,7 +8,8 @@ const params = {
 
 };
 
-let renderer, camera, scene, model, clock, gui, helper, group, controls;
+let renderer, camera, scene, model, clock, gui, helper, controls;
+let bvh;
 
 init();
 render();
@@ -36,6 +37,8 @@ function init() {
 
 	model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry() );
 	scene.add( model );
+
+	bvh = new MeshBVH( model.geometry );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -66,7 +69,6 @@ function init() {
 function updateEdges() {
 
 	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 90 );
-	const edgeGeom = new THREE.BufferGeometry();
 
 	const edgeArray = [];
 	edges.forEach( l => {
@@ -75,6 +77,7 @@ function updateEdges() {
 		edgeArray.push( l.end.x, - 2, l.end.z );
 
 	} );
+	const edgeGeom = new THREE.BufferGeometry();
 	const edgeBuffer = new THREE.BufferAttribute( new Float32Array( edgeArray ), 3, true );
 	edgeGeom.setAttribute( 'position', edgeBuffer );
 	scene.add( new THREE.LineSegments( edgeGeom, new THREE.LineBasicMaterial( { color: 0 } ) ) );
