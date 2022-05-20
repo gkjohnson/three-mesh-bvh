@@ -198,7 +198,7 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 		if ( intersectCount === 2 ) {
 
 			// find the intersect line if any
-			_line0._delta( _dir0 );
+			_line0.delta( _dir0 );
 			_line1.delta( _dir1 );
 
 			// swap edges so they're facing in the same direction

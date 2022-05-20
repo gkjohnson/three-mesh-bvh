@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MeshBVH, ExtendedTriangle } from '..';
-import { generateEdges } from './utils/edgeUtils.js';
+import { generateEdges, lineIntersectTrianglePoint } from './utils/edgeUtils.js';
 
 const params = {
 
@@ -69,26 +69,86 @@ function init() {
 function updateEdges() {
 
 	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 90 );
+	const tempLine = new THREE.Line3();
+	const tempRay = new THREE.Ray();
+	const tempVec = new THREE.Vector3();
+	let target = {
+		line: new THREE.Line3(),
+		point: new THREE.Vector3(),
+		type: '',
+	};
 
 	// TODO: iterate over all edges and check visibility upwards using BVH
 	for ( let i = 0, l = edges.length; i < l; i ++ ) {
 
 		const line = edges[ i ];
-		// bvh.shapecast( {
+		line.start.y += 1e-5;
+		line.end.y += 1e-5;
 
-			// TODO: check if the box bounds are above the lowest line point
+		const lowestLineY = Math.min( line.start.y, line.end.y );
+		const highestLineY = Math.max( line.start.y, line.end.y );
+		const overlaps = [];
+		bvh.shapecast( {
 
-			// TODO:
-			// - track the parts of the line that are covered in an array
-			// - skip the triangle if it is completely below the line
-			// - check if the line intersects the triangle
-			//   - if it intersects at a point then shorten the edge to check to the edge the falls below the line
-			// - construct a coplanar line and triangle (set y to a common value) and check for overlap
-			// - add the overlap to an array
+			intersectsBounds: box => {
 
-		// } );
+				// check if the box bounds are above the lowest line point
+				box.min.y = Math.min( lowestLineY, box.min.y );
+				tempRay.origin.copy( line.start );
+				line.delta( tempRay.direction );
 
-		// construct a final set of lines by sorting & merging the overlap lines and taking only the bits that don't overlap
+				tempRay.intersectsBox( box, tempVec );
+				return line.start.distanceToSquared( tempVec ) < line.distanceSq();
+
+			},
+
+			intersectsTriangle: tri => {
+
+				// skip the triangle if it is completely below the line
+				const highestTriangleY = Math.max( tri.a.y, tri.b.y, tri.c.y );
+				if ( highestTriangleY < lowestLineY ) {
+
+					return false;
+
+				}
+
+				tempLine.copy( line );
+				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'point' ) {
+
+					// shorten the edge to check to the line the falls below the triangle
+					if ( tempLine.start.y > target.point.y ) {
+
+						tempLine.start.copy( target.point );
+
+					} else {
+
+						tempLine.end.copy( target.point );
+
+					}
+
+				}
+
+				// flatten them to a common plane
+				tempLine.start.y = 0;
+				tempLine.end.y = 0;
+				tri.a.y = 0;
+				tri.b.y = 0;
+				tri.c.y = 0;
+				tri.needsUpdate = true;
+
+				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'line' ) {
+
+					// TODO:
+					// - find the overlap by using directions and dot products
+					// - The overlap should fall entirely on the edge we're checking
+
+				}
+
+			},
+
+		} );
+
+		// TODO: construct a final set of lines by sorting & merging the overlap lines and taking only the bits that don't overlap
 
 	}
 
