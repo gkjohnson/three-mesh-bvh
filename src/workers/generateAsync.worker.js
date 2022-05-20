@@ -65,7 +65,7 @@ onmessage = function ( { data } ) {
 			position,
 			progress: 1,
 
-		}, [ serialized.index.buffer, position.buffer ] );
+		}, [ serialized.index.buffer, position.buffer, ...serialized.roots ] );
 
 	} catch ( error ) {
 
