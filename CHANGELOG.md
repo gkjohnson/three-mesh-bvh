@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - GenerateMeshBVHWorker.generate: reject when class has been disposed of or error is thrown in worker.
+- GenerateMeshBVHWorker: ensure the root array buffers ate transfered when finishing the result.
 
 ## [0.5.10] - 2022-04-15
 ### Added
