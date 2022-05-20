@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Async BVH Generation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+			font-family: monospace;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#output {
+			color: #956b00;
+			position: absolute;
+			left: 10px;
+			bottom: 10px;
+			white-space: pre;
+		}
+
+		#loading-container {
+			position: fixed;
+			bottom: 0;
+			width: 100%;
+			visibility: hidden;
+		}
+
+		#loading-container .text {
+			color: #956b00;
+			text-align: center;
+		}
+
+		#loading-container .bar {
+			height: 5px;
+			background: #956b00;
+			width: 50%;
+		}
+
+    </style>
+</head>
+<body>
+    <script type="module" src="./edgeProjection.js"></script>
+</body>
+</html>
