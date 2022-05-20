@@ -144,16 +144,23 @@ function updateEdges() {
 
 				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'line' ) {
 
+					// TODO: we need to make sure the d0 and 1 are always small -> large
 					// find the overlap by using directions and dot products
 					tempLine.delta( tempDir );
 					tempVec0.subVectors( target.line.start, tempLine.start );
 					tempVec1.subVectors( target.line.end, tempLine.start );
 
+					const d0 = tempVec0.length() / tempDir.length();
+					const d1 = tempVec1.length() / tempDir.length();
 
-					const d0 = tempDir.dot( tempVec0 );
-					const d1 = tempDir.dot( tempVec1 );
+					if ( d0 < 1e-10 && d1 - 1 < 1e-10 || d0 === d1 ) {
 
-					overlaps.push( [ d0, d1 ] );
+
+					} else {
+
+						overlaps.push( [ d0, d1 ] );
+
+					}
 
 				}
 
@@ -163,10 +170,9 @@ function updateEdges() {
 
 		} );
 
-		// TODO: construct a final set of lines by sorting & merging the overlap lines and taking only the bits that don't overlap
 		overlaps.sort( ( a, b ) => {
 
-			return a[ 0 ] < b[ 0 ];
+			return a[ 0 ] - b[ 0 ];
 
 		} );
 
@@ -191,7 +197,7 @@ function updateEdges() {
 
 		}
 
-		const invOverlaps = [[ 0, 0 ]];
+		const invOverlaps = [[ 0, 1 ]];
 		for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
 
 			invOverlaps[ i ][ 1 ] = overlaps[ i ][ 0 ];
@@ -202,8 +208,8 @@ function updateEdges() {
 		for ( let i = 0, l = invOverlaps.length; i < l; i ++ ) {
 
 			const newLine = new THREE.Line3();
-			newLine.start.lerpVectors( tempLine.start, tempLine.end, invOverlaps[ i ][ 0 ] );
-			newLine.end.lerpVectors( tempLine.start, tempLine.end, invOverlaps[ i ][ 1 ] );
+			newLine.start.lerpVectors( line.start, line.end, invOverlaps[ i ][ 0 ] );
+			newLine.end.lerpVectors( line.start, line.end, invOverlaps[ i ][ 1 ] );
 			finalEdges.push( newLine );
 
 		}

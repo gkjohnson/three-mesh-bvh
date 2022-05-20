@@ -163,8 +163,8 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 	if ( areCoplanar ) {
 
 		// a plane that's orthogonal to the triangle that the line lies on
-		_v0.cross( plane.normal ).normalize();
-		_orthoPlane.setFromNormalAndCoplanarPoint( _v0, _line0.start );
+		_dir0.cross( plane.normal ).normalize();
+		_orthoPlane.setFromNormalAndCoplanarPoint( _dir0, _line0.start );
 
 		// find the line of intersection of the triangle along the plane if it exists
 		let intersectCount = 0;
@@ -175,7 +175,7 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 
 			_tempLine.start.copy( p1 );
 			_tempLine.end.copy( p2 );
-			if ( _orthoPlane.distanceToPoint( _tempLine.start ) === 0 ) {
+			if ( _orthoPlane.distanceToPoint( _tempLine.end ) === 0 && _orthoPlane.distanceToPoint( _tempLine.start ) === 0 ) {
 
 				// if the edge lies on the plane then take the line
 				_line1.copy( _tempLine );
@@ -211,12 +211,13 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 			}
 
 			// check if the edges are overlapping
-			const s1 = line.start.dot( _dir0 );
-			const e1 = line.end.dot( _dir0 );
+			const s1 = _line0.start.dot( _dir0 );
+			const e1 = _line0.end.dot( _dir0 );
 			const s2 = _line1.start.dot( _dir0 );
 			const e2 = _line1.end.dot( _dir0 );
 			const separated1 = e1 < s2;
 			const separated2 = s1 < e2;
+
 			if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
 
 				return null;
