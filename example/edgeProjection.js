@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MeshBVH, ExtendedTriangle } from '..';
-import { generateEdges, lineIntersectTrianglePoint } from './utils/edgeUtils.js';
+import { generateEdges, lineIntersectTrianglePoint, getTriYAtPoint } from './utils/edgeUtils.js';
 
 const params = {
 
@@ -35,8 +35,24 @@ function init() {
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
 
-	model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry() );
+	// model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( undefined, undefined, 15, 5 ) );
+	// model = new THREE.Mesh( new THREE.RingGeometry( undefined, undefined, 20 ) );
+	model = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1, 5, 5, 5 ), new THREE.MeshStandardMaterial( { side: 2 }) );
+	model.geometry.rotateX( - Math.PI / 3 ).rotateZ( - Math.PI / 3 );
+	model.geometry.clearGroups();
+	// model.geometry.index = new THREE.BufferAttribute( new Uint32Array( [  14, 15, 13, 16, 18, 17, 18, 19, 17 ] ), 1 );
+	// model.geometry = model.geometry.toNonIndexed();
+	console.log( model.geometry.attributes.position.array )
 	scene.add( model );
+
+// 0, 2, 1, 2, 3, 1,
+// 4, 6, 5, 6, 7, 5,
+// 8, 10, 9, 10, 11, 9,
+// 12, 14, 13, 14, 15, 13
+// 22,23,21,20,22,21
+// 16, 18, 17, 18, 19, 17
+
+	console.log( model )
 
 	bvh = new MeshBVH( model.geometry );
 
@@ -64,11 +80,96 @@ function init() {
 
 	}, false );
 
+	scene.add( new THREE.AxesHelper ())
+
 }
 
 function updateEdges() {
 
-	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 90 );
+	// // const a = new THREE.Vector3( - 1, 0, - 1 );
+	// // const b = new THREE.Vector3( 1, 0, - 1 );
+	// // const c = new THREE.Vector3( 0, 0, 1 );
+
+	// // const a = new THREE.Vector3( -0.40849366784095764, 0, -0.6830127239227295 );
+	// // const b = new THREE.Vector3( -0.8415063619613647, 0, 0.1830127090215683 );
+	// // const c = new THREE.Vector3( 0.34150636196136475, 0, -0.1830127090215683 );
+
+	// const a = new THREE.Vector3( -0.09150634706020355, 0, 0.6830127239227295 );
+	// const b = new THREE.Vector3( 0.40849366784095764, 0, 0.6830127239227295 );
+	// const c = new THREE.Vector3( 0.8415063619613647, 0, -0.1830127090215683 );
+
+	// const l = new THREE.Line3();
+	// l.start.set( 2, - 1, - 2.5 );
+	// l.end.set( - 2, - 1, 0.5 );
+
+	// l.start.set( -0.34150636196136475, 0, 0.1830127090215683 );
+	// l.end.set( 0.40849042024572324, 0, 0.6830105588592614 );
+	// l.start.y = 0;
+	// l.end.y = 0;
+
+	// const edgeArray = [
+	// 	a.x, a.y, a.z,
+	// 	b.x, b.y, b.z,
+
+	// 	a.x, a.y, a.z,
+	// 	c.x, c.y, c.z,
+
+	// 	b.x, b.y, b.z,
+	// 	c.x, c.y, c.z,
+
+	// 	l.start.x, l.start.y, l.start.z,
+	// 	l.end.x, l.end.y, l.end.z,
+	// ];
+
+
+	// const tri = new ExtendedTriangle( a, b, c );
+	// tri.needsUpdate = true;
+
+	// // debugger
+	// const target = lineIntersectTrianglePoint( l, tri );
+	// edgeArray.push(
+	// 	target.line.start.x, 1, target.line.start.z,
+	// 	target.line.end.x, 1, target.line.end.z,
+	// );
+
+	// const tempVec0 = new THREE.Vector3();
+	// const tempVec1 = new THREE.Vector3();
+	// const tempDir = new THREE.Vector3();
+
+	// // find the overlap by using directions and dot products
+	// l.delta( tempDir );
+	// tempVec0.subVectors( target.line.start, l.start );
+	// tempVec1.subVectors( target.line.end, l.start );
+
+	// const d0 = tempVec0.length() / tempDir.length();
+	// const d1 = tempVec1.length() / tempDir.length();
+
+
+	// console.log( d0, d1 );
+
+	// tempVec0.lerpVectors( l.start, l.end, d0 );
+	// edgeArray.push( tempVec0.x, 2, tempVec0.z );
+
+	// tempVec0.lerpVectors( l.start, l.end, d1 );
+	// edgeArray.push( tempVec0.x, 2, tempVec0.z );
+
+	// console.log( d0, d1 );
+
+
+
+	// const edgeGeom = new THREE.BufferGeometry();
+	// const edgeBuffer = new THREE.BufferAttribute( new Float32Array( edgeArray ), 3, true );
+	// edgeGeom.setAttribute( 'position', edgeBuffer );
+	// scene.add( new THREE.LineSegments( edgeGeom, new THREE.LineBasicMaterial( { color: 0 } ) ) );
+
+
+
+
+
+
+
+
+	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 89 );
 	const finalEdges = [];
 	const tempLine = new THREE.Line3();
 	const tempRay = new THREE.Ray();
@@ -79,6 +180,7 @@ function updateEdges() {
 	let target = {
 		line: new THREE.Line3(),
 		point: new THREE.Vector3(),
+		planeHit: new THREE.Vector3(),
 		type: '',
 	};
 
@@ -92,6 +194,7 @@ function updateEdges() {
 		const lowestLineY = Math.min( line.start.y, line.end.y );
 		const highestLineY = Math.max( line.start.y, line.end.y );
 		const overlaps = [];
+		let tris = 0;
 		bvh.shapecast( {
 
 			intersectsBounds: box => {
@@ -112,23 +215,108 @@ function updateEdges() {
 
 				// skip the triangle if it is completely below the line
 				const highestTriangleY = Math.max( tri.a.y, tri.b.y, tri.c.y );
+
 				if ( highestTriangleY < lowestLineY ) {
 
 					return false;
 
 				}
 
+				// if this is the same line as on the triangle then skip it
+				const triPoints = tri.points;
+				for ( let i = 0; i < 3; i ++ ) {
+
+					const ni = ( i + 1 ) % 3;
+
+					const t0 = triPoints[ i ];
+					const t1 = triPoints[ ni ];
+
+					if (
+						line.start.distanceTo( t0 ) < 1e-10 && line.end.distanceTo( t1 ) < 1e-10 ||
+						line.start.distanceTo( t1 ) < 1e-10 && line.end.distanceTo( t0 ) < 1e-10
+					) {
+
+						return false;
+
+					}
+
+
+				}
+
 				tempLine.copy( line );
 				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'point' ) {
 
-					// shorten the edge to check to the line the falls below the triangle
-					if ( tempLine.start.y > target.point.y ) {
 
-						tempLine.start.copy( target.point );
+					const point = new THREE.Vector3();
+					const p = new THREE.Vector3();
+
+					let testPoint;
+					let flipped = false;
+					if ( tempLine.start.distanceTo( target.point ) > tempLine.end.distanceTo( target.point ) ) {
+
+						testPoint = tempLine.start;
 
 					} else {
 
-						tempLine.end.copy( target.point );
+						testPoint = tempLine.end;
+						flipped = true;
+
+					}
+
+					point.lerpVectors( testPoint, target.point, 0.5 );
+					getTriYAtPoint( tri, point, p );
+
+					console.log( testPoint.distanceTo( target.point ) );
+
+
+					// console.log( p.y < point.y, target.point.distanceTo( tempLine.start ), target.point.distanceTo( tempLine.end ) )
+					if ( p.y < point.y ) {
+
+						if ( flipped ) tempLine.end.copy( target.point );
+						else tempLine.start.copy( target.point );
+
+					} else {
+
+						if ( flipped ) tempLine.start.copy( target.point );
+						else tempLine.end.copy( target.point );
+
+					}
+
+					// debugger
+					console.log( target )
+
+					// console.log( p.y < point.y, target.point.distanceTo( tempLine.start ), target.point.distanceTo( tempLine.end ) )
+
+					// console.log( tempLine.distance() )
+
+
+
+					// tempLine.delta( tempDir );
+
+					// // shorten the edge to check to the line the falls below the triangle
+					// if ( Math.sign( tri.plane.normal.dot( tempDir ) ) > 0 ) {
+
+					// 	tempLine.start.copy( target.point );
+
+					// } else {
+
+					// 	tempLine.end.copy( target.point );
+
+					// }
+
+					// console.log( tempLine );
+
+				} else {
+
+					const point = new THREE.Vector3();
+					const p = new THREE.Vector3();
+
+					point.lerpVectors( tempLine.start, tempLine.end, 0.5 );
+					getTriYAtPoint( tri, point, p );
+
+					if ( p.y < point.y ) {
+
+						return false;
 
 					}
 
@@ -141,26 +329,6 @@ function updateEdges() {
 				tri.b.y = 0;
 				tri.c.y = 0;
 				tri.needsUpdate = true;
-
-				const triPoints = tri.points;
-				for ( let i = 0; i < 3; i ++ ) {
-
-					const ni = ( i + 1 ) % 3;
-
-					const t0 = triPoints[ i ];
-					const t1 = triPoints[ ni ];
-
-					if (
-						tempLine.start.distanceTo( t0 ) < 1e-10 && tempLine.end.distanceTo( t1 ) < 1e-10 ||
-						tempLine.start.distanceTo( t1 ) < 1e-10 && tempLine.end.distanceTo( t0 ) < 1e-10
-					) {
-
-						return false;
-
-					}
-
-
-				}
 
 				if ( lineIntersectTrianglePoint( tempLine, tri, target ) && target.type === 'line' ) {
 
@@ -187,25 +355,23 @@ function updateEdges() {
 
 		} );
 
+		console.log( overlaps )
+
 		overlaps.sort( ( a, b ) => {
 
 			return a[ 0 ] - b[ 0 ];
 
 		} );
 
+
 		for ( let i = 1; i < overlaps.length; i ++ ) {
 
 			const overlap = overlaps[ i ];
-			const lastOverlap = overlaps[ i - 1 ];
+			const prevOverlap = overlaps[ i - 1 ];
 
-			if ( overlap[ 0 ] <= lastOverlap[ 1 ] ) {
+			if ( overlap[ 0 ] <= prevOverlap[ 1 ] ) {
 
-				if ( lastOverlap[ 1 ] > overlap[ 1 ] ) {
-
-					overlap[ 1 ] = lastOverlap[ 1 ];
-
-				}
-
+				prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
 				overlaps.splice( i, 1 );
 				i --;
 				continue;

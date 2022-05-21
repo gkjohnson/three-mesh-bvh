@@ -141,6 +141,7 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 
 		line: new Line3(),
 		point: new Vector3(),
+		planeHit: new Vector3(),
 		type: '',
 
 	};
@@ -188,7 +189,24 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 				intersectCount = 2;
 				break;
 
-			} else if ( _orthoPlane.intersectLine( _tempLine, intersectCount !== 0 ? _line1.start : _line1.end ) ) {
+			} else if ( _orthoPlane.intersectLine( _tempLine, intersectCount === 0 ? _line1.start : _line1.end ) ) {
+
+				let p;
+				if ( intersectCount === 0 ) {
+
+					p = _line1.start;
+
+				} else {
+
+					p = _line1.end;
+
+				}
+
+				if ( p.distanceTo( p2 ) === 0.0 ) {
+
+					continue;
+
+				}
 
 				intersectCount ++;
 				if ( intersectCount === 2 ) {
@@ -204,8 +222,8 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 		if ( intersectCount === 2 ) {
 
 			// find the intersect line if any
-			_line0.delta( _dir0 );
-			_line1.delta( _dir1 );
+			_line0.delta( _dir0 ).normalize();
+			_line1.delta( _dir1 ).normalize();
 
 			// swap edges so they're facing in the same direction
 			if ( _dir0.dot( _dir1 ) < 0 ) {
@@ -262,6 +280,7 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 
 		// find the point that the line intersects the plane on
 		const doesLineIntersect = triangle.plane.intersectLine( line, pointTarget );
+		target.planeHit.copy( pointTarget );
 		if ( doesLineIntersect ) {
 
 			let totAngle = 0;
@@ -290,5 +309,35 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 	}
 
 	return null;
+
+}
+
+export function getLineYAtPoint( line, point ) {
+
+	let interp;
+	if ( Math.abs( line.start.x - line.end.x ) < 1e-4 ) {
+
+		interp = ( point.x - line.start.x ) / ( line.end.x - line.start.x );
+
+	} else {
+
+		interp = ( point.y - line.start.y ) / ( line.end.y - line.start.y );
+
+	}
+
+	return MathUtils.lerp( line.start.y, line.end.y, interp );
+
+}
+
+export function getTriYAtPoint( tri, point, target = null ) {
+
+	const tl = new Line3();
+	tl.start.copy( point );
+	tl.end.copy( point );
+
+	tl.start.y += 1e4;
+	tl.end.y -= 1e4;
+
+	tri.plane.intersectLine( tl, target );
 
 }
