@@ -416,7 +416,7 @@ export const getProjectedOverlaps = ( function () {
 
 			if ( ! ( Math.abs( d0 - d1 ) <= EPSILON ) ) {
 
-				overlapsTarget.push( [ d0, d1 ] );
+				overlapsTarget.push( new Float32Array( [ d0, d1 ] ) );
 
 			}
 
@@ -512,54 +512,68 @@ export const trimToBeneathTriPlane = ( function () {
 } )();
 
 // Converts the given array of overlaps into line segments
-export function overlapsToLines( line, overlaps, target = [] ) {
+export const overlapsToLines = ( function () {
 
-	overlaps = [ ...overlaps ];
+	const newLine = new Line3();
 
-	overlaps.sort( ( a, b ) => {
+	return function overlapsToLines( line, overlaps, target = [] ) {
 
-		return a[ 0 ] - b[ 0 ];
+		overlaps = [ ...overlaps ];
 
-	} );
+		overlaps.sort( ( a, b ) => {
 
-	for ( let i = 1; i < overlaps.length; i ++ ) {
+			return a[ 0 ] - b[ 0 ];
 
-		const overlap = overlaps[ i ];
-		const prevOverlap = overlaps[ i - 1 ];
+		} );
 
-		if ( overlap[ 0 ] <= prevOverlap[ 1 ] ) {
+		for ( let i = 1; i < overlaps.length; i ++ ) {
 
-			prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
-			overlaps.splice( i, 1 );
-			i --;
+			const overlap = overlaps[ i ];
+			const prevOverlap = overlaps[ i - 1 ];
+
+			if ( overlap[ 0 ] <= prevOverlap[ 1 ] ) {
+
+				prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
+				overlaps.splice( i, 1 );
+				i --;
+
+			}
 
 		}
 
-	}
+		const invOverlaps = [[ 0, 1 ]];
+		for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
 
-	const invOverlaps = [[ 0, 1 ]];
-	for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
+			const invOverlap = invOverlaps[ i ];
+			const overlap = overlaps[ i ];
+			invOverlap[ 1 ] = overlap[ 0 ];
+			invOverlaps.push( new Float32Array( [ overlap[ 1 ], 1 ] ) );
 
-		const invOverlap = invOverlaps[ i ];
-		const overlap = overlaps[ i ];
-		invOverlap[ 1 ] = overlap[ 0 ];
-		invOverlaps.push( [ overlap[ 1 ], 1 ] );
+		}
 
-	}
+		for ( let i = 0, l = invOverlaps.length; i < l; i ++ ) {
 
-	for ( let i = 0, l = invOverlaps.length; i < l; i ++ ) {
+			const { start, end } = line;
+			newLine.start.lerpVectors( start, end, invOverlaps[ i ][ 0 ] );
+			newLine.end.lerpVectors( start, end, invOverlaps[ i ][ 1 ] );
 
-		const { start, end } = line;
-		const newLine = new Line3();
-		newLine.start.lerpVectors( start, end, invOverlaps[ i ][ 0 ] );
-		newLine.end.lerpVectors( start, end, invOverlaps[ i ][ 1 ] );
-		target.push( newLine );
+			target.push( new Float32Array( [
+				newLine.start.x,
+				newLine.start.y,
+				newLine.start.z,
 
-	}
+				newLine.end.x,
+				newLine.end.y,
+				newLine.end.z,
+			] ) );
 
-	return target;
+		}
 
-}
+		return target;
+
+	};
+
+} )();
 
 // converts the given list of edges to a line segments geometry
 export function edgesToGeometry( edges, y = null ) {
@@ -569,12 +583,12 @@ export function edgesToGeometry( edges, y = null ) {
 	for ( let i = 0, l = edges.length; i < l; i ++ ) {
 
 		const line = edges[ i ];
-		edgeArray[ c ++ ] = line.start.x;
-		edgeArray[ c ++ ] = y === null ? line.start.y : y;
-		edgeArray[ c ++ ] = line.start.z;
-		edgeArray[ c ++ ] = line.end.x;
-		edgeArray[ c ++ ] = y === null ? line.end.y : y;
-		edgeArray[ c ++ ] = line.end.z;
+		edgeArray[ c ++ ] = line[ 0 ];
+		edgeArray[ c ++ ] = y === null ? line[ 1 ] : y;
+		edgeArray[ c ++ ] = line[ 2 ];
+		edgeArray[ c ++ ] = line[ 3 ];
+		edgeArray[ c ++ ] = y === null ? line[ 4 ] : y;
+		edgeArray[ c ++ ] = line[ 5 ];
 
 	}
 
