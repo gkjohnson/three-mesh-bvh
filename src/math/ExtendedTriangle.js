@@ -14,7 +14,7 @@ export class ExtendedTriangle extends Triangle {
 		this.points = [ this.a, this.b, this.c ];
 		this.sphere = new Sphere();
 		this.plane = new Plane();
-		this.needsUpdate = false;
+		this.needsUpdate = true;
 
 	}
 
