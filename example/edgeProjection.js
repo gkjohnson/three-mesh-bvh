@@ -162,6 +162,15 @@ function updateEdges() {
 				}
 
 				getProjectedOverlaps( tri, tempLine, overlaps );
+
+				// if we're hiding the edge entirely now then skip further checks
+				if ( overlaps.length !== 0 ) {
+
+					const [ d0, d1 ] = overlaps[ overlaps.length - 1 ];
+					return d0 === 0.0 && d1 === 1.0;
+
+				}
+
 				return false;
 
 			},
