@@ -19,10 +19,23 @@ const params = {
 	displayModel: true,
 	displayEdges: false,
 	displayProjection: true,
+	rotate: () => {
+
+		group.quaternion.random();
+		group.position.set( 0, 0, 0 );
+		group.updateMatrixWorld( true );
+
+		const box = new THREE.Box3();
+		box.setFromObject( group, true );
+		box.getCenter( group.position ).multiplyScalar( - 1 );
+		group.position.y = Math.max( 1, - box.min.y );
+
+	},
+	regenerate: () => updateEdges(),
 };
 
 let renderer, camera, scene, gui, controls;
-let lines, model, projection;
+let lines, model, projection, group;
 let outputContainer;
 
 init();
@@ -44,23 +57,27 @@ async function init() {
 	// scene setup
 	scene = new THREE.Scene();
 
+	// lights
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 2, 3 );
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
 
-	const group = new THREE.Group();
+	// load model
+	group = new THREE.Group();
 	scene.add( group );
 
 	const gltf = await new GLTFLoader().loadAsync( new URL( './models/tables_and_chairs.gltf', import.meta.url ).toString() );
 	model = gltf.scene;
 
+	// center model
 	const box = new THREE.Box3();
 	box.setFromObject( model );
 	box.getCenter( group.position ).multiplyScalar( - 1 );
 	group.position.y += 1;
 	group.add( model );
 
+	// generate geometry line segments
 	lines = new THREE.Group();
 	model.traverse( c => {
 
@@ -74,6 +91,7 @@ async function init() {
 	} );
 	group.add( lines );
 
+	// create projection display mesh
 	projection = new THREE.LineSegments( new THREE.BufferGeometry(), new THREE.LineBasicMaterial( { color: 0 } ) );
 	scene.add( projection );
 
@@ -88,13 +106,10 @@ async function init() {
 	gui.add( params, 'displayModel' );
 	gui.add( params, 'displayEdges' );
 	gui.add( params, 'displayProjection' );
+	gui.add( params, 'rotate' );
+	gui.add( params, 'regenerate' );
 
-	console.time( 'TEST' );
 	updateEdges();
-	console.timeEnd( 'TEST' );
-
-	// scene.add( new THREE.LineSegments( new THREE.EdgesGeometry( model.geometry ), new THREE.LineBasicMaterial( { color: 0 } ) ) );
-
 
 	window.addEventListener( 'resize', function () {
 
@@ -105,13 +120,13 @@ async function init() {
 
 	}, false );
 
-	// scene.add( new THREE.AxesHelper ())
 	render();
 
 }
 
 function updateEdges() {
 
+	// transform and merge geometries to project into a single model
 	let timeStart = window.performance.now();
 	const geometries = [];
 	model.updateWorldMatrix( true, true );
@@ -129,14 +144,17 @@ function updateEdges() {
 	const mergedGeometry = mergeBufferGeometries( geometries, false );
 	const mergeTime = window.performance.now() - timeStart;
 
+	// generate the bvh for acceleration
 	timeStart = window.performance.now();
 	const bvh = new MeshBVH( mergedGeometry );
 	const bvhTime = window.performance.now() - timeStart;
 
+	// generate the candidtate edges
 	timeStart = window.performance.now();
 	const edges = generateEdges( mergedGeometry, new THREE.Vector3( 0, 1, 0 ), 50 );
 	const edgeGenerateTime = window.performance.now() - timeStart;
 
+	// trim the candidate edges
 	const finalEdges = [];
 	const tempLine = new THREE.Line3();
 	const tempRay = new THREE.Ray();

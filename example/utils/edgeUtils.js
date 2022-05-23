@@ -14,7 +14,7 @@ const _line1 = new Line3();
 const _tempLine = new Line3();
 const _upVector = new Vector3( 0, 1, 0 );
 const _tri = new ExtendedTriangle();
-const EPSILON = 1e-10;
+const EPSILON = 1e-16;
 
 // Modified version of js EdgesGeometry logic to handle silhouette edges
 export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
@@ -148,7 +148,7 @@ export function getOverlappingLine( line, triangle, lineTarget = new Line3() ) {
 	}
 
 	// if the triangle is degenerate then return no overlap
-	if ( triangle.getArea() < EPSILON ) {
+	if ( triangle.getArea() <= EPSILON ) {
 
 		return null;
 
@@ -314,7 +314,7 @@ export function isYProjectedTriangleDegenerate( tri ) {
 
 	}
 
-	return Math.abs( tri.plane.normal.dot( _upVector ) ) < EPSILON;
+	return Math.abs( tri.plane.normal.dot( _upVector ) ) <= EPSILON;
 
 }
 
@@ -328,13 +328,13 @@ export function isLineTriangleEdge( tri, line ) {
 
 		const { start, end } = line;
 		const tp = triPoints[ i ];
-		if ( start.distanceToSquared( tp ) < EPSILON ) {
+		if ( start.distanceToSquared( tp ) <= EPSILON ) {
 
 			matches ++;
 
 		}
 
-		if ( end.distanceToSquared( tp ) < EPSILON ) {
+		if ( end.distanceToSquared( tp ) <= EPSILON ) {
 
 			matches ++;
 
@@ -381,7 +381,7 @@ export const getProjectedOverlaps = ( function () {
 			const d0 = _tempVec0.length() / _tempDir.length();
 			const d1 = _tempVec1.length() / _tempDir.length();
 
-			if ( ! ( Math.abs( d0 - d1 ) < EPSILON ) ) {
+			if ( ! ( Math.abs( d0 - d1 ) <= EPSILON ) ) {
 
 				overlapsTarget.push( [ d0, d1 ] );
 
