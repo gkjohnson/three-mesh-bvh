@@ -13,6 +13,7 @@ import {
 	overlapsToLines,
 	getProjectedOverlaps,
 	isYProjectedLineDegenerate,
+	compressEdgeOverlaps,
 } from './utils/edgeUtils.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
@@ -288,7 +289,13 @@ function* updateEdges( runTime = 30 ) {
 
 				}
 
-				getProjectedOverlaps( tri, line, overlaps );
+				// compress the edge overlaps so we can easily tell if the whole edge is hidden already
+				// and exit early
+				if ( getProjectedOverlaps( tri, line, overlaps ) ) {
+
+					compressEdgeOverlaps( overlaps );
+
+				}
 
 				// if we're hiding the edge entirely now then skip further checks
 				if ( overlaps.length !== 0 ) {

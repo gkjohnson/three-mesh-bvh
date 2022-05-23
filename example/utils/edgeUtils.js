@@ -420,9 +420,11 @@ export const getProjectedOverlaps = ( function () {
 
 			}
 
+			return true;
+
 		}
 
-		return overlapsTarget;
+		return false;
 
 	};
 
@@ -518,28 +520,7 @@ export const overlapsToLines = ( function () {
 
 	return function overlapsToLines( line, overlaps, target = [] ) {
 
-		overlaps = [ ...overlaps ];
-
-		overlaps.sort( ( a, b ) => {
-
-			return a[ 0 ] - b[ 0 ];
-
-		} );
-
-		for ( let i = 1; i < overlaps.length; i ++ ) {
-
-			const overlap = overlaps[ i ];
-			const prevOverlap = overlaps[ i - 1 ];
-
-			if ( overlap[ 0 ] <= prevOverlap[ 1 ] ) {
-
-				prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
-				overlaps.splice( i, 1 );
-				i --;
-
-			}
-
-		}
+		compressEdgeOverlaps( overlaps );
 
 		const invOverlaps = [[ 0, 1 ]];
 		for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
@@ -596,5 +577,31 @@ export function edgesToGeometry( edges, y = null ) {
 	const edgeBuffer = new BufferAttribute( edgeArray, 3, true );
 	edgeGeom.setAttribute( 'position', edgeBuffer );
 	return edgeGeom;
+
+}
+
+// compresses the given edge overlaps into a minimal set of representative objects
+export function compressEdgeOverlaps( overlaps ) {
+
+	overlaps.sort( ( a, b ) => {
+
+		return a[ 0 ] - b[ 0 ];
+
+	} );
+
+	for ( let i = 1; i < overlaps.length; i ++ ) {
+
+		const overlap = overlaps[ i ];
+		const prevOverlap = overlaps[ i - 1 ];
+
+		if ( overlap[ 0 ] <= prevOverlap[ 1 ] ) {
+
+			prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
+			overlaps.splice( i, 1 );
+			i --;
+
+		}
+
+	}
 
 }
