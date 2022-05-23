@@ -1,4 +1,4 @@
-import { Vector3, Triangle, Line3, MathUtils, Plane, BufferGeometry, BufferAttribute, LineSegments, LineBasicMaterial } from 'three';
+import { Vector3, Triangle, Line3, MathUtils, Ray, Plane, BufferGeometry, BufferAttribute, LineSegments, LineBasicMaterial } from 'three';
 import { ExtendedTriangle } from '../..';
 
 const _v0 = new Vector3();
@@ -14,6 +14,7 @@ const _line1 = new Line3();
 const _tempLine = new Line3();
 const _upVector = new Vector3( 0, 1, 0 );
 const _tri = new ExtendedTriangle();
+const EPSILON = 1e-10;
 
 // Modified version of js EdgesGeometry logic to handle silhouette edges
 export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
@@ -137,6 +138,7 @@ export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
 
 }
 
+// outputs the overlapping segment of a coplanar line and triangle
 export function getOverlappingLine( line, triangle, lineTarget = new Line3() ) {
 
 	if ( triangle.needsUpdate ) {
@@ -145,7 +147,8 @@ export function getOverlappingLine( line, triangle, lineTarget = new Line3() ) {
 
 	}
 
-	if ( triangle.getArea() < 1e-10 ) {
+	// if the triangle is degenerate then return no overlap
+	if ( triangle.getArea() < EPSILON ) {
 
 		return null;
 
@@ -156,6 +159,7 @@ export function getOverlappingLine( line, triangle, lineTarget = new Line3() ) {
 	_line0.copy( line );
 	_line0.delta( _dir0 );
 
+	// if the line and triangle are not coplanar then return no overlap
 	const areCoplanar = plane.normal.dot( _dir0 ) === 0.0;
 	if ( ! areCoplanar ) {
 
@@ -273,46 +277,36 @@ export function getOverlappingLine( line, triangle, lineTarget = new Line3() ) {
 
 }
 
-export function getLineYAtPoint( line, point ) {
+// returns the the y value on the plane at the given point x, z
+export const getPlaneYAtPoint = ( function () {
 
-	let interp;
-	if ( Math.abs( line.start.x - line.end.x ) < 1e-4 ) {
+	const testLine = new Line3();
+	return function getPlaneYAtPoint( plane, point, target = null ) {
 
-		interp = ( point.x - line.start.x ) / ( line.end.x - line.start.x );
+		testLine.start.copy( point );
+		testLine.end.copy( point );
 
-	} else {
+		testLine.start.y += 1e5;
+		testLine.end.y -= 1e5;
 
-		interp = ( point.y - line.start.y ) / ( line.end.y - line.start.y );
+		plane.intersectLine( testLine, target );
 
-	}
+	};
 
-	return MathUtils.lerp( line.start.y, line.end.y, interp );
+} )();
 
-}
-
-export function getTriYAtPoint( tri, point, target = null ) {
-
-	const tl = new Line3();
-	tl.start.copy( point );
-	tl.end.copy( point );
-
-	tl.start.y += 1e4;
-	tl.end.y -= 1e4;
-
-	tri.plane.intersectLine( tl, target );
-
-}
-
-export function isLineAboveTriangle( tri, line ) {
+// returns whether the given line is above the given triangle plane
+export function isLineAbovePlane( plane, line ) {
 
 	_v0.lerpVectors( line.start, line.end, 0.5 );
-	getTriYAtPoint( tri, _v0, _v1 );
+	getPlaneYAtPoint( plane, _v0, _v1 );
 
 	return _v1.y < _v0.y;
 
 }
 
-export function isProjectedTriangleDegenerate( tri ) {
+// checks whether the y-projected triangle will be degerate
+export function isYProjectedTriangleDegenerate( tri ) {
 
 	if ( tri.needsUpdate ) {
 
@@ -320,10 +314,11 @@ export function isProjectedTriangleDegenerate( tri ) {
 
 	}
 
-	return Math.abs( tri.plane.normal.dot( _upVector ) ) < 1e-10;
+	return Math.abs( tri.plane.normal.dot( _upVector ) ) < EPSILON;
 
 }
 
+// Is the provided line exactly an edge on the triangle
 export function isLineTriangleEdge( tri, line ) {
 
 	// if this is the same line as on the triangle
@@ -333,13 +328,13 @@ export function isLineTriangleEdge( tri, line ) {
 
 		const { start, end } = line;
 		const tp = triPoints[ i ];
-		if ( start.distanceToSquared( tp ) < 1e-10 ) {
+		if ( start.distanceToSquared( tp ) < EPSILON ) {
 
 			matches ++;
 
 		}
 
-		if ( end.distanceToSquared( tp ) < 1e-10 ) {
+		if ( end.distanceToSquared( tp ) < EPSILON ) {
 
 			matches ++;
 
@@ -351,6 +346,8 @@ export function isLineTriangleEdge( tri, line ) {
 
 }
 
+// Extracts the normalized [0, 1] distances along the given line that overlaps with the provided triangle when
+// projected along the y axis
 export const getProjectedOverlaps = ( function () {
 
 	const _target = new Line3();
@@ -359,12 +356,10 @@ export const getProjectedOverlaps = ( function () {
 	const _tempVec1 = new Vector3();
 	const _line = new Line3();
 
-	return function getProjectedOverlaps( tri, line, overlaps = [] ) {
+	return function getProjectedOverlaps( tri, line, overlapsTarget ) {
 
 		_line.copy( line );
 		_tri.copy( tri );
-		_tri.needsUpdate = true;
-		_tri.update();
 
 		// flatten them to a common plane
 		_line.start.y = 0;
@@ -375,7 +370,9 @@ export const getProjectedOverlaps = ( function () {
 		_tri.needsUpdate = true;
 		_tri.update();
 
-		if ( _line.distance() > 1e-10 && getOverlappingLine( _line, _tri, _target ) ) {
+		// if the line is meaningfully long and the we have an overlapping line then extract the
+		// distances along the original line to return
+		if ( _line.distance() > EPSILON && getOverlappingLine( _line, _tri, _target ) ) {
 
 			_line.delta( _tempDir );
 			_tempVec0.subVectors( _target.start, _line.start );
@@ -384,92 +381,104 @@ export const getProjectedOverlaps = ( function () {
 			const d0 = _tempVec0.length() / _tempDir.length();
 			const d1 = _tempVec1.length() / _tempDir.length();
 
-			if ( ! ( Math.abs( d0 - d1 ) < 1e-10 ) ) {
+			if ( ! ( Math.abs( d0 - d1 ) < EPSILON ) ) {
 
-				overlaps.push( [ d0, d1 ] );
+				overlapsTarget.push( [ d0, d1 ] );
 
 			}
 
 		}
 
-		return overlaps;
+		return overlapsTarget;
 
 	};
 
 } )();
 
-export function trimToBeneathTriPlane( tri, line, lineTarget ) {
+// Trim the provided line to just the section below the given triangle plane
+export const trimToBeneathTriPlane = ( function () {
 
-	if ( tri.needsUpdate ) {
+	const _lineDirection = new Vector3();
+	const _planeHit = new Vector3();
+	const _centerPoint = new Vector3();
+	const _planePoint = new Vector3();
 
-		tri.update();
+	return function trimToBeneathTriPlane( tri, line, lineTarget ) {
 
-	}
+		if ( tri.needsUpdate ) {
 
-	lineTarget.copy( line );
-
-	// handle vertical triangles
-	const { plane } = tri;
-	if ( isProjectedTriangleDegenerate( tri ) ) {
-
-		return false;
-
-	}
-
-	const dir = new Vector3();
-	const planeHit = new Vector3();
-	line.delta( dir );
-
-	const areCoplanar = plane.normal.dot( dir ) === 0.0;
-	if ( areCoplanar ) {
-
-		return false;
-
-	}
-
-	const doesLineIntersect = plane.intersectLine( line, planeHit );
-	if ( doesLineIntersect ) {
-
-		const point = new Vector3();
-		const p = new Vector3();
-		const { start, end } = lineTarget;
-
-		let testPoint;
-		let flipped = false;
-		if ( start.distanceTo( planeHit ) > end.distanceTo( planeHit ) ) {
-
-			testPoint = start;
-
-		} else {
-
-			testPoint = end;
-			flipped = true;
+			tri.update();
 
 		}
 
-		point.lerpVectors( testPoint, planeHit, 0.5 );
-		getTriYAtPoint( tri, point, p );
+		lineTarget.copy( line );
 
-		if ( p.y < point.y ) {
+		// handle vertical triangles
+		const { plane } = tri;
+		if ( isYProjectedTriangleDegenerate( tri ) ) {
 
-			if ( flipped ) end.copy( planeHit );
-			else start.copy( planeHit );
-
-		} else {
-
-			if ( flipped ) start.copy( planeHit );
-			else end.copy( planeHit );
+			return false;
 
 		}
 
-		return true;
+		// if the line and plane are coplanar then return that we can't trim
+		line.delta( _lineDirection );
 
-	}
+		const areCoplanar = plane.normal.dot( _lineDirection ) === 0.0;
+		if ( areCoplanar ) {
 
-	return false;
+			return false;
 
-}
+		}
 
+		// if the line does intersect the plane then trim
+		const doesLineIntersect = plane.intersectLine( line, _planeHit );
+		if ( doesLineIntersect ) {
+
+			const { start, end } = lineTarget;
+
+			// test the line side with the largest segment extending beyond the plane
+			let testPoint;
+			let flipped = false;
+			if ( start.distanceTo( _planeHit ) > end.distanceTo( _planeHit ) ) {
+
+				testPoint = start;
+
+			} else {
+
+				testPoint = end;
+				flipped = true;
+
+			}
+
+			// get the center point of the line segment and the plane hit
+			_centerPoint.lerpVectors( testPoint, _planeHit, 0.5 );
+			getPlaneYAtPoint( tri.plane, _centerPoint, _planePoint );
+
+			// adjust the appropriate line point align with the plane hit point
+			if ( _planePoint.y < _centerPoint.y ) {
+
+				if ( flipped ) end.copy( _planeHit );
+				else start.copy( _planeHit );
+
+			} else {
+
+				if ( flipped ) start.copy( _planeHit );
+				else end.copy( _planeHit );
+
+			}
+
+			return true;
+
+		}
+
+		return false;
+
+	};
+
+} )();
+
+// Converts the given array of overlaps into line segments
 export function overlapsToLines( line, overlaps, target = [] ) {
 
 	overlaps = [ ...overlaps ];
@@ -517,6 +526,7 @@ export function overlapsToLines( line, overlaps, target = [] ) {
 
 }
 
+// converts the given list of edges to a line segments geometry
 export function edgesToGeometry( edges, y = null ) {
 
 	const edgeArray = new Float32Array( edges.length * 6 );

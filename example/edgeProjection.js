@@ -5,8 +5,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshBVH } from '..';
 import {
 	generateEdges,
-	isLineAboveTriangle,
-	isProjectedTriangleDegenerate,
+	isLineAbovePlane,
+	isYProjectedTriangleDegenerate,
 	isLineTriangleEdge,
 	trimToBeneathTriPlane,
 	edgesToGeometry,
@@ -135,7 +135,7 @@ function updateEdges() {
 
 				}
 
-				if ( isProjectedTriangleDegenerate( tri ) ) {
+				if ( isYProjectedTriangleDegenerate( tri ) ) {
 
 					return false;
 
@@ -149,7 +149,7 @@ function updateEdges() {
 
 				trimToBeneathTriPlane( tri, line, tempLine );
 
-				if ( isLineAboveTriangle( tri, tempLine ) ) {
+				if ( isLineAbovePlane( tri.plane, tempLine ) ) {
 
 					return false;
 
