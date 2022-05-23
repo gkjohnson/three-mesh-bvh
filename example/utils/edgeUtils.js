@@ -499,7 +499,6 @@ export function overlapsToLines( line, overlaps, target = [] ) {
 			prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
 			overlaps.splice( i, 1 );
 			i --;
-			continue;
 
 		}
 
@@ -508,16 +507,19 @@ export function overlapsToLines( line, overlaps, target = [] ) {
 	const invOverlaps = [[ 0, 1 ]];
 	for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
 
-		invOverlaps[ i ][ 1 ] = overlaps[ i ][ 0 ];
-		invOverlaps.push( [ overlaps[ i ][ 1 ], 1 ] );
+		const invOverlap = invOverlaps[ i ];
+		const overlap = overlaps[ i ];
+		invOverlap[ 1 ] = overlap[ 0 ];
+		invOverlaps.push( [ overlap[ 1 ], 1 ] );
 
 	}
 
 	for ( let i = 0, l = invOverlaps.length; i < l; i ++ ) {
 
+		const { start, end } = line;
 		const newLine = new Line3();
-		newLine.start.lerpVectors( line.start, line.end, invOverlaps[ i ][ 0 ] );
-		newLine.end.lerpVectors( line.start, line.end, invOverlaps[ i ][ 1 ] );
+		newLine.start.lerpVectors( start, end, invOverlaps[ i ][ 0 ] );
+		newLine.end.lerpVectors( start, end, invOverlaps[ i ][ 1 ] );
 		target.push( newLine );
 
 	}
