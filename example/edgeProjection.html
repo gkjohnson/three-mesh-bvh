@@ -18,16 +18,28 @@
         }
 
 		#output {
-			color: #333333;
+			color: #333;
 			position: absolute;
 			left: 10px;
 			bottom: 10px;
 			white-space: pre;
 		}
 
+        #info {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            color: #333;
+            font-family: monospace;
+            text-align: center;
+            padding: 5px 0;
+        }
     </style>
 </head>
 <body>
+	<div id="info">
+		Accelerated geometry edge projection and clipping onto<br/>the XZ plane for orthographic vector views.
+	</div>
 	<div id="output"></div>
     <script type="module" src="./edgeProjection.js"></script>
 </body>
