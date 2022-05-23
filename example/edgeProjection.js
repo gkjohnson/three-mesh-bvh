@@ -23,6 +23,7 @@ const params = {
 	displayEdges: false,
 	displayProjection: true,
 	useBVH: true,
+	sortEdges: true,
 	rotate: () => {
 
 		group.quaternion.random();
@@ -142,6 +143,7 @@ async function init() {
 	gui.add( params, 'displayEdges' );
 	gui.add( params, 'displayProjection' );
 	gui.add( params, 'useBVH' );
+	gui.add( params, 'sortEdges' );
 	gui.add( params, 'rotate' );
 	gui.add( params, 'regenerate' );
 
@@ -196,6 +198,17 @@ function* updateEdges( runTime = 30 ) {
 	// generate the candidtate edges
 	timeStart = window.performance.now();
 	const edges = generateEdges( mergedGeometry, new THREE.Vector3( 0, 1, 0 ), 50 );
+
+	if ( params.sortEdges ) {
+
+		edges.sort( ( a, b ) => {
+
+			return Math.min( a.start.y, a.end.y ) - Math.min( b.start.y, b.end.y );
+
+		} );
+
+	}
+
 	const edgeGenerateTime = window.performance.now() - timeStart;
 
 	yield;
