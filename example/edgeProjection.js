@@ -15,9 +15,10 @@ import {
 	isYProjectedLineDegenerate,
 } from './utils/edgeUtils.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 const params = {
-	displayModel: true,
+	displayModel: 'color',
 	displayEdges: false,
 	displayProjection: true,
 	rotate: () => {
@@ -27,16 +28,16 @@ const params = {
 		group.updateMatrixWorld( true );
 
 		const box = new THREE.Box3();
-		box.setFromObject( group, true );
+		box.setFromObject( model, true );
 		box.getCenter( group.position ).multiplyScalar( - 1 );
-		group.position.y = Math.max( 1, - box.min.y );
+		group.position.y = Math.max( 0, - box.min.y ) + 1;
 
 	},
 	regenerate: () => updateEdges(),
 };
 
 let renderer, camera, scene, gui, controls;
-let lines, model, projection, group;
+let lines, model, projection, group, whiteModel;
 let outputContainer;
 
 init();
@@ -62,36 +63,35 @@ async function init() {
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 2, 3 );
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
+	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.5 ) );
 
 	// load model
 	group = new THREE.Group();
 	scene.add( group );
 
 	const gltf = await new GLTFLoader().loadAsync( new URL( './models/tables_and_chairs.gltf', import.meta.url ).toString() );
-	model = new THREE.Group();
+	model = gltf.scene;
 
-	const children = [ ... gltf.scene.children[ 0 ].children ];
-	// model.add( gltf.scene.children[0].children[0]);
-	// model.add( children[ 0 ]);
-	// model.add( children[ 1 ]);
+	const whiteMaterial = new THREE.MeshStandardMaterial();
+	whiteModel = model.clone();
+	whiteModel.traverse( c => {
 
-	model.add( new THREE.Mesh( new THREE.BoxBufferGeometry() ) );
-	model.add( new THREE.Mesh( new THREE.CylinderBufferGeometry( 1, 1, 0.1 ) ) );
-	model.children[ 1 ].position.y = 0.5;
-	// model = gltf.scene;
-	// model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry() );
+		if ( c.material ) {
 
-	group.position.set( 0, 0, 0 );
-	group.quaternion.set( - 0.6775917328575071, - 0.6721970582362256, - 0.29790865321159155, - 0.01646185904996691 );
+			c.material = whiteMaterial;
+
+		}
+
+	} );
+
 	group.updateMatrixWorld( true );
 
 	// center model
 	const box = new THREE.Box3();
-	box.setFromObject( group, true );
+	box.setFromObject( model, true );
 	box.getCenter( group.position ).multiplyScalar( - 1 );
-	group.position.y += 1;
-	group.add( model );
+	group.position.y = Math.max( 0, - box.min.y ) + 1;
+	group.add( model, whiteModel );
 
 	// generate geometry line segments
 	lines = new THREE.Group();
@@ -122,7 +122,7 @@ async function init() {
 	controls = new OrbitControls( camera, renderer.domElement );
 
 	gui = new GUI();
-	gui.add( params, 'displayModel' );
+	gui.add( params, 'displayModel', [ 'none', 'color', 'white' ] );
 	gui.add( params, 'displayEdges' );
 	gui.add( params, 'displayProjection' );
 	gui.add( params, 'rotate' );
@@ -145,8 +145,6 @@ async function init() {
 
 function updateEdges() {
 
-	console.log( group.quaternion );
-
 	// transform and merge geometries to project into a single model
 	let timeStart = window.performance.now();
 	const geometries = [];
@@ -157,6 +155,16 @@ function updateEdges() {
 
 			const clone = c.geometry.clone();
 			clone.applyMatrix4( c.matrixWorld );
+			for ( const key in clone.attributes ) {
+
+				if ( key !== 'position' ) {
+
+					clone.deleteAttribute( key );
+
+				}
+
+			}
+
 			geometries.push( clone );
 
 		}
@@ -255,20 +263,12 @@ function updateEdges() {
 
 				}
 
-				getProjectedOverlaps( tri, tempLine, overlaps );
+				getProjectedOverlaps( tri, line, overlaps );
 
 				// if we're hiding the edge entirely now then skip further checks
 				if ( overlaps.length !== 0 ) {
 
 					const [ d0, d1 ] = overlaps[ overlaps.length - 1 ];
-
-
-					if ( d1 < d0 ) {
-
-						console.log( d1, d0 );
-
-					}
-
 					return d0 === 0.0 && d1 === 1.0;
 
 				}
@@ -302,7 +302,8 @@ function render() {
 
 	requestAnimationFrame( render );
 
-	model.visible = params.displayModel;
+	model.visible = params.displayModel === 'color';
+	whiteModel.visible = params.displayModel === 'white';
 	lines.visible = params.displayEdges;
 	projection.visible = params.displayProjection;
 
