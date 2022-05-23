@@ -364,3 +364,30 @@ export function isProjectedTriangleDegenerate( tri ) {
 	return Math.abs( tri.plane.normal.dot( _upVector ) ) < 1e-10;
 
 }
+
+export function isLineTriangleEdge( tri, line ) {
+
+	// if this is the same line as on the triangle
+	const triPoints = tri.points;
+	let matches = 0;
+	for ( let i = 0; i < 3; i ++ ) {
+
+		const { start, end } = line;
+		const tp = triPoints[ i ];
+		if ( start.distanceToSquared( tp ) < 1e-10 ) {
+
+			matches ++;
+
+		}
+
+		if ( end.distanceToSquared( tp ) < 1e-10 ) {
+
+			matches ++;
+
+		}
+
+	}
+
+	return matches >= 2;
+
+}

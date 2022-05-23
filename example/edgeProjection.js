@@ -3,7 +3,7 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshBVH, ExtendedTriangle } from '..';
-import { generateEdges, lineIntersectTrianglePoint, getTriYAtPoint, isLineAboveTriangle, isProjectedTriangleDegenerate } from './utils/edgeUtils.js';
+import { generateEdges, lineIntersectTrianglePoint, getTriYAtPoint, isLineAboveTriangle, isProjectedTriangleDegenerate, isLineTriangleEdge } from './utils/edgeUtils.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const params = {
@@ -113,15 +113,6 @@ function updateEdges() {
 	const tempLine = new THREE.Line3();
 	const tempRay = new THREE.Ray();
 	const tempVec = new THREE.Vector3();
-	const tempVec0 = new THREE.Vector3();
-	const tempVec1 = new THREE.Vector3();
-	const tempDir = new THREE.Vector3();
-	let target = {
-		line: new THREE.Line3(),
-		point: new THREE.Vector3(),
-		planeHit: new THREE.Vector3(),
-		type: '',
-	};
 
 	// TODO: iterate over all edges and check visibility upwards using BVH
 	for ( let i = 0, l = edges.length; i < l; i ++ ) {
@@ -327,33 +318,6 @@ function trimToBeneathTriPlane( tri, line, lineTarget ) {
 	}
 
 	return false;
-
-}
-
-function isLineTriangleEdge( tri, line ) {
-
-	// if this is the same line as on the triangle
-	const triPoints = tri.points;
-	let matches = 0;
-	for ( let i = 0; i < 3; i ++ ) {
-
-		const { start, end } = line;
-		const tp = triPoints[ i ];
-		if ( start.distanceToSquared( tp ) < 1e-10 ) {
-
-			matches ++;
-
-		}
-
-		if ( end.distanceToSquared( tp ) < 1e-10 ) {
-
-			matches ++;
-
-		}
-
-	}
-
-	return matches >= 2;
 
 }
 
