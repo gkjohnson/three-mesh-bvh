@@ -548,6 +548,6 @@ export function edgesToGeometry( edges, y = null ) {
 	const edgeGeom = new BufferGeometry();
 	const edgeBuffer = new BufferAttribute( edgeArray, 3, true );
 	edgeGeom.setAttribute( 'position', edgeBuffer );
-	return new LineSegments( edgeGeom, new LineBasicMaterial( { color: 0 } ) );
+	return edgeGeom;
 
 }
