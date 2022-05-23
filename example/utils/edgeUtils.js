@@ -1,4 +1,5 @@
-import { Vector3, Triangle, Line3, MathUtils, Plane } from 'three';
+import { Vector3, Triangle, Line3, MathUtils, Plane, BufferGeometry, BufferAttribute, LineSegments, LineBasicMaterial } from 'three';
+import { ExtendedTriangle } from '../..';
 
 const _v0 = new Vector3();
 const _v1 = new Vector3();
@@ -13,7 +14,7 @@ const _line1 = new Line3();
 const _tempLine = new Line3();
 const _upVector = new Vector3( 0, 1, 0 );
 
-// Modified version of three.js EdgesGeometry logic to handle silhouette edges
+// Modified version of js EdgesGeometry logic to handle silhouette edges
 export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
 
 	const edges = [];
@@ -389,5 +390,197 @@ export function isLineTriangleEdge( tri, line ) {
 	}
 
 	return matches >= 2;
+
+}
+
+export function getProjectedOverlaps( tri, line, overlaps = [] ) {
+
+	const target = {
+		line: new Line3(),
+		point: new Vector3(),
+		planeHit: new Vector3(),
+		type: '',
+	};
+
+	const tempDir = new Vector3();
+	const tempVec0 = new Vector3();
+	const tempVec1 = new Vector3();
+	const _tri = new ExtendedTriangle();
+	const _line = new Line3();
+
+	_line.copy( line );
+	_tri.copy( tri );
+	_tri.needsUpdate = true;
+	_tri.update();
+
+	// flatten them to a common plane
+	_line.start.y = 0;
+	_line.end.y = 0;
+	_tri.a.y = 0;
+	_tri.b.y = 0;
+	_tri.c.y = 0;
+	_tri.needsUpdate = true;
+	_tri.update();
+
+	if ( _line.distance() > 1e-10 && lineIntersectTrianglePoint( _line, _tri, target ) && target.type === 'line' ) {
+
+		_line.delta( tempDir );
+		tempVec0.subVectors( target.line.start, _line.start );
+		tempVec1.subVectors( target.line.end, _line.start );
+
+		const d0 = tempVec0.length() / tempDir.length();
+		const d1 = tempVec1.length() / tempDir.length();
+
+		if ( ! ( Math.abs( d0 - d1 ) < 1e-10 ) ) {
+
+			overlaps.push( [ d0, d1 ] );
+
+		}
+
+	}
+
+	return overlaps;
+
+}
+
+export function trimToBeneathTriPlane( tri, line, lineTarget ) {
+
+	if ( tri.needsUpdate ) {
+
+		tri.update();
+
+	}
+
+	lineTarget.copy( line );
+
+	// handle vertical triangles
+	const { plane } = tri;
+	if ( isProjectedTriangleDegenerate( tri ) ) {
+
+		return false;
+
+	}
+
+	const dir = new Vector3();
+	const planeHit = new Vector3();
+	line.delta( dir );
+
+	const areCoplanar = plane.normal.dot( dir ) === 0.0;
+	if ( areCoplanar ) {
+
+		return false;
+
+	}
+
+	const doesLineIntersect = plane.intersectLine( line, planeHit );
+	if ( doesLineIntersect ) {
+
+		const point = new Vector3();
+		const p = new Vector3();
+		const { start, end } = lineTarget;
+
+		let testPoint;
+		let flipped = false;
+		if ( start.distanceTo( planeHit ) > end.distanceTo( planeHit ) ) {
+
+			testPoint = start;
+
+		} else {
+
+			testPoint = end;
+			flipped = true;
+
+		}
+
+		point.lerpVectors( testPoint, planeHit, 0.5 );
+		getTriYAtPoint( tri, point, p );
+
+		if ( p.y < point.y ) {
+
+			if ( flipped ) end.copy( planeHit );
+			else start.copy( planeHit );
+
+		} else {
+
+			if ( flipped ) start.copy( planeHit );
+			else end.copy( planeHit );
+
+		}
+
+		return true;
+
+	}
+
+	return false;
+
+}
+
+export function overlapsToLines( line, overlaps, target = [] ) {
+
+	overlaps = [ ...overlaps ];
+
+	overlaps.sort( ( a, b ) => {
+
+		return a[ 0 ] - b[ 0 ];
+
+	} );
+
+	for ( let i = 1; i < overlaps.length; i ++ ) {
+
+		const overlap = overlaps[ i ];
+		const prevOverlap = overlaps[ i - 1 ];
+
+		if ( overlap[ 0 ] <= prevOverlap[ 1 ] ) {
+
+			prevOverlap[ 1 ] = Math.max( prevOverlap[ 1 ], overlap[ 1 ] );
+			overlaps.splice( i, 1 );
+			i --;
+			continue;
+
+		}
+
+	}
+
+	const invOverlaps = [[ 0, 1 ]];
+	for ( let i = 0, l = overlaps.length; i < l; i ++ ) {
+
+		invOverlaps[ i ][ 1 ] = overlaps[ i ][ 0 ];
+		invOverlaps.push( [ overlaps[ i ][ 1 ], 1 ] );
+
+	}
+
+	for ( let i = 0, l = invOverlaps.length; i < l; i ++ ) {
+
+		const newLine = new Line3();
+		newLine.start.lerpVectors( line.start, line.end, invOverlaps[ i ][ 0 ] );
+		newLine.end.lerpVectors( line.start, line.end, invOverlaps[ i ][ 1 ] );
+		target.push( newLine );
+
+	}
+
+	return target;
+
+}
+
+export function edgesToGeometry( edges, y = null ) {
+
+	const edgeArray = new Float32Array( edges.length * 6 );
+	let c = 0;
+	for ( let i = 0, l = edges.length; i < l; i ++ ) {
+
+		const line = edges[ i ];
+		edgeArray[ c ++ ] = line.start.x;
+		edgeArray[ c ++ ] = y === null ? line.start.y : y;
+		edgeArray[ c ++ ] = line.start.z;
+		edgeArray[ c ++ ] = line.end.x;
+		edgeArray[ c ++ ] = y === null ? line.end.y : y;
+		edgeArray[ c ++ ] = line.end.z;
+
+	}
+
+	const edgeGeom = new BufferGeometry();
+	const edgeBuffer = new BufferAttribute( edgeArray, 3, true );
+	edgeGeom.setAttribute( 'position', edgeBuffer );
+	return new LineSegments( edgeGeom, new LineBasicMaterial( { color: 0 } ) );
 
 }
