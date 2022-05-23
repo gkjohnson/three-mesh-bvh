@@ -11,7 +11,9 @@ const _orthoPlane = new Plane();
 const _line0 = new Line3();
 const _line1 = new Line3();
 const _tempLine = new Line3();
+const _upVector = new Vector3( 0, 1, 0 );
 
+// Modified version of three.js EdgesGeometry logic to handle silhouette edges
 export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
 
 	const edges = [];
@@ -82,7 +84,6 @@ export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
 				// it meets the angle threshold and delete the edge from the map.
 				const otherNormal = edgeData[ reverseHash ].normal;
 				const meetsThreshold = _normal.dot( otherNormal ) <= thresholdDot;
-
 				const projectionThreshold = Math.sign( projectionDir.dot( _normal ) ) !== Math.sign( projectionDir.dot( otherNormal ) );
 				if ( meetsThreshold || projectionThreshold ) {
 
@@ -312,6 +313,7 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 
 }
 
+
 export function getLineYAtPoint( line, point ) {
 
 	let interp;
@@ -339,5 +341,26 @@ export function getTriYAtPoint( tri, point, target = null ) {
 	tl.end.y -= 1e4;
 
 	tri.plane.intersectLine( tl, target );
+
+}
+
+export function isLineAboveTriangle( tri, line ) {
+
+	_v0.lerpVectors( line.start, line.end, 0.5 );
+	getTriYAtPoint( tri, _v0, _v1 );
+
+	return _v1.y < _v0.y;
+
+}
+
+export function isProjectedTriangleDegenerate( tri ) {
+
+	if ( tri.needsUpdate ) {
+
+		tri.update();
+
+	}
+
+	return Math.abs( tri.plane.normal.dot( _upVector ) ) < 1e-10;
 
 }
