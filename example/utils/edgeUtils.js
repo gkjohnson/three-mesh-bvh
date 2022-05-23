@@ -13,6 +13,7 @@ const _line0 = new Line3();
 const _line1 = new Line3();
 const _tempLine = new Line3();
 const _upVector = new Vector3( 0, 1, 0 );
+const _tri = new ExtendedTriangle();
 
 // Modified version of js EdgesGeometry logic to handle silhouette edges
 export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
@@ -136,17 +137,13 @@ export function generateEdges( geometry, projectionDir, thresholdAngle = 1 ) {
 
 }
 
-// TODO: validate
-export function lineIntersectTrianglePoint( line, triangle, target = null ) {
+export function getOverlappingLine( line, triangle, lineTarget = new Line3() ) {
 
-	target = target || {
+	if ( triangle.needsUpdate ) {
 
-		line: new Line3(),
-		point: new Vector3(),
-		planeHit: new Vector3(),
-		type: '',
+		triangle.needsUpdate();
 
-	};
+	}
 
 	if ( triangle.getArea() < 1e-10 ) {
 
@@ -154,166 +151,127 @@ export function lineIntersectTrianglePoint( line, triangle, target = null ) {
 
 	}
 
-	if ( triangle.needsUpdate ) {
+	const { points, plane } = triangle;
 
-		triangle.update();
+	_line0.copy( line );
+	_line0.delta( _dir0 );
+
+	const areCoplanar = plane.normal.dot( _dir0 ) === 0.0;
+	if ( ! areCoplanar ) {
+
+		return null;
 
 	}
 
-	const pointTarget = target.point;
-	const lineTarget = target.line;
-	const { points, plane } = triangle;
+	// a plane that's orthogonal to the triangle that the line lies on
+	_dir0.cross( plane.normal ).normalize();
+	_orthoPlane.setFromNormalAndCoplanarPoint( _dir0, _line0.start );
 
-	// if the line direction is orthogonal to the plane normal then they are potentially coplanar
-	_line0.copy( line );
-	_line0.delta( _dir0 );
-	const areCoplanar = plane.normal.dot( _dir0 ) === 0.0;
+	// find the line of intersection of the triangle along the plane if it exists
+	let intersectCount = 0;
+	for ( let i = 0; i < 3; i ++ ) {
 
-	if ( areCoplanar ) {
+		const p1 = points[ i ];
+		const p2 = points[ ( i + 1 ) % 3 ];
 
-		// a plane that's orthogonal to the triangle that the line lies on
-		_dir0.cross( plane.normal ).normalize();
-		_orthoPlane.setFromNormalAndCoplanarPoint( _dir0, _line0.start );
+		_tempLine.start.copy( p1 );
+		_tempLine.end.copy( p2 );
+		if ( _orthoPlane.distanceToPoint( _tempLine.end ) === 0 && _orthoPlane.distanceToPoint( _tempLine.start ) === 0 ) {
 
-		// find the line of intersection of the triangle along the plane if it exists
-		let intersectCount = 0;
-		for ( let i = 0; i < 3; i ++ ) {
+			// if the edge lies on the plane then take the line
+			_line1.copy( _tempLine );
+			intersectCount = 2;
+			break;
 
-			const p1 = points[ i ];
-			const p2 = points[ ( i + 1 ) % 3 ];
+		} else if ( _orthoPlane.intersectLine( _tempLine, intersectCount === 0 ? _line1.start : _line1.end ) ) {
 
-			_tempLine.start.copy( p1 );
-			_tempLine.end.copy( p2 );
-			if ( _orthoPlane.distanceToPoint( _tempLine.end ) === 0 && _orthoPlane.distanceToPoint( _tempLine.start ) === 0 ) {
+			let p;
+			if ( intersectCount === 0 ) {
 
-				// if the edge lies on the plane then take the line
-				_line1.copy( _tempLine );
-				intersectCount = 2;
+				p = _line1.start;
+
+			} else {
+
+				p = _line1.end;
+
+			}
+
+			if ( p.distanceTo( p2 ) === 0.0 ) {
+
+				continue;
+
+			}
+
+			intersectCount ++;
+			if ( intersectCount === 2 ) {
+
 				break;
 
-			} else if ( _orthoPlane.intersectLine( _tempLine, intersectCount === 0 ? _line1.start : _line1.end ) ) {
-
-				let p;
-				if ( intersectCount === 0 ) {
-
-					p = _line1.start;
-
-				} else {
-
-					p = _line1.end;
-
-				}
-
-				if ( p.distanceTo( p2 ) === 0.0 ) {
-
-					continue;
-
-				}
-
-				intersectCount ++;
-				if ( intersectCount === 2 ) {
-
-					break;
-
-				}
-
 			}
 
 		}
 
-		if ( intersectCount === 2 ) {
+	}
 
-			// find the intersect line if any
-			_line0.delta( _dir0 ).normalize();
-			_line1.delta( _dir1 ).normalize();
+	if ( intersectCount === 2 ) {
 
-			// swap edges so they're facing in the same direction
-			if ( _dir0.dot( _dir1 ) < 0 ) {
+		// find the intersect line if any
+		_line0.delta( _dir0 ).normalize();
+		_line1.delta( _dir1 ).normalize();
 
-				let tmp = _line1.start;
-				_line1.start = _line1.end;
-				_line1.end = tmp;
+		// swap edges so they're facing in the same direction
+		if ( _dir0.dot( _dir1 ) < 0 ) {
 
-			}
-
-			// check if the edges are overlapping
-			const s1 = _line0.start.dot( _dir0 );
-			const e1 = _line0.end.dot( _dir0 );
-			const s2 = _line1.start.dot( _dir0 );
-			const e2 = _line1.end.dot( _dir0 );
-			const separated1 = e1 < s2;
-			const separated2 = s1 < e2;
-
-			if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
-
-				return null;
-
-			}
-
-			// assign the target output
-			_tempDir.subVectors( _line0.start, _line1.start );
-			if ( _tempDir.dot( _dir0 ) > 0 ) {
-
-				lineTarget.start.copy( _line0.start );
-
-			} else {
-
-				lineTarget.start.copy( _line1.start );
-
-			}
-
-			_tempDir.subVectors( _line0.end, _line1.end );
-			if ( _tempDir.dot( _dir0 ) < 0 ) {
-
-				lineTarget.end.copy( _line0.end );
-
-			} else {
-
-				lineTarget.end.copy( _line1.end );
-
-			}
-
-			target.type = 'line';
-			return target;
+			let tmp = _line1.start;
+			_line1.start = _line1.end;
+			_line1.end = tmp;
 
 		}
 
-	} else {
+		// check if the edges are overlapping
+		const s1 = _line0.start.dot( _dir0 );
+		const e1 = _line0.end.dot( _dir0 );
+		const s2 = _line1.start.dot( _dir0 );
+		const e2 = _line1.end.dot( _dir0 );
+		const separated1 = e1 < s2;
+		const separated2 = s1 < e2;
 
-		// find the point that the line intersects the plane on
-		const doesLineIntersect = triangle.plane.intersectLine( line, pointTarget );
-		target.planeHit.copy( pointTarget );
-		if ( doesLineIntersect ) {
+		if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
 
-			let totAngle = 0;
-			for ( const i in points ) {
-
-				const i1 = ( i + 1 ) % 3;
-				_v0.subVectors( points[ i ], pointTarget );
-				_v1.subVectors( points[ i1 ], pointTarget );
-
-				const angle = _v0.angleTo( _v1 );
-				const sign = Math.sign( _v0.cross( _v1 ).dot( plane.normal ) );
-
-				totAngle += sign * angle;
-
-			}
-
-			if ( totAngle > 0 ) {
-
-				target.type = 'point';
-				return target;
-
-			}
+			return null;
 
 		}
+
+		// assign the target output
+		_tempDir.subVectors( _line0.start, _line1.start );
+		if ( _tempDir.dot( _dir0 ) > 0 ) {
+
+			lineTarget.start.copy( _line0.start );
+
+		} else {
+
+			lineTarget.start.copy( _line1.start );
+
+		}
+
+		_tempDir.subVectors( _line0.end, _line1.end );
+		if ( _tempDir.dot( _dir0 ) < 0 ) {
+
+			lineTarget.end.copy( _line0.end );
+
+		} else {
+
+			lineTarget.end.copy( _line1.end );
+
+		}
+
+		return lineTarget;
 
 	}
 
 	return null;
 
 }
-
 
 export function getLineYAtPoint( line, point ) {
 
@@ -393,55 +351,52 @@ export function isLineTriangleEdge( tri, line ) {
 
 }
 
-export function getProjectedOverlaps( tri, line, overlaps = [] ) {
+export const getProjectedOverlaps = ( function () {
 
-	const target = {
-		line: new Line3(),
-		point: new Vector3(),
-		planeHit: new Vector3(),
-		type: '',
-	};
-
-	const tempDir = new Vector3();
-	const tempVec0 = new Vector3();
-	const tempVec1 = new Vector3();
-	const _tri = new ExtendedTriangle();
+	const _target = new Line3();
+	const _tempDir = new Vector3();
+	const _tempVec0 = new Vector3();
+	const _tempVec1 = new Vector3();
 	const _line = new Line3();
 
-	_line.copy( line );
-	_tri.copy( tri );
-	_tri.needsUpdate = true;
-	_tri.update();
+	return function getProjectedOverlaps( tri, line, overlaps = [] ) {
 
-	// flatten them to a common plane
-	_line.start.y = 0;
-	_line.end.y = 0;
-	_tri.a.y = 0;
-	_tri.b.y = 0;
-	_tri.c.y = 0;
-	_tri.needsUpdate = true;
-	_tri.update();
+		_line.copy( line );
+		_tri.copy( tri );
+		_tri.needsUpdate = true;
+		_tri.update();
 
-	if ( _line.distance() > 1e-10 && lineIntersectTrianglePoint( _line, _tri, target ) && target.type === 'line' ) {
+		// flatten them to a common plane
+		_line.start.y = 0;
+		_line.end.y = 0;
+		_tri.a.y = 0;
+		_tri.b.y = 0;
+		_tri.c.y = 0;
+		_tri.needsUpdate = true;
+		_tri.update();
 
-		_line.delta( tempDir );
-		tempVec0.subVectors( target.line.start, _line.start );
-		tempVec1.subVectors( target.line.end, _line.start );
+		if ( _line.distance() > 1e-10 && getOverlappingLine( _line, _tri, _target ) ) {
 
-		const d0 = tempVec0.length() / tempDir.length();
-		const d1 = tempVec1.length() / tempDir.length();
+			_line.delta( _tempDir );
+			_tempVec0.subVectors( _target.start, _line.start );
+			_tempVec1.subVectors( _target.end, _line.start );
 
-		if ( ! ( Math.abs( d0 - d1 ) < 1e-10 ) ) {
+			const d0 = _tempVec0.length() / _tempDir.length();
+			const d1 = _tempVec1.length() / _tempDir.length();
 
-			overlaps.push( [ d0, d1 ] );
+			if ( ! ( Math.abs( d0 - d1 ) < 1e-10 ) ) {
+
+				overlaps.push( [ d0, d1 ] );
+
+			}
 
 		}
 
-	}
+		return overlaps;
 
-	return overlaps;
+	};
 
-}
+} )();
 
 export function trimToBeneathTriPlane( tri, line, lineTarget ) {
 
