@@ -295,7 +295,7 @@ function getProjectedOverlaps( tri, line, overlaps = [] ) {
 	_tri.needsUpdate = true;
 	_tri.update();
 
-	if ( lineIntersectTrianglePoint( _line, _tri, target ) && target.type === 'line' ) {
+	if ( _line.distance() > 1e-10 && lineIntersectTrianglePoint( _line, _tri, target ) && target.type === 'line' ) {
 
 		_line.delta( tempDir );
 		tempVec0.subVectors( target.line.start, _line.start );
