@@ -12,6 +12,7 @@ import {
 	edgesToGeometry,
 	overlapsToLines,
 	getProjectedOverlaps,
+	isYProjectedLineDegenerate,
 } from './utils/edgeUtils.js';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
@@ -68,11 +69,26 @@ async function init() {
 	scene.add( group );
 
 	const gltf = await new GLTFLoader().loadAsync( new URL( './models/tables_and_chairs.gltf', import.meta.url ).toString() );
-	model = gltf.scene;
+	model = new THREE.Group();
+
+	const children = [ ... gltf.scene.children[ 0 ].children ];
+	// model.add( gltf.scene.children[0].children[0]);
+	// model.add( children[ 0 ]);
+	// model.add( children[ 1 ]);
+
+	model.add( new THREE.Mesh( new THREE.BoxBufferGeometry() ) );
+	model.add( new THREE.Mesh( new THREE.CylinderBufferGeometry( 1, 1, 0.1 ) ) );
+	model.children[ 1 ].position.y = 0.5;
+	// model = gltf.scene;
+	// model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry() );
+
+	group.position.set( 0, 0, 0 );
+	group.quaternion.set( - 0.6775917328575071, - 0.6721970582362256, - 0.29790865321159155, - 0.01646185904996691 );
+	group.updateMatrixWorld( true );
 
 	// center model
 	const box = new THREE.Box3();
-	box.setFromObject( model );
+	box.setFromObject( group, true );
 	box.getCenter( group.position ).multiplyScalar( - 1 );
 	group.position.y += 1;
 	group.add( model );
@@ -83,7 +99,10 @@ async function init() {
 
 		if ( c.geometry ) {
 
-			const geomLines = new THREE.LineSegments( new THREE.EdgesGeometry( c.geometry, 45 ), new THREE.LineBasicMaterial( { color: 0 } ) );
+			const geomLines = new THREE.LineSegments( new THREE.EdgesGeometry( c.geometry, 50 ), new THREE.LineBasicMaterial( { color: 0 } ) );
+			geomLines.position.copy( c.position );
+			geomLines.quaternion.copy( c.quaternion );
+			geomLines.scale.copy( c.scale );
 			lines.add( geomLines );
 
 		}
@@ -126,6 +145,8 @@ async function init() {
 
 function updateEdges() {
 
+	console.log( group.quaternion );
+
 	// transform and merge geometries to project into a single model
 	let timeStart = window.performance.now();
 	const geometries = [];
@@ -164,6 +185,12 @@ function updateEdges() {
 	for ( let i = 0, l = edges.length; i < l; i ++ ) {
 
 		const line = edges[ i ];
+		if ( isYProjectedLineDegenerate( line ) ) {
+
+			continue;
+
+		}
+
 		const lowestLineY = Math.min( line.start.y, line.end.y );
 		const overlaps = [];
 		bvh.shapecast( {
@@ -234,6 +261,14 @@ function updateEdges() {
 				if ( overlaps.length !== 0 ) {
 
 					const [ d0, d1 ] = overlaps[ overlaps.length - 1 ];
+
+
+					if ( d1 < d0 ) {
+
+						console.log( d1, d0 );
+
+					}
+
 					return d0 === 0.0 && d1 === 1.0;
 
 				}
@@ -245,6 +280,7 @@ function updateEdges() {
 		} );
 
 		overlapsToLines( line, overlaps, finalEdges );
+
 
 	}
 

@@ -305,6 +305,13 @@ export function isLineAbovePlane( plane, line ) {
 
 }
 
+export function isYProjectedLineDegenerate( line ) {
+
+	line.delta( _tempDir ).normalize();
+	return Math.abs( _tempDir.dot( _upVector ) ) >= 1.0 - EPSILON;
+
+}
+
 // checks whether the y-projected triangle will be degerate
 export function isYProjectedTriangleDegenerate( tri ) {
 
@@ -372,14 +379,17 @@ export const getProjectedOverlaps = ( function () {
 
 		// if the line is meaningfully long and the we have an overlapping line then extract the
 		// distances along the original line to return
-		if ( _line.distance() > EPSILON && getOverlappingLine( _line, _tri, _target ) ) {
+		if ( getOverlappingLine( _line, _tri, _target ) ) {
 
 			_line.delta( _tempDir );
 			_tempVec0.subVectors( _target.start, _line.start );
 			_tempVec1.subVectors( _target.end, _line.start );
 
-			const d0 = _tempVec0.length() / _tempDir.length();
-			const d1 = _tempVec1.length() / _tempDir.length();
+			let d0 = _tempVec0.length() / _tempDir.length();
+			let d1 = _tempVec1.length() / _tempDir.length();
+
+			d0 = Math.min( Math.max( d0, 0 ), 1 );
+			d1 = Math.min( Math.max( d1, 0 ), 1 );
 
 			if ( ! ( Math.abs( d0 - d1 ) <= EPSILON ) ) {
 
