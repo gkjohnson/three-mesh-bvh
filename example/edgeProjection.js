@@ -45,7 +45,6 @@ async function init() {
 	// model.geometry.index = new THREE.BufferAttribute( new Uint32Array( [  14, 15, 13, 16, 18, 17, 18, 19, 17 ] ), 1 );
 	// model.geometry = model.geometry.toNonIndexed();
 	console.log( model.geometry.attributes.position.array )
-	// scene.add( model );
 
 // 0, 2, 1, 2, 3, 1,
 // 4, 6, 5, 6, 7, 5,
@@ -61,16 +60,17 @@ async function init() {
 	// model = gltf.scene;
 
 	const mergedGeom = mergeBufferGeometries( gltf.scene.children[ 0 ].children.map( c => c.geometry ) );
-	model = new THREE.Mesh( mergedGeom, new THREE.MeshStandardMaterial() );
+	model = new THREE.Mesh( gltf.scene.children[ 0 ].children[ 2 ].geometry, new THREE.MeshStandardMaterial() );
+	model = new THREE.Mesh(mergedGeom, new THREE.MeshStandardMaterial() );
 	model.geometry.center();
 
-	// scene.add( model )
+	scene.add( model )
 
 	// console.log( gltf );
 	bvh = new MeshBVH( model.geometry );
 
 	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 50 );
 	// camera = new THREE.OrthographicCamera( - 10, 10, 10, - 10 );
 	camera.position.set( 0, 0, 4 );
 	camera.far = 100;
@@ -82,9 +82,12 @@ async function init() {
 
 	gui = new GUI();
 
-	console.time('TEST');
+	console.time( 'TEST' );
 	updateEdges();
-	console.timeEnd('TEST');
+	console.timeEnd( 'TEST' );
+
+	// scene.add( new THREE.LineSegments( new THREE.EdgesGeometry( model.geometry ), new THREE.LineBasicMaterial( { color: 0 } ) ) );
+
 
 	window.addEventListener( 'resize', function () {
 
@@ -161,7 +164,7 @@ function updateEdges() {
 
 
 
-	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 89 );
+	const edges = generateEdges( model.geometry, new THREE.Vector3( 0, 1, 0 ), 50 );
 	const finalEdges = [];
 	const tempLine = new THREE.Line3();
 	const tempRay = new THREE.Ray();
@@ -193,8 +196,19 @@ function updateEdges() {
 				tempRay.origin.copy( line.start );
 				line.delta( tempRay.direction ).normalize();
 
-				return tempRay.intersectsBox( box, tempVec );
-				// return line.start.distanceToSquared( tempVec ) < line.distanceSq();
+				if ( box.containsPoint( tempRay.origin ) ) {
+
+					return true;
+
+				}
+
+				if ( tempRay.intersectBox( box, tempVec ) ) {
+
+					return tempRay.origin.distanceToSquared( tempVec ) < line.distanceSq();
+
+				}
+
+				return false;
 
 			},
 
