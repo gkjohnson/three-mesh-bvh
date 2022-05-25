@@ -276,12 +276,14 @@ function* updateEdges( runTime = 30 ) {
 
 				}
 
+				// if the projected triangle is just a line then don't check it
 				if ( isYProjectedTriangleDegenerate( tri ) ) {
 
 					return false;
 
 				}
 
+				// if this line lies on a triangle edge then don't check it
 				if ( isLineTriangleEdge( tri, line ) ) {
 
 					return false;
@@ -350,7 +352,8 @@ function* updateEdges( runTime = 30 ) {
 		`bvh generation  : ${ bvhTime.toFixed( 2 ) }ms\n` +
 		`edge generation : ${ edgeGenerateTime.toFixed( 2 ) }ms\n` +
 		`edge trimming   : ${ trimTime.toFixed( 2 ) }ms\n\n` +
-		`total time      : ${ ( mergeTime + bvhTime + edgeGenerateTime + trimTime ).toFixed( 2 ) }ms`;
+		`total time      : ${ ( mergeTime + bvhTime + edgeGenerateTime + trimTime ).toFixed( 2 ) }ms\n` +
+		`total edges     : ${ finalEdges.length } edges`;
 
 }
 
