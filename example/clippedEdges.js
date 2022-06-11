@@ -31,6 +31,9 @@ let outputElement = null;
 let time = 0;
 
 const tempVector = new THREE.Vector3();
+const tempVector1 = new THREE.Vector3();
+const tempVector2 = new THREE.Vector3();
+const tempVector3 = new THREE.Vector3();
 const tempLine = new THREE.Line3();
 const inverseMatrix = new THREE.Matrix4();
 const localPlane = new THREE.Plane();
@@ -393,6 +396,7 @@ function render() {
 				// check each triangle edge to see if it intersects with the plane. If so then
 				// add it to the list of segments.
 				let count = 0;
+
 				tempLine.start.copy( tri.a );
 				tempLine.end.copy( tri.b );
 				if ( localPlane.intersectLine( tempLine, tempVector ) ) {
@@ -426,20 +430,20 @@ function render() {
 				// When the plane passes through a vertex and one of the edges of the triangle, there will be three intersections, two of which must be repeated
 				if ( count === 3 ) {
 
+					tempVector1.fromBufferAttribute( posAttr, index - 3 );
+					tempVector2.fromBufferAttribute( posAttr, index - 2 );
+					tempVector3.fromBufferAttribute( posAttr, index - 1 );
 					// If the last point is a duplicate intersection
-					if (
-						( posAttr.positions[ index - 1 ].x === posAttr.positions[ index - 2 ].x && posAttr.positions[ index - 1 ].y === posAttr.positions[ index - 2 ].y )
-							|| ( posAttr.positions[ index - 1 ].x === posAttr.positions[ index - 3 ].x && posAttr.positions[ index - 1 ].y === posAttr.positions[ index - 3 ].y )
-					) {
+					if ( tempVector3.equals( tempVector1 ) || tempVector3.equals( tempVector2 ) ) {
 
 						count --;
 						index --;
 
-					} else if ( posAttr.positions[ index - 2 ].x === posAttr.positions[ index - 3 ].x && posAttr.positions[ index - 2 ].y === posAttr.positions[ index - 3 ].y ) {
+					} else if ( tempVector1.equals( tempVector2 ) ) {
 
 						// If the last point is not a duplicate intersection
 						// Set the penultimate point as a distinct point and delete the last point
-						posAttr.setXYZ( index - 2, posAttr.positions[ index - 1 ].x, posAttr.positions[ index - 1 ].y, posAttr.positions[ index - 1 ].z );
+						posAttr.setXYZ( index - 2, tempVector3 );
 						count --;
 						index --;
 
