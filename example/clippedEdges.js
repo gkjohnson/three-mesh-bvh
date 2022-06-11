@@ -423,6 +423,30 @@ function render() {
 
 				}
 
+				// When the plane passes through a vertex and one of the edges of the triangle, there will be three intersections, two of which must be repeated
+				if ( count === 3 ) {
+
+					// If the last point is a duplicate intersection
+					if (
+						( posAttr.positions[ index - 1 ].x === posAttr.positions[ index - 2 ].x && posAttr.positions[ index - 1 ].y === posAttr.positions[ index - 2 ].y )
+							|| ( posAttr.positions[ index - 1 ].x === posAttr.positions[ index - 3 ].x && posAttr.positions[ index - 1 ].y === posAttr.positions[ index - 3 ].y )
+					) {
+
+						count --;
+						index --;
+
+					} else if ( posAttr.positions[ index - 2 ].x === posAttr.positions[ index - 3 ].x && posAttr.positions[ index - 2 ].y === posAttr.positions[ index - 3 ].y ) {
+
+						// If the last point is not a duplicate intersection
+						// Set the penultimate point as a distinct point and delete the last point
+						posAttr.setXYZ( index - 2, posAttr.positions[ index - 1 ].x, posAttr.positions[ index - 1 ].y, posAttr.positions[ index - 1 ].z );
+						count --;
+						index --;
+
+					}
+
+				}
+
 				// If we only intersected with one or three sides then just remove it. This could be handled
 				// more gracefully.
 				if ( count !== 2 ) {
