@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - MeshBVHVisualizer: not removing child roots on update.
 - ExtendedTriangle: Fix intersection not being reported when triangles intersect at vertex.
+- MeshBVH.bvhcast: Fix bvhcast using incorrect bounds to traverse.
 
 ## [0.5.11] - 2022-05-20
 ### Fixed
