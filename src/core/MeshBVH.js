@@ -660,7 +660,7 @@ export class MeshBVH {
 
 		}
 
-		otherBVH.getBoundingBox( aabb2 );
+		otherBvh.getBoundingBox( aabb2 );
 		aabb2.applyMatrix4( matrixToLocal );
 		const result = this.shapecast( {
 
