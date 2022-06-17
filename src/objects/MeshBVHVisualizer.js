@@ -259,7 +259,9 @@ class MeshBVHVisualizer extends Group {
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
-			this._roots.pop();
+			const root = this._roots.pop();
+			root.geometry.dispose();
+			this.remove( root );
 
 		}
 
