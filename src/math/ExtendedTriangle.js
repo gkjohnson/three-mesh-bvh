@@ -259,7 +259,18 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			if ( count1 !== 2 ) {
+			if ( count1 === 1 && this.containsPoint( edge1.start ) ) {
+
+				if ( target ) {
+
+					target.start.copy( edge1.start );
+					target.end.copy( edge1.start );
+
+				}
+
+				return true;
+
+			} else if ( count1 !== 2 ) {
 
 				return false;
 
@@ -301,7 +312,18 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			if ( count2 !== 2 ) {
+			if ( count2 === 1 && this.containsPoint( edge2.start ) ) {
+
+				if ( target ) {
+
+					target.start.copy( edge2.start );
+					target.end.copy( edge2.start );
+
+				}
+
+				return true;
+
+			} else if ( count2 !== 2 ) {
 
 				return false;
 
