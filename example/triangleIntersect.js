@@ -171,7 +171,7 @@ function updateIntersectionMesh( mesh, line ) {
 	const direction = new THREE.Vector3().subVectors( line.start, line.end );
 	mesh.geometry = new THREE.CylinderGeometry( 1, 1, direction.length(), 6, 4, true );
 	mesh.geometry.applyMatrix4( new THREE.Matrix4().makeTranslation( 0, direction.length() / 2, 0 ) );
-	mesh.geometry.applyMatrix4( new THREE.Matrix4().makeRotationX( THREE.Math.degToRad( 90 ) ) );
+	mesh.geometry.applyMatrix4( new THREE.Matrix4().makeRotationX( THREE.MathUtils.degToRad( 90 ) ) );
 	mesh.geometry.computeVertexNormals();
 	mesh.position.copy( line.start );
 	mesh.lookAt( line.end );

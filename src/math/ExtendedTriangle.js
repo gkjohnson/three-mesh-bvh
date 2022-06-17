@@ -229,12 +229,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			let count1 = 0;
 			for ( let i = 0; i < 3; i ++ ) {
 
-				const p1 = points1[ i ];
-				const p2 = points1[ ( i + 1 ) % 3 ];
+				const p = points1[ i ];
+				const pNext = points1[ ( i + 1 ) % 3 ];
 
-				edge.start.copy( p1 );
-				edge.end.copy( p2 );
+				edge.start.copy( p );
+				edge.end.copy( pNext );
 				edge.delta( dir1 );
+
+				const targetPoint = found1 ? edge1.start : edge1.end;
 				if ( plane2.normal.dot( dir1 ) === 0 && plane2.distanceToPoint( edge.start ) === 0 ) {
 
 					// if the edge lies on the plane then take the line
@@ -242,7 +244,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 					count1 = 2;
 					break;
 
-				} else if ( plane2.intersectLine( edge, found1 ? edge1.start : edge1.end ) ) {
+				} else if ( plane2.intersectLine( edge, targetPoint ) && ! targetPoint.equals( pNext ) ) {
 
 					count1 ++;
 					if ( found1 ) {
@@ -257,7 +259,18 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			if ( count1 !== 2 ) {
+			if ( count1 === 1 && this.containsPoint( edge1.start ) ) {
+
+				if ( target ) {
+
+					target.start.copy( edge1.start );
+					target.end.copy( edge1.start );
+
+				}
+
+				return true;
+
+			} else if ( count1 !== 2 ) {
 
 				return false;
 
@@ -269,12 +282,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			let count2 = 0;
 			for ( let i = 0; i < 3; i ++ ) {
 
-				const p1 = points2[ i ];
-				const p2 = points2[ ( i + 1 ) % 3 ];
+				const p = points2[ i ];
+				const pNext = points2[ ( i + 1 ) % 3 ];
 
-				edge.start.copy( p1 );
-				edge.end.copy( p2 );
+				edge.start.copy( p );
+				edge.end.copy( pNext );
 				edge.delta( dir2 );
+
+				const targetPoint = found2 ? edge2.start : edge2.end;
 				if ( plane1.normal.dot( dir2 ) === 0 && plane1.distanceToPoint( edge.start ) === 0 ) {
 
 					// if the edge lies on the plane then take the line
@@ -282,7 +297,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 					count2 = 2;
 					break;
 
-				} else if ( plane1.intersectLine( edge, found2 ? edge2.start : edge2.end ) ) {
+				} else if ( plane1.intersectLine( edge, targetPoint ) && ! targetPoint.equals( pNext ) ) {
 
 					count2 ++;
 					if ( found2 ) {
@@ -297,7 +312,18 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			if ( count2 !== 2 ) {
+			if ( count2 === 1 && this.containsPoint( edge2.start ) ) {
+
+				if ( target ) {
+
+					target.start.copy( edge2.start );
+					target.end.copy( edge2.start );
+
+				}
+
+				return true;
+
+			} else if ( count2 !== 2 ) {
 
 				return false;
 
