@@ -63,6 +63,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer)
 
+[three-bvh-csg](https://github.com/gkjohnson/three-bvh-csg)
 
 # Use
 
