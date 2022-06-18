@@ -2,6 +2,13 @@ import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
+const DIST_EPSILON = 1e-15;
+function isNearZero( value ) {
+
+	return Math.abs( value ) < DIST_EPSILON;
+
+}
+
 export class ExtendedTriangle extends Triangle {
 
 	constructor( ...args ) {
@@ -237,14 +244,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				edge.delta( dir1 );
 
 				const targetPoint = found1 ? edge1.start : edge1.end;
-				if ( plane2.normal.dot( dir1 ) === 0 && plane2.distanceToPoint( edge.start ) === 0 ) {
+				if ( isNearZero( plane2.normal.dot( dir1 ) ) && isNearZero( plane2.distanceToPoint( edge.start ) ) ) {
 
 					// if the edge lies on the plane then take the line
 					edge1.copy( edge );
 					count1 = 2;
 					break;
 
-				} else if ( plane2.intersectLine( edge, targetPoint ) && ! targetPoint.equals( pNext ) ) {
+				} else if ( plane2.intersectLine( edge, targetPoint ) && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
 
 					count1 ++;
 					if ( found1 ) {
@@ -290,14 +297,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				edge.delta( dir2 );
 
 				const targetPoint = found2 ? edge2.start : edge2.end;
-				if ( plane1.normal.dot( dir2 ) === 0 && plane1.distanceToPoint( edge.start ) === 0 ) {
+				if ( isNearZero( plane1.normal.dot( dir2 ) ) && isNearZero( plane1.distanceToPoint( edge.start ) ) ) {
 
 					// if the edge lies on the plane then take the line
 					edge2.copy( edge );
 					count2 = 2;
 					break;
 
-				} else if ( plane1.intersectLine( edge, targetPoint ) && ! targetPoint.equals( pNext ) ) {
+				} else if ( plane1.intersectLine( edge, targetPoint ) && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
 
 					count2 ++;
 					if ( found2 ) {
@@ -348,6 +355,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			const e2 = edge2.end.dot( dir1 );
 			const separated1 = e1 < s2;
 			const separated2 = s1 < e2;
+
 			if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
 
 				return false;
