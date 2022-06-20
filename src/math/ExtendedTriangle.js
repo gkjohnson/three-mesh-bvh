@@ -244,7 +244,8 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				edge.delta( dir1 );
 
 				const targetPoint = found1 ? edge1.start : edge1.end;
-				if ( isNearZero( plane2.normal.dot( dir1 ) ) && isNearZero( plane2.distanceToPoint( edge.start ) ) ) {
+				const startIntersects = isNearZero( plane2.distanceToPoint( p ) );
+				if ( isNearZero( plane2.normal.dot( dir1 ) ) && startIntersects ) {
 
 					// if the edge lies on the plane then take the line
 					edge1.copy( edge );
@@ -254,7 +255,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				}
 
 				// check if the start point is near the plane because "intersectLine" is not robust to that case
-				const doesIntersect = plane2.intersectLine( edge, targetPoint ) || isNearZero( targetPoint.distanceTo( p ) );
+				const doesIntersect = plane2.intersectLine( edge, targetPoint ) || startIntersects;
 				if ( doesIntersect && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
 
 					count1 ++;
@@ -301,7 +302,8 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				edge.delta( dir2 );
 
 				const targetPoint = found2 ? edge2.start : edge2.end;
-				if ( isNearZero( plane1.normal.dot( dir2 ) ) && isNearZero( plane1.distanceToPoint( edge.start ) ) ) {
+				const startIntersects = isNearZero( plane1.distanceToPoint( p ) );
+				if ( isNearZero( plane1.normal.dot( dir2 ) ) && startIntersects ) {
 
 					// if the edge lies on the plane then take the line
 					edge2.copy( edge );
@@ -311,7 +313,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				}
 
 				// check if the start point is near the plane because "intersectLine" is not robust to that case
-				const doesIntersect = plane1.intersectLine( edge, targetPoint ) || isNearZero( targetPoint.distanceTo( p ) );
+				const doesIntersect = plane1.intersectLine( edge, targetPoint ) || startIntersects;
 				if ( doesIntersect && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
 
 					count2 ++;
