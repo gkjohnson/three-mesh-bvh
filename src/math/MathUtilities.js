@@ -14,7 +14,7 @@ export const closestPointLineToLine = ( function () {
 		const v32 = dir2;
 
 		v02.subVectors( v0, v2 );
-		dir1.subVectors( l1.end, l2.start );
+		dir1.subVectors( l1.end, l1.start );
 		dir2.subVectors( l2.end, l2.start );
 
 		// float d0232 = v02.Dot(v32);
