@@ -329,12 +329,12 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			if ( count2 === 1 && this.containsPoint( edge1.end ) ) {
+			if ( count2 === 1 && this.containsPoint( edge2.end ) ) {
 
 				if ( target ) {
 
-					target.start.copy( edge1.end );
-					target.end.copy( edge1.end );
+					target.start.copy( edge2.end );
+					target.end.copy( edge2.end );
 
 				}
 
