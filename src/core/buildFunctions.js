@@ -563,22 +563,64 @@ function computeTriangleBounds( geo, fullBounds ) {
 	const index = geo.index.array;
 	const triCount = index.length / 3;
 	const triangleBounds = new Float32Array( triCount * 6 );
-	const getter = [ posAttr.getX.bind( posAttr ), posAttr.getY.bind( posAttr ), posAttr.getZ.bind( posAttr ) ];
+
+	// used for non-normalized positions
+	const posArr = posAttr.array;
+
+	// support for an interleaved position buffer
+	const bufferOffset = posAttr.offset || 0;
+	let stride = 3;
+	if ( posAttr.isInterleavedBufferAttribute ) {
+
+		stride = posAttr.data.stride;
+
+	}
+
+	// used for normalized positions
+	const getters = [ 'getX', 'getY', 'getZ' ];
 
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
 		const tri3 = tri * 3;
 		const tri6 = tri * 6;
 
-		const ai = index[ tri3 + 0 ];
-		const bi = index[ tri3 + 1 ];
-		const ci = index[ tri3 + 2 ];
+		let ai;
+		let bi;
+		let ci;
+
+		if ( posAttr.normalized ) {
+
+			ai = index[ tri3 + 0 ];
+			bi = index[ tri3 + 1 ];
+			ci = index[ tri3 + 2 ];
+
+		} else {
+
+			ai = index[ tri3 + 0 ] * stride + bufferOffset;
+			bi = index[ tri3 + 1 ] * stride + bufferOffset;
+			ci = index[ tri3 + 2 ] * stride + bufferOffset;
+
+		}
 
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const a = getter[ el ]( ai );
-			const b = getter[ el ]( bi );
-			const c = getter[ el ]( ci );
+			let a;
+			let b;
+			let c;
+
+			if ( posAttr.normalized ) {
+
+				a = posAttr[ getters[ el ] ]( ai );
+				b = posAttr[ getters[ el ] ]( bi );
+				c = posAttr[ getters[ el ] ]( ci );
+
+			} else {
+
+				a = posArr[ ai + el ];
+				b = posArr[ bi + el ];
+				c = posArr[ ci + el ];
+
+			}
 
 			let min = a;
 			if ( b < min ) min = b;
