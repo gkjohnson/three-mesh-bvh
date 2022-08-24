@@ -190,6 +190,7 @@ export class MeshBVH {
 		const indexArr = geometry.index.array;
 		const posAttr = geometry.attributes.position;
 		const posArr = posAttr.array;
+		const normalized = posAttr.normalized;
 
 		// support for an interleaved position buffer
 		const bufferOffset = posAttr.offset || 0;
@@ -233,11 +234,9 @@ export class MeshBVH {
 
 				for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
 
-					let x;
-					let y;
-					let z;
+					let x, y, z;
 
-					if ( posAttr.normalized ) {
+					if ( normalized ) {
 
 						const index = indexArr[ i ];
 						x = posAttr.getX( index );

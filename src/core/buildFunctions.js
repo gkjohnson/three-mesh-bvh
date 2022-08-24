@@ -563,6 +563,7 @@ function computeTriangleBounds( geo, fullBounds ) {
 	const index = geo.index.array;
 	const triCount = index.length / 3;
 	const triangleBounds = new Float32Array( triCount * 6 );
+	const normalized = posAttr.normalized;
 
 	// used for non-normalized positions
 	const posArr = posAttr.array;
@@ -584,11 +585,9 @@ function computeTriangleBounds( geo, fullBounds ) {
 		const tri3 = tri * 3;
 		const tri6 = tri * 6;
 
-		let ai;
-		let bi;
-		let ci;
+		let ai, bi, ci;
 
-		if ( posAttr.normalized ) {
+		if ( normalized ) {
 
 			ai = index[ tri3 + 0 ];
 			bi = index[ tri3 + 1 ];
@@ -604,11 +603,9 @@ function computeTriangleBounds( geo, fullBounds ) {
 
 		for ( let el = 0; el < 3; el ++ ) {
 
-			let a;
-			let b;
-			let c;
+			let a, b, c;
 
-			if ( posAttr.normalized ) {
+			if ( normalized ) {
 
 				a = posAttr[ getters[ el ] ]( ai );
 				b = posAttr[ getters[ el ] ]( bi );
