@@ -560,10 +560,13 @@ function getAverage( triangleBounds, offset, count, axis ) {
 function computeTriangleBounds( geo, fullBounds ) {
 
 	const posAttr = geo.attributes.position;
-	const posArr = posAttr.array;
 	const index = geo.index.array;
 	const triCount = index.length / 3;
 	const triangleBounds = new Float32Array( triCount * 6 );
+	const normalized = posAttr.normalized;
+
+	// used for non-normalized positions
+	const posArr = posAttr.array;
 
 	// support for an interleaved position buffer
 	const bufferOffset = posAttr.offset || 0;
@@ -574,19 +577,47 @@ function computeTriangleBounds( geo, fullBounds ) {
 
 	}
 
+	// used for normalized positions
+	const getters = [ 'getX', 'getY', 'getZ' ];
+
 	for ( let tri = 0; tri < triCount; tri ++ ) {
 
 		const tri3 = tri * 3;
 		const tri6 = tri * 6;
-		const ai = index[ tri3 + 0 ] * stride + bufferOffset;
-		const bi = index[ tri3 + 1 ] * stride + bufferOffset;
-		const ci = index[ tri3 + 2 ] * stride + bufferOffset;
+
+		let ai, bi, ci;
+
+		if ( normalized ) {
+
+			ai = index[ tri3 + 0 ];
+			bi = index[ tri3 + 1 ];
+			ci = index[ tri3 + 2 ];
+
+		} else {
+
+			ai = index[ tri3 + 0 ] * stride + bufferOffset;
+			bi = index[ tri3 + 1 ] * stride + bufferOffset;
+			ci = index[ tri3 + 2 ] * stride + bufferOffset;
+
+		}
 
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const a = posArr[ ai + el ];
-			const b = posArr[ bi + el ];
-			const c = posArr[ ci + el ];
+			let a, b, c;
+
+			if ( normalized ) {
+
+				a = posAttr[ getters[ el ] ]( ai );
+				b = posAttr[ getters[ el ] ]( bi );
+				c = posAttr[ getters[ el ] ]( ci );
+
+			} else {
+
+				a = posArr[ ai + el ];
+				b = posArr[ bi + el ];
+				c = posArr[ ci + el ];
+
+			}
 
 			let min = a;
 			if ( b < min ) min = b;
