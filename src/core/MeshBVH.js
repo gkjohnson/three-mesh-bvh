@@ -14,7 +14,6 @@ import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
-import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
