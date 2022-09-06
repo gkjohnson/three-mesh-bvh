@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Support for non-normalized vertex attributes.
 
+### Removed
+- Removed deprecated `MeshBVH` function signatures for `raycast`, `raycastFirst`, `closestPointToPoint`, `closestPointToGeometry`, `refit`, `intersectsGeometry`, `shapecast`, `intersectsBox`, `intersectsSphere`.
+
 ## [0.5.15] - 2022-07-25
 ### Fixed
 - single point intersection in `intersectsTriangle` function.
