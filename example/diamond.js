@@ -129,6 +129,12 @@ async function init() {
 	diamond = new THREE.Mesh( diamondGeo, diamondMaterial );
 	scene.add( diamond );
 
+	effectController = {
+		bounces: 3.0,
+		ior: 2.4,
+		correctMips: true
+	};
+
 	gui = new GUI();
 	gui.add( effectController, 'bounces', 1.0, 10.0, 1.0 ).name( 'Bounces' ).onChange( v => {
 
@@ -150,6 +156,15 @@ async function init() {
 	stats.showPanel( 0 );
 	document.body.appendChild( stats.dom );
 	render();
+
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
 
 }
 
