@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GUI } from 'https://unpkg.com/three@0.144.0/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.144.0/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.144.0/examples/jsm/loaders/GLTFLoader.js';
+import { RGBELoader } from 'https://unpkg.com/three@0.144.0/examples/jsm/loaders/RGBELoader.js';
 //import { acceleratedRaycast, MeshBVH, MeshBVHVisualizer } from '..';
 import {
 	MeshBVH,
@@ -25,17 +26,15 @@ async function init() {
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.outputEncoding = THREE.sRGBEncoding;
+	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	document.body.appendChild( renderer.domElement );
 
-	environment = new THREE.CubeTextureLoader().load( [
-		'textures/skybox/Box_Right.bmp',
-		'textures/skybox/Box_Left.bmp',
-		'textures/skybox/Box_Top.bmp',
-		'textures/skybox/Box_Bottom.bmp',
-		'textures/skybox/Box_Front.bmp',
-		'textures/skybox/Box_Back.bmp'
-	] );
-	environment.encoding = THREE.sRGBEncoding;
+	environment = new RGBELoader()
+		.load( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr', tex => {
+
+			tex.mapping = THREE.EquirectangularReflectionMapping;
+
+		} );
 	scene.background = environment;
 
 	controls = new OrbitControls( camera, renderer.domElement );
@@ -120,7 +119,10 @@ async function init() {
                 }
 
                 vec3 finalColor = textureGrad(envMap, rayDirection, dFdx(correctMips ? directionCamPerfect: rayDirection), dFdy(correctMips ? directionCamPerfect: rayDirection)).rgb * color;
-                gl_FragColor = LinearTosRGB(vec4(vec3(finalColor), 1.0));
+                gl_FragColor = vec4(finalColor, 1.0);
+
+				#include <encodings_fragment>
+				#include <tonemapping_fragment>
 
             }
     	`
