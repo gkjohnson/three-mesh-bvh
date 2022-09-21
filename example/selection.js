@@ -159,7 +159,7 @@ function init() {
 	gui = new GUI();
 	const selectionFolder = gui.addFolder( 'selection' );
 	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] );
-	selectionFolder.add( params, 'selectionMode', [ 'centroid', 'intersection' ] );
+	selectionFolder.add( params, 'selectionMode', [ 'centroid', 'centroid-visible', 'intersection' ] );
 	selectionFolder.add( params, 'selectModel' );
 	selectionFolder.add( params, 'liveUpdate' );
 	selectionFolder.add( params, 'useBoundsTree' );
@@ -444,6 +444,10 @@ function updateSelection() {
 
 	}
 
+	const cameraWorldSpace = new THREE.Vector3().applyMatrix4( camera.matrixWorld );
+	const tempRay = new THREE.Ray();
+	const invMatrix = new THREE.Matrix4().copy( mesh.matrixWorld ).invert();
+
 	const startTime = window.performance.now();
 	const indices = [];
 	mesh.geometry.boundsTree.shapecast( {
@@ -578,7 +582,7 @@ function updateSelection() {
 
 			}
 
-			return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
+			return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
 
 		},
 
@@ -599,15 +603,36 @@ function updateSelection() {
 
 			// check all the segments if using no bounds tree
 			const segmentsToCheck = params.useBoundsTree ? perBoundsSegments[ depth ] : lassoSegments;
-			if ( params.selectionMode === 'centroid' ) {
+			if ( params.selectionMode === 'centroid' || params.selectionMode === 'centroid-visible' ) {
 
 				// get the center of the triangle
 				const centroid = tri.a.add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
+				tempRay.origin.copy( centroid );
 				centroid.applyMatrix4( toScreenSpaceMatrix );
+
+				const n = new THREE.Vector3();
+				tri.getNormal( n );
+				tempRay.origin.addScaledVector( n, - 0.0001 );
+
 
 				// counting the crossings
 				const crossings = pointRayCrossesSegments( centroid, segmentsToCheck );
 				if ( crossings % 2 === 1 ) {
+
+					if ( params.selectionMode === 'centroid-visible' ) {
+
+						tempRay.direction.subVectors( cameraWorldSpace, tempRay.origin ).transformDirection( invMatrix );
+
+						const res = mesh.geometry.boundsTree.raycastFirst( tempRay, THREE.DoubleSide );
+						if ( res ) {
+
+							return false;
+
+						}
+
+
+					}
+
 
 					indices.push( a, b, c );
 					return params.selectModel;
