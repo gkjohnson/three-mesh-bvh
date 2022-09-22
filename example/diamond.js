@@ -54,6 +54,7 @@ async function init() {
             color: { value: new THREE.Color(1, 1, 1) },
             ior: { value: 2.4 },
             correctMips: { value: true },
+            fastChroma: { value: false },
             projectionMatrixInv: { value: camera.projectionMatrixInverse },
             viewMatrixInv: { value: camera.matrixWorld },
             chromaticAberration: { value: true },
@@ -84,6 +85,7 @@ async function init() {
 	uniform float ior;
 	uniform vec3 color;
 	uniform bool correctMips;
+	uniform bool fastChroma;
 	uniform bool chromaticAberration;
 	uniform mat4 projectionMatrixInv;
 	uniform mat4 viewMatrixInv;
@@ -135,9 +137,15 @@ async function init() {
 		vec3 rayDirection = normalize(vWorldPosition - cameraPosition);
 		vec3 finalColor;
 		if (chromaticAberration) {
-		vec3 rayDirectionR = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior * (1.0 - aberrationStrength), 1.0), modelMatrixInverse);
 		vec3 rayDirectionG = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior, 1.0), modelMatrixInverse);
-		vec3 rayDirectionB = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior * (1.0 + aberrationStrength), 1.0), modelMatrixInverse);
+		vec3 rayDirectionR, rayDirectionB;
+		if (fastChroma) {
+		 	rayDirectionR = normalize(rayDirectionG + 1.0 * vec3(aberrationStrength / 2.0));
+         	rayDirectionB = normalize(rayDirectionG - 1.0 * vec3(aberrationStrength / 2.0));
+		} else {
+			 rayDirectionR = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior * (1.0 - aberrationStrength), 1.0), modelMatrixInverse);
+			 rayDirectionB = totalInternalReflection(rayOrigin, rayDirection, normal, max(ior * (1.0 + aberrationStrength), 1.0), modelMatrixInverse);
+		}
 		float finalColorR = textureGradient(envMap, rayDirectionR, directionCamPerfect).r;
 		float finalColorG = textureGradient(envMap, rayDirectionG, directionCamPerfect).g;
 		float finalColorB = textureGradient(envMap, rayDirectionB, directionCamPerfect).b;
@@ -160,7 +168,8 @@ async function init() {
         ior: 2.4,
         correctMips: true,
         chromaticAberration: true,
-        aberrationStrength: 0.01
+        aberrationStrength: 0.01,
+        fastChroma: false
     };
 
     gui = new GUI();
@@ -177,6 +186,11 @@ async function init() {
     gui.add(effectController, 'correctMips').onChange(v => {
 
         diamond.material.uniforms.correctMips.value = v;
+
+    });
+    gui.add(effectController, 'fastChroma').onChange(v => {
+
+        diamond.material.uniforms.fastChroma.value = v;
 
     });
     gui.add(effectController, 'chromaticAberration').onChange(v => {
