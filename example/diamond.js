@@ -33,7 +33,7 @@ async function init() {
 	scene = new THREE.Scene();
 
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	camera.position.set( 50, 75, 50 );
+	camera.position.set( 25, 20, 25 );
 
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -41,23 +41,26 @@ async function init() {
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	document.body.appendChild( renderer.domElement );
 
-	environment = new RGBELoader()
-		.load( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr', tex => {
-
-			tex.mapping = THREE.EquirectangularReflectionMapping;
-			tex.generateMipmaps = true;
-			tex.minFilter = THREE.LinearMipmapLinearFilter;
-			tex.magFilter = THREE.LinearFilter;
-
-		} );
-
-	scene.background = environment;
-
 	controls = new OrbitControls( camera, renderer.domElement );
 
-	const diamondGeo = ( await new GLTFLoader().loadAsync( './models/diamond.glb' ) ).scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
+	const environmentPromise = new RGBELoader()
+		.loadAsync( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr' );
+
+	const gltfPromise = await new GLTFLoader().loadAsync( './models/diamond.glb' );
+
+	let gltf;
+	[ environment, gltf ] = await Promise.all( [ environmentPromise, gltfPromise ] );
+
+	environment.mapping = THREE.EquirectangularReflectionMapping;
+	environment.generateMipmaps = true;
+	environment.minFilter = THREE.LinearMipmapLinearFilter;
+	environment.magFilter = THREE.LinearFilter;
+	scene.background = environment;
+
+
+	const diamondGeo = gltf.scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
 	diamondGeo.scale( 10, 10, 10 );
-	const bvh = new MeshBVH( diamondGeo.toNonIndexed(), { strategy: SAH } );
+	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafTris: 1 } );
 	const diamondMaterial = new THREE.ShaderMaterial( {
 		uniforms: {
 
