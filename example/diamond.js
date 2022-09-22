@@ -3,6 +3,7 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {
 	MeshBVH,
 	MeshBVHUniformStruct,
@@ -11,7 +12,7 @@ import {
 	SAH
 } from '../src/index.js';
 
-let scene, camera, renderer, environment, controls, diamond, gui, stats;
+let scene, camera, renderer, environment, controls, diamond, gui, stats, clock;
 
 const params = {
 
@@ -43,10 +44,12 @@ async function init() {
 
 	controls = new OrbitControls( camera, renderer.domElement );
 
+	clock = new THREE.Clock();
+
 	const environmentPromise = new RGBELoader()
 		.loadAsync( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr' );
 
-	const gltfPromise = await new GLTFLoader().loadAsync( './models/diamond.glb' );
+	const gltfPromise = await new GLTFLoader().loadAsync( '../models/diamond.glb' );
 
 	let gltf;
 	[ environment, gltf ] = await Promise.all( [ environmentPromise, gltfPromise ] );
@@ -275,7 +278,7 @@ function render() {
 
 	if ( params.animate ) {
 
-		diamond.rotation.y += 0.01;
+		diamond.rotation.y += clock.getDelta() * 0.25;
 
 	}
 
