@@ -407,6 +407,12 @@ function render() {
 
 }
 
+const invWorldMatrix = new THREE.Matrix4();
+const camLocalPosition = new THREE.Vector3();
+const tempRay = new THREE.Ray();
+const centroid = new THREE.Vector3();
+const screenCentroid = new THREE.Vector3();
+const faceNormal = new THREE.Vector3();
 const toScreenSpaceMatrix = new THREE.Matrix4();
 const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
@@ -444,9 +450,8 @@ function updateSelection() {
 
 	}
 
-	const cameraWorldSpace = new THREE.Vector3().applyMatrix4( camera.matrixWorld );
-	const tempRay = new THREE.Ray();
-	const invMatrix = new THREE.Matrix4().copy( mesh.matrixWorld ).invert();
+	invWorldMatrix.copy( mesh.matrixWorld ).invert();
+	camLocalPosition.set( 0, 0, 0 ).applyMatrix4( camera.matrixWorld ).applyMatrix4( invWorldMatrix );
 
 	const startTime = window.performance.now();
 	const indices = [];
@@ -582,7 +587,7 @@ function updateSelection() {
 
 			}
 
-			return crossings % 2 === 0 ? NOT_INTERSECTED : INTERSECTED;
+			return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
 
 		},
 
@@ -593,35 +598,27 @@ function updateSelection() {
 			const b = i3 + 1;
 			const c = i3 + 2;
 
-			// if the parent bounds were marked as contained
-			if ( contained ) {
-
-				indices.push( a, b, c );
-				return params.selectModel;
-
-			}
-
 			// check all the segments if using no bounds tree
 			const segmentsToCheck = params.useBoundsTree ? perBoundsSegments[ depth ] : lassoSegments;
 			if ( params.selectionMode === 'centroid' || params.selectionMode === 'centroid-visible' ) {
 
 				// get the center of the triangle
-				const centroid = tri.a.add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
-				tempRay.origin.copy( centroid );
-				centroid.applyMatrix4( toScreenSpaceMatrix );
-
-				const n = new THREE.Vector3();
-				tri.getNormal( n );
-				tempRay.origin.addScaledVector( n, - 0.0001 );
-
+				centroid.copy( tri.a ).add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
+				screenCentroid.copy( centroid ).applyMatrix4( toScreenSpaceMatrix );
 
 				// counting the crossings
-				const crossings = pointRayCrossesSegments( centroid, segmentsToCheck );
-				if ( crossings % 2 === 1 ) {
+				if (
+					contained ||
+					pointRayCrossesSegments( screenCentroid, segmentsToCheck ) % 2 === 1
+				) {
 
+					// if we're only selecting visible faces then perform a ray check to ensure the centroid
+					// is visible.
 					if ( params.selectionMode === 'centroid-visible' ) {
 
-						tempRay.direction.subVectors( cameraWorldSpace, tempRay.origin ).transformDirection( invMatrix );
+						tri.getNormal( faceNormal );
+						tempRay.origin.copy( centroid ).addScaledVector( faceNormal, 1e-6 );
+						tempRay.direction.subVectors( camLocalPosition, centroid );
 
 						const res = mesh.geometry.boundsTree.raycastFirst( tempRay, THREE.DoubleSide );
 						if ( res ) {
@@ -630,9 +627,7 @@ function updateSelection() {
 
 						}
 
-
 					}
-
 
 					indices.push( a, b, c );
 					return params.selectModel;
@@ -640,6 +635,14 @@ function updateSelection() {
 				}
 
 			} else if ( params.selectionMode === 'intersection' ) {
+
+				// if the parent bounds were marked as contained
+				if ( contained ) {
+
+					indices.push( a, b, c );
+					return params.selectModel;
+
+				}
 
 				// get the projected vertices
 				const vertices = [
