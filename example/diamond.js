@@ -57,7 +57,6 @@ async function init() {
 	environment.magFilter = THREE.LinearFilter;
 	scene.background = environment;
 
-
 	const diamondGeo = gltf.scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
 	diamondGeo.scale( 10, 10, 10 );
 	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafTris: 1 } );
@@ -212,7 +211,9 @@ async function init() {
 
 				}
 
-				gl_FragColor = vec4( LinearTosRGB( vec4( finalColor, 1.0 ) ).rgb, 1.0 );
+				gl_FragColor = vec4( finalColor, 1.0 );
+				#include <tonemapping_fragment>
+				#include <encodings_fragment>
 
 			}
 		`
@@ -263,7 +264,7 @@ async function init() {
 
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
-		diamond.material.uniforms.resolution.set( window.innerWidth, window.innerHeight );
+		diamond.material.uniforms.resolution.value.set( window.innerWidth, window.innerHeight );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 
 	}, false );
