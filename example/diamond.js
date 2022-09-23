@@ -66,18 +66,23 @@ async function init() {
 	const diamondMaterial = new THREE.ShaderMaterial( {
 		uniforms: {
 
+			// scene / geometry information
 			envMap: { value: environment },
 			bvh: { value: new MeshBVHUniformStruct() },
-			bounces: { value: 3 },
-			color: { value: new THREE.Color( 1, 1, 1 ) },
-			ior: { value: 2.4 },
-			correctMips: { value: true },
-			fastChroma: { value: false },
 			projectionMatrixInv: { value: camera.projectionMatrixInverse },
 			viewMatrixInv: { value: camera.matrixWorld },
-			chromaticAberration: { value: true },
+			resolution: { value: new THREE.Vector2() },
+
+			// internal reflection settings
+			bounces: { value: 3 },
+			ior: { value: 2.4 },
+
+			correctMips: { value: true },
+
+			// chroma and color settings
+			color: { value: new THREE.Color( 1, 1, 1 ) },
+			fastChroma: { value: false },
 			aberrationStrength: { value: 0.01 },
-			resolution: { value: new THREE.Vector2() }
 
 		},
 		vertexShader: /*glsl*/ `
@@ -93,6 +98,8 @@ async function init() {
 			}
 		`,
 		fragmentShader: /*glsl*/ `
+			#define RAY_OFFSET 0.001
+
 			#include <common>
 			precision highp isampler2D;
 			precision highp usampler2D;
@@ -110,7 +117,6 @@ async function init() {
 			uniform vec3 color;
 			uniform bool correctMips;
 			uniform bool fastChroma;
-			uniform bool chromaticAberration;
 			uniform mat4 projectionMatrixInv;
 			uniform mat4 viewMatrixInv;
 			uniform mat4 modelMatrix;
@@ -118,44 +124,63 @@ async function init() {
 			uniform float aberrationStrength;
 
 			#include <cube_uv_reflection_fragment>
-			vec3 totalInternalReflection( vec3 ro, vec3 rd, vec3 normal, float ior, mat4 modelMatrixInverse ) {
 
-				vec3 rayOrigin = ro;
-				vec3 rayDirection = rd;
+			// performs an iterative bounce lookup modeling internal reflection and returns
+			// a final ray direction.
+			vec3 totalInternalReflection( vec3 incomingOrigin, vec3 incomingDirection, vec3 normal, float ior, mat4 modelMatrixInverse ) {
+
+				vec3 rayOrigin = incomingOrigin;
+				vec3 rayDirection = incomingDirection;
+
+				// refract the ray direction on the way into the diamond and adjust offset from
+				// the diamond surface for raytracing
 				rayDirection = refract( rayDirection, normal, 1.0 / ior );
-				rayOrigin = vWorldPosition + rayDirection * 0.001;
+				rayOrigin = vWorldPosition + rayDirection * RAY_OFFSET;
+
+				// transform the ray into the local coordinates of the model
 				rayOrigin = ( modelMatrixInverse * vec4( rayOrigin, 1.0 ) ).xyz;
 				rayDirection = normalize( ( modelMatrixInverse * vec4( rayDirection, 0.0 ) ).xyz );
+
+				// perform multiple ray casts
 				for( float i = 0.0; i < bounces; i ++ ) {
 
+					// results
 					uvec4 faceIndices = uvec4( 0u );
 					vec3 faceNormal = vec3( 0.0, 0.0, 1.0 );
 					vec3 barycoord = vec3( 0.0 );
 					float side = 1.0;
 					float dist = 0.0;
 
+					// perform the raycast
+					// the diamond is a water tight model so we assume we always hit a surface
 					bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist );
 
-					vec3 hitPos = rayOrigin + rayDirection * max( dist - 0.001, 0.0 );
-					vec3 tempDir = refract( rayDirection, faceNormal, ior );
-					if ( length( tempDir ) != 0.0 ) {
+					// derive the new ray origin from the hit results
+					vec3 hitPos = rayOrigin + rayDirection * dist;
 
-						rayDirection = tempDir;
+					// if we don't internally reflect then end the ray tracing and sample
+					vec3 refractedDirection = refract( rayDirection, faceNormal, ior );
+					bool totalInternalReflection = length( refract( rayDirection, faceNormal, ior ) ) == 0.0;
+					if ( ! totalInternalReflection ) {
+
+						rayDirection = refractedDirection;
 						break;
 
 					}
 
+					// otherwise reflect off the surface internally for another hit
 					rayDirection = reflect( rayDirection, faceNormal );
-					rayOrigin = hitPos + rayDirection * 0.01;
+					rayOrigin = hitPos + rayDirection * RAY_OFFSET;
 
 				}
 
-				rayDirection = normalize( ( modelMatrix * vec4( rayDirection, 0.0 ) ).xyz );
-				return rayDirection;
+				// return the final ray direction in world space
+				return normalize( ( modelMatrix * vec4( rayDirection, 0.0 ) ).xyz );
 			}
 
 			vec4 textureGradient( sampler2D envMap, vec3 rayDirection, vec3 directionCamPerfect ) {
 
+				// TODO: why are "correctMips" not being used? What's the point of this function?
 				vec2 uvv = equirectUv( rayDirection );
 				vec2 smoothUv = equirectUv( directionCamPerfect );
 				return texture( envMap, uvv, - 100.0 );//, dFdx(correctMips ? smoothUv : uvv), dFdy(correctMips ? smoothUv : uvv));
@@ -167,6 +192,7 @@ async function init() {
 				mat4 modelMatrixInverse = inverse( modelMatrix );
 				vec2 uv = gl_FragCoord.xy / resolution;
 
+				// TODO: what is this for?
 				vec3 directionCamPerfect = ( projectionMatrixInv * vec4( uv * 2.0 - 1.0, 0.0, 1.0 ) ).xyz;
 				directionCamPerfect = ( viewMatrixInv * vec4( directionCamPerfect, 0.0 ) ).xyz;
 				directionCamPerfect = normalize( directionCamPerfect );
@@ -176,18 +202,21 @@ async function init() {
 				vec3 rayDirection = normalize( vWorldPosition - cameraPosition );
 				vec3 finalColor;
 
-				if ( chromaticAberration ) {
+				if ( aberrationStrength != 0.0 ) {
 
+					// perform chromatic aberration lookups
 					vec3 rayDirectionG = totalInternalReflection( rayOrigin, rayDirection, normal, max( ior, 1.0 ), modelMatrixInverse );
 					vec3 rayDirectionR, rayDirectionB;
 
 					if ( fastChroma ) {
 
+						// fast chroma does a quick uv offset on lookup
 						rayDirectionR = normalize( rayDirectionG + 1.0 * vec3( aberrationStrength / 2.0 ) );
 						rayDirectionB = normalize( rayDirectionG - 1.0 * vec3( aberrationStrength / 2.0 ) );
 
 					} else {
 
+						// compared to a proper ray trace of diffracted rays
 						float iorR = max( ior * ( 1.0 - aberrationStrength ), 1.0 );
 						float iorB = max( ior * ( 1.0 + aberrationStrength ), 1.0 );
 						rayDirectionR = totalInternalReflection(
@@ -201,13 +230,15 @@ async function init() {
 
 					}
 
-					float finalColorR = textureGradient( envMap, rayDirectionR, directionCamPerfect ).r;
-					float finalColorG = textureGradient( envMap, rayDirectionG, directionCamPerfect ).g;
-					float finalColorB = textureGradient( envMap, rayDirectionB, directionCamPerfect ).b;
-					finalColor = vec3( finalColorR, finalColorG, finalColorB ) * color;
+					// get the color lookup
+					float r = textureGradient( envMap, rayDirectionR, directionCamPerfect ).r;
+					float g = textureGradient( envMap, rayDirectionG, directionCamPerfect ).g;
+					float b = textureGradient( envMap, rayDirectionB, directionCamPerfect ).b;
+					finalColor = vec3( r, g, b ) * color;
 
 				} else {
 
+					// no chromatic aberration lookups
 					rayDirection = totalInternalReflection( rayOrigin, rayDirection, normal, max( ior, 1.0 ), modelMatrixInverse );
 					finalColor = textureGradient( envMap, rayDirection, directionCamPerfect ).rgb;
 					finalColor *= color;
