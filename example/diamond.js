@@ -203,7 +203,6 @@ async function init() {
 				vec3 normal = vNormal;
 				vec3 rayOrigin = cameraPosition;
 				vec3 rayDirection = normalize( vWorldPosition - cameraPosition );
-				vec3 finalColor;
 
 				if ( aberrationStrength != 0.0 ) {
 
@@ -237,18 +236,18 @@ async function init() {
 					float r = textureGradient( envMap, rayDirectionR, directionCamPerfect ).r;
 					float g = textureGradient( envMap, rayDirectionG, directionCamPerfect ).g;
 					float b = textureGradient( envMap, rayDirectionB, directionCamPerfect ).b;
-					finalColor = vec3( r, g, b ) * color;
+					gl_FragColor.rgb = vec3( r, g, b ) * color;
+					gl_FragColor.a = 1.0;
 
 				} else {
 
 					// no chromatic aberration lookups
 					rayDirection = totalInternalReflection( rayOrigin, rayDirection, normal, max( ior, 1.0 ), modelMatrixInverse );
-					finalColor = textureGradient( envMap, rayDirection, directionCamPerfect ).rgb;
-					finalColor *= color;
+					gl_FragColor.rgb = textureGradient( envMap, rayDirection, directionCamPerfect ).rgb * color;
+					gl_FragColor.a = 1.0;
 
 				}
 
-				gl_FragColor = vec4( finalColor, 1.0 );
 				#include <tonemapping_fragment>
 				#include <encodings_fragment>
 
