@@ -16,10 +16,10 @@ let scene, camera, renderer, environment, controls, diamond, gui, stats, clock;
 
 const params = {
 
+	color: '#ffffff',
 	bounces: 3.0,
 	ior: 2.4,
 	correctMips: true,
-	chromaticAberration: true,
 	aberrationStrength: 0.01,
 	fastChroma: false,
 	animate: true,
@@ -36,7 +36,10 @@ async function init() {
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	camera.position.set( 25, 20, 25 );
 
-	renderer = new THREE.WebGLRenderer( { antialias: true } );
+	// NOTE: antialiasing is disabled because the interpolation at face edges results in numeric issues
+	// causing the raycast to intersect the front faces. An adjusted bvh cast function that affords filtering by
+	// front / back faces would help this.
+	renderer = new THREE.WebGLRenderer( { antialias: false } );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.outputEncoding = THREE.sRGBEncoding;
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -265,6 +268,11 @@ async function init() {
 	// gui setup
 	gui = new GUI();
 	gui.add( params, 'animate' );
+	gui.addColor( params, 'color' ).name( 'Color' ).onChange( v => {
+
+		diamond.material.uniforms.color.value.set( v );
+
+	} );
 	gui.add( params, 'bounces', 1.0, 10.0, 1.0 ).name( 'Bounces' ).onChange( v => {
 
 		diamond.material.uniforms.bounces.value = v;
@@ -285,12 +293,7 @@ async function init() {
 		diamond.material.uniforms.fastChroma.value = v;
 
 	} );
-	gui.add( params, 'chromaticAberration' ).onChange( v => {
-
-		diamond.material.uniforms.chromaticAberration.value = v;
-
-	} );
-	gui.add( params, 'aberrationStrength', 0.01, 0.1, 0.0001 ).onChange( v => {
+	gui.add( params, 'aberrationStrength', 0.0, 0.1, 0.0001 ).onChange( v => {
 
 		diamond.material.uniforms.aberrationStrength.value = v;
 
