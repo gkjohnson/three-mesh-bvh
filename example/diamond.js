@@ -30,7 +30,7 @@ init();
 
 async function init() {
 
-	// Setup basic renderer, controls, and profiler
+	// renderer, scene, camera setup
 	scene = new THREE.Scene();
 
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -46,6 +46,7 @@ async function init() {
 
 	clock = new THREE.Clock();
 
+	// load the environment and model
 	const environmentPromise = new RGBELoader()
 		.loadAsync( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr' );
 
@@ -54,15 +55,14 @@ async function init() {
 	let gltf;
 	[ environment, gltf ] = await Promise.all( [ environmentPromise, gltfPromise ] );
 
+	// initialize the background
 	environment.mapping = THREE.EquirectangularReflectionMapping;
 	environment.generateMipmaps = true;
 	environment.minFilter = THREE.LinearMipmapLinearFilter;
 	environment.magFilter = THREE.LinearFilter;
 	scene.background = environment;
 
-	const diamondGeo = gltf.scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
-	diamondGeo.scale( 10, 10, 10 );
-	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafTris: 1 } );
+	// initialize the diamond material
 	const diamondMaterial = new THREE.ShaderMaterial( {
 		uniforms: {
 
@@ -221,10 +221,17 @@ async function init() {
 			}
 		`
 	} );
+
+	// initialize the diamond geometry and material uniforms
+	const diamondGeo = gltf.scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
+	diamondGeo.scale( 10, 10, 10 );
+
+	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafTris: 1 } );
 	diamondMaterial.uniforms.bvh.value.updateFrom( bvh );
 	diamond = new THREE.Mesh( diamondGeo, diamondMaterial );
 	scene.add( diamond );
 
+	// gui setup
 	gui = new GUI();
 	gui.add( params, 'animate' );
 	gui.add( params, 'bounces', 1.0, 10.0, 1.0 ).name( 'Bounces' ).onChange( v => {

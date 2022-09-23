@@ -17,10 +17,29 @@
             width: 100%;
             height: 100%;
         }
+
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: white;
+		}
     </style>
 </head>
 
 <body>
+	<div id="info">
+		Using shader ray tracing to model internal reflection for a diamond material.
+		<br/>
+		Model from <a href="https://sketchfab.com/3d-models/diamond-low-poly-405cc8175019452daa01999fd1466731">Sketchfab</a>.
+	</div>
     <script type="module" src="./diamond.js"></script>
 </body>
 
