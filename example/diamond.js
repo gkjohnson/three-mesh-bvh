@@ -5,24 +5,24 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {
-	MeshBVH,
-	MeshBVHUniformStruct,
-	shaderStructs,
-	shaderIntersectFunction,
-	SAH
+    MeshBVH,
+    MeshBVHUniformStruct,
+    shaderStructs,
+    shaderIntersectFunction,
+    SAH
 } from '../src/index.js';
 
 let scene, camera, renderer, environment, controls, diamond, gui, stats, clock;
 
 const params = {
 
-	color: '#ffffff',
-	bounces: 3.0,
-	ior: 2.4,
-	correctMips: true,
-	aberrationStrength: 0.01,
-	fastChroma: false,
-	animate: true,
+    color: '#ffffff',
+    bounces: 3.0,
+    ior: 2.4,
+    correctMips: true,
+    aberrationStrength: 0.01,
+    fastChroma: false,
+    animate: true,
 
 };
 
@@ -30,65 +30,65 @@ init();
 
 async function init() {
 
-	// renderer, scene, camera setup
-	scene = new THREE.Scene();
+    // renderer, scene, camera setup
+    scene = new THREE.Scene();
 
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	camera.position.set( 25, 20, 25 );
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(25, 20, 25);
 
-	// NOTE: antialiasing is disabled because the interpolation at face edges results in numeric issues
-	// causing the raycast to intersect the front faces. An adjusted bvh cast function that affords filtering by
-	// front / back faces would help this.
-	renderer = new THREE.WebGLRenderer( { antialias: false } );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.outputEncoding = THREE.sRGBEncoding;
-	renderer.toneMapping = THREE.ACESFilmicToneMapping;
-	document.body.appendChild( renderer.domElement );
+    // NOTE: antialiasing is disabled because the interpolation at face edges results in numeric issues
+    // causing the raycast to intersect the front faces. An adjusted bvh cast function that affords filtering by
+    // front / back faces would help this.
+    renderer = new THREE.WebGLRenderer({ antialias: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    document.body.appendChild(renderer.domElement);
 
-	controls = new OrbitControls( camera, renderer.domElement );
+    controls = new OrbitControls(camera, renderer.domElement);
 
-	clock = new THREE.Clock();
+    clock = new THREE.Clock();
 
-	// load the environment and model
-	const environmentPromise = new RGBELoader()
-		.loadAsync( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr' );
+    // load the environment and model
+    const environmentPromise = new RGBELoader()
+        .loadAsync('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr');
 
-	const gltfPromise = await new GLTFLoader().loadAsync( '../models/diamond.glb' );
+    const gltfPromise = new GLTFLoader().loadAsync('../models/diamond.glb');
 
-	let gltf;
-	[ environment, gltf ] = await Promise.all( [ environmentPromise, gltfPromise ] );
+    let gltf;
+    [environment, gltf] = await Promise.all([environmentPromise, gltfPromise]);
 
-	// initialize the background
-	environment.mapping = THREE.EquirectangularReflectionMapping;
-	environment.generateMipmaps = true;
-	environment.minFilter = THREE.LinearMipmapLinearFilter;
-	environment.magFilter = THREE.LinearFilter;
-	scene.background = environment;
+    // initialize the background
+    environment.mapping = THREE.EquirectangularReflectionMapping;
+    environment.generateMipmaps = true;
+    environment.minFilter = THREE.LinearMipmapLinearFilter;
+    environment.magFilter = THREE.LinearFilter;
+    scene.background = environment;
 
-	// initialize the diamond material
-	const diamondMaterial = new THREE.ShaderMaterial( {
-		uniforms: {
+    // initialize the diamond material
+    const diamondMaterial = new THREE.ShaderMaterial({
+        uniforms: {
 
-			// scene / geometry information
-			envMap: { value: environment },
-			bvh: { value: new MeshBVHUniformStruct() },
-			projectionMatrixInv: { value: camera.projectionMatrixInverse },
-			viewMatrixInv: { value: camera.matrixWorld },
-			resolution: { value: new THREE.Vector2() },
+            // scene / geometry information
+            envMap: { value: environment },
+            bvh: { value: new MeshBVHUniformStruct() },
+            projectionMatrixInv: { value: camera.projectionMatrixInverse },
+            viewMatrixInv: { value: camera.matrixWorld },
+            resolution: { value: new THREE.Vector2() },
 
-			// internal reflection settings
-			bounces: { value: 3 },
-			ior: { value: 2.4 },
+            // internal reflection settings
+            bounces: { value: 3 },
+            ior: { value: 2.4 },
 
-			correctMips: { value: true },
+            correctMips: { value: true },
 
-			// chroma and color settings
-			color: { value: new THREE.Color( 1, 1, 1 ) },
-			fastChroma: { value: false },
-			aberrationStrength: { value: 0.01 },
+            // chroma and color settings
+            color: { value: new THREE.Color(1, 1, 1) },
+            fastChroma: { value: false },
+            aberrationStrength: { value: 0.01 },
 
-		},
-		vertexShader: /*glsl*/ `
+        },
+        vertexShader: /*glsl*/ `
 			varying vec3 vWorldPosition;
 			varying vec3 vNormal;
 			uniform mat4 viewMatrixInv;
@@ -100,7 +100,7 @@ async function init() {
 
 			}
 		`,
-		fragmentShader: /*glsl*/ `
+        fragmentShader: /*glsl*/ `
 			#define RAY_OFFSET 0.001
 
 			#include <common>
@@ -182,11 +182,10 @@ async function init() {
 			}
 
 			vec4 textureGradient( sampler2D envMap, vec3 rayDirection, vec3 directionCamPerfect ) {
-
-				// TODO: why are "correctMips" not being used? What's the point of this function?
+				// calculate proper mipmaps
 				vec2 uvv = equirectUv( rayDirection );
 				vec2 smoothUv = equirectUv( directionCamPerfect );
-				return texture( envMap, uvv, - 100.0 );//, dFdx(correctMips ? smoothUv : uvv), dFdy(correctMips ? smoothUv : uvv));
+				return textureGrad( envMap, uvv, dFdx(correctMips ? smoothUv : uvv), dFdy(correctMips ? smoothUv : uvv));
 
 			}
 
@@ -195,7 +194,7 @@ async function init() {
 				mat4 modelMatrixInverse = inverse( modelMatrix );
 				vec2 uv = gl_FragCoord.xy / resolution;
 
-				// TODO: what is this for?
+				// camera direction for proper interpolation
 				vec3 directionCamPerfect = ( projectionMatrixInv * vec4( uv * 2.0 - 1.0, 0.0, 1.0 ) ).xyz;
 				directionCamPerfect = ( viewMatrixInv * vec4( directionCamPerfect, 0.0 ) ).xyz;
 				directionCamPerfect = normalize( directionCamPerfect );
@@ -253,78 +252,78 @@ async function init() {
 
 			}
 		`
-	} );
+    });
 
-	// initialize the diamond geometry and material uniforms
-	const diamondGeo = gltf.scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
-	diamondGeo.scale( 10, 10, 10 );
+    // initialize the diamond geometry and material uniforms
+    const diamondGeo = gltf.scene.children[0].children[0].children[0].children[0].children[0].geometry;
+    diamondGeo.scale(10, 10, 10);
 
-	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafTris: 1 } );
-	diamondMaterial.uniforms.bvh.value.updateFrom( bvh );
-	diamond = new THREE.Mesh( diamondGeo, diamondMaterial );
-	scene.add( diamond );
+    const bvh = new MeshBVH(diamondGeo, { strategy: SAH, maxLeafTris: 1 });
+    diamondMaterial.uniforms.bvh.value.updateFrom(bvh);
+    diamond = new THREE.Mesh(diamondGeo, diamondMaterial);
+    scene.add(diamond);
 
-	// gui setup
-	gui = new GUI();
-	gui.add( params, 'animate' );
-	gui.addColor( params, 'color' ).name( 'Color' ).onChange( v => {
+    // gui setup
+    gui = new GUI();
+    gui.add(params, 'animate');
+    gui.addColor(params, 'color').name('Color').onChange(v => {
 
-		diamond.material.uniforms.color.value.set( v );
+        diamond.material.uniforms.color.value.set(v);
 
-	} );
-	gui.add( params, 'bounces', 1.0, 10.0, 1.0 ).name( 'Bounces' ).onChange( v => {
+    });
+    gui.add(params, 'bounces', 1.0, 10.0, 1.0).name('Bounces').onChange(v => {
 
-		diamond.material.uniforms.bounces.value = v;
+        diamond.material.uniforms.bounces.value = v;
 
-	} );
-	gui.add( params, 'ior', 1.0, 5.0, 0.01 ).name( 'IOR' ).onChange( v => {
+    });
+    gui.add(params, 'ior', 1.0, 5.0, 0.01).name('IOR').onChange(v => {
 
-		diamond.material.uniforms.ior.value = v;
+        diamond.material.uniforms.ior.value = v;
 
-	} );
-	gui.add( params, 'correctMips' ).onChange( v => {
+    });
+    gui.add(params, 'correctMips').onChange(v => {
 
-		diamond.material.uniforms.correctMips.value = v;
+        diamond.material.uniforms.correctMips.value = v;
 
-	} );
-	gui.add( params, 'fastChroma' ).onChange( v => {
+    });
+    gui.add(params, 'fastChroma').onChange(v => {
 
-		diamond.material.uniforms.fastChroma.value = v;
+        diamond.material.uniforms.fastChroma.value = v;
 
-	} );
-	gui.add( params, 'aberrationStrength', 0.0, 0.1, 0.0001 ).onChange( v => {
+    });
+    gui.add(params, 'aberrationStrength', 0.0, 0.1, 0.0001).onChange(v => {
 
-		diamond.material.uniforms.aberrationStrength.value = v;
+        diamond.material.uniforms.aberrationStrength.value = v;
 
-	} );
+    });
 
-	stats = new Stats();
-	stats.showPanel( 0 );
-	document.body.appendChild( stats.dom );
-	render();
+    stats = new Stats();
+    stats.showPanel(0);
+    document.body.appendChild(stats.dom);
+    render();
 
-	window.addEventListener( 'resize', function () {
+    window.addEventListener('resize', function() {
 
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-		diamond.material.uniforms.resolution.value.set( window.innerWidth, window.innerHeight );
-		renderer.setSize( window.innerWidth, window.innerHeight );
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        diamond.material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
-	}, false );
+    }, false);
 
 }
 
 function render() {
 
-	if ( params.animate ) {
+    if (params.animate) {
 
-		diamond.rotation.y += clock.getDelta() * 0.25;
+        diamond.rotation.y += clock.getDelta() * 0.25;
 
-	}
+    }
 
-	stats.update();
-	controls.update();
-	renderer.render( scene, camera );
-	requestAnimationFrame( render );
+    stats.update();
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
 
 }
