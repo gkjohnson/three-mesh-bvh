@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Total Internal Refraction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: white;
+		}
+    </style>
+</head>
+
+<body>
+	<div id="info">
+		Using shader ray tracing to model internal reflection for a diamond material.
+		<br/>
+		Model from <a href="https://sketchfab.com/3d-models/diamond-low-poly-405cc8175019452daa01999fd1466731">Sketchfab</a>. Full material implementation available <a href="https://github.com/pmndrs/drei/blob/master/src/materials/MeshRefractionMaterial.tsx">here</a>.
+	</div>
+    <script type="module" src="./diamond.js"></script>
+</body>
+
+</html>
