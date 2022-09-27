@@ -19,7 +19,6 @@ const params = {
 	color: '#ffffff',
 	bounces: 3.0,
 	ior: 2.4,
-	correctMips: true,
 	aberrationStrength: 0.01,
 	fastChroma: false,
 	animate: true,
@@ -34,7 +33,7 @@ async function init() {
 	scene = new THREE.Scene();
 
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	camera.position.set( 25, 20, 25 );
+	camera.position.set( 28, 15, 7 );
 
 	// NOTE: antialiasing is disabled because the interpolation at face edges results in numeric issues
 	// causing the raycast to intersect the front faces. An adjusted bvh cast function that affords filtering by
@@ -80,8 +79,6 @@ async function init() {
 			bounces: { value: 3 },
 			ior: { value: 2.4 },
 
-			correctMips: { value: true },
-
 			// chroma and color settings
 			color: { value: new THREE.Color( 1, 1, 1 ) },
 			fastChroma: { value: false },
@@ -118,7 +115,6 @@ async function init() {
 			uniform BVH bvh;
 			uniform float ior;
 			uniform vec3 color;
-			uniform bool correctMips;
 			uniform bool fastChroma;
 			uniform mat4 projectionMatrixInv;
 			uniform mat4 viewMatrixInv;
@@ -181,11 +177,10 @@ async function init() {
 				return normalize( ( modelMatrix * vec4( rayDirection, 0.0 ) ).xyz );
 			}
 
-			vec4 textureGradient( sampler2D envMap, vec3 rayDirection, vec3 directionCamPerfect ) {
-				// calculate proper mipmaps
+			vec4 envSample( sampler2D envMap, vec3 rayDirection ) {
+
 				vec2 uvv = equirectUv( rayDirection );
-				vec2 smoothUv = equirectUv( directionCamPerfect );
-				return textureGrad( envMap, uvv, dFdx(correctMips ? smoothUv : uvv), dFdy(correctMips ? smoothUv : uvv));
+				return texture( envMap, uvv );
 
 			}
 
@@ -193,11 +188,6 @@ async function init() {
 
 				mat4 modelMatrixInverse = inverse( modelMatrix );
 				vec2 uv = gl_FragCoord.xy / resolution;
-
-				// camera direction for proper interpolation
-				vec3 directionCamPerfect = ( projectionMatrixInv * vec4( uv * 2.0 - 1.0, 0.0, 1.0 ) ).xyz;
-				directionCamPerfect = ( viewMatrixInv * vec4( directionCamPerfect, 0.0 ) ).xyz;
-				directionCamPerfect = normalize( directionCamPerfect );
 
 				vec3 normal = vNormal;
 				vec3 rayOrigin = cameraPosition;
@@ -232,9 +222,9 @@ async function init() {
 					}
 
 					// get the color lookup
-					float r = textureGradient( envMap, rayDirectionR, directionCamPerfect ).r;
-					float g = textureGradient( envMap, rayDirectionG, directionCamPerfect ).g;
-					float b = textureGradient( envMap, rayDirectionB, directionCamPerfect ).b;
+					float r = envSample( envMap, rayDirectionR ).r;
+					float g = envSample( envMap, rayDirectionG ).g;
+					float b = envSample( envMap, rayDirectionB ).b;
 					gl_FragColor.rgb = vec3( r, g, b ) * color;
 					gl_FragColor.a = 1.0;
 
@@ -242,7 +232,7 @@ async function init() {
 
 					// no chromatic aberration lookups
 					rayDirection = totalInternalReflection( rayOrigin, rayDirection, normal, max( ior, 1.0 ), modelMatrixInverse );
-					gl_FragColor.rgb = textureGradient( envMap, rayDirection, directionCamPerfect ).rgb * color;
+					gl_FragColor.rgb = envSample( envMap, rayDirection ).rgb * color;
 					gl_FragColor.a = 1.0;
 
 				}
@@ -279,11 +269,6 @@ async function init() {
 	gui.add( params, 'ior', 1.0, 5.0, 0.01 ).name( 'IOR' ).onChange( v => {
 
 		diamond.material.uniforms.ior.value = v;
-
-	} );
-	gui.add( params, 'correctMips' ).onChange( v => {
-
-		diamond.material.uniforms.correctMips.value = v;
 
 	} );
 	gui.add( params, 'fastChroma' ).onChange( v => {
