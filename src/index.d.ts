@@ -312,7 +312,7 @@ export class ExtendedTriangle extends Triangle {
 
 }
 
-export class OrientedBox {
+export class OrientedBox extends Box3 {
 
   matrix : Matrix4;
   needsUpdate : boolean;
