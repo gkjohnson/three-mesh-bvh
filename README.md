@@ -1072,6 +1072,14 @@ Set of shader functions used for interacting with the packed BVH in a shader and
 - A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in less than optimal raycast performance on geometry with lots of groups.
 - Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center so bounds tightly contain the geometry as much as possible.
 
+# Running Examples Locally
+
+To run the examples locally:
+- Run `npm start`
+- Then visit `localhost:9080/example/dev-bundle/<demo-name>.html`
+
+Where `<demo-name>` is the name of the HTML file from `example` folder.
+
 
 # Used and Supported by
 
