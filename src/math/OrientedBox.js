@@ -23,7 +23,7 @@ export class OrientedBox extends Box3 {
 	set( min, max, matrix ) {
 
 		super.set( min, max );
-		if ( matrix ) this.matrix.copy( matrix );
+		this.matrix.copy( matrix );
 		this.needsUpdate = true;
 
 	}

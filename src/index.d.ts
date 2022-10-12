@@ -312,14 +312,13 @@ export class ExtendedTriangle extends Triangle {
 
 }
 
-export class OrientedBox extends Box3 {
+export class OrientedBox {
 
   matrix : Matrix4;
   needsUpdate : boolean;
 
   constructor( min : Vector3, max : Vector3 );
-  set(min : Vector3, max : Vector3) : this
-  set( min : Vector3, max : Vector3, matrix? : Matrix4 ) : OrientedBox;
+  set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
   intersectsBox( box : Box3 ) : boolean;
   intersectsTriangle( tri : Triangle ) : boolean;
   closestPointToPoint( point : Vector3, target? : Vector3 ) : number;
