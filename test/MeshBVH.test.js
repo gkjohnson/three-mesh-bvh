@@ -10,7 +10,6 @@ import {
 	TorusGeometry,
 	BufferAttribute,
 	Vector3,
-	Geometry,
 } from 'three';
 import {
 	MeshBVH,
