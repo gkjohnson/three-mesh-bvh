@@ -28,7 +28,7 @@ describe( 'FloatVertexAttributeTexture', () => {
 		const tex = new FloatVertexAttributeTexture();
 		tex.updateFrom( ba );
 
-		expect( tex.source.data.data ).toEqual( new Uint8Array( [ 255, 255, 255, 255 ] ));
+		expect( tex.source.data.data ).toEqual( new Uint8Array( [ 255, 255, 255, 255 ] ) );
 
 	} );
 
@@ -41,7 +41,7 @@ describe( 'FloatVertexAttributeTexture', () => {
 		const tex = new FloatVertexAttributeTexture();
 		tex.updateFrom( ba );
 
-		expect( tex.source.data.data ).toEqual( new Int8Array( [ - 127, - 127, - 127, - 127 ] ));
+		expect( tex.source.data.data ).toEqual( new Int8Array( [ - 127, - 127, - 127, - 127 ] ) );
 
 	} );
 

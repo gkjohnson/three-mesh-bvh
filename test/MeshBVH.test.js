@@ -10,7 +10,7 @@ import {
 	TorusGeometry,
 	BufferAttribute,
 	Vector3,
-	Geometry
+	Geometry,
 } from 'three';
 import {
 	MeshBVH,
@@ -21,7 +21,6 @@ import {
 	validateBounds,
 } from '../src/index.js';
 
-console.log(Geometry, BufferGeometry)
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
