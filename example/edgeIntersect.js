@@ -53,7 +53,7 @@ function init() {
 	const tubularSegments = 100;
 	const radialSegments = 40;
 
-	const geometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+	const geometry = new THREE.TorusKnotGeometry( radius, tube, tubularSegments, radialSegments );
 	const material = new THREE.MeshPhongMaterial( {
 		color: 0xffffff,
 		side: THREE.DoubleSide,
@@ -71,7 +71,7 @@ function init() {
 		colorWrite: false,
 	} );
 
-	// const geometry = new THREE.BoxBufferGeometry();
+	// const geometry = new THREE.BoxGeometry();
 
 	// const geometry = new THREE.BufferGeometry();
 	// geometry.setFromPoints( [

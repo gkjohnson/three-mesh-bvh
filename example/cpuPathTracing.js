@@ -171,7 +171,7 @@ function init() {
 	{
 
 		const sphereMesh = new THREE.Mesh(
-			new THREE.SphereBufferGeometry( 1, 100, 50 ),
+			new THREE.SphereGeometry( 1, 100, 50 ),
 			new THREE.MeshStandardMaterial(),
 		);
 
@@ -233,7 +233,7 @@ function init() {
 		ceiling.updateMatrixWorld( true );
 
 		const box = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( 1, 2, 1 ),
+			new THREE.BoxGeometry( 1, 2, 1 ),
 			new THREE.MeshStandardMaterial( {
 				side: THREE.DoubleSide,
 			} ),
@@ -244,7 +244,7 @@ function init() {
 		box.rotation.y = Math.PI / 4;
 
 		const box2 = new THREE.Mesh(
-			new THREE.BoxBufferGeometry( 1, 1, 1 ),
+			new THREE.BoxGeometry( 1, 1, 1 ),
 			new THREE.MeshStandardMaterial( {
 				side: THREE.DoubleSide,
 			} ),

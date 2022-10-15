@@ -73,7 +73,7 @@ function init() {
 	for ( let i = 0; i < 400; i ++ ) {
 
 		const sphere = new THREE.Mesh(
-			new THREE.SphereBufferGeometry( 1, 32, 32 ),
+			new THREE.SphereGeometry( 1, 32, 32 ),
 			new THREE.MeshBasicMaterial()
 		);
 		sphere.position.set(
@@ -157,7 +157,7 @@ function regenerateKnot() {
 	const stallStartTime = window.performance.now();
 	const geomStartTime = window.performance.now();
 	knot = new THREE.Mesh(
-		new THREE.TorusKnotBufferGeometry(
+		new THREE.TorusKnotGeometry(
 			params.radius,
 			params.tube,
 			params.tubularSegments,

@@ -73,7 +73,7 @@ function init() {
 	const radialSegments = 100;
 
 	containerObj = new THREE.Object3D();
-	geometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+	geometry = new THREE.TorusKnotGeometry( radius, tube, tubularSegments, radialSegments );
 	// const knotGeometry = new THREE.TorusKnotGeometry(radius, tube, tubularSegments, radialSegments);
 	material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
 	containerObj.scale.multiplyScalar( 10 );

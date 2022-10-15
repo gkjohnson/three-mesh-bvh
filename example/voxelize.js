@@ -127,7 +127,7 @@ function init() {
 
 	{
 
-		const model = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( 0.3, 0.1, 400, 60 ), wireframeMaterial );
+		const model = new THREE.Mesh( new THREE.TorusKnotGeometry( 0.3, 0.1, 400, 60 ), wireframeMaterial );
 		const bvh = new MeshBVH( model.geometry );
 		scene.add( model );
 
@@ -142,7 +142,7 @@ function init() {
 	models[ 'Buddha' ] = { model: null, bvh: null };
 	models[ 'Bunny' ] = { model: null, bvh: null };
 
-	const boxHelperMesh = new THREE.Mesh( new THREE.BoxBufferGeometry() );
+	const boxHelperMesh = new THREE.Mesh( new THREE.BoxGeometry() );
 	boxHelper = new THREE.BoxHelper( boxHelperMesh, 0xffffff );
 	boxHelper.material.opacity = 0.35;
 	boxHelper.material.transparent = true;

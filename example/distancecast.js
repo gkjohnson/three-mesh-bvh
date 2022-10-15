@@ -153,7 +153,7 @@ function init() {
 	scene.add( marchingCubesContainer );
 
 	sphere1 = new THREE.Mesh(
-		new THREE.SphereBufferGeometry( 0.025, 20, 20 ),
+		new THREE.SphereGeometry( 0.025, 20, 20 ),
 		new THREE.MeshBasicMaterial( {
 			color: 0xE91E63,
 		} ) );
@@ -164,7 +164,7 @@ function init() {
 	sphere2.castShadow = true;
 	scene.add( sphere2 );
 
-	const lineCube = new THREE.Mesh( new THREE.BoxBufferGeometry(), sphere1.material );
+	const lineCube = new THREE.Mesh( new THREE.BoxGeometry(), sphere1.material );
 	lineCube.castShadow = true;
 	lineCube.position.z = 0.5;
 

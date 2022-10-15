@@ -48,7 +48,7 @@ function init() {
 	const tubularSegments = 800;
 	const radialSegments = 400;
 
-	const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments ).toNonIndexed();
+	const knotGeometry = new THREE.TorusKnotGeometry( radius, tube, tubularSegments, radialSegments ).toNonIndexed();
 	const colorArray = new Uint8Array( knotGeometry.attributes.position.count * 3 );
 	colorArray.fill( 255 );
 	const colorAttr = new THREE.BufferAttribute( colorArray, 3, true );
@@ -60,7 +60,7 @@ function init() {
 	targetMesh.geometry.computeBoundsTree();
 	scene.add( targetMesh );
 
-	const brushGeometry = new THREE.SphereBufferGeometry( 1, 40, 40 );
+	const brushGeometry = new THREE.SphereGeometry( 1, 40, 40 );
 	const brushMaterial = new THREE.MeshStandardMaterial( {
 		color: 0xEC407A,
 		roughness: 0.75,
