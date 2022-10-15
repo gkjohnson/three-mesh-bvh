@@ -2,7 +2,7 @@
 import {
 	Mesh,
 	BufferGeometry,
-	SphereBufferGeometry,
+	SphereGeometry,
 	Vector3,
 	Quaternion,
 	Matrix4,
@@ -11,9 +11,9 @@ import {
 	Euler,
 	Raycaster,
 	Scene,
-	TorusBufferGeometry,
+	TorusGeometry,
 	MeshBasicMaterial,
-	BoxBufferGeometry,
+	BoxGeometry,
 	FrontSide,
 	BackSide,
 } from 'three';
@@ -94,9 +94,9 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			const geom = new SphereGeometry( 1, 50, 50 );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
+			intersectGeometry = new SphereGeometry( 1, 50, 50 );
 			intersectGeometry.computeBoundsTree();
 
 		} );
@@ -178,7 +178,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should not use the same triangle twice when being recursively called.', () => {
 
-			const geometry = new SphereBufferGeometry();
+			const geometry = new SphereGeometry();
 			const bvh = new MeshBVH( geometry );
 
 			let checks = 0;
@@ -212,7 +212,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		it( 'should not use the same box twice when being recursively called.', () => {
 
-			const geometry = new SphereBufferGeometry();
+			const geometry = new SphereGeometry();
 			const bvh = new MeshBVH( geometry );
 
 			let boundsChecks = 0;
@@ -288,9 +288,9 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			beforeAll( () => {
 
-				const cubeA = new BoxBufferGeometry( 2, 2, 2 );
+				const cubeA = new BoxGeometry( 2, 2, 2 );
 				bvhA = new MeshBVH( cubeA );
-				const cubeB = new BoxBufferGeometry( 2, 2, 2 );
+				const cubeB = new BoxGeometry( 2, 2, 2 );
 				bvhB = new MeshBVH( cubeB );
 				matrix = new Matrix4();
 
@@ -336,9 +336,9 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			beforeAll( () => {
 
-				const cubeA = new BoxBufferGeometry( 2, 2, 2, 2, 2, 2 );
+				const cubeA = new BoxGeometry( 2, 2, 2, 2, 2, 2 );
 				bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
-				const cubeB = new BoxBufferGeometry( 2, 2, 2, 2, 2, 2 );
+				const cubeB = new BoxGeometry( 2, 2, 2, 2, 2, 2 );
 				bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
 				matrix = new Matrix4();
 
@@ -379,9 +379,9 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			const geom = new SphereGeometry( 1, 50, 50 );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
+			intersectGeometry = new SphereGeometry( 1, 50, 50 );
 			intersectGeometry.computeBoundsTree();
 
 		} );
@@ -440,9 +440,9 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			const geom = new SphereGeometry( 1, 50, 50 );
 			bvh = new MeshBVH( geom, { verbose: false } );
-			intersectGeometry = new SphereBufferGeometry( 1, 50, 50 );
+			intersectGeometry = new SphereGeometry( 1, 50, 50 );
 
 		} );
 
@@ -498,7 +498,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			const geom = new SphereGeometry( 1, 50, 50 );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -538,7 +538,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new SphereBufferGeometry( 1, 50, 50 );
+			const geom = new SphereGeometry( 1, 50, 50 );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -635,7 +635,7 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeAll( () => {
 
-			const geom = new SphereBufferGeometry( 1, 200, 200 );
+			const geom = new SphereGeometry( 1, 200, 200 );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 		} );
@@ -690,12 +690,12 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		beforeEach( () => {
 
-			const geom = new SphereBufferGeometry( 1, 20, 20 );
+			const geom = new SphereGeometry( 1, 20, 20 );
 			bvh = new MeshBVH( geom, { verbose: false } );
 
 			target2 = { };
 
-			geometry = new SphereBufferGeometry( 1, 5, 5 );
+			geometry = new SphereGeometry( 1, 5, 5 );
 
 		} );
 
@@ -769,8 +769,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			it( `should handle case, n: ${n}`, () => {
 
-				const geom = new SphereBufferGeometry( 1, n * 2, n );
-				const otherGeom = new SphereBufferGeometry( 1, n * 2, n );
+				const geom = new SphereGeometry( 1, n * 2, n );
+				const otherGeom = new SphereGeometry( 1, n * 2, n );
 				geom.boundsTree = new MeshBVH( geom );
 				const matrix = new Matrix4()
 					.compose(
@@ -808,7 +808,7 @@ function runSuiteWithOptions( defaultOptions ) {
 			raycaster.ray.direction.set( 0, 0, 1 );
 
 			scene = new Scene();
-			geometry = new TorusBufferGeometry( 5, 5, 40, 10 );
+			geometry = new TorusGeometry( 5, 5, 40, 10 );
 			mesh = new Mesh( geometry, new MeshBasicMaterial() );
 
 			scene.add( mesh );
@@ -865,7 +865,7 @@ function runSuiteWithOptions( defaultOptions ) {
 				} );
 
 				const box = new Mesh(
-					new BoxBufferGeometry(),
+					new BoxGeometry(),
 					[
 						backSideMaterial, frontSideMaterial,
 						backSideMaterial, frontSideMaterial,

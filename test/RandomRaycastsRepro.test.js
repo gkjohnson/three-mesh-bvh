@@ -1,5 +1,5 @@
 // Test cases specifically for issue #180
-import { Mesh, BufferGeometry, TorusBufferGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
+import { Mesh, BufferGeometry, TorusGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH, AVERAGE } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
@@ -34,8 +34,8 @@ function runRandomTest( options, transformSeed, raySeed ) {
 
 		beforeAll( () => {
 
-			ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
-			groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+			ungroupedGeometry = new TorusGeometry( 1, 1, 40, 10 );
+			groupedGeometry = new TorusGeometry( 1, 1, 40, 10 );
 
 			const groupCount = 10;
 			const groupSize = groupedGeometry.index.array.length / groupCount;

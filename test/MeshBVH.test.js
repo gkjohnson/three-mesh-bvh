@@ -1,15 +1,16 @@
 import {
 	Mesh,
 	BufferGeometry,
-	SphereBufferGeometry,
+	SphereGeometry,
 	InterleavedBufferAttribute,
 	InterleavedBuffer,
-	BoxBufferGeometry,
+	BoxGeometry,
 	Raycaster,
 	MeshBasicMaterial,
-	TorusBufferGeometry,
+	TorusGeometry,
 	BufferAttribute,
 	Vector3,
+	Geometry
 } from 'three';
 import {
 	MeshBVH,
@@ -20,6 +21,7 @@ import {
 	validateBounds,
 } from '../src/index.js';
 
+console.log(Geometry, BufferGeometry)
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
@@ -35,7 +37,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should properly encapsulate all triangles and bounds.', () => {
 
-		const geom = new SphereBufferGeometry( 500, 50, 50 );
+		const geom = new SphereGeometry( 500, 50, 50 );
 		const bvh = new MeshBVH( geom );
 
 		expect( validateBounds( bvh ) ).toBeTruthy();
@@ -44,7 +46,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should be generated when calling BufferGeometry.computeBoundsTree', () => {
 
-		const geom = new SphereBufferGeometry( 1, 1, 1 );
+		const geom = new SphereGeometry( 1, 1, 1 );
 		expect( geom.boundsTree ).not.toBeDefined();
 
 		geom.computeBoundsTree();
@@ -54,7 +56,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should return a MeshBVH', () => {
 
-		const geom = new SphereBufferGeometry( 1, 1, 1 );
+		const geom = new SphereGeometry( 1, 1, 1 );
 
 		expect( geom.computeBoundsTree() ).toBeInstanceOf( MeshBVH );
 
@@ -66,7 +68,7 @@ describe( 'Bounds Tree', () => {
 		let geometry;
 		let indexErrorThrown = false;
 
-		geometry = new BoxBufferGeometry();
+		geometry = new BoxGeometry();
 		geometry.setIndex( indexAttr );
 		try {
 
@@ -84,7 +86,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should use the boundsTree when raycasting if available', () => {
 
-		const geom = new SphereBufferGeometry( 1, 1, 1 );
+		const geom = new SphereGeometry( 1, 1, 1 );
 		const mesh = new Mesh( geom, new MeshBasicMaterial() );
 		const raycaster = new Raycaster();
 
@@ -125,7 +127,7 @@ describe( 'Bounds Tree', () => {
 
 	it( 'should respect index group invariants', () => {
 
-		const geo = new TorusBufferGeometry( 5, 5, 400, 100 );
+		const geo = new TorusGeometry( 5, 5, 400, 100 );
 		const groupCount = 10;
 		const groupSize = geo.index.array.length / groupCount;
 
@@ -195,7 +197,7 @@ describe( 'Bounds Tree', () => {
 
 		it( 'should resize the bounds to fit any updated triangles.', () => {
 
-			const geom = new SphereBufferGeometry( 1, 10, 10 );
+			const geom = new SphereGeometry( 1, 10, 10 );
 			geom.computeBoundsTree();
 
 			expect( validateBounds( geom.boundsTree ) ).toBe( true );
@@ -216,7 +218,7 @@ describe( 'Serialization', () => {
 
 	it( 'should serialize then deserialize to the same structure.', () => {
 
-		const geom = new SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 		const serialized = MeshBVH.serialize( bvh );
 
@@ -227,7 +229,7 @@ describe( 'Serialization', () => {
 
 	it( 'should copy the index buffer from the target geometry unless copyIndex is set to false', () => {
 
-		const geom = new SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 
 		const serialized1 = MeshBVH.serialize( bvh );
@@ -246,8 +248,8 @@ describe( 'Serialization', () => {
 
 	it( 'should copy the index buffer onto the target geometry unless setIndex is set to false.', () => {
 
-		const geom1 = new SphereBufferGeometry( 1, 10, 10 );
-		const geom2 = new SphereBufferGeometry( 1, 10, 10 );
+		const geom1 = new SphereGeometry( 1, 10, 10 );
+		const geom2 = new SphereGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom1 );
 		const serialized = MeshBVH.serialize( bvh );
 
@@ -266,7 +268,7 @@ describe( 'Serialization', () => {
 
 	it( 'should create a new index if one does not exist when deserializing.', () => {
 
-		const geom = new SphereBufferGeometry( 1, 10, 10 );
+		const geom = new SphereGeometry( 1, 10, 10 );
 		const bvh = new MeshBVH( geom );
 		const serialized = MeshBVH.serialize( bvh );
 
@@ -301,7 +303,7 @@ describe( 'Options', () => {
 	let mesh = null;
 	beforeAll( () => {
 
-		const geometry = new TorusBufferGeometry( 5, 5, 400, 100 );
+		const geometry = new TorusGeometry( 5, 5, 400, 100 );
 		mesh = new Mesh( geometry, new MeshBasicMaterial() );
 
 	} );
@@ -403,7 +405,7 @@ describe( 'Options', () => {
 
 		it( 'should initialize with shared array buffers if true.', () => {
 
-			const geometry = new TorusBufferGeometry( 5, 5, 40, 10 );
+			const geometry = new TorusGeometry( 5, 5, 40, 10 );
 			let bvh1, bvh2;
 
 			geometry.setIndex( null );

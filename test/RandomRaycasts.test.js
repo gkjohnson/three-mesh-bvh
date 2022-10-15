@@ -1,7 +1,7 @@
 import {
 	Mesh,
 	BufferGeometry,
-	TorusBufferGeometry,
+	TorusGeometry,
 	Scene,
 	Raycaster,
 	MeshBasicMaterial,
@@ -71,8 +71,8 @@ function runRandomTests( options ) {
 
 		beforeAll( () => {
 
-			ungroupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
-			groupedGeometry = new TorusBufferGeometry( 1, 1, 40, 10 );
+			ungroupedGeometry = new TorusGeometry( 1, 1, 40, 10 );
+			groupedGeometry = new TorusGeometry( 1, 1, 40, 10 );
 
 			if ( options.interleaved ) {
 
