@@ -82,7 +82,7 @@ function init() {
 
 	// base mesh
 	mesh = new THREE.Mesh(
-		new THREE.TorusKnotBufferGeometry( 1.5, 0.5, 500, 60 ).toNonIndexed(),
+		new THREE.TorusKnotGeometry( 1.5, 0.5, 500, 60 ).toNonIndexed(),
 		new THREE.MeshStandardMaterial( {
 			polygonOffset: true,
 			polygonOffsetFactor: 1,

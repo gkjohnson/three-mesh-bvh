@@ -51,7 +51,7 @@ function init() {
 	const tubularSegments = 400;
 	const radialSegments = 100;
 
-	const knotGeometry = new THREE.TorusKnotBufferGeometry( radius, tube, tubularSegments, radialSegments );
+	const knotGeometry = new THREE.TorusKnotGeometry( radius, tube, tubularSegments, radialSegments );
 	const material = new THREE.MeshPhongMaterial( { color: 0xffffff, side: THREE.DoubleSide } );
 	targetMesh = new THREE.Mesh( knotGeometry, material );
 	targetMesh.geometry.computeBoundsTree();
@@ -78,13 +78,13 @@ function init() {
 		opacity: 0.75,
 		premultipliedAlpha: true
 	} );
-	shapes.sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 50, 50 ), shapeMaterial );
+	shapes.sphere = new THREE.Mesh( new THREE.SphereGeometry( 1, 50, 50 ), shapeMaterial );
 	scene.add( shapes.sphere );
 
-	shapes.box = new THREE.Mesh( new THREE.BoxBufferGeometry( 1, 1, 1 ), shapeMaterial );
+	shapes.box = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), shapeMaterial );
 	scene.add( shapes.box );
 
-	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotBufferGeometry( .5, .2, 200, 50 ), shapeMaterial );
+	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotGeometry( .5, .2, 200, 50 ), shapeMaterial );
 	shapes.geometry.geometry.computeBoundsTree();
 	scene.add( shapes.geometry );
 

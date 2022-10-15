@@ -49,7 +49,7 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	const knotGeometry = new THREE.TorusKnotBufferGeometry( 1, 0.3, 300, 50 );
+	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.3, 300, 50 );
 	const bvh = new MeshBVH( knotGeometry, { maxLeafTris: 1, strategy: SAH } );
 
 	mesh = new THREE.Mesh( knotGeometry, new THREE.MeshStandardMaterial() );

@@ -17,6 +17,36 @@ import {
 	ByteType,
 } from 'three';
 
+describe( 'FloatVertexAttributeTexture', () => {
+
+	it( 'should be able to take a normalized uint8 array.', () => {
+
+		const arr = new Uint8Array( 4 );
+		arr.fill( 255 );
+
+		const ba = new BufferAttribute( arr, 1, true );
+		const tex = new FloatVertexAttributeTexture();
+		tex.updateFrom( ba );
+
+		expect( tex.source.data.data ).toEqual( new Uint8Array( [ 255, 255, 255, 255 ] ) );
+
+	} );
+
+	it( 'should be able to take a normalized int8 array.', () => {
+
+		const arr = new Int8Array( 4 );
+		arr.fill( - 127 );
+
+		const ba = new BufferAttribute( arr, 1, true );
+		const tex = new FloatVertexAttributeTexture();
+		tex.updateFrom( ba );
+
+		expect( tex.source.data.data ).toEqual( new Int8Array( [ - 127, - 127, - 127, - 127 ] ) );
+
+	} );
+
+} );
+
 describe( 'VertexAttributeTexture', () => {
 
 	describe( 'overrideItemSize', () => {

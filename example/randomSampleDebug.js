@@ -59,7 +59,7 @@ function init() {
 	const raySeed = 4697211981;
 	const options = { strategy: AVERAGE, packData: false, maxDepth: 1 };
 
-	const geometry = new THREE.TorusBufferGeometry( 1, 1, 40, 10 );
+	const geometry = new THREE.TorusGeometry( 1, 1, 40, 10 );
 	geometry.computeBoundsTree( options );
 
 	// mesh setup
@@ -109,7 +109,7 @@ function init() {
 	raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
 	// set up raycast points
-	const sphereGeom = new THREE.SphereBufferGeometry( 0.1 );
+	const sphereGeom = new THREE.SphereGeometry( 0.1 );
 	const sphereMesh = new THREE.Mesh( sphereGeom );
 
 	sphereMesh.position.copy( raycaster.ray.at( 0, new THREE.Vector3() ) );

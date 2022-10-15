@@ -284,7 +284,7 @@ function createSphere() {
 	const white = new THREE.Color( 0xffffff );
 	const color = new THREE.Color( 0x263238 / 2 ).lerp( white, Math.random() * 0.5 + 0.5 ).convertSRGBToLinear();
 	const sphere = new THREE.Mesh(
-		new THREE.SphereBufferGeometry( 1, 20, 20 ),
+		new THREE.SphereGeometry( 1, 20, 20 ),
 		new THREE.MeshStandardMaterial( { color } )
 	);
 	scene.add( sphere );

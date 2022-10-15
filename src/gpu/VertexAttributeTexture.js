@@ -221,6 +221,10 @@ export class VertexAttributeTexture extends DataTexture {
 		const dimension = Math.ceil( Math.sqrt( count ) );
 		const length = finalStride * dimension * dimension;
 		const dataArray = new targetBufferCons( length );
+
+		// temporarily set the normalized state to false since we have custom normalization logic
+		const originalNormalized = attr.normalized;
+		attr.normalized = false;
 		for ( let i = 0; i < count; i ++ ) {
 
 			const ii = finalStride * i;
@@ -251,6 +255,8 @@ export class VertexAttributeTexture extends DataTexture {
 			}
 
 		}
+
+		attr.normalized = originalNormalized;
 
 		this.internalFormat = internalFormat;
 		this.format = format;
