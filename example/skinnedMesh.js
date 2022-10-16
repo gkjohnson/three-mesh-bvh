@@ -217,7 +217,7 @@ function init() {
 	const helperFolder = gui.addFolder( 'helpers' );
 	helperFolder.add( params, 'skeletonHelper' );
 	helperFolder.add( params, 'bvhHelper' );
-	helperFolder.add( params, 'bvhHelperDepth', 1, 20 ).onChange( v => {
+	helperFolder.add( params, 'bvhHelperDepth', 1, 20, 1 ).onChange( v => {
 
 		bvhHelper.depth = parseInt( v );
 		bvhHelper.update();
