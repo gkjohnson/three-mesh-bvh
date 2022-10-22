@@ -1,15 +1,15 @@
-import { Box3, Vector3, Matrix4, Line3 } from 'three';
+import { Vector3, Matrix4, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { ExtendedTriangle } from './ExtendedTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
-export class OrientedBox extends Box3 {
+export class OrientedBox {
 
-	constructor( ...args ) {
-
-		super( ...args );
+	constructor( min, max, matrix ) {
 
 		this.isOrientedBox = true;
+		this.min = new Vector3();
+		this.max = new Vector3();
 		this.matrix = new Matrix4();
 		this.invMatrix = new Matrix4();
 		this.points = new Array( 8 ).fill().map( () => new Vector3() );
@@ -18,11 +18,16 @@ export class OrientedBox extends Box3 {
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.needsUpdate = false;
 
+		if ( min ) this.min.copy( min );
+		if ( max ) this.max.copy( max );
+		if ( matrix ) this.matrix.copy( matrix );
+
 	}
 
 	set( min, max, matrix ) {
 
-		super.set( min, max );
+		this.min.copy( min );
+		this.max.copy( max );
 		this.matrix.copy( matrix );
 		this.needsUpdate = true;
 
@@ -30,7 +35,8 @@ export class OrientedBox extends Box3 {
 
 	copy( other ) {
 
-		super.copy( other );
+		this.min.copy( other.min );
+		this.max.copy( other.max );
 		this.matrix.copy( other.matrix );
 		this.needsUpdate = true;
 

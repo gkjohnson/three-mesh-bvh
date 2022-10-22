@@ -314,6 +314,8 @@ export class ExtendedTriangle extends Triangle {
 
 export class OrientedBox {
 
+  min: Vector3;
+  max: Vector3;
   matrix : Matrix4;
   needsUpdate : boolean;
 
@@ -329,12 +331,12 @@ export class OrientedBox {
 
 export class StaticGeometryGenerator {
 
-	useGroups : boolean;
-	attributes : Array<string>;
-	applyWorldTransforms : boolean;
+  useGroups : boolean;
+  attributes : Array<string>;
+  applyWorldTransforms : boolean;
 
-	constructor( objects : Array<Object3D> | Object3D );
-	getMaterials() : Array<Material>;
-	generate( target? : BufferGeometry ) : BufferGeometry;
+  constructor( objects : Array<Object3D> | Object3D );
+  getMaterials() : Array<Material>;
+  generate( target? : BufferGeometry ) : BufferGeometry;
 
 }
