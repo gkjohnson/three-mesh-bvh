@@ -273,4 +273,133 @@ bool bvhIntersectFirstHit(
 
 }
 
+
+
+
+
+
+float dot2( in vec3 v ) {
+
+	return dot(v,v);
+
+}
+
+float distSquared( vec3 a, vec3 b ) {
+
+	vec3 c = a - b;
+	return dot(c, c);
+
+}
+
+float udTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
+
+	vec3 ba = b - a; vec3 pa = p - a;
+	vec3 cb = c - b; vec3 pb = p - b;
+	vec3 ac = a - c; vec3 pc = p - c;
+	vec3 nor = cross( ba, ac );
+	return
+		(
+			sign( dot( cross( ba, nor ), pa ) ) +
+			sign( dot( cross( cb, nor ), pb ) ) +
+			sign( dot( cross( ac, nor ), pc ) ) < 2.0
+		) ? (
+			min( min(
+			dot2( ba * clamp( dot( ba, pa ) / dot2( ba ), 0.0, 1.0 ) - pa ),
+			dot2( cb * clamp( dot( cb, pb ) / dot2( cb ), 0.0, 1.0 ) - pb ) ),
+			dot2( ac * clamp( dot( ac, pc ) / dot2( ac ), 0.0, 1.0 ) - pc) )
+		) : (
+			dot( nor, pa ) * dot( nor, pa ) / dot2( nor )
+		);
+
+}
+
+float intersectTrianglesPoint( BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared ) {
+
+	bool found = false;
+	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
+
+		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
+		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
+		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
+		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
+		float dist = udTriangle(point, a, b, c);
+		if ( dist < closestDistanceSquared ) {
+
+			closestDistanceSquared = dist;
+
+		}
+
+	}
+
+	return closestDistanceSquared;
+
+}
+
+float intersectsBVHNodeBoundsPoint( vec3 point, BVH bvh, uint currNodeIndex ) {
+
+	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+	vec3 clampedPoint = clamp(point, boundsMin, boundsMax);
+	return distSquared(point, clampedPoint);
+
+}
+
+float bvhClosestPointToPoint( BVH bvh, vec3 point ) {
+
+	// stack needs to be twice as long as the deepest tree we expect because
+	// we push both the left and right child onto the stack every traversal
+	int ptr = 0;
+	uint stack[ 60 ];
+	stack[ 0 ] = 0u;
+	float closestDistanceSquared = 10000.0 * 10000.0;
+	bool found = false;
+	while ( ptr > - 1 && ptr < 60 ) {
+
+		uint currNodeIndex = stack[ ptr ];
+		ptr --;
+
+		// check if we intersect the current bounds
+		float boundsHitDistance = intersectsBVHNodeBoundsPoint( point, bvh, currNodeIndex );
+		if ( boundsHitDistance > closestDistanceSquared ) {
+
+			continue;
+
+		}
+
+		uvec2 boundsInfo = uTexelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
+		if ( isLeaf ) {
+
+			uint count = boundsInfo.x & 0x0000ffffu;
+			uint offset = boundsInfo.y;
+			closestDistanceSquared = intersectTrianglesPoint(
+				bvh, point, offset, count, closestDistanceSquared
+			);
+
+		} else {
+
+			uint leftIndex = currNodeIndex + 1u;
+			uint splitAxis = boundsInfo.x & 0x0000ffffu;
+			uint rightIndex = boundsInfo.y;
+			bool leftToRight = intersectsBVHNodeBoundsPoint( point, bvh, leftIndex ) < intersectsBVHNodeBoundsPoint( point, bvh, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
+			uint c1 = leftToRight ? leftIndex : rightIndex;
+			uint c2 = leftToRight ? rightIndex : leftIndex;
+			// set c2 in the stack so we traverse it later. We need to keep track of a pointer in
+			// the stack while we traverse. The second pointer added is the one that will be
+			// traversed first
+			ptr ++;
+			stack[ ptr ] = c2;
+			ptr ++;
+			stack[ ptr ] = c1;
+
+		}
+
+	}
+
+	return sqrt(closestDistanceSquared);
+
+}
+
+
+
 `;
