@@ -293,9 +293,14 @@ float distSquared( vec3 a, vec3 b ) {
 
 float udTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
 
-	vec3 ba = b - a; vec3 pa = p - a;
-	vec3 cb = c - b; vec3 pb = p - b;
-	vec3 ac = a - c; vec3 pc = p - c;
+	vec3 ba = b - a;
+	vec3 cb = c - b;
+	vec3 ac = a - c;
+
+	vec3 pa = p - a;
+	vec3 pb = p - b;
+	vec3 pc = p - c;
+
 	vec3 nor = cross( ba, ac );
 	return
 		(
