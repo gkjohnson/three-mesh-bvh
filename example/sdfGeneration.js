@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -70,8 +69,7 @@ function init() {
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
 	new GLTFLoader()
-		.setMeshoptDecoder( MeshoptDecoder )
-		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/vino-bike/scene.gltf' )
+		.loadAsync( 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Suzanne/glTF/Suzanne.gltf' )
 		.then( gltf => {
 
 			const staticGen = new StaticGeometryGenerator( gltf.scene );
@@ -170,7 +168,13 @@ function updateSDF() {
 		sdfTex.minFilter = THREE.LinearFilter;
 		sdfTex.magFilter = THREE.LinearFilter;
 
+		const posAttr = geometry.attributes.position;
+		const indexAttr = geometry.index;
 		const point = new THREE.Vector3();
+		const normal = new THREE.Vector3();
+		const delta = new THREE.Vector3();
+		const target = {};
+		const tri = new THREE.Triangle();
 		for ( let x = 0; x < dim; x ++ ) {
 
 			for ( let y = 0; y < dim; y ++ ) {
@@ -184,7 +188,18 @@ function updateSDF() {
 					).applyMatrix4( matrix );
 
 					const index = x + y * dim + z * dim * dim;
-					sdfTex.image.data[ index ] = bvh.closestPointToPoint( point );
+					const dist = bvh.closestPointToPoint( point, target );
+
+					// get the face normal to determine if the distance should be positive or negative
+					const faceIndex = target.faceIndex;
+					const i0 = indexAttr.getX( faceIndex * 3 + 0 );
+					const i1 = indexAttr.getX( faceIndex * 3 + 1 );
+					const i2 = indexAttr.getX( faceIndex * 3 + 2 );
+					tri.setFromAttributeAndIndices( posAttr, i0, i1, i2 );
+					tri.getNormal( normal );
+					delta.subVectors( target.point, point );
+
+					sdfTex.image.data[ index ] = normal.dot( delta ) > 0.0 ? - dist : dist;
 
 				}
 
