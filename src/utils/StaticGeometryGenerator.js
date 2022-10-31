@@ -330,7 +330,7 @@ export class StaticGeometryGenerator {
 		this.meshes = finalMeshes;
 		this.useGroups = true;
 		this.applyWorldTransforms = true;
-		this.attributes = [ 'position', 'normal', 'tangent', 'uv', 'uv2' ];
+		this.attributes = [ 'position', 'normal', 'color', 'tangent', 'uv', 'uv2' ];
 		this._intermediateGeometry = new Array( finalMeshes.length ).fill().map( () => new BufferGeometry() );
 
 	}
