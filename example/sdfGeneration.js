@@ -117,7 +117,7 @@ function init() {
 
 			const scene = new THREE.Scene();
 			const mesh = new THREE.Mesh(
-				new THREE.TorusKnotBufferGeometry(),
+				new THREE.TorusKnotGeometry(),
 				new THREE.MeshStandardMaterial(),
 			);
 			scene.add( mesh );
@@ -244,7 +244,6 @@ function updateSDF() {
 		sdfTex.minFilter = THREE.LinearFilter;
 		sdfTex.magFilter = THREE.LinearFilter;
 		sdfTex.needsUpdate = true;
-		window.SDFTEX = sdfTex;
 
 		const posAttr = geometry.attributes.position;
 		const indexAttr = geometry.index;
@@ -259,6 +258,8 @@ function updateSDF() {
 
 				for ( let z = 0; z < dim; z ++ ) {
 
+					// adjust by half width of the pixel so we sample the pixel center
+					// and offset by half the box size.
 					point.set(
 						halfWidth + x * pxWidth - 0.5,
 						halfWidth + y * pxWidth - 0.5,
@@ -299,7 +300,11 @@ function render() {
 	stats.update();
 	requestAnimationFrame( render );
 
-	if ( ! sdfTex || params.mode === 'geometry' ) {
+	if ( ! sdfTex ) {
+
+		return;
+
+	} else if ( params.mode === 'geometry' ) {
 
 		renderer.render( scene, camera );
 
