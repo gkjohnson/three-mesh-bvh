@@ -7,18 +7,31 @@ import Stats from 'stats.js';
 import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
 import { StaticGeometryGenerator } from '..';
 import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
+import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
+import { RenderSDFMaterial } from './utils/RenderSDFMaterial.js';
+
+// TODO
+// fix rendering gpu sdf
+// raymarching
+// visuals
+// use gltf model instead of torus knot
+// comments
 
 const params = {
 
-	gpuGeneration: true,
+	gpuGeneration: false,
 	size: 50,
 	margin: 0.1,
 	regenerate: () => updateSDF(),
 
+	mode: 'layer',
+	layer: 0,
+
 };
 
-let renderer, camera, scene, knot, clock, gui, helper, group, stats;
-let outputContainer, loadContainer, loadBar, loadText, bvh, geometry, sdfTex, sdfPass;
+let renderer, camera, scene, gui, stats, boxHelper;
+let outputContainer, bvh, geometry, sdfTex, mesh;
+let sdfPass, layerPass, raymarchPass;
 let bvhGenerationWorker;
 
 init();
@@ -56,6 +69,9 @@ function init() {
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
+	boxHelper = new THREE.Box3Helper( new THREE.Box3() );
+	scene.add( boxHelper );
+
 	new OrbitControls( camera, renderer.domElement );
 
 	clock = new THREE.Clock();
@@ -66,13 +82,47 @@ function init() {
 
 	sdfPass = new FullScreenQuad( new GenerateSDFMaterial() );
 
+	layerPass = new FullScreenQuad( new RenderSDFLayerMaterial() );
+
+	raymarchPass = new FullScreenQuad( new RenderSDFMaterial() );
+
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-	new GLTFLoader()
-		.loadAsync( 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Suzanne/glTF/Suzanne.gltf' )
-		.then( gltf => {
+	// new GLTFLoader()
+	// 	.loadAsync( 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Suzanne/glTF/Suzanne.gltf' )
+	// 	.then( gltf => {
 
-			const staticGen = new StaticGeometryGenerator( gltf.scene );
+	// 		const staticGen = new StaticGeometryGenerator( gltf.scene );
+	// 		staticGen.attributes = [ 'position', 'normal' ];
+	// 		staticGen.useGroups = false;
+
+	// 		geometry = staticGen.generate().center();
+
+	// 		return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
+
+	// 	} )
+	// 	.then( result => {
+
+	// 		bvh = result;
+
+	// 		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+	// 		scene.add( mesh );
+
+	// 		updateSDF();
+
+	// 	} );
+
+	Promise.resolve()
+		.then( () => {
+
+			const scene = new THREE.Scene();
+			const mesh = new THREE.Mesh(
+				new THREE.TorusKnotBufferGeometry(),
+				new THREE.MeshStandardMaterial(),
+			);
+			scene.add( mesh );
+
+			const staticGen = new StaticGeometryGenerator( scene );
 			staticGen.attributes = [ 'position', 'normal' ];
 			staticGen.useGroups = false;
 
@@ -85,20 +135,14 @@ function init() {
 
 			bvh = result;
 
-			const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+			mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 			scene.add( mesh );
 
 			updateSDF();
 
 		} );
 
-	gui = new GUI();
-
-	const generation = gui.addFolder( 'generation' );
-	generation.add( params, 'gpuGeneration' );
-	generation.add( params, 'size', 10, 200, 1 );
-	generation.add( params, 'margin', 0, 1 );
-	generation.add( params, 'regenerate' );
+	rebuildGUI();
 
 	window.addEventListener( 'resize', function () {
 
@@ -108,6 +152,30 @@ function init() {
 		renderer.setSize( window.innerWidth, window.innerHeight );
 
 	}, false );
+
+}
+
+function rebuildGUI() {
+
+	if ( gui ) {
+
+		gui.destroy();
+
+	}
+
+	params.layer = 0;
+
+	gui = new GUI();
+
+	const generationFolder = gui.addFolder( 'generation' );
+	generationFolder.add( params, 'gpuGeneration' );
+	generationFolder.add( params, 'size', 10, 200, 1 );
+	generationFolder.add( params, 'margin', 0, 1 );
+	generationFolder.add( params, 'regenerate' );
+
+	const displayFolder = gui.addFolder( 'display' );
+	displayFolder.add( params, 'mode', [ 'geometry', 'raymarching', 'layer' ] );
+	displayFolder.add( params, 'layer', 0, params.size, 1 );
 
 }
 
@@ -124,7 +192,15 @@ function updateSDF() {
 	scale.x += params.margin;
 	scale.y += params.margin;
 	scale.z += params.margin;
-	matrix.compose( center, quat, scale ).invert();
+	matrix.compose( center, quat, scale );
+
+	boxHelper.box.copy( geometry.boundingBox );
+	boxHelper.box.min.x -= params.margin;
+	boxHelper.box.min.y -= params.margin;
+	boxHelper.box.min.z -= params.margin;
+	boxHelper.box.max.x += params.margin;
+	boxHelper.box.max.y += params.margin;
+	boxHelper.box.max.z += params.margin;
 
 	if ( sdfTex ) {
 
@@ -167,6 +243,8 @@ function updateSDF() {
 		sdfTex.type = THREE.FloatType;
 		sdfTex.minFilter = THREE.LinearFilter;
 		sdfTex.magFilter = THREE.LinearFilter;
+		sdfTex.needsUpdate = true;
+		window.SDFTEX = sdfTex;
 
 		const posAttr = geometry.attributes.position;
 		const indexAttr = geometry.index;
@@ -188,7 +266,7 @@ function updateSDF() {
 					).applyMatrix4( matrix );
 
 					const index = x + y * dim + z * dim * dim;
-					const dist = bvh.closestPointToPoint( point, target );
+					const dist = bvh.closestPointToPoint( point, target ).distance;
 
 					// get the face normal to determine if the distance should be positive or negative
 					const faceIndex = target.faceIndex;
@@ -212,6 +290,8 @@ function updateSDF() {
 	const delta = window.performance.now() - startTime;
 	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
+	rebuildGUI();
+
 }
 
 function render() {
@@ -219,12 +299,26 @@ function render() {
 	stats.update();
 	requestAnimationFrame( render );
 
-	if ( helper ) {
+	if ( ! sdfTex || params.mode === 'geometry' ) {
 
-		helper.visible = params.displayHelper;
+		renderer.render( scene, camera );
+
+	} else if ( params.mode === 'layer' ) {
+
+		const size = sdfTex.isData3DTexture ? sdfTex.image.width : sdfTex.width;
+		layerPass.material.uniforms.sdfTex.value = sdfTex;
+		layerPass.material.uniforms.layer.value = params.layer / size;
+		layerPass.render( renderer );
+
+	} else if ( params.mode === 'raymarching' ) {
+
+		camera.updateMatrixWorld();
+		mesh.updateMatrixWorld();
+
+		raymarchPass.material.uniforms.sdfTex.value = sdfTex;
+		raymarchPass.material.uniforms.projectionInverse.value.copy( camera.projectionMatrixInverse );
+		raymarchPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).multiply( camera.matrixWorldInverse );
 
 	}
-
-	renderer.render( scene, camera );
 
 }
