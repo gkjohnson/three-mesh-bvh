@@ -312,28 +312,120 @@ float distanceToTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
 
 }
 
+
+// https://www.shadertoy.com/view/ttfGWl
+vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoord ) {
+
+    vec3 v10 = v1 - v0;
+    vec3 v21 = v2 - v1;
+    vec3 v02 = v0 - v2;
+
+	vec3 p0 = p - v0;
+	vec3 p1 = p - v1;
+	vec3 p2 = p - v2;
+
+    vec3 nor = cross( v10, v02 );
+
+#if 0
+
+    // method 1, in 3D space
+    if( dot( cross( v10, nor ), p0 ) < 0.0 ) {
+
+		return v0 + v10 * clamp( dot( p0, v10 ) / dot2( v10 ), 0.0, 1.0 );
+
+	} else if( dot( cross( v21, nor ), p1 ) < 0.0 ) {
+
+		return v1 + v21 * clamp( dot( p1, v21 ) / dot2( v21 ), 0.0, 1.0 );
+
+	} else if( dot( cross( v02, nor ), p2 ) < 0.0 ) {
+
+		return v2 + v02 * clamp( dot( p2, v02 ) / dot2( v02 ), 0.0, 1.0 );
+
+	} else {
+
+	    return p - nor * dot( nor, p0 ) / dot2( nor );
+
+	}
+
+#else
+
+    // method 2, in barycentric space
+    vec3  q = cross( nor, p0 );
+    float d = 1.0 / dot2( nor );
+    float u = d * dot( q, v02 );
+    float v = d * dot( q, v10 );
+    float w = 1.0 - u - v;
+
+	if( u < 0.0 ) {
+
+		w = clamp( dot( p2, v02 ) / dot2( v02 ), 0.0, 1.0 );
+		u = 0.0;
+		v = 1.0 - w;
+
+	} else if( v < 0.0 ) {
+
+		u = clamp( dot( p0, v10 ) / dot2( v10 ), 0.0, 1.0 );
+		v = 0.0;
+		w = 1.0 - u;
+
+	} else if( w < 0.0 ) {
+
+		v = clamp( dot( p1, v21 ) / dot2( v21 ), 0.0, 1.0 );
+		w = 0.0;
+		u = 1.0-v;
+
+	}
+
+	barycoord = vec3( u, v, w );
+
+    return u * v1 + v * v2 + w * v0;
+
+#endif
+
+}
+
 float distanceToTriangles(
 	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
 
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out float side, out vec3 outPoint
+	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out vec3 outPoint
 ) {
 
 	bool found = false;
-	vec3 localBarycoord, localNormal;
-	float localDist, localSide;
+	uvec3 localIndices;
+	vec3 localBarycoord;
+	vec3 localNormal;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
 		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
 		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
 		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
 		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
-		float dist = distanceToTriangle( point, a, b, c );
-		if ( dist < closestDistanceSquared ) {
+
+		#if 0
+
+		float sqDist = distanceToTriangle( point, a, b, c );
+		if ( sqDist < closestDistanceSquared ) {
 
 			// TODO: get the indices, normal, barycoord, side, and point out
-			closestDistanceSquared = dist;
+			closestDistanceSquared = sqDist;
 
 		}
+
+		#else
+
+		vec3 closestPoint = closestPointToTriangle( point, a, b, c, localBarycoord );
+		float sqDist = dot2( point - closestPoint );
+		if ( sqDist < closestDistanceSquared ) {
+
+			closestDistanceSquared = sqDist;
+			faceIndices = uvec4( indices.xyz, i );
+			faceNormal = normalize( cross( a - b, b - c ) );
+			barycoord = localBarycoord;
+			outPoint = a * barycoord.x + b * barycoord.y + c * barycoord.z;
+
+		}
+
+		#endif
 
 	}
 
@@ -390,7 +482,7 @@ float bvhClosestPointToPoint(
 				bvh, point, offset, count, closestDistanceSquared,
 
 				// outputs
-				faceIndices, faceNormal, barycoord, side, outPoint
+				faceIndices, faceNormal, barycoord, outPoint
 			);
 
 		} else {
