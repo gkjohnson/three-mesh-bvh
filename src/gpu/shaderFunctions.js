@@ -409,14 +409,19 @@ float distanceToTriangles(
 
 }
 
+float distanceSqToBounds( vec3 point, vec3 boundsMin, vec3 boundsMax ) {
+
+	vec3 clampedPoint = clamp( point, boundsMin, boundsMax );
+	vec3 delta = point - clampedPoint;
+	return dot( delta, delta );
+
+}
+
 float distanceSqToBVHNodeBoundsPoint( vec3 point, BVH bvh, uint currNodeIndex ) {
 
 	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
 	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
-	vec3 clampedPoint = clamp( point, boundsMin, boundsMax );
-
-	vec3 delta = point - clampedPoint;
-	return dot( delta, delta );
+	return distanceSqToBounds( point, boundsMin, boundsMax );
 
 }
 

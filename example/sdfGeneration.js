@@ -88,41 +88,11 @@ function init() {
 
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-	// new GLTFLoader()
-	// 	.loadAsync( 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Suzanne/glTF/Suzanne.gltf' )
-	// 	.then( gltf => {
+	new GLTFLoader()
+		.loadAsync( 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Suzanne/glTF/Suzanne.gltf' )
+		.then( gltf => {
 
-	// 		const staticGen = new StaticGeometryGenerator( gltf.scene );
-	// 		staticGen.attributes = [ 'position', 'normal' ];
-	// 		staticGen.useGroups = false;
-
-	// 		geometry = staticGen.generate().center();
-
-	// 		return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
-
-	// 	} )
-	// 	.then( result => {
-
-	// 		bvh = result;
-
-	// 		const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-	// 		scene.add( mesh );
-
-	// 		updateSDF();
-
-	// 	} );
-
-	Promise.resolve()
-		.then( () => {
-
-			const scene = new THREE.Scene();
-			const mesh = new THREE.Mesh(
-				new THREE.TorusKnotGeometry(),
-				new THREE.MeshStandardMaterial(),
-			);
-			scene.add( mesh );
-
-			const staticGen = new StaticGeometryGenerator( scene );
+			const staticGen = new StaticGeometryGenerator( gltf.scene );
 			staticGen.attributes = [ 'position', 'normal' ];
 			staticGen.useGroups = false;
 
@@ -135,12 +105,42 @@ function init() {
 
 			bvh = result;
 
-			mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+			const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 			scene.add( mesh );
 
 			updateSDF();
 
 		} );
+
+	// Promise.resolve()
+	// 	.then( () => {
+
+	// 		const scene = new THREE.Scene();
+	// 		const mesh = new THREE.Mesh(
+	// 			new THREE.TorusKnotGeometry(),
+	// 			new THREE.MeshStandardMaterial(),
+	// 		);
+	// 		scene.add( mesh );
+
+	// 		const staticGen = new StaticGeometryGenerator( scene );
+	// 		staticGen.attributes = [ 'position', 'normal' ];
+	// 		staticGen.useGroups = false;
+
+	// 		geometry = staticGen.generate().center();
+
+	// 		return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
+
+	// 	} )
+	// 	.then( result => {
+
+	// 		bvh = result;
+
+	// 		mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+	// 		scene.add( mesh );
+
+	// 		updateSDF();
+
+	// 	} );
 
 	rebuildGUI();
 
