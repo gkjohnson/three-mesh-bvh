@@ -326,29 +326,6 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 
     vec3 nor = cross( v10, v02 );
 
-#if 0
-
-    // method 1, in 3D space
-    if( dot( cross( v10, nor ), p0 ) < 0.0 ) {
-
-		return v0 + v10 * clamp( dot( p0, v10 ) / dot2( v10 ), 0.0, 1.0 );
-
-	} else if( dot( cross( v21, nor ), p1 ) < 0.0 ) {
-
-		return v1 + v21 * clamp( dot( p1, v21 ) / dot2( v21 ), 0.0, 1.0 );
-
-	} else if( dot( cross( v02, nor ), p2 ) < 0.0 ) {
-
-		return v2 + v02 * clamp( dot( p2, v02 ) / dot2( v02 ), 0.0, 1.0 );
-
-	} else {
-
-	    return p - nor * dot( nor, p0 ) / dot2( nor );
-
-	}
-
-#else
-
     // method 2, in barycentric space
     vec3  q = cross( nor, p0 );
     float d = 1.0 / dot2( nor );
@@ -377,10 +354,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 	}
 
 	barycoord = vec3( u, v, w );
-
     return u * v1 + v * v2 + w * v0;
-
-#endif
 
 }
 
@@ -421,7 +395,7 @@ float distanceToTriangles(
 			faceIndices = uvec4( indices.xyz, i );
 			faceNormal = normalize( cross( a - b, b - c ) );
 			barycoord = localBarycoord;
-			outPoint = a * barycoord.x + b * barycoord.y + c * barycoord.z;
+			outPoint = closestPoint;
 
 		}
 
