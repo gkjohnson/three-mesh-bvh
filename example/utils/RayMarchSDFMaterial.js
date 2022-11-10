@@ -1,6 +1,6 @@
 import { ShaderMaterial, Matrix4 } from 'three';
 
-export class RenderSDFMaterial extends ShaderMaterial {
+export class RayMarchSDFMaterial extends ShaderMaterial {
 
 	constructor( params ) {
 
@@ -69,7 +69,7 @@ export class RenderSDFMaterial extends ShaderMaterial {
 				void main() {
 
 					// get world ray direction
-					vec3 rayOrigin = vec4( 0.0 );
+					vec3 rayOrigin = vec3( 0.0 );
 					vec4 homogenousDirection = projectionInverse * vec3( vUv, 0.0, 1.0 );
 					vec3 rayDirection = normalize( homogenousDirection.xyz / homogenousDirection.w );
 

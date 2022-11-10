@@ -8,10 +8,9 @@ import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
 import { StaticGeometryGenerator } from '..';
 import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
-import { RenderSDFMaterial } from './utils/RenderSDFMaterial.js';
+import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterial.js';
 
 // TODO
-// fix rendering gpu sdf
 // raymarching
 // visuals
 // use gltf model instead of torus knot
@@ -24,7 +23,7 @@ const params = {
 	margin: 0.1,
 	regenerate: () => updateSDF(),
 
-	mode: 'layer',
+	mode: 'raymarching',
 	layer: 0,
 
 };
@@ -84,7 +83,7 @@ function init() {
 
 	layerPass = new FullScreenQuad( new RenderSDFLayerMaterial() );
 
-	raymarchPass = new FullScreenQuad( new RenderSDFMaterial() );
+	raymarchPass = new FullScreenQuad( new RayMarchSDFMaterial() );
 
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
@@ -105,7 +104,7 @@ function init() {
 
 			bvh = result;
 
-			const mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+			mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 			scene.add( mesh );
 
 			updateSDF();
@@ -332,6 +331,7 @@ function render() {
 		raymarchPass.material.uniforms.sdfTex.value = sdfTex;
 		raymarchPass.material.uniforms.projectionInverse.value.copy( camera.projectionMatrixInverse );
 		raymarchPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).multiply( camera.matrixWorldInverse );
+		raymarchPass.render( renderer );
 
 	}
 
