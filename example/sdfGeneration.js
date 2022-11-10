@@ -163,7 +163,7 @@ function rebuildGUI() {
 
 	}
 
-	params.layer = 0;
+	params.layer = Math.min( params.size, params.layer );
 
 	gui = new GUI();
 

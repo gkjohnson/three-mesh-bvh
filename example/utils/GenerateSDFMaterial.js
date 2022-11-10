@@ -56,7 +56,7 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 					vec3 outPoint;
 
 					float dist = bvhClosestPointToPoint( bvh, point.xyz, faceIndices, faceNormal, barycoord, side, outPoint );
-					gl_FragColor = vec4( dist, 0, 0, 0 );
+					gl_FragColor = vec4( side * dist, 0, 0, 0 );
 
 				}
 

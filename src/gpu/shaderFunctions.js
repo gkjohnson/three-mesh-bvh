@@ -361,7 +361,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 float distanceToTriangles(
 	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
 
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out vec3 outPoint
+	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out float side, out vec3 outPoint
 ) {
 
 	bool found = false;
@@ -388,7 +388,8 @@ float distanceToTriangles(
 		#else
 
 		vec3 closestPoint = closestPointToTriangle( point, a, b, c, localBarycoord );
-		float sqDist = dot2( point - closestPoint );
+		vec3 delta = point - closestPoint;
+		float sqDist = dot2( delta );
 		if ( sqDist < closestDistanceSquared ) {
 
 			closestDistanceSquared = sqDist;
@@ -396,6 +397,7 @@ float distanceToTriangles(
 			faceNormal = normalize( cross( a - b, b - c ) );
 			barycoord = localBarycoord;
 			outPoint = closestPoint;
+			side = sign( dot( faceNormal, delta ) );
 
 		}
 
@@ -456,7 +458,7 @@ float bvhClosestPointToPoint(
 				bvh, point, offset, count, closestDistanceSquared,
 
 				// outputs
-				faceIndices, faceNormal, barycoord, outPoint
+				faceIndices, faceNormal, barycoord, side, outPoint
 			);
 
 		} else {
