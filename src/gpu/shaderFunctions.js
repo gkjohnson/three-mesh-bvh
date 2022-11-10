@@ -284,13 +284,6 @@ float dot2( in vec3 v ) {
 
 }
 
-float distSquared( vec3 a, vec3 b ) {
-
-	vec3 c = a - b;
-	return dot( c, c );
-
-}
-
 // https://www.shadertoy.com/view/4sXXRN
 float distanceToTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
 
@@ -326,6 +319,8 @@ float distanceToTriangles(
 ) {
 
 	bool found = false;
+	vec3 localBarycoord, localNormal;
+	float localDist, localSide;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
 		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
@@ -346,12 +341,14 @@ float distanceToTriangles(
 
 }
 
-float distanceToBVHNodeBoundsPoint( vec3 point, BVH bvh, uint currNodeIndex ) {
+float distanceSqToBVHNodeBoundsPoint( vec3 point, BVH bvh, uint currNodeIndex ) {
 
 	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
 	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
 	vec3 clampedPoint = clamp( point, boundsMin, boundsMax );
-	return distSquared( point, clampedPoint );
+
+	vec3 delta = point - clampedPoint;
+	return dot( delta, delta );
 
 }
 
@@ -376,7 +373,7 @@ float bvhClosestPointToPoint(
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance = distanceToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
+		float boundsHitDistance = distanceSqToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
 		if ( boundsHitDistance > closestDistanceSquared ) {
 
 			continue;
@@ -401,7 +398,7 @@ float bvhClosestPointToPoint(
 			uint leftIndex = currNodeIndex + 1u;
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
 			uint rightIndex = boundsInfo.y;
-			bool leftToRight = distanceToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceToBVHNodeBoundsPoint( point, bvh, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
+			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
 			uint c1 = leftToRight ? leftIndex : rightIndex;
 			uint c2 = leftToRight ? rightIndex : leftIndex;
 
