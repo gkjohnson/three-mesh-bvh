@@ -19,7 +19,7 @@ import { RenderSDFMaterial } from './utils/RenderSDFMaterial.js';
 
 const params = {
 
-	gpuGeneration: false,
+	gpuGeneration: true,
 	size: 50,
 	margin: 0.1,
 	regenerate: () => updateSDF(),
@@ -310,9 +310,18 @@ function render() {
 
 	} else if ( params.mode === 'layer' ) {
 
-		const size = sdfTex.isData3DTexture ? sdfTex.image.width : sdfTex.width;
-		layerPass.material.uniforms.sdfTex.value = sdfTex;
-		layerPass.material.uniforms.layer.value = params.layer / size;
+		if ( sdfTex.isData3DTexture ) {
+
+			layerPass.material.uniforms.layer.value = params.layer / sdfTex.image.width;
+			layerPass.material.uniforms.sdfTex.value = sdfTex;
+
+		} else {
+
+			layerPass.material.uniforms.layer.value = params.layer / sdfTex.width;
+			layerPass.material.uniforms.sdfTex.value = sdfTex.texture;
+
+		}
+
 		layerPass.render( renderer );
 
 	} else if ( params.mode === 'raymarching' ) {
