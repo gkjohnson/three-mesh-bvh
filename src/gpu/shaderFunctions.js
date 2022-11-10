@@ -319,7 +319,11 @@ float distanceToTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
 
 }
 
-float distanceToTriangles( BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared ) {
+float distanceToTriangles(
+	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
+
+	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out float side, out vec3 outPoint
+) {
 
 	bool found = false;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
@@ -328,9 +332,10 @@ float distanceToTriangles( BVH bvh, vec3 point, uint offset, uint count, float c
 		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
 		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
 		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
-		float dist = distanceToTriangle(point, a, b, c);
+		float dist = distanceToTriangle( point, a, b, c );
 		if ( dist < closestDistanceSquared ) {
 
+			// TODO: get the indices, normal, barycoord, side, and point out
 			closestDistanceSquared = dist;
 
 		}
@@ -350,7 +355,13 @@ float distanceToBVHNodeBoundsPoint( vec3 point, BVH bvh, uint currNodeIndex ) {
 
 }
 
-float bvhClosestPointToPoint( BVH bvh, vec3 point ) {
+float bvhClosestPointToPoint(
+	BVH bvh, vec3 point,
+
+	// output variables
+	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
+	out float side, out vec3 outPoint
+ ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
@@ -379,7 +390,10 @@ float bvhClosestPointToPoint( BVH bvh, vec3 point ) {
 			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 			closestDistanceSquared = distanceToTriangles(
-				bvh, point, offset, count, closestDistanceSquared
+				bvh, point, offset, count, closestDistanceSquared,
+
+				// outputs
+				faceIndices, faceNormal, barycoord, side, outPoint
 			);
 
 		} else {
