@@ -35,21 +35,18 @@ render();
 
 function init() {
 
-	const bgColor = 0x111111;
-
 	outputContainer = document.getElementById( 'output' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.setClearColor( bgColor, 1 );
+	renderer.setClearColor( 0, 0 );
 	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0x111111, 20, 60 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1, 1 );
