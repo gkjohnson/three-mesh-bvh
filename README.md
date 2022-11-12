@@ -25,6 +25,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Geometry edge intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/edgeIntersect.html)
 
+[SDF generation](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sdfGeneration.html)
+
 [WebWorker generation](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
 
 [BVH options inspector](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
@@ -60,7 +62,6 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 [CPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
 
 [Gem Refraction Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/diamond.html)
-
 
 **External Projects**
 
