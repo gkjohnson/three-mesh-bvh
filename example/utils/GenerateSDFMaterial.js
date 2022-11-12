@@ -45,17 +45,20 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 
 				void main() {
 
+					// compute the point in space to check
 					vec3 point = vec3( vUv, zValue );
 					point -= vec3( 0.5 );
 					point = ( matrix * vec4( point, 1.0 ) ).xyz;
 
+					// retrieve the distance and other values
 					uvec4 faceIndices;
 					vec3 faceNormal;
 					vec3 barycoord;
 					float side;
 					vec3 outPoint;
-
 					float dist = bvhClosestPointToPoint( bvh, point.xyz, faceIndices, faceNormal, barycoord, side, outPoint );
+
+					// if the triangle side is the back then it must be on the inside and the value negative
 					gl_FragColor = vec4( side * dist, 0, 0, 0 );
 
 				}

@@ -9,29 +9,26 @@ import { StaticGeometryGenerator } from '..';
 import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
 import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterial.js';
-
-// TODO
-// raymarching
-// visuals
-// use gltf model instead of torus knot
-// comments
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 const params = {
 
 	gpuGeneration: true,
-	size: 50,
-	margin: 0.1,
+	size: 100,
+	margin: 0.2,
 	regenerate: () => updateSDF(),
 
 	mode: 'raymarching',
 	layer: 0,
+	surface: 0,
 
 };
 
 let renderer, camera, scene, gui, stats, boxHelper;
 let outputContainer, bvh, geometry, sdfTex, mesh;
-let sdfPass, layerPass, raymarchPass;
+let generateSdfPass, layerPass, raymarchPass;
 let bvhGenerationWorker;
+const inverseBoundsMatrix = new THREE.Matrix4();
 
 init();
 render();
@@ -41,9 +38,6 @@ function init() {
 	const bgColor = 0x111111;
 
 	outputContainer = document.getElementById( 'output' );
-	loadContainer = document.getElementById( 'loading-container' );
-	loadBar = document.querySelector( '#loading-container .bar' );
-	loadText = document.querySelector( '#loading-container .text' );
 
 	// renderer setup
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -64,7 +58,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 0, 0, 4 );
+	camera.position.set( 1, 1, 2 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -73,23 +67,28 @@ function init() {
 
 	new OrbitControls( camera, renderer.domElement );
 
-	clock = new THREE.Clock();
-
 	// stats setup
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	sdfPass = new FullScreenQuad( new GenerateSDFMaterial() );
+	// sdf pass to generate the 3d texture
+	generateSdfPass = new FullScreenQuad( new GenerateSDFMaterial() );
 
+	// screen pass to render a single layer of the 3d texture
 	layerPass = new FullScreenQuad( new RenderSDFLayerMaterial() );
 
+	// screen pass to render the sdf ray marching
 	raymarchPass = new FullScreenQuad( new RayMarchSDFMaterial() );
 
+	// load model and generate bvh
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
 	new GLTFLoader()
-		.loadAsync( 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Suzanne/glTF/Suzanne.gltf' )
+		.setMeshoptDecoder( MeshoptDecoder )
+		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' )
 		.then( gltf => {
+
+			gltf.scene.updateMatrixWorld( true );
 
 			const staticGen = new StaticGeometryGenerator( gltf.scene );
 			staticGen.attributes = [ 'position', 'normal' ];
@@ -111,36 +110,6 @@ function init() {
 
 		} );
 
-	// Promise.resolve()
-	// 	.then( () => {
-
-	// 		const scene = new THREE.Scene();
-	// 		const mesh = new THREE.Mesh(
-	// 			new THREE.TorusKnotGeometry(),
-	// 			new THREE.MeshStandardMaterial(),
-	// 		);
-	// 		scene.add( mesh );
-
-	// 		const staticGen = new StaticGeometryGenerator( scene );
-	// 		staticGen.attributes = [ 'position', 'normal' ];
-	// 		staticGen.useGroups = false;
-
-	// 		geometry = staticGen.generate().center();
-
-	// 		return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
-
-	// 	} )
-	// 	.then( result => {
-
-	// 		bvh = result;
-
-	// 		mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-	// 		scene.add( mesh );
-
-	// 		updateSDF();
-
-	// 	} );
-
 	rebuildGUI();
 
 	window.addEventListener( 'resize', function () {
@@ -154,6 +123,7 @@ function init() {
 
 }
 
+// build the gui with parameters based on the selected display mode
 function rebuildGUI() {
 
 	if ( gui ) {
@@ -163,6 +133,7 @@ function rebuildGUI() {
 	}
 
 	params.layer = Math.min( params.size, params.layer );
+	params.layer = Math.min( params.surface, params.margin );
 
 	gui = new GUI();
 
@@ -173,11 +144,27 @@ function rebuildGUI() {
 	generationFolder.add( params, 'regenerate' );
 
 	const displayFolder = gui.addFolder( 'display' );
-	displayFolder.add( params, 'mode', [ 'geometry', 'raymarching', 'layer' ] );
-	displayFolder.add( params, 'layer', 0, params.size, 1 );
+	displayFolder.add( params, 'mode', [ 'geometry', 'raymarching', 'layer' ] ).onChange( () => {
+
+		rebuildGUI();
+
+	} );
+
+	if ( params.mode === 'layer' ) {
+
+		displayFolder.add( params, 'layer', 0, params.size, 1 );
+
+	}
+
+	if ( params.mode === 'raymarching' ) {
+
+		displayFolder.add( params, 'surface', - 0.2, params.margin );
+
+	}
 
 }
 
+// update the sdf texture based on the selected parameters
 function updateSDF() {
 
 	const dim = params.size;
@@ -186,13 +173,17 @@ function updateSDF() {
 	const quat = new THREE.Quaternion();
 	const scale = new THREE.Vector3();
 
+	// compute the bounding box of the geometry including the margin which is used to
+	// define the range of the SDF
 	geometry.boundingBox.getCenter( center );
 	scale.subVectors( geometry.boundingBox.max, geometry.boundingBox.min );
-	scale.x += params.margin;
-	scale.y += params.margin;
-	scale.z += params.margin;
+	scale.x += 2 * params.margin;
+	scale.y += 2 * params.margin;
+	scale.z += 2 * params.margin;
 	matrix.compose( center, quat, scale );
+	inverseBoundsMatrix.copy( matrix ).invert();
 
+	// update the box helper
 	boxHelper.box.copy( geometry.boundingBox );
 	boxHelper.box.min.x -= params.margin;
 	boxHelper.box.min.y -= params.margin;
@@ -201,6 +192,7 @@ function updateSDF() {
 	boxHelper.box.max.y += params.margin;
 	boxHelper.box.max.z += params.margin;
 
+	// dispose of the existing sdf
 	if ( sdfTex ) {
 
 		sdfTex.dispose();
@@ -213,30 +205,34 @@ function updateSDF() {
 	const startTime = window.performance.now();
 	if ( params.gpuGeneration ) {
 
+		// create a new 3d render target texture
 		sdfTex = new THREE.WebGL3DRenderTarget( dim, dim, dim );
 		sdfTex.texture.format = THREE.RedFormat;
 		sdfTex.texture.type = THREE.FloatType;
 		sdfTex.texture.minFilter = THREE.LinearFilter;
 		sdfTex.texture.magFilter = THREE.LinearFilter;
 
-		sdfPass.material.uniforms.bvh.value.updateFrom( bvh );
-		sdfPass.material.uniforms.matrix.value.copy( matrix );
+		// prep the sdf generation material pass
+		generateSdfPass.material.uniforms.bvh.value.updateFrom( bvh );
+		generateSdfPass.material.uniforms.matrix.value.copy( matrix );
 
+		// render into each layer
 		for ( let i = 0; i < dim; i ++ ) {
 
-			sdfPass.material.uniforms.zValue.value = i * pxWidth + halfWidth;
+			generateSdfPass.material.uniforms.zValue.value = i * pxWidth + halfWidth;
 
 			renderer.setRenderTarget( sdfTex, i );
-			sdfPass.render( renderer );
+			generateSdfPass.render( renderer );
 
 		}
 
-		// initiate readback to get a rough estimate of time taken to generate the sdf
+		// initiate read back to get a rough estimate of time taken to generate the sdf
 		renderer.readRenderTargetPixels( sdfTex, 0, 0, 1, 1, new Float32Array( 4 ) );
 		renderer.setRenderTarget( null );
 
 	} else {
 
+		// create a new 3d data texture
 		sdfTex = new THREE.Data3DTexture( new Float32Array( dim ** 3 ), dim, dim, dim );
 		sdfTex.format = THREE.RedFormat;
 		sdfTex.type = THREE.FloatType;
@@ -249,8 +245,10 @@ function updateSDF() {
 		const point = new THREE.Vector3();
 		const normal = new THREE.Vector3();
 		const delta = new THREE.Vector3();
-		const target = {};
 		const tri = new THREE.Triangle();
+		const target = {};
+
+		// iterate over all pixels and check distance
 		for ( let x = 0; x < dim; x ++ ) {
 
 			for ( let y = 0; y < dim; y ++ ) {
@@ -277,6 +275,7 @@ function updateSDF() {
 					tri.getNormal( normal );
 					delta.subVectors( target.point, point );
 
+					// set the distance in the texture data
 					sdfTex.image.data[ index ] = normal.dot( delta ) > 0.0 ? - dist : dist;
 
 				}
@@ -287,6 +286,7 @@ function updateSDF() {
 
 	}
 
+	// update the timing display
 	const delta = window.performance.now() - startTime;
 	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
@@ -301,14 +301,17 @@ function render() {
 
 	if ( ! sdfTex ) {
 
+		// render nothing
 		return;
 
 	} else if ( params.mode === 'geometry' ) {
 
+		// render the rasterized geometry
 		renderer.render( scene, camera );
 
 	} else if ( params.mode === 'layer' ) {
 
+		// render a layer of the 3d texture
 		if ( sdfTex.isData3DTexture ) {
 
 			layerPass.material.uniforms.layer.value = params.layer / sdfTex.image.width;
@@ -325,12 +328,27 @@ function render() {
 
 	} else if ( params.mode === 'raymarching' ) {
 
+		// render the ray marched texture
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
-		raymarchPass.material.uniforms.sdfTex.value = sdfTex;
+		let tex;
+		if ( sdfTex.isData3DTexture ) {
+
+			tex = sdfTex;
+
+		} else {
+
+			tex = sdfTex.texture;
+
+		}
+
+		const { width, depth, height } = tex.image;
+		raymarchPass.material.uniforms.sdfTex.value = tex;
+		raymarchPass.material.uniforms.normalStep.value.set( 1 / width, 1 / height, 1 / depth );
+		raymarchPass.material.uniforms.surface.value = params.surface;
 		raymarchPass.material.uniforms.projectionInverse.value.copy( camera.projectionMatrixInverse );
-		raymarchPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).multiply( camera.matrixWorldInverse );
+		raymarchPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).invert().premultiply( inverseBoundsMatrix ).multiply( camera.matrixWorld );
 		raymarchPass.render( renderer );
 
 	}
