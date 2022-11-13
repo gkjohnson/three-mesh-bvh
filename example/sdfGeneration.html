@@ -26,9 +26,30 @@
 			white-space: pre;
 		}
 
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: white;
+		}
     </style>
 </head>
 <body>
+	<div id="info">
+		3D Texture <a href="https://en.wikipedia.org/wiki/Signed_distance_function">Signed Distance Field</a> generation on the gpu and raymarching.
+		<br/>
+		"Surface" sets the distance at which the surface is rendered.
+		<br/>
+		"Layers" show the raw signed distance values.
+
+	</div>
 	<div id="output"></div>
     <script type="module" src="./sdfGeneration.js"></script>
 </body>

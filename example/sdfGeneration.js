@@ -14,13 +14,13 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 const params = {
 
 	gpuGeneration: true,
-	size: 100,
+	resolution: 100,
 	margin: 0.2,
 	regenerate: () => updateSDF(),
 
 	mode: 'raymarching',
 	layer: 0,
-	surface: 0,
+	surface: 0.1,
 
 };
 
@@ -129,13 +129,13 @@ function rebuildGUI() {
 
 	}
 
-	params.layer = Math.min( params.size, params.layer );
+	params.layer = Math.min( params.resolution, params.layer );
 
 	gui = new GUI();
 
 	const generationFolder = gui.addFolder( 'generation' );
 	generationFolder.add( params, 'gpuGeneration' );
-	generationFolder.add( params, 'size', 10, 200, 1 );
+	generationFolder.add( params, 'resolution', 10, 200, 1 );
 	generationFolder.add( params, 'margin', 0, 1 );
 	generationFolder.add( params, 'regenerate' );
 
@@ -148,7 +148,7 @@ function rebuildGUI() {
 
 	if ( params.mode === 'layer' ) {
 
-		displayFolder.add( params, 'layer', 0, params.size, 1 );
+		displayFolder.add( params, 'layer', 0, params.resolution, 1 );
 
 	}
 
@@ -163,7 +163,7 @@ function rebuildGUI() {
 // update the sdf texture based on the selected parameters
 function updateSDF() {
 
-	const dim = params.size;
+	const dim = params.resolution;
 	const matrix = new THREE.Matrix4();
 	const center = new THREE.Vector3();
 	const quat = new THREE.Quaternion();
