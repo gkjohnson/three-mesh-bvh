@@ -130,7 +130,6 @@ function rebuildGUI() {
 	}
 
 	params.layer = Math.min( params.size, params.layer );
-	params.layer = Math.min( params.surface, params.margin );
 
 	gui = new GUI();
 
@@ -141,7 +140,7 @@ function rebuildGUI() {
 	generationFolder.add( params, 'regenerate' );
 
 	const displayFolder = gui.addFolder( 'display' );
-	displayFolder.add( params, 'mode', [ 'geometry', 'raymarching', 'layer' ] ).onChange( () => {
+	displayFolder.add( params, 'mode', [ 'geometry', 'raymarching', 'layer', 'grid layers' ] ).onChange( () => {
 
 		rebuildGUI();
 
@@ -155,7 +154,7 @@ function rebuildGUI() {
 
 	if ( params.mode === 'raymarching' ) {
 
-		displayFolder.add( params, 'surface', - 0.2, params.margin );
+		displayFolder.add( params, 'surface', - 0.2, 0.5 );
 
 	}
 
@@ -306,18 +305,32 @@ function render() {
 		// render the rasterized geometry
 		renderer.render( scene, camera );
 
-	} else if ( params.mode === 'layer' ) {
+	} else if ( params.mode === 'layer' || params.mode === 'grid layers' ) {
 
 		// render a layer of the 3d texture
+		let tex;
+		const material = layerPass.material;
 		if ( sdfTex.isData3DTexture ) {
 
-			layerPass.material.uniforms.layer.value = params.layer / sdfTex.image.width;
-			layerPass.material.uniforms.sdfTex.value = sdfTex;
+			material.uniforms.layer.value = params.layer / sdfTex.image.width;
+			material.uniforms.sdfTex.value = sdfTex;
+			tex = sdfTex;
 
 		} else {
 
-			layerPass.material.uniforms.layer.value = params.layer / sdfTex.width;
-			layerPass.material.uniforms.sdfTex.value = sdfTex.texture;
+			material.uniforms.layer.value = params.layer / sdfTex.width;
+			material.uniforms.sdfTex.value = sdfTex.texture;
+			tex = sdfTex.texture;
+
+		}
+
+		material.uniforms.layers.value = tex.image.width;
+
+		const gridMode = params.mode === 'layer' ? 0 : 1;
+		if ( gridMode !== material.defines.DISPLAY_GRID ) {
+
+			material.defines.DISPLAY_GRID = gridMode;
+			material.needsUpdate = true;
 
 		}
 
