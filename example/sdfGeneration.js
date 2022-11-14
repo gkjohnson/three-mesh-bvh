@@ -14,7 +14,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 const params = {
 
 	gpuGeneration: true,
-	resolution: 100,
+	resolution: 75,
 	margin: 0.2,
 	regenerate: () => updateSDF(),
 
