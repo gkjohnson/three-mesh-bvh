@@ -284,34 +284,6 @@ float dot2( in vec3 v ) {
 
 }
 
-// https://www.shadertoy.com/view/4sXXRN
-float distanceToTriangle( vec3 p, vec3 a, vec3 b, vec3 c ) {
-
-	vec3 ba = b - a;
-	vec3 cb = c - b;
-	vec3 ac = a - c;
-
-	vec3 pa = p - a;
-	vec3 pb = p - b;
-	vec3 pc = p - c;
-
-	vec3 nor = cross( ba, ac );
-	return
-		(
-			sign( dot( cross( ba, nor ), pa ) ) +
-			sign( dot( cross( cb, nor ), pb ) ) +
-			sign( dot( cross( ac, nor ), pc ) ) < 2.0
-		) ? (
-			min( min(
-			dot2( ba * clamp( dot( ba, pa ) / dot2( ba ), 0.0, 1.0 ) - pa ),
-			dot2( cb * clamp( dot( cb, pb ) / dot2( cb ), 0.0, 1.0 ) - pb ) ),
-			dot2( ac * clamp( dot( ac, pc ) / dot2( ac ), 0.0, 1.0 ) - pc) )
-		) : (
-			dot( nor, pa ) * dot( nor, pa ) / dot2( nor )
-		);
-
-}
-
 
 // https://www.shadertoy.com/view/ttfGWl
 vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoord ) {
@@ -375,23 +347,13 @@ float distanceToTriangles(
 		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
 		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
 
-		#if 0
-
-		float sqDist = distanceToTriangle( point, a, b, c );
-		if ( sqDist < closestDistanceSquared ) {
-
-			// TODO: get the indices, normal, barycoord, side, and point out
-			closestDistanceSquared = sqDist;
-
-		}
-
-		#else
-
+		// get the closest point and barycoord
 		vec3 closestPoint = closestPointToTriangle( point, a, b, c, localBarycoord );
 		vec3 delta = point - closestPoint;
 		float sqDist = dot2( delta );
 		if ( sqDist < closestDistanceSquared ) {
 
+			// set the output results
 			closestDistanceSquared = sqDist;
 			faceIndices = uvec4( indices.xyz, i );
 			faceNormal = normalize( cross( a - b, b - c ) );
@@ -400,8 +362,6 @@ float distanceToTriangles(
 			side = sign( dot( faceNormal, delta ) );
 
 		}
-
-		#endif
 
 	}
 
