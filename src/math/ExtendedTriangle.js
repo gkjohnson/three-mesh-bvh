@@ -271,7 +271,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			}
 
-			if ( count1 === 1 && this.containsPoint( edge1.end ) ) {
+			if ( count1 === 1 && other.containsPoint( edge1.end ) ) {
 
 				if ( target ) {
 

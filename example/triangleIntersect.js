@@ -18,6 +18,9 @@ t2.a.set( 1, 0, 0 );
 t2.b.set( - 2, - 2, 0 );
 t2.c.set( - 2, 2, 0 );
 
+t1.needsUpdate = true;
+t2.needsUpdate = true;
+
 let stats;
 let scene, camera, renderer, orbitControls;
 let trispheres = [];

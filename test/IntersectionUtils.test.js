@@ -173,6 +173,22 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+	it( 'should return false when triangles are disconnected with aligned vertices on y.', () => {
+
+		t1.a.set( - 0.5, 0.5, 1.5 );
+		t1.b.set( - 0.5, 0.5, 2.5 );
+		t1.c.set( 0.5, 0.5, 1.5 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 0.5, 0.5, 0.5 );
+		t2.b.set( 0.5, - 0.5, 0.5 );
+		t2.c.set( 0.5, 0.5, - 0.5 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
 } );
 
 describe( 'Triangle Intersection line', () => {
