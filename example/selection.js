@@ -636,7 +636,7 @@ function updateSelection() {
 
 			} else if ( params.selectionMode === 'intersection' ) {
 
-				// if the parent bounds were marked as contained
+				// if the parent bounds were marked as contained then we contain all the triangles within
 				if ( contained ) {
 
 					indices.push( a, b, c );
@@ -651,6 +651,7 @@ function updateSelection() {
 					tri.c,
 				];
 
+				// check if any of the vertices are inside the selection and if so then the triangle is selected
 				for ( let j = 0; j < 3; j ++ ) {
 
 					const v = vertices[ j ];
@@ -682,6 +683,8 @@ function updateSelection() {
 				lines[ 2 ].start.copy( tri.c );
 				lines[ 2 ].end.copy( tri.a );
 
+				// check for the case where a selection intersects a triangle but does not contain any
+				// of the vertices
 				for ( let i = 0; i < 3; i ++ ) {
 
 					const l = lines[ i ];
