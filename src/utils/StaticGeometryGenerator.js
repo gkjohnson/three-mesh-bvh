@@ -315,7 +315,7 @@ export class StaticGeometryGenerator {
 		const finalMeshes = [];
 		meshes.forEach( object => {
 
-			object.traverse( c => {
+			object.traverseVisible( c => {
 
 				if ( c.isMesh ) {
 
