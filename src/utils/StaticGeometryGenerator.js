@@ -153,7 +153,7 @@ function applyMorphTarget( morphData, morphInfluences, morphTargetsRelative, i, 
 
 }
 
-// Modified version of BufferGeometryUtils.mergeBufferGeometries that ignores morph targets and updates a attributes in plac
+// Modified version of BufferGeometryUtils.mergeBufferGeometries that ignores morph targets and updates a attributes in place
 function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false }, targetGeometry = new BufferGeometry() ) {
 
 	const isIndexed = geometries[ 0 ].index !== null;
@@ -230,7 +230,7 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 	// merge indices
 	if ( isIndexed ) {
 
-		let forceUpateIndex = false;
+		let forceUpdateIndex = false;
 		if ( ! targetGeometry.index ) {
 
 			let indexCount = 0;
@@ -241,11 +241,11 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 			}
 
 			targetGeometry.setIndex( new BufferAttribute( new Uint32Array( indexCount ), 1, false ) );
-			forceUpateIndex = true;
+			forceUpdateIndex = true;
 
 		}
 
-		if ( updateIndex || forceUpateIndex ) {
+		if ( updateIndex || forceUpdateIndex ) {
 
 			const targetIndex = targetGeometry.index;
 			let targetOffset = 0;

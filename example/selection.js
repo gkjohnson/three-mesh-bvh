@@ -760,7 +760,7 @@ function getConvexHull( points ) {
 
 		}
 
-		// clock or counterclock wise
+		// clockwise or counterclockwise
 		return ( val > 0 ) ? 1 : 2;
 
 	}

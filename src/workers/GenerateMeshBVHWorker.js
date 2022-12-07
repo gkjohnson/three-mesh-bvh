@@ -109,10 +109,10 @@ export class GenerateMeshBVHWorker {
 
 			}
 
-			const transferrables = [ position ];
+			const transferable = [ position ];
 			if ( index ) {
 
-				transferrables.push( index );
+				transferable.push( index );
 
 			}
 
@@ -127,7 +127,7 @@ export class GenerateMeshBVHWorker {
 					groups: [ ... geometry.groups ],
 				},
 
-			}, transferrables.map( arr => arr.buffer ) );
+			}, transferable.map( arr => arr.buffer ) );
 
 		} );
 

@@ -195,7 +195,7 @@ function* updateEdges( runTime = 30 ) {
 
 	yield;
 
-	// generate the candidtate edges
+	// generate the candidate edges
 	timeStart = window.performance.now();
 	const edges = generateEdges( mergedGeometry, new THREE.Vector3( 0, 1, 0 ), 50 );
 
