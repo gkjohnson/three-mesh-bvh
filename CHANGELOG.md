@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Diff support to `StaticGeometryGenerator` so only changed meshes and skinned meshes are updated in order to improve performance on subsequent updates.
+
 ## [0.5.19] - 2022-11-28
 ### Fixed
 - StaticGeometryGenerator: now correctly only traverses and includes visible meshes.
