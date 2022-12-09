@@ -164,6 +164,7 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 	let offset = 0;
 
+	targetGeometry.clearGroups();
 	for ( let i = 0; i < geometries.length; ++ i ) {
 
 		const geometry = geometries[ i ];
