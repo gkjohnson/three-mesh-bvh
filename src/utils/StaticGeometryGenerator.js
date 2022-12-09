@@ -154,10 +154,10 @@ function applyMorphTarget( morphData, morphInfluences, morphTargetsRelative, i, 
 }
 
 // Modified version of BufferGeometryUtils.mergeBufferGeometries that ignores morph targets and updates a attributes in plac
-function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false }, targetGeometry = new BufferGeometry() ) {
+function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false, changedAttributes: [] }, targetGeometry = new BufferGeometry() ) {
 
 	const isIndexed = geometries[ 0 ].index !== null;
-	const { useGroups, updateIndex } = options;
+	const { useGroups = false, updateIndex = false, changedAttributes = [] } = options;
 
 	const attributesUsed = new Set( Object.keys( geometries[ 0 ].attributes ) );
 	const attributes = {};
@@ -255,10 +255,14 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 				const geometry = geometries[ i ];
 				const index = geometry.index;
-				for ( let j = 0; j < index.count; ++ j ) {
+				if ( changedAttributes[ i ] !== false ) {
 
-					targetIndex.setX( targetOffset, index.getX( j ) + indexOffset );
-					targetOffset ++;
+					for ( let j = 0; j < index.count; ++ j ) {
+
+						targetIndex.setX( targetOffset, index.getX( j ) + indexOffset );
+						targetOffset ++;
+
+					}
 
 				}
 
@@ -289,10 +293,15 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 		const targetAttribute = targetGeometry.attributes[ name ];
 		let offset = 0;
-		for ( const key in attrList ) {
+		for ( let i = 0, l = attrList.length; i < l; i ++ ) {
 
-			const attr = attrList[ key ];
-			copyAttributeContents( attr, targetAttribute, offset );
+			const attr = attrList[ i ];
+			if ( changedAttributes[ i ] !== false ) {
+
+				copyAttributeContents( attr, targetAttribute, offset );
+
+			}
+
 			offset += attr.count;
 
 		}
@@ -389,7 +398,6 @@ class GeometryDiff {
 
 	didChange() {
 
-		console.time('CHANGED')
 		const mesh = this.mesh;
 		const geometry = mesh.geometry;
 		const primitiveCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
@@ -462,6 +470,7 @@ export class StaticGeometryGenerator {
 	generate( targetGeometry = new BufferGeometry() ) {
 
 		const { meshes, useGroups, _intermediateGeometry, _diffMap } = this;
+		let changedAttributes = [];
 		for ( let i = 0, l = meshes.length; i < l; i ++ ) {
 
 			const mesh = meshes[ i ];
@@ -470,6 +479,7 @@ export class StaticGeometryGenerator {
 			if ( ! diff || diff.didChange( mesh ) ) {
 
 				this._convertToStaticGeometry( mesh, geom );
+				changedAttributes.push( true );
 
 				if ( ! diff ) {
 
@@ -481,12 +491,15 @@ export class StaticGeometryGenerator {
 
 				}
 
+			} else {
+
+				changedAttributes.push( false );
+
 			}
 
 		}
 
-		// TODO: this could be sped up a bit by only writing the geometry that changed into the attribute buffers
-		mergeBufferGeometries( _intermediateGeometry, { useGroups }, targetGeometry );
+		mergeBufferGeometries( _intermediateGeometry, { useGroups, changedAttributes }, targetGeometry );
 
 		for ( const key in targetGeometry.attributes ) {
 
