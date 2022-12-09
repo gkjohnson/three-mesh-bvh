@@ -469,8 +469,9 @@ export class StaticGeometryGenerator {
 
 	generate( targetGeometry = new BufferGeometry() ) {
 
-		const { meshes, useGroups, _intermediateGeometry, _diffMap } = this;
+		// track which attributes have been updated and which to skip to avoid unnecessary attribute copies
 		let skipAttributes = [];
+		const { meshes, useGroups, _intermediateGeometry, _diffMap } = this;
 		for ( let i = 0, l = meshes.length; i < l; i ++ ) {
 
 			const mesh = meshes[ i ];
