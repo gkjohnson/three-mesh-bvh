@@ -91,7 +91,6 @@ function init() {
 
 		// prep the model and add it to the scene
 		model = gltf.scene;
-		const meshes = [];
 		model.traverse( object => {
 
 			if ( object.isMesh ) {
@@ -99,7 +98,6 @@ function init() {
 				object.castShadow = true;
 				object.receiveShadow = true;
 				object.frustumCulled = false;
-				meshes.push( object );
 
 			}
 

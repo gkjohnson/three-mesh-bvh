@@ -33,7 +33,7 @@ export function getLongestEdgeIndex( bounds ) {
 
 }
 
-// copys bounds a into bounds b
+// copies bounds a into bounds b
 export function copyBounds( source, target ) {
 
 	target.set( source );
