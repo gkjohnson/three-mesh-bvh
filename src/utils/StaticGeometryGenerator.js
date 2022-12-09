@@ -154,10 +154,10 @@ function applyMorphTarget( morphData, morphInfluences, morphTargetsRelative, i, 
 }
 
 // Modified version of BufferGeometryUtils.mergeBufferGeometries that ignores morph targets and updates a attributes in place
-function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false, changedAttributes: [] }, targetGeometry = new BufferGeometry() ) {
+function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false, skipAttributes: [] }, targetGeometry = new BufferGeometry() ) {
 
 	const isIndexed = geometries[ 0 ].index !== null;
-	const { useGroups = false, updateIndex = false, changedAttributes = [] } = options;
+	const { useGroups = false, updateIndex = false, skipAttributes = [] } = options;
 
 	const attributesUsed = new Set( Object.keys( geometries[ 0 ].attributes ) );
 	const attributes = {};
@@ -255,7 +255,7 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 				const geometry = geometries[ i ];
 				const index = geometry.index;
-				if ( changedAttributes[ i ] !== false ) {
+				if ( skipAttributes[ i ] !== true ) {
 
 					for ( let j = 0; j < index.count; ++ j ) {
 
@@ -296,7 +296,7 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 		for ( let i = 0, l = attrList.length; i < l; i ++ ) {
 
 			const attr = attrList[ i ];
-			if ( changedAttributes[ i ] !== false ) {
+			if ( skipAttributes[ i ] !== true ) {
 
 				copyAttributeContents( attr, targetAttribute, offset );
 
@@ -470,7 +470,7 @@ export class StaticGeometryGenerator {
 	generate( targetGeometry = new BufferGeometry() ) {
 
 		const { meshes, useGroups, _intermediateGeometry, _diffMap } = this;
-		let changedAttributes = [];
+		let skipAttributes = [];
 		for ( let i = 0, l = meshes.length; i < l; i ++ ) {
 
 			const mesh = meshes[ i ];
@@ -479,7 +479,7 @@ export class StaticGeometryGenerator {
 			if ( ! diff || diff.didChange( mesh ) ) {
 
 				this._convertToStaticGeometry( mesh, geom );
-				changedAttributes.push( true );
+				skipAttributes.push( false );
 
 				if ( ! diff ) {
 
@@ -493,13 +493,13 @@ export class StaticGeometryGenerator {
 
 			} else {
 
-				changedAttributes.push( false );
+				skipAttributes.push( true );
 
 			}
 
 		}
 
-		mergeBufferGeometries( _intermediateGeometry, { useGroups, changedAttributes }, targetGeometry );
+		mergeBufferGeometries( _intermediateGeometry, { useGroups, skipAttributes }, targetGeometry );
 
 		for ( const key in targetGeometry.attributes ) {
 
