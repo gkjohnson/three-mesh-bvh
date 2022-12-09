@@ -154,16 +154,17 @@ function applyMorphTarget( morphData, morphInfluences, morphTargetsRelative, i, 
 }
 
 // Modified version of BufferGeometryUtils.mergeBufferGeometries that ignores morph targets and updates a attributes in place
-function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false }, targetGeometry = new BufferGeometry() ) {
+function mergeBufferGeometries( geometries, options = { useGroups: false, updateIndex: false, skipAttributes: [] }, targetGeometry = new BufferGeometry() ) {
 
 	const isIndexed = geometries[ 0 ].index !== null;
-	const { useGroups, updateIndex } = options;
+	const { useGroups = false, updateIndex = false, skipAttributes = [] } = options;
 
 	const attributesUsed = new Set( Object.keys( geometries[ 0 ].attributes ) );
 	const attributes = {};
 
 	let offset = 0;
 
+	targetGeometry.clearGroups();
 	for ( let i = 0; i < geometries.length; ++ i ) {
 
 		const geometry = geometries[ i ];
@@ -254,10 +255,14 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 				const geometry = geometries[ i ];
 				const index = geometry.index;
-				for ( let j = 0; j < index.count; ++ j ) {
+				if ( skipAttributes[ i ] !== true ) {
 
-					targetIndex.setX( targetOffset, index.getX( j ) + indexOffset );
-					targetOffset ++;
+					for ( let j = 0; j < index.count; ++ j ) {
+
+						targetIndex.setX( targetOffset, index.getX( j ) + indexOffset );
+						targetOffset ++;
+
+					}
 
 				}
 
@@ -288,10 +293,15 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 		const targetAttribute = targetGeometry.attributes[ name ];
 		let offset = 0;
-		for ( const key in attrList ) {
+		for ( let i = 0, l = attrList.length; i < l; i ++ ) {
 
-			const attr = attrList[ key ];
-			copyAttributeContents( attr, targetAttribute, offset );
+			const attr = attrList[ i ];
+			if ( skipAttributes[ i ] !== true ) {
+
+				copyAttributeContents( attr, targetAttribute, offset );
+
+			}
+
 			offset += attr.count;
 
 		}
@@ -299,6 +309,107 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 	}
 
 	return targetGeometry;
+
+}
+
+function checkTypedArrayEquality( a, b ) {
+
+	if ( a === null || b === null ) {
+
+		return a === b;
+
+	}
+
+	if ( a.length !== b.length ) {
+
+		return false;
+
+	}
+
+	for ( let i = 0, l = a.length; i < l; i ++ ) {
+
+		if ( a[ i ] !== b[ i ] ) {
+
+			return false;
+
+		}
+
+	}
+
+	return true;
+
+}
+
+// Checks whether the geometry changed between this and last evaluation
+class GeometryDiff {
+
+	constructor( mesh ) {
+
+		this.matrixWorld = new Matrix4();
+		this.geometryHash = null;
+		this.boneMatrices = null;
+		this.primitiveCount = - 1;
+		this.mesh = mesh;
+
+		this.update();
+
+	}
+
+	update() {
+
+		const mesh = this.mesh;
+		const geometry = mesh.geometry;
+		const skeleton = mesh.skeleton;
+		const primitiveCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+		this.matrixWorld.copy( mesh.matrixWorld );
+		this.geometryHash = geometry.attributes.position.version;
+		this.primitiveCount = primitiveCount;
+
+		if ( skeleton ) {
+
+			// ensure the bone matrix array is updated to the appropriate length
+			if ( ! skeleton.boneTexture ) {
+
+				skeleton.computeBoneTexture();
+
+			}
+
+			skeleton.update();
+
+			// copy data if possible otherwise clone it
+			const boneMatrices = skeleton.boneMatrices;
+			if ( ! this.boneMatrices || this.boneMatrices.length !== boneMatrices.length ) {
+
+				this.boneMatrices = boneMatrices.slice();
+
+			} else {
+
+				this.boneMatrices.set( boneMatrices );
+
+			}
+
+		} else {
+
+			this.boneMatrices = null;
+
+		}
+
+	}
+
+	didChange() {
+
+		const mesh = this.mesh;
+		const geometry = mesh.geometry;
+		const primitiveCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+		const identical =
+			this.matrixWorld.equals( mesh.matrixWorld ) &&
+			this.geometryHash === geometry.attributes.position.version &&
+			checkTypedArrayEquality( mesh.skeleton?.boneMatrices || null, this.boneMatrices ) &&
+			this.primitiveCount === primitiveCount;
+
+		return ! identical;
+
+	}
 
 }
 
@@ -332,6 +443,7 @@ export class StaticGeometryGenerator {
 		this.applyWorldTransforms = true;
 		this.attributes = [ 'position', 'normal', 'color', 'tangent', 'uv', 'uv2' ];
 		this._intermediateGeometry = new Array( finalMeshes.length ).fill().map( () => new BufferGeometry() );
+		this._diffMap = new WeakMap();
 
 	}
 
@@ -357,16 +469,39 @@ export class StaticGeometryGenerator {
 
 	generate( targetGeometry = new BufferGeometry() ) {
 
-		const { meshes, useGroups, _intermediateGeometry } = this;
+		// track which attributes have been updated and which to skip to avoid unnecessary attribute copies
+		let skipAttributes = [];
+		const { meshes, useGroups, _intermediateGeometry, _diffMap } = this;
 		for ( let i = 0, l = meshes.length; i < l; i ++ ) {
 
 			const mesh = meshes[ i ];
 			const geom = _intermediateGeometry[ i ];
-			this._convertToStaticGeometry( mesh, geom );
+			const diff = _diffMap.get( mesh );
+			if ( ! diff || diff.didChange( mesh ) ) {
+
+				this._convertToStaticGeometry( mesh, geom );
+				skipAttributes.push( false );
+
+				if ( ! diff ) {
+
+					_diffMap.set( mesh, new GeometryDiff( mesh ) );
+
+				} else {
+
+					diff.update();
+
+				}
+
+			} else {
+
+				skipAttributes.push( true );
+
+			}
 
 		}
 
-		mergeBufferGeometries( _intermediateGeometry, { useGroups }, targetGeometry );
+		mergeBufferGeometries( _intermediateGeometry, { useGroups, skipAttributes }, targetGeometry );
+
 		for ( const key in targetGeometry.attributes ) {
 
 			targetGeometry.attributes[ key ].needsUpdate = true;
