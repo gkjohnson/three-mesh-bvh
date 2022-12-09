@@ -303,6 +303,108 @@ function mergeBufferGeometries( geometries, options = { useGroups: false, update
 
 }
 
+function checkTypedArrayEquality( a, b ) {
+
+	if ( a === null || b === null ) {
+
+		return a === b;
+
+	}
+
+	if ( a.length !== b.length ) {
+
+		return false;
+
+	}
+
+	for ( let i = 0, l = a.length; i < l; i ++ ) {
+
+		if ( a[ i ] !== b[ i ] ) {
+
+			return false;
+
+		}
+
+	}
+
+	return true;
+
+}
+
+// Checks whether the geometry changed between this and last evaluation
+class GeometryDiff {
+
+	constructor( mesh ) {
+
+		this.matrixWorld = new Matrix4();
+		this.geometryHash = null;
+		this.boneMatrices = null;
+		this.primitiveCount = - 1;
+		this.mesh = mesh;
+
+		this.update();
+
+	}
+
+	update() {
+
+		const mesh = this.mesh;
+		const geometry = mesh.geometry;
+		const skeleton = mesh.skeleton;
+		const primitiveCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+		this.matrixWorld.copy( mesh.matrixWorld );
+		this.geometryHash = geometry.attributes.position.version;
+		this.primitiveCount = primitiveCount;
+
+		if ( skeleton ) {
+
+			// ensure the bone matrix array is updated to the appropriate length
+			if ( ! skeleton.boneTexture ) {
+
+				skeleton.computeBoneTexture();
+
+			}
+
+			skeleton.update();
+
+			// copy data if possible otherwise clone it
+			const boneMatrices = skeleton.boneMatrices;
+			if ( ! this.boneMatrices || this.boneMatrices.length !== boneMatrices.length ) {
+
+				this.boneMatrices = boneMatrices.slice();
+
+			} else {
+
+				this.boneMatrices.set( boneMatrices );
+
+			}
+
+		} else {
+
+			this.boneMatrices = null;
+
+		}
+
+	}
+
+	didChange() {
+
+		console.time('CHANGED')
+		const mesh = this.mesh;
+		const geometry = mesh.geometry;
+		const primitiveCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+		const identical =
+			this.matrixWorld.equals( mesh.matrixWorld ) &&
+			this.geometryHash === geometry.attributes.position.version &&
+			checkTypedArrayEquality( mesh.skeleton?.boneMatrices || null, this.boneMatrices ) &&
+			this.primitiveCount === primitiveCount;
+
+		return ! identical;
+
+	}
+
+}
+
 export class StaticGeometryGenerator {
 
 	constructor( meshes ) {
@@ -333,6 +435,7 @@ export class StaticGeometryGenerator {
 		this.applyWorldTransforms = true;
 		this.attributes = [ 'position', 'normal', 'color', 'tangent', 'uv', 'uv2' ];
 		this._intermediateGeometry = new Array( finalMeshes.length ).fill().map( () => new BufferGeometry() );
+		this._diffMap = new WeakMap();
 
 	}
 
@@ -358,16 +461,33 @@ export class StaticGeometryGenerator {
 
 	generate( targetGeometry = new BufferGeometry() ) {
 
-		const { meshes, useGroups, _intermediateGeometry } = this;
+		const { meshes, useGroups, _intermediateGeometry, _diffMap } = this;
 		for ( let i = 0, l = meshes.length; i < l; i ++ ) {
 
 			const mesh = meshes[ i ];
 			const geom = _intermediateGeometry[ i ];
-			this._convertToStaticGeometry( mesh, geom );
+			const diff = _diffMap.get( mesh );
+			if ( ! diff || diff.didChange( mesh ) ) {
+
+				this._convertToStaticGeometry( mesh, geom );
+
+				if ( ! diff ) {
+
+					_diffMap.set( mesh, new GeometryDiff( mesh ) );
+
+				} else {
+
+					diff.update();
+
+				}
+
+			}
 
 		}
 
+		// TODO: this could be sped up a bit by only writing the geometry that changed into the attribute buffers
 		mergeBufferGeometries( _intermediateGeometry, { useGroups }, targetGeometry );
+
 		for ( const key in targetGeometry.attributes ) {
 
 			targetGeometry.attributes[ key ].needsUpdate = true;
