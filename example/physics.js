@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, MeshBVHVisualizer } from '..';
+import { MeshBVH, MeshBVHVisualizer, StaticGeometryGenerator } from '..';
 
 const params = {
 
@@ -195,32 +195,12 @@ function loadColliderEnvironment() {
 		environment.add( porchLight );
 
 		// collect all geometries to merge
-		const geometries = [];
 		environment.updateMatrixWorld( true );
-		environment.traverse( c => {
 
-			if ( c.geometry ) {
+		const staticGenerator = new StaticGeometryGenerator( environment );
+		staticGenerator.attributes = [ 'position' ];
 
-				const cloned = c.geometry.clone();
-				cloned.applyMatrix4( c.matrixWorld );
-				for ( const key in cloned.attributes ) {
-
-					if ( key !== 'position' ) {
-
-						cloned.deleteAttribute( key );
-
-					}
-
-				}
-
-				geometries.push( cloned );
-
-			}
-
-		} );
-
-		// create the merged geometry
-		const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries, false );
+		const mergedGeometry = staticGenerator.generate();
 		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
 		collider = new THREE.Mesh( mergedGeometry );
