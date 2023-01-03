@@ -404,7 +404,7 @@ class GeometryDiff {
 		const identical =
 			this.matrixWorld.equals( mesh.matrixWorld ) &&
 			this.geometryHash === geometry.attributes.position.version &&
-			checkTypedArrayEquality( mesh.skeleton?.boneMatrices || null, this.boneMatrices ) &&
+			checkTypedArrayEquality( mesh.skeleton && mesh.skeleton.boneMatrices || null, this.boneMatrices ) &&
 			this.primitiveCount === primitiveCount;
 
 		return ! identical;
