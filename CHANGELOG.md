@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.22] - 2023-01-15
+### Added
+- Support to suppress logs in `ExtendedTriangle.intersectsTriangle`.
+
 ## [0.5.21] - 2023-01-03
 ### Changed
 - Removed use of optional chaining.
