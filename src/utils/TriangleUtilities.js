@@ -126,8 +126,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		if ( ! target.face.normal ) target.face.normal = new Vector3();
 		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 
-		if ( ! target.uv ) target.uv = new Vector2();
-		target.uv.copy( uv );
+		if ( uv ) target.uv = uv;
 
 		return target;
 
