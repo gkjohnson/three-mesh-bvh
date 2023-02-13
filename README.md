@@ -870,7 +870,7 @@ Returns an array of materials for the meshes to be merged. These can be used alo
 generate( target = new BufferGeometry() : BufferGeometry ) : BufferGeometry
 ```
 
-Generates a single, static geometry for the passes meshes. When generating for the first time an empty target geometry is expected. The same generated geometry can be passed into the function on subsequent calls to update the geometry in place to save memory. An error will be thrown if the attributes or geometry on the meshes to bake has been changed and are incompatible lengths, types, etc.
+Generates a single, static geometry for the passed meshes. When generating for the first time an empty target geometry is expected. The same generated geometry can be passed into the function on subsequent calls to update the geometry in place to save memory. An error will be thrown if the attributes or geometry on the meshes to bake has been changed and are incompatible lengths, types, etc.
 
 On subsequent calls the "index" buffer will not be modified so any BVH generated for the geometry is unaffected. Once the geometry is updated the `MeshBVH.refit` function can be called to update the BVH.
 
