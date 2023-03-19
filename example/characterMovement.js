@@ -166,6 +166,7 @@ function init() {
 				if ( playerIsOnGround ) {
 
 					playerVelocity.y = 10.0;
+					playerIsOnGround = false;
 
 				}
 
@@ -303,7 +304,16 @@ function reset() {
 
 function updatePlayer( delta ) {
 
-	playerVelocity.y += playerIsOnGround ? 0 : delta * params.gravity;
+	if ( playerIsOnGround ) {
+
+		playerVelocity.y = delta * params.gravity;
+
+	} else {
+
+		playerVelocity.y += delta * params.gravity;
+
+	}
+
 	player.position.addScaledVector( playerVelocity, delta );
 
 	// move the player
