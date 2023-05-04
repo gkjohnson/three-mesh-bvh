@@ -127,7 +127,7 @@ export class GenerateMeshBVHWorker {
 					groups: [ ... geometry.groups ],
 				},
 
-			}, transferable.map(arr => arr.buffer).filter(v => !(v instanceof SharedArrayBuffer)) );
+			}, transferable.map(arr => arr.buffer).filter( v => (typeof SharedArrayBuffer === 'undefined') || !(v instanceof SharedArrayBuffer)) );
 
 		} );
 
