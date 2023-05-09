@@ -65,7 +65,7 @@ onmessage = function ( { data } ) {
 			position,
 			progress: 1,
 
-		}, [ serialized.index.buffer, position.buffer, ...serialized.roots ] );
+		}, [ serialized.index.buffer, position.buffer, ...serialized.roots ].filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) ) );
 
 	} catch ( error ) {
 
