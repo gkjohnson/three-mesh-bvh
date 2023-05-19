@@ -111,7 +111,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		if ( target && target.uv ) uv = target.uv;
 		else uv = new Vector2();
 
-		Triangle.getUV( point, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv );
+		Triangle.getInterpolation( point, tempV1, tempV2, tempV3, tempUV1, tempUV2, tempUV3, uv );
 
 	}
 

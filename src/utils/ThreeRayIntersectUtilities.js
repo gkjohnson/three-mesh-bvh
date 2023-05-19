@@ -53,7 +53,7 @@ function checkBufferGeometryIntersection( ray, position, uv, a, b, c, side ) {
 			uvB.fromBufferAttribute( uv, b );
 			uvC.fromBufferAttribute( uv, c );
 
-			intersection.uv = Triangle.getUV( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new Vector2( ) );
+			intersection.uv = Triangle.getInterpolation( intersectionPoint, vA, vB, vC, uvA, uvB, uvC, new Vector2( ) );
 
 		}
 

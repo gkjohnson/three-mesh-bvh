@@ -616,7 +616,7 @@ export class StaticGeometryGenerator {
 			// apply bone transform
 			if ( mesh.isSkinnedMesh ) {
 
-				mesh.boneTransform( i, _positionVector );
+				mesh.applyBoneTransform( i, _positionVector );
 				if ( normal ) {
 
 					boneNormalTransform( mesh, i, _normalVector );
