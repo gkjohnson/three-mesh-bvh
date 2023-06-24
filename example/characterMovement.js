@@ -275,7 +275,7 @@ function loadColliderEnvironment() {
 		staticGenerator.attributes = [ 'position' ];
 
 		const mergedGeometry = staticGenerator.generate();
-		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry, { lazyGeneration: false } );
+		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
 		collider = new THREE.Mesh( mergedGeometry );
 		collider.material.wireframe = true;
