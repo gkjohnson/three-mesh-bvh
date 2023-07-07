@@ -10,6 +10,7 @@ import {
 	TorusGeometry,
 	BufferAttribute,
 	Vector3,
+	Box3,
 } from 'three';
 import {
 	MeshBVH,
@@ -32,6 +33,20 @@ function getMaxDepth( bvh ) {
 }
 
 describe( 'Bounds Tree', () => {
+
+	it( 'should provide a bounding box that matches the built in one.', () => {
+
+		const geom = new SphereGeometry();
+		geom.translate( 2, 2, 2 );
+		geom.computeBoundingBox();
+
+		const bvh = new MeshBVH( geom );
+		const box = new Box3();
+		bvh.getBoundingBox( box );
+
+		expect( box ).toEqual( geom.boundingBox );
+
+	} );
 
 	it( 'should properly encapsulate all triangles and bounds.', () => {
 
