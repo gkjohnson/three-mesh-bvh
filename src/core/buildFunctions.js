@@ -1,6 +1,6 @@
 import { BufferAttribute } from 'three';
 import { MeshBVHNode } from './MeshBVHNode.js';
-import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByTriangleBounds } from '../utils/ArrayBoxUtilities.js';
+import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByTriangleBounds, makeEmptyBounds } from '../utils/ArrayBoxUtilities.js';
 import {
 	CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST,
 	BYTES_PER_NODE, FLOAT32_EPSILON, IS_LEAFNODE_FLAG,
@@ -558,6 +558,9 @@ function getAverage( triangleBounds, offset, count, axis ) {
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
 function computeTriangleBounds( geo, fullBounds ) {
+
+	// clear the bounds to empty
+	makeEmptyBounds( fullBounds );
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index.array;

@@ -12,6 +12,13 @@ export function arrayToBox( nodeIndex32, array, target ) {
 
 }
 
+export function makeEmptyBounds( target ) {
+
+	target[ 0 ] = target[ 1 ] = target[ 2 ] = Infinity;
+	target[ 3 ] = target[ 4 ] = target[ 5 ] = - Infinity;
+
+}
+
 export function getLongestEdgeIndex( bounds ) {
 
 	let splitDimIdx = - 1;
