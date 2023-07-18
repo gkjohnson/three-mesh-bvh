@@ -208,6 +208,7 @@ describe( 'Triangle Intersection line', () => {
 
 	const expectLinesToBeClose = ( a, b ) => {
 
+		// Try both line orientations
 		try {
 
 			expectVerticesToBeClose( a.start, b.start );
@@ -331,11 +332,40 @@ describe( 'Triangle Intersection line', () => {
 		t2.a.set( 0.0677, 0.2170, 0.3196 );
 		t2.b.set( 0.0607, 0.2135, 0.3165 );
 		t2.c.set( 0.0693, 0.2129, 0.3209 );
+		t2.needsUpdate = true;
 
 		expected.start.set( 0.0693, 0.2129, 0.3209 );
 		expected.end.set( 0.0693, 0.2129, 0.3209 );
 
 		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+		expectLinesToBeClose( target, expected );
+
+		expect( t2.intersectsTriangle( t1, target ) ).toBe( true );
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+	// this test fails due to a bug in the intersection function. It only intersects
+	// on one triangle intersection order.
+	it.skip( 'triangles almost coplanar should intersect on point 2', () => {
+
+		t1.a.set( - 5.781455993652344, - 7.291503906249993, - 30 );
+		t1.b.set( - 5.781455993652344, - 7.291503906250007, 30 );
+		t1.c.set( 0, - 7.291503906249993, - 30 );
+		t1.needsUpdate = true;
+
+		t2.a.set( - 5.781455993652344, - 7.29150390625, - 4.098872661590576 );
+		t2.b.set( - 6.386039733886719, - 11.163619995117188, - 4.485982418060303 );
+		t2.c.set( 13.468360900878906, - 6.142303466796875, - 4.028029918670654 );
+		t2.needsUpdate = true;
+
+		expected.start.set( 0.0693, 0.2129, 0.3209 );
+		expected.end.set( 0.0693, 0.2129, 0.3209 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+		expectLinesToBeClose( target, expected );
+
+		expect( t2.intersectsTriangle( t1, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
 
 	} );
