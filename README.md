@@ -375,7 +375,7 @@ intersectsBox( box : Box3, boxToBvh : Matrix4 ) : Boolean
 
 Returns whether or not the mesh intersects the given box.
 
-The `boxToBvh` parameter is the transform of the box in the meshs frame.
+The `boxToBvh` parameter is the transform of the box in the meshes frame.
 
 ### .intersectsGeometry
 
