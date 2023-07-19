@@ -259,8 +259,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				}
 
 				// check if the start point is near the plane because "intersectLine" is not robust to that case
-				const doesIntersect = plane2.intersectLine( edge, targetPoint ) || startIntersects;
-				if ( doesIntersect && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
+				const doesIntersect = plane2.intersectLine( edge, targetPoint );
+				if ( ! doesIntersect && startIntersects ) {
+
+					targetPoint.copy( p );
+
+				}
+
+				if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
 
 					count1 ++;
 					if ( found1 ) {
@@ -317,8 +323,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				}
 
 				// check if the start point is near the plane because "intersectLine" is not robust to that case
-				const doesIntersect = plane1.intersectLine( edge, targetPoint ) || startIntersects;
-				if ( doesIntersect && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
+				const doesIntersect = plane1.intersectLine( edge, targetPoint );
+				if ( ! doesIntersect && startIntersects ) {
+
+					targetPoint.copy( p );
+
+				}
+
+				if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
 
 					count2 ++;
 					if ( found2 ) {
