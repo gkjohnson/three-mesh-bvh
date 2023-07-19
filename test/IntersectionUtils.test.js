@@ -194,7 +194,7 @@ describe( 'Triangle Intersections', () => {
 describe( 'Triangle Intersection line', () => {
 
 	const t1 = new ExtendedTriangle();
-	const t2 = new Triangle();
+	const t2 = new ExtendedTriangle();
 	const target = new Line3();
 	const expected = new Line3();
 
@@ -233,6 +233,7 @@ describe( 'Triangle Intersection line', () => {
 		t2.a.set( 1, - 1, 0 );
 		t2.b.set( 1, 1, 0 );
 		t2.c.set( 1, 0, - 1 );
+		t2.needsUpdate = true;
 
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 1, 0, 0 );
@@ -252,6 +253,7 @@ describe( 'Triangle Intersection line', () => {
 		t2.a.set( 1, - 1, 1 );
 		t2.b.set( 1, - 1, - 1 );
 		t2.c.set( 1, 1, 1 );
+		t2.needsUpdate = true;
 
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 1, 0, 1 );
@@ -271,6 +273,7 @@ describe( 'Triangle Intersection line', () => {
 		t2.a.set( 1, 0, 0 );
 		t2.b.set( 2, 0, 0 );
 		t2.c.set( 0, 1, - 2 );
+		t2.needsUpdate = true;
 
 		expected.start.set( 1, 0, 0 );
 		expected.end.set( 2, 0, 0 );
@@ -311,6 +314,7 @@ describe( 'Triangle Intersection line', () => {
 		t2.a.set( 1, 0, 0 );
 		t2.b.set( 2, 0, 0 );
 		t2.c.set( 0, 0, - 2 );
+		t2.needsUpdate = true;
 
 		expected.start.set( 0, 0, 0 );
 		expected.end.set( 0, 0, 0 );
@@ -347,7 +351,8 @@ describe( 'Triangle Intersection line', () => {
 
 	// this test fails due to a bug in the intersection function. It only intersects
 	// on one triangle intersection order.
-	it.skip( 'triangles almost coplanar should intersect on point 2', () => {
+	// See issue #538
+	it( 'triangles should return a correct intersection', () => {
 
 		t1.a.set( - 5.781455993652344, - 7.291503906249993, - 30 );
 		t1.b.set( - 5.781455993652344, - 7.291503906250007, 30 );
@@ -359,8 +364,8 @@ describe( 'Triangle Intersection line', () => {
 		t2.c.set( 13.468360900878906, - 6.142303466796875, - 4.028029918670654 );
 		t2.needsUpdate = true;
 
-		expected.start.set( 0.0693, 0.2129, 0.3209 );
-		expected.end.set( 0.0693, 0.2129, 0.3209 );
+		expected.start.set( - 2.4950, - 7.2915, - 4.1065 );
+		expected.end.set( - 5.7815, - 7.2915, - 4.0989 );
 
 		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
