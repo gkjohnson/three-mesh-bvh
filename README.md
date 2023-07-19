@@ -6,7 +6,7 @@
 [![twitter](https://flat.badgen.net/badge/twitter/@garrettkjohnson/?icon&label)](https://twitter.com/garrettkjohnson)
 [![sponsors](https://img.shields.io/github/sponsors/gkjohnson?style=flat-square&color=1da1f2)](https://github.com/sponsors/gkjohnson/)
 
-A [Bounding Volume Hierarchy](https://en.wikipedia.org/wiki/Bounding_volume_hierarchy) implementation to speed up raycasting and enable spatial queries against three.js meshes.
+A BVH implementation to speed up raycasting and enable spatial queries against three.js meshes. See [here](https://en.wikipedia.org/wiki/Bounding_volume_hierarchy) for more information on a bounding volume hierarchies.
 
 ![screenshot](./docs/example-sm.gif)
 
