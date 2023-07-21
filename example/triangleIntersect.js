@@ -43,7 +43,6 @@ function init() {
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 0.3 );
 	light.position.set( 10, 10, 10 );
@@ -54,7 +53,6 @@ function init() {
 	const interMaterial = new THREE.MeshPhongMaterial( { color: 0xff0000, side: THREE.DoubleSide } );
 	const t1Material = new THREE.MeshPhongMaterial( { color: 0x0000ff, side: THREE.DoubleSide } );
 	const t2Material = new THREE.MeshPhongMaterial( { color: 0x00ff00, side: THREE.DoubleSide } );
-
 
 	const sphereGeometry = new THREE.SphereGeometry( 1 );
 
@@ -103,6 +101,12 @@ function init() {
 	camera.updateProjectionMatrix();
 
 	orbitControls = new OrbitControls( camera, renderer.domElement );
+	orbitControls.target
+		.add( t1.a ).add( t1.b ).add( t1.c )
+		.add( t2.a ).add( t2.b ).add( t2.c )
+		.multiplyScalar( 1 / 6 );
+	camera.position.add( orbitControls.target );
+	orbitControls.update();
 
 	// stats setup
 	stats = new Stats();
