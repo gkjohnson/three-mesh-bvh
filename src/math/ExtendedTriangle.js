@@ -137,12 +137,65 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 	const cachedSatBounds = new SeparatingAxisBounds();
 	const cachedSatBounds2 = new SeparatingAxisBounds();
 	const cachedAxis = new Vector3();
+	const dir = new Vector3();
 	const dir1 = new Vector3();
 	const dir2 = new Vector3();
 	const tempDir = new Vector3();
 	const edge = new Line3();
 	const edge1 = new Line3();
 	const edge2 = new Line3();
+
+	function triIntersectPlane( tri, plane, targetEdge ) {
+
+		// find the edge that intersects the other triangle plane
+		const points = tri.points;
+		let found = false;
+		let count = 0;
+		for ( let i = 0; i < 3; i ++ ) {
+
+			const start = points[ i ];
+			const end = points[ ( i + 1 ) % 3 ];
+			edge.start.copy( start );
+			edge.end.copy( end );
+			edge.delta( dir );
+
+			const targetPoint = found ? targetEdge.start : targetEdge.end;
+			const startIntersects = isNearZero( plane.distanceToPoint( start ) );
+			if ( isNearZero( plane.normal.dot( dir ) ) && startIntersects ) {
+
+				// if the edge lies on the plane then take the line
+				targetEdge.copy( edge );
+				count = 2;
+				break;
+
+			}
+
+			// check if the start point is near the plane because "intersectLine" is not robust to that case
+			const doesIntersect = plane.intersectLine( edge, targetPoint );
+			if ( ! doesIntersect && startIntersects ) {
+
+				targetPoint.copy( start );
+
+			}
+
+			if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( end ) ) ) {
+
+				count ++;
+				if ( found ) {
+
+					break;
+
+				}
+
+				found = true;
+
+			}
+
+		}
+
+		return count;
+
+	}
 
 	// TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
 	// be a line contained by both triangles if not a different special case somehow represented in the return result.
@@ -235,52 +288,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		} else {
 
 			// find the edge that intersects the other triangle plane
-			const points1 = this.points;
-			let found1 = false;
-			let count1 = 0;
-			for ( let i = 0; i < 3; i ++ ) {
-
-				const p = points1[ i ];
-				const pNext = points1[ ( i + 1 ) % 3 ];
-
-				edge.start.copy( p );
-				edge.end.copy( pNext );
-				edge.delta( dir1 );
-
-				const targetPoint = found1 ? edge1.start : edge1.end;
-				const startIntersects = isNearZero( plane2.distanceToPoint( p ) );
-				if ( isNearZero( plane2.normal.dot( dir1 ) ) && startIntersects ) {
-
-					// if the edge lies on the plane then take the line
-					edge1.copy( edge );
-					count1 = 2;
-					break;
-
-				}
-
-				// check if the start point is near the plane because "intersectLine" is not robust to that case
-				const doesIntersect = plane2.intersectLine( edge, targetPoint );
-				if ( ! doesIntersect && startIntersects ) {
-
-					targetPoint.copy( p );
-
-				}
-
-				if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
-
-					count1 ++;
-					if ( found1 ) {
-
-						break;
-
-					}
-
-					found1 = true;
-
-				}
-
-			}
-
+			const count1 = triIntersectPlane( this, plane2, edge1 );
 			if ( count1 === 1 && other.containsPoint( edge1.end ) ) {
 
 				if ( target ) {
@@ -299,52 +307,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			}
 
 			// find the other triangles edge that intersects this plane
-			const points2 = other.points;
-			let found2 = false;
-			let count2 = 0;
-			for ( let i = 0; i < 3; i ++ ) {
-
-				const p = points2[ i ];
-				const pNext = points2[ ( i + 1 ) % 3 ];
-
-				edge.start.copy( p );
-				edge.end.copy( pNext );
-				edge.delta( dir2 );
-
-				const targetPoint = found2 ? edge2.start : edge2.end;
-				const startIntersects = isNearZero( plane1.distanceToPoint( p ) );
-				if ( isNearZero( plane1.normal.dot( dir2 ) ) && startIntersects ) {
-
-					// if the edge lies on the plane then take the line
-					edge2.copy( edge );
-					count2 = 2;
-					break;
-
-				}
-
-				// check if the start point is near the plane because "intersectLine" is not robust to that case
-				const doesIntersect = plane1.intersectLine( edge, targetPoint );
-				if ( ! doesIntersect && startIntersects ) {
-
-					targetPoint.copy( p );
-
-				}
-
-				if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( pNext ) ) ) {
-
-					count2 ++;
-					if ( found2 ) {
-
-						break;
-
-					}
-
-					found2 = true;
-
-				}
-
-			}
-
+			const count2 = triIntersectPlane( other, plane1, edge2 );
 			if ( count2 === 1 && this.containsPoint( edge2.end ) ) {
 
 				if ( target ) {
