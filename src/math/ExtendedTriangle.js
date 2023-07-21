@@ -2,10 +2,10 @@ import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
-const DIST_EPSILON = 1e-15;
+const ZERO_EPSILON = 1e-15;
 function isNearZero( value ) {
 
-	return Math.abs( value ) < DIST_EPSILON;
+	return Math.abs( value ) < ZERO_EPSILON;
 
 }
 
@@ -144,18 +144,19 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 	const edge = new Line3();
 	const edge1 = new Line3();
 	const edge2 = new Line3();
+	const tempPoint = new Vector3();
 
 	function triIntersectPlane( tri, plane, targetEdge ) {
 
 		// find the edge that intersects the other triangle plane
 		const points = tri.points;
 		let count = 0;
+		let startPointIntersection = - 1;
 		for ( let i = 0; i < 3; i ++ ) {
 
-			const start = points[ i ];
-			const end = points[ ( i + 1 ) % 3 ];
-			edge.start.copy( start );
-			edge.end.copy( end );
+			const { start, end } = edge;
+			start.copy( points[ i ] );
+			end.copy( points[ ( i + 1 ) % 3 ] );
 			edge.delta( dir );
 
 			const startIntersects = isNearZero( plane.distanceToPoint( start ) );
@@ -169,18 +170,41 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			}
 
 			// check if the start point is near the plane because "intersectLine" is not robust to that case
-			const targetPoint = count === 1 ? targetEdge.start : targetEdge.end;
-			const doesIntersect = plane.intersectLine( edge, targetPoint );
+			const doesIntersect = plane.intersectLine( edge, tempPoint );
 			if ( ! doesIntersect && startIntersects ) {
 
-				targetPoint.copy( start );
+				tempPoint.copy( start );
 
 			}
 
-			if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( end ) ) ) {
+			// ignore the end point
+			if ( ( doesIntersect || startIntersects ) && ! isNearZero( tempPoint.distanceTo( end ) ) ) {
+
+				if ( count <= 1 ) {
+
+					// assign to the start or end point and save which index was snapped to
+					// the start point if necessary
+					const point = count === 1 ? targetEdge.start : targetEdge.end;
+					point.copy( tempPoint );
+					if ( startIntersects ) {
+
+						startPointIntersection = count;
+
+					}
+
+				} else if ( count >= 2 ) {
+
+					// if we're here that means that there must have been one point that had
+					// snapped to the start point so replace it here
+					const point = startPointIntersection === 1 ? targetEdge.start : targetEdge.end;
+					point.copy( tempPoint );
+					count = 2;
+					break;
+
+				}
 
 				count ++;
-				if ( count === 2 ) {
+				if ( count === 2 && startPointIntersection === - 1 ) {
 
 					break;
 
