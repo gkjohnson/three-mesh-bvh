@@ -92,7 +92,7 @@ export class MeshBVH {
         nodeIndex: number
       ) => ShapecastIntersection|boolean,
 
-      traverseBoundsOrder?: (
+      boundsTraverseOrder?: (
         box: Box3
       ) => number,
 

@@ -342,7 +342,7 @@ function updateSphereCollisions( deltaTime ) {
 
 			},
 
-			traverseBoundsOrder: box => {
+			boundsTraverseOrder: box => {
 
 				return box.distanceToPoint( tempSphere.center ) - tempSphere.radius;
 
