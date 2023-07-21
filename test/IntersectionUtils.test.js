@@ -351,8 +351,7 @@ describe( 'Triangle Intersection line', () => {
 
 	// this test fails due to a bug in the intersection function. It only intersects
 	// on one triangle intersection order.
-	// See issue #538
-	it( 'triangles should return a correct intersection', () => {
+	it( 'triangles should return a correct intersection (issue #538)', () => {
 
 		t1.a.set( - 5.781455993652344, - 7.291503906249993, - 30 );
 		t1.b.set( - 5.781455993652344, - 7.291503906250007, 30 );
@@ -362,6 +361,29 @@ describe( 'Triangle Intersection line', () => {
 		t2.a.set( - 5.781455993652344, - 7.29150390625, - 4.098872661590576 );
 		t2.b.set( - 6.386039733886719, - 11.163619995117188, - 4.485982418060303 );
 		t2.c.set( 13.468360900878906, - 6.142303466796875, - 4.028029918670654 );
+		t2.needsUpdate = true;
+
+		expected.start.set( - 2.4950, - 7.2915, - 4.1065 );
+		expected.end.set( - 5.7815, - 7.2915, - 4.0989 );
+
+		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
+		expectLinesToBeClose( target, expected );
+
+		expect( t2.intersectsTriangle( t1, target ) ).toBe( true );
+		expectLinesToBeClose( target, expected );
+
+	} );
+
+	it.skip( 'triangles should return a correct intersection (issue #543)', () => {
+
+		t1.a.set( - 15.430519104003906, 29.432968139648445, - 25 );
+		t1.b.set( - 15.430519104003906, 29.43296813964843, 25 );
+		t1.c.set( 0, 29.432968139648445, - 25 );
+		t1.needsUpdate = true;
+
+		t2.a.set( - 4.854911804199219, 36.03794860839844, 0.0777292251586914 );
+		t2.b.set( - 15.430519104003906, 29.432968139648438, - 1.905876636505127 );
+		t2.c.set( - 16.118995666503906, 26.962722778320312, - 2.8487582206726074 );
 		t2.needsUpdate = true;
 
 		expected.start.set( - 2.4950, - 7.2915, - 4.1065 );
