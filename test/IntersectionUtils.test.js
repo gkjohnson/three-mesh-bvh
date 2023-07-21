@@ -374,7 +374,7 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-	it.skip( 'triangles should return a correct intersection (issue #543)', () => {
+	it( 'triangles should return a correct intersection (issue #543)', () => {
 
 		t1.a.set( - 15.430519104003906, 29.432968139648445, - 25 );
 		t1.b.set( - 15.430519104003906, 29.43296813964843, 25 );
@@ -386,8 +386,8 @@ describe( 'Triangle Intersection line', () => {
 		t2.c.set( - 16.118995666503906, 26.962722778320312, - 2.8487582206726074 );
 		t2.needsUpdate = true;
 
-		expected.start.set( - 2.4950, - 7.2915, - 4.1065 );
-		expected.end.set( - 5.7815, - 7.2915, - 4.0989 );
+		expected.start.set( - 15.4305, 29.433, - 1.9059 );
+		expected.end.set( - 13.053, 29.4323, - 2.0522 );
 
 		expect( t1.intersectsTriangle( t2, target ) ).toBe( true );
 		expectLinesToBeClose( target, expected );
