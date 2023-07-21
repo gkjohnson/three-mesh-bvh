@@ -149,7 +149,6 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 		// find the edge that intersects the other triangle plane
 		const points = tri.points;
-		let found = false;
 		let count = 0;
 		for ( let i = 0; i < 3; i ++ ) {
 
@@ -159,7 +158,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			edge.end.copy( end );
 			edge.delta( dir );
 
-			const targetPoint = found ? targetEdge.start : targetEdge.end;
+			const targetPoint = count === 1 ? targetEdge.start : targetEdge.end;
 			const startIntersects = isNearZero( plane.distanceToPoint( start ) );
 			if ( isNearZero( plane.normal.dot( dir ) ) && startIntersects ) {
 
@@ -181,13 +180,11 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			if ( ( doesIntersect || startIntersects ) && ! isNearZero( targetPoint.distanceTo( end ) ) ) {
 
 				count ++;
-				if ( found ) {
+				if ( count === 2 ) {
 
 					break;
 
 				}
-
-				found = true;
 
 			}
 
