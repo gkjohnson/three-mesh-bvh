@@ -158,7 +158,6 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			edge.end.copy( end );
 			edge.delta( dir );
 
-			const targetPoint = count === 1 ? targetEdge.start : targetEdge.end;
 			const startIntersects = isNearZero( plane.distanceToPoint( start ) );
 			if ( isNearZero( plane.normal.dot( dir ) ) && startIntersects ) {
 
@@ -170,6 +169,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			}
 
 			// check if the start point is near the plane because "intersectLine" is not robust to that case
+			const targetPoint = count === 1 ? targetEdge.start : targetEdge.end;
 			const doesIntersect = plane.intersectLine( edge, targetPoint );
 			if ( ! doesIntersect && startIntersects ) {
 
