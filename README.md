@@ -2,7 +2,7 @@
 
 A Bounding Volume Hierarchy (BVH) is a hierarchical data structure utilized in computer graphics and computational geometry to enhance
 the efficiency of ray tracing and collision detection algorithms. Bounding volume hierarchies, like Three-Mesh-BVH in Three.js, offer an effective approach to accelerating ray tracing and collision
-detection in 3D graphics applications by organizing objects into a hierarchical structure of bounding volumes. For more https://en.wikipedia.org/wiki/Bounding_volume_hierarchy
+detection in 3D graphics applications by organizing objects into a hierarchical structure of bounding volumes. For more click [here](https://en.wikipedia.org/wiki/Bounding_volume_hierarchy).
 
 [![npm version](https://img.shields.io/npm/v/three-mesh-bvh.svg?style=flat-square)](https://www.npmjs.com/package/three-mesh-bvh)
 [![build](https://img.shields.io/github/actions/workflow/status/gkjohnson/three-mesh-bvh/node.js.yml?style=flat-square&label=build&branch=master)](https://github.com/gkjohnson/three-mesh-bvh/actions)
