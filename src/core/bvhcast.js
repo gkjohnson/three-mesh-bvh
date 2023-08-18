@@ -138,6 +138,18 @@ export const bvhcast = ( function () {
 	const _obbMap = new Map();
 	const _aabbMap = new Map();
 
+	return function bvhcast( node1Index32, node2Index32, matrix2to1, ...args ) {
+
+		_obbMap.forEach( box => _obbPool.releasePrimitive( box ) );
+		_obbMap.clear();
+
+		_aabbMap.forEach( box => _aabbPool.releasePrimitive( box ) );
+		_aabbMap.clear();
+
+		return bvhcastTraverse( node1Index32, node2Index32, matrix2to1, ...args );
+
+	};
+
 	function getAABB( nodeIndex32, float32Array ) {
 
 		let box;
@@ -177,18 +189,6 @@ export const bvhcast = ( function () {
 		return box;
 
 	}
-
-	return function bvhcast( node1Index32, node2Index32, matrix2to1, ...args ) {
-
-		_obbMap.forEach( box => _obbPool.releasePrimitive( box ) );
-		_obbMap.clear();
-
-		_aabbMap.forEach( box => _aabbPool.releasePrimitive( box ) );
-		_aabbMap.clear();
-
-		return bvhcastTraverse( node1Index32, node2Index32, matrix2to1, ...args );
-
-	};
 
 	function bvhcastTraverse(
 		// current parent node status

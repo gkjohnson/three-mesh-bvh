@@ -15,7 +15,10 @@ const xyzFields = [ 'x', 'y', 'z' ];
 
 export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 
-	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+	let nodeIndex16 = nodeIndex32 * 2,
+		float32Array = _float32Array,
+		uint16Array = _uint16Array,
+		uint32Array = _uint32Array;
 
 	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
@@ -47,7 +50,10 @@ export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 
 export function raycastFirst( nodeIndex32, geometry, side, ray ) {
 
-	let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+	let nodeIndex16 = nodeIndex32 * 2,
+		float32Array = _float32Array,
+		uint16Array = _uint16Array,
+		uint32Array = _uint32Array;
 
 	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
@@ -161,43 +167,10 @@ export const shapecast = ( function () {
 		depth = 0
 	) {
 
-		// Define these inside the function so it has access to the local variables needed
-		// when converting to the buffer equivalents
-		function getLeftOffset( nodeIndex32 ) {
-
-			let nodeIndex16 = nodeIndex32 * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
-			// traverse until we find a leaf
-			while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
-
-				nodeIndex32 = LEFT_NODE( nodeIndex32 );
-				nodeIndex16 = nodeIndex32 * 2;
-
-			}
-
-			return OFFSET( nodeIndex32, uint32Array );
-
-		}
-
-		function getRightEndOffset( nodeIndex32 ) {
-
-			let nodeIndex16 = nodeIndex32 * 2, uint16Array = _uint16Array, uint32Array = _uint32Array;
-
-			// traverse until we find a leaf
-			while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
-
-				// adjust offset to point to the right node
-				nodeIndex32 = RIGHT_NODE( nodeIndex32, uint32Array );
-				nodeIndex16 = nodeIndex32 * 2;
-
-			}
-
-			// return the end offset of the triangle range
-			return OFFSET( nodeIndex32, uint32Array ) + COUNT( nodeIndex16, uint16Array );
-
-		}
-
-		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		let nodeIndex16 = nodeIndex32 * 2,
+			float32Array = _float32Array,
+			uint16Array = _uint16Array,
+			uint32Array = _uint32Array;
 
 		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 		if ( isLeaf ) {
@@ -319,6 +292,46 @@ export const shapecast = ( function () {
 
 			return false;
 
+			// Define these inside the function so it has access to the local variables needed
+			// when converting to the buffer equivalents
+			function getLeftOffset( nodeIndex32 ) {
+
+				let nodeIndex16 = nodeIndex32 * 2,
+					uint16Array = _uint16Array,
+					uint32Array = _uint32Array;
+
+				// traverse until we find a leaf
+				while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
+
+					nodeIndex32 = LEFT_NODE( nodeIndex32 );
+					nodeIndex16 = nodeIndex32 * 2;
+
+				}
+
+				return OFFSET( nodeIndex32, uint32Array );
+
+			}
+
+			function getRightEndOffset( nodeIndex32 ) {
+
+				let nodeIndex16 = nodeIndex32 * 2,
+					uint16Array = _uint16Array,
+					uint32Array = _uint32Array;
+
+				// traverse until we find a leaf
+				while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
+
+					// adjust offset to point to the right node
+					nodeIndex32 = RIGHT_NODE( nodeIndex32, uint32Array );
+					nodeIndex16 = nodeIndex32 * 2;
+
+				}
+
+				// return the end offset of the triangle range
+				return OFFSET( nodeIndex32, uint32Array ) + COUNT( nodeIndex16, uint16Array );
+
+			}
+
 		}
 
 	}
@@ -336,7 +349,10 @@ export const intersectsGeometry = ( function () {
 
 	return function intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
 
-		let nodeIndex16 = nodeIndex32 * 2, float32Array = _float32Array, uint16Array = _uint16Array, uint32Array = _uint32Array;
+		let nodeIndex16 = nodeIndex32 * 2,
+			float32Array = _float32Array,
+			uint16Array = _uint16Array,
+			uint32Array = _uint32Array;
 
 		if ( cachedObb === null ) {
 
