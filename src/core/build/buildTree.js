@@ -29,9 +29,6 @@ function buildTree( bvh, options ) {
 	// we'll need it for the root bounds in the case with no groups and it should be fast here.
 	// We can't use the geometry bounding box if it's available because it may be out of date.
 	const geometry = bvh.geometry;
-	const fullBounds = new Float32Array( 6 );
-	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
 	const indexArray = geometry.index.array;
 	const maxDepth = options.maxDepth;
 	const verbose = options.verbose;
@@ -41,6 +38,10 @@ function buildTree( bvh, options ) {
 	const totalTriangles = getTriCount( geometry );
 	const indirectBuffer = bvh._indirectBuffer;
 	let reachedMaxDepth = false;
+
+	const fullBounds = new Float32Array( 6 );
+	const cacheCentroidBoundingData = new Float32Array( 6 );
+	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
 
 	const roots = [];
 	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );

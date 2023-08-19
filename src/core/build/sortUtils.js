@@ -18,7 +18,6 @@ export function partition( indirectBuffer, index, triangleBounds, offset, count,
 
 		}
 
-
 		// if a triangle center lies on the partition plane it is considered to be on the right side
 		while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
 
@@ -34,7 +33,7 @@ export function partition( indirectBuffer, index, triangleBounds, offset, count,
 
 			if ( indirectBuffer ) {
 
-				let t = index[ left ];
+				let t = indirectBuffer[ left ];
 				indirectBuffer[ left ] = indirectBuffer[ right ];
 				indirectBuffer[ right ] = t;
 
