@@ -6,10 +6,10 @@ import { intersectRay } from '../utils/intersectUtils.js';
 
 const _boxIntersection = /* @__PURE__ */ new Vector3();
 const _xyzFields = [ 'x', 'y', 'z' ];
-export function raycastFirst( bvh, root, side, ray, intersects ) {
+export function raycastFirst( bvh, root, side, ray ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst( 0, bvh.geometry, side, ray, intersects );
+	const result = _raycastFirst( 0, bvh.geometry, side, ray );
 	BufferStack.clearBuffer();
 
 	return result;
