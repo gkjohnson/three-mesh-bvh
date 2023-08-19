@@ -2,7 +2,6 @@ import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
 import { buildPackedTree } from './buildFunctions.js';
 import {
-	raycastFirst,
 	shapecast,
 	intersectsGeometry,
 } from './castFunctions.js';
@@ -13,6 +12,7 @@ import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
 import { BufferStack } from './utils/BufferStack.js';
 import { raycast } from './cast/raycast.js';
+import { raycastFirst } from './cast/raycastFirst.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -426,11 +426,7 @@ export class MeshBVH {
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-
-			BufferStack.setBuffer( roots[ i ] );
-			const result = raycastFirst( 0, geometry, materialSide, ray );
-			BufferStack.clearBuffer();
-
+			const result = raycastFirst( this, i, materialSide, ray );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
