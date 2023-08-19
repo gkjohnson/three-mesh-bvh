@@ -24,3 +24,4 @@ export const IS_LEAFNODE_FLAG = 0xFFFF;
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
 export const FLOAT32_EPSILON = Math.pow( 2, - 24 );
 
+export const SKIP_GENERATION = Symbol( 'SKIP_GENERATION' );

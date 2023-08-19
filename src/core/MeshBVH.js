@@ -1,5 +1,5 @@
 import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
-import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
+import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
@@ -10,8 +10,6 @@ import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.js';
-
-const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
@@ -461,39 +459,9 @@ export class MeshBVH {
 
 	}
 
-	shapecast( callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
+	shapecast( callbacks ) {
 
 		const geometry = this.geometry;
-		if ( callbacks instanceof Function ) {
-
-			if ( _intersectsTriangleFunc ) {
-
-				// Support the previous function signature that provided three sequential index buffer
-				// indices here.
-				const originalTriangleFunc = _intersectsTriangleFunc;
-				_intersectsTriangleFunc = ( tri, index, contained, depth ) => {
-
-					const i3 = index * 3;
-					return originalTriangleFunc( tri, i3, i3 + 1, i3 + 2, contained, depth );
-
-				};
-
-
-			}
-
-			callbacks = {
-
-				boundsTraverseOrder: _orderNodesFunc,
-				intersectsBounds: callbacks,
-				intersectsTriangle: _intersectsTriangleFunc,
-				intersectsRange: null,
-
-			};
-
-			console.warn( 'MeshBVH: Shapecast function signature has changed and now takes an object of callbacks as a second argument. See docs for new signature.' );
-
-		}
-
 		const triangle = trianglePool.getPrimitive();
 		let {
 			boundsTraverseOrder,
@@ -502,6 +470,7 @@ export class MeshBVH {
 			intersectsTriangle,
 		} = callbacks;
 
+		// wrap the intersectsRange function
 		if ( intersectsRange && intersectsTriangle ) {
 
 			const originalIntersectsRange = intersectsRange;
@@ -539,6 +508,7 @@ export class MeshBVH {
 
 		}
 
+		// run shapecast
 		let result = false;
 		let byteOffset = 0;
 		const roots = this._roots;
