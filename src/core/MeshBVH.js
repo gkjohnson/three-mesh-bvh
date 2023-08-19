@@ -1,9 +1,6 @@
 import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
 import { buildPackedTree } from './buildFunctions.js';
-import {
-	intersectsGeometry,
-} from './castFunctions.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
@@ -13,6 +10,7 @@ import { BufferStack } from './utils/BufferStack.js';
 import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
+import { intersectsGeometry } from './cast/intersectsGeometry.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -446,13 +444,11 @@ export class MeshBVH {
 
 	intersectsGeometry( otherGeometry, geomToMesh ) {
 
-		const geometry = this.geometry;
 		let result = false;
-		for ( const root of this._roots ) {
+		const roots = this._roots;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			BufferStack.setBuffer( root );
-			result = intersectsGeometry( 0, geometry, otherGeometry, geomToMesh );
-			BufferStack.clearBuffer();
+			result = intersectsGeometry( this, i, otherGeometry, geomToMesh );
 
 			if ( result ) {
 
