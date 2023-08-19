@@ -11,7 +11,7 @@ import { Box3 } from 'three';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
-import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from './nodeBufferFunctions.js';
+import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from './utils/nodeBufferUtils.js';
 import { MeshBVH } from './MeshBVH.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';

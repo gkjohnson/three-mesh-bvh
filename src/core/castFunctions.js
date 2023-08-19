@@ -7,7 +7,9 @@ import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersec
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
-import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX, SPLIT_AXIS } from './nodeBufferFunctions.js';
+import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { BufferStack } from './utils/BufferStack.js';
+import { intersectRay } from './utils/intersectUtils.js';
 
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
@@ -15,10 +17,8 @@ const xyzFields = [ 'x', 'y', 'z' ];
 
 export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 
-	let nodeIndex16 = nodeIndex32 * 2,
-		float32Array = _float32Array,
-		uint16Array = _uint16Array,
-		uint32Array = _uint32Array;
+	const { float32Array, uint16Array, uint32Array } = BufferStack;
+	let nodeIndex16 = nodeIndex32 * 2;
 
 	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
@@ -50,10 +50,8 @@ export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
 
 export function raycastFirst( nodeIndex32, geometry, side, ray ) {
 
-	let nodeIndex16 = nodeIndex32 * 2,
-		float32Array = _float32Array,
-		uint16Array = _uint16Array,
-		uint32Array = _uint32Array;
+	const { float32Array, uint16Array, uint32Array } = BufferStack;
+	let nodeIndex16 = nodeIndex32 * 2;
 
 	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
@@ -167,10 +165,8 @@ export const shapecast = ( function () {
 		depth = 0
 	) {
 
-		let nodeIndex16 = nodeIndex32 * 2,
-			float32Array = _float32Array,
-			uint16Array = _uint16Array,
-			uint32Array = _uint32Array;
+		const { float32Array, uint16Array, uint32Array } = BufferStack;
+		let nodeIndex16 = nodeIndex32 * 2;
 
 		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 		if ( isLeaf ) {
@@ -296,9 +292,8 @@ export const shapecast = ( function () {
 			// when converting to the buffer equivalents
 			function getLeftOffset( nodeIndex32 ) {
 
-				let nodeIndex16 = nodeIndex32 * 2,
-					uint16Array = _uint16Array,
-					uint32Array = _uint32Array;
+				const { uint16Array, uint32Array } = BufferStack;
+				let nodeIndex16 = nodeIndex32 * 2;
 
 				// traverse until we find a leaf
 				while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
@@ -314,9 +309,8 @@ export const shapecast = ( function () {
 
 			function getRightEndOffset( nodeIndex32 ) {
 
-				let nodeIndex16 = nodeIndex32 * 2,
-					uint16Array = _uint16Array,
-					uint32Array = _uint32Array;
+				const { uint16Array, uint32Array } = BufferStack;
+				let nodeIndex16 = nodeIndex32 * 2;
 
 				// traverse until we find a leaf
 				while ( ! IS_LEAF( nodeIndex16, uint16Array ) ) {
@@ -349,10 +343,8 @@ export const intersectsGeometry = ( function () {
 
 	return function intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
 
-		let nodeIndex16 = nodeIndex32 * 2,
-			float32Array = _float32Array,
-			uint16Array = _uint16Array,
-			uint32Array = _uint32Array;
+		const { float32Array, uint16Array, uint32Array } = BufferStack;
+		let nodeIndex16 = nodeIndex32 * 2;
 
 		if ( cachedObb === null ) {
 
@@ -478,44 +470,3 @@ export const intersectsGeometry = ( function () {
 
 } )();
 
-function intersectRay( nodeIndex32, array, ray, target ) {
-
-	arrayToBox( nodeIndex32, array, boundingBox );
-	return ray.intersectBox( boundingBox, target );
-
-}
-
-const bufferStack = [];
-let _prevBuffer;
-let _float32Array;
-let _uint16Array;
-let _uint32Array;
-export function setBuffer( buffer ) {
-
-	if ( _prevBuffer ) {
-
-		bufferStack.push( _prevBuffer );
-
-	}
-
-	_prevBuffer = buffer;
-	_float32Array = new Float32Array( buffer );
-	_uint16Array = new Uint16Array( buffer );
-	_uint32Array = new Uint32Array( buffer );
-
-}
-
-export function clearBuffer() {
-
-	_prevBuffer = null;
-	_float32Array = null;
-	_uint16Array = null;
-	_uint32Array = null;
-
-	if ( bufferStack.length ) {
-
-		setBuffer( bufferStack.pop() );
-
-	}
-
-}

@@ -6,14 +6,13 @@ import {
 	raycastFirst,
 	shapecast,
 	intersectsGeometry,
-	setBuffer,
-	clearBuffer,
 } from './castFunctions.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
+import { BufferStack } from './utils/BufferStack.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -394,9 +393,9 @@ export class MeshBVH {
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 			const startCount = intersects.length;
 
-			setBuffer( roots[ i ] );
+			BufferStack.setBuffer( roots[ i ] );
 			raycast( 0, geometry, materialSide, ray, intersects );
-			clearBuffer();
+			BufferStack.clearBuffer();
 
 			if ( isArrayMaterial ) {
 
@@ -430,9 +429,9 @@ export class MeshBVH {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 
-			setBuffer( roots[ i ] );
+			BufferStack.setBuffer( roots[ i ] );
 			const result = raycastFirst( 0, geometry, materialSide, ray );
-			clearBuffer();
+			BufferStack.clearBuffer();
 
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
@@ -457,9 +456,9 @@ export class MeshBVH {
 		let result = false;
 		for ( const root of this._roots ) {
 
-			setBuffer( root );
+			BufferStack.setBuffer( root );
 			result = intersectsGeometry( 0, geometry, otherGeometry, geomToMesh );
-			clearBuffer();
+			BufferStack.clearBuffer();
 
 			if ( result ) {
 
@@ -555,9 +554,9 @@ export class MeshBVH {
 		let byteOffset = 0;
 		for ( const root of this._roots ) {
 
-			setBuffer( root );
+			BufferStack.setBuffer( root );
 			result = shapecast( 0, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
-			clearBuffer();
+			BufferStack.clearBuffer();
 
 			if ( result ) {
 
