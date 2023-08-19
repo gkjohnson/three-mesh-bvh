@@ -153,15 +153,21 @@ export function computeTriangleBounds( geo, fullBounds ) {
 
 		if ( index ) {
 
-			ai = index[ ai ] * stride + bufferOffset;
-			bi = index[ bi ] * stride + bufferOffset;
-			ci = index[ ci ] * stride + bufferOffset;
+			ai = index[ ai ];
+			bi = index[ bi ];
+			ci = index[ ci ];
 
 		}
 
-		ai = ai * stride + bufferOffset;
-		bi = bi * stride + bufferOffset;
-		ci = ci * stride + bufferOffset;
+		// we add the stride and offset here since we access the array directly
+		// below for the sake of performance
+		if ( ! normalized ) {
+
+			ai = ai * stride + bufferOffset;
+			bi = bi * stride + bufferOffset;
+			ci = ci * stride + bufferOffset;
+
+		}
 
 		for ( let el = 0; el < 3; el ++ ) {
 
