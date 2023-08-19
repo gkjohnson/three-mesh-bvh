@@ -34,9 +34,17 @@ export function partition( indirectBuffer, index, triangleBounds, offset, count,
 
 			if ( indirectBuffer ) {
 
-				let t0 = index[ left ];
+				let t = index[ left ];
 				indirectBuffer[ left ] = indirectBuffer[ right ];
-				indirectBuffer[ right ] = t0;
+				indirectBuffer[ right ] = t;
+
+				for ( let i = 0; i < 6; i ++ ) {
+
+					let tb = triangleBounds[ left * 6 + i ];
+					triangleBounds[ left * 6 + i ] = triangleBounds[ right * 6 + i ];
+					triangleBounds[ right * 6 + i ] = tb;
+
+				}
 
 			} else {
 

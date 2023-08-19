@@ -1,4 +1,4 @@
-import { ensureIndex, getFullGeometryRange, getRootIndexRanges } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount } from './geometryUtils.js';
 import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
@@ -38,7 +38,7 @@ function buildTree( bvh, options ) {
 	const maxLeafTris = options.maxLeafTris;
 	const strategy = options.strategy;
 	const onProgress = options.onProgress;
-	const totalTriangles = geometry.index.count / 3;
+	const totalTriangles = getTriCount( geometry );
 	const indirectBuffer = bvh._indirectBuffer;
 	let reachedMaxDepth = false;
 

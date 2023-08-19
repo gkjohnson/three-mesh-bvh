@@ -1,5 +1,11 @@
 import { BufferAttribute } from 'three';
 
+export function getTriCount( geo ) {
+
+	return ( geo.index ? geo.index.count : geo.attributes.position.count ) / 3;
+
+}
+
 // ensures that an index is present on the geometry
 export function ensureIndex( geo, options ) {
 
@@ -43,7 +49,7 @@ export function ensureIndex( geo, options ) {
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
 export function getFullGeometryRange( geo ) {
 
-	const triCount = ( geo.index ? geo.index.count : geo.attributes.position.count ) / 3;
+	const triCount = getTriCount( geo );
 	return [ { offset: 0, count: triCount } ];
 
 }
