@@ -461,39 +461,9 @@ export class MeshBVH {
 
 	}
 
-	shapecast( callbacks, _intersectsTriangleFunc, _orderNodesFunc ) {
+	shapecast( callbacks ) {
 
 		const geometry = this.geometry;
-		if ( callbacks instanceof Function ) {
-
-			if ( _intersectsTriangleFunc ) {
-
-				// Support the previous function signature that provided three sequential index buffer
-				// indices here.
-				const originalTriangleFunc = _intersectsTriangleFunc;
-				_intersectsTriangleFunc = ( tri, index, contained, depth ) => {
-
-					const i3 = index * 3;
-					return originalTriangleFunc( tri, i3, i3 + 1, i3 + 2, contained, depth );
-
-				};
-
-
-			}
-
-			callbacks = {
-
-				boundsTraverseOrder: _orderNodesFunc,
-				intersectsBounds: callbacks,
-				intersectsTriangle: _intersectsTriangleFunc,
-				intersectsRange: null,
-
-			};
-
-			console.warn( 'MeshBVH: Shapecast function signature has changed and now takes an object of callbacks as a second argument. See docs for new signature.' );
-
-		}
-
 		const triangle = trianglePool.getPrimitive();
 		let {
 			boundsTraverseOrder,
