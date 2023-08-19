@@ -28,19 +28,6 @@ export class MeshBVH {
 
 	static serialize( bvh, options = {} ) {
 
-		if ( options.isBufferGeometry ) {
-
-			console.warn( 'MeshBVH.serialize: The arguments for the function have changed. See documentation for new signature.' );
-
-			return MeshBVH.serialize(
-				arguments[ 0 ],
-				{
-					cloneBuffers: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
-				}
-			);
-
-		}
-
 		options = {
 			cloneBuffers: true,
 			...options,
@@ -71,20 +58,6 @@ export class MeshBVH {
 	}
 
 	static deserialize( data, geometry, options = {} ) {
-
-		if ( typeof options === 'boolean' ) {
-
-			console.warn( 'MeshBVH.deserialize: The arguments for the function have changed. See documentation for new signature.' );
-
-			return MeshBVH.deserialize(
-				arguments[ 0 ],
-				arguments[ 1 ],
-				{
-					setIndex: arguments[ 2 ] === undefined ? true : arguments[ 2 ],
-				}
-			);
-
-		}
 
 		options = {
 			setIndex: true,
