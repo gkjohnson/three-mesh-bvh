@@ -18,7 +18,7 @@ import {
 	RIGHT_NODE,
 	OFFSET,
 	SPLIT_AXIS,
-} from '../core/nodeBufferFunctions.js';
+} from '../core/utils/nodeBufferUtils.js';
 
 function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 
