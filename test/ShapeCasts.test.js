@@ -282,7 +282,7 @@ function runSuiteWithOptions( defaultOptions ) {
 	describe( 'Bvhcast', () => {
 
 
-		describe.only( 'Simple intersecting cubes', () => {
+		describe( 'Simple intersecting cubes', () => {
 
 			let matrix;
 			let cubeA, cubeB;

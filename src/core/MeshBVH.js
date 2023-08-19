@@ -743,17 +743,17 @@ export class MeshBVH {
 
 							intersectsRange: ( otherOffset, otherCount ) => {
 
-								for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
+								for ( let i2 = otherOffset, l2 = otherOffset + otherCount; i2 < l2; i2 ++ ) {
 
-									setTriangle( triangle2, i2, otherIndex, otherPos );
+									setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
 									triangle2.a.applyMatrix4( geometryToBvh );
 									triangle2.b.applyMatrix4( geometryToBvh );
 									triangle2.c.applyMatrix4( geometryToBvh );
 									triangle2.needsUpdate = true;
 
-									for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+									for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-										setTriangle( triangle, i, index, pos );
+										setTriangle( triangle, 3 * i, index, pos );
 										triangle.needsUpdate = true;
 
 										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -768,8 +768,8 @@ export class MeshBVH {
 											}
 
 											closestDistance = dist;
-											closestDistanceTriIndex = i / 3;
-											closestDistanceOtherTriIndex = i2 / 3;
+											closestDistanceTriIndex = i;
+											closestDistanceOtherTriIndex = i2;
 
 										}
 
