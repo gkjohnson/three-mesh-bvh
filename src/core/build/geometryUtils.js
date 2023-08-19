@@ -41,11 +41,18 @@ export function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
+export function getFullGeometryRange( geo ) {
+
+	const triCount = ( geo.index ? geo.index.count : geo.attributes.position.count ) / 3;
+	return [ { offset: 0, count: triCount } ];
+
+}
+
 export function getRootIndexRanges( geo ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
 
-		return [ { offset: 0, count: geo.index.count / 3 } ];
+		return getFullGeometryRange( geo );
 
 	}
 

@@ -1,11 +1,76 @@
-import { ensureIndex, getRootIndexRanges } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges } from './geometryUtils.js';
 import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
 import { partition } from './sortUtils.js';
 
-function buildTree( geo, options ) {
+function generateIndirectBuffer( geometry, options ) {
+
+	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+	const useUint32 = triCount > 2 ** 16;
+	const byteCount = useUint32 ? 4 : 2;
+
+	const buffer = options.useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
+	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+
+		indirectBuffer[ i ] = i;
+
+	}
+
+	return indirectBuffer;
+
+}
+
+function buildTree( bvh, options ) {
+
+	// Compute the full bounds of the geometry at the same time as triangle bounds because
+	// we'll need it for the root bounds in the case with no groups and it should be fast here.
+	// We can't use the geometry bounding box if it's available because it may be out of date.
+	const geometry = bvh.geometry;
+	const fullBounds = new Float32Array( 6 );
+	const cacheCentroidBoundingData = new Float32Array( 6 );
+	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
+	const indexArray = geometry.index.array;
+	const maxDepth = options.maxDepth;
+	const verbose = options.verbose;
+	const maxLeafTris = options.maxLeafTris;
+	const strategy = options.strategy;
+	const onProgress = options.onProgress;
+	const totalTriangles = geometry.index.count / 3;
+	const indirectBuffer = bvh._indirectBuffer;
+	let reachedMaxDepth = false;
+
+	const roots = [];
+	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+
+	if ( ranges.length === 1 ) {
+
+		const range = ranges[ 0 ];
+		const root = new MeshBVHNode();
+		root.boundingData = fullBounds;
+		getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
+
+		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
+		roots.push( root );
+
+	} else {
+
+		for ( let range of ranges ) {
+
+			const root = new MeshBVHNode();
+			root.boundingData = new Float32Array( 6 );
+			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
+
+			splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
+			roots.push( root );
+
+		}
+
+	}
+
+	return roots;
 
 	function triggerProgress( trianglesProcessed ) {
 
@@ -27,7 +92,7 @@ function buildTree( geo, options ) {
 			if ( verbose ) {
 
 				console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( geo );
+				console.warn( geometry );
 
 			}
 
@@ -54,7 +119,7 @@ function buildTree( geo, options ) {
 
 		}
 
-		const splitOffset = partition( indexArray, triangleBounds, offset, count, split );
+		const splitOffset = partition( indirectBuffer, indexArray, triangleBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
@@ -93,61 +158,27 @@ function buildTree( geo, options ) {
 
 	}
 
-	ensureIndex( geo, options );
+}
 
-	// Compute the full bounds of the geometry at the same time as triangle bounds because
-	// we'll need it for the root bounds in the case with no groups and it should be fast here.
-	// We can't use the geometrying bounding box if it's available because it may be out of date.
-	const fullBounds = new Float32Array( 6 );
-	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geo, fullBounds );
-	const indexArray = geo.index.array;
-	const maxDepth = options.maxDepth;
-	const verbose = options.verbose;
-	const maxLeafTris = options.maxLeafTris;
-	const strategy = options.strategy;
-	const onProgress = options.onProgress;
-	const totalTriangles = geo.index.count / 3;
-	let reachedMaxDepth = false;
+export function buildPackedTree( bvh, options ) {
 
-	const roots = [];
-	const ranges = getRootIndexRanges( geo );
+	const geometry = bvh.geometry;
+	if ( options.indirect ) {
 
-	if ( ranges.length === 1 ) {
-
-		const range = ranges[ 0 ];
-		const root = new MeshBVHNode();
-		root.boundingData = fullBounds;
-		getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
-
-		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
-		roots.push( root );
-
-	} else {
-
-		for ( let range of ranges ) {
-
-			const root = new MeshBVHNode();
-			root.boundingData = new Float32Array( 6 );
-			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
-
-			splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
-			roots.push( root );
-
-		}
+		bvh._indirectBuffer = generateIndirectBuffer( geometry );
 
 	}
 
-	return roots;
+	if ( ! bvh._indirectBuffer ) {
 
-}
+		ensureIndex( geometry, options );
 
-export function buildPackedTree( geo, options, target ) {
+	}
 
 	// boundingData  				: 6 float32
 	// right / offset 				: 1 uint32
 	// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
-	const roots = buildTree( geo, options );
+	const roots = buildTree( bvh, options );
 
 	let float32Array;
 	let uint32Array;
@@ -168,7 +199,7 @@ export function buildPackedTree( geo, options, target ) {
 
 	}
 
-	target._roots = packedRoots;
+	bvh._roots = packedRoots;
 	return;
 
 	function countNodes( node ) {

@@ -140,6 +140,7 @@ export class MeshBVH {
 			useSharedArrayBuffer: false,
 			setBoundingBox: true,
 			onProgress: null,
+			indirect: false,
 
 			// undocumented options
 
@@ -154,10 +155,14 @@ export class MeshBVH {
 
 		}
 
+		// retain references to the geometry so we can use them it without having to
+		// take a geometry reference in every function.
+		this.geometry = geometry;
 		this._roots = null;
+		this._indirectBuffer = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			buildPackedTree( geometry, options, this );
+			buildPackedTree( this, options );
 
 			if ( ! geometry.boundingBox && options.setBoundingBox ) {
 
@@ -166,10 +171,6 @@ export class MeshBVH {
 			}
 
 		}
-
-		// retain references to the geometry so we can use them it without having to
-		// take a geometry reference in every function.
-		this.geometry = geometry;
 
 	}
 

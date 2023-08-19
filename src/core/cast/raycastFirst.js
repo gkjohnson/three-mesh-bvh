@@ -9,14 +9,14 @@ const _xyzFields = [ 'x', 'y', 'z' ];
 export function raycastFirst( bvh, root, side, ray ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst( 0, bvh.geometry, side, ray );
+	const result = _raycastFirst( 0, bvh, side, ray );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _raycastFirst( nodeIndex32, geometry, side, ray ) {
+function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -26,7 +26,7 @@ function _raycastFirst( nodeIndex32, geometry, side, ray ) {
 
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
-		return intersectClosestTri( geometry, side, ray, offset, count );
+		return intersectClosestTri( bvh, side, ray, offset, count );
 
 	} else {
 
@@ -52,7 +52,7 @@ function _raycastFirst( nodeIndex32, geometry, side, ray ) {
 		}
 
 		const c1Intersection = intersectRay( c1, float32Array, ray, _boxIntersection );
-		const c1Result = c1Intersection ? _raycastFirst( c1, geometry, side, ray ) : null;
+		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, side, ray ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -76,7 +76,7 @@ function _raycastFirst( nodeIndex32, geometry, side, ray ) {
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
 		const c2Intersection = intersectRay( c2, float32Array, ray, _boxIntersection );
-		const c2Result = c2Intersection ? _raycastFirst( c2, geometry, side, ray ) : null;
+		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, side, ray ) : null;
 
 		if ( c1Result && c2Result ) {
 
