@@ -3,7 +3,7 @@ import { CONTAINED } from './Constants.js';
 
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
-import { intersectTris, intersectClosestTri } from '../utils/GeometryRayIntersectUtilities.js';
+import { intersectClosestTri } from '../utils/GeometryRayIntersectUtilities.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
@@ -14,39 +14,6 @@ import { intersectRay } from './utils/intersectUtils.js';
 const boundingBox = new Box3();
 const boxIntersection = new Vector3();
 const xyzFields = [ 'x', 'y', 'z' ];
-
-export function raycast( nodeIndex32, geometry, side, ray, intersects ) {
-
-	const { float32Array, uint16Array, uint32Array } = BufferStack;
-	let nodeIndex16 = nodeIndex32 * 2;
-
-	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
-	if ( isLeaf ) {
-
-		const offset = OFFSET( nodeIndex32, uint32Array );
-		const count = COUNT( nodeIndex16, uint16Array );
-
-		intersectTris( geometry, side, ray, offset, count, intersects );
-
-	} else {
-
-		const leftIndex = LEFT_NODE( nodeIndex32 );
-		if ( intersectRay( leftIndex, float32Array, ray, boxIntersection ) ) {
-
-			raycast( leftIndex, geometry, side, ray, intersects );
-
-		}
-
-		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
-		if ( intersectRay( rightIndex, float32Array, ray, boxIntersection ) ) {
-
-			raycast( rightIndex, geometry, side, ray, intersects );
-
-		}
-
-	}
-
-}
 
 export function raycastFirst( nodeIndex32, geometry, side, ray ) {
 

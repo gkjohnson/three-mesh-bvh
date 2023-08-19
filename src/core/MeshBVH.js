@@ -2,7 +2,6 @@ import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
 import { buildPackedTree } from './buildFunctions.js';
 import {
-	raycast,
 	raycastFirst,
 	shapecast,
 	intersectsGeometry,
@@ -13,6 +12,7 @@ import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
 import { BufferStack } from './utils/BufferStack.js';
+import { raycast } from './cast/raycast.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -393,9 +393,7 @@ export class MeshBVH {
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 			const startCount = intersects.length;
 
-			BufferStack.setBuffer( roots[ i ] );
-			raycast( 0, geometry, materialSide, ray, intersects );
-			BufferStack.clearBuffer();
+			raycast( this, i, materialSide, ray, intersects );
 
 			if ( isArrayMaterial ) {
 
