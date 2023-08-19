@@ -1,5 +1,5 @@
 import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
-import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
+import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
@@ -10,8 +10,6 @@ import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.js';
-
-const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
@@ -472,6 +470,7 @@ export class MeshBVH {
 			intersectsTriangle,
 		} = callbacks;
 
+		// wrap the intersectsRange function
 		if ( intersectsRange && intersectsTriangle ) {
 
 			const originalIntersectsRange = intersectsRange;
@@ -509,6 +508,7 @@ export class MeshBVH {
 
 		}
 
+		// run shapecast
 		let result = false;
 		let byteOffset = 0;
 		const roots = this._roots;
