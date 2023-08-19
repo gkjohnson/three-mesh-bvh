@@ -62,6 +62,7 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 
 		if ( otherGeometry.boundsTree ) {
 
+			// if there's a bounds tree
 			arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, obb2 );
 			obb2.matrix.copy( invertedMat );
 			obb2.needsUpdate = true;
@@ -100,6 +101,7 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 
 		} else {
 
+			// if we're just dealing with raw geometry
 			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
 
 				// this triangle needs to be transformed into the current BVH coordinate frame
