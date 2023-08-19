@@ -236,7 +236,12 @@ describe( 'Serialization', () => {
 		const serialized = MeshBVH.serialize( bvh );
 
 		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
-		expect( deserializedBVH ).toEqual( bvh );
+
+		// use a custom object since anonymous functions cause the
+		// test function to fail
+		const testObj = { ...bvh };
+		delete testObj.resolveTriangleIndex;
+		expect( deserializedBVH ).toMatchObject( testObj );
 
 	} );
 
