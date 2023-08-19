@@ -17,14 +17,14 @@ const obb2 = /* @__PURE__ */ new OrientedBox();
 export function intersectsGeometry( bvh, root, otherGeometry, geometryToBvh ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _intersectsGeometry( 0, bvh.geometry, otherGeometry, geometryToBvh );
+	const result = _intersectsGeometry( 0, bvh, otherGeometry, geometryToBvh );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBvh, cachedObb = null ) {
+function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, cachedObb = null ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -45,7 +45,7 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 	const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 	if ( isLeaf ) {
 
-		const thisGeometry = geometry;
+		const thisGeometry = bvh.geometry;
 		const thisIndex = thisGeometry.index;
 		const thisPos = thisGeometry.attributes.position;
 
@@ -67,6 +67,7 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 			obb2.matrix.copy( invertedMat );
 			obb2.needsUpdate = true;
 
+			// TODO: use a triangle iteration function here
 			const res = otherGeometry.boundsTree.shapecast( {
 
 				intersectsBounds: box => obb2.intersectsBox( box ),
@@ -78,10 +79,12 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 					tri.c.applyMatrix4( geometryToBvh );
 					tri.needsUpdate = true;
 
-					for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+					for ( let i = offset, l = count + offset; i < l; i ++ ) {
+
+						const ti = bvh.resolveTriangleIndex( i );
 
 						// this triangle needs to be transformed into the current BVH coordinate frame
-						setTriangle( triangle2, i, thisIndex, thisPos );
+						setTriangle( triangle2, ti * 3, thisIndex, thisPos );
 						triangle2.needsUpdate = true;
 						if ( tri.intersectsTriangle( triangle2 ) ) {
 
@@ -102,10 +105,12 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 		} else {
 
 			// if we're just dealing with raw geometry
-			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+			for ( let i = offset, l = count + offset; i < l; i ++ ) {
+
+				const ti = bvh.resolveTriangleIndex( i );
 
 				// this triangle needs to be transformed into the current BVH coordinate frame
-				setTriangle( triangle, i, thisIndex, thisPos );
+				setTriangle( triangle, 3 * ti, thisIndex, thisPos );
 				triangle.a.applyMatrix4( invertedMat );
 				triangle.b.applyMatrix4( invertedMat );
 				triangle.c.applyMatrix4( invertedMat );
@@ -136,14 +141,14 @@ function _intersectsGeometry( nodeIndex32, geometry, otherGeometry, geometryToBv
 		arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 		const leftIntersection =
 			cachedObb.intersectsBox( boundingBox ) &&
-			_intersectsGeometry( left, geometry, otherGeometry, geometryToBvh, cachedObb );
+			_intersectsGeometry( left, bvh, otherGeometry, geometryToBvh, cachedObb );
 
 		if ( leftIntersection ) return true;
 
 		arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox );
 		const rightIntersection =
 			cachedObb.intersectsBox( boundingBox ) &&
-			_intersectsGeometry( right, geometry, otherGeometry, geometryToBvh, cachedObb );
+			_intersectsGeometry( right, bvh, otherGeometry, geometryToBvh, cachedObb );
 
 		if ( rightIntersection ) return true;
 
