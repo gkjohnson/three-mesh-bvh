@@ -11,22 +11,16 @@ const boxPool = new PrimitivePool( () => new Box3() );
 
 export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
 
-	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _shapecast( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
-	BufferStack.clearBuffer();
-
-	return result;
-
-}
-
-function _shapecast( ...args ) {
-
+	// setup
 	_box1 = boxPool.getPrimitive();
 	_box2 = boxPool.getPrimitive();
 	boxStack.push( _box1, _box2 );
+	BufferStack.setBuffer( bvh._roots[ root ] );
 
-	const result = shapecastTraverse( ...args );
+	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
 
+	// cleanup
+	BufferStack.clearBuffer();
 	boxPool.releasePrimitive( _box1 );
 	boxPool.releasePrimitive( _box2 );
 	boxStack.pop();
