@@ -32,7 +32,7 @@ BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 runSuiteWithOptions( {} );
-// runSuiteWithOptions( { indirect: true } );
+runSuiteWithOptions( { indirect: true } );
 
 function runSuiteWithOptions( defaultOptions ) {
 
@@ -749,6 +749,8 @@ function runSuiteWithOptions( defaultOptions ) {
 			geometry = new SphereGeometry( 1, 5, 5 );
 
 		} );
+
+		it.todo( 'should check the the cases where other geo has and doesn\'t have a bvh' );
 
 		it( 'should return the radius if reduced to a point at the center of the geometry', () => {
 

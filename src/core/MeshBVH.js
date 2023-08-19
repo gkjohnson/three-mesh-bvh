@@ -10,6 +10,7 @@ import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.js';
+import { getTriCount } from './build/geometryUtils.js';
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
@@ -728,7 +729,8 @@ export class MeshBVH {
 
 						// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
 						// the closest bounds in the other geometry to check.
-						return otherGeometry.boundsTree.shapecast( {
+						const otherBvh = otherGeometry.boundsTree;
+						return otherBvh.shapecast( {
 							boundsTraverseOrder: box => {
 
 								return obb2.distanceToBox( box );
@@ -745,7 +747,8 @@ export class MeshBVH {
 
 								for ( let i2 = otherOffset, l2 = otherOffset + otherCount; i2 < l2; i2 ++ ) {
 
-									setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
+									const ti2 = otherBvh.resolveTriangleIndex( i2 );
+									setTriangle( triangle2, 3 * ti2, otherIndex, otherPos );
 									triangle2.a.applyMatrix4( geometryToBvh );
 									triangle2.b.applyMatrix4( geometryToBvh );
 									triangle2.c.applyMatrix4( geometryToBvh );
@@ -753,7 +756,8 @@ export class MeshBVH {
 
 									for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-										setTriangle( triangle, 3 * i, index, pos );
+										const ti = this.resolveTriangleIndex( i );
+										setTriangle( triangle, 3 * ti, index, pos );
 										triangle.needsUpdate = true;
 
 										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -790,18 +794,19 @@ export class MeshBVH {
 					} else {
 
 						// If no bounds tree then we'll just check every triangle.
-						const triCount = otherIndex ? otherIndex.count : otherPos.count;
-						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
+						const triCount = getTriCount( otherGeometry );
+						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 ++ ) {
 
-							setTriangle( triangle2, i2, otherIndex, otherPos );
+							setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
 							triangle2.a.applyMatrix4( geometryToBvh );
 							triangle2.b.applyMatrix4( geometryToBvh );
 							triangle2.c.applyMatrix4( geometryToBvh );
 							triangle2.needsUpdate = true;
 
-							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+							for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-								setTriangle( triangle, i, index, pos );
+								const ti = this.resolveTriangleIndex( i );
+								setTriangle( triangle, 3 * ti, index, pos );
 								triangle.needsUpdate = true;
 
 								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -816,8 +821,8 @@ export class MeshBVH {
 									}
 
 									closestDistance = dist;
-									closestDistanceTriIndex = i / 3;
-									closestDistanceOtherTriIndex = i2 / 3;
+									closestDistanceTriIndex = i;
+									closestDistanceOtherTriIndex = i2;
 
 								}
 
