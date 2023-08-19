@@ -157,7 +157,7 @@ export class MeshBVH {
 		this._roots = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			this._roots = buildPackedTree( geometry, options );
+			buildPackedTree( geometry, options, this );
 
 			if ( ! geometry.boundingBox && options.setBoundingBox ) {
 

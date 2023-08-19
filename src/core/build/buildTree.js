@@ -142,7 +142,7 @@ function buildTree( geo, options ) {
 
 }
 
-export function buildPackedTree( geo, options ) {
+export function buildPackedTree( geo, options, target ) {
 
 	// boundingData  				: 6 float32
 	// right / offset 				: 1 uint32
@@ -168,7 +168,8 @@ export function buildPackedTree( geo, options ) {
 
 	}
 
-	return packedRoots;
+	target._roots = packedRoots;
+	return;
 
 	function countNodes( node ) {
 
