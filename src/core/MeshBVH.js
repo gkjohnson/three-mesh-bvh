@@ -170,6 +170,9 @@ export class MeshBVH {
 
 		}
 
+		const { _indirectBuffer } = this;
+		this.resolveTriangleIndex = _indirectBuffer ? i => _indirectBuffer[ i ] : i => i;
+
 	}
 
 	refit( nodeIndices = null ) {
@@ -462,7 +465,6 @@ export class MeshBVH {
 
 	shapecast( callbacks ) {
 
-		const geometry = this.geometry;
 		const triangle = trianglePool.getPrimitive();
 		let {
 			boundsTraverseOrder,
@@ -479,7 +481,7 @@ export class MeshBVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				}
 
@@ -493,7 +495,7 @@ export class MeshBVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				};
 
