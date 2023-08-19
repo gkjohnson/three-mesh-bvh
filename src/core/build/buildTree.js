@@ -5,13 +5,13 @@ import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
 import { partition } from './sortUtils.js';
 
-function generateIndirectBuffer( geometry, options ) {
+function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
 	const byteCount = useUint32 ? 4 : 2;
 
-	const buffer = options.useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
 	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
 	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
 
@@ -165,7 +165,7 @@ export function buildPackedTree( bvh, options ) {
 	const geometry = bvh.geometry;
 	if ( options.indirect ) {
 
-		bvh._indirectBuffer = generateIndirectBuffer( geometry );
+		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
 
 	}
 

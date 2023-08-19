@@ -5,13 +5,8 @@ export function intersectTris( bvh, side, ray, offset, count, intersections ) {
 	const { geometry, _indirectBuffer } = bvh;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		if ( _indirectBuffer ) {
-
-			i = _indirectBuffer[ i ];
-
-		}
-
-		intersectTri( geometry, side, ray, i, intersections );
+		let vi = _indirectBuffer ? _indirectBuffer[ i ] : i;
+		intersectTri( geometry, side, ray, vi, intersections );
 
 	}
 
@@ -24,13 +19,8 @@ export function intersectClosestTri( bvh, side, ray, offset, count ) {
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		if ( _indirectBuffer ) {
-
-			i = _indirectBuffer[ i ];
-
-		}
-
-		const intersection = intersectTri( geometry, side, ray, i );
+		let vi = _indirectBuffer ? _indirectBuffer[ i ] : i;
+		const intersection = intersectTri( geometry, side, ray, vi );
 		if ( intersection && intersection.distance < dist ) {
 
 			res = intersection;
