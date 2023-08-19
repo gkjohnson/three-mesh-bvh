@@ -13,9 +13,9 @@ export function setTriangle( tri, i, index, pos ) {
 	let i2 = i + 2;
 	if ( index ) {
 
-		i0 = index.getX( i );
-		i1 = index.getX( i + 1 );
-		i2 = index.getX( i + 2 );
+		i0 = index.getX( i0 );
+		i1 = index.getX( i1 );
+		i2 = index.getX( i2 );
 
 	}
 
