@@ -43,7 +43,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData.map( root => root.slice() ),
 				index: indexAttribute.array.slice(),
-				indirectBuffer: indirectBuffer.slice(),
+				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
 			};
 
 		} else {
