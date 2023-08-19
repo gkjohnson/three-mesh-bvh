@@ -6,7 +6,6 @@ import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
-import { BufferStack } from './utils/BufferStack.js';
 import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
