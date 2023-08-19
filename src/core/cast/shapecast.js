@@ -7,7 +7,7 @@ import { BufferStack } from '../utils/BufferStack.js';
 
 let _box1, _box2;
 const boxStack = [];
-const boxPool = new PrimitivePool( () => new Box3() );
+const boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
 
 export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
 

@@ -6,13 +6,13 @@ import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { COUNT, OFFSET, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 
-const boundingBox = new Box3();
-const triangle = new ExtendedTriangle();
-const triangle2 = new ExtendedTriangle();
-const invertedMat = new Matrix4();
+const boundingBox = /* @__PURE__ */ new Box3();
+const triangle = /* @__PURE__ */ new ExtendedTriangle();
+const triangle2 = /* @__PURE__ */ new ExtendedTriangle();
+const invertedMat = /* @__PURE__ */ new Matrix4();
 
-const obb = new OrientedBox();
-const obb2 = new OrientedBox();
+const obb = /* @__PURE__ */ new OrientedBox();
+const obb2 = /* @__PURE__ */ new OrientedBox();
 
 export function intersectsGeometry( bvh, root, otherGeometry, geometryToBvh ) {
 
