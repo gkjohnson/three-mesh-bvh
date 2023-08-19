@@ -2,7 +2,6 @@ import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
 import { buildPackedTree } from './buildFunctions.js';
 import {
-	shapecast,
 	intersectsGeometry,
 } from './castFunctions.js';
 import { OrientedBox } from '../math/OrientedBox.js';
@@ -13,6 +12,7 @@ import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js
 import { BufferStack } from './utils/BufferStack.js';
 import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
+import { shapecast } from './cast/shapecast.js';
 
 const SKIP_GENERATION = Symbol( 'skip tree generation' );
 
@@ -546,11 +546,11 @@ export class MeshBVH {
 
 		let result = false;
 		let byteOffset = 0;
-		for ( const root of this._roots ) {
+		const roots = this._roots;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			BufferStack.setBuffer( root );
-			result = shapecast( 0, geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
-			BufferStack.clearBuffer();
+			const root = roots[ i ];
+			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
 
 			if ( result ) {
 
