@@ -32,6 +32,7 @@ BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 runSuiteWithOptions( {} );
+// runSuiteWithOptions( { indirect: true } );
 
 function runSuiteWithOptions( defaultOptions ) {
 

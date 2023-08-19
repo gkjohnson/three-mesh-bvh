@@ -159,9 +159,12 @@ function runRandomTests( options ) {
 
 describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
 describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
+describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
 
 describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
 describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
+describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
 
 describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
 describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
+describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );

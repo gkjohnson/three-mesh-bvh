@@ -112,3 +112,7 @@ function runRandomTest( options, transformSeed, raySeed ) {
 runRandomTest( { strategy: AVERAGE }, 7830035629, 4697211981 );
 runRandomTest( { strategy: AVERAGE }, 8294928772, 1592666709 );
 runRandomTest( { strategy: SAH }, 81992501, 8903271423 );
+
+runRandomTest( { strategy: AVERAGE, indirect: true }, 7830035629, 4697211981 );
+runRandomTest( { strategy: AVERAGE, indirect: true }, 8294928772, 1592666709 );
+runRandomTest( { strategy: SAH, indirect: true }, 81992501, 8903271423 );
