@@ -183,8 +183,9 @@ export class MeshBVH {
 
 		}
 
+		const bvh = this;
 		const geometry = this.geometry;
-		const indexArr = geometry.index.array;
+		const indexArr = geometry.index ? geometry.index.array : null;
 		const posAttr = geometry.attributes.position;
 
 		let buffer, uint32Array, uint16Array, float32Array;
@@ -218,21 +219,28 @@ export class MeshBVH {
 				let maxy = - Infinity;
 				let maxz = - Infinity;
 
-				for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
+				for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-					const index = indexArr[ i ];
-					const x = posAttr.getX( index );
-					const y = posAttr.getY( index );
-					const z = posAttr.getZ( index );
+					const t = bvh.resolveTriangleIndex( i );
+					for ( let j = 0; j < 3; j ++ ) {
 
-					if ( x < minx ) minx = x;
-					if ( x > maxx ) maxx = x;
+						let index = t * 3 + j;
+						index = indexArr ? indexArr[ index ] : index;
 
-					if ( y < miny ) miny = y;
-					if ( y > maxy ) maxy = y;
+						const x = posAttr.getX( index );
+						const y = posAttr.getY( index );
+						const z = posAttr.getZ( index );
 
-					if ( z < minz ) minz = z;
-					if ( z > maxz ) maxz = z;
+						if ( x < minx ) minx = x;
+						if ( x > maxx ) maxx = x;
+
+						if ( y < miny ) miny = y;
+						if ( y > maxy ) maxy = y;
+
+						if ( z < minz ) minz = z;
+						if ( z > maxz ) maxz = z;
+
+					}
 
 				}
 
