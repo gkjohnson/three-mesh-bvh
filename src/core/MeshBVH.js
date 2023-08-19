@@ -1,6 +1,6 @@
 import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
-import { buildPackedTree } from './buildFunctions.js';
+import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';

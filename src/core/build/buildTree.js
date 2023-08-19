@@ -1,9 +1,9 @@
-import { ensureIndex, getRootIndexRanges } from './build/geometryUtils.js';
-import { getBounds, getCentroidBounds, computeTriangleBounds } from './build/computeBoundsUtils.js';
-import { getOptimalSplit } from './build/splitUtils.js';
-import { MeshBVHNode } from './MeshBVHNode.js';
-import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from './Constants.js';
-import { partition } from './build/sortUtils.js';
+import { ensureIndex, getRootIndexRanges } from './geometryUtils.js';
+import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
+import { getOptimalSplit } from './splitUtils.js';
+import { MeshBVHNode } from '../MeshBVHNode.js';
+import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
+import { partition } from './sortUtils.js';
 
 function buildTree( geo, options ) {
 
