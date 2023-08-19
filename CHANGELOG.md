@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Changed
 - Removed long deprecated shapecast code path using old function signature.
+- Removed long deprecated serialization code path using old function signature.
 
 ## [0.6.3] - 2023-07-22
 ### Fixed
