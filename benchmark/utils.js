@@ -1,8 +1,8 @@
 const LONG_RUNNING = process.argv.includes( '--long' );
 const LOG_JSON = process.argv.includes( '--json' );
 const jsonLog = [];
-const MAX_TIME = LONG_RUNNING ? 60000 : 3000;
-const MAX_ITER = LONG_RUNNING ? 10000 : 100;
+const MAX_TIME = LONG_RUNNING ? 15000 : 3000;
+const MAX_ITER = LONG_RUNNING ? 1000 : 100;
 
 function log( key, value = null ) {
 
