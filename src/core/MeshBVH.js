@@ -200,10 +200,10 @@ export class MeshBVH {
 
 				for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-					const t = bvh.resolveTriangleIndex( i );
+					const t = 3 * bvh.resolveTriangleIndex( i );
 					for ( let j = 0; j < 3; j ++ ) {
 
-						let index = t * 3 + j;
+						let index = t + j;
 						index = indexArr ? indexArr[ index ] : index;
 
 						const x = posAttr.getX( index );
