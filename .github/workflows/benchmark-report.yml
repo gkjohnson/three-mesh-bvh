@@ -40,7 +40,7 @@ jobs:
       run: git checkout master
 
     - name: Run Master Benchmark
-      run: node ./benchmark/run-benchmark.js --json > main-benchmark.json
+      run: node ./benchmark/run-benchmark.js --json > master-benchmark.json
 
     - name: Log Difference
       run: node ./benchmark/make-benchmark-log.js
