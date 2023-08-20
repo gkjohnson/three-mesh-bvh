@@ -575,7 +575,7 @@ export class MeshBVH {
 
 				return false;
 
-			}
+			};
 
 			if ( intersectsRanges ) {
 
