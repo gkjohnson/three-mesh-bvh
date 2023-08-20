@@ -5,7 +5,10 @@ name: Run Benchmark Report
 
 on:
   pull_request:
-    branches: [ "master" ]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'benchmark/**'
 
 permissions:
   contents: read
