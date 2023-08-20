@@ -1,4 +1,4 @@
-import { ExtendedTriangle } from '../math/ExtendedTriangle';
+import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from './PrimitivePool.js';
 
 class ExtendedTrianglePoolBase extends PrimitivePool {
