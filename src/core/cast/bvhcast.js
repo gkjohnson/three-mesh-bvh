@@ -1,12 +1,10 @@
 import { Matrix4, Box3 } from 'three';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
-import { PrimitivePool } from '../../utils/PrimitivePool.js';
-import { ExtendedTriangle } from '../../math/ExtendedTriangle.js';
+import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 
 const tempMatrix = new Matrix4();
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	// BVHCast function for intersecting two BVHs against each other. Ultimately just uses two recursive shapecast calls rather
@@ -25,8 +23,8 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	tempMatrix.copy( matrixToLocal ).invert();
 
-	const triangle = trianglePool.getPrimitive();
-	const triangle2 = trianglePool.getPrimitive();
+	const triangle = ExtendedTrianglePool.getPrimitive();
+	const triangle2 = ExtendedTrianglePool.getPrimitive();
 
 	if ( intersectsTriangles ) {
 
@@ -110,8 +108,8 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	} );
 
-	trianglePool.releasePrimitive( triangle );
-	trianglePool.releasePrimitive( triangle2 );
+	ExtendedTrianglePool.releasePrimitive( triangle );
+	ExtendedTrianglePool.releasePrimitive( triangle2 );
 	return result;
 
 }

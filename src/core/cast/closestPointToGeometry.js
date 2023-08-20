@@ -1,9 +1,8 @@
 import { Vector3, Matrix4 } from 'three';
 import { OrientedBox } from '../../math/OrientedBox.js';
-import { PrimitivePool } from '../../utils/PrimitivePool.js';
-import { ExtendedTriangle } from '../../math/ExtendedTriangle.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { getTriCount } from '../build/geometryUtils.js';
+import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 
 const tempMatrix = /* @__PURE__ */ new Matrix4();
 const obb = /* @__PURE__ */ new OrientedBox();
@@ -12,7 +11,6 @@ const temp1 = /* @__PURE__ */ new Vector3();
 const temp2 = /* @__PURE__ */ new Vector3();
 const temp3 = /* @__PURE__ */ new Vector3();
 const temp4 = /* @__PURE__ */ new Vector3();
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 
 export function closestPointToGeometry(
 	bvh,
@@ -38,8 +36,8 @@ export function closestPointToGeometry(
 	const index = geometry.index;
 	const otherPos = otherGeometry.attributes.position;
 	const otherIndex = otherGeometry.index;
-	const triangle = trianglePool.getPrimitive();
-	const triangle2 = trianglePool.getPrimitive();
+	const triangle = ExtendedTrianglePool.getPrimitive();
+	const triangle2 = ExtendedTrianglePool.getPrimitive();
 
 	let tempTarget1 = temp1;
 	let tempTargetDest1 = temp2;
@@ -211,8 +209,8 @@ export function closestPointToGeometry(
 
 	);
 
-	trianglePool.releasePrimitive( triangle );
-	trianglePool.releasePrimitive( triangle2 );
+	ExtendedTrianglePool.releasePrimitive( triangle );
+	ExtendedTrianglePool.releasePrimitive( triangle2 );
 
 	if ( closestDistance === Infinity ) return null;
 
