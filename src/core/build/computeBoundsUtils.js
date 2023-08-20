@@ -1,5 +1,6 @@
 import { FLOAT32_EPSILON } from '../Constants.js';
 import { makeEmptyBounds } from '../../utils/ArrayBoxUtilities.js';
+import { getTriCount } from './geometryUtils.js';
 
 // computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
 // centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
@@ -121,8 +122,8 @@ export function computeTriangleBounds( geo, fullBounds ) {
 	makeEmptyBounds( fullBounds );
 
 	const posAttr = geo.attributes.position;
-	const index = geo.index.array;
-	const triCount = index.length / 3;
+	const index = geo.index ? geo.index.array : null;
+	const triCount = getTriCount( geo );
 	const triangleBounds = new Float32Array( triCount * 6 );
 	const normalized = posAttr.normalized;
 
@@ -146,19 +147,25 @@ export function computeTriangleBounds( geo, fullBounds ) {
 		const tri3 = tri * 3;
 		const tri6 = tri * 6;
 
-		let ai, bi, ci;
+		let ai = tri3 + 0;
+		let bi = tri3 + 1;
+		let ci = tri3 + 2;
 
-		if ( normalized ) {
+		if ( index ) {
 
-			ai = index[ tri3 + 0 ];
-			bi = index[ tri3 + 1 ];
-			ci = index[ tri3 + 2 ];
+			ai = index[ ai ];
+			bi = index[ bi ];
+			ci = index[ ci ];
 
-		} else {
+		}
 
-			ai = index[ tri3 + 0 ] * stride + bufferOffset;
-			bi = index[ tri3 + 1 ] * stride + bufferOffset;
-			ci = index[ tri3 + 2 ] * stride + bufferOffset;
+		// we add the stride and offset here since we access the array directly
+		// below for the sake of performance
+		if ( ! normalized ) {
+
+			ai = ai * stride + bufferOffset;
+			bi = bi * stride + bufferOffset;
+			ci = ci * stride + bufferOffset;
 
 		}
 

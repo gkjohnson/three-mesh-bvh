@@ -8,12 +8,12 @@ const _boxIntersection = /* @__PURE__ */ new Vector3();
 export function raycast( bvh, root, side, ray, intersects ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	_raycast( 0, bvh.geometry, side, ray, intersects );
+	_raycast( 0, bvh, side, ray, intersects );
 	BufferStack.clearBuffer();
 
 }
 
-function _raycast( nodeIndex32, geometry, side, ray, intersects ) {
+function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	const nodeIndex16 = nodeIndex32 * 2;
@@ -23,21 +23,21 @@ function _raycast( nodeIndex32, geometry, side, ray, intersects ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		intersectTris( geometry, side, ray, offset, count, intersects );
+		intersectTris( bvh, side, ray, offset, count, intersects );
 
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
 		if ( intersectRay( leftIndex, float32Array, ray, _boxIntersection ) ) {
 
-			_raycast( leftIndex, geometry, side, ray, intersects );
+			_raycast( leftIndex, bvh, side, ray, intersects );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 		if ( intersectRay( rightIndex, float32Array, ray, _boxIntersection ) ) {
 
-			_raycast( rightIndex, geometry, side, ray, intersects );
+			_raycast( rightIndex, bvh, side, ray, intersects );
 
 		}
 

@@ -10,6 +10,7 @@ import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.js';
+import { getTriCount } from './build/geometryUtils.js';
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
@@ -35,6 +36,7 @@ export class MeshBVH {
 
 		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
+		const indirectBuffer = bvh.indirectBuffer;
 		const indexAttribute = geometry.getIndex();
 		let result;
 		if ( options.cloneBuffers ) {
@@ -42,6 +44,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData.map( root => root.slice() ),
 				index: indexAttribute.array.slice(),
+				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
 			};
 
 		} else {
@@ -49,6 +52,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData,
 				index: indexAttribute.array,
+				indirectBuffer: indirectBuffer,
 			};
 
 		}
@@ -61,12 +65,14 @@ export class MeshBVH {
 
 		options = {
 			setIndex: true,
+			indirect: Boolean( data.indirectBuffer ),
 			...options,
 		};
 
-		const { index, roots } = data;
+		const { index, roots, indirectBuffer } = data;
 		const bvh = new MeshBVH( geometry, { ...options, [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
+		bvh._indirectBuffer = indirectBuffer || null;
 
 		if ( options.setIndex ) {
 
@@ -111,6 +117,7 @@ export class MeshBVH {
 			useSharedArrayBuffer: false,
 			setBoundingBox: true,
 			onProgress: null,
+			indirect: false,
 
 			// undocumented options
 
@@ -125,10 +132,14 @@ export class MeshBVH {
 
 		}
 
+		// retain references to the geometry so we can use them it without having to
+		// take a geometry reference in every function.
+		this.geometry = geometry;
 		this._roots = null;
+		this._indirectBuffer = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			buildPackedTree( geometry, options, this );
+			buildPackedTree( this, options );
 
 			if ( ! geometry.boundingBox && options.setBoundingBox ) {
 
@@ -138,9 +149,8 @@ export class MeshBVH {
 
 		}
 
-		// retain references to the geometry so we can use them it without having to
-		// take a geometry reference in every function.
-		this.geometry = geometry;
+		const { _indirectBuffer } = this;
+		this.resolveTriangleIndex = options.indirect ? i => _indirectBuffer[ i ] : i => i;
 
 	}
 
@@ -152,8 +162,9 @@ export class MeshBVH {
 
 		}
 
+		const bvh = this;
 		const geometry = this.geometry;
-		const indexArr = geometry.index.array;
+		const indexArr = geometry.index ? geometry.index.array : null;
 		const posAttr = geometry.attributes.position;
 
 		let buffer, uint32Array, uint16Array, float32Array;
@@ -187,21 +198,28 @@ export class MeshBVH {
 				let maxy = - Infinity;
 				let maxz = - Infinity;
 
-				for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
+				for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-					const index = indexArr[ i ];
-					const x = posAttr.getX( index );
-					const y = posAttr.getY( index );
-					const z = posAttr.getZ( index );
+					const t = 3 * bvh.resolveTriangleIndex( i );
+					for ( let j = 0; j < 3; j ++ ) {
 
-					if ( x < minx ) minx = x;
-					if ( x > maxx ) maxx = x;
+						let index = t + j;
+						index = indexArr ? indexArr[ index ] : index;
 
-					if ( y < miny ) miny = y;
-					if ( y > maxy ) maxy = y;
+						const x = posAttr.getX( index );
+						const y = posAttr.getY( index );
+						const z = posAttr.getZ( index );
 
-					if ( z < minz ) minz = z;
-					if ( z > maxz ) maxz = z;
+						if ( x < minx ) minx = x;
+						if ( x > maxx ) maxx = x;
+
+						if ( y < miny ) miny = y;
+						if ( y > maxy ) maxy = y;
+
+						if ( z < minz ) minz = z;
+						if ( z > maxz ) maxz = z;
+
+					}
 
 				}
 
@@ -434,7 +452,6 @@ export class MeshBVH {
 
 	shapecast( callbacks ) {
 
-		const geometry = this.geometry;
 		const triangle = trianglePool.getPrimitive();
 		let {
 			boundsTraverseOrder,
@@ -451,7 +468,7 @@ export class MeshBVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				}
 
@@ -465,7 +482,7 @@ export class MeshBVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				};
 
@@ -529,11 +546,12 @@ export class MeshBVH {
 
 		if ( intersectsTriangles ) {
 
-			function iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
+			const iterateOverDoubleTriangles = ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) => {
 
 				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
-					setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPositionAttr );
+					const ti2 = otherBvh.resolveTriangleIndex( i2 );
+					setTriangle( triangle2, ti2 * 3, otherIndexAttr, otherPositionAttr );
 					triangle2.a.applyMatrix4( matrixToLocal );
 					triangle2.b.applyMatrix4( matrixToLocal );
 					triangle2.c.applyMatrix4( matrixToLocal );
@@ -541,7 +559,8 @@ export class MeshBVH {
 
 					for ( let i1 = offset1, l1 = offset1 + count1; i1 < l1; i1 ++ ) {
 
-						setTriangle( triangle, i1 * 3, indexAttr, positionAttr );
+						const ti1 = this.resolveTriangleIndex( i1 );
+						setTriangle( triangle, ti1 * 3, indexAttr, positionAttr );
 						triangle.needsUpdate = true;
 
 						if ( intersectsTriangles( triangle, triangle2, i1, i2, depth1, index1, depth2, index2 ) ) {
@@ -556,7 +575,7 @@ export class MeshBVH {
 
 				return false;
 
-			}
+			};
 
 			if ( intersectsRanges ) {
 
@@ -712,7 +731,8 @@ export class MeshBVH {
 
 						// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
 						// the closest bounds in the other geometry to check.
-						return otherGeometry.boundsTree.shapecast( {
+						const otherBvh = otherGeometry.boundsTree;
+						return otherBvh.shapecast( {
 							boundsTraverseOrder: box => {
 
 								return obb2.distanceToBox( box );
@@ -727,17 +747,19 @@ export class MeshBVH {
 
 							intersectsRange: ( otherOffset, otherCount ) => {
 
-								for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
+								for ( let i2 = otherOffset, l2 = otherOffset + otherCount; i2 < l2; i2 ++ ) {
 
-									setTriangle( triangle2, i2, otherIndex, otherPos );
+									const ti2 = otherBvh.resolveTriangleIndex( i2 );
+									setTriangle( triangle2, 3 * ti2, otherIndex, otherPos );
 									triangle2.a.applyMatrix4( geometryToBvh );
 									triangle2.b.applyMatrix4( geometryToBvh );
 									triangle2.c.applyMatrix4( geometryToBvh );
 									triangle2.needsUpdate = true;
 
-									for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+									for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-										setTriangle( triangle, i, index, pos );
+										const ti = this.resolveTriangleIndex( i );
+										setTriangle( triangle, 3 * ti, index, pos );
 										triangle.needsUpdate = true;
 
 										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -752,8 +774,8 @@ export class MeshBVH {
 											}
 
 											closestDistance = dist;
-											closestDistanceTriIndex = i / 3;
-											closestDistanceOtherTriIndex = i2 / 3;
+											closestDistanceTriIndex = i;
+											closestDistanceOtherTriIndex = i2;
 
 										}
 
@@ -774,18 +796,19 @@ export class MeshBVH {
 					} else {
 
 						// If no bounds tree then we'll just check every triangle.
-						const triCount = otherIndex ? otherIndex.count : otherPos.count;
-						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
+						const triCount = getTriCount( otherGeometry );
+						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 ++ ) {
 
-							setTriangle( triangle2, i2, otherIndex, otherPos );
+							setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
 							triangle2.a.applyMatrix4( geometryToBvh );
 							triangle2.b.applyMatrix4( geometryToBvh );
 							triangle2.c.applyMatrix4( geometryToBvh );
 							triangle2.needsUpdate = true;
 
-							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+							for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-								setTriangle( triangle, i, index, pos );
+								const ti = this.resolveTriangleIndex( i );
+								setTriangle( triangle, 3 * ti, index, pos );
 								triangle.needsUpdate = true;
 
 								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -800,8 +823,8 @@ export class MeshBVH {
 									}
 
 									closestDistance = dist;
-									closestDistanceTriIndex = i / 3;
-									closestDistanceOtherTriIndex = i2 / 3;
+									closestDistanceTriIndex = i;
+									closestDistanceOtherTriIndex = i2;
 
 								}
 

@@ -5,6 +5,7 @@ import {
 	RGBAFormat,
 	RGIntegerFormat,
 	NearestFilter,
+	BufferAttribute,
 } from 'three';
 import {
 	FloatVertexAttributeTexture,
@@ -112,6 +113,7 @@ export class MeshBVHUniformStruct {
 		this.position = new FloatVertexAttributeTexture();
 		this.bvhBounds = new DataTexture();
 		this.bvhContents = new DataTexture();
+		this._cachedIndexAttr = null;
 
 		this.index.overrideItemSize = 3;
 
@@ -120,11 +122,33 @@ export class MeshBVHUniformStruct {
 	updateFrom( bvh ) {
 
 		const { geometry } = bvh;
-
 		bvhToTextures( bvh, this.bvhBounds, this.bvhContents );
 
-		this.index.updateFrom( geometry.index );
 		this.position.updateFrom( geometry.attributes.position );
+
+		// dereference a new index attribute if we're using indirect storage
+		const indirectBuffer = bvh._indirectBuffer;
+		if ( indirectBuffer ) {
+
+			if (
+				this._cachedIndexAttr === null ||
+				this._cachedIndexAttr.count !== indirectBuffer.length
+			) {
+
+				this._cachedIndexAttr = geometry.index ?
+					geometry.index.clone() :
+					new BufferAttribute( indirectBuffer.slice(), 1, false );
+
+			}
+
+			dereferenceIndex( geometry, indirectBuffer, this._cachedIndexAttr );
+			this.index.updateFrom( this._cachedIndexAttr );
+
+		} else {
+
+			this.index.updateFrom( geometry.index );
+
+		}
 
 	}
 
@@ -136,6 +160,19 @@ export class MeshBVHUniformStruct {
 		if ( position ) position.dispose();
 		if ( bvhBounds ) bvhBounds.dispose();
 		if ( bvhContents ) bvhContents.dispose();
+
+	}
+
+}
+
+function dereferenceIndex( geometry, indirectBuffer, target ) {
+
+	const index = geometry.index;
+	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+
+		const iv = indirectBuffer[ i ];
+		let nv = index ? index.getX( iv ) : iv;
+		target.setX( i, nv );
 
 	}
 

@@ -13,9 +13,9 @@ export function setTriangle( tri, i, index, pos ) {
 	let i2 = i + 2;
 	if ( index ) {
 
-		i0 = index.getX( i );
-		i1 = index.getX( i + 1 );
-		i2 = index.getX( i + 2 );
+		i0 = index.getX( i0 );
+		i1 = index.getX( i1 );
+		i2 = index.getX( i2 );
 
 	}
 
@@ -36,21 +36,23 @@ export function setTriangle( tri, i, index, pos ) {
 export function iterateOverTriangles(
 	offset,
 	count,
-	geometry,
+	bvh,
 	intersectsTriangleFunc,
 	contained,
 	depth,
 	triangle
 ) {
 
-	const index = geometry.index;
+	const { geometry } = bvh;
+	const { index } = geometry;
 	const pos = geometry.attributes.position;
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		setTriangle( triangle, i * 3, index, pos );
+		const tri = bvh.resolveTriangleIndex( i );
+		setTriangle( triangle, tri * 3, index, pos );
 		triangle.needsUpdate = true;
 
-		if ( intersectsTriangleFunc( triangle, i, contained, depth ) ) {
+		if ( intersectsTriangleFunc( triangle, tri, contained, depth ) ) {
 
 			return true;
 
