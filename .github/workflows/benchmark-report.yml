@@ -31,12 +31,12 @@ jobs:
     - name: Run PR Benchmark
       run: node ./benchmark/run-benchmark.js --json > pr-benchmark.json
 
-	  - name: Checkout master
+    - name: Checkout master
       run: git checkout master
 
     - name: Run Master Benchmark
       run: node ./benchmark/run-benchmark.js --json > main-benchmark.json
 
     - name: Log Difference
-    	run: node ./benchmark/make-benchmark-log.js
+      run: node ./benchmark/make-benchmark-log.js
 
