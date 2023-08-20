@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: Git checkout
       uses: actions/checkout@v2
+      with:
+        fetch-deth: 0
 
     - name: Use Node.js
       uses: actions/setup-node@v2
@@ -32,7 +34,7 @@ jobs:
       run: node ./benchmark/run-benchmark.js --json > pr-benchmark.json
 
     - name: Checkout master
-      run: git checkout origin/master
+      run: git checkout master
 
     - name: Run Master Benchmark
       run: node ./benchmark/run-benchmark.js --json > main-benchmark.json
