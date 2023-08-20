@@ -32,7 +32,7 @@ jobs:
       run: node ./benchmark/run-benchmark.js --json > pr-benchmark.json
 
     - name: Checkout master
-      run: git checkout master
+      run: git checkout origin/master
 
     - name: Run Master Benchmark
       run: node ./benchmark/run-benchmark.js --json > main-benchmark.json
