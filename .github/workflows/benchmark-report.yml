@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-		- name: Git checkout
+    - name: Git checkout
       uses: actions/checkout@v2
 
     - name: Use Node.js
@@ -25,18 +25,18 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
-		- name: Install
+    - name: Install
       run: npm ci
 
-		- name: Run PR Benchmark
+    - name: Run PR Benchmark
       run: node ./benchmark/run-benchmark.js --json > pr-benchmark.json
 
 	  - name: Checkout master
-		  run: git checkout master
+      run: git checkout master
 
-		- name: Run Master Benchmark
+    - name: Run Master Benchmark
       run: node ./benchmark/run-benchmark.js --json > main-benchmark.json
 
-		- name: Log Difference
-			run: node ./benchmark/make-benchmark-log.js
+    - name: Log Difference
+    	run: node ./benchmark/make-benchmark-log.js
 
