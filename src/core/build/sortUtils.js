@@ -30,20 +30,11 @@ export function partition( indirectBuffer, index, triangleBounds, offset, count,
 			// we need to swap all of the information associated with the triangles at index
 			// left and right; that's the verts in the geometry index, the bounds,
 			// and perhaps the SAH planes
-
 			if ( indirectBuffer ) {
 
 				let t = indirectBuffer[ left ];
 				indirectBuffer[ left ] = indirectBuffer[ right ];
 				indirectBuffer[ right ] = t;
-
-				for ( let i = 0; i < 6; i ++ ) {
-
-					let tb = triangleBounds[ left * 6 + i ];
-					triangleBounds[ left * 6 + i ] = triangleBounds[ right * 6 + i ];
-					triangleBounds[ right * 6 + i ] = tb;
-
-				}
 
 			} else {
 
@@ -53,15 +44,16 @@ export function partition( indirectBuffer, index, triangleBounds, offset, count,
 					index[ left * 3 + i ] = index[ right * 3 + i ];
 					index[ right * 3 + i ] = t0;
 
-					let t1 = triangleBounds[ left * 6 + i * 2 + 0 ];
-					triangleBounds[ left * 6 + i * 2 + 0 ] = triangleBounds[ right * 6 + i * 2 + 0 ];
-					triangleBounds[ right * 6 + i * 2 + 0 ] = t1;
-
-					let t2 = triangleBounds[ left * 6 + i * 2 + 1 ];
-					triangleBounds[ left * 6 + i * 2 + 1 ] = triangleBounds[ right * 6 + i * 2 + 1 ];
-					triangleBounds[ right * 6 + i * 2 + 1 ] = t2;
-
 				}
+
+			}
+
+			// swap bounds
+			for ( let i = 0; i < 6; i ++ ) {
+
+				let tb = triangleBounds[ left * 6 + i ];
+				triangleBounds[ left * 6 + i ] = triangleBounds[ right * 6 + i ];
+				triangleBounds[ right * 6 + i ] = tb;
 
 			}
 
