@@ -4,6 +4,8 @@
 name: Run Benchmark Report
 
 on:
+  push:
+    branches: [ master ]
   pull_request:
     paths:
       - 'src/**'
@@ -34,13 +36,13 @@ jobs:
       run: npm ci
 
     - name: Run PR Benchmark
-      run: node ./benchmark/run-benchmark.js --json > pr-benchmark.json
+      run: node ./benchmark/run-benchmark.js --json --long > pr-benchmark.json
 
     - name: Checkout master
       run: git checkout master
 
     - name: Run Master Benchmark
-      run: node ./benchmark/run-benchmark.js --json > main-benchmark.json
+      run: node ./benchmark/run-benchmark.js --json --long > master-benchmark.json
 
     - name: Log Difference
       run: node ./benchmark/make-benchmark-log.js
