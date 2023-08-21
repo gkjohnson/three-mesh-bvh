@@ -1,26 +1,21 @@
-import { Vector3, BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
+import { BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { iterateOverTriangles, setTriangle } from '../utils/TriangleUtilities.js';
+import { iterateOverTriangles } from '../utils/TriangleUtilities.js';
 import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.js';
+import { refit } from './cast/refit.js';
+import { closestPointToPoint } from './cast/closestPointToPoint.js';
+import { bvhcast } from './cast/bvhcast.js';
+import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
 
-const aabb = /* @__PURE__ */ new Box3();
-const aabb2 = /* @__PURE__ */ new Box3();
-const tempMatrix = /* @__PURE__ */ new Matrix4();
 const obb = /* @__PURE__ */ new OrientedBox();
-const obb2 = /* @__PURE__ */ new OrientedBox();
-const temp = /* @__PURE__ */ new Vector3();
-const temp1 = /* @__PURE__ */ new Vector3();
-const temp2 = /* @__PURE__ */ new Vector3();
-const temp3 = /* @__PURE__ */ new Vector3();
-const temp4 = /* @__PURE__ */ new Vector3();
 const tempBox = /* @__PURE__ */ new Box3();
 const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 
@@ -146,164 +141,7 @@ export class MeshBVH {
 
 	refit( nodeIndices = null ) {
 
-		if ( nodeIndices && Array.isArray( nodeIndices ) ) {
-
-			nodeIndices = new Set( nodeIndices );
-
-		}
-
-		const geometry = this.geometry;
-		const indexArr = geometry.index.array;
-		const posAttr = geometry.attributes.position;
-
-		let buffer, uint32Array, uint16Array, float32Array;
-		let byteOffset = 0;
-		const roots = this._roots;
-		for ( let i = 0, l = roots.length; i < l; i ++ ) {
-
-			buffer = roots[ i ];
-			uint32Array = new Uint32Array( buffer );
-			uint16Array = new Uint16Array( buffer );
-			float32Array = new Float32Array( buffer );
-
-			_traverse( 0, byteOffset );
-			byteOffset += buffer.byteLength;
-
-		}
-
-		function _traverse( node32Index, byteOffset, force = false ) {
-
-			const node16Index = node32Index * 2;
-			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
-			if ( isLeaf ) {
-
-				const offset = uint32Array[ node32Index + 6 ];
-				const count = uint16Array[ node16Index + 14 ];
-
-				let minx = Infinity;
-				let miny = Infinity;
-				let minz = Infinity;
-				let maxx = - Infinity;
-				let maxy = - Infinity;
-				let maxz = - Infinity;
-
-				for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
-
-					const index = indexArr[ i ];
-					const x = posAttr.getX( index );
-					const y = posAttr.getY( index );
-					const z = posAttr.getZ( index );
-
-					if ( x < minx ) minx = x;
-					if ( x > maxx ) maxx = x;
-
-					if ( y < miny ) miny = y;
-					if ( y > maxy ) maxy = y;
-
-					if ( z < minz ) minz = z;
-					if ( z > maxz ) maxz = z;
-
-				}
-
-				if (
-					float32Array[ node32Index + 0 ] !== minx ||
-					float32Array[ node32Index + 1 ] !== miny ||
-					float32Array[ node32Index + 2 ] !== minz ||
-
-					float32Array[ node32Index + 3 ] !== maxx ||
-					float32Array[ node32Index + 4 ] !== maxy ||
-					float32Array[ node32Index + 5 ] !== maxz
-				) {
-
-					float32Array[ node32Index + 0 ] = minx;
-					float32Array[ node32Index + 1 ] = miny;
-					float32Array[ node32Index + 2 ] = minz;
-
-					float32Array[ node32Index + 3 ] = maxx;
-					float32Array[ node32Index + 4 ] = maxy;
-					float32Array[ node32Index + 5 ] = maxz;
-
-					return true;
-
-				} else {
-
-					return false;
-
-				}
-
-			} else {
-
-				const left = node32Index + 8;
-				const right = uint32Array[ node32Index + 6 ];
-
-				// the identifying node indices provided by the shapecast function include offsets of all
-				// root buffers to guarantee they're unique between roots so offset left and right indices here.
-				const offsetLeft = left + byteOffset;
-				const offsetRight = right + byteOffset;
-				let forceChildren = force;
-				let includesLeft = false;
-				let includesRight = false;
-
-				if ( nodeIndices ) {
-
-					// if we see that neither the left or right child are included in the set that need to be updated
-					// then we assume that all children need to be updated.
-					if ( ! forceChildren ) {
-
-						includesLeft = nodeIndices.has( offsetLeft );
-						includesRight = nodeIndices.has( offsetRight );
-						forceChildren = ! includesLeft && ! includesRight;
-
-					}
-
-				} else {
-
-					includesLeft = true;
-					includesRight = true;
-
-				}
-
-				const traverseLeft = forceChildren || includesLeft;
-				const traverseRight = forceChildren || includesRight;
-
-				let leftChange = false;
-				if ( traverseLeft ) {
-
-					leftChange = _traverse( left, byteOffset, forceChildren );
-
-				}
-
-				let rightChange = false;
-				if ( traverseRight ) {
-
-					rightChange = _traverse( right, byteOffset, forceChildren );
-
-				}
-
-				const didChange = leftChange || rightChange;
-				if ( didChange ) {
-
-					for ( let i = 0; i < 3; i ++ ) {
-
-						const lefti = left + i;
-						const righti = right + i;
-						const minLeftValue = float32Array[ lefti ];
-						const maxLeftValue = float32Array[ lefti + 3 ];
-						const minRightValue = float32Array[ righti ];
-						const maxRightValue = float32Array[ righti + 3 ];
-
-						float32Array[ node32Index + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
-						float32Array[ node32Index + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
-
-					}
-
-				}
-
-				return didChange;
-
-			}
-
-		}
+		return refit( this, nodeIndices );
 
 	}
 
@@ -508,108 +346,7 @@ export class MeshBVH {
 
 	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
-		// BVHCast function for intersecting two BVHs against each other. Ultimately just uses two recursive shapecast calls rather
-		// than an approach that walks down the tree (see bvhcast.js file for more info).
-
-		let {
-			intersectsRanges,
-			intersectsTriangles,
-		} = callbacks;
-
-		const indexAttr = this.geometry.index;
-		const positionAttr = this.geometry.attributes.position;
-
-		const otherIndexAttr = otherBvh.geometry.index;
-		const otherPositionAttr = otherBvh.geometry.attributes.position;
-
-		tempMatrix.copy( matrixToLocal ).invert();
-
-		const triangle = trianglePool.getPrimitive();
-		const triangle2 = trianglePool.getPrimitive();
-
-		if ( intersectsTriangles ) {
-
-			function iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
-
-				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
-
-					setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPositionAttr );
-					triangle2.a.applyMatrix4( matrixToLocal );
-					triangle2.b.applyMatrix4( matrixToLocal );
-					triangle2.c.applyMatrix4( matrixToLocal );
-					triangle2.needsUpdate = true;
-
-					for ( let i1 = offset1, l1 = offset1 + count1; i1 < l1; i1 ++ ) {
-
-						setTriangle( triangle, i1 * 3, indexAttr, positionAttr );
-						triangle.needsUpdate = true;
-
-						if ( intersectsTriangles( triangle, triangle2, i1, i2, depth1, index1, depth2, index2 ) ) {
-
-							return true;
-
-						}
-
-					}
-
-				}
-
-				return false;
-
-			}
-
-			if ( intersectsRanges ) {
-
-				const originalIntersectsRanges = intersectsRanges;
-				intersectsRanges = function ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
-
-					if ( ! originalIntersectsRanges( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) ) {
-
-						return iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 );
-
-					}
-
-					return true;
-
-				};
-
-			} else {
-
-				intersectsRanges = iterateOverDoubleTriangles;
-
-			}
-
-		}
-
-		otherBvh.getBoundingBox( aabb2 );
-		aabb2.applyMatrix4( matrixToLocal );
-		const result = this.shapecast( {
-
-			intersectsBounds: box => aabb2.intersectsBox( box ),
-
-			intersectsRange: ( offset1, count1, contained, depth1, nodeIndex1, box ) => {
-
-				aabb.copy( box );
-				aabb.applyMatrix4( tempMatrix );
-				return otherBvh.shapecast( {
-
-					intersectsBounds: box => aabb.intersectsBox( box ),
-
-					intersectsRange: ( offset2, count2, contained, depth2, nodeIndex2 ) => {
-
-						return intersectsRanges( offset1, count1, offset2, count2, depth1, nodeIndex1, depth2, nodeIndex2 );
-
-					},
-
-				} );
-
-			}
-
-		} );
-
-		trianglePool.releasePrimitive( triangle );
-		trianglePool.releasePrimitive( triangle2 );
-		return result;
+		return bvhcast( this, otherBvh, matrixToLocal, callbacks );
 
 	}
 
@@ -641,279 +378,27 @@ export class MeshBVH {
 
 	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = { }, target2 = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		if ( ! otherGeometry.boundingBox ) {
-
-			otherGeometry.computeBoundingBox();
-
-		}
-
-		obb.set( otherGeometry.boundingBox.min, otherGeometry.boundingBox.max, geometryToBvh );
-		obb.needsUpdate = true;
-
-		const geometry = this.geometry;
-		const pos = geometry.attributes.position;
-		const index = geometry.index;
-		const otherPos = otherGeometry.attributes.position;
-		const otherIndex = otherGeometry.index;
-		const triangle = trianglePool.getPrimitive();
-		const triangle2 = trianglePool.getPrimitive();
-
-		let tempTarget1 = temp1;
-		let tempTargetDest1 = temp2;
-		let tempTarget2 = null;
-		let tempTargetDest2 = null;
-
-		if ( target2 ) {
-
-			tempTarget2 = temp3;
-			tempTargetDest2 = temp4;
-
-		}
-
-		let closestDistance = Infinity;
-		let closestDistanceTriIndex = null;
-		let closestDistanceOtherTriIndex = null;
-		tempMatrix.copy( geometryToBvh ).invert();
-		obb2.matrix.copy( tempMatrix );
-		this.shapecast(
-			{
-
-				boundsTraverseOrder: box => {
-
-					return obb.distanceToBox( box );
-
-				},
-
-				intersectsBounds: ( box, isLeaf, score ) => {
-
-					if ( score < closestDistance && score < maxThreshold ) {
-
-						// if we know the triangles of this bounds will be intersected next then
-						// save the bounds to use during triangle checks.
-						if ( isLeaf ) {
-
-							obb2.min.copy( box.min );
-							obb2.max.copy( box.max );
-							obb2.needsUpdate = true;
-
-						}
-
-						return true;
-
-					}
-
-					return false;
-
-				},
-
-				intersectsRange: ( offset, count ) => {
-
-					if ( otherGeometry.boundsTree ) {
-
-						// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
-						// the closest bounds in the other geometry to check.
-						return otherGeometry.boundsTree.shapecast( {
-							boundsTraverseOrder: box => {
-
-								return obb2.distanceToBox( box );
-
-							},
-
-							intersectsBounds: ( box, isLeaf, score ) => {
-
-								return score < closestDistance && score < maxThreshold;
-
-							},
-
-							intersectsRange: ( otherOffset, otherCount ) => {
-
-								for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
-
-									setTriangle( triangle2, i2, otherIndex, otherPos );
-									triangle2.a.applyMatrix4( geometryToBvh );
-									triangle2.b.applyMatrix4( geometryToBvh );
-									triangle2.c.applyMatrix4( geometryToBvh );
-									triangle2.needsUpdate = true;
-
-									for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
-
-										setTriangle( triangle, i, index, pos );
-										triangle.needsUpdate = true;
-
-										const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
-										if ( dist < closestDistance ) {
-
-											tempTargetDest1.copy( tempTarget1 );
-
-											if ( tempTargetDest2 ) {
-
-												tempTargetDest2.copy( tempTarget2 );
-
-											}
-
-											closestDistance = dist;
-											closestDistanceTriIndex = i / 3;
-											closestDistanceOtherTriIndex = i2 / 3;
-
-										}
-
-										// stop traversal if we find a point that's under the given threshold
-										if ( dist < minThreshold ) {
-
-											return true;
-
-										}
-
-									}
-
-								}
-
-							},
-						} );
-
-					} else {
-
-						// If no bounds tree then we'll just check every triangle.
-						const triCount = otherIndex ? otherIndex.count : otherPos.count;
-						for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
-
-							setTriangle( triangle2, i2, otherIndex, otherPos );
-							triangle2.a.applyMatrix4( geometryToBvh );
-							triangle2.b.applyMatrix4( geometryToBvh );
-							triangle2.c.applyMatrix4( geometryToBvh );
-							triangle2.needsUpdate = true;
-
-							for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
-
-								setTriangle( triangle, i, index, pos );
-								triangle.needsUpdate = true;
-
-								const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
-								if ( dist < closestDistance ) {
-
-									tempTargetDest1.copy( tempTarget1 );
-
-									if ( tempTargetDest2 ) {
-
-										tempTargetDest2.copy( tempTarget2 );
-
-									}
-
-									closestDistance = dist;
-									closestDistanceTriIndex = i / 3;
-									closestDistanceOtherTriIndex = i2 / 3;
-
-								}
-
-								// stop traversal if we find a point that's under the given threshold
-								if ( dist < minThreshold ) {
-
-									return true;
-
-								}
-
-							}
-
-						}
-
-					}
-
-				},
-
-			}
-
+		return closestPointToGeometry(
+			this,
+			otherGeometry,
+			geometryToBvh,
+			target1,
+			target2,
+			minThreshold,
+			maxThreshold,
 		);
-
-		trianglePool.releasePrimitive( triangle );
-		trianglePool.releasePrimitive( triangle2 );
-
-		if ( closestDistance === Infinity ) return null;
-
-		if ( ! target1.point ) target1.point = tempTargetDest1.clone();
-		else target1.point.copy( tempTargetDest1 );
-		target1.distance = closestDistance,
-		target1.faceIndex = closestDistanceTriIndex;
-
-		if ( target2 ) {
-
-			if ( ! target2.point ) target2.point = tempTargetDest2.clone();
-			else target2.point.copy( tempTargetDest2 );
-			target2.point.applyMatrix4( tempMatrix );
-			tempTargetDest1.applyMatrix4( tempMatrix );
-			target2.distance = tempTargetDest1.sub( target2.point ).length();
-			target2.faceIndex = closestDistanceOtherTriIndex;
-
-		}
-
-		return target1;
 
 	}
 
 	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		// early out if under minThreshold
-		// skip checking if over maxThreshold
-		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-		// returns Infinity if no value found
-		const minThresholdSq = minThreshold * minThreshold;
-		const maxThresholdSq = maxThreshold * maxThreshold;
-		let closestDistanceSq = Infinity;
-		let closestDistanceTriIndex = null;
-		this.shapecast(
-
-			{
-
-				boundsTraverseOrder: box => {
-
-					temp.copy( point ).clamp( box.min, box.max );
-					return temp.distanceToSquared( point );
-
-				},
-
-				intersectsBounds: ( box, isLeaf, score ) => {
-
-					return score < closestDistanceSq && score < maxThresholdSq;
-
-				},
-
-				intersectsTriangle: ( tri, triIndex ) => {
-
-					tri.closestPointToPoint( point, temp );
-					const distSq = point.distanceToSquared( temp );
-					if ( distSq < closestDistanceSq ) {
-
-						temp1.copy( temp );
-						closestDistanceSq = distSq;
-						closestDistanceTriIndex = triIndex;
-
-					}
-
-					if ( distSq < minThresholdSq ) {
-
-						return true;
-
-					} else {
-
-						return false;
-
-					}
-
-				},
-
-			}
-
+		return closestPointToPoint(
+			this,
+			point,
+			target,
+			minThreshold,
+			maxThreshold,
 		);
-
-		if ( closestDistanceSq === Infinity ) return null;
-
-		const closestDistance = Math.sqrt( closestDistanceSq );
-
-		if ( ! target.point ) target.point = temp1.clone();
-		else target.point.copy( temp1 );
-		target.distance = closestDistance,
-		target.faceIndex = closestDistanceTriIndex;
-
-		return target;
 
 	}
 
