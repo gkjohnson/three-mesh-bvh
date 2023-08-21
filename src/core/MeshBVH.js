@@ -12,7 +12,7 @@ import { refit } from './cast/refit.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
-import { ExtendedTrianglePool } from '../utils/ExtendedExtendedTrianglePool.js';
+import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();

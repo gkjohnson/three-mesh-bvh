@@ -1,6 +1,6 @@
 import { Box3, Matrix4 } from 'three';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
-import { ExtendedTrianglePool } from '../utils/ExtendedExtendedExtendedTrianglePool.js';
+import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
