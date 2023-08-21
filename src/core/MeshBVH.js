@@ -2,8 +2,6 @@ import { BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
-import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
-import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { iterateOverTriangles } from '../utils/TriangleUtilities.js';
 import { raycast } from './cast/raycast.js';
@@ -14,10 +12,10 @@ import { refit } from './cast/refit.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
+import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 
 export class MeshBVH {
 
@@ -273,7 +271,7 @@ export class MeshBVH {
 	shapecast( callbacks ) {
 
 		const geometry = this.geometry;
-		const triangle = trianglePool.getPrimitive();
+		const triangle = ExtendedTrianglePool.getPrimitive();
 		let {
 			boundsTraverseOrder,
 			intersectsBounds,
@@ -338,7 +336,7 @@ export class MeshBVH {
 
 		}
 
-		trianglePool.releasePrimitive( triangle );
+		ExtendedTrianglePool.releasePrimitive( triangle );
 
 		return result;
 
