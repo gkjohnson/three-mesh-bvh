@@ -155,7 +155,7 @@ export function closestPointToGeometry(
 				} else {
 
 					// If no bounds tree then we'll just check every triangle.
-					const triCount = getTriCount( otherGeometry );
+					const triCount = getTriCount( otherGeometry ) * 3;
 					for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
 
 						setTriangle( triangle2, i2, otherIndex, otherPos );
