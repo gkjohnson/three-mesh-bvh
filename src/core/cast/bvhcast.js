@@ -1,12 +1,10 @@
 import { Box3, Matrix4 } from 'three';
-import { ExtendedTriangle } from '../../math/ExtendedTriangle.js';
-import { PrimitivePool } from '../../utils/PrimitivePool.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
+import { ExtendedTrianglePool } from '../utils/ExtendedExtendedExtendedTrianglePool.js';
 
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
 const tempMatrix = /* @__PURE__ */ new Matrix4();
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
 
 export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
@@ -26,8 +24,8 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	tempMatrix.copy( matrixToLocal ).invert();
 
-	const triangle = trianglePool.getPrimitive();
-	const triangle2 = trianglePool.getPrimitive();
+	const triangle = ExtendedTrianglePool.getPrimitive();
+	const triangle2 = ExtendedTrianglePool.getPrimitive();
 
 	if ( intersectsTriangles ) {
 
@@ -109,8 +107,8 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	} );
 
-	trianglePool.releasePrimitive( triangle );
-	trianglePool.releasePrimitive( triangle2 );
+	ExtendedTrianglePool.releasePrimitive( triangle );
+	ExtendedTrianglePool.releasePrimitive( triangle2 );
 	return result;
 
 }
