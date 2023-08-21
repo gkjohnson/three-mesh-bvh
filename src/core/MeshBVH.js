@@ -1,4 +1,4 @@
-import { Vector3, BufferAttribute, Box3, FrontSide } from 'three';
+import { BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
@@ -8,14 +8,13 @@ import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.js';
+import { refit } from './cast/refit.js';
+import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
-import { refit } from './cast/refit.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
-const temp = /* @__PURE__ */ new Vector3();
-const temp1 = /* @__PURE__ */ new Vector3();
 const tempBox = /* @__PURE__ */ new Box3();
 
 export class MeshBVH {
@@ -385,75 +384,27 @@ export class MeshBVH {
 
 	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = { }, target2 = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		return closestPointToGeometry( this, otherGeometry, geometryToBvh, target1, target2, minThreshold, maxThreshold );
+		return closestPointToGeometry(
+			this,
+			otherGeometry,
+			geometryToBvh,
+			target1,
+			target2,
+			minThreshold,
+			maxThreshold,
+		);
 
 	}
 
 	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		// early out if under minThreshold
-		// skip checking if over maxThreshold
-		// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-		// returns Infinity if no value found
-		const minThresholdSq = minThreshold * minThreshold;
-		const maxThresholdSq = maxThreshold * maxThreshold;
-		let closestDistanceSq = Infinity;
-		let closestDistanceTriIndex = null;
-		this.shapecast(
-
-			{
-
-				boundsTraverseOrder: box => {
-
-					temp.copy( point ).clamp( box.min, box.max );
-					return temp.distanceToSquared( point );
-
-				},
-
-				intersectsBounds: ( box, isLeaf, score ) => {
-
-					return score < closestDistanceSq && score < maxThresholdSq;
-
-				},
-
-				intersectsTriangle: ( tri, triIndex ) => {
-
-					tri.closestPointToPoint( point, temp );
-					const distSq = point.distanceToSquared( temp );
-					if ( distSq < closestDistanceSq ) {
-
-						temp1.copy( temp );
-						closestDistanceSq = distSq;
-						closestDistanceTriIndex = triIndex;
-
-					}
-
-					if ( distSq < minThresholdSq ) {
-
-						return true;
-
-					} else {
-
-						return false;
-
-					}
-
-				},
-
-			}
-
+		return closestPointToPoint(
+			this,
+			point,
+			target,
+			minThreshold,
+			maxThreshold,
 		);
-
-		if ( closestDistanceSq === Infinity ) return null;
-
-		const closestDistance = Math.sqrt( closestDistanceSq );
-
-		if ( ! target.point ) target.point = temp1.clone();
-		else target.point.copy( temp1 );
-		target.distance = closestDistance,
-		target.faceIndex = closestDistanceTriIndex;
-
-		return target;
 
 	}
 
