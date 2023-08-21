@@ -60,7 +60,7 @@ info.forEach( v => {
 	if ( isOverThreshold( v ) ) {
 
 		const line = [
-			pad( v.key, 40 ),
+			'  ' + pad( v.key, 40 ),
 			pad( `${ v.before.toFixed( 4 ) } ${ v.unit }`, 15 ),
 			pad( `${ v.after.toFixed( 4 ) } ${ v.unit }`, 15 ),
 			pad( `${ v.delta.toFixed( 4 ) } ${ v.unit }`, 15 ),
@@ -95,6 +95,12 @@ info.forEach( v => {
 			pad( `${ v.delta.toFixed( 4 ) } ${ v.unit }`, 15 ),
 			pad( `${ ( 100 * v.perc ).toFixed( 3 ) } %`, 15 ),
 		];
+
+	}
+
+	if ( v.key[ 0 ] === '*' ) {
+
+		console.log();
 
 	}
 
