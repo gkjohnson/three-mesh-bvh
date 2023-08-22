@@ -2,6 +2,7 @@ import { Vector3, Matrix4 } from 'three';
 import { OrientedBox } from '../../math/OrientedBox.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
+import { getTriCount } from '../build/geometryUtils.js';
 
 const tempMatrix = /* @__PURE__ */ new Matrix4();
 const obb = /* @__PURE__ */ new OrientedBox();
@@ -154,7 +155,7 @@ export function closestPointToGeometry(
 				} else {
 
 					// If no bounds tree then we'll just check every triangle.
-					const triCount = otherIndex ? otherIndex.count : otherPos.count;
+					const triCount = getTriCount( otherGeometry ) * 3;
 					for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
 
 						setTriangle( triangle2, i2, otherIndex, otherPos );

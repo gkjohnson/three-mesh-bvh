@@ -1,5 +1,6 @@
 import { FLOAT32_EPSILON } from '../Constants.js';
 import { makeEmptyBounds } from '../../utils/ArrayBoxUtilities.js';
+import { getTriCount } from './geometryUtils.js';
 
 // computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
 // centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
@@ -122,7 +123,7 @@ export function computeTriangleBounds( geo, fullBounds ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index.array;
-	const triCount = index.length / 3;
+	const triCount = getTriCount( geo );
 	const triangleBounds = new Float32Array( triCount * 6 );
 	const normalized = posAttr.normalized;
 
