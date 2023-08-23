@@ -8,7 +8,7 @@
   "types": "src/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "start": "concurrently \"cd example && parcel watch ./*.html --dist-dir ./dev-bundle/ --public-url . --no-cache --no-hmr\" \"static-server\"",
+    "start": "parcel serve ./example/*.html --dist-dir ./example/dev-bundle/ --no-hmr",
     "build": "rollup -c",
     "build-examples": "cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-content-hash",
     "test": "cd test && jest",
@@ -62,7 +62,6 @@
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "babel-jest": "^27.2.4",
-    "concurrently": "^5.3.0",
     "eslint": "^7.32.0",
     "eslint-config-mdcs": "^5.0.0",
     "eslint-plugin-jest": "^23.20.0",
