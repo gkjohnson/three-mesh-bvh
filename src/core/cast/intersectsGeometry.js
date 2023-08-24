@@ -81,6 +81,7 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 
 					for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
+						// TODO INDIRECT
 						const ti = bvh.resolveTriangleIndex( i );
 
 						// this triangle needs to be transformed into the current BVH coordinate frame
@@ -107,6 +108,7 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 			// if we're just dealing with raw geometry
 			for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
+				// TODO INDIRECT
 				const ti = bvh.resolveTriangleIndex( i );
 
 				// this triangle needs to be transformed into the current BVH coordinate frame

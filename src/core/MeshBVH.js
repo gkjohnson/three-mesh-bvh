@@ -295,6 +295,7 @@ export class MeshBVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
+					// TODO: INDIRECT
 					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				}
@@ -309,6 +310,7 @@ export class MeshBVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
+					// TODO: INDIRECT
 					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				};

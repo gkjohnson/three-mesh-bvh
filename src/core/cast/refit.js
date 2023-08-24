@@ -43,6 +43,8 @@ export function refit( bvh, nodeIndices = null ) {
 			let maxy = - Infinity;
 			let maxz = - Infinity;
 
+			/* @ifdef INDIRECT */
+
 			for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
 				const t = 3 * bvh.resolveTriangleIndex( i );
@@ -64,9 +66,31 @@ export function refit( bvh, nodeIndices = null ) {
 					if ( z < minz ) minz = z;
 					if ( z > maxz ) maxz = z;
 
+
 				}
 
 			}
+
+			/* @else */
+
+			for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i ++ ) {
+
+				const x = posAttr.getX( i );
+				const y = posAttr.getY( i );
+				const z = posAttr.getZ( i );
+
+				if ( x < minx ) minx = x;
+				if ( x > maxx ) maxx = x;
+
+				if ( y < miny ) miny = y;
+				if ( y > maxy ) maxy = y;
+
+				if ( z < minz ) minz = z;
+				if ( z > maxz ) maxz = z;
+
+			}
+
+			/* @endif */
 
 			if (
 				float32Array[ node32Index + 0 ] !== minx ||

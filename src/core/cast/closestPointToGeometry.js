@@ -111,6 +111,7 @@ export function closestPointToGeometry(
 
 							for ( let i2 = otherOffset, l2 = otherOffset + otherCount; i2 < l2; i2 ++ ) {
 
+								// TODO INDIRECT
 								const ti2 = otherBvh.resolveTriangleIndex( i2 );
 								setTriangle( triangle2, 3 * ti2, otherIndex, otherPos );
 								triangle2.a.applyMatrix4( geometryToBvh );
@@ -120,6 +121,7 @@ export function closestPointToGeometry(
 
 								for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
+									// TODO INDIRECT
 									const ti = bvh.resolveTriangleIndex( i );
 									setTriangle( triangle, 3 * ti, index, pos );
 									triangle.needsUpdate = true;
@@ -169,6 +171,7 @@ export function closestPointToGeometry(
 
 						for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
+							// TODO INDIRECT
 							const ti = bvh.resolveTriangleIndex( i );
 							setTriangle( triangle, 3 * ti, index, pos );
 							triangle.needsUpdate = true;

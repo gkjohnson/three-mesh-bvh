@@ -23,6 +23,7 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
+		// TODO INDIRECT
 		intersectTris( bvh, side, ray, offset, count, intersects );
 
 	} else {

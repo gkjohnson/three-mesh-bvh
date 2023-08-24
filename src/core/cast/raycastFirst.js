@@ -26,6 +26,8 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
+
+		// TODO INDIRECT
 		return intersectClosestTri( bvh, side, ray, offset, count );
 
 	} else {
