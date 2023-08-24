@@ -1,7 +1,6 @@
 import simpleGit from 'simple-git';
 import { exec } from 'child_process';
 
-const CRITICAL_ONLY = process.argv.includes( '--critical' );
 ( async() => {
 
 	const git = simpleGit();
@@ -26,7 +25,12 @@ const CRITICAL_ONLY = process.argv.includes( '--critical' );
 
 	console.log( 'Comparing Benchmarks' );
 	console.log();
-	await runScript( 'node ./benchmark/compare-bench-json.js' + ( CRITICAL_ONLY ? ' --critical' : '' ) );
+
+	await runScript( 'node ./benchmark/compare-bench-json.js' );
+	console.log( '<details><summary>Full Benchmark</summary>' );
+
+	await runScript( 'node ./benchmark/compare-bench-json.js --critical' );
+	console.log( '</details>' );
 
 	await git.checkout( currentBranch );
 

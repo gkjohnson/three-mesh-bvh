@@ -45,7 +45,7 @@ for ( let i = 0; i < prData.length; i ++ ) {
 
 		if ( result ) {
 
-			finalTable += `| ${ prData.name } | | | | |`;
+			finalTable += `| ${ prData.name } | | | | |\n`;
 			finalTable += result;
 
 		}
