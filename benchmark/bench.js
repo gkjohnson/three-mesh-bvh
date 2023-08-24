@@ -1,8 +1,10 @@
 import { logTable } from './logTable.js';
 
-let _maxTime = 3000;
-let _maxIterations = 100;
-let _prewarmIterations = 5;
+const LOG_JSON = process.argv.includes( '--json' );
+const LONG_RUNNING = process.argv.includes( '--long' );
+let _maxTime = LONG_RUNNING ? 15000 : 3000;
+let _maxIterations = LONG_RUNNING ? 1000 : 100;
+let _prewarmIterations = LONG_RUNNING ? 15 : 5;
 
 const _beforeAll = [];
 const _beforeEach = [];
@@ -12,6 +14,16 @@ const _bench = [];
 
 const _suites = [];
 let _current = null;
+
+process.on( 'exit', () => {
+
+	if ( LOG_JSON ) {
+
+		console.log( JSON.stringify( _suites, undefined, '  ' ) );
+
+	}
+
+} );
 
 function findMedian( values ) {
 
@@ -91,8 +103,12 @@ export function suite( name, cb ) {
 	_suites.push( { name, results: _current } );
 	_current = null;
 
-	logTable( _suites[ 0 ], [ 'mean', 'median', 'min', 'max' ] );
-	_suites.length = 0;
+	if ( ! LOG_JSON ) {
+
+		logTable( _suites[ 0 ], [ 'mean', 'median', 'min', 'max' ] );
+		_suites.length = 0;
+
+	}
 
 	_afterAll.length = 0;
 	_afterEach.length = 0;

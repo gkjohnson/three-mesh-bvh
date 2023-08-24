@@ -35,10 +35,15 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
-console.log( '**Extremes**' );
-logExtremes( bvh );
-console.log();
+const LOG_JSON = process.argv.includes( '--json' );
+if ( ! LOG_JSON ) {
+
+	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
+	console.log( '**Extremes**' );
+	logExtremes( bvh );
+	console.log();
+
+}
 
 suite( 'BVH General', () => {
 
