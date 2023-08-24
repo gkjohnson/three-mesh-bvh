@@ -9,7 +9,7 @@ const __dirname = dirname( __filename );
 const prData = JSON.parse( fs.readFileSync( join( __dirname, '../pr-benchmark.json' ) ) );
 const maData = JSON.parse( fs.readFileSync( join( __dirname, '../master-benchmark.json' ) ) );
 
-const exclude = [ 'iterations', 'name' ];
+const exclude = [ 'iterations', 'name', 'min', 'max' ];
 for ( let i = 0; i < prData.length; i ++ ) {
 
 	const prInfo = prData[ i ];
@@ -34,9 +34,9 @@ for ( let i = 0; i < prData.length; i ++ ) {
 			const delta = prValue - maValue;
 			const perc = delta === 0 ? 0 : delta / maValue;
 
-			if ( CRITICAL_ONLY && perc > 3 || ! CRITICAL_ONLY ) {
+			if ( CRITICAL_ONLY && perc > 0.03 || ! CRITICAL_ONLY ) {
 
-				const star = perc > 1 ? '*&nbsp;' : '&nbsp;&nbsp;';
+				const star = perc > 0.03 ? '*&nbsp;' : '&nbsp;&nbsp;';
 				result += `| ${ star } ${ key } | ${ maValue.toFixed( 5 ) } ms | ${ prValue.toFixed( 5 ) } ms | ${ delta.toFixed( 5 ) } ms | ${ ( perc * 100 ).toFixed( 5 ) } % |\n`;
 
 			}
