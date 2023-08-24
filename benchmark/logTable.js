@@ -1,13 +1,15 @@
 
 const NAME_WIDTH = 35;
 const COLUMN_WIDTH = 20;
+const SEPARATOR = '|';
+const SPACE = '&nbsp;&nbsp;&nbsp;';
 
-function pad( str, len ) {
+function pad( str, len, char = ' ' ) {
 
 	let res = str;
 	while ( res.length < len ) {
 
-		res += ' ';
+		res += char;
 
 	}
 
@@ -28,7 +30,7 @@ export function logObjectAsRows( info, exclude = [ 'name', 'iterations', 'table'
 		} else {
 
 			const value = typeof info[ key ] === 'string' ? info[ key ] : `${ info[ key ].toFixed( 5 ) } ms`;
-			console.log( '|' + pad( pad( '', depth ) + key, NAME_WIDTH ) + '|' + pad( value, COLUMN_WIDTH ) + '|' );
+			console.log( SEPARATOR + pad( pad( '', depth, SPACE ) + key, NAME_WIDTH ) + SEPARATOR + pad( value, COLUMN_WIDTH ) + SEPARATOR );
 
 		}
 
@@ -38,20 +40,29 @@ export function logObjectAsRows( info, exclude = [ 'name', 'iterations', 'table'
 
 export function logTable( info, columns = [] ) {
 
-	console.log( `*${ info.name }*` );
+	if ( info.name ) {
+
+		console.log( `**${ info.name }**` );
+
+	}
 
 	if ( columns.length > 0 ) {
 
-		let row = '|' + pad( '', NAME_WIDTH ) + '|';
+		let row = SEPARATOR + pad( '', NAME_WIDTH ) + SEPARATOR;
 		let split = '|---|';
 		columns.forEach( key => {
 
-			row += pad( key, COLUMN_WIDTH ) + '|';
+			row += pad( key, COLUMN_WIDTH ) + SEPARATOR;
 			split += '---|';
 
 		} );
 		console.log( row );
 		console.log( split );
+
+	} else {
+
+		console.log( '| | Values |' );
+		console.log( '|---|---|' );
 
 	}
 
@@ -59,22 +70,22 @@ export function logTable( info, columns = [] ) {
 
 		if ( data.table ) {
 
-			console.log( '|' + pad( data.name, NAME_WIDTH ) + '|' );
+			console.log( SEPARATOR + pad( data.name, NAME_WIDTH ) + SEPARATOR );
 			logObjectAsRows( data.table );
 
 		} else if ( columns.length > 0 ) {
 
-			let row = '|' + pad( data.name, NAME_WIDTH ) + '|';
+			let row = SEPARATOR + pad( data.name, NAME_WIDTH ) + SEPARATOR;
 			columns.forEach( key => {
 
 				if ( ! ( key in data ) ) {
 
-					row += pad( `--`, COLUMN_WIDTH ) + '|';
+					row += pad( `--`, COLUMN_WIDTH ) + SEPARATOR;
 
 				} else {
 
 					const value = typeof data[ key ] === 'string' ? data[ key ] : `${ data[ key ].toFixed( 5 ) } ms`;
-					row += pad( value, COLUMN_WIDTH ) + '|';
+					row += pad( value, COLUMN_WIDTH ) + SEPARATOR;
 
 				}
 
@@ -83,7 +94,7 @@ export function logTable( info, columns = [] ) {
 
 		} else {
 
-			console.log( '|' + pad( data.name, NAME_WIDTH ) + '|' );
+			console.log( SEPARATOR + pad( data.name, NAME_WIDTH ) + SEPARATOR );
 			logObjectAsRows( data );
 
 		}

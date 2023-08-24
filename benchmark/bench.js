@@ -11,6 +11,7 @@ const _afterEach = [];
 const _bench = [];
 
 const _suites = [];
+const _tables = [];
 let _current = null;
 
 function findMedian( values ) {
@@ -88,7 +89,7 @@ export function suite( name, cb ) {
 
 		} else {
 
-			_current.push( {
+			_tables.push( {
 				name,
 				table: table(),
 			} );
@@ -103,6 +104,15 @@ export function suite( name, cb ) {
 	_current = null;
 
 	logTable( _suites[ 0 ], [ 'mean', 'median', 'min', 'max' ] );
+
+	if ( _tables.length ) {
+
+		_suites[ 0 ].results = _tables;
+		delete _suites[ 0 ].name;
+		logTable( _suites[ 0 ] );
+
+	}
+
 	_suites.length = 0;
 
 	_afterAll.length = 0;
@@ -110,6 +120,7 @@ export function suite( name, cb ) {
 	_beforeAll.length = 0;
 	_beforeEach.length = 0;
 	_bench.length = 0;
+	_tables.length = 0;
 
 }
 
