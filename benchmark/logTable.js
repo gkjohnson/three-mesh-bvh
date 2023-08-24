@@ -28,7 +28,7 @@ export function logObjectAsRows( info, exclude = [ 'name', 'iterations', 'table'
 		} else {
 
 			const value = typeof info[ key ] === 'string' ? info[ key ] : `${ info[ key ].toFixed( 5 ) } ms`;
-			console.log( pad( pad( '', depth ) + key, NAME_WIDTH ) + pad( value, COLUMN_WIDTH ) );
+			console.log( '|' + pad( pad( '', depth ) + key, NAME_WIDTH ) + '|' + pad( value, COLUMN_WIDTH ) + '|' );
 
 		}
 
@@ -42,13 +42,16 @@ export function logTable( info, columns = [] ) {
 
 	if ( columns.length > 0 ) {
 
-		let row = pad( '', NAME_WIDTH );
+		let row = '|' + pad( '', NAME_WIDTH ) + '|';
+		let split = '|---|';
 		columns.forEach( key => {
 
-			row += pad( key, COLUMN_WIDTH );
+			row += pad( key, COLUMN_WIDTH ) + '|';
+			split += '---|';
 
 		} );
 		console.log( row );
+		console.log( split );
 
 	}
 
@@ -56,22 +59,22 @@ export function logTable( info, columns = [] ) {
 
 		if ( data.table ) {
 
-			console.log( pad( data.name, NAME_WIDTH ) );
+			console.log( '|' + pad( data.name, NAME_WIDTH ) + '|' );
 			logObjectAsRows( data.table );
 
 		} else if ( columns.length > 0 ) {
 
-			let row = pad( data.name, NAME_WIDTH );
+			let row = '|' + pad( data.name, NAME_WIDTH ) + '|';
 			columns.forEach( key => {
 
 				if ( ! ( key in data ) ) {
 
-					row += pad( `--`, COLUMN_WIDTH );
+					row += pad( `--`, COLUMN_WIDTH ) + '|';
 
 				} else {
 
 					const value = typeof data[ key ] === 'string' ? data[ key ] : `${ data[ key ].toFixed( 5 ) } ms`;
-					row += pad( value, COLUMN_WIDTH );
+					row += pad( value, COLUMN_WIDTH ) + '|';
 
 				}
 
@@ -80,7 +83,7 @@ export function logTable( info, columns = [] ) {
 
 		} else {
 
-			console.log( pad( data.name, NAME_WIDTH ) );
+			console.log( '|' + pad( data.name, NAME_WIDTH ) + '|' );
 			logObjectAsRows( data );
 
 		}

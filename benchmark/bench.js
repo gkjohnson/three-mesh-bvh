@@ -102,7 +102,7 @@ export function suite( name, cb ) {
 	_suites.push( { name, results: _current } );
 	_current = null;
 
-	logTable( _suites[ 0 ] );//, [ 'mean', 'median', 'min', 'max' ] );
+	logTable( _suites[ 0 ], [ 'mean', 'median', 'min', 'max' ] );
 	_suites.length = 0;
 
 	_afterAll.length = 0;
@@ -153,5 +153,11 @@ export function afterAll( cb ) {
 export function appendTable( name, func ) {
 
 	_bench.push( { name, table: func } );
+
+}
+
+export function insertGap() {
+
+	appendTable( '', () => ( {} ) );
 
 }

@@ -6,6 +6,7 @@ import {
 	afterAll,
 	afterEach,
 	appendTable,
+	insertGap,
 } from './bench.js';
 import {
 	Mesh,
@@ -37,205 +38,208 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-// suite( 'BVH General', () => {
+suite( 'BVH General', () => {
 
-// 	let geometry, bvh, serialized;
-// 	beforeAll( () => {
+	let geometry, bvh, serialized;
+	beforeAll( () => {
 
-// 		geometry = new TorusGeometry( 5, 5, 700, 300 );
-// 		bvh = new MeshBVH( geometry );
-// 		serialized = MeshBVH.serialize( bvh );
+		geometry = new TorusGeometry( 5, 5, 700, 300 );
+		bvh = new MeshBVH( geometry );
+		serialized = MeshBVH.serialize( bvh );
 
-// 	} );
+	} );
 
-// 	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
-// 	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
+	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
+	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
 
-// } );
+} );
 
-// suite( 'BVH Casts', () => {
+suite( 'BVH Casts', () => {
 
-// 	let geometry,
-// 		mesh,
-// 		bvh,
-// 		intersectBvh,
-// 		raycaster,
-// 		firstHitRaycaster,
-// 		box,
-// 		boxMat,
-// 		sphere,
-// 		refitHints,
-// 		intersectGeometry,
-// 		intersectMatrix,
-// 		target1,
-// 		target2,
-// 		point;
+	let geometry,
+		mesh,
+		bvh,
+		intersectBvh,
+		raycaster,
+		firstHitRaycaster,
+		box,
+		boxMat,
+		sphere,
+		refitHints,
+		intersectGeometry,
+		intersectMatrix,
+		target1,
+		target2,
+		point;
 
-// 	beforeAll( () => {
+	beforeAll( () => {
 
-// 		mesh = new Mesh( geometry );
-// 		geometry = new TorusGeometry( 5, 5, 700, 300 );
-// 		bvh = new MeshBVH( geometry );
+		mesh = new Mesh( geometry );
+		geometry = new TorusGeometry( 5, 5, 700, 300 );
+		bvh = new MeshBVH( geometry );
 
-// 		raycaster = new Raycaster();
-// 		raycaster.ray.origin.set( 10, 20, 30 );
-// 		raycaster.ray.direction.set( - 1, - 2, - 3 );
+		raycaster = new Raycaster();
+		raycaster.ray.origin.set( 10, 20, 30 );
+		raycaster.ray.direction.set( - 1, - 2, - 3 );
 
-// 		firstHitRaycaster = new Raycaster();
-// 		firstHitRaycaster.firstHitOnly = true;
-// 		firstHitRaycaster.ray.origin.set( 10, 20, 30 );
-// 		firstHitRaycaster.ray.direction.set( - 1, - 2, - 3 );
+		firstHitRaycaster = new Raycaster();
+		firstHitRaycaster.firstHitOnly = true;
+		firstHitRaycaster.ray.origin.set( 10, 20, 30 );
+		firstHitRaycaster.ray.direction.set( - 1, - 2, - 3 );
 
-// 		intersectGeometry = new TorusGeometry( 5, 5, 30, 10 );
-// 		intersectBvh = new MeshBVH( intersectGeometry );
-// 		intersectMatrix = new Matrix4().compose( new Vector3(), new Quaternion(), new Vector3( 0.1, 0.1, 0.1 ) );
+		intersectGeometry = new TorusGeometry( 5, 5, 30, 10 );
+		intersectBvh = new MeshBVH( intersectGeometry );
+		intersectMatrix = new Matrix4().compose( new Vector3(), new Quaternion(), new Vector3( 0.1, 0.1, 0.1 ) );
 
-// 		point = new Vector3();
+		point = new Vector3();
 
-// 		const intersectSphere = new Sphere( new Vector3(), 0.5 );
-// 		refitHints = new Set();
-// 		bvh.shapecast( {
+		const intersectSphere = new Sphere( new Vector3(), 0.5 );
+		refitHints = new Set();
+		bvh.shapecast( {
 
-// 			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
 
-// 				if ( box.intersectsSphere( intersectSphere ) ) {
+				if ( box.intersectsSphere( intersectSphere ) ) {
 
-// 					refitHints.add( nodeIndex );
-// 					return true;
+					refitHints.add( nodeIndex );
+					return true;
 
-// 				}
+				}
 
-// 				return false;
+				return false;
 
-// 			}
+			}
 
-// 		} );
+		} );
 
 
-// 	} );
+	} );
 
-// 	beforeEach( () => {
+	beforeEach( () => {
 
-// 		intersectGeometry.boundsTree = null;
-// 		geometry.boundsTree = bvh;
-// 		sphere = new Sphere( new Vector3(), 3 );
+		intersectGeometry.boundsTree = null;
+		geometry.boundsTree = bvh;
+		sphere = new Sphere( new Vector3(), 3 );
 
-// 		box = new Box3();
-// 		box.min.set( - 1, - 1, - 1 );
-// 		box.min.set( 1, 1, 1 );
+		box = new Box3();
+		box.min.set( - 1, - 1, - 1 );
+		box.min.set( 1, 1, 1 );
 
-// 		boxMat = new Matrix4().identity();
+		boxMat = new Matrix4().identity();
 
-// 		target1 = {};
-// 		target2 = {};
+		target1 = {};
+		target2 = {};
 
-// 	} );
+	} );
 
-// 	bench( 'Compute BVH', 				() => geometry.computeBoundsTree() );
-// 	bench( 'Raycast', 					() => mesh.raycast( raycaster, [] ) );
-// 	bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
-// 	bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
+	bench( 'Compute BVH', 				() => geometry.computeBoundsTree() );
+	bench( 'Raycast', 					() => mesh.raycast( raycaster, [] ) );
+	bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
+	bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
 
-// 		intersectsBounds: box => sphere.intersectsBox( box ),
-// 		intersectsTriangle: tri => tri.intersectsSphere( sphere ),
+		intersectsBounds: box => sphere.intersectsBox( box ),
+		intersectsTriangle: tri => tri.intersectsSphere( sphere ),
 
-// 	} ) );
-// 	bench( 'IntersectsSphere', 			() => bvh.intersectsSphere( sphere ) );
-// 	bench( 'IntersectsBox', 			() => bvh.intersectsBox( box, boxMat ) );
+	} ) );
+	bench( 'IntersectsSphere', 			() => bvh.intersectsSphere( sphere ) );
+	bench( 'IntersectsBox', 			() => bvh.intersectsBox( box, boxMat ) );
 
-// 	bench( 'DistanceToGeometry w/ BVH',
-// 		() => intersectGeometry.boundsTree = intersectBvh,
-// 		() => bvh.closestPointToGeometry( intersectGeometry, intersectMatrix, target1, target2 ).distance,
-// 	);
-// 	bench( 'DistanceToPoint', 			() => bvh.closestPointToPoint( point, target1 ).distance );
+	bench( 'DistanceToGeometry w/ BVH',
+		() => intersectGeometry.boundsTree = intersectBvh,
+		() => bvh.closestPointToGeometry( intersectGeometry, intersectMatrix, target1, target2 ).distance,
+	);
+	bench( 'DistanceToPoint', 			() => bvh.closestPointToPoint( point, target1 ).distance );
 
-// 	bench( 'IntersectsGeometry w/ BVH',
-// 		() => intersectGeometry.boundsTree = intersectBvh,
-// 		() => bvh.intersectsGeometry( intersectGeometry, intersectMatrix ),
-// 	);
-// 	bench( 'IntersectsGeometry w/o BVH', () => bvh.intersectsGeometry( intersectGeometry, intersectMatrix ) );
+	bench( 'IntersectsGeometry w/ BVH',
+		() => intersectGeometry.boundsTree = intersectBvh,
+		() => bvh.intersectsGeometry( intersectGeometry, intersectMatrix ),
+	);
+	bench( 'IntersectsGeometry w/o BVH', () => bvh.intersectsGeometry( intersectGeometry, intersectMatrix ) );
 
-// } );
+} );
 
-// suite( 'BVH Misc', () => {
+suite( 'BVH Misc', () => {
 
-// 	let geometry,
-// 		bvh,
-// 		box,
-// 		refitHints;
+	let geometry,
+		bvh,
+		box,
+		refitHints;
 
-// 	beforeAll( () => {
+	beforeAll( () => {
 
-// 		geometry = new TorusGeometry( 5, 5, 700, 300 );
-// 		bvh = new MeshBVH( geometry );
+		geometry = new TorusGeometry( 5, 5, 700, 300 );
+		bvh = new MeshBVH( geometry );
 
-// 		box = new Box3();
+		box = new Box3();
 
-// 		const intersectSphere = new Sphere( new Vector3( 0, 0, 0 ), 0.5 );
-// 		refitHints = new Set();
-// 		bvh.shapecast( {
+		const intersectSphere = new Sphere( new Vector3( 0, 0, 0 ), 0.5 );
+		refitHints = new Set();
+		bvh.shapecast( {
 
-// 			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
+			intersectsBounds: ( box, isLeaf, score, depth, nodeIndex ) => {
 
-// 				if ( box.intersectsSphere( intersectSphere ) ) {
+				if ( box.intersectsSphere( intersectSphere ) ) {
 
-// 					refitHints.add( nodeIndex );
-// 					return true;
+					refitHints.add( nodeIndex );
+					return true;
 
-// 				}
+				}
 
-// 				return false;
+				return false;
 
-// 			}
+			}
 
-// 		} );
+		} );
 
-// 	} );
+	} );
 
-// 	bench( 'Refit', 			() => bvh.refit() );
-// 	bench( 'Refit with Hints', 	() => bvh.refit( refitHints ) );
+	appendTable( 'Extremes', () => logExtremes( bvh ) );
+	insertGap();
 
-// 	bench( 'Compute Bounds', () => bvh.getBoundingBox( box ) );
-// 	bench( 'Compute Bounds w/o', () => geometry.computeBoundingBox() );
+	bench( 'Refit', 			() => bvh.refit() );
+	bench( 'Refit with Hints', 	() => bvh.refit( refitHints ) );
 
-// } );
+	bench( 'Compute Bounds', () => bvh.getBoundingBox( box ) );
+	bench( 'Compute Bounds w/o', () => geometry.computeBoundingBox() );
 
-// suite( 'Math Functions', () => {
+} );
 
-// 	let tri1,
-// 		tri2,
-// 		target;
-// 	beforeAll( () => {
+suite( 'Math Functions', () => {
 
-// 		tri1 = new ExtendedTriangle();
-// 		tri2 = new ExtendedTriangle();
-// 		target = new Line3();
+	let tri1,
+		tri2,
+		target;
+	beforeAll( () => {
 
-// 		tri1.a.set( - 1, 0, 0 );
-// 		tri1.b.set( 2, 0, - 2 );
-// 		tri1.c.set( 2, 0, 2 );
+		tri1 = new ExtendedTriangle();
+		tri2 = new ExtendedTriangle();
+		target = new Line3();
 
-// 		tri2.a.set( 1, 0, 0 );
-// 		tri2.b.set( - 2, - 2, 0 );
-// 		tri2.c.set( - 2, 2, 0 );
+		tri1.a.set( - 1, 0, 0 );
+		tri1.b.set( 2, 0, - 2 );
+		tri1.c.set( 2, 0, 2 );
 
-// 		tri1.update();
-// 		tri2.update();
+		tri2.a.set( 1, 0, 0 );
+		tri2.b.set( - 2, - 2, 0 );
+		tri2.c.set( - 2, 2, 0 );
 
-// 	} );
+		tri1.update();
+		tri2.update();
 
-// 	bench( 'IntersectTri w/o Target', 	() => tri1.intersectsTriangle( tri2 ) );
+	} );
 
-// 	bench( 'IntersectTri w/ Target', () => tri1.intersectsTriangle( tri2, target ) );
+	bench( 'IntersectTri w/o Target', 	() => tri1.intersectsTriangle( tri2 ) );
 
-// 	bench( 'IntersectTri w/ Update', () => {
+	bench( 'IntersectTri w/ Target', () => tri1.intersectsTriangle( tri2, target ) );
 
-// 		tri2.needsUpdate = true;
-// 		tri1.intersectsTriangle( tri2, target );
+	bench( 'IntersectTri w/ Update', () => {
 
-// 	} );
+		tri2.needsUpdate = true;
+		tri1.intersectsTriangle( tri2, target );
 
-// } );
+	} );
+
+} );
 
 suite( 'Tower Case Geometry', () => {
 
@@ -279,12 +283,14 @@ suite( 'Tower Case Geometry', () => {
 		() => mesh.raycast( raycaster, [] ),
 	);
 	appendTable( 'Extremes', () => logExtremes( centerBVH ) );
+	insertGap();
 
 	bench( 'AVERAGE raycast',
 		() => mesh.geometry.boundsTree = averageBVH,
 		() => mesh.raycast( raycaster, [] )
 	);
 	appendTable( 'Extremes', () => logExtremes( averageBVH ) );
+	insertGap();
 
 	bench( 'SAH raycast',
 		() => mesh.geometry.boundsTree = sahBVH,
