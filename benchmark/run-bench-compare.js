@@ -16,9 +16,16 @@ const CRITICAL_ONLY = process.argv.includes( '--critical' );
 	}
 
 	const currentBranch = status.current;
+
+	console.log( 'Running Benchmark' );
 	await runScript( 'node ./benchmark/run-benchmark.js --long --json > pr-benchmark.json' );
+
+	console.log( 'Running Master Benchmark' );
 	await git.checkout( 'master' );
 	await runScript( 'node ./benchmark/run-benchmark.js --long --json > master-benchmark.json' );
+
+	console.log( 'Comparing Benchmarks' );
+	console.log();
 	await runScript( 'node ./benchmark/compare-bench-json.js' + ( CRITICAL_ONLY ? ' --critical' : '' ) );
 
 	await git.checkout( currentBranch );
