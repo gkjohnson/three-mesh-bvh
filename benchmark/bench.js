@@ -11,6 +11,7 @@ const _afterEach = [];
 const _bench = [];
 
 const _suites = [];
+let _current = null;
 
 function findMedian( values ) {
 
@@ -35,7 +36,7 @@ export function suite( name, cb ) {
 	cb();
 
 	_beforeAll.forEach( cb => cb() );
-	let results = [];
+	_current = [];
 	for ( let i = 0, l = _bench.length; i < l; i ++ ) {
 
 		_beforeEach.forEach( cb => cb() );
@@ -46,48 +47,60 @@ export function suite( name, cb ) {
 		let maxTime = - Infinity;
 		let times = [];
 		let delta, start;
-		const { name, run, prerun } = _bench[ i ];
+		const { name, run, prerun, table } = _bench[ i ];
 
-		for ( let j = 0; j < _prewarmIterations; j ++ ) {
+		if ( run ) {
 
-			if ( prerun ) prerun();
-			run();
+			for ( let j = 0; j < _prewarmIterations; j ++ ) {
+
+				if ( prerun ) prerun();
+				run();
+
+			}
+
+			while ( elapsed < _maxTime ) {
+
+				if ( prerun ) prerun();
+				start = performance.now();
+				run();
+				delta = performance.now() - start;
+				elapsed += delta;
+
+				iterations ++;
+				maxTime = Math.max( maxTime, delta );
+				minTime = Math.min( minTime, delta );
+				times.push( delta );
+
+				if ( iterations >= _maxIterations ) break;
+
+			}
+
+			_afterEach.forEach( cb => cb() );
+
+			_current.push( {
+				name,
+				mean: elapsed / iterations,
+				median: findMedian( times ),
+				min: minTime,
+				max: maxTime,
+				iterations,
+			} );
+
+		} else {
+
+			_current.push( {
+				name,
+				table: table(),
+			} );
 
 		}
-
-		while ( elapsed < _maxTime ) {
-
-			if ( prerun ) prerun();
-			start = performance.now();
-			run();
-			delta = performance.now() - start;
-			elapsed += delta;
-
-			iterations ++;
-			maxTime = Math.max( maxTime, delta );
-			minTime = Math.min( minTime, delta );
-			times.push( delta );
-
-			if ( iterations >= _maxIterations ) break;
-
-		}
-
-		_afterEach.forEach( cb => cb() );
-
-		results.push( {
-			name,
-			mean: elapsed / iterations,
-			median: findMedian( times ),
-			min: minTime,
-			max: maxTime,
-			iterations,
-		} );
 
 	}
 
 	_afterAll.forEach( cb => cb() );
 
-	_suites.push( { name, results } );
+	_suites.push( { name, results: _current } );
+	_current = null;
 
 	logTable( _suites[ 0 ] );//, [ 'mean', 'median', 'min', 'max' ] );
 	_suites.length = 0;
@@ -134,5 +147,11 @@ export function afterEach( cb ) {
 export function afterAll( cb ) {
 
 	_afterAll.push( cb );
+
+}
+
+export function appendTable( name, func ) {
+
+	_bench.push( { name, table: func } );
 
 }

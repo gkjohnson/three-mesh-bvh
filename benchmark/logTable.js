@@ -15,7 +15,7 @@ function pad( str, len ) {
 
 }
 
-export function logObjectAsRows( info, exclude = [ 'name', 'iterations' ], depth = 1 ) {
+export function logObjectAsRows( info, exclude = [ 'name', 'iterations', 'table' ], depth = 1 ) {
 
 	for ( const key in info ) {
 
@@ -27,7 +27,8 @@ export function logObjectAsRows( info, exclude = [ 'name', 'iterations' ], depth
 
 		} else {
 
-			console.log( pad( pad( '', depth ) + key, NAME_WIDTH ) + pad( info[ key ].toFixed( 5 ) + ' ms', COLUMN_WIDTH ) );
+			const value = typeof info[ key ] === 'string' ? info[ key ] : `${ info[ key ].toFixed( 5 ) } ms`;
+			console.log( pad( pad( '', depth ) + key, NAME_WIDTH ) + pad( value, COLUMN_WIDTH ) );
 
 		}
 
@@ -53,7 +54,12 @@ export function logTable( info, columns = [] ) {
 
 	info.results.forEach( data => {
 
-		if ( columns.length > 0 ) {
+		if ( data.table ) {
+
+			console.log( pad( data.name, NAME_WIDTH ) );
+			logObjectAsRows( data.table );
+
+		} else if ( columns.length > 0 ) {
 
 			let row = pad( data.name, NAME_WIDTH );
 			columns.forEach( key => {
@@ -64,7 +70,8 @@ export function logTable( info, columns = [] ) {
 
 				} else {
 
-					row += pad( `${ data[ key ].toFixed( 5 ) } ms`, COLUMN_WIDTH );
+					const value = typeof data[ key ] === 'string' ? data[ key ] : `${ data[ key ].toFixed( 5 ) } ms`;
+					row += pad( value, COLUMN_WIDTH );
 
 				}
 
