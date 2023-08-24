@@ -1,6 +1,6 @@
 import { IS_LEAFNODE_FLAG } from '../Constants.js';
 
-export function refit( bvh, nodeIndices = null ) {
+export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 	if ( nodeIndices && Array.isArray( nodeIndices ) ) {
 

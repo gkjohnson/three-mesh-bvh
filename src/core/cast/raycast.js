@@ -5,7 +5,7 @@ import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF } from '../utils/nodeBuff
 import { BufferStack } from '../utils/BufferStack.js';
 
 const _boxIntersection = /* @__PURE__ */ new Vector3();
-export function raycast( bvh, root, side, ray, intersects ) {
+export function raycast/* @echo INDIRECT_STRING */( bvh, root, side, ray, intersects ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
 	_raycast( 0, bvh, side, ray, intersects );

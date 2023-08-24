@@ -6,7 +6,7 @@ import { intersectRay } from '../utils/intersectUtils.js';
 
 const _boxIntersection = /* @__PURE__ */ new Vector3();
 const _xyzFields = [ 'x', 'y', 'z' ];
-export function raycastFirst( bvh, root, side, ray ) {
+export function raycastFirst/* @echo INDIRECT_STRING */( bvh, root, side, ray ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
 	const result = _raycastFirst( 0, bvh, side, ray );

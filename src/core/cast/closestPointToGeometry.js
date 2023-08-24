@@ -12,7 +12,7 @@ const temp2 = /* @__PURE__ */ new Vector3();
 const temp3 = /* @__PURE__ */ new Vector3();
 const temp4 = /* @__PURE__ */ new Vector3();
 
-export function closestPointToGeometry(
+export function closestPointToGeometry/* @echo INDIRECT_STRING */(
 	bvh,
 	otherGeometry,
 	geometryToBvh,

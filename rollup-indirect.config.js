@@ -8,7 +8,10 @@ const preprocessPlugin = () => {
 		transform: code => {
 
 			return {
-				code: preprocess( code, { INDIRECT: 'test()' }, { type: 'js' } ),
+				code: preprocess( code, {
+					INDIRECT: true,
+					INDIRECT_STRING: '_indirect'
+			 	}, { type: 'js' } ),
 			};
 
 		}

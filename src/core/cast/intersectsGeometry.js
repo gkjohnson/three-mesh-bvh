@@ -14,7 +14,7 @@ const invertedMat = /* @__PURE__ */ new Matrix4();
 const obb = /* @__PURE__ */ new OrientedBox();
 const obb2 = /* @__PURE__ */ new OrientedBox();
 
-export function intersectsGeometry( bvh, root, otherGeometry, geometryToBvh ) {
+export function intersectsGeometry/* @echo INDIRECT_STRING */( bvh, root, otherGeometry, geometryToBvh ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
 	const result = _intersectsGeometry( 0, bvh, otherGeometry, geometryToBvh );
