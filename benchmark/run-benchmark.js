@@ -3,7 +3,6 @@ import {
 	bench,
 	beforeAll,
 	beforeEach,
-	appendTable,
 } from './bench.js';
 import {
 	Mesh,
@@ -30,10 +29,16 @@ import {
 	getBVHExtremes,
 	estimateMemoryInBytes,
 } from '../src/index.js';
+import { logObjectAsRows } from './logTable.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+
+const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
+console.log( '**Extremes**' );
+logExtremes( bvh );
+console.log();
 
 suite( 'BVH General', () => {
 
@@ -190,8 +195,6 @@ suite( 'BVH Misc', () => {
 
 	} );
 
-	appendTable( 'Extremes', () => logExtremes( bvh ) );
-
 	bench( 'Refit', 			() => bvh.refit() );
 	bench( 'Refit with Hints', 	() => bvh.refit( refitHints ) );
 
@@ -278,19 +281,16 @@ suite( 'Tower Case Geometry', () => {
 		() => mesh.geometry.boundsTree = centerBVH,
 		() => mesh.raycast( raycaster, [] ),
 	);
-	appendTable( 'CENTER Extremes', () => logExtremes( centerBVH ) );
 
 	bench( 'AVERAGE raycast',
 		() => mesh.geometry.boundsTree = averageBVH,
 		() => mesh.raycast( raycaster, [] )
 	);
-	appendTable( 'AVERAGE Extremes', () => logExtremes( averageBVH ) );
 
 	bench( 'SAH raycast',
 		() => mesh.geometry.boundsTree = sahBVH,
 		() => mesh.raycast( raycaster, [] )
 	);
-	appendTable( 'SAH Extremes', () => logExtremes( sahBVH ) );
 
 } );
 
@@ -300,7 +300,7 @@ function logExtremes( bvh ) {
 	const bvhSize = estimateMemoryInBytes( bvh._roots );
 	const serializedSize = estimateMemoryInBytes( MeshBVH.serialize( bvh ).roots );
 
-	return {
+	logObjectAsRows( {
 		memory: `${ bvhSize / 1000 } kb`,
 		serialized: `${ serializedSize / 1000 } kb`,
 		'total nodes': `${ extremes.nodeCount }`,
@@ -308,6 +308,6 @@ function logExtremes( bvh ) {
 		depth: `${extremes.depth.min}, ${extremes.depth.max}`,
 		splits: `${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}`,
 		'surface area score': `${extremes.surfaceAreaScore.toFixed( 6 )}`,
-	};
+	} );
 
 }

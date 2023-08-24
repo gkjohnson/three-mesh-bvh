@@ -11,7 +11,6 @@ const _afterEach = [];
 const _bench = [];
 
 const _suites = [];
-const _tables = [];
 let _current = null;
 
 function findMedian( values ) {
@@ -48,53 +47,42 @@ export function suite( name, cb ) {
 		let maxTime = - Infinity;
 		let times = [];
 		let delta, start;
-		const { name, run, prerun, table } = _bench[ i ];
+		const { name, run, prerun } = _bench[ i ];
 
-		if ( run ) {
+		for ( let j = 0; j < _prewarmIterations; j ++ ) {
 
-			for ( let j = 0; j < _prewarmIterations; j ++ ) {
-
-				if ( prerun ) prerun();
-				run();
-
-			}
-
-			while ( elapsed < _maxTime ) {
-
-				if ( prerun ) prerun();
-				start = performance.now();
-				run();
-				delta = performance.now() - start;
-				elapsed += delta;
-
-				iterations ++;
-				maxTime = Math.max( maxTime, delta );
-				minTime = Math.min( minTime, delta );
-				times.push( delta );
-
-				if ( iterations >= _maxIterations ) break;
-
-			}
-
-			_afterEach.forEach( cb => cb() );
-
-			_current.push( {
-				name,
-				mean: elapsed / iterations,
-				median: findMedian( times ),
-				min: minTime,
-				max: maxTime,
-				iterations,
-			} );
-
-		} else {
-
-			_tables.push( {
-				name,
-				table: table(),
-			} );
+			if ( prerun ) prerun();
+			run();
 
 		}
+
+		while ( elapsed < _maxTime ) {
+
+			if ( prerun ) prerun();
+			start = performance.now();
+			run();
+			delta = performance.now() - start;
+			elapsed += delta;
+
+			iterations ++;
+			maxTime = Math.max( maxTime, delta );
+			minTime = Math.min( minTime, delta );
+			times.push( delta );
+
+			if ( iterations >= _maxIterations ) break;
+
+		}
+
+		_afterEach.forEach( cb => cb() );
+
+		_current.push( {
+			name,
+			mean: elapsed / iterations,
+			median: findMedian( times ),
+			min: minTime,
+			max: maxTime,
+			iterations,
+		} );
 
 	}
 
@@ -104,15 +92,6 @@ export function suite( name, cb ) {
 	_current = null;
 
 	logTable( _suites[ 0 ], [ 'mean', 'median', 'min', 'max' ] );
-
-	if ( _tables.length ) {
-
-		_suites[ 0 ].results = _tables;
-		delete _suites[ 0 ].name;
-		logTable( _suites[ 0 ] );
-
-	}
-
 	_suites.length = 0;
 
 	_afterAll.length = 0;
@@ -120,7 +99,6 @@ export function suite( name, cb ) {
 	_beforeAll.length = 0;
 	_beforeEach.length = 0;
 	_bench.length = 0;
-	_tables.length = 0;
 
 }
 
@@ -158,17 +136,5 @@ export function afterEach( cb ) {
 export function afterAll( cb ) {
 
 	_afterAll.push( cb );
-
-}
-
-export function appendTable( name, func ) {
-
-	_bench.push( { name, table: func } );
-
-}
-
-export function insertGap() {
-
-	appendTable( '', () => ( {} ) );
 
 }
