@@ -26,10 +26,10 @@ import { exec } from 'child_process';
 	console.log( 'Comparing Benchmarks' );
 	console.log();
 
-	await runScript( 'node ./benchmark/compare-bench-json.js' );
+	await runScript( 'node ./benchmark/compare-bench-json.js --critical' );
 	console.log( '<details><summary>Full Benchmark</summary>' );
 
-	await runScript( 'node ./benchmark/compare-bench-json.js --critical' );
+	await runScript( 'node ./benchmark/compare-bench-json.js' );
 	console.log( '</details>' );
 
 	await git.checkout( currentBranch );

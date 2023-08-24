@@ -36,7 +36,7 @@ for ( let i = 0; i < prData.length; i ++ ) {
 
 			if ( CRITICAL_ONLY && perc > 3 || ! CRITICAL_ONLY ) {
 
-				const star = perc > 3 ? '*&nbsp;' : '&nbsp;&nbsp;';
+				const star = perc > 1 ? '*&nbsp;' : '&nbsp;&nbsp;';
 				result += `| ${ star } ${ key } | ${ maValue.toFixed( 5 ) } ms | ${ prValue.toFixed( 5 ) } ms | ${ delta.toFixed( 5 ) } ms | ${ ( perc * 100 ).toFixed( 5 ) } % |\n`;
 
 			}
