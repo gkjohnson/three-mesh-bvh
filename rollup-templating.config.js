@@ -9,7 +9,9 @@ const preprocessPlugin = options => {
 
 			return {
 				code:
-					'/* THIS FILE IS GENERATED */\n' +
+					'/****************************************/\n' +
+					'/* THIS FILE IS GENERATED. DO NOT EDIT. */\n' +
+					'/****************************************/\n' +
 					preprocess( code, options, { type: 'js' } ),
 			};
 
@@ -25,14 +27,14 @@ export default glob.sync( './src/**/*.template.js' )
 		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect' } ) ],
 		external: () => true,
 		output: {
-			file: input.replace( /\.template\.js$/, '_indirect.js' ),
+			file: input.replace( /\.template\.js$/, '_indirect.generated.js' ),
 		},
 	}, {
 		input,
 		plugins: [ preprocessPlugin( { INDIRECT: false, INDIRECT_STRING: '' } ) ],
 		external: () => true,
 		output: {
-			file: input.replace( /\.template\.js$/, '.js' ),
+			file: input.replace( /\.template\.js$/, '.generated.js' ),
 		},
 	} ] );
 
