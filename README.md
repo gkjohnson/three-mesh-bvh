@@ -327,13 +327,28 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // the BVH asynchronously with the GenerateMeshBVHWorker class.
     onProgress: null,
 
+	// If false then an index buffer is created if it does not exist and is rearranged
+	// to hold the bvh structure. If false then a separate buffer is created to store the
+	// structure and the index buffer (or lack thereof) is retained. This can be used
+	// when the existing index layout is important or groups are being used so a
+	// single BVH hierarchy can be created to improve performance.
+	indirect: false,
+
     // Print out warnings encountered during tree construction.
     verbose: true,
 
 }
 ```
 
-*NOTE: The geometry's index attribute array is modified in order to build the bounds tree. If the geometry has no index then one is added.*
+*NOTE: The geometry's index attribute array is modified in order to build the bounds tree unless `indirect` is set to `true`. If the geometry has no index then one is added if `indirect` is set to `false`.*
+
+### .resolveTriangleIndex
+
+```js
+resolveTriangleIndex( index : Number ) : Number
+```
+
+Helper function for use when `indirect` is set to true. This function takes a triangle index in the BVH layout and returns the associated triangle index in the geometry index buffer or position attribute.
 
 ### .raycast
 
