@@ -73,7 +73,7 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 			/* @else */
 
-			for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i ++ ) {
+			for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
 
 				let index = indexArr[ i ];
 				const x = posAttr.getX( index );
