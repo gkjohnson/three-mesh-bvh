@@ -1,17 +1,32 @@
 import * as glob from 'glob';
 import { preprocess } from 'preprocess';
 
+function generateStars( num ) {
+
+	let result = '';
+	for ( let i = 0; i < num; i ++ ) {
+
+		result += '*';
+
+	}
+
+	return result;
+
+}
+
 const preprocessPlugin = options => {
 
 	return {
 		name: 'preprocess',
-		transform: code => {
+		transform: ( code, id ) => {
 
+			const file = id.split( /[/\/]/g ).pop();
+			const stars = generateStars( file.length );
 			return {
 				code:
-					'/****************************************/\n' +
-					'/* THIS FILE IS GENERATED. DO NOT EDIT. */\n' +
-					'/****************************************/\n' +
+					`/***********************************${ stars }/\n` +
+					`/* This file is generated from "${ file }". */\n` +
+					`/***********************************${ stars }/\n` +
 					preprocess( code, options, { type: 'js' } ),
 			};
 
