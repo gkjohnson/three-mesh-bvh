@@ -3,7 +3,9 @@ import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBo
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
-import { partition } from './sortUtils.js';
+
+import { partition } from './sortUtils.generated.js';
+import { partition_indirect } from './sortUtils_indirect.generated.js';
 
 function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
@@ -42,6 +44,7 @@ function buildTree( bvh, options ) {
 	const fullBounds = new Float32Array( 6 );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
+	const partionFunc = options.indirect ? partition_indirect : partition;
 
 	const roots = [];
 	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
@@ -120,7 +123,7 @@ function buildTree( bvh, options ) {
 
 		}
 
-		const splitOffset = partition( indirectBuffer, indexArray, triangleBounds, offset, count, split );
+		const splitOffset = partionFunc( indirectBuffer, indexArray, triangleBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {

@@ -12,7 +12,7 @@ const temp2 = /* @__PURE__ */ new Vector3();
 const temp3 = /* @__PURE__ */ new Vector3();
 const temp4 = /* @__PURE__ */ new Vector3();
 
-export function closestPointToGeometry(
+export function closestPointToGeometry/* @echo INDIRECT_STRING */(
 	bvh,
 	otherGeometry,
 	geometryToBvh,
@@ -111,8 +111,16 @@ export function closestPointToGeometry(
 
 							for ( let i2 = otherOffset, l2 = otherOffset + otherCount; i2 < l2; i2 ++ ) {
 
+								/* @if INDIRECT */
+
 								const ti2 = otherBvh.resolveTriangleIndex( i2 );
 								setTriangle( triangle2, 3 * ti2, otherIndex, otherPos );
+
+								/* @else */
+
+								setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
+
+								/* @endif */
 								triangle2.a.applyMatrix4( geometryToBvh );
 								triangle2.b.applyMatrix4( geometryToBvh );
 								triangle2.c.applyMatrix4( geometryToBvh );
@@ -120,8 +128,16 @@ export function closestPointToGeometry(
 
 								for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
+									/* @if INDIRECT */
+
 									const ti = bvh.resolveTriangleIndex( i );
 									setTriangle( triangle, 3 * ti, index, pos );
+
+									/* @else */
+
+									setTriangle( triangle, 3 * i, index, pos );
+
+									/* @endif */
 									triangle.needsUpdate = true;
 
 									const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -169,8 +185,16 @@ export function closestPointToGeometry(
 
 						for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
+							/* @if INDIRECT */
+
 							const ti = bvh.resolveTriangleIndex( i );
 							setTriangle( triangle, 3 * ti, index, pos );
+
+							/* @else */
+
+							setTriangle( triangle, 3 * i, index, pos );
+
+							/* @endif */
 							triangle.needsUpdate = true;
 
 							const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -212,10 +236,22 @@ export function closestPointToGeometry(
 	ExtendedTrianglePool.releasePrimitive( triangle );
 	ExtendedTrianglePool.releasePrimitive( triangle2 );
 
-	if ( closestDistance === Infinity ) return null;
+	if ( closestDistance === Infinity ) {
 
-	if ( ! target1.point ) target1.point = tempTargetDest1.clone();
-	else target1.point.copy( tempTargetDest1 );
+		return null;
+
+	}
+
+	if ( ! target1.point ) {
+
+		target1.point = tempTargetDest1.clone();
+
+	} else {
+
+		target1.point.copy( tempTargetDest1 );
+
+	}
+
 	target1.distance = closestDistance,
 	target1.faceIndex = closestDistanceTriIndex;
 

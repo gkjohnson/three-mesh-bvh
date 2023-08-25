@@ -1,6 +1,6 @@
 import { IS_LEAFNODE_FLAG } from '../Constants.js';
 
-export function refit( bvh, nodeIndices = null ) {
+export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 	if ( nodeIndices && Array.isArray( nodeIndices ) ) {
 
@@ -43,6 +43,8 @@ export function refit( bvh, nodeIndices = null ) {
 			let maxy = - Infinity;
 			let maxz = - Infinity;
 
+			/* @if INDIRECT */
+
 			for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
 				const t = 3 * bvh.resolveTriangleIndex( i );
@@ -64,9 +66,32 @@ export function refit( bvh, nodeIndices = null ) {
 					if ( z < minz ) minz = z;
 					if ( z > maxz ) maxz = z;
 
+
 				}
 
 			}
+
+			/* @else */
+
+			for ( let i = 3 * offset, l = 3 * ( offset + count ); i < l; i ++ ) {
+
+				let index = indexArr[ i ];
+				const x = posAttr.getX( index );
+				const y = posAttr.getY( index );
+				const z = posAttr.getZ( index );
+
+				if ( x < minx ) minx = x;
+				if ( x > maxx ) maxx = x;
+
+				if ( y < miny ) miny = y;
+				if ( y > maxy ) maxy = y;
+
+				if ( z < minz ) minz = z;
+				if ( z > maxz ) maxz = z;
+
+			}
+
+			/* @endif */
 
 			if (
 				float32Array[ node32Index + 0 ] !== minx ||
