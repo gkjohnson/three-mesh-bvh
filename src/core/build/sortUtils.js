@@ -31,23 +31,23 @@ export function partition( indirectBuffer, index, triangleBounds, offset, count,
 			// we need to swap all of the information associated with the triangles at index
 			// left and right; that's the verts in the geometry index, the bounds,
 			// and perhaps the SAH planes
-			if ( indirectBuffer ) {
+			/* @if INDIRECT */
 
-				let t = indirectBuffer[ left ];
-				indirectBuffer[ left ] = indirectBuffer[ right ];
-				indirectBuffer[ right ] = t;
+			let t = indirectBuffer[ left ];
+			indirectBuffer[ left ] = indirectBuffer[ right ];
+			indirectBuffer[ right ] = t;
 
-			} else {
+			/* @else */
 
-				for ( let i = 0; i < 3; i ++ ) {
+			for ( let i = 0; i < 3; i ++ ) {
 
-					let t0 = index[ left * 3 + i ];
-					index[ left * 3 + i ] = index[ right * 3 + i ];
-					index[ right * 3 + i ] = t0;
-
-				}
+				let t0 = index[ left * 3 + i ];
+				index[ left * 3 + i ] = index[ right * 3 + i ];
+				index[ right * 3 + i ] = t0;
 
 			}
+
+			/* @endif */
 
 			// swap bounds
 			for ( let i = 0; i < 6; i ++ ) {
