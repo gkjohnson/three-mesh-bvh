@@ -29,14 +29,14 @@ export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, 
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		const intersection =
+		let intersection;
 		/* @if INDIRECT */
 
-			intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i );
+		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i );
 
 		/* @else */
 
-			intersectTri( geometry, side, ray, i );
+		intersection = intersectTri( geometry, side, ray, i );
 
 		/* @endif */
 
@@ -68,14 +68,14 @@ export function iterateOverTriangles/* @echo INDIRECT_STRING */(
 	const pos = geometry.attributes.position;
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		const tri =
+		let tri;
 		/* @if INDIRECT */
 
-			bvh.resolveTriangleIndex( i );
+		tri = bvh.resolveTriangleIndex( i );
 
 		/* @else */
 
-			i;
+		tri = i;
 
 		/* @endif */
 		setTriangle( triangle, tri * 3, index, pos );
