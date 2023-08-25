@@ -209,7 +209,6 @@ export class MeshBVH {
 	/* Core Cast Functions */
 	raycast( ray, materialOrSide = FrontSide ) {
 
-		const raycastFunc = this.indirect ? raycast_indirect : raycast;
 		const roots = this._roots;
 		const geometry = this.geometry;
 		const intersects = [];
@@ -218,6 +217,7 @@ export class MeshBVH {
 
 		const groups = geometry.groups;
 		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		const raycastFunc = this.indirect ? raycast_indirect : raycast;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
@@ -244,7 +244,6 @@ export class MeshBVH {
 
 	raycastFirst( ray, materialOrSide = FrontSide ) {
 
-		const raycastFirstFunc = this.indirect ? raycastFirst_indirect : raycastFirst;
 		const roots = this._roots;
 		const geometry = this.geometry;
 		const isMaterial = materialOrSide.isMaterial;
@@ -254,6 +253,7 @@ export class MeshBVH {
 
 		const groups = geometry.groups;
 		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		const raycastFirstFunc = this.indirect ? raycastFirst_indirect : raycastFirst;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
@@ -277,9 +277,9 @@ export class MeshBVH {
 
 	intersectsGeometry( otherGeometry, geomToMesh ) {
 
-		const intersectsGeometryFunc = this.indirect ? intersectsGeometry_indirect : intersectsGeometry;
 		let result = false;
 		const roots = this._roots;
+		const intersectsGeometryFunc = this.indirect ? intersectsGeometry_indirect : intersectsGeometry;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			result = intersectsGeometryFunc( this, i, otherGeometry, geomToMesh );
