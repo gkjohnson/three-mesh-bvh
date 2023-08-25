@@ -10,7 +10,7 @@
   "scripts": {
     "start": "parcel serve ./example/*.html --dist-dir ./example/dev-bundle/ --no-hmr",
     "build": "rollup -c",
-    "build2": "rollup -c rollup-indirect.config.js",
+    "build2": "rollup -c rollup-templating.config.js",
     "build-examples": "cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-content-hash",
     "test": "cd test && jest",
     "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" && tsc --noEmit",

@@ -19,7 +19,7 @@ const preprocessPlugin = options => {
 
 };
 
-export default glob.sync( './src/core/cast/*.template.js' )
+export default glob.sync( './src/**/*.template.js' )
 	.flatMap( input => [ {
 		input,
 		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect' } ) ],
