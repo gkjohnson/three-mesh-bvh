@@ -20,7 +20,7 @@ const preprocessPlugin = options => {
 		name: 'preprocess',
 		transform: ( code, id ) => {
 
-			const file = id.split( /[/\/]/g ).pop();
+			const file = id.split( /[/\\]/g ).pop();
 			const stars = generateStars( file.length );
 			return {
 				code:
