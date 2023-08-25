@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import { Box3, Matrix4 } from 'three';
 import { OrientedBox } from '../../math/OrientedBox.js';
 import { ExtendedTriangle } from '../../math/ExtendedTriangle.js';
@@ -79,20 +80,21 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 					tri.c.applyMatrix4( geometryToBvh );
 					tri.needsUpdate = true;
 
-					for ( let i = offset, l = count + offset; i < l; i ++ ) {
+					/* @if INDIRECT */
 
-						/* @if INDIRECT */
-
-						// this triangle needs to be transformed into the current BVH coordinate frame
-						const ti = bvh.resolveTriangleIndex( i );
-						setTriangle( triangle2, ti * 3, thisIndex, thisPos );
-
-						/* @else */
+					for ( let i = offset, l = ( count + offset ); i < l; i ++ ) {
 
 						// this triangle needs to be transformed into the current BVH coordinate frame
-						setTriangle( triangle2, i * 3, thisIndex, thisPos );
+						setTriangle( triangle2, 3 * bvh.resolveTriangleIndex( i ), thisIndex, thisPos );
 
-						/* @endif */
+					/* @else */
+
+					for ( let i = offset * 3, l = ( count + offset ) * 3; i < l; i += 3 ) {
+
+						// this triangle needs to be transformed into the current BVH coordinate frame
+						setTriangle( triangle2, i, thisIndex, thisPos );
+
+					/* @endif */
 
 						triangle2.needsUpdate = true;
 						if ( tri.intersectsTriangle( triangle2 ) ) {
@@ -101,7 +103,15 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 
 						}
 
+					/* @if INDIRECT */
+
 					}
+
+					/* @else */
+
+					}
+
+					/* @endif */
 
 					return false;
 
@@ -114,20 +124,21 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		} else {
 
 			// if we're just dealing with raw geometry
-			for ( let i = offset, l = count + offset; i < l; i ++ ) {
+			/* @if INDIRECT */
 
-				/* @if INDIRECT */
-
-				// this triangle needs to be transformed into the current BVH coordinate frame
-				const ti = bvh.resolveTriangleIndex( i );
-				setTriangle( triangle, 3 * ti, thisIndex, thisPos );
-
-				/* @else */
+			for ( let i = offset, l = ( count + offset ); i < l; i ++ ) {
 
 				// this triangle needs to be transformed into the current BVH coordinate frame
-				setTriangle( triangle, 3 * i, thisIndex, thisPos );
+				setTriangle( triangle2, 3 * bvh.resolveTriangleIndex( i ), thisIndex, thisPos );
 
-				/* @endif */
+			/* @else */
+
+			for ( let i = offset * 3, l = ( count + offset * 3 ); i < l; i += 3 ) {
+
+				// this triangle needs to be transformed into the current BVH coordinate frame
+				setTriangle( triangle, i, thisIndex, thisPos );
+
+			/* @endif */
 
 				triangle.a.applyMatrix4( invertedMat );
 				triangle.b.applyMatrix4( invertedMat );
