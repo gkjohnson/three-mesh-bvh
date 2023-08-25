@@ -75,9 +75,10 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 			for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i ++ ) {
 
-				const x = posAttr.getX( i );
-				const y = posAttr.getY( i );
-				const z = posAttr.getZ( i );
+				let index = indexArr[ i ];
+				const x = posAttr.getX( index );
+				const y = posAttr.getY( index );
+				const z = posAttr.getZ( index );
 
 				if ( x < minx ) minx = x;
 				if ( x > maxx ) maxx = x;
