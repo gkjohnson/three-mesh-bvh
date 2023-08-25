@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import { intersectTri } from '../../utils/ThreeRayIntersectUtilities.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 
