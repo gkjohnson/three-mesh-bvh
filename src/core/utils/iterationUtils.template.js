@@ -1,4 +1,6 @@
 import { intersectTri } from '../../utils/ThreeRayIntersectUtilities.js';
+import { setTriangle } from '../../utils/TriangleUtilities.js';
+
 export function intersectTris/* @echo INDIRECT_STRING */( bvh, side, ray, offset, count, intersections ) {
 
 	const { geometry, _indirectBuffer } = bvh;
@@ -26,14 +28,14 @@ export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, 
 	let res = null;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
+		const intersection =
 		/* @if INDIRECT */
 
-		let vi = _indirectBuffer ? _indirectBuffer[ i ] : i;
-		const intersection = intersectTri( geometry, side, ray, vi );
+			intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i );
 
 		/* @else */
 
-		const intersection = intersectTri( geometry, side, ray, i );
+			intersectTri( geometry, side, ray, i );
 
 		/* @endif */
 
@@ -66,16 +68,17 @@ export function iterateOverTriangles/* @echo INDIRECT_STRING */(
 	const pos = geometry.attributes.position;
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
+		const tri =
 		/* @if INDIRECT */
 
-		const tri = bvh.resolveTriangleIndex( i );
-		setTriangle( triangle, tri * 3, index, pos );
+			bvh.resolveTriangleIndex( i );
 
 		/* @else */
 
-		setTriangle( triangle, i * 3, index, pos );
+			i;
 
 		/* @endif */
+		setTriangle( triangle, tri * 3, index, pos );
 		triangle.needsUpdate = true;
 
 		if ( intersectsTriangleFunc( triangle, tri, contained, depth ) ) {
