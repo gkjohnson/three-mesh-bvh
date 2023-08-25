@@ -65,4 +65,4 @@ example/dev-bundle
 
 *.generated.js
 
-build/*
+build/
