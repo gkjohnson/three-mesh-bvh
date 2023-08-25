@@ -5,7 +5,6 @@ import { intersectRay } from '../utils/intersectUtils.js';
 import { intersectClosestTri } from '../utils/iterationUtils.generated.js';
 import { intersectClosestTri_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
-
 const _boxIntersection = /* @__PURE__ */ new Vector3();
 const _xyzFields = [ 'x', 'y', 'z' ];
 export function raycastFirst/* @echo INDIRECT_STRING */( bvh, root, side, ray ) {
