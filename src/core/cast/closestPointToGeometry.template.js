@@ -190,7 +190,7 @@ export function closestPointToGeometry/* @echo INDIRECT_STRING */(
 							const ti = bvh.resolveTriangleIndex( i );
 							setTriangle( triangle, 3 * ti, index, pos );
 
-							/* else */
+							/* @else */
 
 							setTriangle( triangle, 3 * i, index, pos );
 
