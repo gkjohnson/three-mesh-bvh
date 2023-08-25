@@ -3,7 +3,7 @@ import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Con
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { iterateOverTriangles } from '../utils/TriangleUtilities.js';
+import { iterateOverTriangles, iterateOverTriangles_indirect } from '../utils/TriangleUtilities.js';
 import { raycast } from './cast/raycast.js';
 import { raycastFirst } from './cast/raycastFirst.js';
 import { shapecast } from './cast/shapecast.js';
@@ -13,6 +13,7 @@ import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
+import { COUNT, LEFT_NODE, OFFSET, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
@@ -280,6 +281,7 @@ export class MeshBVH {
 	shapecast( callbacks ) {
 
 		const triangle = ExtendedTrianglePool.getPrimitive();
+		const iterateFunc = this._indirectBuffer ? iterateOverTriangles_indirect : iterateOverTriangles;
 		let {
 			boundsTraverseOrder,
 			intersectsBounds,
@@ -295,8 +297,7 @@ export class MeshBVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					// TODO: INDIRECT
-					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
+					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				}
 
@@ -310,8 +311,7 @@ export class MeshBVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					// TODO: INDIRECT
-					return iterateOverTriangles( offset, count, this, intersectsTriangle, contained, depth, triangle );
+					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				};
 
