@@ -3,7 +3,7 @@ import { Vector3 } from 'three';
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
 
-export function closestPointToPoint/* @echo INDIRECT_STRING */(
+export function closestPointToPoint(
 	bvh,
 	point,
 	target = { },

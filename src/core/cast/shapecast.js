@@ -9,7 +9,7 @@ let _box1, _box2;
 const boxStack = [];
 const boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
 
-export function shapecast/* @echo INDIRECT_STRING */( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
+export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
 
 	// setup
 	_box1 = boxPool.getPrimitive();

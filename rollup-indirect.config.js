@@ -1,17 +1,16 @@
 import * as glob from 'glob';
 import { preprocess } from 'preprocess';
 
-const preprocessPlugin = () => {
+const preprocessPlugin = options => {
 
 	return {
 		name: 'preprocess',
 		transform: code => {
 
 			return {
-				code: preprocess( code, {
-					INDIRECT: true,
-					INDIRECT_STRING: '_indirect'
-			 	}, { type: 'js' } ),
+				code:
+					'/* THIS FILE IS GENERATED */\n' +
+					preprocess( code, options, { type: 'js' } ),
 			};
 
 		}
@@ -20,11 +19,20 @@ const preprocessPlugin = () => {
 
 };
 
-export default [ {
-	input: glob.sync( './src/core/cast/*.js' ),
-	plugins: [ preprocessPlugin() ],
-	external: () => true,
-	output: {
-		dir: './src/core/cast-indirect/',
-	},
-} ];
+export default glob.sync( './src/core/cast/*.js' )
+	.flatMap( input => [ {
+		input,
+		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect' } ) ],
+		external: () => true,
+		output: {
+			file: input.replace( /\.template\.js$/, '_indirect.js' ),
+		},
+	}, {
+		input,
+		plugins: [ preprocessPlugin( { INDIRECT: false, INDIRECT_STRING: '' } ) ],
+		external: () => true,
+		output: {
+			file: input.replace( /\.template\.js$/, '.js' ),
+		},
+	} ] );
+
