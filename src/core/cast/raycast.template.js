@@ -1,8 +1,9 @@
 import { Vector3 } from 'three';
-import { intersectTris, intersectTris_indirect } from '../../utils/GeometryRayIntersectUtilities.js';
 import { intersectRay } from '../utils/intersectUtils.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
+import { intersectTris } from '../utils/iterationUtils.generated.js';
+import { intersectTris_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
 const _boxIntersection = /* @__PURE__ */ new Vector3();
 export function raycast/* @echo INDIRECT_STRING */( bvh, root, side, ray, intersects ) {

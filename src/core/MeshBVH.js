@@ -3,24 +3,26 @@ import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Con
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { iterateOverTriangles } from './utils/iterationUtils.js';
-import { iterateOverTriangles_indirect } from './utils/iterationUtils_indirect.js';
-import { raycast } from './cast/raycast.js';
-import { raycastFirst } from './cast/raycastFirst.js';
-import { shapecast } from './cast/shapecast.js';
-import { intersectsGeometry } from './cast/intersectsGeometry.js';
-import { refit } from './cast/refit.js';
-import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { bvhcast } from './cast/bvhcast.js';
-import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
+import { shapecast } from './cast/shapecast.js';
+import { closestPointToPoint } from './cast/closestPointToPoint.js';
 
+import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
+import { refit } from './cast/refit.generated.js';
+import { raycast } from './cast/raycast.generated.js';
+import { raycastFirst } from './cast/raycastFirst.generated.js';
+import { intersectsGeometry } from './cast/intersectsGeometry.generated.js';
+import { closestPointToGeometry } from './cast/closestPointToGeometry.generated.js';
+import { bvhcast } from './cast/bvhcast.generated.js';
+
+import { iterateOverTriangles_indirect } from './utils/iterationUtils_indirect.generated.js';
 import { refit_indirect } from './cast/refit_indirect.generated.js';
-import { raycast_indirect } from './cast/raycast_indirect.js';
-import { raycastFirst_indirect } from './cast/raycastFirst_indirect.js';
-import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.js';
-import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.js';
-import { bvhcast_indirect } from './cast/bvhcast_indirect.js';
+import { raycast_indirect } from './cast/raycast_indirect.generated.js';
+import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js';
+import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
+import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
+import { bvhcast_indirect } from './cast/bvhcast_indirect.generated.js';
+
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();

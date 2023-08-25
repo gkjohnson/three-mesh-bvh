@@ -33,67 +33,6 @@ export function setTriangle( tri, i, index, pos ) {
 
 }
 
-export function iterateOverTriangles(
-	offset,
-	count,
-	bvh,
-	intersectsTriangleFunc,
-	contained,
-	depth,
-	triangle
-) {
-
-	const { geometry } = bvh;
-	const { index } = geometry;
-	const pos = geometry.attributes.position;
-	for ( let i = offset, l = count + offset; i < l; i ++ ) {
-
-		const tri = bvh.resolveTriangleIndex( i );
-		setTriangle( triangle, tri * 3, index, pos );
-		triangle.needsUpdate = true;
-
-		if ( intersectsTriangleFunc( triangle, tri, contained, depth ) ) {
-
-			return true;
-
-		}
-
-	}
-
-	return false;
-
-}
-
-export function iterateOverTriangles_indirect(
-	offset,
-	count,
-	bvh,
-	intersectsTriangleFunc,
-	contained,
-	depth,
-	triangle
-) {
-
-	const { geometry } = bvh;
-	const { index } = geometry;
-	const pos = geometry.attributes.position;
-	for ( let i = offset, l = count + offset; i < l; i ++ ) {
-
-		setTriangle( triangle, i * 3, index, pos );
-		triangle.needsUpdate = true;
-
-		if ( intersectsTriangleFunc( triangle, i, contained, depth ) ) {
-
-			return true;
-
-		}
-
-	}
-
-	return false;
-
-}
-
 const tempV1 = /* @__PURE__ */ new Vector3();
 const tempV2 = /* @__PURE__ */ new Vector3();
 const tempV3 = /* @__PURE__ */ new Vector3();

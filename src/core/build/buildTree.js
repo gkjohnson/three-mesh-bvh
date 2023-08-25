@@ -3,7 +3,8 @@ import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBo
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
-import { partition } from './sortUtils.js';
+
+import { partition } from './sortUtils.generated.js';
 import { partition_indirect } from './sortUtils_indirect.generated.js';
 
 function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {

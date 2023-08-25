@@ -1,8 +1,9 @@
 import { Vector3 } from 'three';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, SPLIT_AXIS } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
-import { intersectClosestTri, intersectClosestTri_indirect } from '../../utils/GeometryRayIntersectUtilities.js';
 import { intersectRay } from '../utils/intersectUtils.js';
+import { intersectClosestTri } from '../utils/iterationUtils.generated.js';
+import { intersectClosestTri_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
 const _boxIntersection = /* @__PURE__ */ new Vector3();
 const _xyzFields = [ 'x', 'y', 'z' ];
