@@ -52,7 +52,6 @@ export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, 
 
 }
 
-
 export function iterateOverTriangles/* @echo INDIRECT_STRING */(
 	offset,
 	count,

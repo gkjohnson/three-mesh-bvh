@@ -236,10 +236,22 @@ export function closestPointToGeometry/* @echo INDIRECT_STRING */(
 	ExtendedTrianglePool.releasePrimitive( triangle );
 	ExtendedTrianglePool.releasePrimitive( triangle2 );
 
-	if ( closestDistance === Infinity ) return null;
+	if ( closestDistance === Infinity ) {
 
-	if ( ! target1.point ) target1.point = tempTargetDest1.clone();
-	else target1.point.copy( tempTargetDest1 );
+		return null;
+
+	}
+
+	if ( ! target1.point ) {
+
+		target1.point = tempTargetDest1.clone();
+
+	} else {
+
+		target1.point.copy( tempTargetDest1 );
+
+	}
+
 	target1.distance = closestDistance,
 	target1.faceIndex = closestDistanceTriIndex;
 
