@@ -15,6 +15,13 @@ import { bvhcast } from './cast/bvhcast.js';
 import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 
+import { refit_indirect } from './cast/refit_indirect.generated.js';
+import { raycast_indirect } from './cast/raycast_indirect.js';
+import { raycastFirst_indirect } from './cast/raycastFirst_indirect.js';
+import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.js';
+import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.js';
+import { bvhcast_indirect } from './cast/bvhcast_indirect.js';
+
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
 
@@ -149,7 +156,8 @@ export class MeshBVH {
 
 	refit( nodeIndices = null ) {
 
-		return refit( this, nodeIndices );
+		const refitFunc = this._indirectBuffer ? refit_indirect : refit;
+		return refitFunc( this, nodeIndices );
 
 	}
 
@@ -194,6 +202,7 @@ export class MeshBVH {
 	/* Core Cast Functions */
 	raycast( ray, materialOrSide = FrontSide ) {
 
+		const raycastFunc = this._indirectBuffer ? raycast_indirect : raycast;
 		const roots = this._roots;
 		const geometry = this.geometry;
 		const intersects = [];
@@ -207,7 +216,7 @@ export class MeshBVH {
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 			const startCount = intersects.length;
 
-			raycast( this, i, materialSide, ray, intersects );
+			raycastFunc( this, i, materialSide, ray, intersects );
 
 			if ( isArrayMaterial ) {
 
@@ -228,6 +237,7 @@ export class MeshBVH {
 
 	raycastFirst( ray, materialOrSide = FrontSide ) {
 
+		const raycastFirstFunc = this._indirectBuffer ? raycastFirst_indirect : raycastFirst;
 		const roots = this._roots;
 		const geometry = this.geometry;
 		const isMaterial = materialOrSide.isMaterial;
@@ -240,7 +250,7 @@ export class MeshBVH {
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const result = raycastFirst( this, i, materialSide, ray );
+			const result = raycastFirstFunc( this, i, materialSide, ray );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
@@ -260,11 +270,12 @@ export class MeshBVH {
 
 	intersectsGeometry( otherGeometry, geomToMesh ) {
 
+		const intersectsGeometryFunc = this._indirectBuffer ? intersectsGeometry_indirect : intersectsGeometry;
 		let result = false;
 		const roots = this._roots;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			result = intersectsGeometry( this, i, otherGeometry, geomToMesh );
+			result = intersectsGeometryFunc( this, i, otherGeometry, geomToMesh );
 
 			if ( result ) {
 
@@ -354,7 +365,8 @@ export class MeshBVH {
 
 	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
-		return bvhcast( this, otherBvh, matrixToLocal, callbacks );
+		const bvhcastFunc = this._indirectBuffer ? bvhcast_indirect : bvhcast;
+		return bvhcastFunc( this, otherBvh, matrixToLocal, callbacks );
 
 	}
 
@@ -386,7 +398,8 @@ export class MeshBVH {
 
 	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = { }, target2 = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		return closestPointToGeometry(
+		const closestPointToGeometryFunc = this._indirectBuffer ? closestPointToGeometry_indirect : closestPointToGeometry;
+		return closestPointToGeometryFunc(
 			this,
 			otherGeometry,
 			geometryToBvh,

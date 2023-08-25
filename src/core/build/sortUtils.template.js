@@ -3,7 +3,7 @@
 // reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 // will be on the left and elements on the right side of the split will be on the right. returns the index
 // of the first element on the right side, or offset + count if there are no elements on the right side.
-export function partition( indirectBuffer, index, triangleBounds, offset, count, split ) {
+export function partition/* @echo INDIRECT_STRING */( indirectBuffer, index, triangleBounds, offset, count, split ) {
 
 	let left = offset;
 	let right = offset + count - 1;
