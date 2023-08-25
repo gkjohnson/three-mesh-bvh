@@ -43,7 +43,7 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 			let maxy = - Infinity;
 			let maxz = - Infinity;
 
-			/* @ifdef INDIRECT */
+			/* @if INDIRECT */
 
 			for ( let i = offset, l = offset + count; i < l; i ++ ) {
 

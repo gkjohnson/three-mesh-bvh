@@ -32,9 +32,17 @@ export function bvhcast/* @echo INDIRECT_STRING */( bvh, otherBvh, matrixToLocal
 
 			for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
-				// TODO INDIRECT
+				/* @if INDIRECT */
+
 				const ti2 = otherBvh.resolveTriangleIndex( i2 );
 				setTriangle( triangle2, ti2 * 3, otherIndexAttr, otherPositionAttr );
+
+				/* @else */
+
+				setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPositionAttr );
+
+				/* @endif */
+
 				triangle2.a.applyMatrix4( matrixToLocal );
 				triangle2.b.applyMatrix4( matrixToLocal );
 				triangle2.c.applyMatrix4( matrixToLocal );
@@ -42,9 +50,16 @@ export function bvhcast/* @echo INDIRECT_STRING */( bvh, otherBvh, matrixToLocal
 
 				for ( let i1 = offset1, l1 = offset1 + count1; i1 < l1; i1 ++ ) {
 
-					// TODO INDIRECT
+					/* @if INDIRECT */
+
 					const ti1 = bvh.resolveTriangleIndex( i1 );
 					setTriangle( triangle, ti1 * 3, indexAttr, positionAttr );
+
+					/* @else */
+
+					setTriangle( triangle, i1 * 3, indexAttr, positionAttr );
+
+					/* @endif */
 					triangle.needsUpdate = true;
 
 					if ( intersectsTriangles( triangle, triangle2, i1, i2, depth1, index1, depth2, index2 ) ) {

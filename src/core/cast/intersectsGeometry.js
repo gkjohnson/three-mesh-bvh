@@ -81,11 +81,19 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 
 					for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-						// TODO INDIRECT
-						const ti = bvh.resolveTriangleIndex( i );
+						/* @if INDIRECT */
 
 						// this triangle needs to be transformed into the current BVH coordinate frame
+						const ti = bvh.resolveTriangleIndex( i );
 						setTriangle( triangle2, ti * 3, thisIndex, thisPos );
+
+						/* @else */
+
+						// this triangle needs to be transformed into the current BVH coordinate frame
+						setTriangle( triangle2, i * 3, thisIndex, thisPos );
+
+						/* @endif */
+
 						triangle2.needsUpdate = true;
 						if ( tri.intersectsTriangle( triangle2 ) ) {
 
@@ -108,11 +116,19 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 			// if we're just dealing with raw geometry
 			for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-				// TODO INDIRECT
-				const ti = bvh.resolveTriangleIndex( i );
+				/* @if INDIRECT */
 
 				// this triangle needs to be transformed into the current BVH coordinate frame
+				const ti = bvh.resolveTriangleIndex( i );
 				setTriangle( triangle, 3 * ti, thisIndex, thisPos );
+
+				/* @else */
+
+				// this triangle needs to be transformed into the current BVH coordinate frame
+				setTriangle( triangle, 3 * i, thisIndex, thisPos );
+
+				/* @endif */
+
 				triangle.a.applyMatrix4( invertedMat );
 				triangle.b.applyMatrix4( invertedMat );
 				triangle.c.applyMatrix4( invertedMat );

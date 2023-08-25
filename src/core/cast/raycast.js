@@ -1,5 +1,5 @@
 import { Vector3 } from 'three';
-import { intersectTris } from '../../utils/GeometryRayIntersectUtilities.js';
+import { intersectTris, intersectTris_indirect } from '../../utils/GeometryRayIntersectUtilities.js';
 import { intersectRay } from '../utils/intersectUtils.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
@@ -23,8 +23,15 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		// TODO INDIRECT
+		/* @if INDIRECT */
+
+		intersectTris_indirect( bvh, side, ray, offset, count, intersects );
+
+		/* @else */
+
 		intersectTris( bvh, side, ray, offset, count, intersects );
+
+		/* @endif */
 
 	} else {
 

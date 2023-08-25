@@ -1,7 +1,7 @@
 import { Vector3 } from 'three';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, SPLIT_AXIS } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
-import { intersectClosestTri } from '../../utils/GeometryRayIntersectUtilities.js';
+import { intersectClosestTri, intersectClosestTri_indirect } from '../../utils/GeometryRayIntersectUtilities.js';
 import { intersectRay } from '../utils/intersectUtils.js';
 
 const _boxIntersection = /* @__PURE__ */ new Vector3();
@@ -27,8 +27,15 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 
-		// TODO INDIRECT
+		/* @if INDIRECT */
+
+		return intersectClosestTri_indirect( bvh, side, ray, offset, count );
+
+		/* @else */
+
 		return intersectClosestTri( bvh, side, ray, offset, count );
+
+		/* @endif */
 
 	} else {
 
