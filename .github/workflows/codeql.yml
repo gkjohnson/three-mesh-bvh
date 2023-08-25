@@ -1,9 +1,5 @@
 name: "CodeQL"
 
-paths-ignore:
-  - "node_modules"
-  - "**/*.template.js"
-
 on:
   push:
     branches: [ "master" ]
