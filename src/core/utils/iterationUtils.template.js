@@ -1,4 +1,5 @@
 import { intersectTri } from '../../utils/ThreeRayIntersectUtilities.js';
+
 export function intersectTris/* @echo INDIRECT_STRING */( bvh, side, ray, offset, count, intersections ) {
 
 	const { geometry, _indirectBuffer } = bvh;
