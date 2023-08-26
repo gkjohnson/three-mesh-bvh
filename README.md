@@ -327,13 +327,28 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // the BVH asynchronously with the GenerateMeshBVHWorker class.
     onProgress: null,
 
+	// If false then an index buffer is created if it does not exist and is rearranged
+	// to hold the bvh structure. If false then a separate buffer is created to store the
+	// structure and the index buffer (or lack thereof) is retained. This can be used
+	// when the existing index layout is important or groups are being used so a
+	// single BVH hierarchy can be created to improve performance.
+	indirect: false,
+
     // Print out warnings encountered during tree construction.
     verbose: true,
 
 }
 ```
 
-*NOTE: The geometry's index attribute array is modified in order to build the bounds tree. If the geometry has no index then one is added.*
+*NOTE: The geometry's index attribute array is modified in order to build the bounds tree unless `indirect` is set to `true`. If the geometry has no index then one is added if `indirect` is set to `false`.*
+
+### .resolveTriangleIndex
+
+```js
+resolveTriangleIndex( index : Number ) : Number
+```
+
+Helper function for use when `indirect` is set to true. This function takes a triangle index in the BVH layout and returns the associated triangle index in the geometry index buffer or position attribute.
 
 ### .raycast
 
@@ -365,7 +380,7 @@ Returns the first raycast hit in the model. This is typically much faster than r
 intersectsSphere( sphere : Sphere ) : Boolean
 ```
 
-Returns whether or not the mesh instersects the given sphere.
+Returns whether or not the mesh intersects the given sphere.
 
 ### .intersectsBox
 
@@ -485,6 +500,8 @@ A generalized cast function that can be used to implement intersection logic for
 `intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, the score calculated by `boundsTraverseOrder`, the node depth, and the node index (for use with the [refit](#refit) function) and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned (meaning the bounds is entirely encapsulated by the shape) then an optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
 
 `intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
+
+*NOTE The triangle range provided in `intersectsRange` is for the indirect bvh storage buffer if the option has been set so it is necessary to transform to geometry triangle indices using `resolveTriangleIndex`.*
 
 `intersectsTriangle` takes a triangle and the triangle index and returns whether or not the triangle has been intersected. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained (returned `CONTAINED`) in the `intersectsBoundsFunc` function.
 
@@ -1065,7 +1082,7 @@ Set of shader functions used for interacting with the packed BVH in a shader and
 
 - When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
-  be produced and retained as a side effect of the construction.
+  be produced and retained as a side effect of the construction unless the "indirect" option is used.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.
 - If the geometry is changed then a new bounds tree will need to be generated or refit.
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
