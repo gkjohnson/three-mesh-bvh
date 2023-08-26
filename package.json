@@ -11,7 +11,7 @@
     "start": "concurrently \"rollup -w -c rollup-templating.config.js\" \"parcel serve ./example/*.html --dist-dir ./example/dev-bundle/ --no-hmr\"",
     "build": "rollup -c rollup-templating.config.js && rollup -c",
     "build-silent": "rollup -c rollup-templating.config.js --silent && rollup -c --silent",
-    "build-examples": "cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-content-hash",
+    "build-examples": "npm run build && cd example && parcel build ./*.html --dist-dir ./bundle/ --public-url . --no-cache --no-content-hash",
     "test": "npm run build-silent && cd test && jest",
     "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
