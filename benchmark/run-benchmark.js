@@ -30,6 +30,7 @@ import {
 	estimateMemoryInBytes,
 } from '../src/index.js';
 import { logObjectAsRows } from './logTable.js';
+import { generateGroupGeometry } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -63,7 +64,7 @@ suite( 'BVH General', () => {
 
 runSuiteWithOptions( '', { indirect: false } );
 
-// runSuiteWithOptions( 'Indirect', { indirect: true } );
+runSuiteWithOptions( 'Indirect', { indirect: true } );
 
 suite( 'Math Functions', () => {
 
@@ -179,6 +180,7 @@ function runSuiteWithOptions( name, options ) {
 	suite( `${ name } BVH Casts`, () => {
 
 		let geometry,
+			groupGeometry,
 			mesh,
 			bvh,
 			intersectBvh,
@@ -199,6 +201,8 @@ function runSuiteWithOptions( name, options ) {
 			mesh = new Mesh( geometry );
 			geometry = new TorusGeometry( 5, 5, 700, 300 );
 			bvh = new MeshBVH( geometry, options );
+
+			groupGeometry = generateGroupGeometry( 200 );
 
 			raycaster = new Raycaster();
 			raycaster.ray.origin.set( 10, 20, 30 );
@@ -239,6 +243,7 @@ function runSuiteWithOptions( name, options ) {
 
 		beforeEach( () => {
 
+			groupGeometry.boundsTree = null;
 			intersectGeometry.boundsTree = null;
 			geometry.boundsTree = bvh;
 			sphere = new Sphere( new Vector3(), 3 );
@@ -255,6 +260,7 @@ function runSuiteWithOptions( name, options ) {
 		} );
 
 		bench( 'Compute BVH', 				() => geometry.computeBoundsTree( options ) );
+		bench( 'Compute BVH w/ groups', 	() => groupGeometry.computeBoundsTree( options ) );
 		bench( 'Raycast', 					() => mesh.raycast( raycaster, [] ) );
 		bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
 		bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
