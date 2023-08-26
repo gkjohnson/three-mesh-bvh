@@ -13,11 +13,11 @@ import {
 	CENTER,
 	SAH,
 	AVERAGE,
-} from '../src/index.js';
+} from '../../src/index.js';
 import fs from 'fs';
 import path from 'path';
 
-const dataPath = path.resolve( __dirname, './data/points.bin' );
+const dataPath = path.resolve( __dirname, '../data/points.bin' );
 const buffer = fs.readFileSync( dataPath );
 const points = new Float32Array( buffer.buffer, buffer.byteOffset, buffer.byteLength / 4 );
 
