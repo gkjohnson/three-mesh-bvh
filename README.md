@@ -380,7 +380,7 @@ Returns the first raycast hit in the model. This is typically much faster than r
 intersectsSphere( sphere : Sphere ) : Boolean
 ```
 
-Returns whether or not the mesh instersects the given sphere.
+Returns whether or not the mesh intersects the given sphere.
 
 ### .intersectsBox
 
@@ -500,6 +500,8 @@ A generalized cast function that can be used to implement intersection logic for
 `intersectsBounds` takes the axis aligned bounding box representing an internal node local to the bvh, whether or not the node is a leaf, the score calculated by `boundsTraverseOrder`, the node depth, and the node index (for use with the [refit](#refit) function) and returns a constant indicating whether or not the bounds is intersected or contained meaning traversal should continue. If `CONTAINED` is returned (meaning the bounds is entirely encapsulated by the shape) then an optimization is triggered allowing the range and / or triangle intersection callbacks to be run immediately rather than traversing the rest of the child bounds.
 
 `intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
+
+*NOTE The triangle range provided in `intersectsRange` is for the indirect bvh storage buffer if the option has been set so it is necessary to transform to geometry triangle indices using `resolveTriangleIndex`.*
 
 `intersectsTriangle` takes a triangle and the triangle index and returns whether or not the triangle has been intersected. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained (returned `CONTAINED`) in the `intersectsBoundsFunc` function.
 
