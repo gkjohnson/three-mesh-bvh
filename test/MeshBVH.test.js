@@ -17,15 +17,14 @@ import {
 	acceleratedRaycast,
 	computeBoundsTree,
 	disposeBoundsTree,
-	getBVHExtremes,
 	validateBounds,
 } from '../src/index.js';
-import { getMaxDepth } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
+// TODO: clean this up
 describe( 'Bounds Tree', () => {
 
 	it( 'should provide a bounding box that matches the built in one.', () => {
@@ -51,7 +50,7 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
-	it( 'should be generated when calling BufferGeometry.computeBoundsTree', () => {
+	it( 'should be generated when calling BufferGeometry.computeBoundsTree.', () => {
 
 		const geom = new SphereGeometry( 1, 1, 1 );
 		expect( geom.boundsTree ).not.toBeDefined();
@@ -216,233 +215,6 @@ describe( 'Bounds Tree', () => {
 			expect( validateBounds( geom.boundsTree ) ).toBe( true );
 
 		} );
-
-	} );
-
-} );
-
-describe( 'Serialization', () => {
-
-	it( 'should serialize then deserialize to the same structure.', () => {
-
-		const geom = new SphereGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom );
-		const serialized = MeshBVH.serialize( bvh );
-
-		const deserializedBVH = MeshBVH.deserialize( serialized, geom );
-
-		// use a custom object since anonymous functions cause the
-		// test function to fail
-		const testObj = { ...bvh };
-		delete testObj.resolveTriangleIndex;
-		expect( deserializedBVH ).toMatchObject( testObj );
-
-	} );
-
-	it( 'should copy the index buffer from the target geometry unless copyIndex is set to false', () => {
-
-		const geom = new SphereGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom );
-
-		const serialized1 = MeshBVH.serialize( bvh );
-		expect( geom.index.array ).not.toBe( serialized1.index );
-		expect( bvh._roots ).not.toBe( serialized1.roots );
-		expect( bvh._roots[ 0 ] ).not.toBe( serialized1.roots[ 0 ] );
-		expect( bvh._roots ).toEqual( serialized1.roots );
-
-		const serialized2 = MeshBVH.serialize( bvh, { cloneBuffers: false } );
-		expect( geom.index.array ).toBe( serialized2.index );
-		expect( bvh._roots ).toBe( serialized2.roots );
-		expect( bvh._roots[ 0 ] ).toBe( serialized2.roots[ 0 ] );
-		expect( bvh._roots ).toEqual( serialized2.roots );
-
-	} );
-
-	it( 'should copy the index buffer onto the target geometry unless setIndex is set to false.', () => {
-
-		const geom1 = new SphereGeometry( 1, 10, 10 );
-		const geom2 = new SphereGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom1 );
-		const serialized = MeshBVH.serialize( bvh );
-
-		expect( geom2.index.array ).not.toBe( serialized.index );
-		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( serialized, geom2, { setIndex: false } );
-
-		expect( geom2.index.array ).not.toBe( serialized.index );
-		expect( geom2.index.array ).not.toEqual( serialized.index );
-		MeshBVH.deserialize( serialized, geom2, { setIndex: true } );
-
-		expect( geom2.index.array ).not.toBe( serialized.index );
-		expect( geom2.index.array ).toEqual( serialized.index );
-
-	} );
-
-	it( 'should create a new index if one does not exist when deserializing.', () => {
-
-		const geom = new SphereGeometry( 1, 10, 10 );
-		const bvh = new MeshBVH( geom );
-		const serialized = MeshBVH.serialize( bvh );
-
-		geom.index = null;
-
-		MeshBVH.deserialize( serialized, geom );
-
-		expect( geom.index ).toBeTruthy();
-
-	} );
-
-	it( 'should create an index buffer of the appropriate bit width.', () => {
-
-		const geom1 = new BufferGeometry();
-		geom1.setAttribute( 'position', new BufferAttribute( new Float32Array( 70000 * 3 ), 3, false ) );
-
-		new MeshBVH( geom1 );
-		expect( geom1.index.array instanceof Uint32Array ).toBe( true );
-
-		const geom2 = new BufferGeometry();
-		geom2.setAttribute( 'position', new BufferAttribute( new Float32Array( 60000 * 3 ), 3, false ) );
-
-		new MeshBVH( geom2 );
-		expect( geom2.index.array instanceof Uint32Array ).toBe( false );
-
-	} );
-
-} );
-
-describe( 'Options', () => {
-
-	let mesh = null;
-	beforeAll( () => {
-
-		const geometry = new TorusGeometry( 5, 5, 400, 100 );
-		mesh = new Mesh( geometry, new MeshBasicMaterial() );
-
-	} );
-
-	describe( 'onProgress', () => {
-
-		it( 'should provide a progress update for every leaf node', () => {
-
-			let minProgress = Infinity;
-			let maxProgress = - Infinity;
-			let count = 0;
-
-			const bvh = new MeshBVH( mesh.geometry, {
-
-				onProgress( progress ) {
-
-					minProgress = Math.min( minProgress, progress );
-					maxProgress = Math.max( maxProgress, progress );
-					count ++;
-
-				}
-
-			} );
-
-			const leafNodeCount = getBVHExtremes( bvh )[ 0 ].leafNodeCount;
-			expect( maxProgress ).toEqual( 1.0 );
-			expect( minProgress ).toBeLessThan( 0.001 );
-			expect( count ).toBe( leafNodeCount );
-
-		} );
-
-	} );
-
-	describe( 'setBoundingBox', () => {
-
-		it( 'should set the bounding box of the geometry when true.', () => {
-
-			mesh.geometry.boundingBox = null;
-			mesh.geometry.computeBoundsTree( { setBoundingBox: true } );
-
-			expect( mesh.geometry.boundingBox ).not.toBe( null );
-
-		} );
-
-		it( 'should not set the bounding box of the geometry when false.', () => {
-
-			mesh.geometry.boundingBox = null;
-			mesh.geometry.computeBoundsTree( { setBoundingBox: false } );
-
-			expect( mesh.geometry.boundingBox ).toBe( null );
-
-		} );
-
-	} );
-
-	describe( 'maxDepth', () => {
-
-		it( 'should not be limited by default', () => {
-
-			mesh.geometry.computeBoundsTree();
-
-			const depth = getMaxDepth( mesh.geometry.boundsTree );
-			expect( depth ).toBeGreaterThan( 10 );
-
-		} );
-
-		it( 'should cap the depth of the bounds tree', () => {
-
-			mesh.geometry.computeBoundsTree( { maxDepth: 10, verbose: false } );
-
-			const depth = getMaxDepth( mesh.geometry.boundsTree );
-			expect( depth ).toEqual( 10 );
-
-		} );
-
-		it( 'successfully raycast', () => {
-
-			const raycaster = new Raycaster();
-			raycaster.ray.origin.set( 0, 0, 10 );
-			raycaster.ray.direction.set( 0, 0, - 1 );
-
-			const bvh = new MeshBVH( mesh.geometry, { maxDepth: 3, verbose: false } );
-			const ogHits = raycaster.intersectObject( mesh, true );
-
-			mesh.geometry.boundsTree = bvh;
-			const bvhHits = raycaster.intersectObject( mesh, true );
-
-			raycaster.raycastFirst = true;
-			const firstHit = raycaster.intersectObject( mesh, true );
-
-			expect( ogHits ).toEqual( bvhHits );
-			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
-
-		} );
-
-	} );
-
-	describe( 'useSharedArrayBuffer', () => {
-
-		it( 'should initialize with shared array buffers if true.', () => {
-
-			const geometry = new TorusGeometry( 5, 5, 40, 10 );
-			let bvh1, bvh2;
-
-			geometry.setIndex( null );
-			bvh1 = new MeshBVH( geometry, { useSharedArrayBuffer: true } );
-			expect( bvh1._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( true );
-			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( true );
-
-			geometry.setIndex( null );
-			bvh2 = new MeshBVH( geometry, { useSharedArrayBuffer: false } );
-			expect( bvh2._roots[ 0 ] instanceof SharedArrayBuffer ).toBe( false );
-			expect( geometry.index.array.buffer instanceof SharedArrayBuffer ).toBe( false );
-
-		} );
-
-	} );
-
-	describe( 'strategy', () => {
-
-		it.todo( 'should set the split strategy' );
-
-	} );
-
-	afterEach( () => {
-
-		mesh.geometry.boundsTree = null;
 
 	} );
 

@@ -13,24 +13,23 @@ import {
 	CENTER,
 	SAH,
 	AVERAGE,
-} from '../src/index.js';
+} from '../../src/index.js';
 import fs from 'fs';
 import path from 'path';
-
-const dataPath = path.resolve( __dirname, './data/points.bin' );
-const buffer = fs.readFileSync( dataPath );
-const points = new Float32Array( buffer.buffer, buffer.byteOffset, buffer.byteLength / 4 );
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
+// TODO: clean up test
 describe( 'AVERAGE Points Raycast', () => {
 
-	let geometry = null;
-	let mesh = null;
-	let raycaster = null;
+	let geometry, mesh, raycaster;
 	beforeEach( () => {
+
+		const dataPath = path.resolve( __dirname, '../data/points.bin' );
+		const buffer = fs.readFileSync( dataPath );
+		const points = new Float32Array( buffer.buffer, buffer.byteOffset, buffer.byteLength / 4 );
 
 		geometry = new BufferGeometry();
 		geometry.setAttribute( 'position', new BufferAttribute( points.slice(), 3 ) );

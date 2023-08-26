@@ -37,7 +37,7 @@ export class MeshBVH {
 
 		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
-		const indirectBuffer = bvh.indirectBuffer;
+		const indirectBuffer = bvh._indirectBuffer;
 		const indexAttribute = geometry.getIndex();
 		let result;
 		if ( options.cloneBuffers ) {

@@ -1,8 +1,28 @@
 import { BufferAttribute } from 'three';
 
+export function getVertexCount( geo ) {
+
+	return geo.index ? geo.index.count : geo.attributes.position.count;
+
+}
+
 export function getTriCount( geo ) {
 
-	return ( geo.index ? geo.index.count : geo.attributes.position.count ) / 3;
+	return getVertexCount( geo ) / 3;
+
+}
+
+export function getIndexArray( vertexCount, BufferConstructor = ArrayBuffer ) {
+
+	if ( vertexCount > 65535 ) {
+
+		return new Uint32Array( new BufferConstructor( 4 * vertexCount ) );
+
+	} else {
+
+		return new Uint16Array( new BufferConstructor( 2 * vertexCount ) );
+
+	}
 
 }
 
@@ -13,17 +33,7 @@ export function ensureIndex( geo, options ) {
 
 		const vertexCount = geo.attributes.position.count;
 		const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-		let index;
-		if ( vertexCount > 65535 ) {
-
-			index = new Uint32Array( new BufferConstructor( 4 * vertexCount ) );
-
-		} else {
-
-			index = new Uint16Array( new BufferConstructor( 2 * vertexCount ) );
-
-		}
-
+		const index = getIndexArray( vertexCount, BufferConstructor );
 		geo.setIndex( new BufferAttribute( index, 1 ) );
 
 		for ( let i = 0; i < vertexCount; i ++ ) {

@@ -31,7 +31,7 @@ function buildTree( bvh, options ) {
 	// we'll need it for the root bounds in the case with no groups and it should be fast here.
 	// We can't use the geometry bounding box if it's available because it may be out of date.
 	const geometry = bvh.geometry;
-	const indexArray = geometry.index.array;
+	const indexArray = geometry.index ? geometry.index.array : null;
 	const maxDepth = options.maxDepth;
 	const verbose = options.verbose;
 	const maxLeafTris = options.maxLeafTris;

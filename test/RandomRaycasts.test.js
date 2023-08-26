@@ -34,38 +34,17 @@ describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) 
 describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
 describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
 
-function createInterleavedPositionBuffer( bufferAttribute ) {
-
-	const array = bufferAttribute.array;
-	const newArray = new array.constructor( array.length * 2 );
-
-	const newBuffer = new InterleavedBufferAttribute( new InterleavedBuffer( newArray, 6 ), 3, 3, bufferAttribute.normalized );
-	for ( let i = 0; i < bufferAttribute.count; i ++ ) {
-
-		const x = bufferAttribute.getX( i );
-		const y = bufferAttribute.getY( i );
-		const z = bufferAttribute.getZ( i );
-
-		newBuffer.setXYZ( i, x, y, z );
-
-	}
-
-	return newBuffer;
-
-}
-
 function runRandomTests( options ) {
 
-	let scene = null;
-	let raycaster = null;
-	let ungroupedGeometry = null;
-	let ungroupedBvh = null;
-	let groupedGeometry = null;
-	let groupedBvh = null;
-
 	const transformSeed = Math.floor( Math.random() * 1e10 );
-
 	describe( `Transform Seed : ${ transformSeed }`, () => {
+
+		let scene,
+			raycaster,
+			ungroupedGeometry,
+			ungroupedBvh,
+			groupedGeometry,
+			groupedBvh;
 
 		beforeAll( () => {
 
@@ -152,5 +131,25 @@ function runRandomTests( options ) {
 		}
 
 	} );
+
+}
+
+function createInterleavedPositionBuffer( bufferAttribute ) {
+
+	const array = bufferAttribute.array;
+	const newArray = new array.constructor( array.length * 2 );
+	const newBuffer = new InterleavedBufferAttribute( new InterleavedBuffer( newArray, 6 ), 3, 3, bufferAttribute.normalized );
+	for ( let i = 0; i < bufferAttribute.count; i ++ ) {
+
+		newBuffer.setXYZ(
+			i,
+			bufferAttribute.getX( i ),
+			bufferAttribute.getY( i ),
+			bufferAttribute.getZ( i ),
+		);
+
+	}
+
+	return newBuffer;
 
 }
