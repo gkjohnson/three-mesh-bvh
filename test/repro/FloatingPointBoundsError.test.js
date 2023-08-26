@@ -21,6 +21,7 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
+// TODO: clean up test
 describe( 'AVERAGE Points Raycast', () => {
 
 	let geometry, mesh, raycaster;
