@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Fixed
+- Fixed estimateMemoryInBytes not testing for SharedArrayBuffers resulting in a smaller memory footprint.
+
 ### Changed
 - Removed long deprecated shapecast code path using old function signature.
 - Removed long deprecated serialization code path using old function signature.
