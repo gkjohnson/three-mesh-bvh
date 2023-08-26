@@ -20,6 +20,7 @@ import {
 	OFFSET,
 	SPLIT_AXIS,
 } from '../core/utils/nodeBufferUtils.js';
+import { getIndexArray, getVertexCount } from '../core/build/geometryUtils.js';
 
 export class MeshBVHUniformStruct {
 
@@ -51,21 +52,25 @@ export class MeshBVHUniformStruct {
 				this._cachedIndexAttr.count !== indirectBuffer.length
 			) {
 
-				this._cachedIndexAttr = geometry.index ?
-					geometry.index.clone() :
-					new BufferAttribute( indirectBuffer.slice(), 1, false );
+				if ( geometry.index ) {
+
+					this._cachedIndexAttr = geometry.index.clone();
+
+				} else {
+
+					const array = getIndexArray( getVertexCount( geometry ) );
+					this._cachedIndexAttr = new BufferAttribute( array, 1, false );
+
+				}
 
 			}
 
 			dereferenceIndex( geometry, indirectBuffer, this._cachedIndexAttr );
 			this.index.updateFrom( this._cachedIndexAttr );
 
-			console.log( 'NOT', this._cachedIndexAttr.count );
-
 		} else {
 
 			this.index.updateFrom( geometry.index );
-			console.log( 'RAW', geometry.index.count );
 
 		}
 

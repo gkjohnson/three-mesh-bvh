@@ -60,7 +60,7 @@ describe( 'MeshBVHUniformStruct', () => {
 
 	} );
 
-	it.only( 'should produce the same textures even with indirect enabled and no index.', () => {
+	it( 'should produce the same textures even with indirect enabled and no index.', () => {
 
 		const bvh = new MeshBVH( geometry.toNonIndexed(), { indirect: false } );
 		const struct = new MeshBVHUniformStruct();
@@ -70,15 +70,10 @@ describe( 'MeshBVHUniformStruct', () => {
 		const structIndirect = new MeshBVHUniformStruct();
 		structIndirect.updateFrom( bvhIndirect );
 
-		console.log( bvh.geometry.index.count / 3, bvhIndirect.geometry.attributes.position.count / 3 );
-		console.log( bvh.geometry.index.count / 3, bvhIndirect._indirectBuffer.length );
-
-		expect( bvh.geometry.index.array ).toEqual( structIndirect._cachedIndexAttr.array );
-
 		expect( struct.position.image ).toEqual( structIndirect.position.image );
-		// expect( struct.index.image ).toEqual( structIndirect.index.image );
-		// expect( struct.bvhBounds.image ).toEqual( structIndirect.bvhBounds.image );
-		// expect( struct.bvhContents.image ).toEqual( structIndirect.bvhContents.image );
+		expect( struct.index.image ).toEqual( structIndirect.index.image );
+		expect( struct.bvhBounds.image ).toEqual( structIndirect.bvhBounds.image );
+		expect( struct.bvhContents.image ).toEqual( structIndirect.bvhContents.image );
 
 	} );
 
