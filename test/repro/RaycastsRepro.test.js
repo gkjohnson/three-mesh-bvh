@@ -1,7 +1,7 @@
 // Test cases specifically for issue #180
 import { Mesh, BufferGeometry, TorusGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH, AVERAGE } from '../src/index.js';
-import { random, setSeed } from './utils.js';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH, AVERAGE } from '../../src/index.js';
+import { random, setSeed } from '../utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

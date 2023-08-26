@@ -34,6 +34,7 @@ BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 runSuiteWithOptions( {} );
 runSuiteWithOptions( { indirect: true } );
 
+// TODO: clean this up
 function runSuiteWithOptions( defaultOptions ) {
 
 	const MeshBVH = class extends _MeshBVH {

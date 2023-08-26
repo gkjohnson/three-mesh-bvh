@@ -56,3 +56,40 @@ export function getRandomOrientation( matrix, range ) {
 	return matrix;
 
 }
+
+export function runOptionsMatrix( options, cb ) {
+
+	traverse( Object.keys( options ) );
+
+	function traverse( remainingKeys, state = {} ) {
+
+		if ( remainingKeys.length === 0 ) {
+
+			cb( { ...state } );
+			return;
+
+		}
+
+		let values;
+		const key = remainingKeys.pop();
+		if ( Array.isArray( options[ key ] ) ) {
+
+			values = options[ key ];
+
+		} else {
+
+			values = [ options[ key ] ];
+
+		}
+
+		for ( let i = 0, l = values.length; i < l; i ++ ) {
+
+			const value = values[ i ];
+			const newState = { ...state, [ key ]: value };
+			traverse( [ ...remainingKeys ], newState );
+
+		}
+
+	}
+
+}

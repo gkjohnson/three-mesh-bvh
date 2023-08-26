@@ -200,6 +200,21 @@ describe( 'Options', () => {
 
 		} );
 
+		it( 'should produce an indirect buffer that would contain the index buffer.', () => {
+
+			const bvhIndexed = new MeshBVH( geometry.clone(), { indirect: false } );
+			const bvhNonIndexed = new MeshBVH( geometry.toNonIndexed(), { indirect: false } );
+			const bvhIndexedIndirect = new MeshBVH( geometry.clone(), { indirect: true } );
+			const bvhNonIndexedIndirect = new MeshBVH( geometry.toNonIndexed(), { indirect: true } );
+
+			const triCount = bvhIndexed.geometry.index.count / 3;
+			expect( bvhIndexed.geometry.index.count / 3 ).toEqual( triCount );
+			expect( bvhNonIndexed.geometry.index.count / 3 ).toEqual( triCount );
+			expect( bvhIndexedIndirect._indirectBuffer ).toHaveLength( triCount );
+			expect( bvhNonIndexedIndirect._indirectBuffer ).toHaveLength( triCount );
+
+		} );
+
 	} );
 
 	describe( 'strategy', () => {

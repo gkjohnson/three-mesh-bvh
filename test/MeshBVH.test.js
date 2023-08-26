@@ -17,15 +17,14 @@ import {
 	acceleratedRaycast,
 	computeBoundsTree,
 	disposeBoundsTree,
-	getBVHExtremes,
 	validateBounds,
 } from '../src/index.js';
-import { getMaxDepth } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
+// TODO: clean this up
 describe( 'Bounds Tree', () => {
 
 	it( 'should provide a bounding box that matches the built in one.', () => {
@@ -51,7 +50,7 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
-	it( 'should be generated when calling BufferGeometry.computeBoundsTree', () => {
+	it( 'should be generated when calling BufferGeometry.computeBoundsTree.', () => {
 
 		const geom = new SphereGeometry( 1, 1, 1 );
 		expect( geom.boundsTree ).not.toBeDefined();
