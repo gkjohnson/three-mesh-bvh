@@ -32,7 +32,9 @@ BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 runSuiteWithOptions( {} );
+runSuiteWithOptions( { indirect: true } );
 
+// TODO: clean this up
 function runSuiteWithOptions( defaultOptions ) {
 
 	const MeshBVH = class extends _MeshBVH {
@@ -280,25 +282,69 @@ function runSuiteWithOptions( defaultOptions ) {
 
 	describe( 'Bvhcast', () => {
 
-		let bvhA = null;
-		let bvhB = null;
-		let matrix;
 
 		describe( 'Simple intersecting cubes', () => {
 
+			let matrix;
+			let cubeA, cubeB;
 			beforeAll( () => {
 
-				const cubeA = new BoxGeometry( 2, 2, 2 );
-				bvhA = new MeshBVH( cubeA );
-				const cubeB = new BoxGeometry( 2, 2, 2 );
-				bvhB = new MeshBVH( cubeB );
+				cubeA = new BoxGeometry( 2, 2, 2 );
+				cubeA.clearGroups();
+
+				cubeB = new BoxGeometry( 2, 2, 2 );
+				cubeB.clearGroups();
+
 				matrix = new Matrix4();
 
 			} );
 
-			it( 'should compare all geometries triangles', () => {
+			it( 'should compare triangles that intersect', () => {
+
+				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
+
+				matrix.makeRotationX( Math.PI * 0.01 );
+				let nbTriangleTests = 0;
+				const intersectsTriangles = function () {
+
+					nbTriangleTests += 1;
+					return false;
+
+				};
+
+				bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+
+				expect( nbTriangleTests ).toBe( 104 );
+
+			} );
+
+			it( 'should compare triangles that intersect after translation', () => {
+
+				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
 
 				matrix.makeTranslation( 1, 1, 1 );
+				let nbTriangleTests = 0;
+				const intersectsTriangles = function () {
+
+					nbTriangleTests += 1;
+					return false;
+
+				};
+
+				bvhA.bvhcast( bvhB, matrix, { intersectsTriangles: intersectsTriangles } );
+
+				expect( nbTriangleTests ).toBe( 24 );
+
+			} );
+
+			it( 'should compare all triangles in bounds that intersect', () => {
+
+				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 10 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 10 } );
+
+				matrix.makeRotationX( Math.PI * 0.01 );
 				let nbTriangleTests = 0;
 				const intersectsTriangles = function () {
 
@@ -313,7 +359,11 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			} );
 
+
 			it( 'should stop iterating triangles', () => {
+
+				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 10 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 10 } );
 
 				matrix.makeTranslation( 1, 1, 1 );
 				let nbTriangleTests = 0;
@@ -334,6 +384,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		describe( 'Dense intersecting cubes', () => {
 
+			let matrix;
+			let bvhA, bvhB;
 			beforeAll( () => {
 
 				const cubeA = new BoxGeometry( 2, 2, 2, 2, 2, 2 );
@@ -698,6 +750,8 @@ function runSuiteWithOptions( defaultOptions ) {
 			geometry = new SphereGeometry( 1, 5, 5 );
 
 		} );
+
+		it.todo( 'should check the the cases where other geo has and doesn\'t have a bvh' );
 
 		it( 'should return the radius if reduced to a point at the center of the geometry', () => {
 

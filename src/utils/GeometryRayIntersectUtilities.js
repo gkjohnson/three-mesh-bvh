@@ -1,35 +1,3 @@
-import { intersectTri } from './ThreeRayIntersectUtilities.js';
-
-export function intersectTris( geo, side, ray, offset, count, intersections ) {
-
-	for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-		intersectTri( geo, side, ray, i, intersections );
-
-	}
-
-}
-
-export function intersectClosestTri( geo, side, ray, offset, count ) {
-
-	let dist = Infinity;
-	let res = null;
-	for ( let i = offset, end = offset + count; i < end; i ++ ) {
-
-		const intersection = intersectTri( geo, side, ray, i );
-		if ( intersection && intersection.distance < dist ) {
-
-			res = intersection;
-			dist = intersection.distance;
-
-		}
-
-	}
-
-	return res;
-
-}
-
 // converts the given BVH raycast intersection to align with the three.js raycast
 // structure (include object, world space distance and point).
 export function convertRaycastIntersect( hit, object, raycaster ) {

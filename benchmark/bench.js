@@ -45,6 +45,8 @@ function findMedian( values ) {
 
 export function suite( name, cb ) {
 
+	name = name.trim();
+
 	cb();
 
 	_beforeAll.forEach( cb => cb() );
@@ -119,6 +121,8 @@ export function suite( name, cb ) {
 }
 
 export function bench( name, prerun, run ) {
+
+	name = name.trim();
 
 	if ( run === undefined ) {
 

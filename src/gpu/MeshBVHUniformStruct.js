@@ -5,6 +5,7 @@ import {
 	RGBAFormat,
 	RGIntegerFormat,
 	NearestFilter,
+	BufferAttribute,
 } from 'three';
 import {
 	FloatVertexAttributeTexture,
@@ -19,6 +20,92 @@ import {
 	OFFSET,
 	SPLIT_AXIS,
 } from '../core/utils/nodeBufferUtils.js';
+import { getIndexArray, getVertexCount } from '../core/build/geometryUtils.js';
+
+export class MeshBVHUniformStruct {
+
+	constructor() {
+
+		this.index = new UIntVertexAttributeTexture();
+		this.position = new FloatVertexAttributeTexture();
+		this.bvhBounds = new DataTexture();
+		this.bvhContents = new DataTexture();
+		this._cachedIndexAttr = null;
+
+		this.index.overrideItemSize = 3;
+
+	}
+
+	updateFrom( bvh ) {
+
+		const { geometry } = bvh;
+		bvhToTextures( bvh, this.bvhBounds, this.bvhContents );
+
+		this.position.updateFrom( geometry.attributes.position );
+
+		// dereference a new index attribute if we're using indirect storage
+		if ( bvh.indirect ) {
+
+			const indirectBuffer = bvh._indirectBuffer;
+			if (
+				this._cachedIndexAttr === null ||
+				this._cachedIndexAttr.count !== indirectBuffer.length
+			) {
+
+				if ( geometry.index ) {
+
+					this._cachedIndexAttr = geometry.index.clone();
+
+				} else {
+
+					const array = getIndexArray( getVertexCount( geometry ) );
+					this._cachedIndexAttr = new BufferAttribute( array, 1, false );
+
+				}
+
+			}
+
+			dereferenceIndex( geometry, indirectBuffer, this._cachedIndexAttr );
+			this.index.updateFrom( this._cachedIndexAttr );
+
+		} else {
+
+			this.index.updateFrom( geometry.index );
+
+		}
+
+	}
+
+	dispose() {
+
+		const { index, position, bvhBounds, bvhContents } = this;
+
+		if ( index ) index.dispose();
+		if ( position ) position.dispose();
+		if ( bvhBounds ) bvhBounds.dispose();
+		if ( bvhContents ) bvhContents.dispose();
+
+	}
+
+}
+
+function dereferenceIndex( geometry, indirectBuffer, target ) {
+
+	const unpacked = target.array;
+	const indexArray = geometry.index ? geometry.index.array : null;
+	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+
+		const i3 = 3 * i;
+		const v3 = 3 * indirectBuffer[ i ];
+		for ( let c = 0; c < 3; c ++ ) {
+
+			unpacked[ i3 + c ] = indexArray ? indexArray[ v3 + c ] : v3 + c;
+
+		}
+
+	}
+
+}
 
 function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 
@@ -100,43 +187,5 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 	contentsTexture.generateMipmaps = false;
 	contentsTexture.needsUpdate = true;
 	contentsTexture.dispose();
-
-}
-
-export class MeshBVHUniformStruct {
-
-	constructor() {
-
-		this.autoDispose = true;
-		this.index = new UIntVertexAttributeTexture();
-		this.position = new FloatVertexAttributeTexture();
-		this.bvhBounds = new DataTexture();
-		this.bvhContents = new DataTexture();
-
-		this.index.overrideItemSize = 3;
-
-	}
-
-	updateFrom( bvh ) {
-
-		const { geometry } = bvh;
-
-		bvhToTextures( bvh, this.bvhBounds, this.bvhContents );
-
-		this.index.updateFrom( geometry.index );
-		this.position.updateFrom( geometry.attributes.position );
-
-	}
-
-	dispose() {
-
-		const { index, position, bvhBounds, bvhContents } = this;
-
-		if ( index ) index.dispose();
-		if ( position ) position.dispose();
-		if ( bvhBounds ) bvhBounds.dispose();
-		if ( bvhContents ) bvhContents.dispose();
-
-	}
 
 }

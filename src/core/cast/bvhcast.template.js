@@ -1,12 +1,11 @@
-import { Box3, Matrix4 } from 'three';
+import { Matrix4, Box3 } from 'three';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 
+const tempMatrix = new Matrix4();
 const aabb = /* @__PURE__ */ new Box3();
 const aabb2 = /* @__PURE__ */ new Box3();
-const tempMatrix = /* @__PURE__ */ new Matrix4();
-
-export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
+export function bvhcast/* @echo INDIRECT_STRING */( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	// BVHCast function for intersecting two BVHs against each other. Ultimately just uses two recursive shapecast calls rather
 	// than an approach that walks down the tree (see bvhcast.js file for more info).
@@ -29,11 +28,21 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 	if ( intersectsTriangles ) {
 
-		function iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
+		const iterateOverDoubleTriangles = ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) => {
 
 			for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
+				/* @if INDIRECT */
+
+				const ti2 = otherBvh.resolveTriangleIndex( i2 );
+				setTriangle( triangle2, ti2 * 3, otherIndexAttr, otherPositionAttr );
+
+				/* @else */
+
 				setTriangle( triangle2, i2 * 3, otherIndexAttr, otherPositionAttr );
+
+				/* @endif */
+
 				triangle2.a.applyMatrix4( matrixToLocal );
 				triangle2.b.applyMatrix4( matrixToLocal );
 				triangle2.c.applyMatrix4( matrixToLocal );
@@ -41,7 +50,16 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 				for ( let i1 = offset1, l1 = offset1 + count1; i1 < l1; i1 ++ ) {
 
+					/* @if INDIRECT */
+
+					const ti1 = bvh.resolveTriangleIndex( i1 );
+					setTriangle( triangle, ti1 * 3, indexAttr, positionAttr );
+
+					/* @else */
+
 					setTriangle( triangle, i1 * 3, indexAttr, positionAttr );
+
+					/* @endif */
 					triangle.needsUpdate = true;
 
 					if ( intersectsTriangles( triangle, triangle2, i1, i2, depth1, index1, depth2, index2 ) ) {
@@ -56,7 +74,7 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, callbacks ) {
 
 			return false;
 
-		}
+		};
 
 		if ( intersectsRanges ) {
 

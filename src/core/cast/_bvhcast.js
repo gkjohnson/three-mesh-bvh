@@ -10,13 +10,11 @@ import { Box3 } from 'three';
 
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from './utils/nodeBufferUtils.js';
 import { MeshBVH } from './MeshBVH.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
-import { ExtendedTriangle } from '../math/ExtendedTriangle.js';
-
-const trianglePool = /* @__PURE__ */ new PrimitivePool( () => new ExtendedTriangle() );
+import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
+import { PrimitivePool } from '../../utils/PrimitivePool.js';
 
 MeshBVH.prototype.bvhcast = function ( otherBvh, matrixToLocal, callbacks ) {
 
@@ -29,8 +27,8 @@ MeshBVH.prototype.bvhcast = function ( otherBvh, matrixToLocal, callbacks ) {
 	const indexAttr = geometry.index;
 	const positionAttr = geometry.attributes.position;
 
-	const triangle = trianglePool.getPrimitive();
-	const triangle2 = trianglePool.getPrimitive();
+	const triangle = ExtendedTrianglePool.getPrimitive();
+	const triangle2 = ExtendedTrianglePool.getPrimitive();
 	if ( intersectsTriangle ) {
 
 		function iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
@@ -120,8 +118,8 @@ MeshBVH.prototype.bvhcast = function ( otherBvh, matrixToLocal, callbacks ) {
 
 	}
 
-	trianglePool.releasePrimitive( triangle );
-	trianglePool.releasePrimitive( triangle2 );
+	ExtendedTrianglePool.releasePrimitive( triangle );
+	ExtendedTrianglePool.releasePrimitive( triangle2 );
 	return result;
 
 };

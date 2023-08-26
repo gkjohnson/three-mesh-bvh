@@ -1,8 +1,8 @@
 import { Vector3, Matrix4 } from 'three';
 import { OrientedBox } from '../../math/OrientedBox.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
-import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 import { getTriCount } from '../build/geometryUtils.js';
+import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 
 const tempMatrix = /* @__PURE__ */ new Matrix4();
 const obb = /* @__PURE__ */ new OrientedBox();
@@ -12,7 +12,7 @@ const temp2 = /* @__PURE__ */ new Vector3();
 const temp3 = /* @__PURE__ */ new Vector3();
 const temp4 = /* @__PURE__ */ new Vector3();
 
-export function closestPointToGeometry(
+export function closestPointToGeometry/* @echo INDIRECT_STRING */(
 	bvh,
 	otherGeometry,
 	geometryToBvh,
@@ -93,7 +93,8 @@ export function closestPointToGeometry(
 
 					// if the other geometry has a bvh then use the accelerated path where we use shapecast to find
 					// the closest bounds in the other geometry to check.
-					return otherGeometry.boundsTree.shapecast( {
+					const otherBvh = otherGeometry.boundsTree;
+					return otherBvh.shapecast( {
 						boundsTraverseOrder: box => {
 
 							return obb2.distanceToBox( box );
@@ -108,17 +109,35 @@ export function closestPointToGeometry(
 
 						intersectsRange: ( otherOffset, otherCount ) => {
 
-							for ( let i2 = otherOffset * 3, l2 = ( otherOffset + otherCount ) * 3; i2 < l2; i2 += 3 ) {
+							for ( let i2 = otherOffset, l2 = otherOffset + otherCount; i2 < l2; i2 ++ ) {
 
-								setTriangle( triangle2, i2, otherIndex, otherPos );
+								/* @if INDIRECT */
+
+								const ti2 = otherBvh.resolveTriangleIndex( i2 );
+								setTriangle( triangle2, 3 * ti2, otherIndex, otherPos );
+
+								/* @else */
+
+								setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
+
+								/* @endif */
 								triangle2.a.applyMatrix4( geometryToBvh );
 								triangle2.b.applyMatrix4( geometryToBvh );
 								triangle2.c.applyMatrix4( geometryToBvh );
 								triangle2.needsUpdate = true;
 
-								for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+								for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-									setTriangle( triangle, i, index, pos );
+									/* @if INDIRECT */
+
+									const ti = bvh.resolveTriangleIndex( i );
+									setTriangle( triangle, 3 * ti, index, pos );
+
+									/* @else */
+
+									setTriangle( triangle, 3 * i, index, pos );
+
+									/* @endif */
 									triangle.needsUpdate = true;
 
 									const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -133,8 +152,8 @@ export function closestPointToGeometry(
 										}
 
 										closestDistance = dist;
-										closestDistanceTriIndex = i / 3;
-										closestDistanceOtherTriIndex = i2 / 3;
+										closestDistanceTriIndex = i;
+										closestDistanceOtherTriIndex = i2;
 
 									}
 
@@ -155,18 +174,27 @@ export function closestPointToGeometry(
 				} else {
 
 					// If no bounds tree then we'll just check every triangle.
-					const triCount = getTriCount( otherGeometry ) * 3;
-					for ( let i2 = 0, l2 = triCount; i2 < l2; i2 += 3 ) {
+					const triCount = getTriCount( otherGeometry );
+					for ( let i2 = 0, l2 = triCount; i2 < l2; i2 ++ ) {
 
-						setTriangle( triangle2, i2, otherIndex, otherPos );
+						setTriangle( triangle2, 3 * i2, otherIndex, otherPos );
 						triangle2.a.applyMatrix4( geometryToBvh );
 						triangle2.b.applyMatrix4( geometryToBvh );
 						triangle2.c.applyMatrix4( geometryToBvh );
 						triangle2.needsUpdate = true;
 
-						for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+						for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-							setTriangle( triangle, i, index, pos );
+							/* @if INDIRECT */
+
+							const ti = bvh.resolveTriangleIndex( i );
+							setTriangle( triangle, 3 * ti, index, pos );
+
+							/* @else */
+
+							setTriangle( triangle, 3 * i, index, pos );
+
+							/* @endif */
 							triangle.needsUpdate = true;
 
 							const dist = triangle.distanceToTriangle( triangle2, tempTarget1, tempTarget2 );
@@ -181,8 +209,8 @@ export function closestPointToGeometry(
 								}
 
 								closestDistance = dist;
-								closestDistanceTriIndex = i / 3;
-								closestDistanceOtherTriIndex = i2 / 3;
+								closestDistanceTriIndex = i;
+								closestDistanceOtherTriIndex = i2;
 
 							}
 
@@ -208,10 +236,22 @@ export function closestPointToGeometry(
 	ExtendedTrianglePool.releasePrimitive( triangle );
 	ExtendedTrianglePool.releasePrimitive( triangle2 );
 
-	if ( closestDistance === Infinity ) return null;
+	if ( closestDistance === Infinity ) {
 
-	if ( ! target1.point ) target1.point = tempTargetDest1.clone();
-	else target1.point.copy( tempTargetDest1 );
+		return null;
+
+	}
+
+	if ( ! target1.point ) {
+
+		target1.point = tempTargetDest1.clone();
+
+	} else {
+
+		target1.point.copy( tempTargetDest1 );
+
+	}
+
 	target1.distance = closestDistance,
 	target1.faceIndex = closestDistanceTriIndex;
 

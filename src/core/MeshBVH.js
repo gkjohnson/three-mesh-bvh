@@ -3,16 +3,26 @@ import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Con
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { iterateOverTriangles } from '../utils/TriangleUtilities.js';
-import { raycast } from './cast/raycast.js';
-import { raycastFirst } from './cast/raycastFirst.js';
-import { shapecast } from './cast/shapecast.js';
-import { intersectsGeometry } from './cast/intersectsGeometry.js';
-import { refit } from './cast/refit.js';
-import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { bvhcast } from './cast/bvhcast.js';
-import { closestPointToGeometry } from './cast/closestPointToGeometry.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
+import { shapecast } from './cast/shapecast.js';
+import { closestPointToPoint } from './cast/closestPointToPoint.js';
+
+import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
+import { refit } from './cast/refit.generated.js';
+import { raycast } from './cast/raycast.generated.js';
+import { raycastFirst } from './cast/raycastFirst.generated.js';
+import { intersectsGeometry } from './cast/intersectsGeometry.generated.js';
+import { closestPointToGeometry } from './cast/closestPointToGeometry.generated.js';
+import { bvhcast } from './cast/bvhcast.generated.js';
+
+import { iterateOverTriangles_indirect } from './utils/iterationUtils_indirect.generated.js';
+import { refit_indirect } from './cast/refit_indirect.generated.js';
+import { raycast_indirect } from './cast/raycast_indirect.generated.js';
+import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js';
+import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
+import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
+import { bvhcast_indirect } from './cast/bvhcast_indirect.generated.js';
+import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
@@ -28,6 +38,7 @@ export class MeshBVH {
 
 		const geometry = bvh.geometry;
 		const rootData = bvh._roots;
+		const indirectBuffer = bvh._indirectBuffer;
 		const indexAttribute = geometry.getIndex();
 		let result;
 		if ( options.cloneBuffers ) {
@@ -35,6 +46,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData.map( root => root.slice() ),
 				index: indexAttribute.array.slice(),
+				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
 			};
 
 		} else {
@@ -42,6 +54,7 @@ export class MeshBVH {
 			result = {
 				roots: rootData,
 				index: indexAttribute.array,
+				indirectBuffer: indirectBuffer,
 			};
 
 		}
@@ -54,12 +67,14 @@ export class MeshBVH {
 
 		options = {
 			setIndex: true,
+			indirect: Boolean( data.indirectBuffer ),
 			...options,
 		};
 
-		const { index, roots } = data;
+		const { index, roots, indirectBuffer } = data;
 		const bvh = new MeshBVH( geometry, { ...options, [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
+		bvh._indirectBuffer = indirectBuffer || null;
 
 		if ( options.setIndex ) {
 
@@ -79,6 +94,12 @@ export class MeshBVH {
 		}
 
 		return bvh;
+
+	}
+
+	get indirect() {
+
+		return ! ! this._indirectBuffer;
 
 	}
 
@@ -104,6 +125,7 @@ export class MeshBVH {
 			useSharedArrayBuffer: false,
 			setBoundingBox: true,
 			onProgress: null,
+			indirect: false,
 
 			// undocumented options
 
@@ -112,16 +134,20 @@ export class MeshBVH {
 
 		}, options );
 
-		if ( options.useSharedArrayBuffer && typeof SharedArrayBuffer === 'undefined' ) {
+		if ( options.useSharedArrayBuffer && ! isSharedArrayBufferSupported() ) {
 
 			throw new Error( 'MeshBVH: SharedArrayBuffer is not available.' );
 
 		}
 
+		// retain references to the geometry so we can use them it without having to
+		// take a geometry reference in every function.
+		this.geometry = geometry;
 		this._roots = null;
+		this._indirectBuffer = null;
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			buildPackedTree( geometry, options, this );
+			buildPackedTree( this, options );
 
 			if ( ! geometry.boundingBox && options.setBoundingBox ) {
 
@@ -131,15 +157,15 @@ export class MeshBVH {
 
 		}
 
-		// retain references to the geometry so we can use them it without having to
-		// take a geometry reference in every function.
-		this.geometry = geometry;
+		const { _indirectBuffer } = this;
+		this.resolveTriangleIndex = options.indirect ? i => _indirectBuffer[ i ] : i => i;
 
 	}
 
 	refit( nodeIndices = null ) {
 
-		return refit( this, nodeIndices );
+		const refitFunc = this.indirect ? refit_indirect : refit;
+		return refitFunc( this, nodeIndices );
 
 	}
 
@@ -192,12 +218,13 @@ export class MeshBVH {
 
 		const groups = geometry.groups;
 		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		const raycastFunc = this.indirect ? raycast_indirect : raycast;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 			const startCount = intersects.length;
 
-			raycast( this, i, materialSide, ray, intersects );
+			raycastFunc( this, i, materialSide, ray, intersects );
 
 			if ( isArrayMaterial ) {
 
@@ -227,10 +254,11 @@ export class MeshBVH {
 
 		const groups = geometry.groups;
 		const side = isMaterial ? materialOrSide.side : materialOrSide;
+		const raycastFirstFunc = this.indirect ? raycastFirst_indirect : raycastFirst;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const result = raycastFirst( this, i, materialSide, ray );
+			const result = raycastFirstFunc( this, i, materialSide, ray );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
@@ -252,9 +280,10 @@ export class MeshBVH {
 
 		let result = false;
 		const roots = this._roots;
+		const intersectsGeometryFunc = this.indirect ? intersectsGeometry_indirect : intersectsGeometry;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			result = intersectsGeometry( this, i, otherGeometry, geomToMesh );
+			result = intersectsGeometryFunc( this, i, otherGeometry, geomToMesh );
 
 			if ( result ) {
 
@@ -270,8 +299,8 @@ export class MeshBVH {
 
 	shapecast( callbacks ) {
 
-		const geometry = this.geometry;
 		const triangle = ExtendedTrianglePool.getPrimitive();
+		const iterateFunc = this.indirect ? iterateOverTriangles_indirect : iterateOverTriangles;
 		let {
 			boundsTraverseOrder,
 			intersectsBounds,
@@ -287,7 +316,7 @@ export class MeshBVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				}
 
@@ -301,7 +330,7 @@ export class MeshBVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					return iterateOverTriangles( offset, count, geometry, intersectsTriangle, contained, depth, triangle );
+					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
 
 				};
 
@@ -344,7 +373,8 @@ export class MeshBVH {
 
 	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
-		return bvhcast( this, otherBvh, matrixToLocal, callbacks );
+		const bvhcastFunc = this.indirect ? bvhcast_indirect : bvhcast;
+		return bvhcastFunc( this, otherBvh, matrixToLocal, callbacks );
 
 	}
 
@@ -376,7 +406,8 @@ export class MeshBVH {
 
 	closestPointToGeometry( otherGeometry, geometryToBvh, target1 = { }, target2 = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		return closestPointToGeometry(
+		const closestPointToGeometryFunc = this.indirect ? closestPointToGeometry_indirect : closestPointToGeometry;
+		return closestPointToGeometryFunc(
 			this,
 			otherGeometry,
 			geometryToBvh,

@@ -1,31 +1,53 @@
-import { ensureIndex, getRootIndexRanges } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount } from './geometryUtils.js';
 import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
-import { partition } from './sortUtils.js';
 
-function buildTree( geo, options ) {
+import { partition } from './sortUtils.generated.js';
+import { partition_indirect } from './sortUtils_indirect.generated.js';
 
-	ensureIndex( geo, options );
+function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
+
+	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+	const useUint32 = triCount > 2 ** 16;
+	const byteCount = useUint32 ? 4 : 2;
+
+	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
+	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+
+		indirectBuffer[ i ] = i;
+
+	}
+
+	return indirectBuffer;
+
+}
+
+function buildTree( bvh, options ) {
 
 	// Compute the full bounds of the geometry at the same time as triangle bounds because
 	// we'll need it for the root bounds in the case with no groups and it should be fast here.
-	// We can't use the geometrying bounding box if it's available because it may be out of date.
-	const fullBounds = new Float32Array( 6 );
-	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geo, fullBounds );
-	const indexArray = geo.index.array;
+	// We can't use the geometry bounding box if it's available because it may be out of date.
+	const geometry = bvh.geometry;
+	const indexArray = geometry.index ? geometry.index.array : null;
 	const maxDepth = options.maxDepth;
 	const verbose = options.verbose;
 	const maxLeafTris = options.maxLeafTris;
 	const strategy = options.strategy;
 	const onProgress = options.onProgress;
-	const totalTriangles = geo.index.count / 3;
+	const totalTriangles = getTriCount( geometry );
+	const indirectBuffer = bvh._indirectBuffer;
 	let reachedMaxDepth = false;
 
+	const fullBounds = new Float32Array( 6 );
+	const cacheCentroidBoundingData = new Float32Array( 6 );
+	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
+	const partionFunc = options.indirect ? partition_indirect : partition;
+
 	const roots = [];
-	const ranges = getRootIndexRanges( geo );
+	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
 
 	if ( ranges.length === 1 ) {
 
@@ -74,7 +96,7 @@ function buildTree( geo, options ) {
 			if ( verbose ) {
 
 				console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( geo );
+				console.warn( geometry );
 
 			}
 
@@ -101,7 +123,7 @@ function buildTree( geo, options ) {
 
 		}
 
-		const splitOffset = partition( indexArray, triangleBounds, offset, count, split );
+		const splitOffset = partionFunc( indirectBuffer, indexArray, triangleBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
@@ -142,12 +164,25 @@ function buildTree( geo, options ) {
 
 }
 
-export function buildPackedTree( geo, options, target ) {
+export function buildPackedTree( bvh, options ) {
+
+	const geometry = bvh.geometry;
+	if ( options.indirect ) {
+
+		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
+
+	}
+
+	if ( ! bvh._indirectBuffer ) {
+
+		ensureIndex( geometry, options );
+
+	}
 
 	// boundingData  				: 6 float32
 	// right / offset 				: 1 uint32
 	// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
-	const roots = buildTree( geo, options );
+	const roots = buildTree( bvh, options );
 
 	let float32Array;
 	let uint32Array;
@@ -168,7 +203,7 @@ export function buildPackedTree( geo, options, target ) {
 
 	}
 
-	target._roots = packedRoots;
+	bvh._roots = packedRoots;
 	return;
 
 	function countNodes( node ) {

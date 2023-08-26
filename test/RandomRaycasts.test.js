@@ -16,58 +16,35 @@ import {
 	SAH,
 	AVERAGE,
 } from '../src/index.js';
+import { random, setSeed } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-// https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
-let _seed = null;
-function random() {
+describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
+describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
+describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
 
-	if ( _seed === null ) throw new Error();
+describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
+describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
+describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
 
-	const a = 1103515245;
-	const c = 12345;
-	const m = 2e31;
-
-	_seed = ( a * _seed + c ) % m;
-	return _seed / m;
-
-}
-
-function createInterleavedPositionBuffer( bufferAttribute ) {
-
-	const array = bufferAttribute.array;
-	const newArray = new array.constructor( array.length * 2 );
-
-	const newBuffer = new InterleavedBufferAttribute( new InterleavedBuffer( newArray, 6 ), 3, 3, bufferAttribute.normalized );
-	for ( let i = 0; i < bufferAttribute.count; i ++ ) {
-
-		const x = bufferAttribute.getX( i );
-		const y = bufferAttribute.getY( i );
-		const z = bufferAttribute.getZ( i );
-
-		newBuffer.setXYZ( i, x, y, z );
-
-	}
-
-	return newBuffer;
-
-}
+describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
+describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
+describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
 
 function runRandomTests( options ) {
 
-	let scene = null;
-	let raycaster = null;
-	let ungroupedGeometry = null;
-	let ungroupedBvh = null;
-	let groupedGeometry = null;
-	let groupedBvh = null;
-
 	const transformSeed = Math.floor( Math.random() * 1e10 );
-
 	describe( `Transform Seed : ${ transformSeed }`, () => {
+
+		let scene,
+			raycaster,
+			ungroupedGeometry,
+			ungroupedBvh,
+			groupedGeometry,
+			groupedBvh;
 
 		beforeAll( () => {
 
@@ -100,7 +77,7 @@ function runRandomTests( options ) {
 			scene = new Scene();
 			raycaster = new Raycaster();
 
-			_seed = transformSeed;
+			setSeed( transformSeed );
 			random(); // call random() to seed with a larger value
 
 			for ( var i = 0; i < 10; i ++ ) {
@@ -128,7 +105,7 @@ function runRandomTests( options ) {
 			const raySeed = Math.floor( Math.random() * 1e10 );
 			it( `Cast ${ i } Seed : ${ raySeed }`, () => {
 
-				_seed = raySeed;
+				setSeed( raySeed );
 				random(); // call random() to seed with a larger value
 
 				raycaster.firstHitOnly = false;
@@ -157,11 +134,22 @@ function runRandomTests( options ) {
 
 }
 
-describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
-describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
+function createInterleavedPositionBuffer( bufferAttribute ) {
 
-describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
-describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
+	const array = bufferAttribute.array;
+	const newArray = new array.constructor( array.length * 2 );
+	const newBuffer = new InterleavedBufferAttribute( new InterleavedBuffer( newArray, 6 ), 3, 3, bufferAttribute.normalized );
+	for ( let i = 0; i < bufferAttribute.count; i ++ ) {
 
-describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
-describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
+		newBuffer.setXYZ(
+			i,
+			bufferAttribute.getX( i ),
+			bufferAttribute.getY( i ),
+			bufferAttribute.getZ( i ),
+		);
+
+	}
+
+	return newBuffer;
+
+}
