@@ -179,7 +179,10 @@ function runSuiteWithOptions( name, options ) {
 
 	suite( `${ name } BVH Casts`, () => {
 
-		let geometry,
+		let OG_GEOMETRY,
+			OG_GROUP_GEOMETRY,
+			OG_INTERSECTS_GEOMETRY,
+			geometry,
 			groupGeometry,
 			mesh,
 			bvh,
@@ -198,11 +201,9 @@ function runSuiteWithOptions( name, options ) {
 
 		beforeAll( () => {
 
-			mesh = new Mesh( geometry );
-			geometry = new TorusGeometry( 5, 5, 700, 300 );
-			bvh = new MeshBVH( geometry, options );
-
-			groupGeometry = generateGroupGeometry( 200 );
+			OG_GEOMETRY = new TorusGeometry( 5, 5, 700, 300 );
+			OG_GROUP_GEOMETRY = generateGroupGeometry( 200 );
+			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 5, 30, 10 );
 
 			raycaster = new Raycaster();
 			raycaster.ray.origin.set( 10, 20, 30 );
@@ -213,11 +214,31 @@ function runSuiteWithOptions( name, options ) {
 			firstHitRaycaster.ray.origin.set( 10, 20, 30 );
 			firstHitRaycaster.ray.direction.set( - 1, - 2, - 3 );
 
-			intersectGeometry = new TorusGeometry( 5, 5, 30, 10 );
+			point = new Vector3();
+
+		} );
+
+		beforeEach( () => {
+
+			groupGeometry = OG_GROUP_GEOMETRY.clone();
+
+			geometry = OG_GEOMETRY.clone();
+			bvh = new MeshBVH( geometry, options );
+			geometry.boundsTree = bvh;
+
+			intersectGeometry = OG_INTERSECTS_GEOMETRY.clone();
 			intersectBvh = new MeshBVH( intersectGeometry, options );
 			intersectMatrix = new Matrix4().compose( new Vector3(), new Quaternion(), new Vector3( 0.1, 0.1, 0.1 ) );
 
-			point = new Vector3();
+			mesh = new Mesh( geometry );
+
+			sphere = new Sphere( new Vector3(), 3 );
+
+			box = new Box3();
+			box.min.set( - 1, - 1, - 1 );
+			box.min.set( 1, 1, 1 );
+
+			boxMat = new Matrix4().identity();
 
 			const intersectSphere = new Sphere( new Vector3(), 0.5 );
 			refitHints = new Set();
@@ -238,29 +259,19 @@ function runSuiteWithOptions( name, options ) {
 
 			} );
 
-
-		} );
-
-		beforeEach( () => {
-
-			groupGeometry.boundsTree = null;
-			intersectGeometry.boundsTree = null;
-			geometry.boundsTree = bvh;
-			sphere = new Sphere( new Vector3(), 3 );
-
-			box = new Box3();
-			box.min.set( - 1, - 1, - 1 );
-			box.min.set( 1, 1, 1 );
-
-			boxMat = new Matrix4().identity();
-
 			target1 = {};
 			target2 = {};
 
 		} );
 
-		bench( 'Compute BVH', 				() => geometry.computeBoundsTree( options ) );
-		bench( 'Compute BVH w/ groups', 	() => groupGeometry.computeBoundsTree( options ) );
+		bench( 'Compute BVH',
+			() => geometry = OG_GEOMETRY.clone(),
+			() => geometry.computeBoundsTree( options ),
+		);
+		bench( 'Compute BVH w/ groups',
+			() => groupGeometry = OG_GROUP_GEOMETRY.clone(),
+			() => groupGeometry.computeBoundsTree( options ),
+		);
 		bench( 'Raycast', 					() => mesh.raycast( raycaster, [] ) );
 		bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
 		bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
