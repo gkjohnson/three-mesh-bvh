@@ -1,6 +1,10 @@
 import * as glob from 'glob';
 import { preprocess } from 'preprocess';
 
+// The purpose of this file is to transform any template files into both "direct" and "indirect"
+// variants to support retaining performance in the non-indirect bvh construction and casting cases.
+
+// generates set of stars
 function generateStars( num ) {
 
 	let result = '';
@@ -14,6 +18,7 @@ function generateStars( num ) {
 
 }
 
+// Runs the preprocess package on the files with the provided env options
 const preprocessPlugin = options => {
 
 	return {
@@ -36,6 +41,7 @@ const preprocessPlugin = options => {
 
 };
 
+// Transforms every template.js files into a sibling directory with and without "indirect" flags
 export default glob.sync( './src/**/*.template.js' )
 	.flatMap( input => [ {
 		input,
