@@ -16,25 +16,23 @@ import {
 	SAH,
 	AVERAGE,
 } from '../src/index.js';
+import { random, setSeed } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-// https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
-let _seed = null;
-function random() {
+describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
+describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
+describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
 
-	if ( _seed === null ) throw new Error();
+describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
+describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
+describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
 
-	const a = 1103515245;
-	const c = 12345;
-	const m = 2e31;
-
-	_seed = ( a * _seed + c ) % m;
-	return _seed / m;
-
-}
+describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
+describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
+describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
 
 function createInterleavedPositionBuffer( bufferAttribute ) {
 
@@ -100,7 +98,7 @@ function runRandomTests( options ) {
 			scene = new Scene();
 			raycaster = new Raycaster();
 
-			_seed = transformSeed;
+			setSeed( transformSeed );
 			random(); // call random() to seed with a larger value
 
 			for ( var i = 0; i < 10; i ++ ) {
@@ -128,7 +126,7 @@ function runRandomTests( options ) {
 			const raySeed = Math.floor( Math.random() * 1e10 );
 			it( `Cast ${ i } Seed : ${ raySeed }`, () => {
 
-				_seed = raySeed;
+				setSeed( raySeed );
 				random(); // call random() to seed with a larger value
 
 				raycaster.firstHitOnly = false;
@@ -156,15 +154,3 @@ function runRandomTests( options ) {
 	} );
 
 }
-
-describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
-describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
-describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
-
-describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
-describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
-describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
-
-describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
-describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
-describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );

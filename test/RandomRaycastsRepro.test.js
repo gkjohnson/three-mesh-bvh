@@ -1,25 +1,19 @@
 // Test cases specifically for issue #180
 import { Mesh, BufferGeometry, TorusGeometry, Scene, Raycaster, MeshBasicMaterial } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, SAH, AVERAGE } from '../src/index.js';
+import { random, setSeed } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-// https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
-let _seed = null;
-function random() {
+runRandomTest( { strategy: AVERAGE }, 7830035629, 4697211981 );
+runRandomTest( { strategy: AVERAGE }, 8294928772, 1592666709 );
+runRandomTest( { strategy: SAH }, 81992501, 8903271423 );
 
-	if ( _seed === null ) throw new Error();
-
-	const a = 1103515245;
-	const c = 12345;
-	const m = 2e31;
-
-	_seed = ( a * _seed + c ) % m;
-	return _seed / m;
-
-}
+runRandomTest( { strategy: AVERAGE, indirect: true }, 7830035629, 4697211981 );
+runRandomTest( { strategy: AVERAGE, indirect: true }, 8294928772, 1592666709 );
+runRandomTest( { strategy: SAH, indirect: true }, 81992501, 8903271423 );
 
 function runRandomTest( options, transformSeed, raySeed ) {
 
@@ -56,7 +50,7 @@ function runRandomTest( options, transformSeed, raySeed ) {
 			scene = new Scene();
 			raycaster = new Raycaster();
 
-			_seed = transformSeed;
+			setSeed( transformSeed );
 			random(); // call random() to seed with a larger value
 
 			for ( var i = 0; i < 10; i ++ ) {
@@ -81,7 +75,7 @@ function runRandomTest( options, transformSeed, raySeed ) {
 
 		it( `Cast Seed : ${ raySeed }`, () => {
 
-			_seed = raySeed;
+			setSeed( raySeed );
 			random(); // call random() to seed with a larger value
 
 			raycaster.firstHitOnly = false;
@@ -107,12 +101,3 @@ function runRandomTest( options, transformSeed, raySeed ) {
 	} );
 
 }
-
-
-runRandomTest( { strategy: AVERAGE }, 7830035629, 4697211981 );
-runRandomTest( { strategy: AVERAGE }, 8294928772, 1592666709 );
-runRandomTest( { strategy: SAH }, 81992501, 8903271423 );
-
-runRandomTest( { strategy: AVERAGE, indirect: true }, 7830035629, 4697211981 );
-runRandomTest( { strategy: AVERAGE, indirect: true }, 8294928772, 1592666709 );
-runRandomTest( { strategy: SAH, indirect: true }, 81992501, 8903271423 );

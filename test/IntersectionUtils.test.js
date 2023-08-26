@@ -1,35 +1,8 @@
-import { Vector3, Quaternion, Euler, Triangle, Sphere, Plane, Line3 } from 'three';
+import { Vector3, Triangle, Sphere, Plane, Line3 } from 'three';
 import { sphereIntersectTriangle } from '../src/math/MathUtilities.js';
 import { ExtendedTriangle } from '../src/math/ExtendedTriangle.js';
 import { OrientedBox } from '../src/math/OrientedBox.js';
-
-function setRandomVector( vector, length ) {
-
-	vector
-		.set(
-			Math.random() - 0.5,
-			Math.random() - 0.5,
-			Math.random() - 0.5
-		)
-		.normalize()
-		.multiplyScalar( length );
-
-	return vector;
-
-}
-
-function getRandomOrientation( matrix, range ) {
-
-	const pos = new Vector3();
-	const quat = new Quaternion();
-	const sca = new Vector3( 1, 1, 1 );
-
-	setRandomVector( pos, range );
-	quat.setFromEuler( new Euler( Math.random() * 180, Math.random() * 180, Math.random() * 180 ) );
-	matrix.compose( pos, quat, sca );
-	return matrix;
-
-}
+import { setRandomVector, getRandomOrientation } from './utils.js';
 
 describe( 'Triangle Intersections', () => {
 

@@ -49,7 +49,6 @@ describe( 'AVERAGE Points Raycast', () => {
 
 		geometry.center();
 
-
 		raycaster = new Raycaster();
 		raycaster.firstHitOnly = true;
 		raycaster.set( new Vector3( x, y, - 1000 ), new Vector3( 0, 0, 1 ) );

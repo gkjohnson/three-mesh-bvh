@@ -20,17 +20,11 @@ import {
 	getBVHExtremes,
 	validateBounds,
 } from '../src/index.js';
+import { getMaxDepth } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
-
-// Returns the max tree depth of the BVH
-function getMaxDepth( bvh ) {
-
-	return getBVHExtremes( bvh )[ 0 ].depth.max;
-
-}
 
 describe( 'Bounds Tree', () => {
 
