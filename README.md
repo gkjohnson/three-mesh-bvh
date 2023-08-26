@@ -1082,7 +1082,7 @@ Set of shader functions used for interacting with the packed BVH in a shader and
 
 - When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
-  be produced and retained as a side effect of the construction.
+  be produced and retained as a side effect of the construction unless the "indirect" option is used.
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.
 - If the geometry is changed then a new bounds tree will need to be generated or refit.
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
