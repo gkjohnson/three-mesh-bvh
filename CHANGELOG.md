@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Fixed
 - Fixed estimateMemoryInBytes not testing for SharedArrayBuffers resulting in a smaller memory footprint.
+- Fixed bug in "intersectsGeometry" function.
 
 ### Changed
 - Removed long deprecated shapecast code path using old function signature.
