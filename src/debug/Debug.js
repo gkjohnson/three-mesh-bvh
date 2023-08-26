@@ -1,6 +1,7 @@
 import { Box3, Vector3 } from 'three';
 import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
+import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 
 const _box1 = /* @__PURE__ */ new Box3();
 const _box2 = /* @__PURE__ */ new Box3();
@@ -134,6 +135,10 @@ function estimateMemoryInBytes( obj ) {
 			if ( value && ( typeof value === 'object' || typeof value === 'function' ) ) {
 
 				if ( isTypedArray( value ) ) {
+
+					bytes += value.byteLength;
+
+				} else if ( isSharedArrayBufferSupported() && value instanceof SharedArrayBuffer ) {
 
 					bytes += value.byteLength;
 

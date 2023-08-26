@@ -22,6 +22,7 @@ import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js
 import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
 import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
 import { bvhcast_indirect } from './cast/bvhcast_indirect.generated.js';
+import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
@@ -133,7 +134,7 @@ export class MeshBVH {
 
 		}, options );
 
-		if ( options.useSharedArrayBuffer && typeof SharedArrayBuffer === 'undefined' ) {
+		if ( options.useSharedArrayBuffer && ! isSharedArrayBufferSupported() ) {
 
 			throw new Error( 'MeshBVH: SharedArrayBuffer is not available.' );
 
