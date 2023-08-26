@@ -11,6 +11,28 @@ describe( 'MeshBVHUniformStruct', () => {
 
 	} );
 
+	it( 'should fail if more than one group is present.', () => {
+
+		geometry.addGroup( 0, 300, 0 );
+		geometry.addGroup( 301, 600, 1 );
+
+		const bvh = new MeshBVH( geometry );
+		let error;
+
+		try {
+
+			struct.updateFrom( bvh );
+
+		} catch ( e ) {
+
+			error = e;
+
+		}
+
+		expect( error ).toBeTruthy();
+
+	} );
+
 	it( 'should create textures allocated for each element.', () => {
 
 		const bvh = new MeshBVH( geometry );
