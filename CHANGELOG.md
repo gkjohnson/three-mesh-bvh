@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- An "indirect" option to support an indirect triangle sorting for the BVH so the geometry index is not adjusted.
+
 ### Fixed
 - Fixed estimateMemoryInBytes not testing for SharedArrayBuffers resulting in a smaller memory footprint.
 - Fixed bug in "intersectsGeometry" function.
