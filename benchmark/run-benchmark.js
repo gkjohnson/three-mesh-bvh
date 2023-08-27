@@ -3,7 +3,7 @@ import {
 	bench,
 	beforeAll,
 	beforeEach,
-} from './bench.js';
+} from './lib/bench.js';
 import {
 	Mesh,
 	BufferGeometry,
@@ -29,7 +29,7 @@ import {
 	getBVHExtremes,
 	estimateMemoryInBytes,
 } from '../src/index.js';
-import { logObjectAsRows } from './logTable.js';
+import { logObjectAsRows } from './lib/logTable.js';
 import { generateGroupGeometry } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
