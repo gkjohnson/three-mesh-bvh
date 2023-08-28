@@ -1,4 +1,4 @@
-import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps, } from './geometryUtils.js';
 import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
@@ -170,6 +170,15 @@ export function buildPackedTree( bvh, options ) {
 	if ( options.indirect ) {
 
 		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
+
+		if ( hasGroupGaps( geometry ) && ! options.verbose ) {
+
+			console.warn(
+				'MeshBVH: Provided geometry contains groups that do not fully span the vertex contents while using the "indirect" option. ' +
+				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
+			);
+
+		}
 
 	}
 

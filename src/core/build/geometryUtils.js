@@ -93,3 +93,24 @@ export function getRootIndexRanges( geo ) {
 	return ranges;
 
 }
+
+export function hasGroupGaps( geometry ) {
+
+	if ( geometry.groups.length === 0 ) {
+
+		return false;
+
+	}
+
+	const vertexCount = getTriCount( geometry );
+	const groups = getRootIndexRanges( geometry )
+		.sort( ( a, b ) => a.offset - b.offset );
+
+	const finalGroup = groups[ groups.length - 1 ];
+	finalGroup.count = Math.min( vertexCount - finalGroup.offset, finalGroup.count );
+
+	let total = 0;
+	groups.forEach( ( { count } ) => total += count );
+	return vertexCount !== total;
+
+}
