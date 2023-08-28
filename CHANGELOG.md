@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.6.3] - 2023-08-28
+## [0.6.4] - 2023-08-28
 ### Added
 - An experimental "indirect" option to support an indirect triangle sorting for the BVH so the geometry index is not adjusted.
 
@@ -12,9 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed estimateMemoryInBytes not testing for SharedArrayBuffers resulting in a smaller memory footprint.
 - Fixed bug in "intersectsGeometry" function.
 
-### Changed
+### Removed
 - Removed long deprecated shapecast code path using old function signature.
 - Removed long deprecated serialization code path using old function signature.
+- Removed long deprecated "terminate" function from web worker class.
 
 ## [0.6.3] - 2023-07-22
 ### Fixed
