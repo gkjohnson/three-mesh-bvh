@@ -1093,7 +1093,7 @@ Set of shader functions used for interacting with the packed BVH in a shader and
 
 To run the examples locally:
 - Run `npm start`
-- Then visit `localhost:9080/example/dev-bundle/<demo-name>.html`
+- Then visit `localhost:1234/<demo-name>.html`
 
 Where `<demo-name>` is the name of the HTML file from `example` folder.
 
