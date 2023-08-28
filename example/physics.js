@@ -245,7 +245,7 @@ function onCollide( object1, object2, point, normal, velocity, offset = 0 ) {
 		0.4
 	) * 2.0;
 	const plane = new THREE.Mesh(
-		new THREE.RingBufferGeometry( 0, 1, 30 ),
+		new THREE.RingGeometry( 0, 1, 30 ),
 		new THREE.MeshBasicMaterial( { side: 2, transparent: true, depthWrite: false } )
 	);
 	plane.lifetime = 0;
