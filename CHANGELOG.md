@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.6.4] - 2023-08-28
 ### Added
-- An experimental "indirect" option to support an indirect triangle sorting for the BVH so the geometry index is not adjusted.
+- An experimental "indirect" option to support an indirect triangle sorting for the BVH structure so the geometry index is not adjusted or implicitly generated.
 
 ### Fixed
 - Fixed estimateMemoryInBytes not testing for SharedArrayBuffers resulting in a smaller memory footprint.
