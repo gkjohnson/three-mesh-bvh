@@ -59,8 +59,17 @@ export function ensureIndex( geo, options ) {
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
 export function getFullGeometryRange( geo ) {
 
+	const drawRange = geo.drawRange;
+	const start = drawRange.start;
+	const end = drawRange.start + drawRange.count;
 	const triCount = getTriCount( geo );
-	return [ { offset: 0, count: triCount } ];
+
+	const offset = Math.max( 0, start / 3 );
+	const count = Math.min( triCount, end / 3 );
+	return [ {
+		offset: ~ ~ offset,
+		count: ~ ~ count,
+	} ];
 
 }
 
@@ -81,12 +90,23 @@ export function getRootIndexRanges( geo ) {
 
 	}
 
+	const drawRange = geo.drawRange;
+	const drawRangeStart = drawRange.start;
+	const drawRangeEnd = drawRange.start + drawRange.count;
+
 	// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
 	const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
 	for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
 
-		const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
-		ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+		const start = sortedBoundaries[ i ] / 3;
+		const end = sortedBoundaries[ i + 1 ] / 3;
+
+		const offset = Math.max( start, drawRangeStart / 3 );
+		const count = Math.min( end - start, drawRangeEnd / 3 );
+		ranges.push( {
+			offset: ~ ~ offset,
+			count: ~ ~ count,
+		} );
 
 	}
 
