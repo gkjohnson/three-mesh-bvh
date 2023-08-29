@@ -14,7 +14,7 @@ describe( 'MeshBVHUniformStruct', () => {
 	it( 'should fail if more than one group is present.', () => {
 
 		geometry.addGroup( 0, 300, 0 );
-		geometry.addGroup( 301, 600, 1 );
+		geometry.addGroup( 300, 600, 1 );
 
 		const bvh = new MeshBVH( geometry );
 		let error;

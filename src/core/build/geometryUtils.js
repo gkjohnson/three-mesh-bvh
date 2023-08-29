@@ -65,10 +65,10 @@ export function getFullGeometryRange( geo ) {
 	const triCount = getTriCount( geo );
 
 	const offset = Math.max( 0, start / 3 );
-	const count = Math.min( triCount, end / 3 );
+	const count = Math.min( triCount, end / 3 ) - offset;
 	return [ {
-		offset: ~ ~ offset,
-		count: ~ ~ count,
+		offset: Math.floor( offset ),
+		count: Math.floor( count ),
 	} ];
 
 }
@@ -102,10 +102,10 @@ export function getRootIndexRanges( geo ) {
 		const end = sortedBoundaries[ i + 1 ] / 3;
 
 		const offset = Math.max( start, drawRangeStart / 3 );
-		const count = Math.min( end - start, drawRangeEnd / 3 );
+		const count = Math.min( end, drawRangeEnd / 3 ) - offset;
 		ranges.push( {
-			offset: ~ ~ offset,
-			count: ~ ~ count,
+			offset: Math.floor( offset ),
+			count: Math.floor( count ),
 		} );
 
 	}
