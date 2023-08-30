@@ -215,6 +215,30 @@ describe( 'Options', () => {
 
 		} );
 
+		it( 'should respect the draw range.', () => {
+
+			geometry.setDrawRange( 300, 600 );
+
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+
+			let start = Infinity;
+			let end = 0;
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					start = Math.min( start, offset );
+					end = Math.max( end, offset + count );
+
+				}
+
+			} );
+
+			expect( start ).toBe( 100 );
+			expect( end ).toBe( 300 );
+
+		} );
+
 	} );
 
 	describe( 'strategy', () => {
