@@ -59,13 +59,13 @@ export function ensureIndex( geo, options ) {
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
 export function getFullGeometryRange( geo ) {
 
-	const drawRange = geo.drawRange;
-	const start = drawRange.start;
-	const end = drawRange.start + drawRange.count;
 	const triCount = getTriCount( geo );
+	const drawRange = geo.drawRange;
+	const start = drawRange.start / 3;
+	const end = ( drawRange.start + drawRange.count ) / 3;
 
-	const offset = Math.max( 0, start / 3 );
-	const count = Math.min( triCount, end / 3 ) - offset;
+	const offset = Math.max( 0, start );
+	const count = Math.min( triCount, end ) - offset;
 	return [ {
 		offset: Math.floor( offset ),
 		count: Math.floor( count ),
@@ -89,10 +89,10 @@ export function getRootIndexRanges( geo ) {
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
 	for ( const group of geo.groups ) {
 
-		const start = group.start / 3;
-		const end = ( group.start + group.count ) / 3;
-		rangeBoundaries.add( Math.max( drawRangeStart, start ) );
-		rangeBoundaries.add( Math.min( drawRangeEnd, end ) );
+		const groupStart = group.start / 3;
+		const groupEnd = ( group.start + group.count ) / 3;
+		rangeBoundaries.add( Math.max( drawRangeStart, groupStart ) );
+		rangeBoundaries.add( Math.min( drawRangeEnd, groupEnd ) );
 
 	}
 
