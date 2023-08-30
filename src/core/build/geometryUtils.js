@@ -105,8 +105,8 @@ export function getRootIndexRanges( geo ) {
 		const end = sortedBoundaries[ i + 1 ];
 
 		ranges.push( {
-			offset: ~ ~ start,
-			count: ~ ~ ( end - start ),
+			offset: Math.floor( start ),
+			count: Math.floor( end - start ),
 		} );
 
 	}
