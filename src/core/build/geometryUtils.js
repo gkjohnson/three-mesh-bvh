@@ -60,7 +60,16 @@ export function ensureIndex( geo, options ) {
 export function getFullGeometryRange( geo ) {
 
 	const triCount = getTriCount( geo );
-	return [ { offset: 0, count: triCount } ];
+	const drawRange = geo.drawRange;
+	const start = drawRange.start / 3;
+	const end = ( drawRange.start + drawRange.count ) / 3;
+
+	const offset = Math.max( 0, start );
+	const count = Math.min( triCount, end ) - offset;
+	return [ {
+		offset: Math.floor( offset ),
+		count: Math.floor( count ),
+	} ];
 
 }
 
@@ -74,19 +83,31 @@ export function getRootIndexRanges( geo ) {
 
 	const ranges = [];
 	const rangeBoundaries = new Set();
+
+	const drawRange = geo.drawRange;
+	const drawRangeStart = drawRange.start / 3;
+	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
 	for ( const group of geo.groups ) {
 
-		rangeBoundaries.add( group.start );
-		rangeBoundaries.add( group.start + group.count );
+		const groupStart = group.start / 3;
+		const groupEnd = ( group.start + group.count ) / 3;
+		rangeBoundaries.add( Math.max( drawRangeStart, groupStart ) );
+		rangeBoundaries.add( Math.min( drawRangeEnd, groupEnd ) );
 
 	}
+
 
 	// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
 	const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
 	for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
 
-		const start = sortedBoundaries[ i ], end = sortedBoundaries[ i + 1 ];
-		ranges.push( { offset: ( start / 3 ), count: ( end - start ) / 3 } );
+		const start = sortedBoundaries[ i ];
+		const end = sortedBoundaries[ i + 1 ];
+
+		ranges.push( {
+			offset: Math.floor( start ),
+			count: Math.floor( end - start ),
+		} );
 
 	}
 
