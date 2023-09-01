@@ -109,9 +109,18 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 function intersectTri( geo, side, ray, tri, intersections ) {
 
 	const triOffset = tri * 3;
-	const a = geo.index.getX( triOffset );
-	const b = geo.index.getX( triOffset + 1 );
-	const c = geo.index.getX( triOffset + 2 );
+	let a = triOffset + 0;
+	let b = triOffset + 1;
+	let c = triOffset + 2;
+
+	const index = geo.index;
+	if ( geo.index ) {
+
+		a = index.getX( a );
+		b = index.getX( b );
+		c = index.getX( c );
+
+	}
 
 	const { position, normal, uv, uv1 } = geo.attributes;
 	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side );
