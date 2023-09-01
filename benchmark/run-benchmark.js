@@ -16,6 +16,7 @@ import {
 	Quaternion,
 	Line3,
 	PlaneGeometry,
+	Triangle,
 } from 'three';
 import {
 	CENTER,
@@ -274,6 +275,77 @@ function runSuiteWithOptions( name, options ) {
 		);
 		bench( 'Raycast', 					() => mesh.raycast( raycaster, [] ) );
 		bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
+		bench( 'Raycast Shapecast',			() => {
+
+			const target = new Vector3();
+			const ray = raycaster.ray;
+			const results = [];
+			bvh.shapecast( {
+
+				intersectsBounds: box => ray.intersectsBox( box ),
+				intersectsTriangle: tri => {
+
+					if ( ray.intersectTriangle( tri.a, tri.b, tri.c, false, target ) ) {
+
+						results.push( target.clone() );
+
+					}
+
+				},
+
+			} );
+
+	 	} );
+		 bench( 'Raycast First Hit Shapecast', () => {
+
+			const boxVec = new Vector3();
+			const target = new Vector3();
+			const ray = raycaster.ray;
+			let closestHit = Infinity;
+			let result = null;
+			bvh.shapecast( {
+
+				boundsTraverseOrder: ( box, xyzAxis, isLeft ) => {
+
+					const rayDir = ray.direction[ xyzAxis ];
+					const leftToRight = rayDir >= 0;
+					return leftToRight === isLeft ? - 1 : 1;
+
+				},
+				intersectsBounds: ( box, isLeaf, score ) => {
+
+					if ( ray.intersectBox( box, boxVec ) ) {
+
+						return ray.origin.distanceToSquared( boxVec ) < closestHit;
+
+					} else {
+
+						return false;
+
+					}
+
+				},
+				intersectTriangle: tri => {
+
+					if ( ray.intersectTriangle( tri.a, tri.b, tri.c, false, target ) ) {
+
+						const dist = ray.origin.distanceToSquared( target );
+						if ( dist < closestHit ) {
+
+							closestHit = dist;
+							result = target.clone();
+
+						}
+
+					}
+
+				},
+
+			} );
+
+	 	} );
+
+
 		bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
 
 			intersectsBounds: box => sphere.intersectsBox( box ),
