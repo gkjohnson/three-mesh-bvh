@@ -2,13 +2,12 @@ import { Box3 } from 'three';
 import { CONTAINED } from '../Constants.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../../utils/PrimitivePool.js';
-import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX, SPLIT_AXIS } from '../utils/nodeBufferUtils.js';
+import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 
 let _box1, _box2;
 const boxStack = [];
 const boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
-const _xyzFields = [ 'x', 'y', 'z' ];
 
 export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
 
@@ -71,9 +70,6 @@ function shapecastTraverse(
 		let box1, box2;
 		if ( nodeScoreFunc ) {
 
-			const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
-			const xyzAxis = _xyzFields[ splitAxis ];
-
 			box1 = _box1;
 			box2 = _box2;
 
@@ -81,8 +77,8 @@ function shapecastTraverse(
 			arrayToBox( BOUNDING_DATA_INDEX( c1 ), float32Array, box1 );
 			arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
-			score1 = nodeScoreFunc( box1, xyzAxis, true );
-			score2 = nodeScoreFunc( box2, xyzAxis, false );
+			score1 = nodeScoreFunc( box1 );
+			score2 = nodeScoreFunc( box2 );
 
 			if ( score2 < score1 ) {
 
