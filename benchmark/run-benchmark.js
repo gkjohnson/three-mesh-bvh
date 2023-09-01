@@ -274,7 +274,6 @@ function runSuiteWithOptions( name, options ) {
 			() => groupGeometry.computeBoundsTree( options ),
 		);
 		bench( 'Raycast', 					() => mesh.raycast( raycaster, [] ) );
-		bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
 		bench( 'Raycast Shapecast',			() => {
 
 			const target = new Vector3();
@@ -296,6 +295,7 @@ function runSuiteWithOptions( name, options ) {
 			} );
 
 	 	} );
+		 bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
 		 bench( 'Raycast First Hit Shapecast', () => {
 
 			const boxVec = new Vector3();
@@ -307,25 +307,23 @@ function runSuiteWithOptions( name, options ) {
 
 				boundsTraverseOrder: ( box, xyzAxis, isLeft ) => {
 
-					const rayDir = ray.direction[ xyzAxis ];
-					const leftToRight = rayDir >= 0;
-					return leftToRight === isLeft ? - 1 : 1;
-
-				},
-				intersectsBounds: ( box, isLeaf, score ) => {
-
 					if ( ray.intersectBox( box, boxVec ) ) {
 
-						return ray.origin.distanceToSquared( boxVec ) < closestHit;
+						return ray.origin.distanceToSquared( boxVec );
 
 					} else {
 
-						return false;
+						return Infinity;
 
 					}
 
 				},
-				intersectTriangle: tri => {
+				intersectsBounds: ( box, isLeaf, score ) => {
+
+					return score < closestHit;
+
+				},
+				intersectsTriangle: tri => {
 
 					if ( ray.intersectTriangle( tri.a, tri.b, tri.c, false, target ) ) {
 
@@ -344,7 +342,6 @@ function runSuiteWithOptions( name, options ) {
 			} );
 
 	 	} );
-
 
 		bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
 
