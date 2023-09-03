@@ -7,6 +7,7 @@ import {
 import {
 	MeshBVH,
 	getBVHExtremes,
+	acceleratedRaycast,
 } from '../src/index.js';
 import { getMaxDepth } from './utils.js';
 
@@ -236,6 +237,23 @@ describe( 'Options', () => {
 
 			expect( start ).toBe( 100 );
 			expect( end ).toBe( 300 );
+
+		} );
+
+		it( 'should successfully raycast with no index buffer.', () => {
+
+			const geo = geometry.toNonIndexed();
+			const bvh = new MeshBVH( geo, { indirect: true } );
+			geo.boundsTree = bvh;
+			mesh.geometry = geo;
+			mesh.raycast = acceleratedRaycast;
+
+			const raycaster = new Raycaster();
+			raycaster.ray.origin.set( 0, 10, 0 );
+			raycaster.ray.direction.set( 0, - 1, 0 );
+
+			const results = raycaster.intersectObject( mesh );
+			expect( results.length ).toBeGreaterThan( 0 );
 
 		} );
 
