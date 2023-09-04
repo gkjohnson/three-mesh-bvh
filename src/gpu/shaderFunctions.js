@@ -157,11 +157,8 @@ bool intersectsTriangle(
 
 bool intersectTriangles(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count,
-	inout float minDistance,
-
-	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out float dist
+	inout float minDistance, inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout float dist
 ) {
 
 	bool found = false;
@@ -333,7 +330,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 float distanceToTriangles(
 	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
 
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out float side, out vec3 outPoint
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord, inout float side, inout vec3 outPoint
 ) {
 
 	bool found = false;
