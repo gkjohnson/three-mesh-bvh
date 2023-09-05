@@ -190,7 +190,7 @@ function init() {
 	rtMaterial.depthWrite = false;
 
 	// load mesh and set up material BVH attributes
-	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
+	new GLTFLoader().load( new URL( './models/DragonAttenuation.glb', import.meta.url ).toString(), gltf => {
 
 		let dragonMesh;
 		gltf.scene.traverse( c => {
