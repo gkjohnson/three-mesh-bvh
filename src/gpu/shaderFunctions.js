@@ -157,11 +157,8 @@ bool intersectsTriangle(
 
 bool intersectTriangles(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count,
-	inout float minDistance,
-
-	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out float dist
+	inout float minDistance, inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout float dist
 ) {
 
 	bool found = false;
@@ -209,8 +206,8 @@ bool bvhIntersectFirstHit(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
 
 	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out float dist
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout float dist
 ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
@@ -221,15 +218,6 @@ bool bvhIntersectFirstHit(
 
 	float triangleDistance = 1e20;
 	bool found = false;
-
-	// Store intersectTriangles results to temp variables. Without that output variable value changes even when no intersection.
-	bool temp_found = false;
-	uvec4 temp_faceIndices = uvec4( 0u );
-	vec3 temp_faceNormal = vec3( 0.0, 0.0, 1.0 );
-	vec3 temp_barycoord = vec3( 0.0 );
-	float temp_side = 1.0;
-	float temp_dist = 0.0;
-	
 	while ( ptr > - 1 && ptr < 60 ) {
 
 		uint currNodeIndex = stack[ ptr ];
@@ -251,18 +239,11 @@ bool bvhIntersectFirstHit(
 			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 
-			temp_found = intersectTriangles(
+			found = intersectTriangles(
 				bvh, rayOrigin, rayDirection, offset, count, triangleDistance,
-				temp_faceIndices, temp_faceNormal, temp_barycoord, temp_side, temp_dist
-			);
-			if(temp_found){
-				found = temp_found;
-				faceIndices = temp_faceIndices;
-				faceNormal = temp_faceNormal;
-				barycoord = temp_barycoord;
-				side = temp_side;
-				dist = temp_dist;
-			}
+				faceIndices, faceNormal, barycoord, side, dist
+			) || found;
+
 		} else {
 
 			uint leftIndex = currNodeIndex + 1u;
@@ -294,12 +275,11 @@ bool bvhIntersectFirstHit(
 // Distance to Point
 export const shaderDistanceFunction = /* glsl */`
 
-float dot2( in vec3 v ) {
+float dot2( vec3 v ) {
 
 	return dot( v, v );
 
 }
-
 
 // https://www.shadertoy.com/view/ttfGWl
 vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoord ) {
@@ -349,7 +329,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 float distanceToTriangles(
 	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
 
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out float side, out vec3 outPoint
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord, inout float side, inout vec3 outPoint
 ) {
 
 	bool found = false;
@@ -405,8 +385,8 @@ float bvhClosestPointToPoint(
 	BVH bvh, vec3 point,
 
 	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out vec3 outPoint
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout vec3 outPoint
  ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
@@ -416,15 +396,6 @@ float bvhClosestPointToPoint(
 	stack[ 0 ] = 0u;
 	float closestDistanceSquared = pow( 100000.0, 2.0 );
 	bool found = false;
-
-	// Store results to temp variables.
-	float temp_closestDistanceSquared = 0.0;
-	uvec4 temp_faceIndices = uvec4( 0u );
-	vec3 temp_faceNormal = vec3( 0.0, 0.0, 1.0 );
-	vec3 temp_barycoord = vec3( 0.0 );
-	float temp_side = 1.0;
-	vec3 temp_outPoint = vec3( 0.0 );
-
 	while ( ptr > - 1 && ptr < 60 ) {
 
 		uint currNodeIndex = stack[ ptr ];
@@ -444,20 +415,12 @@ float bvhClosestPointToPoint(
 
 			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
-			temp_closestDistanceSquared = distanceToTriangles(
+			closestDistanceSquared = distanceToTriangles(
 				bvh, point, offset, count, closestDistanceSquared,
 
 				// outputs
-				temp_faceIndices, temp_faceNormal, temp_barycoord, temp_side, temp_outPoint
+				faceIndices, faceNormal, barycoord, side, outPoint
 			);
-			if(temp_closestDistanceSquared < closestDistanceSquared ){
-				closestDistanceSquared = temp_closestDistanceSquared;
-				faceIndices = temp_faceIndices;
-				faceNormal = temp_faceNormal;
-				barycoord = temp_barycoord;
-				side = temp_side;
-				outPoint = temp_outPoint;
-			}
 
 		} else {
 
