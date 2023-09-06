@@ -173,7 +173,7 @@ function init() {
 
 function loadColliderEnvironment() {
 
-	new GLTFLoader().load( '../models/low_poly_environment_jungle_scene/scene.gltf', res => {
+	new GLTFLoader().load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/low-poly-jungle-scene/scene.gltf', res => {
 
 		environment = res.scene;
 		environment.scale.setScalar( 0.05 );
