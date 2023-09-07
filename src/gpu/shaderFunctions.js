@@ -157,11 +157,8 @@ bool intersectsTriangle(
 
 bool intersectTriangles(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count,
-	inout float minDistance,
-
-	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out float dist
+	inout float minDistance, inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout float dist
 ) {
 
 	bool found = false;
@@ -209,8 +206,8 @@ bool bvhIntersectFirstHit(
 	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
 
 	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out float dist
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout float dist
 ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
@@ -278,12 +275,11 @@ bool bvhIntersectFirstHit(
 // Distance to Point
 export const shaderDistanceFunction = /* glsl */`
 
-float dot2( in vec3 v ) {
+float dot2( vec3 v ) {
 
 	return dot( v, v );
 
 }
-
 
 // https://www.shadertoy.com/view/ttfGWl
 vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoord ) {
@@ -333,7 +329,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 float distanceToTriangles(
 	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
 
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord, out float side, out vec3 outPoint
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord, inout float side, inout vec3 outPoint
 ) {
 
 	bool found = false;
@@ -389,8 +385,8 @@ float bvhClosestPointToPoint(
 	BVH bvh, vec3 point,
 
 	// output variables
-	out uvec4 faceIndices, out vec3 faceNormal, out vec3 barycoord,
-	out float side, out vec3 outPoint
+	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
+	inout float side, inout vec3 outPoint
  ) {
 
 	// stack needs to be twice as long as the deepest tree we expect because
