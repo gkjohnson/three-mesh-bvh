@@ -106,7 +106,10 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	const shapeMaterial = new THREE.MeshStandardMaterial( { roughness: 0.75, metalness: 0.1 } );
+	const shapeMaterial = new THREE.MeshStandardMaterial( {
+		roughness: 0.75,
+		metalness: 0.1,
+	} );
 	targetContainer = new THREE.Group();
 	scene.add( targetContainer );
 
@@ -142,6 +145,7 @@ function init() {
 		depthWrite: false,
 		opacity: 0.15,
 		premultipliedAlpha: true,
+		side: THREE.DoubleSide,
 	} );
 	marchingCubes = new MarchingCubes( 100, cubeMat, false, false, 1000000 );
 	marchingCubes.isolation = 0;
