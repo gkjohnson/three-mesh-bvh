@@ -44,8 +44,6 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Geometry voxelization](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/voxelize.html)
 
-[Geometry edge projection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/edgeProjection.html)
-
 **Games**
 
 [Sphere physics collision](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
@@ -67,6 +65,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer)
 
 [three-bvh-csg](https://github.com/gkjohnson/three-bvh-csg)
+
+[three-edge-projection](https://github.com/gkjohnson/three-edge-projection/)
 
 # Use
 
