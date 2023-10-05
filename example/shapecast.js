@@ -198,8 +198,6 @@ function init() {
 
 	} );
 
-	console.log( gui );
-
 }
 
 function updateFromOptions() {
