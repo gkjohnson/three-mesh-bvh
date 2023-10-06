@@ -8,8 +8,8 @@ const _bufferStack1 = new BufferStack.constructor();
 const _bufferStack2 = new BufferStack.constructor();
 const _boxPool = new PrimitivePool( () => new Box3() );
 
-const _lbox2 = new Box3();
-const _rbox2 = new Box3();
+const _leftBox = new Box3();
+const _rightBox = new Box3();
 
 let _active = false;
 
@@ -174,11 +174,11 @@ function _traverse(
 
 		const cl2 = LEFT_NODE( node2Index32 );
 		const cr2 = RIGHT_NODE( node2Index32, bufferStack2.uint32Array );
-		arrayToBox( BOUNDING_DATA_INDEX( cl2 ), bufferStack2.float32Array, _lbox2 );
-		arrayToBox( BOUNDING_DATA_INDEX( cr2 ), bufferStack2.float32Array, _rbox2 );
+		arrayToBox( BOUNDING_DATA_INDEX( cl2 ), bufferStack2.float32Array, _leftBox );
+		arrayToBox( BOUNDING_DATA_INDEX( cr2 ), bufferStack2.float32Array, _rightBox );
 
-		const leftIntersects = localBox.intersectsBox( _lbox2 );
-		const rightIntersects = localBox.intersectsBox( _rbox2 );
+		const leftIntersects = localBox.intersectsBox( _leftBox );
+		const rightIntersects = localBox.intersectsBox( _rightBox );
 		if ( leftIntersects && rightIntersects ) {
 
 			result = _traverse(
@@ -204,7 +204,7 @@ function _traverse(
 			} else {
 
 				const newBox = _boxPool.getPrimitive();
-				newBox.copy( _lbox2 ).applyMatrix4( matrix2to1 );
+				newBox.copy( _leftBox ).applyMatrix4( matrix2to1 );
 
 				const cl1 = LEFT_NODE( node1Index32 );
 				const cr1 = RIGHT_NODE( node1Index32, bufferStack1.uint32Array );
@@ -235,7 +235,7 @@ function _traverse(
 			} else {
 
 				const newBox = _boxPool.getPrimitive();
-				newBox.copy( _rbox2 ).applyMatrix4( matrix2to1 );
+				newBox.copy( _rightBox ).applyMatrix4( matrix2to1 );
 
 				const cl1 = LEFT_NODE( node1Index32 );
 				const cr1 = RIGHT_NODE( node1Index32, bufferStack1.uint32Array );
