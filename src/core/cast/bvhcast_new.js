@@ -1,12 +1,13 @@
-import { Box3 } from 'three';
+import { Box3, Matrix4 } from 'three';
 import { BufferStack } from '../utils/BufferStack.js';
 import { BOUNDING_DATA_INDEX, COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 
 const _bufferStack1 = new BufferStack.constructor();
 const _bufferStack2 = new BufferStack.constructor();
-const _box1 = new Box3();
-const _box2 = new Box3();
+
+const _lbox2 = new Box3();
+const _rbox2 = new Box3();
 
 export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 
@@ -15,6 +16,7 @@ export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 	let result;
 	let offset1 = 0;
 	let offset2 = 0;
+	const invMat = new Matrix4().copy( matrixToLocal ).invert();
 
 	// iterate over the first set of roots
 	for ( let i = 0, il = roots.length; i < il; i ++ ) {
@@ -28,8 +30,8 @@ export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 			_bufferStack2.setBuffer( otherRoots[ i ] );
 
 			result = _traverse(
-				0, 0, matrixToLocal, intersectsRanges,
-				offset1, offset2, 0, 0,
+				0, 0, matrixToLocal, invMat, intersectsRanges,
+				offset1, offset2,
 			);
 
 			_bufferStack2.clearBuffer();
@@ -62,6 +64,7 @@ function _traverse(
 	node1Index32,
 	node2Index32,
 	matrix2to1,
+	matrix1to2,
 	intersectsRangesFunc,
 
 	// offsets for ids
@@ -71,93 +74,171 @@ function _traverse(
 	// tree depth
 	depth1 = 0,
 	depth2 = 0,
+
+	currBox = null,
+	reversed = false,
+
 ) {
 
-	// TODO: Compare the number of matrix multiplications that occur in each case
-	// compared to the previous iterations
-	// TODO: do obbs help here?
-	// TODO: is it best to ensure the shallower of the two trees comes second so fewer
-	// box multiplications occur? Or to book keep both the inverse and the regular matrix
-	// so we can use both?
-	const node1Index16 = node1Index32 * 2;
-	const node2Index16 = node2Index32 * 2;
-	arrayToBox( BOUNDING_DATA_INDEX( node1Index32 ), _bufferStack1.float32Array, _box1 );
-	arrayToBox( BOUNDING_DATA_INDEX( node2Index32 ), _bufferStack2.float32Array, _box2 );
-	_box2.applyMatrix4( matrix2to1 );
-	if ( ! _box1.intersectsBox( _box2 ) ) {
+	const bufferStack1 = reversed ? _bufferStack2 : _bufferStack1;
+	const bufferStack2 = reversed ? _bufferStack1 : _bufferStack2;
+	if ( currBox === null ) {
 
-		return false;
+		currBox = new Box3();
+		arrayToBox( BOUNDING_DATA_INDEX( node1Index32 ), bufferStack1.float32Array, currBox );
+		currBox.applyMatrix4( matrix1to2 );
 
 	}
 
-	const node1IsLeaf = IS_LEAF( node1Index16, _bufferStack1.uint16Array );
-	const node2IsLeaf = IS_LEAF( node2Index16, _bufferStack2.uint16Array );
-	if ( node1IsLeaf && node2IsLeaf ) {
+	const node1Index16 = node1Index32 * 2;
+	const node2Index16 = node2Index32 * 2;
+	const isLeaf1 = IS_LEAF( node1Index16, bufferStack1.uint16Array );
+	const isLeaf2 = IS_LEAF( node2Index16, bufferStack2.uint16Array );
+	if ( isLeaf2 && isLeaf1 ) {
 
-		return intersectsRangesFunc(
-			OFFSET( node1Index32, _bufferStack1.uint32Array ), COUNT( node1Index32 * 2, _bufferStack1.uint16Array ),
-			OFFSET( node2Index32, _bufferStack2.uint32Array ), COUNT( node2Index32 * 2, _bufferStack2.uint16Array ),
-			depth1, node1IndexByteOffset + node1Index32,
-			depth2, node2IndexByteOffset + node2Index32,
-		);
+		// if both bounds are leaf nodes then fire the callback if the boxes intersect
+		// arrayToBox( BOUNDING_DATA_INDEX( node2Index32 ), bufferStack2.float32Array, _tempBox );
+		// if ( ! currBox.intersectsBox( _tempBox ) ) {
 
-	} else if ( node1IsLeaf ) {
+		// 	// TODO: is this check necessary?
+		// 	return false;
 
-		const cl2 = LEFT_NODE( node2Index32 );
-		const cr2 = RIGHT_NODE( node2Index32, _bufferStack2.uint32Array );
-		return _traverse(
-			node1Index32, cl2, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node2IndexByteOffset,
-			depth1, depth2 + 1,
-		) || _traverse(
-			node1Index32, cr2, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node2IndexByteOffset,
-			depth1, depth2 + 1,
-		);
+		// }
 
-	} else if ( node2IsLeaf ) {
+		if ( reversed ) {
+
+			return intersectsRangesFunc(
+				OFFSET( node2Index32, bufferStack2.uint32Array ), COUNT( node2Index32 * 2, bufferStack2.uint16Array ),
+				OFFSET( node1Index32, bufferStack1.uint32Array ), COUNT( node1Index32 * 2, bufferStack1.uint16Array ),
+				depth2, node2IndexByteOffset + node2Index32,
+				depth1, node1IndexByteOffset + node1Index32,
+			);
+
+		} else {
+
+			return intersectsRangesFunc(
+				OFFSET( node1Index32, bufferStack1.uint32Array ), COUNT( node1Index32 * 2, bufferStack1.uint16Array ),
+				OFFSET( node2Index32, bufferStack2.uint32Array ), COUNT( node2Index32 * 2, bufferStack2.uint16Array ),
+				depth1, node1IndexByteOffset + node1Index32,
+				depth2, node2IndexByteOffset + node2Index32,
+			);
+
+		}
+
+	} else if ( isLeaf2 ) {
+
+		// If we've traversed to the leaf node on the second side then traverse
+		// down the other bvh
+		// arrayToBox( BOUNDING_DATA_INDEX( node2Index32 ), bufferStack2.float32Array, _tempBox );
+		// if ( ! currBox.intersectsBox( _tempBox ) ) {
+
+		// 	// TODO: is this check necessary
+		// 	return false;
+
+		// }
+
+		currBox = new Box3();
+		arrayToBox( BOUNDING_DATA_INDEX( node2Index32 ), bufferStack2.float32Array, currBox );
+		currBox.applyMatrix4( matrix2to1 );
 
 		const cl1 = LEFT_NODE( node1Index32 );
-		const cr1 = RIGHT_NODE( node1Index32, _bufferStack1.uint32Array );
+		const cr1 = RIGHT_NODE( node1Index32, bufferStack1.uint32Array );
 		return _traverse(
-			cl1, node2Index32, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node1IndexByteOffset,
-			depth1 + 1, depth2,
+			node2Index32, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
+			node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+			currBox, ! reversed,
 		) || _traverse(
-			cr1, node2Index32, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node1IndexByteOffset,
-			depth1 + 1, depth2,
+			node2Index32, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
+			node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+			currBox, ! reversed,
 		);
 
 	} else {
 
-		// TODO: is it best to check if children intersect the larger boxes here before traversing?
-		// Or pass the parent node of the larger box down first?
-		// TODO: should we pass a child and one parent down here? Ie the paren that has the most remaining
-		// depth until leaves?
-		const cl1 = LEFT_NODE( node1Index32 );
-		const cr1 = RIGHT_NODE( node1Index32, _bufferStack1.uint32Array );
 		const cl2 = LEFT_NODE( node2Index32 );
-		const cr2 = RIGHT_NODE( node2Index32, _bufferStack2.uint32Array );
+		const cr2 = RIGHT_NODE( node2Index32, bufferStack2.uint32Array );
+		arrayToBox( BOUNDING_DATA_INDEX( cl2 ), bufferStack2.float32Array, _lbox2 );
+		arrayToBox( BOUNDING_DATA_INDEX( cr2 ), bufferStack2.float32Array, _rbox2 );
 
-		return _traverse(
-			cl1, cl2, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node2IndexByteOffset,
-			depth1 + 1, depth2 + 1,
-		) || _traverse(
-			cr1, cl2, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node2IndexByteOffset,
-			depth1 + 1, depth2 + 1,
-		) || _traverse(
-			cl1, cr2, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node2IndexByteOffset,
-			depth1 + 1, depth2 + 1,
-		) || _traverse(
-			cr1, cr2, matrix2to1, intersectsRangesFunc,
-			node1IndexByteOffset, node2IndexByteOffset,
-			depth1 + 1, depth2 + 1,
-		);
+		const leftIntersects = currBox.intersectsBox( _lbox2 );
+		const rightIntersects = currBox.intersectsBox( _rbox2 );
+		if ( leftIntersects && rightIntersects ) {
+
+			return _traverse(
+				node1Index32, cl2, matrix2to1, matrix1to2, intersectsRangesFunc,
+				node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+				currBox, reversed,
+			) || _traverse(
+				node1Index32, cr2, matrix2to1, matrix1to2, intersectsRangesFunc,
+				node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+				currBox, reversed,
+			);
+
+		} else if ( leftIntersects ) {
+
+			if ( isLeaf1 ) {
+
+				return _traverse(
+					node1Index32, cl2, matrix2to1, matrix1to2, intersectsRangesFunc,
+					node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+					currBox, reversed,
+				);
+
+			} else {
+
+				currBox = new Box3();
+				currBox.copy( _lbox2 ).applyMatrix4( matrix2to1 );
+
+				const cl1 = LEFT_NODE( node1Index32 );
+				const cr1 = RIGHT_NODE( node1Index32, bufferStack1.uint32Array );
+				return _traverse(
+					cl2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
+					node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+					currBox, ! reversed,
+				) || _traverse(
+					cl2, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
+					node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+					currBox, ! reversed,
+				);
+
+			}
+
+		} else if ( rightIntersects ) {
+
+			if ( isLeaf1 ) {
+
+				return _traverse(
+					node1Index32, cr2, matrix2to1, matrix1to2, intersectsRangesFunc,
+					node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
+					currBox, reversed,
+				);
+
+			} else {
+
+				currBox = new Box3();
+				currBox.copy( _rbox2 ).applyMatrix4( matrix2to1 );
+
+				const cl1 = LEFT_NODE( node1Index32 );
+				const cr1 = RIGHT_NODE( node1Index32, bufferStack1.uint32Array );
+				return _traverse(
+					cr2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
+					node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+					currBox, ! reversed,
+				) || _traverse(
+					cr2, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
+					node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
+					currBox, ! reversed,
+				);
+
+			}
+
+		} else {
+
+			return false;
+
+		}
 
 	}
 
 }
+
