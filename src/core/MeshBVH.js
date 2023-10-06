@@ -375,13 +375,6 @@ export class MeshBVH {
 
 	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
-		const bvhcastFunc = this.indirect ? bvhcast_indirect : bvhcast;
-		return bvhcastFunc( this, otherBvh, matrixToLocal, callbacks );
-
-	}
-
-	bvhcast_new( otherBvh, matrixToLocal, callbacks ) {
-
 		let {
 			intersectsRanges,
 			intersectsTriangles,
