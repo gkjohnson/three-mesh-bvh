@@ -1,4 +1,4 @@
-import { BufferAttribute, Box3, FrontSide, Matrix4 } from 'three';
+import { BufferAttribute, Box3, FrontSide } from 'three';
 import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
