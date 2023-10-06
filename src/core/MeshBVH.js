@@ -13,7 +13,6 @@ import { raycast } from './cast/raycast.generated.js';
 import { raycastFirst } from './cast/raycastFirst.generated.js';
 import { intersectsGeometry } from './cast/intersectsGeometry.generated.js';
 import { closestPointToGeometry } from './cast/closestPointToGeometry.generated.js';
-import { bvhcast } from './cast/bvhcast.generated.js';
 
 import { iterateOverTriangles_indirect } from './utils/iterationUtils_indirect.generated.js';
 import { refit_indirect } from './cast/refit_indirect.generated.js';
@@ -21,8 +20,9 @@ import { raycast_indirect } from './cast/raycast_indirect.generated.js';
 import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js';
 import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
 import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
-import { bvhcast_indirect } from './cast/bvhcast_indirect.generated.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { setTriangle } from '../utils/TriangleUtilities.js';
+import { bvhcast } from './cast/bvhcast.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
@@ -373,10 +373,105 @@ export class MeshBVH {
 
 	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
-		const bvhcastFunc = this.indirect ? bvhcast_indirect : bvhcast;
-		return bvhcastFunc( this, otherBvh, matrixToLocal, callbacks );
+		let {
+			intersectsRanges,
+			intersectsTriangles,
+		} = callbacks;
+
+		const triangle1 = ExtendedTrianglePool.getPrimitive();
+		const indexAttr1 = this.geometry.index;
+		const positionAttr1 = this.geometry.attributes.position;
+		const assignTriangle1 = this.indirect ?
+			i1 => {
+
+
+				const ti = this.resolveTriangleIndex( i1 );
+				setTriangle( triangle1, ti * 3, indexAttr1, positionAttr1 );
+
+			} :
+			i1 => {
+
+				setTriangle( triangle1, i1 * 3, indexAttr1, positionAttr1 );
+
+			};
+
+		const triangle2 = ExtendedTrianglePool.getPrimitive();
+		const indexAttr2 = otherBvh.geometry.index;
+		const positionAttr2 = otherBvh.geometry.attributes.position;
+		const assignTriangle2 = otherBvh.indirect ?
+			i2 => {
+
+				const ti2 = otherBvh.resolveTriangleIndex( i2 );
+				setTriangle( triangle2, ti2 * 3, indexAttr2, positionAttr2 );
+
+			} :
+			i2 => {
+
+				setTriangle( triangle2, i2 * 3, indexAttr2, positionAttr2 );
+
+			};
+
+		// generate triangle callback if needed
+		if ( intersectsTriangles ) {
+
+			const iterateOverDoubleTriangles = ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) => {
+
+				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
+
+					assignTriangle2( i2 );
+
+					triangle2.a.applyMatrix4( matrixToLocal );
+					triangle2.b.applyMatrix4( matrixToLocal );
+					triangle2.c.applyMatrix4( matrixToLocal );
+					triangle2.needsUpdate = true;
+
+					for ( let i1 = offset1, l1 = offset1 + count1; i1 < l1; i1 ++ ) {
+
+						assignTriangle1( i1 );
+
+						triangle1.needsUpdate = true;
+
+						if ( intersectsTriangles( triangle1, triangle2, i1, i2, depth1, index1, depth2, index2 ) ) {
+
+							return true;
+
+						}
+
+					}
+
+				}
+
+				return false;
+
+			};
+
+			if ( intersectsRanges ) {
+
+				const originalIntersectsRanges = intersectsRanges;
+				intersectsRanges = function ( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) {
+
+					if ( ! originalIntersectsRanges( offset1, count1, offset2, count2, depth1, index1, depth2, index2 ) ) {
+
+						return iterateOverDoubleTriangles( offset1, count1, offset2, count2, depth1, index1, depth2, index2 );
+
+					}
+
+					return true;
+
+				};
+
+			} else {
+
+				intersectsRanges = iterateOverDoubleTriangles;
+
+			}
+
+		}
+
+		return bvhcast( this, otherBvh, matrixToLocal, intersectsRanges );
 
 	}
+
 
 	/* Derived Cast Functions */
 	intersectsBox( box, boxToMesh ) {
