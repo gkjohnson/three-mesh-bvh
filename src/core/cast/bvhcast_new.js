@@ -38,6 +38,7 @@ export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 		_bufferStack1.setBuffer( roots[ i ] );
 		offset2 = 0;
 
+		// prep the initial root box
 		const localBox = _boxPool.getPrimitive();
 		arrayToBox( BOUNDING_DATA_INDEX( 0 ), _bufferStack1.float32Array, localBox );
 		localBox.applyMatrix4( invMat );
@@ -64,6 +65,7 @@ export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 
 		}
 
+		// release stack info
 		_boxPool.releasePrimitive( localBox );
 		_bufferStack1.clearBuffer();
 		offset1 += roots[ i ].length;
@@ -101,6 +103,7 @@ function _traverse(
 
 ) {
 
+	// get the buffer stacks associated with the current indices
 	let bufferStack1, bufferStack2;
 	if ( reversed ) {
 
@@ -114,12 +117,13 @@ function _traverse(
 
 	}
 
+	// get the local instances of the typed buffers
 	const
 		float32Array1 = bufferStack1.float32Array,
-		float32Array2 = bufferStack2.float32Array,
 		uint32Array1 = bufferStack1.uint32Array,
-		uint32Array2 = bufferStack2.uint32Array,
 		uint16Array1 = bufferStack1.uint16Array,
+		float32Array2 = bufferStack2.float32Array,
+		uint32Array2 = bufferStack2.uint32Array,
 		uint16Array2 = bufferStack2.uint16Array;
 
 	const node1Index16 = node1Index32 * 2;
@@ -155,15 +159,19 @@ function _traverse(
 		// SWAP
 		// If we've traversed to the leaf node on the other bvh then we need to swap over
 		// to traverse down the first one
+
+		// get the new box to use
 		const newBox = _boxPool.getPrimitive();
 		arrayToBox( BOUNDING_DATA_INDEX( node2Index32 ), float32Array2, newBox );
 		newBox.applyMatrix4( matrix2to1 );
 
+		// get the child bounds to check before traversal
 		const cl1 = LEFT_NODE( node1Index32 );
 		const cr1 = RIGHT_NODE( node1Index32, uint32Array1 );
 		arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
 		arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
+		// traverse
 		result = (
 			newBox.intersectsBox( _leftBox1 ) && _traverse(
 				node2Index32, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
@@ -182,6 +190,10 @@ function _traverse(
 
 	} else {
 
+		// if neither are leaves then we should swap if one of the children does not
+		// intersect with the current bounds
+
+		// get the child bounds to check
 		const cl2 = LEFT_NODE( node2Index32 );
 		const cr2 = RIGHT_NODE( node2Index32, uint32Array2 );
 		arrayToBox( BOUNDING_DATA_INDEX( cl2 ), float32Array2, _leftBox2 );
@@ -191,6 +203,7 @@ function _traverse(
 		const rightIntersects = currBox.intersectsBox( _rightBox2 );
 		if ( leftIntersects && rightIntersects ) {
 
+			// continue to traverse both children if they both intersect
 			result = _traverse(
 				node1Index32, cl2, matrix2to1, matrix1to2, intersectsRangesFunc,
 				node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
@@ -205,6 +218,7 @@ function _traverse(
 
 			if ( isLeaf1 ) {
 
+				// if the current box is a leaf then just continue
 				result = _traverse(
 					node1Index32, cl2, matrix2to1, matrix1to2, intersectsRangesFunc,
 					node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
@@ -214,6 +228,7 @@ function _traverse(
 			} else {
 
 				// SWAP
+				// if only one box intersects then we have to swap to the other bvh to continue
 				const newBox = _boxPool.getPrimitive();
 				newBox.copy( _leftBox2 ).applyMatrix4( matrix2to1 );
 
@@ -244,6 +259,7 @@ function _traverse(
 
 			if ( isLeaf1 ) {
 
+				// if the current box is a leaf then just continue
 				result = _traverse(
 					node1Index32, cr2, matrix2to1, matrix1to2, intersectsRangesFunc,
 					node1IndexByteOffset, node2IndexByteOffset, depth1, depth2 + 1,
@@ -253,6 +269,7 @@ function _traverse(
 			} else {
 
 				// SWAP
+				// if only one box intersects then we have to swap to the other bvh to continue
 				const newBox = _boxPool.getPrimitive();
 				newBox.copy( _rightBox2 ).applyMatrix4( matrix2to1 );
 
