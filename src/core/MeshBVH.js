@@ -419,11 +419,11 @@ export class MeshBVH {
 			if ( this.indirect ) {
 
 				const ti = this.resolveTriangleIndex( i );
-				setTriangle( triangle2, ti * 3, indexAttr, positionAttr );
+				setTriangle( triangle, ti * 3, indexAttr, positionAttr );
 
 			} else {
 
-				setTriangle( triangle2, i * 3, indexAttr, positionAttr );
+				setTriangle( triangle, i * 3, indexAttr, positionAttr );
 
 			}
 
