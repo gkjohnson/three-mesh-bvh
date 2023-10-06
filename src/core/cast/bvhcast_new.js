@@ -9,7 +9,17 @@ const _bufferStack2 = new BufferStack.constructor();
 const _lbox2 = new Box3();
 const _rbox2 = new Box3();
 
+let _active = false;
+
 export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
+
+	if ( _active ) {
+
+		throw new Error( 'MeshBVH: Recursive calls to bvhcast not supported.' );
+
+	}
+
+	_active = true;
 
 	const roots = bvh._roots;
 	const otherRoots = otherBvh._roots;
@@ -56,6 +66,7 @@ export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 
 	}
 
+	_active = false;
 	return result;
 
 }
