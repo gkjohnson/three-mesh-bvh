@@ -15,7 +15,7 @@ const _rightBox2 = new Box3();
 
 let _active = false;
 
-export function bvhcast_new( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
+export function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 
 	if ( _active ) {
 
