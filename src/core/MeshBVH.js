@@ -24,7 +24,7 @@ import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_i
 import { bvhcast_indirect } from './cast/bvhcast_indirect.generated.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
-import { bvhcast_new } from './cast/bvhcast2.js';
+import { bvhcast_new } from './cast/bvhcast_new.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
