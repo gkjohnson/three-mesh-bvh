@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Changed
-- Small performance improvements to bvhcast function (up to 10%).
+- Small performance improvements to bvhcast function (up to ~10%).
 
 ## [0.6.7] - 2023-09-07
 ### Fixed
