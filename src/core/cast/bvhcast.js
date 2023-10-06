@@ -171,15 +171,17 @@ function _traverse(
 		arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
 		arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
-		// traverse
+		// precompute the intersections otherwise the global boxes will be modified during traversal
+		const intersectCl1 = newBox.intersectsBox( _leftBox1 );
+		const intersectCr1 = newBox.intersectsBox( _rightBox1 );
 		result = (
-			newBox.intersectsBox( _leftBox1 ) && _traverse(
+			intersectCl1 && _traverse(
 				node2Index32, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
 				node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
 				newBox, ! reversed,
 			)
 		) || (
-			newBox.intersectsBox( _rightBox1 ) && _traverse(
+			intersectCr1 && _traverse(
 				node2Index32, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
 				node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
 				newBox, ! reversed,
@@ -237,14 +239,17 @@ function _traverse(
 				arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
 				arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
+				// precompute the intersections otherwise the global boxes will be modified during traversal
+				const intersectCl1 = newBox.intersectsBox( _leftBox1 );
+				const intersectCr1 = newBox.intersectsBox( _rightBox1 );
 				result = (
-					newBox.intersectsBox( _leftBox1 ) && _traverse(
+					intersectCl1 && _traverse(
 						cl2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
 						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
 					)
 				) || (
-					newBox.intersectsBox( _rightBox1 ) && _traverse(
+					intersectCr1 && _traverse(
 						cl2, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
 						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
@@ -278,14 +283,17 @@ function _traverse(
 				arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
 				arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
+				// precompute the intersections otherwise the global boxes will be modified during traversal
+				const intersectCl1 = newBox.intersectsBox( _leftBox1 );
+				const intersectCr1 = newBox.intersectsBox( _rightBox1 );
 				result = (
-					newBox.intersectsBox( _leftBox1 ) && _traverse(
+					intersectCl1 && _traverse(
 						cr2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
 						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
 					)
 				) || (
-					newBox.intersectsBox( _rightBox1 ) && _traverse(
+					intersectCr1 && _traverse(
 						cr2, cr1, matrix1to2, matrix2to1, intersectsRangesFunc,
 						node2IndexByteOffset, node1IndexByteOffset, depth2, depth1 + 1,
 						newBox, ! reversed,
