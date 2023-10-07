@@ -364,6 +364,18 @@ function runSuiteWithOptions( name, options ) {
 		);
 		bench( 'IntersectsGeometry w/o BVH', () => bvh.intersectsGeometry( intersectGeometry, intersectMatrix ) );
 
+		bench( 'BVHCast', () => bvh.bvhcast( intersectBvh, intersectMatrix, {
+
+			intersectsTriangles( tri1, tri2 ) {
+
+				tri1.update();
+				tri2.update();
+				tri1.intersectsTriangle( tri2 );
+
+			}
+
+		} ) );
+
 	} );
 
 	suite( `${ name } BVH Misc`, () => {
