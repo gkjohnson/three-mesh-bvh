@@ -281,12 +281,12 @@ function render() {
 
 			if ( mouseType === 0 || mouseType === 2 ) {
 
-				let r = 255, g = 255, b = 255;
+				let r = 1, g = 1, b = 1;
 				if ( mouseType === 0 ) {
 
-					r = 15;
-					g = 78;
-					b = 85;
+					r = 15 / 255;
+					g = 78 / 255;
+					b = 85 / 255;
 
 				}
 
