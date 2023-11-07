@@ -172,7 +172,7 @@ function render() {
 
 	const edge = new THREE.Line3();
 	const results = [];
-	mesh1.geometry.boundsTree.bvhcast_new( mesh2.geometry.boundsTree, matrix2to1, {
+	mesh1.geometry.boundsTree.bvhcast( mesh2.geometry.boundsTree, matrix2to1, {
 
 		intersectsTriangles( triangle1, triangle2 ) {
 
