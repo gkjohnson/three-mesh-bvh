@@ -1,6 +1,6 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
   Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
-  LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D } from 'three';
+  LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D, TypedArray } from 'three';
 
 // Contants
 export enum SplitStrategy {}
@@ -174,7 +174,7 @@ export class MeshBVH {
 export class SerializedBVH {
 
   roots: Array<ArrayBuffer>;
-  index: ArrayBufferView;
+  index: TypedArray;
 
 }
 
