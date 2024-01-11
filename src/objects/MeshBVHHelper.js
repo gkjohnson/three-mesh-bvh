@@ -219,12 +219,6 @@ class MeshBVHHelper extends Group {
 
 	}
 
-	get opacity() {
-
-		return this.edgeMaterial.opacity;
-
-	}
-
 	constructor( mesh, depth = 10 ) {
 
 		super();
