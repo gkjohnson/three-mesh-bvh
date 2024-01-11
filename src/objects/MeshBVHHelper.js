@@ -303,14 +303,14 @@ class MeshBVHHelper extends Group {
 		if ( parent ) {
 
 			this.matrix
-				.copy( mesh.matrixWorld );
+				.copy( parent.matrixWorld )
+				.invert()
+				.multiply( mesh.matrixWorld );
 
 		} else {
 
 			this.matrix
-				.copy( parent.matrixWorld )
-				.invert()
-				.multiply( mesh.matrixWorld );
+				.copy( mesh.matrixWorld );
 
 		}
 
