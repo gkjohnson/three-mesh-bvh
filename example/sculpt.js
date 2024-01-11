@@ -10,7 +10,7 @@ import {
 	CONTAINED,
 	INTERSECTED,
 	NOT_INTERSECTED,
-	MeshBVHVisualizer,
+	MeshBVHHelper,
 } from '..';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -78,7 +78,7 @@ function reset() {
 	// initialize bvh helper
 	if ( ! bvhHelper ) {
 
-		bvhHelper = new MeshBVHVisualizer( targetMesh, params.depth );
+		bvhHelper = new MeshBVHHelper( targetMesh, params.depth );
 		if ( params.displayHelper ) {
 
 			scene.add( bvhHelper );

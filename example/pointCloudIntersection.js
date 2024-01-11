@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer, INTERSECTED, NOT_INTERSECTED,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper, INTERSECTED, NOT_INTERSECTED,
 	SAH, CENTER, AVERAGE,
 } from '..';
 
@@ -99,7 +99,7 @@ function init() {
 		bvhMesh.geometry.computeBoundsTree( { mode: params.mode } );
 		console.timeEnd( 'computeBoundsTree' );
 
-		helper = new MeshBVHVisualizer( bvhMesh, params.depth );
+		helper = new MeshBVHHelper( bvhMesh, params.depth );
 		scene.add( helper );
 
 	} );

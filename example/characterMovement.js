@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, MeshBVHVisualizer, StaticGeometryGenerator } from '..';
+import { MeshBVH, MeshBVHHelper, StaticGeometryGenerator } from '..';
 
 const params = {
 
@@ -282,7 +282,7 @@ function loadColliderEnvironment() {
 		collider.material.opacity = 0.5;
 		collider.material.transparent = true;
 
-		visualizer = new MeshBVHVisualizer( collider, params.visualizeDepth );
+		visualizer = new MeshBVHHelper( collider, params.visualizeDepth );
 		scene.add( visualizer );
 		scene.add( collider );
 		scene.add( environment );

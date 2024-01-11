@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
-import { acceleratedRaycast, MeshBVH, MeshBVHVisualizer } from '..';
+import { acceleratedRaycast, MeshBVH, MeshBVHHelper } from '..';
 
 THREE.Mesh.raycast = acceleratedRaycast;
 
@@ -195,7 +195,7 @@ function regenerateKnot() {
 			const deltaTime = window.performance.now() - startTime;
 			generating = false;
 
-			helper = new MeshBVHVisualizer( knot, 0 );
+			helper = new MeshBVHHelper( knot, 0 );
 			helper.depth = params.helperDepth;
 
 			if ( params.displayHelper ) {
@@ -225,7 +225,7 @@ function regenerateKnot() {
 		const deltaTime = window.performance.now() - startTime;
 		generating = false;
 
-		helper = new MeshBVHVisualizer( knot );
+		helper = new MeshBVHHelper( knot );
 		helper.depth = params.helperDepth;
 		helper.update();
 		group.add( helper );
