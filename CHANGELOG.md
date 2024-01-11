@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - `MeshBVHVisualizer` has been deprecated and renamed `MeshBVHHelper` to align with three.js' conventions.
 
+### Fixed
+- `MeshBVHHelper` will now display correctly regardless of parent in hierarchy.
+- `MeshBVHHelper.copy` now correctly copies opacity, color
+
 ## [0.6.8] - 2023-10-08
 ### Changed
 - Small performance improvements to bvhcast function (up to ~10%).
