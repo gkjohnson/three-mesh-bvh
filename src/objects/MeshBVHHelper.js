@@ -289,9 +289,30 @@ class MeshBVHHelper extends Group {
 
 	updateMatrixWorld( ...args ) {
 
-		this.position.copy( this.mesh.position );
-		this.rotation.copy( this.mesh.rotation );
-		this.scale.copy( this.mesh.scale );
+		const mesh = this.mesh;
+		const parent = this.parent;
+
+		mesh.updateWorldMatrix( true, false );
+
+		if ( parent ) {
+
+			this.matrix
+				.copy( parent.matrixWorld )
+				.invert()
+				.multiply( mesh.matrixWorld );
+
+		} else {
+
+			this.matrix
+				.copy( mesh.matrixWorld );
+
+		}
+
+		this.matrix.decompose(
+			this.position,
+			this.quaternion,
+			this.scale,
+		);
 
 		super.updateMatrixWorld( ...args );
 
@@ -301,6 +322,8 @@ class MeshBVHHelper extends Group {
 
 		this.depth = source.depth;
 		this.mesh = source.mesh;
+		this.opacity = source.opacity;
+		this.color.copy( source.color );
 
 	}
 
