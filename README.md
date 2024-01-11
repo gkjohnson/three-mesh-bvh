@@ -649,7 +649,9 @@ constructor( meshOrBvh: THREE.Mesh | MeshBVH, depth = 10 : Number )
 constructor( mesh = null : THREE.Mesh, bvh = null : MeshBVH, depth = 10 : Number )
 ```
 
-Instantiates the helper with a depth and mesh to visualize.
+Instantiates the helper to visualize a MeshBVH.
+
+If a `mesh` and no `bvh` is provided then the `mesh.geometry.boundsTree` is displayed. Otherwise the provided bvh is displayed. Addtionally, if `mesh` is provided then the helper world transform is automatically synchronized with the Mesh. Otherwise if not `mesh` is provided then the user can manage the transform.
 
 ### .update
 
