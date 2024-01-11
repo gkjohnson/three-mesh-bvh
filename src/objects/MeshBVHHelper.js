@@ -1,4 +1,4 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Matrix4 } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
@@ -219,6 +219,12 @@ class MeshBVHHelper extends Group {
 
 	}
 
+	get opacity() {
+
+		return this.edgeMaterial.opacity;
+
+	}
+
 	constructor( mesh, depth = 10 ) {
 
 		super();
@@ -289,9 +295,30 @@ class MeshBVHHelper extends Group {
 
 	updateMatrixWorld( ...args ) {
 
-		this.position.copy( this.mesh.position );
-		this.rotation.copy( this.mesh.rotation );
-		this.scale.copy( this.mesh.scale );
+		const mesh = this.mesh;
+		const parent = this.parent;
+
+		mesh.updateWorldMatrix( true, false );
+
+		if ( parent ) {
+
+			this.matrix
+				.copy( mesh.matrixWorld );
+
+		} else {
+
+			this.matrix
+				.copy( parent.matrixWorld )
+				.invert()
+				.multiply( mesh.matrixWorld );
+
+		}
+
+		this.matrix.decompose(
+			this.position,
+			this.quaternion,
+			this.scale,
+		);
 
 		super.updateMatrixWorld( ...args );
 
@@ -301,6 +328,8 @@ class MeshBVHHelper extends Group {
 
 		this.depth = source.depth;
 		this.mesh = source.mesh;
+		this.opacity = source.opacity;
+		this.color.copy( source.color );
 
 	}
 
