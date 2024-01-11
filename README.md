@@ -644,9 +644,16 @@ The material to use when rendering as a sold meshes.
 ### .constructor
 
 ```js
-constructor( meshOrBvh: THREE.Mesh | MeshBVH, depth = 10 : Number )
+constructor(
+	meshOrBvh: THREE.Mesh | MeshBVH,
+	depth = 10 : Number
+)
 
-constructor( mesh = null : THREE.Mesh, bvh = null : MeshBVH, depth = 10 : Number )
+constructor(
+	mesh = null : THREE.Mesh,
+	bvh = null : MeshBVH,
+	depth = 10 : Number
+)
 ```
 
 Instantiates the helper to visualize a MeshBVH.
