@@ -3,7 +3,7 @@ import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-	MeshBVHVisualizer,
+	MeshBVHHelper,
 	MeshBVH,
 	CONTAINED,
 	INTERSECTED,
@@ -96,7 +96,7 @@ function init() {
 	mesh.receiveShadow = true;
 	group.add( mesh );
 
-	helper = new MeshBVHVisualizer( mesh, 10 );
+	helper = new MeshBVHHelper( mesh, 10 );
 	group.add( helper );
 
 	// meshes for selection highlights

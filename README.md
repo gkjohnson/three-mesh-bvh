@@ -577,7 +577,7 @@ roots : Array<ArrayBuffer>
 index : TypedArray
 ```
 
-## MeshBVHVisualizer
+## MeshBVHHelper
 
 _extends THREE.Group_
 

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, AVERAGE, MeshBVHVisualizer } from '..';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, AVERAGE, MeshBVHHelper } from '..';
 
 // Code for debugging issue #180 and other random raycast test associated issues.
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -87,7 +87,7 @@ function init() {
 			wireframe.material = new THREE.MeshBasicMaterial( { wireframe: true, color: 0xff6666 } );
 			scene.add( wireframe );
 
-			const helper = new MeshBVHVisualizer( mesh, 10 );
+			const helper = new MeshBVHHelper( mesh, 10 );
 			scene.add( helper );
 
 			// mesh.add( new THREE.AxesHelper( 10 ) );

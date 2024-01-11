@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { MarchingCubes } from './lib/MarchingCubes.js';
 import SimplexNoise from 'simplex-noise';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHVisualizer } from '..';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper } from '..';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -252,7 +252,7 @@ function updateFromOptions() {
 
 	if ( ! boundsViz && params.visualizeBounds ) {
 
-		boundsViz = new MeshBVHVisualizer( terrain );
+		boundsViz = new MeshBVHHelper( terrain );
 		scene.add( boundsViz );
 
 	}

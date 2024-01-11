@@ -2,7 +2,7 @@ import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Obj
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
-class MeshBVHRootVisualizer extends Object3D {
+class MeshBVHRootHelper extends Object3D {
 
 	get isMesh() {
 
@@ -28,7 +28,7 @@ class MeshBVHRootVisualizer extends Object3D {
 
 		this.material = material;
 		this.geometry = new BufferGeometry();
-		this.name = 'MeshBVHRootVisualizer';
+		this.name = 'MeshBVHRootHelper';
 		this.depth = depth;
 		this.displayParents = false;
 		this.mesh = mesh;
@@ -198,7 +198,7 @@ class MeshBVHRootVisualizer extends Object3D {
 
 }
 
-class MeshBVHVisualizer extends Group {
+class MeshBVHHelper extends Group {
 
 	get color() {
 
@@ -223,7 +223,7 @@ class MeshBVHVisualizer extends Group {
 
 		super();
 
-		this.name = 'MeshBVHVisualizer';
+		this.name = 'MeshBVHHelper';
 		this.depth = depth;
 		this.mesh = mesh;
 		this.displayParents = false;
@@ -269,7 +269,7 @@ class MeshBVHVisualizer extends Group {
 
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootVisualizer( this.mesh, this.edgeMaterial, this.depth, i );
+				const root = new MeshBVHRootHelper( this.mesh, this.edgeMaterial, this.depth, i );
 				this.add( root );
 				this._roots.push( root );
 
@@ -306,7 +306,7 @@ class MeshBVHVisualizer extends Group {
 
 	clone() {
 
-		return new MeshBVHVisualizer( this.mesh, this.depth );
+		return new MeshBVHHelper( this.mesh, this.depth );
 
 	}
 
@@ -326,5 +326,16 @@ class MeshBVHVisualizer extends Group {
 
 }
 
+export class MeshBVHVisualizer extends MeshBVHHelper {
 
-export { MeshBVHVisualizer };
+	constructor( ...args ) {
+
+		super( ...args );
+
+		console.warn( 'MeshBVHVisualizer: MeshBVHVisualizer has been deprecated. Use MeshBVHHelper, instead.' );
+
+	}
+
+}
+
+export { MeshBVHHelper };
