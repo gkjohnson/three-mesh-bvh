@@ -1,5 +1,6 @@
 import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
+import { MeshBVH } from '../core/MeshBVH.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
 class MeshBVHRootHelper extends Object3D {
@@ -22,7 +23,7 @@ class MeshBVHRootHelper extends Object3D {
 
 	}
 
-	constructor( mesh, material, depth = 10, group = 0 ) {
+	constructor( bvh, material, depth = 10, group = 0 ) {
 
 		super();
 
@@ -31,7 +32,7 @@ class MeshBVHRootHelper extends Object3D {
 		this.name = 'MeshBVHRootHelper';
 		this.depth = depth;
 		this.displayParents = false;
-		this.mesh = mesh;
+		this.bvh = bvh;
 		this.displayEdges = true;
 		this._group = group;
 
@@ -42,7 +43,7 @@ class MeshBVHRootHelper extends Object3D {
 	update() {
 
 		const geometry = this.geometry;
-		const boundsTree = this.mesh.geometry.boundsTree;
+		const boundsTree = this.bvh;
 		const group = this._group;
 		geometry.dispose();
 		this.visible = false;
@@ -219,13 +220,28 @@ class MeshBVHHelper extends Group {
 
 	}
 
-	constructor( mesh, depth = 10 ) {
+	constructor( mesh = null, bvh = null, depth = 10 ) {
+
+		if ( mesh instanceof MeshBVH ) {
+
+			depth = bvh;
+			bvh = mesh;
+			mesh = null;
+
+		}
+
+		if ( typeof bvh === 'number' ) {
+
+			console.warn( 'MeshBVHHelper: Second argument of the constructor has changed. Refer to the README.' );
+
+		}
 
 		super();
 
 		this.name = 'MeshBVHHelper';
 		this.depth = depth;
 		this.mesh = mesh;
+		this.bvh = bvh;
 		this.displayParents = false;
 		this.displayEdges = true;
 		this._roots = [];
@@ -267,20 +283,21 @@ class MeshBVHHelper extends Group {
 
 		for ( let i = 0; i < totalRoots; i ++ ) {
 
+			const { mesh, bvh, depth, edgeMaterial, meshMaterial, displayParents, displayEdges } = this;
+
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootHelper( this.mesh, this.edgeMaterial, this.depth, i );
+				const root = new MeshBVHRootHelper( bvh || mesh.geometry.boundsTree, edgeMaterial, depth, i );
 				this.add( root );
 				this._roots.push( root );
 
 			}
 
 			const root = this._roots[ i ];
-			root.depth = this.depth;
-			root.mesh = this.mesh;
-			root.displayParents = this.displayParents;
-			root.displayEdges = this.displayEdges;
-			root.material = this.displayEdges ? this.edgeMaterial : this.meshMaterial;
+			root.depth = depth;
+			root.displayParents = displayParents;
+			root.displayEdges = displayEdges;
+			root.material = displayEdges ? edgeMaterial : meshMaterial;
 			root.update();
 
 		}
@@ -292,27 +309,31 @@ class MeshBVHHelper extends Group {
 		const mesh = this.mesh;
 		const parent = this.parent;
 
-		mesh.updateWorldMatrix( true, false );
+		if ( mesh !== null ) {
 
-		if ( parent ) {
+			mesh.updateWorldMatrix( true, false );
 
-			this.matrix
-				.copy( parent.matrixWorld )
-				.invert()
-				.multiply( mesh.matrixWorld );
+			if ( parent ) {
 
-		} else {
+				this.matrix
+					.copy( parent.matrixWorld )
+					.invert()
+					.multiply( mesh.matrixWorld );
 
-			this.matrix
-				.copy( mesh.matrixWorld );
+			} else {
+
+				this.matrix
+					.copy( mesh.matrixWorld );
+
+			}
+
+			this.matrix.decompose(
+				this.position,
+				this.quaternion,
+				this.scale,
+			);
 
 		}
-
-		this.matrix.decompose(
-			this.position,
-			this.quaternion,
-			this.scale,
-		);
 
 		super.updateMatrixWorld( ...args );
 
@@ -322,6 +343,7 @@ class MeshBVHHelper extends Group {
 
 		this.depth = source.depth;
 		this.mesh = source.mesh;
+		this.bvh = source.bvh;
 		this.opacity = source.opacity;
 		this.color.copy( source.color );
 
@@ -329,7 +351,7 @@ class MeshBVHHelper extends Group {
 
 	clone() {
 
-		return new MeshBVHHelper( this.mesh, this.depth );
+		return new MeshBVHHelper( this.mesh, this.bvh, this.depth );
 
 	}
 
