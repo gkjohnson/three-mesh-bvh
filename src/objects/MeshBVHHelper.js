@@ -222,17 +222,20 @@ class MeshBVHHelper extends Group {
 
 	constructor( mesh = null, bvh = null, depth = 10 ) {
 
+		// handle bvh, depth signature
 		if ( mesh instanceof MeshBVH ) {
 
-			depth = bvh;
+			depth = bvh || 10;
 			bvh = mesh;
 			mesh = null;
 
 		}
 
+		// handle mesh, depth signature
 		if ( typeof bvh === 'number' ) {
 
-			console.warn( 'MeshBVHHelper: Second argument of the constructor has changed. Refer to the README.' );
+			bvh = null;
+			depth = bvh;
 
 		}
 
@@ -271,7 +274,7 @@ class MeshBVHHelper extends Group {
 
 	update() {
 
-		const bvh = this.mesh.geometry.boundsTree;
+		const bvh = this.bvh || this.mesh.geometry.boundsTree;
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
@@ -283,11 +286,11 @@ class MeshBVHHelper extends Group {
 
 		for ( let i = 0; i < totalRoots; i ++ ) {
 
-			const { mesh, bvh, depth, edgeMaterial, meshMaterial, displayParents, displayEdges } = this;
+			const { depth, edgeMaterial, meshMaterial, displayParents, displayEdges } = this;
 
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootHelper( bvh || mesh.geometry.boundsTree, edgeMaterial, depth, i );
+				const root = new MeshBVHRootHelper( bvh, edgeMaterial, depth, i );
 				this.add( root );
 				this._roots.push( root );
 
