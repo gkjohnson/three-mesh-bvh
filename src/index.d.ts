@@ -178,8 +178,8 @@ export class SerializedBVH {
 
 }
 
-// MeshBVHVisualizer
-export class MeshBVHVisualizer extends Group {
+// MeshBVHHelper
+export class MeshBVHHelper extends Group {
 
   opacity: number;
   depth: number;
