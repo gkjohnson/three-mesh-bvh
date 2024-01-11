@@ -1,4 +1,4 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Matrix4 } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
