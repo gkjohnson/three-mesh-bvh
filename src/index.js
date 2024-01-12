@@ -7,6 +7,7 @@ export { getTriangleHitPointInfo } from './utils/TriangleUtilities.js';
 export * from './math/ExtendedTriangle.js';
 export * from './math/OrientedBox.js';
 export * from './gpu/MeshBVHUniformStruct.js';
-export * from './gpu/shaderFunctions.js';
 export * from './gpu/VertexAttributeTexture.js';
 export * from './utils/StaticGeometryGenerator.js';
+
+export * as BVHShaderGLSL from './gpu/BVHShaderGLSL.js';
