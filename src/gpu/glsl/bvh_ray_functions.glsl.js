@@ -66,7 +66,13 @@ bool intersectsTriangle(
 }
 
 bool intersectTriangles(
-	BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count,
+	// bvh content and triangle range
+	sampler2D positionAttr, usampler2D indexAttr, uint offset, uint count,
+
+	// ray
+	vec3 rayOrigin, vec3 rayDirection,
+
+	// outputs
 	inout float minDistance, inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
 	inout float side, inout float dist
 ) {
@@ -76,10 +82,10 @@ bool intersectTriangles(
 	float localDist, localSide;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
-		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
-		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
-		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
-		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
+		uvec3 indices = uTexelFetch1D( indexAttr, i ).xyz;
+		vec3 a = texelFetch1D( positionAttr, indices.x ).rgb;
+		vec3 b = texelFetch1D( positionAttr, indices.y ).rgb;
+		vec3 c = texelFetch1D( positionAttr, indices.z ).rgb;
 
 		if (
 			intersectsTriangle( rayOrigin, rayDirection, a, b, c, localBarycoord, localNormal, localDist, localSide )
@@ -104,10 +110,10 @@ bool intersectTriangles(
 
 }
 
-float intersectsBVHNodeBounds( vec3 rayOrigin, vec3 rayDirection, BVH bvh, uint currNodeIndex ) {
+float intersectsBVHNodeBounds( vec3 rayOrigin, vec3 rayDirection, sampler2D bvhBounds, uint currNodeIndex ) {
 
-	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
-	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+	vec3 boundsMin = texelFetch1D( bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+	vec3 boundsMax = texelFetch1D( bvhBounds, currNodeIndex * 2u + 1u ).xyz;
 	return intersectsBounds( rayOrigin, rayDirection, boundsMin, boundsMax );
 
 }
@@ -134,7 +140,7 @@ bool bvhIntersectFirstHit(
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh, currNodeIndex );
+		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh.bvhBounds, currNodeIndex );
 		if ( boundsHitDistance == INFINITY || boundsHitDistance > triangleDistance ) {
 
 			continue;
@@ -150,7 +156,8 @@ bool bvhIntersectFirstHit(
 			uint offset = boundsInfo.y;
 
 			found = intersectTriangles(
-				bvh, rayOrigin, rayDirection, offset, count, triangleDistance,
+				bvh.position, bvh.index, offset, count,
+				rayOrigin, rayDirection, triangleDistance,
 				faceIndices, faceNormal, barycoord, side, dist
 			) || found;
 
