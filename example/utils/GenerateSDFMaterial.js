@@ -1,5 +1,5 @@
 import { ShaderMaterial, Matrix4 } from 'three';
-import { shaderIntersectFunction, shaderDistanceFunction, shaderStructs, MeshBVHUniformStruct } from '../..';
+import { BVHShaderGLSL, MeshBVHUniformStruct } from '../..';
 
 export class GenerateSDFMaterial extends ShaderMaterial {
 
@@ -33,9 +33,10 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 				precision highp isampler2D;
 				precision highp usampler2D;
 
-				${ shaderStructs }
-				${ shaderIntersectFunction }
-				${ shaderDistanceFunction }
+				${ BVHShaderGLSL.common_functions }
+				${ BVHShaderGLSL.bvh_struct_definitions }
+				${ BVHShaderGLSL.bvh_ray_functions }
+				${ BVHShaderGLSL.bvh_distance_functions }
 
 				varying vec2 vUv;
 
