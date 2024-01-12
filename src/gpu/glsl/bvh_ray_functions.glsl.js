@@ -1,5 +1,13 @@
 export const bvh_ray_functions = /* glsl */`
 
+#ifndef TRI_INTERSECT_EPSILON
+#define TRI_INTERSECT_EPSILON 1e-5
+#endif
+
+#ifndef BVH_STACK_DEPTH
+#define BVH_STACK_DEPTH 60
+#endif
+
 // Raycasting
 float intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax ) {
 
@@ -144,12 +152,12 @@ bool _bvhIntersectFirstHit(
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
 	int ptr = 0;
-	uint stack[ 60 ];
+	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
 
-	float triangleDistance = 1e20;
+	float triangleDistance = INFINITY;
 	bool found = false;
-	while ( ptr > - 1 && ptr < 60 ) {
+	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {
 
 		uint currNodeIndex = stack[ ptr ];
 		ptr --;

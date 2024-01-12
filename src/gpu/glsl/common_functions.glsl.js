@@ -1,5 +1,9 @@
 export const common_functions = /* glsl */`
 
+#ifndef INFINITY
+#define INFINITY 1e20
+#endif
+
 // Utilities
 uvec4 uTexelFetch1D( usampler2D tex, uint index ) {
 
