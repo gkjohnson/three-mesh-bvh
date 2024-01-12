@@ -66,7 +66,7 @@ bool intersectsTriangle(
 }
 
 bool intersectTriangles(
-	// bvh content and triangle range
+	// geometry info and triangle range
 	sampler2D positionAttr, usampler2D indexAttr, uint offset, uint count,
 
 	// ray
