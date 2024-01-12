@@ -53,8 +53,13 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 }
 
 float distanceToTriangles(
-	BVH bvh, vec3 point, uint offset, uint count, float closestDistanceSquared,
+	// geometry info and triangle range
+	sampler2D positionAttr, usampler2D indexAttr, uint offset, uint count,
 
+	// point and cut off range
+	vec3 point, float closestDistanceSquared,
+
+	// outputs
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord, inout float side, inout vec3 outPoint
 ) {
 
@@ -64,10 +69,10 @@ float distanceToTriangles(
 	vec3 localNormal;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
-		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
-		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
-		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
-		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
+		uvec3 indices = uTexelFetch1D( indexAttr, i ).xyz;
+		vec3 a = texelFetch1D( positionAttr, indices.x ).rgb;
+		vec3 b = texelFetch1D( positionAttr, indices.y ).rgb;
+		vec3 c = texelFetch1D( positionAttr, indices.z ).rgb;
 
 		// get the closest point and barycoord
 		vec3 closestPoint = closestPointToTriangle( point, a, b, c, localBarycoord );
@@ -99,16 +104,31 @@ float distanceSqToBounds( vec3 point, vec3 boundsMin, vec3 boundsMax ) {
 
 }
 
-float distanceSqToBVHNodeBoundsPoint( vec3 point, BVH bvh, uint currNodeIndex ) {
+float distanceSqToBVHNodeBoundsPoint( vec3 point, sampler2D bvhBounds, uint currNodeIndex ) {
 
-	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
-	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+	vec3 boundsMin = texelFetch1D( bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+	vec3 boundsMax = texelFetch1D( bvhBounds, currNodeIndex * 2u + 1u ).xyz;
 	return distanceSqToBounds( point, boundsMin, boundsMax );
 
 }
 
-float bvhClosestPointToPoint(
-	BVH bvh, vec3 point,
+// use a macro to hide the fact that we need to expand the struct into separate fields
+#define\
+	bvhClosestPointToPoint(\
+		bvh,\
+		point, faceIndices, faceNormal, barycoord, side, outPoint\
+	)\
+	_bvhClosestPointToPoint(\
+		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
+		point, faceIndices, faceNormal, barycoord, side, outPoint\
+	)
+
+float _bvhClosestPointToPoint(
+	// bvh info
+	sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents,
+
+	// point to check
+	vec3 point,
 
 	// output variables
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
@@ -128,21 +148,21 @@ float bvhClosestPointToPoint(
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance = distanceSqToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
+		float boundsHitDistance = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, currNodeIndex );
 		if ( boundsHitDistance > closestDistanceSquared ) {
 
 			continue;
 
 		}
 
-		uvec2 boundsInfo = uTexelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, currNodeIndex ).xy;
 		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 		if ( isLeaf ) {
 
 			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 			closestDistanceSquared = distanceToTriangles(
-				bvh, point, offset, count, closestDistanceSquared,
+				bvh_position, bvh_index, offset, count, point, closestDistanceSquared,
 
 				// outputs
 				faceIndices, faceNormal, barycoord, side, outPoint
@@ -153,7 +173,7 @@ float bvhClosestPointToPoint(
 			uint leftIndex = currNodeIndex + 1u;
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
 			uint rightIndex = boundsInfo.y;
-			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
+			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
 			uint c1 = leftToRight ? leftIndex : rightIndex;
 			uint c2 = leftToRight ? rightIndex : leftIndex;
 

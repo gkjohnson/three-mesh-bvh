@@ -1,5 +1,13 @@
 export const bvh_ray_functions = /* glsl */`
 
+#ifndef TRI_INTERSECT_EPSILON
+#define TRI_INTERSECT_EPSILON 1e-5
+#endif
+
+#ifndef BVH_STACK_DEPTH
+#define BVH_STACK_DEPTH 60
+#endif
+
 // Raycasting
 float intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax ) {
 
@@ -66,7 +74,13 @@ bool intersectsTriangle(
 }
 
 bool intersectTriangles(
-	BVH bvh, vec3 rayOrigin, vec3 rayDirection, uint offset, uint count,
+	// geometry info and triangle range
+	sampler2D positionAttr, usampler2D indexAttr, uint offset, uint count,
+
+	// ray
+	vec3 rayOrigin, vec3 rayDirection,
+
+	// outputs
 	inout float minDistance, inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
 	inout float side, inout float dist
 ) {
@@ -76,10 +90,10 @@ bool intersectTriangles(
 	float localDist, localSide;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
-		uvec3 indices = uTexelFetch1D( bvh.index, i ).xyz;
-		vec3 a = texelFetch1D( bvh.position, indices.x ).rgb;
-		vec3 b = texelFetch1D( bvh.position, indices.y ).rgb;
-		vec3 c = texelFetch1D( bvh.position, indices.z ).rgb;
+		uvec3 indices = uTexelFetch1D( indexAttr, i ).xyz;
+		vec3 a = texelFetch1D( positionAttr, indices.x ).rgb;
+		vec3 b = texelFetch1D( positionAttr, indices.y ).rgb;
+		vec3 c = texelFetch1D( positionAttr, indices.z ).rgb;
 
 		if (
 			intersectsTriangle( rayOrigin, rayDirection, a, b, c, localBarycoord, localNormal, localDist, localSide )
@@ -104,18 +118,33 @@ bool intersectTriangles(
 
 }
 
-float intersectsBVHNodeBounds( vec3 rayOrigin, vec3 rayDirection, BVH bvh, uint currNodeIndex ) {
+float intersectsBVHNodeBounds( vec3 rayOrigin, vec3 rayDirection, sampler2D bvhBounds, uint currNodeIndex ) {
 
-	vec3 boundsMin = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 0u ).xyz;
-	vec3 boundsMax = texelFetch1D( bvh.bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+	vec3 boundsMin = texelFetch1D( bvhBounds, currNodeIndex * 2u + 0u ).xyz;
+	vec3 boundsMax = texelFetch1D( bvhBounds, currNodeIndex * 2u + 1u ).xyz;
 	return intersectsBounds( rayOrigin, rayDirection, boundsMin, boundsMax );
 
 }
 
-bool bvhIntersectFirstHit(
-	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
+// use a macro to hide the fact that we need to expand the struct into separate fields
+#define\
+	bvhIntersectFirstHit(\
+		bvh,\
+		rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist\
+	)\
+	_bvhIntersectFirstHit(\
+		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
+		rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist\
+	)
 
-	// output variables
+bool _bvhIntersectFirstHit(
+	// bvh info
+	sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents,
+
+	// ray
+	vec3 rayOrigin, vec3 rayDirection,
+
+	// output variables split into separate variables due to output precision
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
 	inout float side, inout float dist
 ) {
@@ -123,25 +152,25 @@ bool bvhIntersectFirstHit(
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
 	int ptr = 0;
-	uint stack[ 60 ];
+	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
 
-	float triangleDistance = 1e20;
+	float triangleDistance = INFINITY;
 	bool found = false;
-	while ( ptr > - 1 && ptr < 60 ) {
+	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {
 
 		uint currNodeIndex = stack[ ptr ];
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh, currNodeIndex );
+		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh_bvhBounds, currNodeIndex );
 		if ( boundsHitDistance == INFINITY || boundsHitDistance > triangleDistance ) {
 
 			continue;
 
 		}
 
-		uvec2 boundsInfo = uTexelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, currNodeIndex ).xy;
 		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 
 		if ( isLeaf ) {
@@ -150,7 +179,8 @@ bool bvhIntersectFirstHit(
 			uint offset = boundsInfo.y;
 
 			found = intersectTriangles(
-				bvh, rayOrigin, rayDirection, offset, count, triangleDistance,
+				bvh_position, bvh_index, offset, count,
+				rayOrigin, rayDirection, triangleDistance,
 				faceIndices, faceNormal, barycoord, side, dist
 			) || found;
 
