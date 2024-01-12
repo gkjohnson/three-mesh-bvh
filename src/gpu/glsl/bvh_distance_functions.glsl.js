@@ -112,8 +112,23 @@ float distanceSqToBVHNodeBoundsPoint( vec3 point, sampler2D bvhBounds, uint curr
 
 }
 
-float bvhClosestPointToPoint(
-	BVH bvh, vec3 point,
+// use a macro to hide the fact that we need to expand the struct into separate fields
+#define\
+	bvhClosestPointToPoint(\
+		bvh,\
+		point, faceIndices, faceNormal, barycoord, side, outPoint\
+	)\
+	_bvhClosestPointToPoint(\
+		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
+		point, faceIndices, faceNormal, barycoord, side, outPoint\
+	)
+
+float _bvhClosestPointToPoint(
+	// bvh info
+	sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents,
+
+	// point to check
+	vec3 point,
 
 	// output variables
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
@@ -133,21 +148,21 @@ float bvhClosestPointToPoint(
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance = distanceSqToBVHNodeBoundsPoint( point, bvh.bvhBounds, currNodeIndex );
+		float boundsHitDistance = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, currNodeIndex );
 		if ( boundsHitDistance > closestDistanceSquared ) {
 
 			continue;
 
 		}
 
-		uvec2 boundsInfo = uTexelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, currNodeIndex ).xy;
 		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 		if ( isLeaf ) {
 
 			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 			closestDistanceSquared = distanceToTriangles(
-				bvh.position, bvh.index, offset, count, point, closestDistanceSquared,
+				bvh_position, bvh_index, offset, count, point, closestDistanceSquared,
 
 				// outputs
 				faceIndices, faceNormal, barycoord, side, outPoint
@@ -158,7 +173,7 @@ float bvhClosestPointToPoint(
 			uint leftIndex = currNodeIndex + 1u;
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
 			uint rightIndex = boundsInfo.y;
-			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh.bvhBounds, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh.bvhBounds, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
+			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
 			uint c1 = leftToRight ? leftIndex : rightIndex;
 			uint c2 = leftToRight ? rightIndex : leftIndex;
 

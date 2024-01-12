@@ -118,10 +118,25 @@ float intersectsBVHNodeBounds( vec3 rayOrigin, vec3 rayDirection, sampler2D bvhB
 
 }
 
-bool bvhIntersectFirstHit(
-	BVH bvh, vec3 rayOrigin, vec3 rayDirection,
+// use a macro to hide the fact that we need to expand the struct into separate fields
+#define\
+	bvhIntersectFirstHit(\
+		bvh,\
+		rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist\
+	)\
+	_bvhIntersectFirstHit(\
+		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
+		rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist\
+	)
 
-	// output variables
+bool _bvhIntersectFirstHit(
+	// bvh info
+	sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents,
+
+	// ray
+	vec3 rayOrigin, vec3 rayDirection,
+
+	// output variables split into separate variables due to output precision
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
 	inout float side, inout float dist
 ) {
@@ -140,14 +155,14 @@ bool bvhIntersectFirstHit(
 		ptr --;
 
 		// check if we intersect the current bounds
-		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh.bvhBounds, currNodeIndex );
+		float boundsHitDistance = intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh_bvhBounds, currNodeIndex );
 		if ( boundsHitDistance == INFINITY || boundsHitDistance > triangleDistance ) {
 
 			continue;
 
 		}
 
-		uvec2 boundsInfo = uTexelFetch1D( bvh.bvhContents, currNodeIndex ).xy;
+		uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, currNodeIndex ).xy;
 		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 
 		if ( isLeaf ) {
@@ -156,7 +171,7 @@ bool bvhIntersectFirstHit(
 			uint offset = boundsInfo.y;
 
 			found = intersectTriangles(
-				bvh.position, bvh.index, offset, count,
+				bvh_position, bvh_index, offset, count,
 				rayOrigin, rayDirection, triangleDistance,
 				faceIndices, faceNormal, barycoord, side, dist
 			) || found;
