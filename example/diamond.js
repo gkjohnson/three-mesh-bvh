@@ -7,8 +7,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {
 	MeshBVH,
 	MeshBVHUniformStruct,
-	shaderStructs,
-	shaderIntersectFunction,
+	BVHShaderGLSL,
 	SAH
 } from '../src/index.js';
 
@@ -52,7 +51,7 @@ async function init() {
 	const environmentPromise = new RGBELoader()
 		.loadAsync( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr' );
 
-	const gltfPromise = new GLTFLoader().loadAsync( '../models/diamond.glb' );
+	const gltfPromise = new GLTFLoader().loadAsync( new URL( './models/diamond.glb', import.meta.url ).toString() );
 
 	let gltf;
 	[ environment, gltf ] = await Promise.all( [ environmentPromise, gltfPromise ] );
@@ -104,8 +103,9 @@ async function init() {
 			precision highp isampler2D;
 			precision highp usampler2D;
 
-			${ shaderStructs }
-			${ shaderIntersectFunction }
+			${ BVHShaderGLSL.common_functions }
+			${ BVHShaderGLSL.bvh_struct_definitions }
+			${ BVHShaderGLSL.bvh_ray_functions }
 
 			varying vec3 vWorldPosition;
 			varying vec3 vNormal;

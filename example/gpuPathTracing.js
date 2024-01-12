@@ -7,7 +7,7 @@ import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
 	MeshBVH, MeshBVHUniformStruct, FloatVertexAttributeTexture,
-	shaderStructs, shaderIntersectFunction, SAH,
+	SAH, BVHShaderGLSL,
 } from '..';
 
 const params = {
@@ -93,8 +93,9 @@ function init() {
 
 			precision highp isampler2D;
 			precision highp usampler2D;
-			${ shaderStructs }
-			${ shaderIntersectFunction }
+			${ BVHShaderGLSL.common_functions }
+			${ BVHShaderGLSL.bvh_struct_definitions }
+			${ BVHShaderGLSL.bvh_ray_functions }
 			#include <common>
 
 			uniform mat4 cameraWorldMatrix;
@@ -190,7 +191,7 @@ function init() {
 	rtMaterial.depthWrite = false;
 
 	// load mesh and set up material BVH attributes
-	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
+	new GLTFLoader().load( new URL( './models/DragonAttenuation.glb', import.meta.url ).toString(), gltf => {
 
 		let dragonMesh;
 		gltf.scene.traverse( c => {
