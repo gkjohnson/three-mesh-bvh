@@ -5,7 +5,7 @@ import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
 	MeshBVH, MeshBVHUniformStruct, FloatVertexAttributeTexture,
-	shaderStructs, shaderIntersectFunction, SAH,
+	BVHShaderGLSL, SAH,
 } from '..';
 
 const params = {
@@ -91,8 +91,10 @@ function init() {
 		fragmentShader: /* glsl */`
 			precision highp isampler2D;
 			precision highp usampler2D;
-			${ shaderStructs }
-			${ shaderIntersectFunction }
+
+			${ BVHShaderGLSL.common_functions }
+			${ BVHShaderGLSL.bvh_struct_definitions }
+			${ BVHShaderGLSL.bvh_ray_functions }
 
 			uniform mat4 cameraWorldMatrix;
 			uniform mat4 invProjectionMatrix;
