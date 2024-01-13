@@ -139,6 +139,7 @@ float _bvhClosestPointToPoint(
 	int ptr = 0;
 	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
+
 	float closestDistanceSquared = pow( 100000.0, 2.0 );
 	bool found = false;
 	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {

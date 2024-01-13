@@ -161,7 +161,10 @@ bool _bvhIntersectFirstHit(
 
 		// check if we intersect the current bounds
 		float boundsHitDistance;
-		if ( ! intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh_bvhBounds, currNodeIndex, boundsHitDistance ) || boundsHitDistance > triangleDistance ) {
+		if (
+			! intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh_bvhBounds, currNodeIndex, boundsHitDistance )
+			|| boundsHitDistance > triangleDistance
+		) {
 
 			continue;
 
