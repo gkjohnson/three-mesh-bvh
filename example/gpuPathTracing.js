@@ -221,10 +221,11 @@ function init() {
 	} );
 
 
+	const floatLinearExtSupported = renderer.extensions.get( 'OES_texture_float_linear' );
 	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
 
 		format: THREE.RGBAFormat,
-		type: renderer.extensions.get( 'OES_texture_float_linear' ) ? THREE.FloatType : THREE.HalfFloatType,
+		type: floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType,
 
 	} );
 
