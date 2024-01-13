@@ -4,10 +4,6 @@ export const bvh_ray_functions = /* glsl */`
 #define TRI_INTERSECT_EPSILON 1e-5
 #endif
 
-#ifndef BVH_STACK_DEPTH
-#define BVH_STACK_DEPTH 60
-#endif
-
 // Raycasting
 bool intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax, out float dist ) {
 

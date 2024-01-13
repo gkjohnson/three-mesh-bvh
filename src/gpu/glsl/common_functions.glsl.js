@@ -1,5 +1,12 @@
 export const common_functions = /* glsl */`
 
+// A stack of uint32 indices can can store the indices for
+// a tree with a depth up to 31. Lower stack depth gets higher
+// performance
+#ifndef BVH_STACK_DEPTH
+#define BVH_STACK_DEPTH 31
+#endif
+
 #ifndef INFINITY
 #define INFINITY 1e20
 #endif
