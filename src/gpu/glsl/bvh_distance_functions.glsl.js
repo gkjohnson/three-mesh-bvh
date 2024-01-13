@@ -64,9 +64,7 @@ float distanceToTriangles(
 ) {
 
 	bool found = false;
-	uvec3 localIndices;
 	vec3 localBarycoord;
-	vec3 localNormal;
 	for ( uint i = offset, l = offset + count; i < l; i ++ ) {
 
 		uvec3 indices = uTexelFetch1D( indexAttr, i ).xyz;
@@ -106,8 +104,9 @@ float distanceSqToBounds( vec3 point, vec3 boundsMin, vec3 boundsMax ) {
 
 float distanceSqToBVHNodeBoundsPoint( vec3 point, sampler2D bvhBounds, uint currNodeIndex ) {
 
-	vec3 boundsMin = texelFetch1D( bvhBounds, currNodeIndex * 2u + 0u ).xyz;
-	vec3 boundsMax = texelFetch1D( bvhBounds, currNodeIndex * 2u + 1u ).xyz;
+	uint cni2 = currNodeIndex * 2u;
+	vec3 boundsMin = texelFetch1D( bvhBounds, cni2 ).xyz;
+	vec3 boundsMax = texelFetch1D( bvhBounds, cni2 + 1u ).xyz;
 	return distanceSqToBounds( point, boundsMin, boundsMax );
 
 }
@@ -138,11 +137,12 @@ float _bvhClosestPointToPoint(
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
 	int ptr = 0;
-	uint stack[ 60 ];
+	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
+
 	float closestDistanceSquared = pow( 100000.0, 2.0 );
 	bool found = false;
-	while ( ptr > - 1 && ptr < 60 ) {
+	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {
 
 		uint currNodeIndex = stack[ ptr ];
 		ptr --;
