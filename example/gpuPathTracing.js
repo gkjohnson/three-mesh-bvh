@@ -191,34 +191,35 @@ function init() {
 	rtMaterial.depthWrite = false;
 
 	// load mesh and set up material BVH attributes
-	new GLTFLoader().load( new URL( './models/DragonAttenuation.glb', import.meta.url ).toString(), gltf => {
+	new GLTFLoader()
+		.load( new URL( './models/DragonAttenuation.glb', import.meta.url ).toString(), gltf => {
 
-		let dragonMesh;
-		gltf.scene.traverse( c => {
+			let dragonMesh;
+			gltf.scene.traverse( c => {
 
-			if ( c.isMesh && c.name === 'Dragon' ) {
+				if ( c.isMesh && c.name === 'Dragon' ) {
 
-				dragonMesh = c;
-				c.geometry.scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
+					dragonMesh = c;
+					c.geometry.scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
 
-			}
+				}
+
+			} );
+
+			const planeGeom = new THREE.PlaneGeometry( 5, 5, 1, 1 );
+			planeGeom.rotateX( - Math.PI / 2 );
+
+			const merged = mergeGeometries( [ planeGeom, dragonMesh.geometry ], false );
+			merged.translate( 0, - 0.5, 0 );
+
+			mesh = new THREE.Mesh( merged, new THREE.MeshStandardMaterial() );
+			scene.add( mesh );
+
+			const bvh = new MeshBVH( mesh.geometry, { maxLeafTris: 1, strategy: SAH } );
+			rtMaterial.uniforms.bvh.value.updateFrom( bvh );
+			rtMaterial.uniforms.normalAttribute.value.updateFrom( mesh.geometry.attributes.normal );
 
 		} );
-
-		const planeGeom = new THREE.PlaneGeometry( 5, 5, 1, 1 );
-		planeGeom.rotateX( - Math.PI / 2 );
-
-		const merged = mergeGeometries( [ planeGeom, dragonMesh.geometry ], false );
-		merged.translate( 0, - 0.5, 0 );
-
-		mesh = new THREE.Mesh( merged, new THREE.MeshStandardMaterial() );
-		scene.add( mesh );
-
-		const bvh = new MeshBVH( mesh.geometry, { maxLeafTris: 1, strategy: SAH } );
-		rtMaterial.uniforms.bvh.value.updateFrom( bvh );
-		rtMaterial.uniforms.normalAttribute.value.updateFrom( mesh.geometry.attributes.normal );
-
-	} );
 
 
 	const floatLinearExtSupported = renderer.extensions.get( 'OES_texture_float_linear' );

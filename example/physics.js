@@ -172,59 +172,60 @@ function init() {
 
 function loadColliderEnvironment() {
 
-	new GLTFLoader().load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/low-poly-jungle-scene/scene.gltf', res => {
+	new GLTFLoader()
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/low-poly-jungle-scene/scene.gltf', res => {
 
-		environment = res.scene;
-		environment.scale.setScalar( 0.05 );
+			environment = res.scene;
+			environment.scale.setScalar( 0.05 );
 
-		const pointLight = new THREE.PointLight( 0x00ffff );
-		pointLight.distance = 7;
-		pointLight.position.set( - 100, - 40, 100 );
-		environment.add( pointLight );
+			const pointLight = new THREE.PointLight( 0x00ffff );
+			pointLight.distance = 7;
+			pointLight.position.set( - 100, - 40, 100 );
+			environment.add( pointLight );
 
-		const porchLight = new THREE.PointLight( 0xffdd66 );
-		porchLight.distance = 15;
-		porchLight.intensity = 5;
-		porchLight.position.set( 80, 80, 135 );
-		porchLight.shadow.normalBias = 1e-2;
-		porchLight.shadow.bias = - 1e-3;
-		porchLight.shadow.mapSize.setScalar( 1024 );
-		porchLight.castShadow = true;
+			const porchLight = new THREE.PointLight( 0xffdd66 );
+			porchLight.distance = 15;
+			porchLight.intensity = 5;
+			porchLight.position.set( 80, 80, 135 );
+			porchLight.shadow.normalBias = 1e-2;
+			porchLight.shadow.bias = - 1e-3;
+			porchLight.shadow.mapSize.setScalar( 1024 );
+			porchLight.castShadow = true;
 
-		environment.add( porchLight );
+			environment.add( porchLight );
 
-		// collect all geometries to merge
-		environment.updateMatrixWorld( true );
+			// collect all geometries to merge
+			environment.updateMatrixWorld( true );
 
-		const staticGenerator = new StaticGeometryGenerator( environment );
-		staticGenerator.attributes = [ 'position' ];
+			const staticGenerator = new StaticGeometryGenerator( environment );
+			staticGenerator.attributes = [ 'position' ];
 
-		const mergedGeometry = staticGenerator.generate();
-		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
+			const mergedGeometry = staticGenerator.generate();
+			mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
-		collider = new THREE.Mesh( mergedGeometry );
-		collider.material.wireframe = true;
-		collider.material.opacity = 0.5;
-		collider.material.transparent = true;
+			collider = new THREE.Mesh( mergedGeometry );
+			collider.material.wireframe = true;
+			collider.material.opacity = 0.5;
+			collider.material.transparent = true;
 
-		visualizer = new MeshBVHHelper( collider, params.visualizeDepth );
-		scene.add( visualizer );
-		scene.add( collider );
-		scene.add( environment );
+			visualizer = new MeshBVHHelper( collider, params.visualizeDepth );
+			scene.add( visualizer );
+			scene.add( collider );
+			scene.add( environment );
 
-		environment.traverse( c => {
+			environment.traverse( c => {
 
-			if ( c.material ) {
+				if ( c.material ) {
 
-				c.castShadow = true;
-				c.receiveShadow = true;
-				c.material.shadowSide = 2;
+					c.castShadow = true;
+					c.receiveShadow = true;
+					c.material.shadowSide = 2;
 
-			}
+				}
+
+			} );
 
 		} );
-
-	} );
 
 }
 

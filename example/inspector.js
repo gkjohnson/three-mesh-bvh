@@ -210,41 +210,42 @@ function init() {
 
 	// Load dragon
 	const loader = new GLTFLoader();
-	loader.load( modelPath, gltf => {
+	loader
+		.load( modelPath, gltf => {
 
-		gltf.scene.traverse( c => {
+			gltf.scene.traverse( c => {
 
-			if ( c.isMesh && c.name === 'Dragon' ) {
+				if ( c.isMesh && c.name === 'Dragon' ) {
 
-				mesh = c;
+					mesh = c;
 
-			}
+				}
+
+			} );
+
+			mesh.material = new THREE.MeshBasicMaterial( { colorWrite: false } );
+			mesh.geometry.center();
+			mesh.position.set( 0, 0, 0 );
+			scene.add( mesh );
+
+			helper = new MeshBVHHelper( mesh, 40 );
+			helper.displayEdges = false;
+			helper.displayParents = true;
+			helper.color.set( 0xffffff );
+			helper.opacity = 1;
+			helper.depth = 40;
+
+			const material = helper.meshMaterial;
+			material.blending = THREE.CustomBlending;
+			material.blendDst = THREE.OneFactor;
+
+			scene.add( helper );
+
+			updateBVH();
+
+			runBenchmark( true );
 
 		} );
-
-		mesh.material = new THREE.MeshBasicMaterial( { colorWrite: false } );
-		mesh.geometry.center();
-		mesh.position.set( 0, 0, 0 );
-		scene.add( mesh );
-
-		helper = new MeshBVHHelper( mesh, 40 );
-		helper.displayEdges = false;
-		helper.displayParents = true;
-		helper.color.set( 0xffffff );
-		helper.opacity = 1;
-		helper.depth = 40;
-
-		const material = helper.meshMaterial;
-		material.blending = THREE.CustomBlending;
-		material.blendDst = THREE.OneFactor;
-
-		scene.add( helper );
-
-		updateBVH();
-
-		runBenchmark( true );
-
-	} );
 
 	benchmarkViz = new THREE.LineSegments();
 	benchmarkViz.material.opacity = 0.1;

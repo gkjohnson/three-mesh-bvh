@@ -193,22 +193,23 @@ function init() {
 
 function loadColliderEnvironment() {
 
-	new GLTFLoader().load( '../models/dungeon_low_poly_game_level_challenge/scene.gltf', res => {
+	new GLTFLoader()
+		.load( '../models/dungeon_low_poly_game_level_challenge/scene.gltf', res => {
 
-		const gltfScene = res.scene;
-		gltfScene.scale.setScalar( .01 );
+			const gltfScene = res.scene;
+			gltfScene.scale.setScalar( .01 );
 
-		const box = new THREE.Box3();
-		box.setFromObject( gltfScene );
-		box.getCenter( gltfScene.position ).negate();
-		gltfScene.updateMatrixWorld( true );
+			const box = new THREE.Box3();
+			box.setFromObject( gltfScene );
+			box.getCenter( gltfScene.position ).negate();
+			gltfScene.updateMatrixWorld( true );
 
-		// visual geometry setup
-		const toMerge = {};
-		gltfScene.traverse( c => {
+			// visual geometry setup
+			const toMerge = {};
+			gltfScene.traverse( c => {
 
-			if (
-				/Boss/.test( c.name ) ||
+				if (
+					/Boss/.test( c.name ) ||
 				/Enemie/.test( c.name ) ||
 				/Shield/.test( c.name ) ||
 				/Sword/.test( c.name ) ||
@@ -220,74 +221,74 @@ function loadColliderEnvironment() {
 
 				// pink brick
 				c.material && c.material.color.r === 1.0
-			) {
+				) {
 
-				return;
+					return;
 
-			}
+				}
 
-			if ( c.isMesh ) {
+				if ( c.isMesh ) {
 
-				const hex = c.material.color.getHex();
-				toMerge[ hex ] = toMerge[ hex ] || [];
-				toMerge[ hex ].push( c );
-
-			}
-
-		} );
-
-		environment = new THREE.Group();
-		for ( const hex in toMerge ) {
-
-			const arr = toMerge[ hex ];
-			const visualGeometries = [];
-			arr.forEach( mesh => {
-
-				if ( mesh.material.emissive.r !== 0 ) {
-
-					environment.attach( mesh );
-
-				} else {
-
-					const geom = mesh.geometry.clone();
-					geom.applyMatrix4( mesh.matrixWorld );
-					visualGeometries.push( geom );
+					const hex = c.material.color.getHex();
+					toMerge[ hex ] = toMerge[ hex ] || [];
+					toMerge[ hex ].push( c );
 
 				}
 
 			} );
 
-			if ( visualGeometries.length ) {
+			environment = new THREE.Group();
+			for ( const hex in toMerge ) {
 
-				const newGeom = BufferGeometryUtils.mergeBufferGeometries( visualGeometries );
-				const newMesh = new THREE.Mesh( newGeom, new THREE.MeshStandardMaterial( { color: parseInt( hex ), shadowSide: 2 } ) );
-				newMesh.castShadow = true;
-				newMesh.receiveShadow = true;
-				newMesh.material.shadowSide = 2;
+				const arr = toMerge[ hex ];
+				const visualGeometries = [];
+				arr.forEach( mesh => {
 
-				environment.add( newMesh );
+					if ( mesh.material.emissive.r !== 0 ) {
+
+						environment.attach( mesh );
+
+					} else {
+
+						const geom = mesh.geometry.clone();
+						geom.applyMatrix4( mesh.matrixWorld );
+						visualGeometries.push( geom );
+
+					}
+
+				} );
+
+				if ( visualGeometries.length ) {
+
+					const newGeom = BufferGeometryUtils.mergeBufferGeometries( visualGeometries );
+					const newMesh = new THREE.Mesh( newGeom, new THREE.MeshStandardMaterial( { color: parseInt( hex ), shadowSide: 2 } ) );
+					newMesh.castShadow = true;
+					newMesh.receiveShadow = true;
+					newMesh.material.shadowSide = 2;
+
+					environment.add( newMesh );
+
+				}
 
 			}
 
-		}
+			const staticGenerator = new StaticGeometryGenerator( environment );
+			staticGenerator.attributes = [ 'position' ];
 
-		const staticGenerator = new StaticGeometryGenerator( environment );
-		staticGenerator.attributes = [ 'position' ];
+			const mergedGeometry = staticGenerator.generate();
+			mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
-		const mergedGeometry = staticGenerator.generate();
-		mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
+			collider = new THREE.Mesh( mergedGeometry );
+			collider.material.wireframe = true;
+			collider.material.opacity = 0.5;
+			collider.material.transparent = true;
 
-		collider = new THREE.Mesh( mergedGeometry );
-		collider.material.wireframe = true;
-		collider.material.opacity = 0.5;
-		collider.material.transparent = true;
+			visualizer = new MeshBVHHelper( collider, params.visualizeDepth );
+			scene.add( visualizer );
+			scene.add( collider );
+			scene.add( environment );
 
-		visualizer = new MeshBVHHelper( collider, params.visualizeDepth );
-		scene.add( visualizer );
-		scene.add( collider );
-		scene.add( environment );
-
-	} );
+		} );
 
 }
 

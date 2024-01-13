@@ -265,93 +265,96 @@ function init() {
 
 	// Load dragon
 	models[ 'Dragon' ] = null;
-	new GLTFLoader().load( '../models/DragonAttenuation.glb', gltf => {
+	new GLTFLoader()
+		.load( '../models/DragonAttenuation.glb', gltf => {
 
-		let mesh;
-		gltf.scene.traverse( c => {
+			let mesh;
+			gltf.scene.traverse( c => {
 
-			if ( c.isMesh && c.name === 'Dragon' ) {
+				if ( c.isMesh && c.name === 'Dragon' ) {
 
-				mesh = c;
+					mesh = c;
 
-			}
+				}
+
+			} );
+
+			mesh.material = new THREE.MeshStandardMaterial();
+			mesh.geometry.center().scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
+			mesh.position.set( 0, 0, 0 );
+			mesh.scale.set( 1, 1, 1 );
+			mesh.quaternion.identity();
+
+			const { geometry, materials } = mergeMeshes( [ mesh ], true );
+			const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+			const generator = new GenerateMeshBVHWorker();
+			generator
+				.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
+				.then( bvh => {
+
+					models[ 'Dragon' ] = { mesh: merged, materials, floorHeight: mesh.geometry.boundingBox.min.y };
+					geometry.boundsTree = bvh;
+					generator.dispose();
+					scene.add( merged );
+
+				} );
 
 		} );
 
-		mesh.material = new THREE.MeshStandardMaterial();
-		mesh.geometry.center().scale( 0.25, 0.25, 0.25 ).rotateX( Math.PI / 2 );
-		mesh.position.set( 0, 0, 0 );
-		mesh.scale.set( 1, 1, 1 );
-		mesh.quaternion.identity();
-
-		const { geometry, materials } = mergeMeshes( [ mesh ], true );
-		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-		const generator = new GenerateMeshBVHWorker();
-		generator
-			.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
-			.then( bvh => {
-
-				models[ 'Dragon' ] = { mesh: merged, materials, floorHeight: mesh.geometry.boundingBox.min.y };
-				geometry.boundsTree = bvh;
-				generator.dispose();
-				scene.add( merged );
-
-			} );
-
-	} );
-
 	models[ 'Engine' ] = null;
-	new GLTFLoader().setMeshoptDecoder( MeshoptDecoder ).load( '../models/internal_combustion_engine/model.gltf', gltf => {
+	new GLTFLoader()
+		.setMeshoptDecoder( MeshoptDecoder )
+		.load( '../models/internal_combustion_engine/model.gltf', gltf => {
 
-		const originalMesh = gltf.scene.children[ 0 ];
-		const originalGeometry = originalMesh.geometry;
-		const newGeometry = new THREE.BufferGeometry();
+			const originalMesh = gltf.scene.children[ 0 ];
+			const originalGeometry = originalMesh.geometry;
+			const newGeometry = new THREE.BufferGeometry();
 
-		const ogPosAttr = originalGeometry.attributes.position;
-		const ogNormAttr = originalGeometry.attributes.normal;
-		const posAttr = new THREE.BufferAttribute( new Float32Array( ogPosAttr.count * 3 ), 3, false );
-		const normAttr = new THREE.BufferAttribute( new Float32Array( ogNormAttr.count * 3 ), 3, false );
+			const ogPosAttr = originalGeometry.attributes.position;
+			const ogNormAttr = originalGeometry.attributes.normal;
+			const posAttr = new THREE.BufferAttribute( new Float32Array( ogPosAttr.count * 3 ), 3, false );
+			const normAttr = new THREE.BufferAttribute( new Float32Array( ogNormAttr.count * 3 ), 3, false );
 
-		const vec = new THREE.Vector3();
-		for ( let i = 0, l = ogPosAttr.count; i < l; i ++ ) {
+			const vec = new THREE.Vector3();
+			for ( let i = 0, l = ogPosAttr.count; i < l; i ++ ) {
 
-			vec.fromBufferAttribute( ogPosAttr, i );
-			posAttr.setXYZ( i, vec.x, vec.y, vec.z );
+				vec.fromBufferAttribute( ogPosAttr, i );
+				posAttr.setXYZ( i, vec.x, vec.y, vec.z );
 
-			vec.fromBufferAttribute( ogNormAttr, i );
-			vec.multiplyScalar( 1 / 127 );
-			normAttr.setXYZ( i, vec.x, vec.y, vec.z );
+				vec.fromBufferAttribute( ogNormAttr, i );
+				vec.multiplyScalar( 1 / 127 );
+				normAttr.setXYZ( i, vec.x, vec.y, vec.z );
 
-		}
+			}
 
-		originalMesh.scale.multiplyScalar( 5 );
-		originalMesh.updateMatrixWorld();
-		newGeometry.setAttribute( 'position', posAttr );
-		newGeometry.setAttribute( 'normal', normAttr );
-		newGeometry.setAttribute( 'materialIndex', new THREE.BufferAttribute( new Uint8Array( posAttr.count ), 1, false ) );
-		newGeometry.setIndex( originalGeometry.index );
-		newGeometry.applyMatrix4( originalMesh.matrixWorld ).center();
-		newGeometry.computeBoundingBox();
+			originalMesh.scale.multiplyScalar( 5 );
+			originalMesh.updateMatrixWorld();
+			newGeometry.setAttribute( 'position', posAttr );
+			newGeometry.setAttribute( 'normal', normAttr );
+			newGeometry.setAttribute( 'materialIndex', new THREE.BufferAttribute( new Uint8Array( posAttr.count ), 1, false ) );
+			newGeometry.setIndex( originalGeometry.index );
+			newGeometry.applyMatrix4( originalMesh.matrixWorld ).center();
+			newGeometry.computeBoundingBox();
 
-		const mesh = new THREE.Mesh( newGeometry, new THREE.MeshStandardMaterial() );
-		const generator = new GenerateMeshBVHWorker();
-		generator
-			.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
-			.then( bvh => {
+			const mesh = new THREE.Mesh( newGeometry, new THREE.MeshStandardMaterial() );
+			const generator = new GenerateMeshBVHWorker();
+			generator
+				.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
+				.then( bvh => {
 
-				models[ 'Engine' ] = {
-					mesh,
-					materials: [ new THREE.MeshStandardMaterial() ],
-					floorHeight: newGeometry.boundingBox.min.y,
-				};
-				newGeometry.boundsTree = bvh;
-				generator.dispose();
+					models[ 'Engine' ] = {
+						mesh,
+						materials: [ new THREE.MeshStandardMaterial() ],
+						floorHeight: newGeometry.boundingBox.min.y,
+					};
+					newGeometry.boundsTree = bvh;
+					generator.dispose();
 
-				scene.add( mesh );
+					scene.add( mesh );
 
-			} );
+				} );
 
-	} );
+		} );
 
 	samples = 0;
 	clock = new THREE.Clock();

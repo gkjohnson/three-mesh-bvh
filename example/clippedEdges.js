@@ -109,169 +109,170 @@ function init() {
 	// load the model
 	const loader = new GLTFLoader();
 	loader.setMeshoptDecoder( MeshoptDecoder );
-	loader.load( '../models/internal_combustion_engine/model.gltf', gltf => {
+	loader
+		.load( '../models/internal_combustion_engine/model.gltf', gltf => {
 
-		// merge the geometry if needed
-		// let model = gltf.scene;
-		// model.updateMatrixWorld( true );
+			// merge the geometry if needed
+			// let model = gltf.scene;
+			// model.updateMatrixWorld( true );
 
-		// create a merged version if it isn't already
-		// const geometries = [];
-		// model.traverse( c => {
+			// create a merged version if it isn't already
+			// const geometries = [];
+			// model.traverse( c => {
 
-		// 	if ( c.isMesh ) {
+			// 	if ( c.isMesh ) {
 
-		// 		const clonedGeometry = c.geometry.clone();
-		// 		clonedGeometry.applyMatrix4( c.matrixWorld );
-		// 		for ( const key in clonedGeometry.attributes ) {
+			// 		const clonedGeometry = c.geometry.clone();
+			// 		clonedGeometry.applyMatrix4( c.matrixWorld );
+			// 		for ( const key in clonedGeometry.attributes ) {
 
-		// 			if ( key === 'position' || key === 'normal' ) {
+			// 			if ( key === 'position' || key === 'normal' ) {
 
-		// 				continue;
+			// 				continue;
 
-		// 			}
+			// 			}
 
-		// 			clonedGeometry.deleteAttribute( key );
+			// 			clonedGeometry.deleteAttribute( key );
 
-		// 		}
+			// 		}
 
-		// 		geometries.push( clonedGeometry );
+			// 		geometries.push( clonedGeometry );
 
-		// 	}
+			// 	}
 
-		// } );
+			// } );
 
-		// const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
-		// model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
+			// const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries( geometries );
+			// model = new THREE.Mesh( mergedGeometry, new THREE.MeshStandardMaterial() );
 
-		// Render Order
-		// 0. Render front model and back model with stencil
-		// 1. Render surface color model
-		// 2. Render clip pane cap
-		// 3. Render outlines
+			// Render Order
+			// 0. Render front model and back model with stencil
+			// 1. Render surface color model
+			// 2. Render clip pane cap
+			// 3. Render outlines
 
-		// use basic material because the using clip caps is expensive since the fragment
-		// shader has to run always.
-		const model = gltf.scene.children[ 0 ];
-		const mergedGeometry = model.geometry;
-		model.material = new THREE.MeshBasicMaterial();
-		model.position.set( 0, 0, 0 );
-		model.quaternion.identity();
+			// use basic material because the using clip caps is expensive since the fragment
+			// shader has to run always.
+			const model = gltf.scene.children[ 0 ];
+			const mergedGeometry = model.geometry;
+			model.material = new THREE.MeshBasicMaterial();
+			model.position.set( 0, 0, 0 );
+			model.quaternion.identity();
 
-		// color the surface of the geometry with an EQUAL depth to limit the amount of
-		// fragment shading that has to run.
-		const surfaceModel = model.clone();
-		surfaceModel.material = new THREE.MeshStandardMaterial( {
-			depthFunc: THREE.EqualDepth,
-		} );
-		surfaceModel.renderOrder = 1;
+			// color the surface of the geometry with an EQUAL depth to limit the amount of
+			// fragment shading that has to run.
+			const surfaceModel = model.clone();
+			surfaceModel.material = new THREE.MeshStandardMaterial( {
+				depthFunc: THREE.EqualDepth,
+			} );
+			surfaceModel.renderOrder = 1;
 
-		outlineLines.scale.copy( model.scale );
-		outlineLines.position.set( 0, 0, 0 );
-		outlineLines.quaternion.identity();
+			outlineLines.scale.copy( model.scale );
+			outlineLines.position.set( 0, 0, 0 );
+			outlineLines.quaternion.identity();
 
-		model.updateMatrixWorld( true );
+			model.updateMatrixWorld( true );
 
-		// Adjust all the materials to draw front and back side with stencil for clip cap
-		const matSet = new Set();
-		const materialMap = new Map();
-		frontSideModel = model;
-		frontSideModel.updateMatrixWorld( true );
-		frontSideModel.traverse( c => {
+			// Adjust all the materials to draw front and back side with stencil for clip cap
+			const matSet = new Set();
+			const materialMap = new Map();
+			frontSideModel = model;
+			frontSideModel.updateMatrixWorld( true );
+			frontSideModel.traverse( c => {
 
-			if ( c.isMesh ) {
+				if ( c.isMesh ) {
 
-				if ( materialMap.has( c.material ) ) {
+					if ( materialMap.has( c.material ) ) {
 
-					c.material = materialMap.get( c.material );
-					return;
+						c.material = materialMap.get( c.material );
+						return;
 
-				}
+					}
 
-				matSet.add( c.material );
+					matSet.add( c.material );
 
-				const material = c.material.clone();
-				material.color.set( 0xffffff );
-				material.roughness = 1.0;
-				material.metalness = 0.0;
-				material.side = THREE.FrontSide;
-				material.stencilWrite = true;
-				material.stencilFail = THREE.IncrementWrapStencilOp;
-				material.stencilZFail = THREE.IncrementWrapStencilOp;
-				material.stencilZPass = THREE.IncrementWrapStencilOp;
-				material.clippingPlanes = clippingPlanes;
+					const material = c.material.clone();
+					material.color.set( 0xffffff );
+					material.roughness = 1.0;
+					material.metalness = 0.0;
+					material.side = THREE.FrontSide;
+					material.stencilWrite = true;
+					material.stencilFail = THREE.IncrementWrapStencilOp;
+					material.stencilZFail = THREE.IncrementWrapStencilOp;
+					material.stencilZPass = THREE.IncrementWrapStencilOp;
+					material.clippingPlanes = clippingPlanes;
 
-				materialMap.set( c.material, material );
-				c.material = material;
-
-			}
-
-		} );
-
-		materialMap.clear();
-
-		backSideModel = frontSideModel.clone();
-		backSideModel.traverse( c => {
-
-			if ( c.isMesh ) {
-
-				if ( materialMap.has( c.material ) ) {
-
-					c.material = materialMap.get( c.material );
-					return;
+					materialMap.set( c.material, material );
+					c.material = material;
 
 				}
 
-				const material = c.material.clone();
-				material.color.set( 0xffffff );
-				material.roughness = 1.0;
-				material.metalness = 0.0;
-				material.colorWrite = false;
-				material.depthWrite = false;
-				material.side = THREE.BackSide;
-				material.stencilWrite = true;
-				material.stencilFail = THREE.DecrementWrapStencilOp;
-				material.stencilZFail = THREE.DecrementWrapStencilOp;
-				material.stencilZPass = THREE.DecrementWrapStencilOp;
-				material.clippingPlanes = clippingPlanes;
+			} );
 
-				materialMap.set( c.material, material );
-				c.material = material;
+			materialMap.clear();
 
-			}
+			backSideModel = frontSideModel.clone();
+			backSideModel.traverse( c => {
+
+				if ( c.isMesh ) {
+
+					if ( materialMap.has( c.material ) ) {
+
+						c.material = materialMap.get( c.material );
+						return;
+
+					}
+
+					const material = c.material.clone();
+					material.color.set( 0xffffff );
+					material.roughness = 1.0;
+					material.metalness = 0.0;
+					material.colorWrite = false;
+					material.depthWrite = false;
+					material.side = THREE.BackSide;
+					material.stencilWrite = true;
+					material.stencilFail = THREE.DecrementWrapStencilOp;
+					material.stencilZFail = THREE.DecrementWrapStencilOp;
+					material.stencilZPass = THREE.DecrementWrapStencilOp;
+					material.clippingPlanes = clippingPlanes;
+
+					materialMap.set( c.material, material );
+					c.material = material;
+
+				}
+
+			} );
+
+			// create the collider and preview mesh
+			colliderBvh = new MeshBVH( mergedGeometry, { maxLeafTris: 3 } );
+			mergedGeometry.boundsTree = colliderBvh;
+
+			colliderMesh = new THREE.Mesh( mergedGeometry, new THREE.MeshBasicMaterial( {
+				wireframe: true,
+				transparent: true,
+				opacity: 0.01,
+				depthWrite: false,
+			} ) );
+			colliderMesh.renderOrder = 2;
+			colliderMesh.position.copy( model.position );
+			colliderMesh.rotation.copy( model.rotation );
+			colliderMesh.scale.copy( model.scale );
+
+			bvhHelper = new MeshBVHHelper( colliderMesh, parseInt( params.helperDepth ) );
+			bvhHelper.depth = parseInt( params.helperDepth );
+			bvhHelper.update();
+
+			// create group of meshes and offset it so they're centered
+			const group = new THREE.Group();
+			group.add( frontSideModel, backSideModel, surfaceModel, colliderMesh, bvhHelper, outlineLines );
+
+			const box = new THREE.Box3();
+			box.setFromObject( frontSideModel );
+			box.getCenter( group.position ).multiplyScalar( - 1 );
+			group.updateMatrixWorld( true );
+			scene.add( group );
 
 		} );
-
-		// create the collider and preview mesh
-		colliderBvh = new MeshBVH( mergedGeometry, { maxLeafTris: 3 } );
-		mergedGeometry.boundsTree = colliderBvh;
-
-		colliderMesh = new THREE.Mesh( mergedGeometry, new THREE.MeshBasicMaterial( {
-			wireframe: true,
-			transparent: true,
-			opacity: 0.01,
-			depthWrite: false,
-		} ) );
-		colliderMesh.renderOrder = 2;
-		colliderMesh.position.copy( model.position );
-		colliderMesh.rotation.copy( model.rotation );
-		colliderMesh.scale.copy( model.scale );
-
-		bvhHelper = new MeshBVHHelper( colliderMesh, parseInt( params.helperDepth ) );
-		bvhHelper.depth = parseInt( params.helperDepth );
-		bvhHelper.update();
-
-		// create group of meshes and offset it so they're centered
-		const group = new THREE.Group();
-		group.add( frontSideModel, backSideModel, surfaceModel, colliderMesh, bvhHelper, outlineLines );
-
-		const box = new THREE.Box3();
-		box.setFromObject( frontSideModel );
-		box.getCenter( group.position ).multiplyScalar( - 1 );
-		group.updateMatrixWorld( true );
-		scene.add( group );
-
-	} );
 
 	// dat.gui
 	gui = new GUI();

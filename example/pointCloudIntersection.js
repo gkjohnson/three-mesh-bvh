@@ -72,37 +72,38 @@ function init() {
 
 	// Load point cloud
 	const loader = new PLYLoader();
-	loader.load( plyPath, geometry => {
+	loader
+		.load( plyPath, geometry => {
 
-		geometry.center();
-		const material = new THREE.PointsMaterial( { size: params.pointSize, vertexColors: true } );
-		pointCloud = new THREE.Points( geometry, material );
-		pointCloud.matrixAutoUpdate = false;
+			geometry.center();
+			const material = new THREE.PointsMaterial( { size: params.pointSize, vertexColors: true } );
+			pointCloud = new THREE.Points( geometry, material );
+			pointCloud.matrixAutoUpdate = false;
 
-		scene.add( pointCloud );
+			scene.add( pointCloud );
 
-		// BVH Mesh creation
-		const indices = [];
-		const bvhGeometry = geometry.clone();
-		let verticesLength = bvhGeometry.attributes.position.count;
-		for ( let i = 0, l = verticesLength; i < l; i ++ ) {
+			// BVH Mesh creation
+			const indices = [];
+			const bvhGeometry = geometry.clone();
+			let verticesLength = bvhGeometry.attributes.position.count;
+			for ( let i = 0, l = verticesLength; i < l; i ++ ) {
 
-			indices.push( i, i, i );
+				indices.push( i, i, i );
 
-		}
+			}
 
-		bvhGeometry.setIndex( indices );
-		const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-		bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
+			bvhGeometry.setIndex( indices );
+			const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+			bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
 
-		console.time( 'computeBoundsTree' );
-		bvhMesh.geometry.computeBoundsTree( { mode: params.mode } );
-		console.timeEnd( 'computeBoundsTree' );
+			console.time( 'computeBoundsTree' );
+			bvhMesh.geometry.computeBoundsTree( { mode: params.mode } );
+			console.timeEnd( 'computeBoundsTree' );
 
-		helper = new MeshBVHHelper( bvhMesh, params.depth );
-		scene.add( helper );
+			helper = new MeshBVHHelper( bvhMesh, params.depth );
+			scene.add( helper );
 
-	} );
+		} );
 
 	const geometry = new THREE.SphereGeometry( 0.01, 32, 32 );
 	const material = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.9, transparent: true } );

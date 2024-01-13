@@ -87,76 +87,77 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	// load the model
-	new GLTFLoader().load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/trex/scene.gltf', gltf => {
+	new GLTFLoader()
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/trex/scene.gltf', gltf => {
 
-		// prep the model and add it to the scene
-		model = gltf.scene;
-		model.traverse( object => {
+			// prep the model and add it to the scene
+			model = gltf.scene;
+			model.traverse( object => {
 
-			if ( object.isMesh ) {
+				if ( object.isMesh ) {
 
-				object.castShadow = true;
-				object.receiveShadow = true;
-				object.frustumCulled = false;
+					object.castShadow = true;
+					object.receiveShadow = true;
+					object.frustumCulled = false;
 
-			}
+				}
 
-		} );
-
-		model.updateMatrixWorld( true );
-		scene.add( model );
-
-		// skeleton helper
-		skeletonHelper = new THREE.SkeletonHelper( model );
-		skeletonHelper.visible = false;
-		scene.add( skeletonHelper );
-
-		// animations
-		const animations = gltf.animations;
-		mixer = new THREE.AnimationMixer( model );
-
-		animationAction = mixer.clipAction( animations[ 0 ] );
-		animationAction.play();
-		animationAction.paused = params.pause;
-
-		// camera setup
-		const box = new THREE.Box3();
-		box.setFromObject( model );
-		box.getCenter( controls.target );
-		box.getCenter( camera.position );
-		camera.position.x = 7.5;
-		camera.position.z = 3.5;
-		controls.update();
-
-		// prep the geometry
-		staticGeometryGenerator = new StaticGeometryGenerator( model );
-		originalMaterials = staticGeometryGenerator.getMaterials();
-
-		normalMaterials = originalMaterials.map( m => {
-
-			return new THREE.MeshNormalMaterial( {
-				normalMap: m.normalMap
 			} );
 
+			model.updateMatrixWorld( true );
+			scene.add( model );
+
+			// skeleton helper
+			skeletonHelper = new THREE.SkeletonHelper( model );
+			skeletonHelper.visible = false;
+			scene.add( skeletonHelper );
+
+			// animations
+			const animations = gltf.animations;
+			mixer = new THREE.AnimationMixer( model );
+
+			animationAction = mixer.clipAction( animations[ 0 ] );
+			animationAction.play();
+			animationAction.paused = params.pause;
+
+			// camera setup
+			const box = new THREE.Box3();
+			box.setFromObject( model );
+			box.getCenter( controls.target );
+			box.getCenter( camera.position );
+			camera.position.x = 7.5;
+			camera.position.z = 3.5;
+			controls.update();
+
+			// prep the geometry
+			staticGeometryGenerator = new StaticGeometryGenerator( model );
+			originalMaterials = staticGeometryGenerator.getMaterials();
+
+			normalMaterials = originalMaterials.map( m => {
+
+				return new THREE.MeshNormalMaterial( {
+					normalMap: m.normalMap
+				} );
+
+			} );
+
+			wireframeMaterial = new THREE.MeshBasicMaterial( {
+				wireframe: true,
+				transparent: true,
+				opacity: 0.05,
+				depthWrite: false,
+			} );
+			meshHelper = new THREE.Mesh( new THREE.BufferGeometry(), wireframeMaterial );
+			meshHelper.receiveShadow = true;
+
+			scene.add( meshHelper );
+
+			bvhHelper = new MeshBVHHelper( meshHelper, 10 );
+			scene.add( bvhHelper );
+
+			regenerateMesh();
+
 		} );
-
-		wireframeMaterial = new THREE.MeshBasicMaterial( {
-			wireframe: true,
-			transparent: true,
-			opacity: 0.05,
-			depthWrite: false,
-		} );
-		meshHelper = new THREE.Mesh( new THREE.BufferGeometry(), wireframeMaterial );
-		meshHelper.receiveShadow = true;
-
-		scene.add( meshHelper );
-
-		bvhHelper = new MeshBVHHelper( meshHelper, 10 );
-		scene.add( bvhHelper );
-
-		regenerateMesh();
-
-	} );
 
 
 	const plane = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.ShadowMaterial( { color: 0xffffff, opacity: 0.025, transparent: true } ) );

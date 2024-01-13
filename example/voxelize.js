@@ -79,51 +79,55 @@ function init() {
 	} );
 
 	// load the model
-	new GLTFLoader().setMeshoptDecoder( MeshoptDecoder ).load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/happy-buddha/buddha.glb', gltf => {
+	new GLTFLoader()
+		.setMeshoptDecoder( MeshoptDecoder )
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/happy-buddha/buddha.glb', gltf => {
 
-		const model = gltf.scene.children[ 0 ];
-		model.geometry.center();
-		model.material = wireframeMaterial;
-		model.scale.setScalar( 1.5 );
-		model.rotation.y = - Math.PI / 2;
+			const model = gltf.scene.children[ 0 ];
+			model.geometry.center();
+			model.material = wireframeMaterial;
+			model.scale.setScalar( 1.5 );
+			model.rotation.y = - Math.PI / 2;
 
-		const generator = new GenerateMeshBVHWorker();
-		generator.generate( model.geometry ).then( bvh => {
+			const generator = new GenerateMeshBVHWorker();
+			generator.generate( model.geometry ).then( bvh => {
 
-			scene.add( model );
-			models[ 'Buddha' ] = { model, bvh };
-			if ( params.model === 'Buddha' ) {
+				scene.add( model );
+				models[ 'Buddha' ] = { model, bvh };
+				if ( params.model === 'Buddha' ) {
 
-				needsUpdate = true;
+					needsUpdate = true;
 
-			}
+				}
 
-		} );
-
-	} );
-
-	new GLTFLoader().setMeshoptDecoder( MeshoptDecoder ).load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb', gltf => {
-
-		const model = gltf.scene.children[ 0 ];
-		model.geometry.center();
-		model.material = wireframeMaterial;
-		model.rotation.y = Math.PI / 2;
-		model.scale.setScalar( 0.65 );
-
-		const generator = new GenerateMeshBVHWorker();
-		generator.generate( model.geometry ).then( bvh => {
-
-			scene.add( model );
-			models[ 'Bunny' ] = { model, bvh };
-			if ( params.model === 'Bunny' ) {
-
-				needsUpdate = true;
-
-			}
+			} );
 
 		} );
 
-	} );
+	new GLTFLoader()
+		.setMeshoptDecoder( MeshoptDecoder )
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb', gltf => {
+
+			const model = gltf.scene.children[ 0 ];
+			model.geometry.center();
+			model.material = wireframeMaterial;
+			model.rotation.y = Math.PI / 2;
+			model.scale.setScalar( 0.65 );
+
+			const generator = new GenerateMeshBVHWorker();
+			generator.generate( model.geometry ).then( bvh => {
+
+				scene.add( model );
+				models[ 'Bunny' ] = { model, bvh };
+				if ( params.model === 'Bunny' ) {
+
+					needsUpdate = true;
+
+				}
+
+			} );
+
+		} );
 
 	{
 
