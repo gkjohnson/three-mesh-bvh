@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
@@ -205,10 +205,10 @@ function init() {
 
 		} );
 
-		const planeGeom = new THREE.PlaneBufferGeometry( 5, 5, 1, 1 );
+		const planeGeom = new THREE.PlaneGeometry( 5, 5, 1, 1 );
 		planeGeom.rotateX( - Math.PI / 2 );
 
-		const merged = mergeBufferGeometries( [ planeGeom, dragonMesh.geometry ], false );
+		const merged = mergeGeometries( [ planeGeom, dragonMesh.geometry ], false );
 		merged.translate( 0, - 0.5, 0 );
 
 		mesh = new THREE.Mesh( merged, new THREE.MeshStandardMaterial() );
@@ -224,7 +224,7 @@ function init() {
 	renderTarget = new THREE.WebGLRenderTarget( 1, 1, {
 
 		format: THREE.RGBAFormat,
-		type: THREE.FloatType,
+		type: renderer.extensions.get( 'OES_texture_float_linear' ) ? THREE.FloatType : THREE.HalfFloatType,
 
 	} );
 

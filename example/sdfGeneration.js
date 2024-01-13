@@ -204,7 +204,7 @@ function updateSDF() {
 		// create a new 3d render target texture
 		sdfTex = new THREE.WebGL3DRenderTarget( dim, dim, dim );
 		sdfTex.texture.format = THREE.RedFormat;
-		sdfTex.texture.type = THREE.FloatType;
+		sdfTex.texture.type = renderer.extensions.get( 'OES_texture_float_linear' ) ? THREE.FloatType : THREE.HalfFloatType;
 		sdfTex.texture.minFilter = THREE.LinearFilter;
 		sdfTex.texture.magFilter = THREE.LinearFilter;
 
