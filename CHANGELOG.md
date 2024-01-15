@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.7.0] - Unreleased
+## [0.7.0] - 2024-01-15
 ### Changed
 - `MeshBVHVisualizer` has been deprecated and renamed `MeshBVHHelper` to align with three.js' conventions.
 - `MeshBVHHelper` constructor now optionally takes a bvh.
-- Organization of shader GLSL snippets. They are now grouped into the `BVHSShaderGLSL` object.
+- Organization of shader GLSL snippets. They are now grouped into the `BVHSShaderGLSL` object. Backwards compatible snippets are provided but it's recommended to use the new location.
 
 ### Fixed
 - `MeshBVHHelper` will now display correctly regardless of parent in hierarchy.
