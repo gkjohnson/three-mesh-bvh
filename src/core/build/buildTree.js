@@ -30,13 +30,15 @@ function buildTree( bvh, options ) {
 	// Compute the full bounds of the geometry at the same time as triangle bounds because
 	// we'll need it for the root bounds in the case with no groups and it should be fast here.
 	// We can't use the geometry bounding box if it's available because it may be out of date.
+	const {
+		maxDepth,
+		verbose,
+		maxLeafTris,
+		strategy,
+		onProgress,
+	 } = options;
 	const geometry = bvh.geometry;
 	const indexArray = geometry.index ? geometry.index.array : null;
-	const maxDepth = options.maxDepth;
-	const verbose = options.verbose;
-	const maxLeafTris = options.maxLeafTris;
-	const strategy = options.strategy;
-	const onProgress = options.onProgress;
 	const totalTriangles = getTriCount( geometry );
 	const indirectBuffer = bvh._indirectBuffer;
 	let reachedMaxDepth = false;
