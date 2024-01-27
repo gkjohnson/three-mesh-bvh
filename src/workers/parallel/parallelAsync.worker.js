@@ -1,17 +1,15 @@
 import { MathUtils } from 'three';
-import { BYTES_PER_NODE } from '../../core/Constants';
+import { BYTES_PER_NODE } from '../../core/Constants.js';
 import { buildTree } from '../../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../../core/build/buildUtils.js';
-import { computeTriangleBounds } from '../../core/build/computeBoundsUtils';
-import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils';
+import { computeTriangleBounds } from '../../core/build/computeBoundsUtils.js';
+import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils.js';
 import { WorkerPool } from './WorkerPool.js';
 import { flattenNodes, getGeometry } from './utils.js';
 
 let isRunning = false;
 let prevTime = 0;
 const workerPool = new WorkerPool();
-
-// TODO: interleaved buffers do not work
 
 onmessage = async ( { data } ) => {
 
@@ -75,7 +73,8 @@ onmessage = async ( { data } ) => {
 							offset: node.offset,
 							count: node.count,
 							...data
-						}
+						},
+						onProgressCallback,
 					).then( data => {
 
 						const buffer = data.buffer;
@@ -101,8 +100,6 @@ onmessage = async ( { data } ) => {
 			populateBuffer( 0, root, buffer );
 
 		}
-
-		// TODO: handle progress
 
 		isRunning = false;
 

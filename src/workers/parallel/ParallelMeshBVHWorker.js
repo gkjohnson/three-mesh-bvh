@@ -1,6 +1,6 @@
 import { WorkerBase } from '../WorkerBase.js';
 
-const DEFAULT_THREADS = typeof navigator === 'undefined' ? navigator.hardwareConcurrency : 4;
+const DEFAULT_WORKER_COUNT = typeof navigator === 'undefined' ? navigator.hardwareConcurrency : 4;
 export class ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
@@ -9,11 +9,14 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 		super( worker );
 
 		this.name = ParallelMeshBVHWorker;
-		this.threads = Math.max( DEFAULT_THREADS, 4 );
+		this.workerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
 
 	}
 
+	generate() {
 
+		// TODO: interleaved buffers do not work
 
+	}
 
 }
