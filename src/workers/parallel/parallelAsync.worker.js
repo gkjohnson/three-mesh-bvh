@@ -1,13 +1,18 @@
-import { BufferAttribute, BufferGeometry } from 'three';
+import { MathUtils } from 'three';
 import { BYTES_PER_NODE } from '../../core/Constants';
 import { buildTree } from '../../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../../core/build/computeBoundsUtils';
 import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils';
+import { WorkerPool } from './WorkerPool.js';
+import { flattenNodes, getGeometry } from './utils.js';
 
 let isRunning = false;
 let prevTime = 0;
-const childWorkers = [];
+const workerPool = new WorkerPool();
+
+// TODO: interleaved buffers do not work
+
 onmessage = async ( { data } ) => {
 
 	if ( isRunning ) {
@@ -28,35 +33,24 @@ onmessage = async ( { data } ) => {
 			positionArray,
 			options,
 		} = data;
-		while ( childWorkers.length < maxWorkerCount ) {
 
-			childWorkers.push( new Worker( new URL( './parallelAsync.worker.js', import.meta.url ), { module: true } ) );
-
-		}
-
-		while ( childWorkers.length > maxWorkerCount ) {
-
-			childWorkers.pop().terminate();
-
-		}
-
-		// TODO: interleaved buffers do not work
-
+		// create a proxy bvh structure
 		const proxyBvh = {
 			_indirectBuffer: indirectBuffer,
 			geometry: getGeometry( indexArray, positionArray ),
 		};
 
-		// TODO: generate triangleBounds asynchronously
-		const geometry = getGeometry( indexArray, positionArray );
-		const triangleBounds = computeTriangleBounds( geometry );
-
 		const localOptions = {
 			...options,
-			maxDepth: Math.floor( Math.log2( maxWorkerCount ) ),
+			maxDepth: Math.round( Math.log2( workerPool.workerCount ) ),
 			onProgress: options.includedProgressCallback ? onProgressCallback : null,
 		};
 
+		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
+
+		// generate the ranges for all roots asynchronously
+		const geometry = getGeometry( indexArray, positionArray );
+		const triangleBounds = computeTriangleBounds( geometry );
 		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
 		for ( let i = 0, l = geometryRanges.length; i < l; i ++ ) {
 
@@ -66,21 +60,26 @@ onmessage = async ( { data } ) => {
 			const flatNodes = flattenNodes( root );
 			let bufferLengths = 0;
 			let remainingNodes = 0;
+			let nextWorker = 0;
 
-			for ( let i = 0, l = flatNodes.length; i < l; i ++ ) {
+			for ( let j = 0, l = flatNodes.length; j < l; j ++ ) {
 
-				const index = i;
-				const isLeaf = Boolean( flatNodes[ i ].count );
-
+				const node = flatNodes[ j ];
+				const isLeaf = Boolean( node.count );
 				if ( isLeaf ) {
 
-					const pr = new Promise( resolve => {
+					const pr = workerPool.runSubTask(
+						nextWorker ++,
+						{
+							operation: 'BUILD_SUBTREE',
+							offset: node.offset,
+							count: node.count,
+							...data
+						}
+					).then( data => {
 
-						// TODO: trigger worker and wait for result
-
-					} ).then( buffer => {
-
-						flatNodes[ index ] = buffer;
+						const buffer = data.buffer;
+						node.buffer = buffer;
 						bufferLengths += buffer.byteLength;
 
 					} );
@@ -99,14 +98,10 @@ onmessage = async ( { data } ) => {
 
 			const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 			const buffer = new BufferConstructor( bufferLengths + remainingNodes * BYTES_PER_NODE );
-
-			// TODO: expand all the data into the buffers
-			// TODO: adjust offset
+			populateBuffer( 0, root, buffer );
 
 		}
 
-		// TODO: generate bounds to the necessary depth
-		// TODO: trigger messages on the workers and await their completion
 		// TODO: handle progress
 
 		isRunning = false;
@@ -114,56 +109,33 @@ onmessage = async ( { data } ) => {
 	} else if ( operation === 'BUILD_BOUNDS' ) {
 
 
-	} else if ( operation === 'BUILD_TREE' ) {
+	} else if ( operation === 'BUILD_SUBTREE' ) {
 
 		const {
-			offset, length,
-			indirectBuffer, index, triangleBounds,
+			offset,
+			count,
+			indirectBuffer,
+			indexArray,
+			positionArray,
+			triangleBounds,
 			options,
 		} = data;
 
-		const resultBuffer = buildBuffer( offset, length, { indirectBuffer, index, triangleBounds }, options );
-		postMessage( { resultBuffer }, [ resultBuffer ] );
+		const proxyBvh = {
+			_indirectBuffer: indirectBuffer,
+			geometry: getGeometry( indexArray, positionArray ),
+		};
+
+		const root = buildTree( proxyBvh, triangleBounds, offset, count, options );
+		const nodeCount = countNodes( root );
+		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+		populateBuffer( 0, root, buffer );
+
+		postMessage( { type: 'result', buffer }, [ buffer ] );
 
 	}
 
 };
-
-function buildBuffer( offset, count, info, options ) {
-
-	const {
-		indirectBuffer,
-		indexArray,
-		positionArray,
-		triangleBounds,
-	} = info;
-
-	const proxyBvh = {
-		_indirectBuffer: indirectBuffer,
-		geometry: getGeometry( indexArray, positionArray ),
-	};
-
-	const root = buildTree( proxyBvh, triangleBounds, offset, count, options );
-	const nodeCount = countNodes( root );
-	const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
-	populateBuffer( 0, root, buffer );
-	return buildBuffer;
-
-}
-
-function getGeometry( index, position ) {
-
-	const geometry = new BufferGeometry();
-	if ( index ) {
-
-		geometry.index = new BufferAttribute( index, 1, false );
-
-	}
-
-	geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
-	return geometry;
-
-}
 
 function onProgressCallback( progress ) {
 
@@ -173,36 +145,12 @@ function onProgressCallback( progress ) {
 		postMessage( {
 
 			error: null,
-			serialized: null,
-			position: null,
 			progress,
+			type: 'progress'
 
 		} );
 		prevTime = currTime;
 
 	}
-
-}
-
-function flattenNodes( node ) {
-
-	const arr = [];
-	traverse( node );
-	return node;
-
-	function traverse( node ) {
-
-		arr.push( node );
-
-		const isLeaf = Boolean( node.count );
-		if ( ! isLeaf ) {
-
-			traverse( node.left );
-			traverse( node.right );
-
-		}
-
-	}
-
 
 }
