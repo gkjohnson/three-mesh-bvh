@@ -22,27 +22,25 @@ onmessage = async ( { data } ) => {
 		isRunning = true;
 
 		const {
-			workerCount,
+			maxWorkerCount,
 			indirectBuffer,
 			indexArray,
 			positionArray,
 			options,
 		} = data;
-		while ( childWorkers.length < workerCount ) {
+		while ( childWorkers.length < maxWorkerCount ) {
 
 			childWorkers.push( new Worker( new URL( './parallelAsync.worker.js', import.meta.url ), { module: true } ) );
 
 		}
 
-		while ( childWorkers.length > workerCount ) {
+		while ( childWorkers.length > maxWorkerCount ) {
 
 			childWorkers.pop().terminate();
 
 		}
 
-		// TODO: handle indirect case, not roots (implicity use indirect buffer for now)
 		// TODO: interleaved buffers do not work
-		// TODO: traverse to the the amount of threads needed - 1, 2, 4, 8, 16
 
 		const proxyBvh = {
 			_indirectBuffer: indirectBuffer,
@@ -55,15 +53,55 @@ onmessage = async ( { data } ) => {
 
 		const localOptions = {
 			...options,
-			maxDepth: Math.floor( Math.log2( workerCount ) ),
+			maxDepth: Math.floor( Math.log2( maxWorkerCount ) ),
 			onProgress: options.includedProgressCallback ? onProgressCallback : null,
 		};
 
 		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
 		for ( let i = 0, l = geometryRanges.length; i < l; i ++ ) {
 
+			const promises = [];
 			const range = geometryRanges[ i ];
 			const root = buildTree( proxyBvh, triangleBounds, range.offset, range.count, localOptions );
+			const flatNodes = flattenNodes( root );
+			let bufferLengths = 0;
+			let remainingNodes = 0;
+
+			for ( let i = 0, l = flatNodes.length; i < l; i ++ ) {
+
+				const index = i;
+				const isLeaf = Boolean( flatNodes[ i ].count );
+
+				if ( isLeaf ) {
+
+					const pr = new Promise( resolve => {
+
+						// TODO: trigger worker and wait for result
+
+					} ).then( buffer => {
+
+						flatNodes[ index ] = buffer;
+						bufferLengths += buffer.byteLength;
+
+					} );
+
+					promises.push( pr );
+
+				} else {
+
+					remainingNodes ++;
+
+				}
+
+			}
+
+			await Promise.all( promises );
+
+			const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
+			const buffer = new BufferConstructor( bufferLengths + remainingNodes * BYTES_PER_NODE );
+
+			// TODO: expand all the data into the buffers
+			// TODO: adjust offset
 
 		}
 
@@ -143,5 +181,28 @@ function onProgressCallback( progress ) {
 		prevTime = currTime;
 
 	}
+
+}
+
+function flattenNodes( node ) {
+
+	const arr = [];
+	traverse( node );
+	return node;
+
+	function traverse( node ) {
+
+		arr.push( node );
+
+		const isLeaf = Boolean( node.count );
+		if ( ! isLeaf ) {
+
+			traverse( node.left );
+			traverse( node.right );
+
+		}
+
+	}
+
 
 }
