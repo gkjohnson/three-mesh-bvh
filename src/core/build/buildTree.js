@@ -26,7 +26,7 @@ function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 }
 
-function buildTree( bvh, options ) {
+function buildTree( bvh, triangleBounds, offset, count, options ) {
 
 	// epxand variables
 	const {
@@ -45,22 +45,12 @@ function buildTree( bvh, options ) {
 	// generate intermediate variables
 	const totalTriangles = getTriCount( geometry );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geometry );
-	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
 	let reachedMaxDepth = false;
 
-	// compute
-	const roots = [];
-	for ( let range of ranges ) {
-
-		const root = new MeshBVHNode();
-		getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
-		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
-		roots.push( root );
-
-	}
-
-	return roots;
+	const root = new MeshBVHNode();
+	getBounds( triangleBounds, offset, count, root.boundingData, cacheCentroidBoundingData );
+	splitNode( root, offset, count, cacheCentroidBoundingData );
+	return root;
 
 	function triggerProgress( trianglesProcessed ) {
 
@@ -173,9 +163,12 @@ export function buildPackedTree( bvh, options ) {
 	}
 
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-	const roots = buildTree( bvh, options );
-	bvh._roots = roots.map( root => {
 
+	const triangleBounds = computeTriangleBounds( geometry );
+	const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+	bvh._roots = geometryRanges.map( range => {
+
+		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );
 		const nodeCount = countNodes( root );
 		const buffer = new BufferConstructor( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );
