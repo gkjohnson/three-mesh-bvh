@@ -20,7 +20,7 @@ onmessage = async ( { data } ) => {
 	}
 
 	const { operation } = data;
-	if ( operation === 'INIT' ) {
+	if ( operation === 'BUILD_BVH' ) {
 
 		isRunning = true;
 
@@ -43,7 +43,7 @@ onmessage = async ( { data } ) => {
 			onProgress: options.includedProgressCallback ? onProgressCallback : null,
 		};
 
-		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, options.useSharedArrayBuffer ) : null;
+		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
 
 		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
 
@@ -105,6 +105,7 @@ onmessage = async ( { data } ) => {
 
 		}
 
+		// TODO: transfer packed roots
 		postMessage( {
 			error: null,
 			serialized: {
@@ -114,12 +115,13 @@ onmessage = async ( { data } ) => {
 			},
 			position,
 			progress: 1,
-		} );
+		}, );
 
 		isRunning = false;
 
-	} else if ( operation === 'BUILD_BOUNDS' ) {
+	} else if ( operation === 'REFIT' ) {
 
+	} else if ( operation === 'BUILD_BOUNDS' ) {
 
 	} else if ( operation === 'BUILD_SUBTREE' ) {
 

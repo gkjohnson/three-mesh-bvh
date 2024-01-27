@@ -16,6 +16,15 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
+			if (
+				geometry.attribute.position.isInterleavedBufferAttribute ||
+				geometry.index && geometry.index.isInterleavedBufferAttribute
+			) {
+
+				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+
+			}
+
 			worker.onerror = e => {
 
 				reject( new Error( `GenerateMeshBVHWorker: ${ e.message }` ) );
@@ -74,13 +83,6 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 			const index = geometry.index ? geometry.index.array : null;
 			const position = geometry.attributes.position.array;
-
-			if ( position.isInterleavedBufferAttribute || index && index.isInterleavedBufferAttribute ) {
-
-				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
-
-			}
-
 			const transferable = [ position ];
 			if ( index ) {
 

@@ -1,6 +1,7 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from '../WorkerBase.js';
+import { convertToBufferType, isSharedArrayBufferSupported } from '../../utils/BufferUtils.js';
 
 const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
 export class ParallelMeshBVHWorker extends WorkerBase {
@@ -13,12 +14,22 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 		this.name = ParallelMeshBVHWorker;
 		this.workerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
 
-	}
+		if ( ! isSharedArrayBufferSupported ) throw new Error(); // TODO
 
+	}
 
 	runTask( worker, geometry, options = {} ) {
 
 		return new Promise( ( resolve, reject ) => {
+
+			if (
+				geometry.attribute.position.isInterleavedBufferAttribute ||
+				geometry.index && geometry.index.isInterleavedBufferAttribute
+			) {
+
+				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+
+			}
 
 			worker.onerror = e => {
 
@@ -77,25 +88,11 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 
 			const index = geometry.index ? geometry.index.array : null;
 			const position = geometry.attributes.position.array;
-
-			if ( position.isInterleavedBufferAttribute || index && index.isInterleavedBufferAttribute ) {
-
-				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
-
-			}
-
-			const transferable = [ position ];
-			if ( index ) {
-
-				transferable.push( index );
-
-			}
-
 			worker.postMessage( {
 
-				operation: 'INIT',
-				index,
-				position,
+				operation: 'BUILD_BVH',
+				index: convertToBufferType( index, SharedArrayBuffer ),
+				position: convertToBufferType( position, SharedArrayBuffer ),
 				options: {
 					...options,
 					onProgress: null,
@@ -103,7 +100,7 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 					groups: [ ... geometry.groups ],
 				},
 
-			}, transferable.map( arr => arr.buffer ).filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) ) );
+			} );
 
 		} );
 
