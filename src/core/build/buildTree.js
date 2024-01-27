@@ -1,5 +1,5 @@
 import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps, } from './geometryUtils.js';
-import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
+import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
