@@ -55,8 +55,7 @@ function buildTree( bvh, options ) {
 
 		const range = ranges[ 0 ];
 		const root = new MeshBVHNode();
-		root.boundingData = fullBounds;
-		getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
+		getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
 
 		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
 		roots.push( root );

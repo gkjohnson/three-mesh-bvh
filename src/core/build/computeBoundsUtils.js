@@ -116,10 +116,7 @@ export function getCentroidBounds( triangleBounds, offset, count, centroidTarget
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo, fullBounds ) {
-
-	// clear the bounds to empty
-	makeEmptyBounds( fullBounds );
+export function computeTriangleBounds( geo ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
@@ -202,9 +199,6 @@ export function computeTriangleBounds( geo, fullBounds ) {
 			const el2 = el * 2;
 			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
 			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
-
-			if ( min < fullBounds[ el ] ) fullBounds[ el ] = min;
-			if ( max > fullBounds[ el + 3 ] ) fullBounds[ el + 3 ] = max;
 
 		}
 
