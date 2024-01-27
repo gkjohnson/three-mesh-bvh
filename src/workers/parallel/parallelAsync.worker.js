@@ -19,8 +19,8 @@ onmessage = ( { data } ) => {
 
 		}
 
-		// TODO: handle indirect case, multiple roots
-
+		// TODO: handle indirect case, not roots (implicity use indirect buffer for now)
+		// TODO: traverse to the the amount of threads needed - 1, 2, 4, 8, 16
 
 	} else if ( operation === 'BUILD_BOUNDS' ) {
 
@@ -30,16 +30,23 @@ onmessage = ( { data } ) => {
 		const {
 			offset, length,
 			indirectBuffer, index, bounds,
+			options,
 		} = data;
 
-		const resultBuffer = buildBuffer( offset, length, { indirectBuffer, index, bounds } );
+		// TODO: build a packed buffer and pass it back to the main thread
+		const resultBuffer = buildBuffer( offset, length, { indirectBuffer, index, bounds }, options );
 
 		postMessage( {
 			resultBuffer,
-		} );
+		}, [ resultBuffer.buffer ] );
 
 	}
 
 };
 
+function buildBuffer( offset, length, info, options ) {
+
+	const { indirectBuffer, index, bounds } = info;
+
+}
 
