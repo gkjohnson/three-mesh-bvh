@@ -1,57 +1,29 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
+import { WorkerBase } from './WorkerBase.js';
 
-export class GenerateMeshBVHWorker {
+export class GenerateMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		this.running = false;
-		this.worker = new Worker( new URL( './generateAsync.worker.js', import.meta.url ), { type: 'module' } );
-		this.worker.onerror = e => {
-
-			if ( e.message ) {
-
-				throw new Error( `GenerateMeshBVHWorker: Could not create Web Worker with error "${ e.message }"` );
-
-			} else {
-
-				throw new Error( 'GenerateMeshBVHWorker: Could not create Web Worker.' );
-
-			}
-
-		};
+		const worker = new Worker( new URL( './generateAsync.worker.js', import.meta.url ), { type: 'module' } );
+		super( worker );
+		this.name = 'GenerateMeshBVHWorker';
 
 	}
 
-	generate( geometry, options = {} ) {
-
-		if ( this.running ) {
-
-			throw new Error( 'GenerateMeshBVHWorker: Already running job.' );
-
-		}
-
-		if ( this.worker === null ) {
-
-			throw new Error( 'GenerateMeshBVHWorker: Worker has been disposed.' );
-
-		}
-
-		const { worker } = this;
-		this.running = true;
+	runTask( worker, geometry, options = {} ) {
 
 		return new Promise( ( resolve, reject ) => {
 
 			worker.onerror = e => {
 
 				reject( new Error( `GenerateMeshBVHWorker: ${ e.message }` ) );
-				this.running = false;
 
 			};
 
 			worker.onmessage = e => {
 
-				this.running = false;
 				const { data } = e;
 
 				if ( data.error ) {
@@ -130,13 +102,6 @@ export class GenerateMeshBVHWorker {
 			}, transferable.map( arr => arr.buffer ).filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) ) );
 
 		} );
-
-	}
-
-	dispose() {
-
-		this.worker.terminate();
-		this.worker = null;
 
 	}
 
