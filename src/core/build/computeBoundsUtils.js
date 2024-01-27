@@ -1,10 +1,10 @@
 import { FLOAT32_EPSILON } from '../Constants.js';
 import { getTriCount } from './geometryUtils.js';
 
-// computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
-// centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
+// computes the union of the bounds of all of the given triangles and puts the resulting box in "target".
+// A bounding box is computed for the centroids of the triangles, as well, and placed in "centroidTarget".
 // These are computed together to avoid redundant accesses to bounds array.
-export function getBounds( triangleBounds, offset, count, target, centroidTarget = null ) {
+export function getBounds( triangleBounds, offset, count, target, centroidTarget ) {
 
 	let minx = Infinity;
 	let miny = Infinity;
@@ -20,7 +20,6 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 	let cmaxy = - Infinity;
 	let cmaxz = - Infinity;
 
-	const includeCentroid = centroidTarget !== null;
 	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
 		const cx = triangleBounds[ i + 0 ];
@@ -29,8 +28,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 		const rx = cx + hx;
 		if ( lx < minx ) minx = lx;
 		if ( rx > maxx ) maxx = rx;
-		if ( includeCentroid && cx < cminx ) cminx = cx;
-		if ( includeCentroid && cx > cmaxx ) cmaxx = cx;
+		if ( cx < cminx ) cminx = cx;
+		if ( cx > cmaxx ) cmaxx = cx;
 
 		const cy = triangleBounds[ i + 2 ];
 		const hy = triangleBounds[ i + 3 ];
@@ -38,8 +37,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 		const ry = cy + hy;
 		if ( ly < miny ) miny = ly;
 		if ( ry > maxy ) maxy = ry;
-		if ( includeCentroid && cy < cminy ) cminy = cy;
-		if ( includeCentroid && cy > cmaxy ) cmaxy = cy;
+		if ( cy < cminy ) cminy = cy;
+		if ( cy > cmaxy ) cmaxy = cy;
 
 		const cz = triangleBounds[ i + 4 ];
 		const hz = triangleBounds[ i + 5 ];
@@ -47,8 +46,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 		const rz = cz + hz;
 		if ( lz < minz ) minz = lz;
 		if ( rz > maxz ) maxz = rz;
-		if ( includeCentroid && cz < cminz ) cminz = cz;
-		if ( includeCentroid && cz > cmaxz ) cmaxz = cz;
+		if ( cz < cminz ) cminz = cz;
+		if ( cz > cmaxz ) cmaxz = cz;
 
 	}
 
@@ -60,17 +59,13 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 	target[ 4 ] = maxy;
 	target[ 5 ] = maxz;
 
-	if ( includeCentroid ) {
+	centroidTarget[ 0 ] = cminx;
+	centroidTarget[ 1 ] = cminy;
+	centroidTarget[ 2 ] = cminz;
 
-		centroidTarget[ 0 ] = cminx;
-		centroidTarget[ 1 ] = cminy;
-		centroidTarget[ 2 ] = cminz;
-
-		centroidTarget[ 3 ] = cmaxx;
-		centroidTarget[ 4 ] = cmaxy;
-		centroidTarget[ 5 ] = cmaxz;
-
-	}
+	centroidTarget[ 3 ] = cmaxx;
+	centroidTarget[ 4 ] = cmaxy;
+	centroidTarget[ 5 ] = cmaxz;
 
 }
 
