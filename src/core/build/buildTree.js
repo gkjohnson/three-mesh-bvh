@@ -43,9 +43,8 @@ function buildTree( bvh, options ) {
 	const totalTriangles = getTriCount( geometry );
 	let reachedMaxDepth = false;
 
-	const fullBounds = new Float32Array( 6 );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
+	const triangleBounds = computeTriangleBounds( geometry );
 	const partionFunc = options.indirect ? partition_indirect : partition;
 
 	const roots = [];
