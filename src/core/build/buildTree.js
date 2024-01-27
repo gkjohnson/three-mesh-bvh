@@ -1,5 +1,5 @@
 import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps, } from './geometryUtils.js';
-import { getBounds, getCentroidBounds, computeTriangleBounds } from './computeBoundsUtils.js';
+import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
@@ -36,43 +36,27 @@ function buildTree( bvh, options ) {
 		maxLeafTris,
 		strategy,
 		onProgress,
-	 } = options;
+	} = options;
+	const indirectBuffer = bvh._indirectBuffer;
 	const geometry = bvh.geometry;
 	const indexArray = geometry.index ? geometry.index.array : null;
 	const totalTriangles = getTriCount( geometry );
-	const indirectBuffer = bvh._indirectBuffer;
 	let reachedMaxDepth = false;
 
-	const fullBounds = new Float32Array( 6 );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geometry, fullBounds );
+	const triangleBounds = computeTriangleBounds( geometry );
 	const partionFunc = options.indirect ? partition_indirect : partition;
 
 	const roots = [];
 	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+	for ( let range of ranges ) {
 
-	if ( ranges.length === 1 ) {
-
-		const range = ranges[ 0 ];
 		const root = new MeshBVHNode();
-		root.boundingData = fullBounds;
-		getCentroidBounds( triangleBounds, range.offset, range.count, cacheCentroidBoundingData );
+		root.boundingData = new Float32Array( 6 );
+		getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
 
 		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
 		roots.push( root );
-
-	} else {
-
-		for ( let range of ranges ) {
-
-			const root = new MeshBVHNode();
-			root.boundingData = new Float32Array( 6 );
-			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
-
-			splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
-			roots.push( root );
-
-		}
 
 	}
 
