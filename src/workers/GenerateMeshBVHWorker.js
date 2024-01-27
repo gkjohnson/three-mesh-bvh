@@ -17,7 +17,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 		return new Promise( ( resolve, reject ) => {
 
 			if (
-				geometry.attribute.position.isInterleavedBufferAttribute ||
+				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
 				geometry.index && geometry.index.isInterleavedBufferAttribute
 			) {
 
