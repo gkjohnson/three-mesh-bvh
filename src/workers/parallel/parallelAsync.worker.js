@@ -1,6 +1,6 @@
 import { MathUtils } from 'three';
 import { BYTES_PER_NODE } from '../../core/Constants.js';
-import { buildTree } from '../../core/build/buildTree.js';
+import { buildTree, generateIndirectBuffer } from '../../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../../core/build/computeBoundsUtils.js';
 import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils.js';
@@ -26,16 +26,15 @@ onmessage = async ( { data } ) => {
 
 		const {
 			maxWorkerCount,
-			indirectBuffer,
-			indexArray,
-			positionArray,
+			index,
+			position,
 			options,
 		} = data;
 
 		// create a proxy bvh structure
 		const proxyBvh = {
 			_indirectBuffer: indirectBuffer,
-			geometry: getGeometry( indexArray, positionArray ),
+			geometry: getGeometry( index, position ),
 		};
 
 		const localOptions = {
@@ -44,12 +43,15 @@ onmessage = async ( { data } ) => {
 			onProgress: options.includedProgressCallback ? onProgressCallback : null,
 		};
 
+		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, options.useSharedArrayBuffer ) : null;
+
 		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
 
 		// generate the ranges for all roots asynchronously
-		const geometry = getGeometry( indexArray, positionArray );
+		const geometry = getGeometry( index, position );
 		const triangleBounds = computeTriangleBounds( geometry );
 		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+		const packedRoots = [];
 		for ( let i = 0, l = geometryRanges.length; i < l; i ++ ) {
 
 			const promises = [];
@@ -99,7 +101,20 @@ onmessage = async ( { data } ) => {
 			const buffer = new BufferConstructor( bufferLengths + remainingNodes * BYTES_PER_NODE );
 			populateBuffer( 0, root, buffer );
 
+			packedRoots.push( buffer );
+
 		}
+
+		postMessage( {
+			error: null,
+			serialized: {
+				roots: packedRoots,
+				index: index,
+				indirectBuffer: indirectBuffer,
+			},
+			position,
+			progress: 1,
+		} );
 
 		isRunning = false;
 
@@ -112,15 +127,15 @@ onmessage = async ( { data } ) => {
 			offset,
 			count,
 			indirectBuffer,
-			indexArray,
-			positionArray,
+			index,
+			position,
 			triangleBounds,
 			options,
 		} = data;
 
 		const proxyBvh = {
 			_indirectBuffer: indirectBuffer,
-			geometry: getGeometry( indexArray, positionArray ),
+			geometry: getGeometry( index, position ),
 		};
 
 		const root = buildTree( proxyBvh, triangleBounds, offset, count, options );

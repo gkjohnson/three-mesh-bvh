@@ -8,7 +8,7 @@ import { partition } from './sortUtils.generated.js';
 import { partition_indirect } from './sortUtils_indirect.generated.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
-function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
+export function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
