@@ -37,7 +37,14 @@ describe( 'Bounds Tree', () => {
 		const box = new Box3();
 		bvh.getBoundingBox( box );
 
-		expect( box ).toEqual( geom.boundingBox );
+		// the bvh bounds are expanded slightly to accommodate flighting point error differences
+		expect( box.min.x ).toBeCloseTo( geom.boundingBox.min.x );
+		expect( box.min.y ).toBeCloseTo( geom.boundingBox.min.y );
+		expect( box.min.z ).toBeCloseTo( geom.boundingBox.min.z );
+
+		expect( box.max.x ).toBeCloseTo( geom.boundingBox.max.x );
+		expect( box.max.y ).toBeCloseTo( geom.boundingBox.max.y );
+		expect( box.max.z ).toBeCloseTo( geom.boundingBox.max.z );
 
 	} );
 

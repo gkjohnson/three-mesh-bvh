@@ -1,11 +1,10 @@
 import { FLOAT32_EPSILON } from '../Constants.js';
-import { makeEmptyBounds } from '../../utils/ArrayBoxUtilities.js';
 import { getTriCount } from './geometryUtils.js';
 
-// computes the union of the bounds of all of the given triangles and puts the resulting box in target. If
-// centroidTarget is provided then a bounding box is computed for the centroids of the triangles, as well.
+// computes the union of the bounds of all of the given triangles and puts the resulting box in "target".
+// A bounding box is computed for the centroids of the triangles, as well, and placed in "centroidTarget".
 // These are computed together to avoid redundant accesses to bounds array.
-export function getBounds( triangleBounds, offset, count, target, centroidTarget = null ) {
+export function getBounds( triangleBounds, offset, count, target, centroidTarget ) {
 
 	let minx = Infinity;
 	let miny = Infinity;
@@ -21,7 +20,6 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 	let cmaxy = - Infinity;
 	let cmaxz = - Infinity;
 
-	const includeCentroid = centroidTarget !== null;
 	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
 
 		const cx = triangleBounds[ i + 0 ];
@@ -30,8 +28,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 		const rx = cx + hx;
 		if ( lx < minx ) minx = lx;
 		if ( rx > maxx ) maxx = rx;
-		if ( includeCentroid && cx < cminx ) cminx = cx;
-		if ( includeCentroid && cx > cmaxx ) cmaxx = cx;
+		if ( cx < cminx ) cminx = cx;
+		if ( cx > cmaxx ) cmaxx = cx;
 
 		const cy = triangleBounds[ i + 2 ];
 		const hy = triangleBounds[ i + 3 ];
@@ -39,8 +37,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 		const ry = cy + hy;
 		if ( ly < miny ) miny = ly;
 		if ( ry > maxy ) maxy = ry;
-		if ( includeCentroid && cy < cminy ) cminy = cy;
-		if ( includeCentroid && cy > cmaxy ) cmaxy = cy;
+		if ( cy < cminy ) cminy = cy;
+		if ( cy > cmaxy ) cmaxy = cy;
 
 		const cz = triangleBounds[ i + 4 ];
 		const hz = triangleBounds[ i + 5 ];
@@ -48,8 +46,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 		const rz = cz + hz;
 		if ( lz < minz ) minz = lz;
 		if ( rz > maxz ) maxz = rz;
-		if ( includeCentroid && cz < cminz ) cminz = cz;
-		if ( includeCentroid && cz > cmaxz ) cmaxz = cz;
+		if ( cz < cminz ) cminz = cz;
+		if ( cz > cmaxz ) cmaxz = cz;
 
 	}
 
@@ -61,46 +59,6 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 	target[ 4 ] = maxy;
 	target[ 5 ] = maxz;
 
-	if ( includeCentroid ) {
-
-		centroidTarget[ 0 ] = cminx;
-		centroidTarget[ 1 ] = cminy;
-		centroidTarget[ 2 ] = cminz;
-
-		centroidTarget[ 3 ] = cmaxx;
-		centroidTarget[ 4 ] = cmaxy;
-		centroidTarget[ 5 ] = cmaxz;
-
-	}
-
-}
-
-// A stand alone function for retrieving the centroid bounds.
-export function getCentroidBounds( triangleBounds, offset, count, centroidTarget ) {
-
-	let cminx = Infinity;
-	let cminy = Infinity;
-	let cminz = Infinity;
-	let cmaxx = - Infinity;
-	let cmaxy = - Infinity;
-	let cmaxz = - Infinity;
-
-	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
-
-		const cx = triangleBounds[ i + 0 ];
-		if ( cx < cminx ) cminx = cx;
-		if ( cx > cmaxx ) cmaxx = cx;
-
-		const cy = triangleBounds[ i + 2 ];
-		if ( cy < cminy ) cminy = cy;
-		if ( cy > cmaxy ) cmaxy = cy;
-
-		const cz = triangleBounds[ i + 4 ];
-		if ( cz < cminz ) cminz = cz;
-		if ( cz > cmaxz ) cmaxz = cz;
-
-	}
-
 	centroidTarget[ 0 ] = cminx;
 	centroidTarget[ 1 ] = cminy;
 	centroidTarget[ 2 ] = cminz;
@@ -111,15 +69,11 @@ export function getCentroidBounds( triangleBounds, offset, count, centroidTarget
 
 }
 
-
 // precomputes the bounding box for each triangle; required for quickly calculating tree splits.
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo, fullBounds ) {
-
-	// clear the bounds to empty
-	makeEmptyBounds( fullBounds );
+export function computeTriangleBounds( geo ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
@@ -202,9 +156,6 @@ export function computeTriangleBounds( geo, fullBounds ) {
 			const el2 = el * 2;
 			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
 			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
-
-			if ( min < fullBounds[ el ] ) fullBounds[ el ] = min;
-			if ( max > fullBounds[ el + 3 ] ) fullBounds[ el + 3 ] = max;
 
 		}
 
