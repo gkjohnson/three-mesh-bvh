@@ -37,10 +37,10 @@ function buildTree( bvh, options ) {
 		strategy,
 		onProgress,
 	} = options;
+	const indirectBuffer = bvh._indirectBuffer;
 	const geometry = bvh.geometry;
 	const indexArray = geometry.index ? geometry.index.array : null;
 	const totalTriangles = getTriCount( geometry );
-	const indirectBuffer = bvh._indirectBuffer;
 	let reachedMaxDepth = false;
 
 	const fullBounds = new Float32Array( 6 );
@@ -50,28 +50,14 @@ function buildTree( bvh, options ) {
 
 	const roots = [];
 	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+	for ( let range of ranges ) {
 
-	if ( ranges.length === 1 ) {
-
-		const range = ranges[ 0 ];
 		const root = new MeshBVHNode();
+		root.boundingData = new Float32Array( 6 );
 		getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
 
 		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
 		roots.push( root );
-
-	} else {
-
-		for ( let range of ranges ) {
-
-			const root = new MeshBVHNode();
-			root.boundingData = new Float32Array( 6 );
-			getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
-
-			splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
-			roots.push( root );
-
-		}
 
 	}
 
