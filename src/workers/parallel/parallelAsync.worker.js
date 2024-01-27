@@ -1,26 +1,77 @@
+import { BufferAttribute, BufferGeometry } from 'three';
+import { BYTES_PER_NODE } from '../../core/Constants';
+import { buildTree } from '../../core/build/buildTree.js';
+import { countNodes, populateBuffer } from '../../core/build/buildUtils.js';
+import { computeTriangleBounds } from '../../core/build/computeBoundsUtils';
+import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils';
 
+let isRunning = false;
+let prevTime = 0;
 const childWorkers = [];
-onmessage = ( { data } ) => {
+onmessage = async ( { data } ) => {
+
+	if ( isRunning ) {
+
+		throw new Error();
+
+	}
 
 	const { operation } = data;
-
 	if ( operation === 'INIT' ) {
 
-		const { count } = data;
-		while ( childWorkers.length > count ) {
+		isRunning = true;
 
-			childWorkers.pop().terminate();
-
-		}
-
-		while ( childWorkers.length < count ) {
+		const {
+			workerCount,
+			indirectBuffer,
+			indexArray,
+			positionArray,
+			options,
+		} = data;
+		while ( childWorkers.length < workerCount ) {
 
 			childWorkers.push( new Worker( new URL( './parallelAsync.worker.js', import.meta.url ), { module: true } ) );
 
 		}
 
+		while ( childWorkers.length > workerCount ) {
+
+			childWorkers.pop().terminate();
+
+		}
+
 		// TODO: handle indirect case, not roots (implicity use indirect buffer for now)
+		// TODO: interleaved buffers do not work
 		// TODO: traverse to the the amount of threads needed - 1, 2, 4, 8, 16
+
+		const proxyBvh = {
+			_indirectBuffer: indirectBuffer,
+			geometry: getGeometry( indexArray, positionArray ),
+		};
+
+		// TODO: generate triangleBounds asynchronously
+		const geometry = getGeometry( indexArray, positionArray );
+		const triangleBounds = computeTriangleBounds( geometry );
+
+		const localOptions = {
+			...options,
+			maxDepth: Math.floor( Math.log2( workerCount ) ),
+			onProgress: options.includedProgressCallback ? onProgressCallback : null,
+		};
+
+		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+		for ( let i = 0, l = geometryRanges.length; i < l; i ++ ) {
+
+			const range = geometryRanges[ i ];
+			const root = buildTree( proxyBvh, triangleBounds, range.offset, range.count, localOptions );
+
+		}
+
+		// TODO: generate bounds to the necessary depth
+		// TODO: trigger messages on the workers and await their completion
+		// TODO: handle progress
+
+		isRunning = false;
 
 	} else if ( operation === 'BUILD_BOUNDS' ) {
 
@@ -29,24 +80,68 @@ onmessage = ( { data } ) => {
 
 		const {
 			offset, length,
-			indirectBuffer, index, bounds,
+			indirectBuffer, index, triangleBounds,
 			options,
 		} = data;
 
-		// TODO: build a packed buffer and pass it back to the main thread
-		const resultBuffer = buildBuffer( offset, length, { indirectBuffer, index, bounds }, options );
-
-		postMessage( {
-			resultBuffer,
-		}, [ resultBuffer.buffer ] );
+		const resultBuffer = buildBuffer( offset, length, { indirectBuffer, index, triangleBounds }, options );
+		postMessage( { resultBuffer }, [ resultBuffer ] );
 
 	}
 
 };
 
-function buildBuffer( offset, length, info, options ) {
+function buildBuffer( offset, count, info, options ) {
 
-	const { indirectBuffer, index, bounds } = info;
+	const {
+		indirectBuffer,
+		indexArray,
+		positionArray,
+		triangleBounds,
+	} = info;
+
+	const proxyBvh = {
+		_indirectBuffer: indirectBuffer,
+		geometry: getGeometry( indexArray, positionArray ),
+	};
+
+	const root = buildTree( proxyBvh, triangleBounds, offset, count, options );
+	const nodeCount = countNodes( root );
+	const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
+	populateBuffer( 0, root, buffer );
+	return buildBuffer;
 
 }
 
+function getGeometry( index, position ) {
+
+	const geometry = new BufferGeometry();
+	if ( index ) {
+
+		geometry.index = new BufferAttribute( index, 1, false );
+
+	}
+
+	geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
+	return geometry;
+
+}
+
+function onProgressCallback( progress ) {
+
+	const currTime = performance.now();
+	if ( currTime - prevTime >= 10 || progress === 1.0 ) {
+
+		postMessage( {
+
+			error: null,
+			serialized: null,
+			position: null,
+			progress,
+
+		} );
+		prevTime = currTime;
+
+	}
+
+}

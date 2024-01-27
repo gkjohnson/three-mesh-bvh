@@ -26,7 +26,7 @@ function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 }
 
-function buildTree( bvh, triangleBounds, offset, count, options ) {
+export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
 	// epxand variables
 	const {
