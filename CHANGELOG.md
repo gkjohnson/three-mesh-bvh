@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.7.1] - Unreleased
 ### Fixed
 - Minor case where outside bounds did not have floating point epsilon accounted for which could have resulted in missed intersections at the very edge of the bounds.
+- The `MeshBVHHelper( mesh, depth )` constructor not working as expected
 
 ## [0.7.0] - 2024-01-15
 ### Changed
