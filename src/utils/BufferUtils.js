@@ -6,7 +6,11 @@ export function isSharedArrayBufferSupported() {
 
 export function convertToBufferType( array, BufferConstructor ) {
 
-	if ( array.buffer ) {
+	if ( array === null ) {
+
+		return array;
+
+	} else if ( array.buffer ) {
 
 		const buffer = array.buffer;
 		if ( buffer.constructor === BufferConstructor ) {
