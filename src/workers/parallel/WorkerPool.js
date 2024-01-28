@@ -52,11 +52,13 @@ export class WorkerPool {
 
 			worker.onmessage = e => {
 
-				if ( e.type === 'progress' ) {
+				if ( e.data.type === 'progress' ) {
 
-					onProgress( e.progress );
+					onProgress( e.data.progress );
 
 				} else {
+
+					onProgress( 1 );
 
 					worker.isRunning = false;
 					resolve( e.data );
