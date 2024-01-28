@@ -30,7 +30,6 @@ export const DEFAULT_OPTIONS = {
 	strategy: CENTER,
 	maxDepth: 40,
 	maxLeafTris: 10,
-	verbose: true,
 	useSharedArrayBuffer: false,
 	setBoundingBox: true,
 	onProgress: null,

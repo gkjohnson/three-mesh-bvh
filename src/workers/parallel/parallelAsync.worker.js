@@ -183,7 +183,7 @@ onmessage = async ( { data } ) => {
 
 		postMessage( { type: 'result', buffer }, [ buffer ] );
 
-	} else if ( operation = 'REFIT_SUBTREE' ) {
+	} else if ( operation === 'REFIT_SUBTREE' ) {
 
 	}
 
