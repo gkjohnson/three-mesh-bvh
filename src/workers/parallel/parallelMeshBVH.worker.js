@@ -154,10 +154,6 @@ onmessage = async ( { data } ) => {
 
 		isRunning = false;
 
-	} else if ( operation === 'REFIT' ) {
-
-	} else if ( operation === 'BUILD_BOUNDS' ) {
-
 	} else if ( operation === 'BUILD_SUBTREE' ) {
 
 		const {
@@ -187,7 +183,17 @@ onmessage = async ( { data } ) => {
 		populateBuffer( 0, root, buffer );
 		postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
 
+	} else if ( operation === 'BUILD_TRIANGLE_BOUNDS' ) {
+
+		// TODO
+
+	} else if ( operation === 'REFIT' ) {
+
+		// TODO
+
 	} else if ( operation === 'REFIT_SUBTREE' ) {
+
+		// TODO
 
 	}
 
