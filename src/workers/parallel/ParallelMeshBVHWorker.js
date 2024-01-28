@@ -14,7 +14,11 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 		this.name = ParallelMeshBVHWorker;
 		this.workerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
 
-		if ( ! isSharedArrayBufferSupported ) throw new Error(); // TODO
+		if ( ! isSharedArrayBufferSupported() ) {
+
+			throw new Error( 'ParallelMeshBVHWorker: Shared Array Buffers are not supported.' );
+
+		}
 
 	}
 
