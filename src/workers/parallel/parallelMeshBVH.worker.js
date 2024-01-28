@@ -7,8 +7,7 @@ import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geome
 import { WorkerPool } from './WorkerPool.js';
 import { flattenNodes, getGeometry } from './utils.js';
 import { DEFAULT_OPTIONS } from '../../core/MeshBVH.js';
-
-globalThis.SharedArrayBuffer = ArrayBuffer;
+import { convertToBufferType } from '../../utils/BufferUtils.js';
 
 let isRunning = false;
 let prevTime = 0;
@@ -40,7 +39,7 @@ onmessage = async ( { data } ) => {
 		// generate necessary buffers and objects
 		const geometry = getGeometry( index, position );
 		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
-		const triangleBounds = computeTriangleBounds( geometry );
+		const triangleBounds = convertToBufferType( computeTriangleBounds( geometry ), SharedArrayBuffer );
 		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
 
 		// create a proxy bvh structure
@@ -48,7 +47,6 @@ onmessage = async ( { data } ) => {
 			_indirectBuffer: indirectBuffer,
 			geometry: geometry,
 		};
-
 
 		let totalProgress = 0;
 
