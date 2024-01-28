@@ -6,6 +6,7 @@ import { computeTriangleBounds } from '../../core/build/computeBoundsUtils.js';
 import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils.js';
 import { WorkerPool } from './WorkerPool.js';
 import { flattenNodes, getGeometry } from './utils.js';
+import { CENTER } from '../../core/Constants.js';
 
 let isRunning = false;
 let prevTime = 0;

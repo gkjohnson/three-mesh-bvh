@@ -52,13 +52,12 @@ function _populateBuffer( byteOffset, node ) {
 			const buffer = node.buffer;
 			uint8Array.set( new Uint8Array( buffer ), byteOffset );
 
-			for ( let offset = 0, l = buffer.byteLength; offset < l; offset += BYTES_PER_NODE ) {
+			for ( let offset = byteOffset, l = byteOffset + buffer.byteLength; offset < l; offset += BYTES_PER_NODE ) {
 
 				const offset2 = offset / 2;
 				if ( ! IS_LEAF( offset2, uint16Array ) ) {
 
-					const offset4 = offset / 4;
-					uint32Array[ offset4 + 6 ] += byteOffset / 4;
+					uint32Array[ ( offset / 4 ) + 6 ] += byteOffset / 4;
 
 
 				}
