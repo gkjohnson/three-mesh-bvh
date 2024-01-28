@@ -3,7 +3,7 @@ import { BYTES_PER_NODE } from '../../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../../core/build/computeBoundsUtils.js';
-import { getFullGeometryRange, getRootIndexRanges } from '../../core/build/geometryUtils.js';
+import { getFullGeometryRange, getRootIndexRanges, getTriCount } from '../../core/build/geometryUtils.js';
 import { WorkerPool } from './WorkerPool.js';
 import { flattenNodes, getGeometry } from './utils.js';
 import { DEFAULT_OPTIONS } from '../../core/MeshBVH.js';
@@ -38,9 +38,11 @@ onmessage = async ( { data } ) => {
 
 		// generate necessary buffers and objects
 		const geometry = getGeometry( index, position );
-		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
-		const triangleBounds = convertToBufferType( computeTriangleBounds( geometry ), SharedArrayBuffer );
 		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
+		const triCount = getTriCount( geometry );
+		const triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );
+		computeTriangleBounds( geometry, triangleBounds );
 
 		// create a proxy bvh structure
 		const proxyBvh = {
