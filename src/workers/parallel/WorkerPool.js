@@ -43,7 +43,13 @@ export class WorkerPool {
 
 			worker.isRunning = true;
 			worker.postMessage( msg );
-			worker.onerror = e => reject( e );
+			worker.onerror = e => {
+
+				worker.isRunning = false;
+				reject( e );
+
+			};
+
 			worker.onmessage = e => {
 
 				if ( e.type === 'progress' ) {
@@ -52,6 +58,7 @@ export class WorkerPool {
 
 				} else {
 
+					worker.isRunning = false;
 					resolve( e.data );
 
 				}
