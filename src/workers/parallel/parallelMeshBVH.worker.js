@@ -8,6 +8,8 @@ import { WorkerPool } from './WorkerPool.js';
 import { flattenNodes, getGeometry } from './utils.js';
 import { DEFAULT_OPTIONS } from '../../core/MeshBVH.js';
 
+globalThis.SharedArrayBuffer = ArrayBuffer;
+
 let isRunning = false;
 let prevTime = 0;
 const workerPool = new WorkerPool();

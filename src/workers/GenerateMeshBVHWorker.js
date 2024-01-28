@@ -6,7 +6,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './generateAsync.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 		this.name = 'GenerateMeshBVHWorker';
 
