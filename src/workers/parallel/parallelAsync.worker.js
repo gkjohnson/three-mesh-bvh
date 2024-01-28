@@ -20,7 +20,7 @@ const DEFAULT_OPTIONS = {
 	setBoundingBox: true,
 	onProgress: null,
 	indirect: false,
-	// verbose: false,
+	verbose: true,
 };
 
 onmessage = async ( { data } ) => {
@@ -57,6 +57,7 @@ onmessage = async ( { data } ) => {
 		const localOptions = {
 			...DEFAULT_OPTIONS,
 			...options,
+			verbose: false,
 			maxDepth: Math.round( Math.log2( workerPool.workerCount ) ),
 			onProgress: options.includedProgressCallback ? onProgressCallback : null,
 		};
@@ -115,6 +116,7 @@ onmessage = async ( { data } ) => {
 
 			}
 
+			// wait for the sub trees to complete
 			await Promise.all( promises );
 
 			const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
