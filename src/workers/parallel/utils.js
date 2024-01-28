@@ -20,15 +20,16 @@ export function flattenNodes( node ) {
 	traverse( node );
 	return arr;
 
-	function traverse( node ) {
+	function traverse( node, depth = 0 ) {
 
+		node.depth = depth;
 		arr.push( node );
 
 		const isLeaf = Boolean( node.count );
 		if ( ! isLeaf ) {
 
-			traverse( node.left );
-			traverse( node.right );
+			traverse( node.left, depth + 1 );
+			traverse( node.right, depth + 1 );
 
 		}
 

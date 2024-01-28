@@ -85,6 +85,14 @@ onmessage = async ( { data } ) => {
 				const isLeaf = Boolean( node.count );
 				if ( isLeaf ) {
 
+					// adjust the maxDepth to account for the depth we've already traversed
+					const workerOptions = {
+						...DEFAULT_OPTIONS,
+						...options
+					};
+
+					workerOptions.maxDepth = workerOptions.maxDepth - node.depth;
+
 					const pr = workerPool.runSubTask(
 						nextWorker ++,
 						{
@@ -95,10 +103,7 @@ onmessage = async ( { data } ) => {
 							index,
 							position,
 							triangleBounds,
-							options: {
-								...DEFAULT_OPTIONS,
-								...options
-							},
+							options: workerOptions,
 						},
 						getOnProgressDeltaCallback( delta => {
 
