@@ -50,19 +50,19 @@ onmessage = async ( { data } ) => {
 
 		let totalProgress = 0;
 
-		const progressCallback = getOnProgressDeltaCallback( delta => {
-
-			totalProgress += delta * 0.1;
-			triggerOnProgress( totalProgress );
-
-		} );
-
 		const localOptions = {
 			...DEFAULT_OPTIONS,
 			...options,
 			verbose: false,
 			maxDepth: Math.round( Math.log2( workerPool.workerCount ) ),
-			onProgress: options.includedProgressCallback ? progressCallback : null,
+			onProgress: options.includedProgressCallback ?
+				getOnProgressDeltaCallback( delta => {
+
+					totalProgress += 0.1 * delta;
+					triggerOnProgress( totalProgress );
+
+				} ) :
+				null,
 		};
 
 		// generate the ranges for all roots asynchronously
@@ -180,8 +180,7 @@ onmessage = async ( { data } ) => {
 		const nodeCount = countNodes( root );
 		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );
-
-		postMessage( { type: 'result', buffer }, [ buffer ] );
+		postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
 
 	} else if ( operation === 'REFIT_SUBTREE' ) {
 
