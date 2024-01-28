@@ -10,6 +10,17 @@ import { flattenNodes, getGeometry } from './utils.js';
 let isRunning = false;
 let prevTime = 0;
 const workerPool = new WorkerPool();
+const DEFAULT_OPTIONS = {
+	strategy: CENTER,
+	maxDepth: 40,
+	maxLeafTris: 10,
+	verbose: true,
+	useSharedArrayBuffer: false,
+	setBoundingBox: true,
+	onProgress: null,
+	indirect: false,
+	// verbose: false,
+};
 
 onmessage = async ( { data } ) => {
 
@@ -31,6 +42,11 @@ onmessage = async ( { data } ) => {
 			options,
 		} = data;
 
+		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
+
+		const geometry = getGeometry( index, position );
+		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
+
 		// create a proxy bvh structure
 		const proxyBvh = {
 			_indirectBuffer: indirectBuffer,
@@ -38,17 +54,13 @@ onmessage = async ( { data } ) => {
 		};
 
 		const localOptions = {
+			...DEFAULT_OPTIONS,
 			...options,
 			maxDepth: Math.round( Math.log2( workerPool.workerCount ) ),
 			onProgress: options.includedProgressCallback ? onProgressCallback : null,
 		};
 
-		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
-
-		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
-
 		// generate the ranges for all roots asynchronously
-		const geometry = getGeometry( index, position );
 		const triangleBounds = computeTriangleBounds( geometry );
 		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
 		const packedRoots = [];
@@ -74,7 +86,14 @@ onmessage = async ( { data } ) => {
 							operation: 'BUILD_SUBTREE',
 							offset: node.offset,
 							count: node.count,
-							...data
+							indirectBuffer,
+							index,
+							position,
+							triangleBounds,
+							options: {
+								...DEFAULT_OPTIONS,
+								...options
+							},
 						},
 						onProgressCallback,
 					).then( data => {
@@ -115,7 +134,7 @@ onmessage = async ( { data } ) => {
 			},
 			position,
 			progress: 1,
-		}, );
+		} );
 
 		isRunning = false;
 

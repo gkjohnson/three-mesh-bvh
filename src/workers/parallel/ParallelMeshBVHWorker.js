@@ -1,5 +1,5 @@
 import { Box3, BufferAttribute } from 'three';
-import { MeshBVH } from '../core/MeshBVH.js';
+import { MeshBVH } from '../../core/MeshBVH.js';
 import { WorkerBase } from '../WorkerBase.js';
 import { convertToBufferType, isSharedArrayBufferSupported } from '../../utils/BufferUtils.js';
 
@@ -8,7 +8,7 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './generateAsync.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './parallelAsync.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 
 		this.name = ParallelMeshBVHWorker;
@@ -91,6 +91,7 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
+				maxWorkerCount: this.workerCount,
 				index: convertToBufferType( index, SharedArrayBuffer ),
 				position: convertToBufferType( position, SharedArrayBuffer ),
 				options: {

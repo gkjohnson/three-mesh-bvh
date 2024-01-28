@@ -58,7 +58,7 @@ function _populateBuffer( byteOffset, node ) {
 				if ( ! IS_LEAF( offset2, uint16Array ) ) {
 
 					const offset4 = offset / 4;
-					uint32Array[ offset4 + 6 ] += stride4Offset;
+					uint32Array[ offset4 + 6 ] += byteOffset / 4;
 
 
 				}

@@ -18,7 +18,7 @@ export function flattenNodes( node ) {
 
 	const arr = [];
 	traverse( node );
-	return node;
+	return arr;
 
 	function traverse( node ) {
 
