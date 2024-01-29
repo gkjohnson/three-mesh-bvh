@@ -2,12 +2,13 @@ import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, has
 import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
-import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
+import { BYTES_PER_NODE } from '../Constants.js';
 
 import { partition } from './sortUtils.generated.js';
 import { partition_indirect } from './sortUtils_indirect.generated.js';
+import { countNodes, populateBuffer } from './buildUtils.js';
 
-function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
+export function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
@@ -25,42 +26,31 @@ function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 }
 
-function buildTree( bvh, options ) {
+export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
-	// Compute the full bounds of the geometry at the same time as triangle bounds because
-	// we'll need it for the root bounds in the case with no groups and it should be fast here.
-	// We can't use the geometry bounding box if it's available because it may be out of date.
+	// epxand variables
 	const {
 		maxDepth,
 		verbose,
 		maxLeafTris,
 		strategy,
 		onProgress,
+		indirect,
 	} = options;
 	const indirectBuffer = bvh._indirectBuffer;
 	const geometry = bvh.geometry;
 	const indexArray = geometry.index ? geometry.index.array : null;
+	const partionFunc = indirect ? partition_indirect : partition;
+
+	// generate intermediate variables
 	const totalTriangles = getTriCount( geometry );
+	const cacheCentroidBoundingData = new Float32Array( 6 );
 	let reachedMaxDepth = false;
 
-	const cacheCentroidBoundingData = new Float32Array( 6 );
-	const triangleBounds = computeTriangleBounds( geometry );
-	const partionFunc = options.indirect ? partition_indirect : partition;
-
-	const roots = [];
-	const ranges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
-	for ( let range of ranges ) {
-
-		const root = new MeshBVHNode();
-		root.boundingData = new Float32Array( 6 );
-		getBounds( triangleBounds, range.offset, range.count, root.boundingData, cacheCentroidBoundingData );
-
-		splitNode( root, range.offset, range.count, cacheCentroidBoundingData );
-		roots.push( root );
-
-	}
-
-	return roots;
+	const root = new MeshBVHNode();
+	getBounds( triangleBounds, offset, count, root.boundingData, cacheCentroidBoundingData );
+	splitNode( root, offset, count, cacheCentroidBoundingData );
+	return root;
 
 	function triggerProgress( trianglesProcessed ) {
 
@@ -127,7 +117,6 @@ function buildTree( bvh, options ) {
 			const lstart = offset;
 			const lcount = splitOffset - offset;
 			node.left = left;
-			left.boundingData = new Float32Array( 6 );
 
 			getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
 			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
@@ -137,7 +126,6 @@ function buildTree( bvh, options ) {
 			const rstart = splitOffset;
 			const rcount = count - lcount;
 			node.right = right;
-			right.boundingData = new Float32Array( 6 );
 
 			getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
 			splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
@@ -174,91 +162,18 @@ export function buildPackedTree( bvh, options ) {
 
 	}
 
-	// boundingData  				: 6 float32
-	// right / offset 				: 1 uint32
-	// splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
-	const roots = buildTree( bvh, options );
-
-	let float32Array;
-	let uint32Array;
-	let uint16Array;
-	const packedRoots = [];
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-	for ( let i = 0; i < roots.length; i ++ ) {
 
-		const root = roots[ i ];
-		let nodeCount = countNodes( root );
+	const triangleBounds = computeTriangleBounds( geometry );
+	const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+	bvh._roots = geometryRanges.map( range => {
 
+		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );
+		const nodeCount = countNodes( root );
 		const buffer = new BufferConstructor( BYTES_PER_NODE * nodeCount );
-		float32Array = new Float32Array( buffer );
-		uint32Array = new Uint32Array( buffer );
-		uint16Array = new Uint16Array( buffer );
-		populateBuffer( 0, root );
-		packedRoots.push( buffer );
+		populateBuffer( 0, root, buffer );
+		return buffer;
 
-	}
-
-	bvh._roots = packedRoots;
-	return;
-
-	function countNodes( node ) {
-
-		if ( node.count ) {
-
-			return 1;
-
-		} else {
-
-			return 1 + countNodes( node.left ) + countNodes( node.right );
-
-		}
-
-	}
-
-	function populateBuffer( byteOffset, node ) {
-
-		const stride4Offset = byteOffset / 4;
-		const stride2Offset = byteOffset / 2;
-		const isLeaf = ! ! node.count;
-		const boundingData = node.boundingData;
-		for ( let i = 0; i < 6; i ++ ) {
-
-			float32Array[ stride4Offset + i ] = boundingData[ i ];
-
-		}
-
-		if ( isLeaf ) {
-
-			const offset = node.offset;
-			const count = node.count;
-			uint32Array[ stride4Offset + 6 ] = offset;
-			uint16Array[ stride2Offset + 14 ] = count;
-			uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
-			return byteOffset + BYTES_PER_NODE;
-
-		} else {
-
-			const left = node.left;
-			const right = node.right;
-			const splitAxis = node.splitAxis;
-
-			let nextUnusedPointer;
-			nextUnusedPointer = populateBuffer( byteOffset + BYTES_PER_NODE, left );
-
-			if ( ( nextUnusedPointer / 4 ) > Math.pow( 2, 32 ) ) {
-
-				throw new Error( 'MeshBVH: Cannot store child pointer greater than 32 bits.' );
-
-			}
-
-			uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
-			nextUnusedPointer = populateBuffer( nextUnusedPointer, right );
-
-			uint32Array[ stride4Offset + 7 ] = splitAxis;
-			return nextUnusedPointer;
-
-		}
-
-	}
+	} );
 
 }
