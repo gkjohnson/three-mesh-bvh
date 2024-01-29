@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - The `MeshBVHHelper( mesh, depth )` constructor not working as expected.
 - The `validateBounds` function not accounting for indirect functions.
 
+### Added
+- Added new "ParallelMeshBVHWorker" that parallelizes MeshBVH generation across multiple WebWorkers. Falls back to a single threaded approach if SharedArrayBuffer is not supported.
+
 ## [0.7.0] - 2024-01-15
 ### Changed
 - `MeshBVHVisualizer` has been deprecated and renamed `MeshBVHHelper` to align with three.js' conventions.
