@@ -1,15 +1,15 @@
 import { Box3, BufferAttribute } from 'three';
-import { MeshBVH } from '../../core/MeshBVH.js';
-import { WorkerBase } from '../WorkerBase.js';
-import { convertToBufferType, isSharedArrayBufferSupported } from '../../utils/BufferUtils.js';
-import { GenerateMeshBVHWorker } from '../GenerateMeshBVHWorker.js';
+import { MeshBVH } from '../core/MeshBVH.js';
+import { WorkerBase } from './utils/WorkerBase.js';
+import { convertToBufferType, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 
 const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
 class _ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './parallel/parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 
 		this.name = 'ParallelMeshBVHWorker';

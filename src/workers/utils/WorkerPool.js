@@ -6,9 +6,10 @@ export class WorkerPool {
 
 	}
 
-	constructor() {
+	constructor( getWorkerCallback ) {
 
 		this.workers = [];
+		this._getWorker = getWorkerCallback;
 
 	}
 
@@ -17,7 +18,7 @@ export class WorkerPool {
 		const workers = this.workers;
 		while ( workers.length < count ) {
 
-			workers.push( new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
+			workers.push( this._getWorker() );
 
 		}
 

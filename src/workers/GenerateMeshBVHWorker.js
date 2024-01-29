@@ -1,12 +1,12 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
-import { WorkerBase } from './WorkerBase.js';
+import { WorkerBase } from './utils/WorkerBase.js';
 
 export class GenerateMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './parallel/generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 		this.name = 'GenerateMeshBVHWorker';
 

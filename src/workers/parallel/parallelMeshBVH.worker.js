@@ -1,16 +1,15 @@
-import { MathUtils } from 'three';
+import { MathUtils, BufferGeometry, BufferAttribute } from 'three';
 import { BYTES_PER_NODE } from '../../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../../core/build/computeBoundsUtils.js';
 import { getFullGeometryRange, getRootIndexRanges, getTriCount } from '../../core/build/geometryUtils.js';
-import { WorkerPool } from './WorkerPool.js';
-import { flattenNodes, getGeometry } from './utils.js';
+import { WorkerPool } from '../utils/WorkerPool.js';
 import { DEFAULT_OPTIONS } from '../../core/MeshBVH.js';
 
 let isRunning = false;
 let prevTime = 0;
-const workerPool = new WorkerPool();
+const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
 
 onmessage = async ( { data } ) => {
 
@@ -233,6 +232,7 @@ onmessage = async ( { data } ) => {
 
 };
 
+// Helper functions and utils
 function getOnProgressDeltaCallback( cb ) {
 
 	let lastProgress = 0;
@@ -258,6 +258,43 @@ function triggerOnProgress( progress ) {
 
 		} );
 		prevTime = currTime;
+
+	}
+
+}
+
+function getGeometry( index, position ) {
+
+	const geometry = new BufferGeometry();
+	if ( index ) {
+
+		geometry.index = new BufferAttribute( index, 1, false );
+
+	}
+
+	geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
+	return geometry;
+
+}
+
+function flattenNodes( node ) {
+
+	const arr = [];
+	traverse( node );
+	return arr;
+
+	function traverse( node, depth = 0 ) {
+
+		node.depth = depth;
+		arr.push( node );
+
+		const isLeaf = Boolean( node.count );
+		if ( ! isLeaf ) {
+
+			traverse( node.left, depth + 1 );
+			traverse( node.right, depth + 1 );
+
+		}
 
 	}
 
