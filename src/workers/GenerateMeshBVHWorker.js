@@ -6,7 +6,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './parallel/generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 		this.name = 'GenerateMeshBVHWorker';
 
@@ -21,7 +21,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				geometry.index && geometry.index.isInterleavedBufferAttribute
 			) {
 
-				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
 
 			}
 

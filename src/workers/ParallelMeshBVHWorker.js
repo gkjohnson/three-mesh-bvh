@@ -9,7 +9,7 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './parallel/parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 
 		this.name = 'ParallelMeshBVHWorker';
