@@ -31,7 +31,6 @@ export class WorkerPool {
 
 	runSubTask( i, msg, onProgress ) {
 
-		// TODO: do we need to handle buffer transfers here?
 		return new Promise( ( resolve, reject ) => {
 
 			const worker = this.workers[ i ];
@@ -54,11 +53,19 @@ export class WorkerPool {
 
 				if ( e.data.type === 'progress' ) {
 
-					onProgress( e.data.progress );
+					if ( onProgress ) {
+
+						onProgress( e.data.progress );
+
+					}
 
 				} else {
 
-					onProgress( 1 );
+					if ( onProgress ) {
+
+						onProgress( 1 );
+
+					}
 
 					worker.isRunning = false;
 					resolve( e.data );

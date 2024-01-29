@@ -41,7 +41,30 @@ onmessage = async ( { data } ) => {
 		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
 		const triCount = getTriCount( geometry );
 		const triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );
-		computeTriangleBounds( geometry, triangleBounds );
+
+		// generate portions of the triangle bounds buffer over multiple frames
+		const boundsPromises = [];
+		for ( let i = 0, l = workerPool.workerCount; i < l; i ++ ) {
+
+			const countPerWorker = Math.ceil( triCount / l );
+			const offset = i * countPerWorker;
+			const count = Math.min( countPerWorker, triCount - offset );
+
+			boundsPromises.push( workerPool.runSubTask(
+				i,
+				{
+					operation: 'BUILD_TRIANGLE_BOUNDS',
+					offset,
+					count,
+					index,
+					position,
+					triangleBounds,
+				}
+			) );
+
+		}
+
+		await Promise.all( boundsPromises );
 
 		// create a proxy bvh structure
 		const proxyBvh = {
@@ -186,7 +209,17 @@ onmessage = async ( { data } ) => {
 
 	} else if ( operation === 'BUILD_TRIANGLE_BOUNDS' ) {
 
-		// TODO
+		const {
+			index,
+			position,
+			triangleBounds,
+			offset,
+			count,
+		} = data;
+
+		const geometry = getGeometry( index, position );
+		computeTriangleBounds( geometry, triangleBounds, offset, count );
+		postMessage( { type: 'result' } );
 
 	} else if ( operation === 'REFIT' ) {
 
