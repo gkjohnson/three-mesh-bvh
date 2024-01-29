@@ -192,11 +192,20 @@ function validateBounds( bvh ) {
 		if ( isLeaf ) {
 
 			// check triangles
-			for ( let i = offset * 3, l = ( offset + count ) * 3; i < l; i += 3 ) {
+			for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-				const i0 = index.getX( i );
-				const i1 = index.getX( i + 1 );
-				const i2 = index.getX( i + 2 );
+				const triIndex = bvh.resolveTriangleIndex( i );
+				let i0 = 3 * triIndex;
+				let i1 = 3 * triIndex + 1;
+				let i2 = 3 * triIndex + 2;
+
+				if ( index ) {
+
+					i0 = index.getX( i0 );
+					i1 = index.getX( i1 );
+					i2 = index.getX( i2 );
+
+				}
 
 				let isContained;
 
