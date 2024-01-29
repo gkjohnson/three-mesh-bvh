@@ -2,16 +2,17 @@ import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../../core/MeshBVH.js';
 import { WorkerBase } from '../WorkerBase.js';
 import { convertToBufferType, isSharedArrayBufferSupported } from '../../utils/BufferUtils.js';
+import { GenerateMeshBVHWorker } from '../GenerateMeshBVHWorker.js';
 
 const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
-export class ParallelMeshBVHWorker extends WorkerBase {
+class _ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
 		const worker = new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
 
-		this.name = ParallelMeshBVHWorker;
+		this.name = 'ParallelMeshBVHWorker';
 		this.maxWorkerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
 
 		if ( ! isSharedArrayBufferSupported() ) {
@@ -108,6 +109,28 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 			} );
 
 		} );
+
+	}
+
+}
+
+export class ParallelMeshBVHWorker {
+
+	constructor() {
+
+		if ( isSharedArrayBufferSupported() ) {
+
+			return new _ParallelMeshBVHWorker();
+
+		} else {
+
+			console.warn( 'ParallelMeshBVHWorker: SharedArrayBuffers not supported. Falling back to single-threaded GenerateMeshBVHWorker.' );
+
+			const object = new GenerateMeshBVHWorker();
+			object.maxWorkerCount = DEFAULT_WORKER_COUNT;
+			return object;
+
+		}
 
 	}
 

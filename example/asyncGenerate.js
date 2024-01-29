@@ -217,9 +217,10 @@ function regenerateKnot() {
 			group.add( helper );
 
 			outputContainer.textContent =
-				`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
-				`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms\n` +
-				`Frame Stall Time : ${ totalStallTime.toFixed( 3 ) }`;
+				`Geometry Generation Time  : ${ geomTime.toFixed( 3 ) }ms\n` +
+				`BVH Generation Time       : ${ deltaTime.toFixed( 3 ) }ms\n` +
+				`Frame Stall Time          : ${ totalStallTime.toFixed( 3 ) }\n` +
+				`SharedArrayBuffer Support : ${ typeof SharedArrayBuffer !== 'undefined' }`;
 
 		} );
 
@@ -241,9 +242,9 @@ function regenerateKnot() {
 		group.add( helper );
 
 		outputContainer.textContent =
-			`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
-			`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms\n` +
-			`Frame Stall Time : ${ totalStallTime.toFixed( 3 ) }`;
+			`Geometry Generation Time  : ${ geomTime.toFixed( 3 ) }ms\n` +
+			`BVH Generation Time       : ${ deltaTime.toFixed( 3 ) }ms\n` +
+			`Frame Stall Time          : ${ totalStallTime.toFixed( 3 ) }`;
 
 	}
 
