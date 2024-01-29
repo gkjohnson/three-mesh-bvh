@@ -1,14 +1,18 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
-import { acceleratedRaycast, MeshBVH, MeshBVHHelper } from '..';
+import { ParallelMeshBVHWorker } from '../src/workers/ParallelMeshBVHWorker.js';
+import { AVERAGE, CENTER, MeshBVH, MeshBVHHelper, SAH } from '..';
 
-THREE.Mesh.raycast = acceleratedRaycast;
+// Parallel BVH generation is only supported with SharedArrayBuffer
+const sharedArrayBufferSupported = typeof SharedArrayBuffer !== 'undefined';
 
 const params = {
 
 	useWebWorker: true,
+	maxWorkerCount: sharedArrayBufferSupported ? navigator.hardwareConcurrency : 1,
+	strategy: CENTER,
+
 	radius: 1,
 	tube: 0.3,
 	tubularSegments: 500,
@@ -86,7 +90,8 @@ function init() {
 
 	}
 
-	bvhGenerationWorker = new GenerateMeshBVHWorker();
+	bvhGenerationWorker = new ParallelMeshBVHWorker();
+	window.WORKER = bvhGenerationWorker;
 
 	gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
@@ -112,15 +117,20 @@ function init() {
 	helperFolder.open();
 
 	const knotFolder = gui.addFolder( 'knot' );
-	knotFolder.add( params, 'useWebWorker' );
 	knotFolder.add( params, 'radius', 0.5, 2, 0.01 );
 	knotFolder.add( params, 'tube', 0.2, 1.2, 0.01 );
 	knotFolder.add( params, 'tubularSegments', 50, 2000, 1 );
 	knotFolder.add( params, 'radialSegments', 5, 2000, 1 );
 	knotFolder.add( params, 'p', 1, 10, 1 );
 	knotFolder.add( params, 'q', 1, 10, 1 );
-	knotFolder.add( { regenerateKnot }, 'regenerateKnot' ).name( 'regenerate' );
 	knotFolder.open();
+
+	const bvhFolder = gui.addFolder( 'bvh' );
+	bvhFolder.add( params, 'useWebWorker' );
+	bvhFolder.add( params, 'maxWorkerCount', 1, 16, 1 ).disable( ! sharedArrayBufferSupported );
+	bvhFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } );
+
+	gui.add( { regenerateKnot }, 'regenerateKnot' ).name( 'regenerate' );
 
 	regenerateKnot();
 
@@ -173,6 +183,7 @@ function regenerateKnot() {
 	);
 	const geomTime = window.performance.now() - geomStartTime;
 	const startTime = window.performance.now();
+	const options = { strategy: params.strategy };
 	let totalStallTime;
 	if ( params.useWebWorker ) {
 
@@ -185,7 +196,8 @@ function regenerateKnot() {
 
 		};
 
-		bvhGenerationWorker.generate( knot.geometry, { onProgress } ).then( bvh => {
+		bvhGenerationWorker.maxWorkerCount = params.maxWorkerCount;
+		bvhGenerationWorker.generate( knot.geometry, { onProgress, ...options } ).then( bvh => {
 
 			loadContainer.style.visibility = 'hidden';
 
@@ -207,9 +219,10 @@ function regenerateKnot() {
 			group.add( helper );
 
 			outputContainer.textContent =
-				`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
-				`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms\n` +
-				`Frame Stall Time : ${ totalStallTime.toFixed( 3 ) }`;
+				`Geometry Generation Time  : ${ geomTime.toFixed( 3 ) }ms\n` +
+				`BVH Generation Time       : ${ deltaTime.toFixed( 3 ) }ms\n` +
+				`Frame Stall Time          : ${ totalStallTime.toFixed( 3 ) }\n` +
+				`SharedArrayBuffer Support : ${ sharedArrayBufferSupported }`;
 
 		} );
 
@@ -217,7 +230,7 @@ function regenerateKnot() {
 
 	} else {
 
-		knot.geometry.boundsTree = new MeshBVH( knot.geometry );
+		knot.geometry.boundsTree = new MeshBVH( knot.geometry, options );
 		totalStallTime = window.performance.now() - stallStartTime;
 
 		group.add( knot );
@@ -231,9 +244,9 @@ function regenerateKnot() {
 		group.add( helper );
 
 		outputContainer.textContent =
-			`Geometry Generation Time : ${ geomTime.toFixed( 3 ) }ms\n` +
-			`BVH Generation Time : ${ deltaTime.toFixed( 3 ) }ms\n` +
-			`Frame Stall Time : ${ totalStallTime.toFixed( 3 ) }`;
+			`Geometry Generation Time  : ${ geomTime.toFixed( 3 ) }ms\n` +
+			`BVH Generation Time       : ${ deltaTime.toFixed( 3 ) }ms\n` +
+			`Frame Stall Time          : ${ totalStallTime.toFixed( 3 ) }`;
 
 	}
 

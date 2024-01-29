@@ -1,14 +1,25 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
+import { convertToBufferType, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 
-export class GenerateMeshBVHWorker extends WorkerBase {
+const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
+class _ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+		const worker = new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
 		super( worker );
-		this.name = 'GenerateMeshBVHWorker';
+
+		this.name = 'ParallelMeshBVHWorker';
+		this.maxWorkerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
+
+		if ( ! isSharedArrayBufferSupported() ) {
+
+			throw new Error( 'ParallelMeshBVHWorker: Shared Array Buffers are not supported.' );
+
+		}
 
 	}
 
@@ -21,13 +32,13 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				geometry.index && geometry.index.isInterleavedBufferAttribute
 			) {
 
-				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
 
 			}
 
 			worker.onerror = e => {
 
-				reject( new Error( `GenerateMeshBVHWorker: ${ e.message }` ) );
+				reject( new Error( `ParallelMeshBVHWorker: ${ e.message }` ) );
 
 			};
 
@@ -44,11 +55,10 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					const { serialized, position } = data;
 					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
-					const boundsOptions = Object.assign( {
-
+					const boundsOptions = {
 						setBoundingBox: true,
-
-					}, options );
+						...options,
+					};
 
 					// we need to replace the arrays because they're neutered entirely by the
 					// webworker transfer.
@@ -83,17 +93,12 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 			const index = geometry.index ? geometry.index.array : null;
 			const position = geometry.attributes.position.array;
-			const transferable = [ position ];
-			if ( index ) {
-
-				transferable.push( index );
-
-			}
-
 			worker.postMessage( {
 
-				index,
-				position,
+				operation: 'BUILD_BVH',
+				maxWorkerCount: this.maxWorkerCount,
+				index: convertToBufferType( index, SharedArrayBuffer ),
+				position: convertToBufferType( position, SharedArrayBuffer ),
 				options: {
 					...options,
 					onProgress: null,
@@ -101,9 +106,31 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 					groups: [ ... geometry.groups ],
 				},
 
-			}, transferable.map( arr => arr.buffer ).filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) ) );
+			} );
 
 		} );
+
+	}
+
+}
+
+export class ParallelMeshBVHWorker {
+
+	constructor() {
+
+		if ( isSharedArrayBufferSupported() ) {
+
+			return new _ParallelMeshBVHWorker();
+
+		} else {
+
+			console.warn( 'ParallelMeshBVHWorker: SharedArrayBuffers not supported. Falling back to single-threaded GenerateMeshBVHWorker.' );
+
+			const object = new GenerateMeshBVHWorker();
+			object.maxWorkerCount = DEFAULT_WORKER_COUNT;
+			return object;
+
+		}
 
 	}
 

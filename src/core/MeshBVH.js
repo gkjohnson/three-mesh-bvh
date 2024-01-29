@@ -26,6 +26,16 @@ import { bvhcast } from './cast/bvhcast.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
 const tempBox = /* @__PURE__ */ new Box3();
+export const DEFAULT_OPTIONS = {
+	strategy: CENTER,
+	maxDepth: 40,
+	maxLeafTris: 10,
+	useSharedArrayBuffer: false,
+	setBoundingBox: true,
+	onProgress: null,
+	indirect: false,
+	verbose: true,
+};
 
 export class MeshBVH {
 
@@ -118,14 +128,7 @@ export class MeshBVH {
 		// default options
 		options = Object.assign( {
 
-			strategy: CENTER,
-			maxDepth: 40,
-			maxLeafTris: 10,
-			verbose: true,
-			useSharedArrayBuffer: false,
-			setBoundingBox: true,
-			onProgress: null,
-			indirect: false,
+			...DEFAULT_OPTIONS,
 
 			// undocumented options
 

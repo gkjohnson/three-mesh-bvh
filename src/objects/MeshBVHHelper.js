@@ -55,7 +55,7 @@ class MeshBVHRootHelper extends Object3D {
 			let boundsCount = 0;
 			boundsTree.traverse( ( depth, isLeaf ) => {
 
-				if ( depth === targetDepth || isLeaf ) {
+				if ( depth >= targetDepth || isLeaf ) {
 
 					boundsCount ++;
 					return true;
@@ -73,7 +73,7 @@ class MeshBVHRootHelper extends Object3D {
 			const positionArray = new Float32Array( 8 * 3 * boundsCount );
 			boundsTree.traverse( ( depth, isLeaf, boundingData ) => {
 
-				const terminate = depth === targetDepth || isLeaf;
+				const terminate = depth >= targetDepth || isLeaf;
 				if ( terminate || displayParents ) {
 
 					arrayToBox( 0, boundingData, boundingBox );
@@ -234,8 +234,8 @@ class MeshBVHHelper extends Group {
 		// handle mesh, depth signature
 		if ( typeof bvh === 'number' ) {
 
-			bvh = null;
 			depth = bvh;
+			bvh = null;
 
 		}
 

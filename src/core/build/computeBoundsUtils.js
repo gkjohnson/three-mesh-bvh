@@ -73,13 +73,26 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 // result is an array of size tris.length * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo, target = null ) {
+export function computeTriangleBounds( geo, target = null, offset = null, count = null ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
 	const triCount = getTriCount( geo );
-	const triangleBounds = target || new Float32Array( triCount * 6 * 4 );
 	const normalized = posAttr.normalized;
+	let triangleBounds;
+	if ( target === null ) {
+
+		triangleBounds = new Float32Array( triCount * 6 * 4 );
+		offset = 0;
+		count = triCount;
+
+	} else {
+
+		triangleBounds = target;
+		offset = offset || 0;
+		count = count || triCount;
+
+	}
 
 	// used for non-normalized positions
 	const posArr = posAttr.array;
@@ -96,7 +109,7 @@ export function computeTriangleBounds( geo, target = null ) {
 	// used for normalized positions
 	const getters = [ 'getX', 'getY', 'getZ' ];
 
-	for ( let tri = 0; tri < triCount; tri ++ ) {
+	for ( let tri = offset; tri < offset + count; tri ++ ) {
 
 		const tri3 = tri * 3;
 		const tri6 = tri * 6;
