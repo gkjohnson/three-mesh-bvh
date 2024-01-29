@@ -37,7 +37,7 @@ export class WorkerPool {
 			const worker = this.workers[ i ];
 			if ( worker.isRunning ) {
 
-				throw new Error();
+				throw new Error( `${ this.name }: Worker ${ i } is already running.` );
 
 			}
 
