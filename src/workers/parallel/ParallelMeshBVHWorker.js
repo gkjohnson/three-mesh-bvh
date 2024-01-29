@@ -12,7 +12,7 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 		super( worker );
 
 		this.name = ParallelMeshBVHWorker;
-		this.workerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
+		this.maxWorkerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
 
 		if ( ! isSharedArrayBufferSupported() ) {
 
@@ -95,7 +95,7 @@ export class ParallelMeshBVHWorker extends WorkerBase {
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
-				maxWorkerCount: this.workerCount,
+				maxWorkerCount: this.maxWorkerCount,
 				index: convertToBufferType( index, SharedArrayBuffer ),
 				position: convertToBufferType( position, SharedArrayBuffer ),
 				options: {
