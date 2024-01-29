@@ -1,3 +1,4 @@
+// Proxy serve so SharedArrayBuffer works locally
 export default function( app ) {
 
 	app.use( ( req, res, next ) => {
