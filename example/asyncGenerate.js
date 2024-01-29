@@ -6,10 +6,11 @@ import { acceleratedRaycast, AVERAGE, CENTER, MeshBVH, MeshBVHHelper, SAH } from
 
 THREE.Mesh.raycast = acceleratedRaycast;
 
+const sharedArrayBufferSupported = typeof SharedArrayBuffer !== 'undefined';
 const params = {
 
 	useWebWorker: true,
-	maxWorkerCount: navigator.hardwareConcurrency,
+	maxWorkerCount: sharedArrayBufferSupported ? navigator.hardwareConcurrency : 1,
 	strategy: CENTER,
 
 	radius: 1,
@@ -90,6 +91,7 @@ function init() {
 	}
 
 	bvhGenerationWorker = new ParallelMeshBVHWorker();
+	window.WORKER = bvhGenerationWorker;
 
 	gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
@@ -125,7 +127,7 @@ function init() {
 
 	const bvhFolder = gui.addFolder( 'bvh' );
 	bvhFolder.add( params, 'useWebWorker' );
-	bvhFolder.add( params, 'maxWorkerCount', 1, 16, 1 );
+	bvhFolder.add( params, 'maxWorkerCount', 1, 16, 1 ).disable( ! sharedArrayBufferSupported );
 	bvhFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } );
 
 	gui.add( { regenerateKnot }, 'regenerateKnot' ).name( 'regenerate' );
@@ -220,7 +222,7 @@ function regenerateKnot() {
 				`Geometry Generation Time  : ${ geomTime.toFixed( 3 ) }ms\n` +
 				`BVH Generation Time       : ${ deltaTime.toFixed( 3 ) }ms\n` +
 				`Frame Stall Time          : ${ totalStallTime.toFixed( 3 ) }\n` +
-				`SharedArrayBuffer Support : ${ typeof SharedArrayBuffer !== 'undefined' }`;
+				`SharedArrayBuffer Support : ${ sharedArrayBufferSupported }`;
 
 		} );
 
