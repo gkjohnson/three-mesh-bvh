@@ -8,6 +8,7 @@ import {
 	MeshBVH,
 	getBVHExtremes,
 	acceleratedRaycast,
+	validateBounds,
 } from '../src/index.js';
 import { getMaxDepth } from './utils.js';
 
@@ -157,6 +158,13 @@ describe( 'Options', () => {
 			expect( geometry.index.array ).not.toBe( clone.index.array );
 			expect( geometry.index.array ).toEqual( clone.index.array );
 			expect( bvh ).toBeTruthy();
+
+		} );
+
+		it( 'should produce valid bounds when true.', () => {
+
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+			expect( validateBounds( bvh ) ).toBeTruthy();
 
 		} );
 
