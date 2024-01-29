@@ -1,10 +1,10 @@
 import { MathUtils, BufferGeometry, BufferAttribute } from 'three';
+import { WorkerPool } from './utils/WorkerPool.js';
 import { BYTES_PER_NODE } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
 import { getFullGeometryRange, getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
-import { WorkerPool } from './utils/WorkerPool.js';
 import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
 
 let isRunning = false;
@@ -15,7 +15,7 @@ onmessage = async ( { data } ) => {
 
 	if ( isRunning ) {
 
-		throw new Error();
+		throw new Error( 'Worker is already running a task.' );
 
 	}
 
