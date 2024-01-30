@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.7.1] - Unreleased
+## [0.7.1] - 2024-01-30
 ### Fixed
 - Minor case where outside bounds did not have floating point epsilon accounted for which could have resulted in missed intersections at the very edge of the bounds.
 - The `MeshBVHHelper( mesh, depth )` constructor not working as expected.
-- The `validateBounds` function not accounting for indirect functions.
+- The `validateBounds` function not accounting for the use of the "indirect" option.
 
 ### Added
 - Added new "ParallelMeshBVHWorker" that parallelizes MeshBVH generation across multiple WebWorkers. Falls back to a single threaded approach if SharedArrayBuffer is not supported.
