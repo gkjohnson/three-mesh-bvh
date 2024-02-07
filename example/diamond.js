@@ -51,7 +51,7 @@ async function init() {
 	const environmentPromise = new RGBELoader()
 		.loadAsync( 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/venice_sunset_1k.hdr' );
 
-	const gltfPromise = new GLTFLoader().loadAsync( new URL( './models/diamond.glb', import.meta.url ).toString() );
+	const gltfPromise = new GLTFLoader().loadAsync( '../models/diamond.glb' );
 
 	let gltf;
 	[ environment, gltf ] = await Promise.all( [ environmentPromise, gltfPromise ] );
