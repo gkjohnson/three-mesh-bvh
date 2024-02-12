@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - Unreleased
+### Fixed
+- MeshBVHHelper not updating correctly
+
+### Added
+- StaticGeometryGenerator now inverts geometry winding order when a mesh uses negative scales.
+
 ## [0.7.1] - 2024-01-30
 ### Fixed
 - Minor case where outside bounds did not have floating point epsilon accounted for which could have resulted in missed intersections at the very edge of the bounds.

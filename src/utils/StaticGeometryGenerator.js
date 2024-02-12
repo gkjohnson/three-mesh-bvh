@@ -340,6 +340,48 @@ function checkTypedArrayEquality( a, b ) {
 
 }
 
+function invertGeometry( geometry ) {
+
+	const { index, attributes } = geometry;
+	if ( index ) {
+
+		for ( let i = 0, l = index.count; i < l; i += 3 ) {
+
+			const v0 = index.getX( i );
+			const v2 = index.getX( i + 2 );
+			index.setX( i, v2 );
+			index.setX( i + 2, v0 );
+
+		}
+
+	} else {
+
+		for ( const key in attributes ) {
+
+			const attr = attributes[ key ];
+			const itemSize = attr.itemSize;
+			for ( let i = 0, l = attr.count; i < l; i += 3 ) {
+
+				for ( let j = 0; j < itemSize; j ++ ) {
+
+					const v0 = attr.getComponent( i, j );
+					const v2 = attr.getComponent( i + 2, j );
+					attr.setComponent( i, j, v2 );
+					attr.setComponent( i + 2, j, v0 );
+
+				}
+
+			}
+
+		}
+
+	}
+
+	return geometry;
+
+
+}
+
 // Checks whether the geometry changed between this and last evaluation
 class GeometryDiff {
 
@@ -524,7 +566,7 @@ export class StaticGeometryGenerator {
 		// initialize the attributes if they don't exist
 		if ( ! targetGeometry.index ) {
 
-			targetGeometry.index = geometry.index;
+			targetGeometry.index = geometry.index.clone();
 
 		}
 
@@ -684,6 +726,12 @@ export class StaticGeometryGenerator {
 
 			validateAttributes( attributes[ key ], targetAttributes[ key ] );
 			copyAttributeContents( attributes[ key ], targetAttributes[ key ] );
+
+		}
+
+		if ( mesh.matrixWorld.determinant() < 0 ) {
+
+			invertGeometry( targetGeometry );
 
 		}
 
