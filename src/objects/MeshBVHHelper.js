@@ -297,6 +297,7 @@ class MeshBVHHelper extends Group {
 			}
 
 			const root = this._roots[ i ];
+			root.bvh = bvh;
 			root.depth = depth;
 			root.displayParents = displayParents;
 			root.displayEdges = displayEdges;
