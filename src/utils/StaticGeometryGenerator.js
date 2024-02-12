@@ -564,7 +564,7 @@ export class StaticGeometryGenerator {
 		const targetAttributes = targetGeometry.attributes;
 
 		// initialize the attributes if they don't exist
-		if ( ! targetGeometry.index ) {
+		if ( ! targetGeometry.index && geometry.index ) {
 
 			targetGeometry.index = geometry.index.clone();
 
@@ -616,6 +616,14 @@ export class StaticGeometryGenerator {
 		const normalMatrix = new Matrix3();
 		normalMatrix.getNormalMatrix( mesh.matrixWorld );
 
+		// copy the index
+		if ( geometry.index ) {
+
+			targetGeometry.index.array.set( geometry.index.array );
+
+		}
+
+		// copy and apply other attributes
 		for ( let i = 0, l = attributes.position.count; i < l; i ++ ) {
 
 			_positionVector.fromBufferAttribute( position, i );
