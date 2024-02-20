@@ -542,7 +542,31 @@ export class StaticGeometryGenerator {
 
 		}
 
-		mergeBufferGeometries( _intermediateGeometry, { useGroups, skipAttributes }, targetGeometry );
+		if ( _intermediateGeometry.length === 0 ) {
+
+			// if there are no geometries then just create a fake empty geometry to provide
+			targetGeometry.setIndex( null );
+
+			// remove all geometry
+			const attrs = targetGeometry.attributes;
+			for ( const key in attrs ) {
+
+				targetGeometry.deleteAttribute( key );
+
+			}
+
+			// create dummy attributes
+			for ( const key in this.attributes ) {
+
+				targetGeometry.setAttribute( this.attributes[ key ], new BufferAttribute( new Float32Array( 0 ), 4, false ) );
+
+			}
+
+		} else {
+
+			mergeBufferGeometries( _intermediateGeometry, { useGroups, skipAttributes }, targetGeometry );
+
+		}
 
 		for ( const key in targetGeometry.attributes ) {
 
