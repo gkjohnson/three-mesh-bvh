@@ -6,7 +6,7 @@ const MAX_POINTER = Math.pow( 2, 32 );
 
 export function countNodes( node ) {
 
-	if ( node.count ) {
+	if ( 'count' in node ) {
 
 		return 1;
 
@@ -37,7 +37,7 @@ function _populateBuffer( byteOffset, node ) {
 
 	const stride4Offset = byteOffset / 4;
 	const stride2Offset = byteOffset / 2;
-	const isLeaf = ! ! node.count;
+	const isLeaf = 'count' in node;
 	const boundingData = node.boundingData;
 	for ( let i = 0; i < 6; i ++ ) {
 
