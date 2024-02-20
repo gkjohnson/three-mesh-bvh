@@ -218,7 +218,7 @@ export class VertexAttributeTexture extends DataTexture {
 		}
 
 		// copy the data over to the new texture array
-		const dimension = Math.ceil( Math.sqrt( count ) );
+		const dimension = Math.ceil( Math.sqrt( count ) ) || 1;
 		const length = finalStride * dimension * dimension;
 		const dataArray = new targetBufferCons( length );
 
