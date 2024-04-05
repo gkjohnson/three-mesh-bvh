@@ -4,9 +4,9 @@ import { BufferStack } from '../utils/BufferStack.js';
 import { intersectTris } from '../utils/iterationUtils.generated.js';
 import { intersectTris_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
-const origin = new Float32Array(3);
-const dirInv = new Float32Array(3);
-const sign = new Uint8Array(3);
+const origin = new Float64Array(3);
+const dirInv = new Float64Array(3);
+const sign = new Int8Array(3);
 
 export function raycast/* @echo INDIRECT_STRING */( bvh, root, side, ray, intersects ) {
 
