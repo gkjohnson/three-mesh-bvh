@@ -18,7 +18,7 @@ let benchmarkViz, renderTarget, fsQuad;
 let mouse = new THREE.Vector2();
 const readBuffer = new Float32Array( 1 );
 
-const modelPath = 'https://gkjohnson.github.io/three-mesh-bvh/example/models/DragonAttenuation.glb';
+const modelPath = '../models/DragonAttenuation.glb';
 const params = {
 
 	options: {
