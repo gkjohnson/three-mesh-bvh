@@ -4,7 +4,7 @@ export function BatchedRay() {
 	const dirInv = new Float64Array( 3 );
 	const sign = new Int8Array( 3 );
 
-	function setFromRay( ray ) {
+	this.setFromRay = function( ray ) {
 
 		origin[ 0 ] = ray.origin.x;
 		origin[ 1 ] = ray.origin.y;
@@ -20,7 +20,7 @@ export function BatchedRay() {
 
 	}
 
-	function intersectBox( nodeIndex32, array ) {
+	this.intersectBox = function( nodeIndex32, array ) {
 
 		let bmin = array[ nodeIndex32 + sign[ 0 ] ];
 		let bmax = array[ nodeIndex32 + ( sign[ 0 ] + 3 ) % 6 ];
@@ -58,12 +58,5 @@ export function BatchedRay() {
 		return tmin <= tmax /* && distance >= tmin */;
 	
 	}
-
-	return {
-
-		setFromRay,
-		intersectBox
-
-	};
 
 }
