@@ -7,7 +7,7 @@ import { intersectTris_indirect } from '../utils/iterationUtils_indirect.generat
 const _ray = new BatchedRay();
 
 export function raycast/* @echo INDIRECT_STRING */( bvh, root, side, ray, intersects ) {
-	
+
 	_ray.setFromRay( ray );
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
