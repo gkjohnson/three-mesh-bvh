@@ -3,6 +3,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 import { convertToBufferType, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
+import { ensureIndex } from '../core/build/geometryUtils.js';
 
 const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
 class _ParallelMeshBVHWorker extends WorkerBase {
@@ -26,6 +27,12 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 	runTask( worker, geometry, options = {} ) {
 
 		return new Promise( ( resolve, reject ) => {
+
+			if ( ! geometry.index && ! options.indirect ) {
+
+				ensureIndex( geometry, options );
+
+			}
 
 			if (
 				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
