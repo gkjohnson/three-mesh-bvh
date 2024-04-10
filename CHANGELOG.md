@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - ParallelMeshBVHWorker now generates a geometry index if it's required.
 - Add support for the "indirect" option to both workers.
+- Worker generators not guaranteeing that 100% progress would be fired to the `onProgress` callback.
 
 ## [0.7.3] - 2024-02-20
 ### Fixed
