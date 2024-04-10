@@ -67,7 +67,7 @@ export function intersectRay( nodeIndex32, array, ray ) {
 
 	if ( ( tmin > tzmax ) || ( tzmin > tmax ) ) return false;
 
-	if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin;
+	// if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin; // Uncomment this line if add the distance check
 
 	if ( tzmax < tmax || tmax !== tmax ) tmax = tzmax;
 
