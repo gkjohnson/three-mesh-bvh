@@ -1,14 +1,10 @@
-import { BatchedRay } from '../utils/intersectUtils.js';
+import { intersectRay } from '../utils/intersectUtils.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 import { intersectTris } from '../utils/iterationUtils.generated.js';
 import { intersectTris_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
-const _ray = new BatchedRay();
-
 export function raycast/* @echo INDIRECT_STRING */( bvh, root, side, ray, intersects ) {
-
-	_ray.setFromRay( ray );
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
 	_raycast( 0, bvh, side, ray, intersects );
@@ -39,14 +35,14 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
-		if ( _ray.intersectBox( leftIndex, float32Array ) ) {
+		if ( intersectRay( leftIndex, float32Array, ray ) ) {
 
 			_raycast( leftIndex, bvh, side, ray, intersects );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
-		if ( _ray.intersectBox( rightIndex, float32Array ) ) {
+		if ( intersectRay( rightIndex, float32Array, ray ) ) {
 
 			_raycast( rightIndex, bvh, side, ray, intersects );
 

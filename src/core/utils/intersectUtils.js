@@ -1,62 +1,76 @@
-export function BatchedRay() {
+export function intersectRay( nodeIndex32, array, ray ) {
 
-	const origin = new Float64Array( 3 );
-	const dirInv = new Float64Array( 3 );
-	const sign = new Int8Array( 3 );
+	let tmin, tmax, tymin, tymax, tzmin, tzmax;
 
-	this.setFromRay = function ( ray ) {
+	const invdirx = 1 / ray.direction.x,
+		invdiry = 1 / ray.direction.y,
+		invdirz = 1 / ray.direction.z;
 
-		origin[ 0 ] = ray.origin.x;
-		origin[ 1 ] = ray.origin.y;
-		origin[ 2 ] = ray.origin.z;
+	const ox = ray.origin.x;
+	const oy = ray.origin.y;
+	const oz = ray.origin.z;
 
-		dirInv[ 0 ] = 1 / ray.direction.x;
-		dirInv[ 1 ] = 1 / ray.direction.y;
-		dirInv[ 2 ] = 1 / ray.direction.z;
+	let minx = array[ nodeIndex32 ];
+	let maxx = array[ nodeIndex32 + 3 ];
 
-		sign[ 0 ] = dirInv[ 0 ] < 0 ? 3 : 0;
-		sign[ 1 ] = dirInv[ 1 ] < 0 ? 3 : 0;
-		sign[ 2 ] = dirInv[ 2 ] < 0 ? 3 : 0;
+	let miny = array[ nodeIndex32 + 1 ];
+	let maxy = array[ nodeIndex32 + 3 + 1 ];
 
-	};
+	let minz = array[ nodeIndex32 + 2 ];
+	let maxz = array[ nodeIndex32 + 3 + 2 ];
 
-	this.intersectBox = function ( nodeIndex32, array ) {
+	if ( invdirx >= 0 ) {
 
-		let bmin = array[ nodeIndex32 + sign[ 0 ] ];
-		let bmax = array[ nodeIndex32 + ( sign[ 0 ] + 3 ) % 6 ];
+		tmin = ( minx - ox ) * invdirx;
+		tmax = ( maxx - ox ) * invdirx;
 
-		let tmin = ( bmin - origin[ 0 ] ) * dirInv[ 0 ];
-		let tmax = ( bmax - origin[ 0 ] ) * dirInv[ 0 ];
+	} else {
 
-		bmin = array[ nodeIndex32 + sign[ 1 ] + 1 ];
-		bmax = array[ nodeIndex32 + ( sign[ 1 ] + 3 ) % 6 + 1 ];
+		tmin = ( maxx - ox ) * invdirx;
+		tmax = ( minx - ox ) * invdirx;
 
-		const tymin = ( bmin - origin[ 1 ] ) * dirInv[ 1 ];
-		if ( tymin > tmax ) return false;
+	}
 
-		const tymax = ( bmax - origin[ 1 ] ) * dirInv[ 1 ];
-		if ( tmin > tymax ) return false;
+	if ( invdiry >= 0 ) {
 
-		if ( tymin > tmin ) tmin = tymin;
+		tymin = ( miny - oy ) * invdiry;
+		tymax = ( maxy - oy ) * invdiry;
 
-		bmin = array[ nodeIndex32 + sign[ 2 ] + 2 ];
-		bmax = array[ nodeIndex32 + ( sign[ 2 ] + 3 ) % 6 + 2 ];
+	} else {
 
-		const tzmax = ( bmax - origin[ 2 ] ) * dirInv[ 2 ];
-		if ( tmin > tzmax ) return false;
+		tymin = ( maxy - oy ) * invdiry;
+		tymax = ( miny - oy ) * invdiry;
 
-		if ( tymax < tmax ) tmax = tymax;
-		if ( tzmax < tmax ) tmax = tzmax;
+	}
 
-		if ( tmax < 0 ) return false;
+	if ( ( tmin > tymax ) || ( tymin > tmax ) ) return null;
 
-		const tzmin = ( bmin - origin[ 2 ] ) * dirInv[ 2 ];
-		if ( tzmin > tmax ) return false;
+	if ( tymin > tmin || isNaN( tmin ) ) tmin = tymin;
 
-		if ( tzmin > tmin ) tmin = tzmin;
+	if ( tymax < tmax || isNaN( tmax ) ) tmax = tymax;
 
-		return tmin <= tmax;
+	if ( invdirz >= 0 ) {
 
-	};
+		tzmin = ( minz - oz ) * invdirz;
+		tzmax = ( maxz - oz ) * invdirz;
+
+	} else {
+
+		tzmin = ( maxz - oz ) * invdirz;
+		tzmax = ( minz - oz ) * invdirz;
+
+	}
+
+	if ( ( tmin > tzmax ) || ( tzmin > tmax ) ) return null;
+
+	if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin;
+
+	if ( tzmax < tmax || tmax !== tmax ) tmax = tzmax;
+
+	//return point closest to the ray (positive side)
+
+	if ( tmax < 0 ) return null;
+
+	return true;
 
 }
