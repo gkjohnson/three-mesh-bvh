@@ -1,3 +1,7 @@
+/**
+ * This function performs intersection tests similar to Ray.intersectBox in three.js,
+ * with the difference that the box values are read from an array to improve performance.
+ */
 export function intersectRay( nodeIndex32, array, ray ) {
 
 	let tmin, tmax, tymin, tymax, tzmin, tzmax;
@@ -43,7 +47,7 @@ export function intersectRay( nodeIndex32, array, ray ) {
 
 	}
 
-	if ( ( tmin > tymax ) || ( tymin > tmax ) ) return null;
+	if ( ( tmin > tymax ) || ( tymin > tmax ) ) return false;
 
 	if ( tymin > tmin || isNaN( tmin ) ) tmin = tymin;
 
@@ -61,13 +65,15 @@ export function intersectRay( nodeIndex32, array, ray ) {
 
 	}
 
-	if ( ( tmin > tzmax ) || ( tzmin > tmax ) ) return null;
+	if ( ( tmin > tzmax ) || ( tzmin > tmax ) ) return false;
+
+	if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin;
 
 	if ( tzmax < tmax || tmax !== tmax ) tmax = tzmax;
 
 	//return point closest to the ray (positive side)
 
-	if ( tmax < 0 ) return null;
+	if ( tmax < 0 ) return false;
 
 	return true;
 
