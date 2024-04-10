@@ -1,11 +1,9 @@
-import { Vector3 } from 'three';
 import { intersectRay } from '../utils/intersectUtils.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 import { intersectTris } from '../utils/iterationUtils.generated.js';
 import { intersectTris_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
-const _boxIntersection = /* @__PURE__ */ new Vector3();
 export function raycast/* @echo INDIRECT_STRING */( bvh, root, side, ray, intersects ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
@@ -37,14 +35,14 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects ) {
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
-		if ( intersectRay( leftIndex, float32Array, ray, _boxIntersection ) ) {
+		if ( intersectRay( leftIndex, float32Array, ray ) ) {
 
 			_raycast( leftIndex, bvh, side, ray, intersects );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
-		if ( intersectRay( rightIndex, float32Array, ray, _boxIntersection ) ) {
+		if ( intersectRay( rightIndex, float32Array, ray ) ) {
 
 			_raycast( rightIndex, bvh, side, ray, intersects );
 

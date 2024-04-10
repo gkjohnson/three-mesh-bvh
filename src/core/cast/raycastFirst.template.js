@@ -1,11 +1,11 @@
-import { Vector3 } from 'three';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, SPLIT_AXIS } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 import { intersectRay } from '../utils/intersectUtils.js';
 import { intersectClosestTri } from '../utils/iterationUtils.generated.js';
 import { intersectClosestTri_indirect } from '../utils/iterationUtils_indirect.generated.js';
-const _boxIntersection = /* @__PURE__ */ new Vector3();
+
 const _xyzFields = [ 'x', 'y', 'z' ];
+
 export function raycastFirst/* @echo INDIRECT_STRING */( bvh, root, side, ray ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
@@ -60,7 +60,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 
 		}
 
-		const c1Intersection = intersectRay( c1, float32Array, ray, _boxIntersection );
+		const c1Intersection = intersectRay( c1, float32Array, ray );
 		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, side, ray ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
@@ -84,7 +84,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray ) {
 
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
-		const c2Intersection = intersectRay( c2, float32Array, ray, _boxIntersection );
+		const c2Intersection = intersectRay( c2, float32Array, ray );
 		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, side, ray ) : null;
 
 		if ( c1Result && c2Result ) {
