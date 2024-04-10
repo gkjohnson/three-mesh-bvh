@@ -63,8 +63,6 @@ export function intersectRay( nodeIndex32, array, ray ) {
 
 	if ( ( tmin > tzmax ) || ( tzmin > tmax ) ) return null;
 
-	if ( tzmin > tmin || tmin !== tmin ) tmin = tzmin;
-
 	if ( tzmax < tmax || tmax !== tmax ) tmax = tzmax;
 
 	//return point closest to the ray (positive side)
