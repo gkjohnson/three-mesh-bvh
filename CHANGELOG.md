@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Improved raycasting performancy by ~20% by avoiding use of the "arrayToBox" function internally.
 
+### Fixed
+- ParallelMeshBVHWorker now generates a geometry index if it's required.
+
 ## [0.7.3] - 2024-02-20
 ### Fixed
 - StaticGeometryGenerator, VertexAttributeTexture now support empty geometry.
