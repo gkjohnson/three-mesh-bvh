@@ -247,8 +247,11 @@ function getOnProgressDeltaCallback( cb ) {
 
 function triggerOnProgress( progress ) {
 
+	// account for error
+	progress = Math.min( progress, 1 );
+
 	const currTime = performance.now();
-	if ( currTime - prevTime >= 10 || progress === 1.0 ) {
+	if ( currTime - prevTime >= 10 && progress !== 1.0 ) {
 
 		postMessage( {
 

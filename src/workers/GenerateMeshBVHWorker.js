@@ -74,6 +74,12 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					}
 
+					if ( options.onProgress ) {
+
+						options.onProgress( data.progress );
+
+					}
+
 					resolve( bvh );
 					worker.onmessage = null;
 
