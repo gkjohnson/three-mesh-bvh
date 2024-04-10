@@ -53,14 +53,18 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 					// we need to replace the arrays because they're neutered entirely by the
 					// webworker transfer.
 					geometry.attributes.position.array = position;
-					if ( geometry.index ) {
+					if ( serialized.index ) {
 
-						geometry.index.array = serialized.index;
+						if ( geometry.index ) {
 
-					} else {
+							geometry.index.array = serialized.index;
 
-						const newIndex = new BufferAttribute( serialized.index, 1, false );
-						geometry.setIndex( newIndex );
+						} else {
+
+							const newIndex = new BufferAttribute( serialized.index, 1, false );
+							geometry.setIndex( newIndex );
+
+						}
 
 					}
 

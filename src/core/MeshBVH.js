@@ -55,7 +55,7 @@ export class MeshBVH {
 
 			result = {
 				roots: rootData.map( root => root.slice() ),
-				index: indexAttribute.array.slice(),
+				index: indexAttribute ? indexAttribute.array.slice() : null,
 				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
 			};
 
@@ -63,7 +63,7 @@ export class MeshBVH {
 
 			result = {
 				roots: rootData,
-				index: indexAttribute.array,
+				index: indexAttribute ? indexAttribute.array : null,
 				indirectBuffer: indirectBuffer,
 			};
 
