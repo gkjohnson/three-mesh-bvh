@@ -12,7 +12,7 @@ export function convertRaycastIntersect( hit, object, raycaster ) {
 	hit.distance = hit.point.distanceTo( raycaster.ray.origin );
 	hit.object = object;
 
-	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) {
+	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) { // TODO probably this can be removed
 
 		return null;
 

@@ -73,6 +73,6 @@ export function intersectRay( nodeIndex32, array, ray, near, far ) {
 
 	//return point closest to the ray (positive side)
 
-	return tmin <= far && tmax >= near;
+	return tmin <= far && tmax >= near; // TODO far and near should be scaled here
 
 }
