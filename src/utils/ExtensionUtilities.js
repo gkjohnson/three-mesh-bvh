@@ -18,7 +18,7 @@ export function acceleratedRaycast( raycaster, intersects ) {
 		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
 
-			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material ), this, raycaster );
+			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material, raycaster.near, raycaster.far ), this, raycaster );
 			if ( hit ) {
 
 				intersects.push( hit );
@@ -27,7 +27,7 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 		} else {
 
-			const hits = bvh.raycast( ray, this.material );
+			const hits = bvh.raycast( ray, this.material, raycaster.near, raycaster.far );
 			for ( let i = 0, l = hits.length; i < l; i ++ ) {
 
 				const hit = convertRaycastIntersect( hits[ i ], this, raycaster );

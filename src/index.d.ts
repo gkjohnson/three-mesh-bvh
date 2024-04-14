@@ -53,9 +53,9 @@ export class MeshBVH {
 
   constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
 
-  raycast( ray: Ray, materialOrSide: Side | Array<Material> | Material ): Array<Intersection>
+  raycast( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Array<Intersection>
 
-  raycastFirst( ray: Ray, materialOrSide: Side | Array<Material> | Material ): Intersection;
+  raycastFirst( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Intersection;
 
   intersectsSphere( sphere: Sphere ): boolean;
 

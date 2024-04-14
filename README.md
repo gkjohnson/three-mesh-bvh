@@ -370,10 +370,10 @@ Helper function for use when `indirect` is set to true. This function takes a tr
 ### .raycast
 
 ```js
-raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : Array<RaycastHit>
+raycast( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide, near : Number = 0, far : Number = Infinity ) : Array<RaycastHit>
 ```
 ```js
-raycast( ray : Ray, material : Array<Material> | Material ) : Array<RaycastHit>
+raycast( ray : Ray, material? : Array<Material> | Material, near : Number = 0, far : Number = Infinity ) : Array<RaycastHit>
 ```
 
 Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the frame of the BVH already. Likewise the returned results are also provided in the local frame of the BVH. The `side` identifier is used to determine the side to check when raycasting or a material with the given side field can be passed. If an array of materials is provided then it is expected that the geometry has groups and the appropriate material side is used per group.
@@ -383,10 +383,10 @@ Note that unlike three.js' Raycaster results the points and distances in the int
 ### .raycastFirst
 
 ```js
-raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide ) : RaycastHit
+raycastFirst( ray : Ray, side : FrontSide | BackSide | DoubleSide = FrontSide, near : Number = 0, far : Number = Infinity ) : RaycastHit
 ```
 ```js
-raycastFirst( ray : Ray, material : Array<Material> | Material ) : RaycastHit
+raycastFirst( ray : Ray, material : Array<Material> | Material, near : Number = 0, far : Number = Infinity ) : RaycastHit
 ```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits. See [raycast](#raycast) for information on the side and material options as well as the frame of the returned intersections.
