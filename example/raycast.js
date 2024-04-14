@@ -30,7 +30,9 @@ let deltaTime = 0;
 const params = {
 	raycasters: {
 		count: 150,
-		speed: 1
+		speed: 1,
+		near: 0,
+		far: pointDist
 	},
 
 	mesh: {
@@ -96,6 +98,8 @@ function init() {
 	const rcFolder = gui.addFolder( 'Raycasters' );
 	rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
 	rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
+	rcFolder.add( params.raycasters, 'near' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
+	rcFolder.add( params.raycasters, 'far' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
 	rcFolder.open();
 
 	const meshFolder = gui.addFolder( 'Mesh' );
@@ -166,6 +170,9 @@ function addRaycaster() {
 			obj.rotation.y += yDir * 0.0001 * params.raycasters.speed * deltaTime;
 			obj.rotation.z += zDir * 0.0001 * params.raycasters.speed * deltaTime;
 
+			const start = pointDist - raycaster.near;
+			origMesh.position.set( start, 0, 0 );
+
 			origMesh.updateMatrixWorld();
 			origVec.setFromMatrixPosition( origMesh.matrixWorld );
 			dirVec.copy( origVec ).multiplyScalar( - 1 ).normalize();
@@ -173,11 +180,12 @@ function addRaycaster() {
 			raycaster.set( origVec, dirVec );
 			raycaster.firstHitOnly = true;
 			const res = raycaster.intersectObject( containerObj, true );
-			const length = res.length ? res[ 0 ].distance : pointDist;
+			const length = ( res.length ? res[ 0 ].distance : raycaster.far ) - raycaster.near;
 
-			hitMesh.position.set( pointDist - length, 0, 0 );
+			hitMesh.position.set( start - length, 0, 0 );
+			hitMesh.visible = res.length > 0;
 
-			cylinderMesh.position.set( pointDist - ( length / 2 ), 0, 0 );
+			cylinderMesh.position.set( start - ( length / 2 ), 0, 0 );
 			cylinderMesh.scale.set( 1, length, 1 );
 
 			cylinderMesh.rotation.z = Math.PI / 2;
@@ -194,6 +202,9 @@ function addRaycaster() {
 }
 
 function updateFromOptions() {
+
+	raycaster.near = params.raycasters.near;
+	raycaster.far = params.raycasters.far;
 
 	// Update raycaster count
 	while ( rayCasterObjects.length > params.raycasters.count ) {
