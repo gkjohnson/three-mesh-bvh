@@ -1,9 +1,10 @@
-import { Ray, Matrix4, Mesh } from 'three';
+import { Ray, Matrix4, Mesh, Vector3 } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const ray = /* @__PURE__ */ new Ray();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
+const worldScale = /* @__PURE__ */ new Vector3();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
 
 export function acceleratedRaycast( raycaster, intersects ) {
@@ -14,6 +15,7 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
+		ray.direction.divide( this.getWorldScale( worldScale ) );
 
 		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
