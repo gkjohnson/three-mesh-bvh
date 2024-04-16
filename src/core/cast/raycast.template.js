@@ -26,11 +26,11 @@ function _raycast( nodeIndex32, bvh, side, ray, intersects, near, far ) {
 
 		// It might happen that a triangle less distant than 'near' is selected here. Should we add the near check here too? is it worth it? It might slow down to handle really rare cases
 
-		intersectTris_indirect( bvh, side, ray, offset, count, intersects );
+		intersectTris_indirect( bvh, side, ray, offset, count, intersects, near, far );
 
 		/* @else */
 
-		intersectTris( bvh, side, ray, offset, count, intersects );
+		intersectTris( bvh, side, ray, offset, count, intersects, near, far );
 
 		/* @endif */
 

@@ -3,6 +3,7 @@ import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const ray = /* @__PURE__ */ new Ray();
+const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
 const worldScale = /* @__PURE__ */ new Vector3();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
@@ -15,12 +16,18 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
-		ray.direction.divide( this.getWorldScale( worldScale ) );
+
+		this.getWorldScale( worldScale );
+		direction.copy( ray.direction ).divide( worldScale );
+
+		const scaleFactor = direction.length();
+		const near = raycaster.near * scaleFactor;
+		const far = raycaster.far * scaleFactor;
 
 		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
 
-			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material, raycaster.near, raycaster.far ), this, raycaster );
+			const hit = convertRaycastIntersect( bvh.raycastFirst( ray, this.material, near, far ), this, raycaster );
 			if ( hit ) {
 
 				intersects.push( hit );
@@ -29,7 +36,7 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 		} else {
 
-			const hits = bvh.raycast( ray, this.material, raycaster.near, raycaster.far );
+			const hits = bvh.raycast( ray, this.material, near, far );
 			for ( let i = 0, l = hits.length; i < l; i ++ ) {
 
 				const hit = convertRaycastIntersect( hits[ i ], this, raycaster );

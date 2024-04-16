@@ -170,9 +170,6 @@ function addRaycaster() {
 			obj.rotation.y += yDir * 0.0001 * params.raycasters.speed * deltaTime;
 			obj.rotation.z += zDir * 0.0001 * params.raycasters.speed * deltaTime;
 
-			const start = pointDist - raycaster.near;
-			origMesh.position.set( start, 0, 0 );
-
 			origMesh.updateMatrixWorld();
 			origVec.setFromMatrixPosition( origMesh.matrixWorld );
 			dirVec.copy( origVec ).multiplyScalar( - 1 ).normalize();
@@ -180,13 +177,14 @@ function addRaycaster() {
 			raycaster.set( origVec, dirVec );
 			raycaster.firstHitOnly = true;
 			const res = raycaster.intersectObject( containerObj, true );
-			const length = ( res.length ? res[ 0 ].distance : raycaster.far ) - raycaster.near;
+			const length = res.length ? res[ 0 ].distance : pointDist;
 
-			hitMesh.position.set( start - length, 0, 0 );
-			hitMesh.visible = res.length > 0;
+			hitMesh.position.set( pointDist - length, 0, 0 );
 
-			cylinderMesh.position.set( start - ( length / 2 ), 0, 0 );
-			cylinderMesh.scale.set( 1, length, 1 );
+			const lineLength = res.length ? length - raycaster.near : length - raycaster.near - ( pointDist - raycaster.far );
+
+			cylinderMesh.position.set( pointDist - raycaster.near - ( lineLength / 2 ), 0, 0 );
+			cylinderMesh.scale.set( 1, lineLength, 1 );
 
 			cylinderMesh.rotation.z = Math.PI / 2;
 

@@ -29,11 +29,11 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 
 		/* @if INDIRECT */
 
-		return intersectClosestTri_indirect( bvh, side, ray, offset, count );
+		return intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far );
 
 		/* @else */
 
-		return intersectClosestTri( bvh, side, ray, offset, count );
+		return intersectClosestTri( bvh, side, ray, offset, count, near, far );
 
 		/* @endif */
 

@@ -15,7 +15,7 @@ const _normalB = /* @__PURE__ */ new Vector3();
 const _normalC = /* @__PURE__ */ new Vector3();
 
 const _intersectionPoint = /* @__PURE__ */ new Vector3();
-function checkIntersection( ray, pA, pB, pC, point, side ) {
+function checkIntersection( ray, pA, pB, pC, point, side, near, far ) {
 
 	let intersect;
 	if ( side === BackSide ) {
@@ -32,6 +32,8 @@ function checkIntersection( ray, pA, pB, pC, point, side ) {
 
 	const distance = ray.origin.distanceTo( point );
 
+	if ( distance < near || distance > far ) return null;
+
 	return {
 
 		distance: distance,
@@ -41,13 +43,13 @@ function checkIntersection( ray, pA, pB, pC, point, side ) {
 
 }
 
-function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side ) {
+function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far ) {
 
 	_vA.fromBufferAttribute( position, a );
 	_vB.fromBufferAttribute( position, b );
 	_vC.fromBufferAttribute( position, c );
 
-	const intersection = checkIntersection( ray, _vA, _vB, _vC, _intersectionPoint, side );
+	const intersection = checkIntersection( ray, _vA, _vB, _vC, _intersectionPoint, side, near, far );
 
 	if ( intersection ) {
 
@@ -106,7 +108,7 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 }
 
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
-function intersectTri( geo, side, ray, tri, intersections ) {
+function intersectTri( geo, side, ray, tri, intersections, near, far ) {
 
 	const triOffset = tri * 3;
 	let a = triOffset + 0;
@@ -123,7 +125,7 @@ function intersectTri( geo, side, ray, tri, intersections ) {
 	}
 
 	const { position, normal, uv, uv1 } = geo.attributes;
-	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side );
+	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
 
 	if ( intersection ) {
 
