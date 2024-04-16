@@ -18,11 +18,11 @@ export function acceleratedRaycast( raycaster, intersects ) {
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
 		this.getWorldScale( worldScale );
-		direction.copy( ray.direction ).divide( worldScale );
+		direction.copy( ray.direction ).multiply( worldScale );
 
 		const scaleFactor = direction.length();
-		const near = raycaster.near * scaleFactor;
-		const far = raycaster.far * scaleFactor;
+		const near = raycaster.near / scaleFactor;
+		const far = raycaster.far / scaleFactor;
 
 		const bvh = this.geometry.boundsTree;
 		if ( raycaster.firstHitOnly === true ) {
