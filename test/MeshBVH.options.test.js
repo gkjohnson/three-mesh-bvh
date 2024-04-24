@@ -273,4 +273,68 @@ describe( 'Options', () => {
 
 	} );
 
+	describe( 'range', () => {
+
+		let geometry;
+		beforeEach( () => {
+
+			geometry = new TorusGeometry( 5, 5, 400, 100 );
+
+		} );
+
+		it( 'should respect the range option without groups.', () => {
+
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+			let start = Infinity;
+			let end = 0;
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					start = Math.min( start, offset );
+					end = Math.max( end, offset + count );
+
+				}
+
+			} );
+
+			expect( start ).toBe( 100 );
+			expect( end ).toBe( 300 );
+
+		} );
+
+		it( 'should respect the range option with groups.', () => {
+
+			geometry.addGroup( 150, 300 );
+			geometry.addGroup( 450, 300 );
+
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+			let start = Infinity;
+			let end = 0;
+
+			for ( let i = 0, l = 2; i < l; i ++ ) {
+
+				bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+					if ( isLeaf ) {
+
+						start = Math.min( start, offset );
+						end = Math.max( end, offset + count );
+
+					}
+
+				}, i );
+
+			}
+
+			// groups from 50-150, 150-250
+			// draw range from 100-300
+			// final is 100-250
+			expect( start ).toBe( 100 );
+			expect( end ).toBe( 250 );
+
+		} );
+
+	} );
+
 } );

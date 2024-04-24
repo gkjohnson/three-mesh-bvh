@@ -20,6 +20,11 @@ export interface HitPointInfo {
   faceIndex: number;
 }
 
+export interface BufferRange {
+  start: number;
+  count: number;
+}
+
 export interface MeshBVHOptions {
   strategy?: SplitStrategy;
   maxDepth?: number;
@@ -28,6 +33,7 @@ export interface MeshBVHOptions {
   useSharedArrayBuffer?: boolean;
   verbose?: boolean;
   onProgress?: ( progress: number ) => void;
+  range?: BufferRange;
 }
 
 export interface MeshBVHSerializeOptions {
