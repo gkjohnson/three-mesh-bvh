@@ -32,11 +32,11 @@ export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, 
 		let intersection;
 		/* @if INDIRECT */
 
-		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i, undefined, near, far );
+		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i, null, near, far );
 
 		/* @else */
 
-		intersection = intersectTri( geometry, side, ray, i, undefined, near, far );
+		intersection = intersectTri( geometry, side, ray, i, null, near, far );
 
 		/* @endif */
 
