@@ -34,6 +34,10 @@ describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) 
 describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
 describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
 
+describe( 'Random CENTER intersections with near', () => runRandomTests( { strategy: CENTER, near: 6 } ) );
+describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
+describe( 'Random CENTER intersections with near and far', () => runRandomTests( { strategy: CENTER, near: 6, far: 7 } ) );
+
 function runRandomTests( options ) {
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
@@ -76,6 +80,18 @@ function runRandomTests( options ) {
 
 			scene = new Scene();
 			raycaster = new Raycaster();
+
+			if ( options.near !== undefined ) {
+
+				raycaster.near = options.near;
+
+			}
+
+			if ( options.far !== undefined ) {
+
+				raycaster.far = options.far;
+
+			}
 
 			setSeed( transformSeed );
 			random(); // call random() to seed with a larger value
