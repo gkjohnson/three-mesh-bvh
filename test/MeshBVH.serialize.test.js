@@ -140,4 +140,24 @@ describe( 'Serialization', () => {
 
 	} );
 
+	describe( 'indirect', () => {
+
+		it( 'should correctly deserialize the bvh.', () => {
+
+			const cloned = geometry.clone();
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+			const serialized = MeshBVH.serialize( bvh );
+
+			const deserialized = MeshBVH.deserialize( serialized, cloned );
+			expect( deserialized.indirect ).toBe( true );
+			expect( () => {
+
+				deserialized.resolveTriangleIndex( 0 );
+
+			} ).not.toThrow();
+
+		} );
+
+	} );
+
 } );
