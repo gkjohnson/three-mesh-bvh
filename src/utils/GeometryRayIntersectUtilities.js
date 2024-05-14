@@ -12,16 +12,6 @@ export function convertRaycastIntersect( hit, object, raycaster ) {
 	hit.distance = hit.point.distanceTo( raycaster.ray.origin );
 	hit.object = object;
 
-	if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) { // TODO probably this can be removed
-
-		console.error( "this should never happened now" ); // TODO remove this after test
-
-		return null;
-
-	} else {
-
-		return hit;
-
-	}
+	return hit;
 
 }

@@ -188,9 +188,6 @@ function addRaycaster() {
 
 			cylinderMesh.rotation.z = Math.PI / 2;
 
-			hitMesh.visible = res.length > 0; // TODO remove it, this is just for test
-			origMesh.visible = res.length > 0; // TODO remove it, this is just for test
-
 		},
 
 		remove: () => {
@@ -277,8 +274,7 @@ function updateFromOptions() {
 
 		knots.forEach( c => {
 
-			// c.scale.set( 1, 1, 1 ).multiplyScalar( scale );
-			c.scale.set( 0.25, 0.66, 1 ); // TODO remove it, this is just for test
+			c.scale.set( 1, 1, 1 ).multiplyScalar( scale );
 
 			const vec3 = new THREE.Vector3( 0, 1, 0 );
 			vec3.applyAxisAngle( new THREE.Vector3( 1, 0, 0 ), Math.PI * Math.random() );
