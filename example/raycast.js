@@ -30,7 +30,9 @@ let deltaTime = 0;
 const params = {
 	raycasters: {
 		count: 150,
-		speed: 1
+		speed: 1,
+		near: 0,
+		far: pointDist
 	},
 
 	mesh: {
@@ -96,6 +98,8 @@ function init() {
 	const rcFolder = gui.addFolder( 'Raycasters' );
 	rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
 	rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
+	rcFolder.add( params.raycasters, 'near' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
+	rcFolder.add( params.raycasters, 'far' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
 	rcFolder.open();
 
 	const meshFolder = gui.addFolder( 'Mesh' );
@@ -177,8 +181,10 @@ function addRaycaster() {
 
 			hitMesh.position.set( pointDist - length, 0, 0 );
 
-			cylinderMesh.position.set( pointDist - ( length / 2 ), 0, 0 );
-			cylinderMesh.scale.set( 1, length, 1 );
+			const lineLength = res.length ? length - raycaster.near : length - raycaster.near - ( pointDist - raycaster.far );
+
+			cylinderMesh.position.set( pointDist - raycaster.near - ( lineLength / 2 ), 0, 0 );
+			cylinderMesh.scale.set( 1, lineLength, 1 );
 
 			cylinderMesh.rotation.z = Math.PI / 2;
 
@@ -194,6 +200,9 @@ function addRaycaster() {
 }
 
 function updateFromOptions() {
+
+	raycaster.near = params.raycasters.near;
+	raycaster.far = params.raycasters.far;
 
 	// Update raycaster count
 	while ( rayCasterObjects.length > params.raycasters.count ) {

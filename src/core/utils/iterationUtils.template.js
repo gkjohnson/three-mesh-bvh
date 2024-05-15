@@ -2,7 +2,7 @@
 import { intersectTri } from '../../utils/ThreeRayIntersectUtilities.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 
-export function intersectTris/* @echo INDIRECT_STRING */( bvh, side, ray, offset, count, intersections ) {
+export function intersectTris/* @echo INDIRECT_STRING */( bvh, side, ray, offset, count, intersections, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
@@ -10,11 +10,11 @@ export function intersectTris/* @echo INDIRECT_STRING */( bvh, side, ray, offset
 		/* @if INDIRECT */
 
 		let vi = _indirectBuffer ? _indirectBuffer[ i ] : i;
-		intersectTri( geometry, side, ray, vi, intersections );
+		intersectTri( geometry, side, ray, vi, intersections, near, far );
 
 		/* @else */
 
-		intersectTri( geometry, side, ray, i, intersections );
+		intersectTri( geometry, side, ray, i, intersections, near, far );
 
 		/* @endif */
 
@@ -22,7 +22,7 @@ export function intersectTris/* @echo INDIRECT_STRING */( bvh, side, ray, offset
 
 }
 
-export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, offset, count ) {
+export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, offset, count, near, far ) {
 
 	const { geometry, _indirectBuffer } = bvh;
 	let dist = Infinity;
@@ -32,11 +32,11 @@ export function intersectClosestTri/* @echo INDIRECT_STRING */( bvh, side, ray, 
 		let intersection;
 		/* @if INDIRECT */
 
-		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i );
+		intersection = intersectTri( geometry, side, ray, _indirectBuffer ? _indirectBuffer[ i ] : i, null, near, far );
 
 		/* @else */
 
-		intersection = intersectTri( geometry, side, ray, i );
+		intersection = intersectTri( geometry, side, ray, i, null, near, far );
 
 		/* @endif */
 

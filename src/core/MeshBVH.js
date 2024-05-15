@@ -210,7 +210,7 @@ export class MeshBVH {
 	}
 
 	/* Core Cast Functions */
-	raycast( ray, materialOrSide = FrontSide ) {
+	raycast( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
@@ -226,7 +226,7 @@ export class MeshBVH {
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
 			const startCount = intersects.length;
 
-			raycastFunc( this, i, materialSide, ray, intersects );
+			raycastFunc( this, i, materialSide, ray, intersects, near, far );
 
 			if ( isArrayMaterial ) {
 
@@ -245,7 +245,7 @@ export class MeshBVH {
 
 	}
 
-	raycastFirst( ray, materialOrSide = FrontSide ) {
+	raycastFirst( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
 		const geometry = this.geometry;
@@ -260,7 +260,7 @@ export class MeshBVH {
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const result = raycastFirstFunc( this, i, materialSide, ray );
+			const result = raycastFirstFunc( this, i, materialSide, ray, near, far );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
