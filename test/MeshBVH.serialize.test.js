@@ -41,6 +41,7 @@ describe( 'Serialization', () => {
 		const testObj = { ...bvh };
 		delete testObj.resolveTriangleIndex;
 		expect( deserializedBVH ).toMatchObject( testObj );
+		expect( bvh.resolveTriangleIndex( 0 ) ).toEqual( deserializedBVH.resolveTriangleIndex( 0 ) );
 
 	} );
 
