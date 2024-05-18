@@ -160,7 +160,7 @@ export class MeshBVH {
 
 		}
 
-		this.resolveTriangleIndex = this._indirectBuffer ? i => this._indirectBuffer[ i ] : i => i;
+		this.resolveTriangleIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
 
 	}
 
