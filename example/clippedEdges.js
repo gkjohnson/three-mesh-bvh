@@ -110,7 +110,7 @@ function init() {
 	const loader = new GLTFLoader();
 	loader.setMeshoptDecoder( MeshoptDecoder );
 	loader
-		.load( '../models/internal_combustion_engine/model.gltf', gltf => {
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/internal-combustion-engine/model.gltf', gltf => {
 
 			// merge the geometry if needed
 			// let model = gltf.scene;

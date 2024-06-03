@@ -17,7 +17,7 @@ let scene, camera, renderer, bvhMesh, helper, pointCloud, outputContainer;
 let mouse = new THREE.Vector2();
 let sphereCollision;
 
-const plyPath = '../models/point_cloud_porsche_911_1.7M_vertices/scene.ply';
+const plyPath = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
 const raycaster = new THREE.Raycaster();
 const params = {
 

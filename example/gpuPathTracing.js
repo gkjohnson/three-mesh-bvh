@@ -192,7 +192,7 @@ function init() {
 
 	// load mesh and set up material BVH attributes
 	new GLTFLoader()
-		.load( '../models/DragonAttenuation.glb', gltf => {
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/dragon-attenuation/DragonAttenuation.glb', gltf => {
 
 			let dragonMesh;
 			gltf.scene.traverse( c => {

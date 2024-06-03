@@ -194,7 +194,7 @@ function init() {
 function loadColliderEnvironment() {
 
 	new GLTFLoader()
-		.load( '../models/dungeon_low_poly_game_level_challenge/scene.gltf', res => {
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/dungeon-warkarma/scene.gltf', res => {
 
 			const gltfScene = res.scene;
 			gltfScene.scale.setScalar( .01 );

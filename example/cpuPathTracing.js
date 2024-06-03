@@ -266,7 +266,7 @@ function init() {
 	// Load dragon
 	models[ 'Dragon' ] = null;
 	new GLTFLoader()
-		.load( '../models/DragonAttenuation.glb', gltf => {
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/dragon-attenuation/DragonAttenuation.glb', gltf => {
 
 			let mesh;
 			gltf.scene.traverse( c => {
@@ -304,7 +304,7 @@ function init() {
 	models[ 'Engine' ] = null;
 	new GLTFLoader()
 		.setMeshoptDecoder( MeshoptDecoder )
-		.load( '../models/internal_combustion_engine/model.gltf', gltf => {
+		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/internal-combustion-engine/model.gltf', gltf => {
 
 			const originalMesh = gltf.scene.children[ 0 ];
 			const originalGeometry = originalMesh.geometry;
