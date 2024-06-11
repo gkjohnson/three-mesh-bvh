@@ -7,6 +7,8 @@ import {
 	MeshBasicMaterial,
 	InterleavedBuffer,
 	InterleavedBufferAttribute,
+	InstancedMesh,
+	Object3D
 } from 'three';
 import {
 	acceleratedRaycast,
@@ -25,14 +27,17 @@ BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
 describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
 describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
+describe( 'Random Instanced Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, instanced: true } ) );
 
 describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
 describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
 describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
+describe( 'Random Instanced Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, instanced: true } ) );
 
 describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
 describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
 describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
+describe( 'Random Instanced Buffer SAH intersections', () => runRandomTests( { strategy: SAH, instanced: true } ) );
 
 describe( 'Random CENTER intersections with near', () => runRandomTests( { strategy: CENTER, near: 6 } ) );
 describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
@@ -96,21 +101,72 @@ function runRandomTests( options ) {
 			setSeed( transformSeed );
 			random(); // call random() to seed with a larger value
 
-			for ( var i = 0; i < 10; i ++ ) {
+			if ( options.instanced ) {
 
-				let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
-				let mesh = new Mesh( geo, new MeshBasicMaterial() );
-				mesh.rotation.x = random() * 10;
-				mesh.rotation.y = random() * 10;
-				mesh.rotation.z = random() * 10;
+				const geo = groupedGeometry; // ungroupedGeometry not used...
+				const instancedMesh = new InstancedMesh( geo, new MeshBasicMaterial(), 10 );
 
-				mesh.position.x = random();
-				mesh.position.y = random();
-				mesh.position.z = random();
+				instancedMesh.rotation.x = random() * 10;
+				instancedMesh.rotation.y = random() * 10;
+				instancedMesh.rotation.z = random() * 10;
 
-				scene.add( mesh );
-				mesh.updateMatrix( true );
-				mesh.updateMatrixWorld( true );
+				instancedMesh.position.x = random();
+				instancedMesh.position.y = random();
+				instancedMesh.position.z = random();
+
+				instancedMesh.scale.x = random() * 2 - 1;
+				instancedMesh.scale.y = random() * 2 - 1;
+				instancedMesh.scale.z = random() * 2 - 1;
+
+				instancedMesh.updateMatrix( true );
+				instancedMesh.updateMatrixWorld( true );
+
+				scene.add( instancedMesh );
+
+				const tempMesh = new Object3D();
+
+				for ( var i = 0; i < 10; i ++ ) {
+
+					tempMesh.rotation.x = random() * 10;
+					tempMesh.rotation.y = random() * 10;
+					tempMesh.rotation.z = random() * 10;
+
+					tempMesh.position.x = random();
+					tempMesh.position.y = random();
+					tempMesh.position.z = random();
+
+					tempMesh.scale.x = random() * 2 - 1;
+					tempMesh.scale.y = random() * 2 - 1;
+					tempMesh.scale.z = random() * 2 - 1;
+
+					tempMesh.updateMatrix( true );
+					instancedMesh.setMatrixAt( i, tempMesh.matrix );
+
+				}
+
+			} else {
+
+				for ( var i = 0; i < 10; i ++ ) {
+
+					let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
+					let mesh = new Mesh( geo, new MeshBasicMaterial() );
+					mesh.rotation.x = random() * 10;
+					mesh.rotation.y = random() * 10;
+					mesh.rotation.z = random() * 10;
+
+					mesh.position.x = random();
+					mesh.position.y = random();
+					mesh.position.z = random();
+
+					mesh.scale.x = random() * 2 - 1;
+					mesh.scale.y = random() * 2 - 1;
+					mesh.scale.z = random() * 2 - 1;
+
+					scene.add( mesh );
+					mesh.updateMatrix( true );
+					mesh.updateMatrixWorld( true );
+
+				}
 
 			}
 
