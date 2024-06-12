@@ -4,6 +4,7 @@ import fs from 'fs';
 export default {
 
 	root: './example/',
+	base: '',
 	build: {
 		outDir: './bundle/',
 		rollupOptions: {
