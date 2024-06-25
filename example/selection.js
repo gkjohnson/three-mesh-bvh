@@ -774,12 +774,12 @@ function getConvexHull( points ) {
 
 	function compare( p1, p2 ) {
 
-	   // Find orientation
-	   const o = orientation( p0, p1, p2 );
-	   if ( o == 0 )
-		 return ( distSq( p0, p2 ) >= distSq( p0, p1 ) ) ? - 1 : 1;
+		// Find orientation
+		const o = orientation( p0, p1, p2 );
+		if ( o == 0 )
+			return ( distSq( p0, p2 ) >= distSq( p0, p1 ) ) ? - 1 : 1;
 
-	   return ( o == 2 ) ? - 1 : 1;
+		return ( o == 2 ) ? - 1 : 1;
 
 	}
 

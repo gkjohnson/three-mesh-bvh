@@ -33,6 +33,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 
 		/* @else */
 
+		// eslint-disable-next-line no-unreachable
 		return intersectClosestTri( bvh, side, ray, offset, count, near, far );
 
 		/* @endif */

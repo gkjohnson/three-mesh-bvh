@@ -123,7 +123,7 @@ function estimateMemoryInBytes( obj ) {
 
 		for ( let key in curr ) {
 
-			if ( ! curr.hasOwnProperty( key ) ) {
+			if ( ! Object.hasOwn( curr, key ) ) {
 
 				continue;
 
