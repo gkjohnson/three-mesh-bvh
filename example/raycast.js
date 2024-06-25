@@ -5,7 +5,6 @@ import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	CENTER, SAH, AVERAGE, MeshBVHHelper,
 } from '..';
-import './test.ts';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
