@@ -270,7 +270,7 @@ function updateDistanceCheck( fastCheck ) {
 	targetContainer.updateMatrixWorld();
 	const targetToBvh =
 		new THREE.Matrix4()
-		    .copy( terrain.matrixWorld ).invert()
+			.copy( terrain.matrixWorld ).invert()
 			.multiply( targetContainer.matrixWorld );
 
 	// get the closest point

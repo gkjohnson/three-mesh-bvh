@@ -253,7 +253,7 @@ function render() {
 
 	const transformMatrix =
 		new THREE.Matrix4()
-		    .copy( targetMesh.matrixWorld ).invert()
+			.copy( targetMesh.matrixWorld ).invert()
 			.multiply( shape.matrixWorld );
 
 	if ( s === 'sphere' ) {

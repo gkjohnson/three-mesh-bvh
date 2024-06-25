@@ -5,6 +5,7 @@ import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	CENTER, SAH, AVERAGE, MeshBVHHelper,
 } from '..';
+import './test.ts';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -61,7 +62,7 @@ function init() {
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
+	scene.fog = new THREE.Fog( 0x263238 / 2, 40, 80 );
 
 	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
 	light.position.set( 1, 1, 1 );
@@ -85,7 +86,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.z = 40;
+	camera.position.z = 60;
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
