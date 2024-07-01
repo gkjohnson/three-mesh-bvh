@@ -105,18 +105,14 @@ function runRandomTests( options ) {
 
 				const geo = groupedGeometry; // ungroupedGeometry not used...
 				const instancedMesh = new InstancedMesh( geo, new MeshBasicMaterial(), 10 );
-
-				updateMatrix( instancedMesh );
-
-				instancedMesh.updateMatrixWorld( true );
-
+				randomizeObjectTransform( instancedMesh );
 				scene.add( instancedMesh );
 
 				const tempObj = new Object3D();
 
 				for ( var i = 0; i < 10; i ++ ) {
 
-					updateMatrix( tempObj );
+					randomizeObjectTransform( tempObj );
 					instancedMesh.setMatrixAt( i, tempObj.matrix );
 
 				}
@@ -128,8 +124,7 @@ function runRandomTests( options ) {
 					let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
 					let mesh = new Mesh( geo, new MeshBasicMaterial() );
 
-					updateMatrix( mesh );
-					mesh.updateMatrixWorld( true );
+					randomizeObjectTransform( mesh );
 					scene.add( mesh );
 
 				}
@@ -192,8 +187,7 @@ function createInterleavedPositionBuffer( bufferAttribute ) {
 
 }
 
-
-function updateMatrix( target ) {
+function randomizeObjectTransform( target ) {
 
 	target.rotation.x = random() * 10;
 	target.rotation.y = random() * 10;
@@ -207,6 +201,6 @@ function updateMatrix( target ) {
 	target.scale.y = random() * 2 - 1;
 	target.scale.z = random() * 2 - 1;
 
-	target.updateMatrix( true );
+	target.updateMatrixWorld( true );
 
 }

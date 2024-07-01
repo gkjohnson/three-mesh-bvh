@@ -1,13 +1,14 @@
-import { Ray, Matrix4, Mesh, Vector3 } from 'three';
+import { Ray, Matrix4, Mesh, Vector3, Quaternion } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const ray = /* @__PURE__ */ new Ray();
 const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
-const worldScale = /* @__PURE__ */ new Vector3();
-const tmpVec3 = /* @__PURE__ */ new Vector3();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
+const _pos = /* @__PURE__ */ new Vector3();
+const _quat = /* @__PURE__ */ new Quaternion();
+const _worldScale = /* @__PURE__ */ new Vector3();
 
 export function acceleratedRaycast( raycaster, intersects ) {
 
@@ -18,8 +19,8 @@ export function acceleratedRaycast( raycaster, intersects ) {
 		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
-		getWorldScale( this.matrixWorld, worldScale );
-		direction.copy( ray.direction ).multiply( worldScale );
+		this.matrixWorld.decompose( _pos, _quat, _worldScale );
+		direction.copy( ray.direction ).multiply( _worldScale );
 
 		const scaleFactor = direction.length();
 		const near = raycaster.near / scaleFactor;
@@ -69,23 +70,5 @@ export function computeBoundsTree( options ) {
 export function disposeBoundsTree() {
 
 	this.boundsTree = null;
-
-}
-
-/** https://github.com/mrdoob/three.js/blob/dev/src/math/Matrix4.js#L732 */
-function getWorldScale( matrixWorld, target ) {
-
-	const te = matrixWorld.elements;
-
-	const sx = tmpVec3.set( te[ 0 ], te[ 1 ], te[ 2 ] ).length();
-	const sy = tmpVec3.set( te[ 4 ], te[ 5 ], te[ 6 ] ).length();
-	const sz = tmpVec3.set( te[ 8 ], te[ 9 ], te[ 10 ] ).length();
-
-	// // if determine is negative, we need to invert one scale
-	// const det = matrixWorld.determinant();
-	// if ( det < 0 ) sx = - sx;
-	// we don't need this.
-
-	target.set( sx, sy, sz );
 
 }
