@@ -110,7 +110,7 @@ function runRandomTests( options ) {
 
 				const tempObj = new Object3D();
 
-				for ( var i = 0; i < 10; i ++ ) {
+				for ( let i = 0; i < 10; i ++ ) {
 
 					randomizeObjectTransform( tempObj );
 					instancedMesh.setMatrixAt( i, tempObj.matrix );
@@ -119,7 +119,7 @@ function runRandomTests( options ) {
 
 			} else {
 
-				for ( var i = 0; i < 10; i ++ ) {
+				for ( let i = 0; i < 10; i ++ ) {
 
 					let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
 					let mesh = new Mesh( geo, new MeshBasicMaterial() );

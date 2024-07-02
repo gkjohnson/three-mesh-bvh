@@ -6,8 +6,6 @@ const ray = /* @__PURE__ */ new Ray();
 const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
-const _pos = /* @__PURE__ */ new Vector3();
-const _quat = /* @__PURE__ */ new Quaternion();
 const _worldScale = /* @__PURE__ */ new Vector3();
 
 export function acceleratedRaycast( raycaster, intersects ) {
@@ -19,7 +17,7 @@ export function acceleratedRaycast( raycaster, intersects ) {
 		tmpInverseMatrix.copy( this.matrixWorld ).invert();
 		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
 
-		this.matrixWorld.decompose( _pos, _quat, _worldScale );
+		extractMatrixScale( this.matrixWorld, _worldScale );
 		direction.copy( ray.direction ).multiply( _worldScale );
 
 		const scaleFactor = direction.length();
@@ -70,5 +68,17 @@ export function computeBoundsTree( options ) {
 export function disposeBoundsTree() {
 
 	this.boundsTree = null;
+
+}
+
+// https://github.com/mrdoob/three.js/blob/dev/src/math/Matrix4.js#L732
+// extracting the scale directly is ~3x faster than using "decompose"
+function extractMatrixScale( matrix, target ) {
+
+	const te = matrix.elements;
+	const sx = target.set( te[ 0 ], te[ 1 ], te[ 2 ] ).length();
+	const sy = target.set( te[ 4 ], te[ 5 ], te[ 6 ] ).length();
+	const sz = target.set( te[ 8 ], te[ 9 ], te[ 10 ] ).length();
+	return target.set( sx, sy, sz );
 
 }
