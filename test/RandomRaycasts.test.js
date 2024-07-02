@@ -7,6 +7,8 @@ import {
 	MeshBasicMaterial,
 	InterleavedBuffer,
 	InterleavedBufferAttribute,
+	InstancedMesh,
+	Object3D
 } from 'three';
 import {
 	acceleratedRaycast,
@@ -25,14 +27,17 @@ BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
 describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
 describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
+describe( 'Random Instanced CENTER intersections', () => runRandomTests( { strategy: CENTER, instanced: true } ) );
 
 describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
 describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
 describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
+describe( 'Random Instanced AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, instanced: true } ) );
 
 describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
 describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
 describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
+describe( 'Random Instanced SAH intersections', () => runRandomTests( { strategy: SAH, instanced: true } ) );
 
 describe( 'Random CENTER intersections with near', () => runRandomTests( { strategy: CENTER, near: 6 } ) );
 describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
@@ -96,21 +101,33 @@ function runRandomTests( options ) {
 			setSeed( transformSeed );
 			random(); // call random() to seed with a larger value
 
-			for ( var i = 0; i < 10; i ++ ) {
+			if ( options.instanced ) {
 
-				let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
-				let mesh = new Mesh( geo, new MeshBasicMaterial() );
-				mesh.rotation.x = random() * 10;
-				mesh.rotation.y = random() * 10;
-				mesh.rotation.z = random() * 10;
+				const geo = groupedGeometry; // ungroupedGeometry not used...
+				const instancedMesh = new InstancedMesh( geo, new MeshBasicMaterial(), 10 );
+				randomizeObjectTransform( instancedMesh );
+				scene.add( instancedMesh );
 
-				mesh.position.x = random();
-				mesh.position.y = random();
-				mesh.position.z = random();
+				const tempObj = new Object3D();
 
-				scene.add( mesh );
-				mesh.updateMatrix( true );
-				mesh.updateMatrixWorld( true );
+				for ( let i = 0; i < 10; i ++ ) {
+
+					randomizeObjectTransform( tempObj );
+					instancedMesh.setMatrixAt( i, tempObj.matrix );
+
+				}
+
+			} else {
+
+				for ( let i = 0; i < 10; i ++ ) {
+
+					let geo = i % 2 ? groupedGeometry : ungroupedGeometry;
+					let mesh = new Mesh( geo, new MeshBasicMaterial() );
+
+					randomizeObjectTransform( mesh );
+					scene.add( mesh );
+
+				}
 
 			}
 
@@ -167,5 +184,23 @@ function createInterleavedPositionBuffer( bufferAttribute ) {
 	}
 
 	return newBuffer;
+
+}
+
+function randomizeObjectTransform( target ) {
+
+	target.rotation.x = random() * 10;
+	target.rotation.y = random() * 10;
+	target.rotation.z = random() * 10;
+
+	target.position.x = random();
+	target.position.y = random();
+	target.position.z = random();
+
+	target.scale.x = random() * 2 - 1;
+	target.scale.y = random() * 2 - 1;
+	target.scale.z = random() * 2 - 1;
+
+	target.updateMatrixWorld( true );
 
 }
