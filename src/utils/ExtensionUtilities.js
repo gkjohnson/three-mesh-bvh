@@ -1,4 +1,4 @@
-import { Ray, Matrix4, Mesh, Vector3, Quaternion } from 'three';
+import { Ray, Matrix4, Mesh, Vector3 } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
