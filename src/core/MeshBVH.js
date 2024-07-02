@@ -35,6 +35,7 @@ export const DEFAULT_OPTIONS = {
 	onProgress: null,
 	indirect: false,
 	verbose: true,
+	range: { start: 0, count: Infinity }
 };
 
 export class MeshBVH {

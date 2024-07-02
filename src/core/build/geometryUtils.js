@@ -57,12 +57,18 @@ export function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-export function getFullGeometryRange( geo ) {
+export function getFullGeometryRange( geo, range ) {
 
 	const triCount = getTriCount( geo );
-	const drawRange = geo.drawRange;
-	const start = drawRange.start / 3;
-	const end = ( drawRange.start + drawRange.count ) / 3;
+	let workingRange = geo.drawRange;
+	if ( range ) {
+
+		workingRange = getRangesIntersection( workingRange, range );
+
+	}
+
+	const start = workingRange.start / 3;
+	const end = ( workingRange.start + workingRange.count ) / 3;
 
 	const offset = Math.max( 0, start );
 	const count = Math.min( triCount, end ) - offset;
@@ -73,26 +79,32 @@ export function getFullGeometryRange( geo ) {
 
 }
 
-export function getRootIndexRanges( geo ) {
+export function getRootIndexRanges( geo, range ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
 
-		return getFullGeometryRange( geo );
+		return getFullGeometryRange( geo, range );
 
 	}
 
 	const ranges = [];
 	const rangeBoundaries = new Set();
 
-	const drawRange = geo.drawRange;
-	const drawRangeStart = drawRange.start / 3;
-	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
+	let workingRange = geo.drawRange;
+	if ( range ) {
+
+		workingRange = getRangesIntersection( workingRange, range );
+
+	}
+
+	const workingRangeStart = workingRange.start / 3;
+	const workingRangeEnd = ( workingRange.start + workingRange.count ) / 3;
 	for ( const group of geo.groups ) {
 
 		const groupStart = group.start / 3;
 		const groupEnd = ( group.start + group.count ) / 3;
-		rangeBoundaries.add( Math.max( drawRangeStart, groupStart ) );
-		rangeBoundaries.add( Math.min( drawRangeEnd, groupEnd ) );
+		rangeBoundaries.add( Math.max( workingRangeStart, groupStart ) );
+		rangeBoundaries.add( Math.min( workingRangeEnd, groupEnd ) );
 
 	}
 
@@ -133,5 +145,17 @@ export function hasGroupGaps( geometry ) {
 	let total = 0;
 	groups.forEach( ( { count } ) => total += count );
 	return vertexCount !== total;
+
+}
+
+
+export function getRangesIntersection( range1, range2 ) {
+
+	return {
+
+		start: Math.max( range1.start, range2.start ),
+		count: Math.min( range1.count, range2.count )
+
+	};
 
 }
