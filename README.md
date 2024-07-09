@@ -354,9 +354,9 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // Print out warnings encountered during tree construction.
     verbose: true,
 
-	// If given, the MeshBVH will be computed for the given range on the geometry.
-	// If not specified, geometry.drawRange is used.
-	range: { start: number, count: number }
+    // If given, the MeshBVH will be computed for the given range on the geometry.
+    // If not specified, geometry.drawRange is used.
+    range: { start: number, count: number }
 
 }
 ```
