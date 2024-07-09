@@ -42,4 +42,6 @@ describe( 'hasGroupGaps', () => {
 
 	} );
 
+	// SHOULD WE ADD NEW TEST WITH RANGE?
+
 } );

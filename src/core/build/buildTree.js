@@ -145,7 +145,7 @@ export function buildPackedTree( bvh, options ) {
 
 		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
 
-		if ( hasGroupGaps( geometry ) && ! options.verbose ) {
+		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
 
 			console.warn(
 				'MeshBVH: Provided geometry contains groups that do not fully span the vertex contents while using the "indirect" option. ' +

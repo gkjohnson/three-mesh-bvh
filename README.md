@@ -348,15 +348,15 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // structure and the index buffer (or lack thereof) is retained. This can be used
     // when the existing index layout is important or groups are being used so a
     // single BVH hierarchy can be created to improve performance.
-    // Note: This setting is experimental
+    // Note: This setting is experimental.
     indirect: false,
 
     // Print out warnings encountered during tree construction.
     verbose: true,
 
-		// If given, the MeshBVH will be computed for the given range on the geometry.
-		// Default range is { start: 0, count: Infinity }
-		range: { start: number, count: number }
+	// If given, the MeshBVH will be computed for the given range on the geometry.
+	// If not specified, geometry.drawRange is used.
+	range: { start: number, count: number }
 
 }
 ```
