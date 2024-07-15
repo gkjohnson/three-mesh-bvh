@@ -84,7 +84,7 @@ export function getRootIndexRanges( geo, range ) {
 	const ranges = [];
 	const rangeBoundaries = new Set();
 
-	const drawRange = range ? getRangesIntersection( geo.drawRange, range ) : geo.drawRange; // or we just want to use only 'range' also here?
+	const drawRange = range ? range : geo.drawRange;
 	const drawRangeStart = drawRange.start / 3;
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
 	for ( const group of geo.groups ) {
@@ -133,19 +133,5 @@ export function hasGroupGaps( geometry, range ) {
 	let total = 0;
 	groups.forEach( ( { count } ) => total += count );
 	return vertexCount !== total;
-
-}
-
-
-export function getRangesIntersection( geoRange, customRange ) {
-
-	const start = Math.max( geoRange.start, customRange.start );
-
-	return {
-
-		start,
-		count: Math.min( geoRange.start + geoRange.count, customRange.start + customRange.count ) - start
-
-	};
 
 }
