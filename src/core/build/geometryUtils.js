@@ -117,12 +117,6 @@ export function getRootIndexRanges( geo, range ) {
 
 export function hasGroupGaps( geometry, range ) {
 
-	if ( geometry.groups.length === 0 ) {
-
-		return false;
-
-	}
-
 	const vertexCount = getTriCount( geometry );
 	const groups = getRootIndexRanges( geometry, range )
 		.sort( ( a, b ) => a.offset - b.offset );
