@@ -28,6 +28,7 @@ export interface MeshBVHOptions {
   useSharedArrayBuffer?: boolean;
   verbose?: boolean;
   onProgress?: ( progress: number ) => void;
+  range?: { start: number; count: number };
 }
 
 export interface MeshBVHSerializeOptions {
