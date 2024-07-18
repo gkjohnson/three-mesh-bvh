@@ -148,7 +148,7 @@ export function buildPackedTree( bvh, options ) {
 		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
 
 			console.warn(
-				'MeshBVH: Provided geometry contains groups that do not fully span the vertex contents while using the "indirect" option. ' +
+				'MeshBVH: Provided geometry contains groups or a range that do not fully span the vertex contents while using the "indirect" option. ' +
 				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
 			);
 
