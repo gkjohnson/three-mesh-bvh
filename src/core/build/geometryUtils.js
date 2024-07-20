@@ -57,10 +57,10 @@ export function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-export function getFullGeometryRange( geo ) {
+export function getFullGeometryRange( geo, range ) {
 
 	const triCount = getTriCount( geo );
-	const drawRange = geo.drawRange;
+	const drawRange = range ? range : geo.drawRange;
 	const start = drawRange.start / 3;
 	const end = ( drawRange.start + drawRange.count ) / 3;
 
@@ -73,18 +73,18 @@ export function getFullGeometryRange( geo ) {
 
 }
 
-export function getRootIndexRanges( geo ) {
+export function getRootIndexRanges( geo, range ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
 
-		return getFullGeometryRange( geo );
+		return getFullGeometryRange( geo, range );
 
 	}
 
 	const ranges = [];
 	const rangeBoundaries = new Set();
 
-	const drawRange = geo.drawRange;
+	const drawRange = range ? range : geo.drawRange;
 	const drawRangeStart = drawRange.start / 3;
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
 	for ( const group of geo.groups ) {
@@ -115,16 +115,10 @@ export function getRootIndexRanges( geo ) {
 
 }
 
-export function hasGroupGaps( geometry ) {
-
-	if ( geometry.groups.length === 0 ) {
-
-		return false;
-
-	}
+export function hasGroupGaps( geometry, range ) {
 
 	const vertexCount = getTriCount( geometry );
-	const groups = getRootIndexRanges( geometry )
+	const groups = getRootIndexRanges( geometry, range )
 		.sort( ( a, b ) => a.offset - b.offset );
 
 	const finalGroup = groups[ groups.length - 1 ];

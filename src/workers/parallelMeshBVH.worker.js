@@ -36,7 +36,7 @@ onmessage = async ( { data } ) => {
 
 		// generate necessary buffers and objects
 		const geometry = getGeometry( index, position );
-		const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+		const geometryRanges = options.indirect ? getFullGeometryRange( geometry, options.range ) : getRootIndexRanges( geometry, options.range );
 		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
 		const triCount = getTriCount( geometry );
 		const triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );

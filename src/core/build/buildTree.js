@@ -145,10 +145,10 @@ export function buildPackedTree( bvh, options ) {
 
 		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
 
-		if ( hasGroupGaps( geometry ) && ! options.verbose ) {
+		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
 
 			console.warn(
-				'MeshBVH: Provided geometry contains groups that do not fully span the vertex contents while using the "indirect" option. ' +
+				'MeshBVH: Provided geometry contains groups or a range that do not fully span the vertex contents while using the "indirect" option. ' +
 				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
 			);
 
@@ -165,7 +165,7 @@ export function buildPackedTree( bvh, options ) {
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 
 	const triangleBounds = computeTriangleBounds( geometry );
-	const geometryRanges = options.indirect ? getFullGeometryRange( geometry ) : getRootIndexRanges( geometry );
+	const geometryRanges = options.indirect ? getFullGeometryRange( geometry, options.range ) : getRootIndexRanges( geometry, options.range );
 	bvh._roots = geometryRanges.map( range => {
 
 		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );

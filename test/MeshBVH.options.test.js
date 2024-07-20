@@ -273,4 +273,141 @@ describe( 'Options', () => {
 
 	} );
 
+	describe( 'range', () => {
+
+		let geometry;
+		beforeEach( () => {
+
+			geometry = new TorusGeometry( 5, 5, 400, 100 );
+
+		} );
+
+		it( 'should respect the range option without groups.', () => {
+
+			const options = { range: { start: 300, count: 600 } };
+			const bvh = new MeshBVH( geometry, options );
+			let start = Infinity;
+			let end = 0;
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					start = Math.min( start, offset );
+					end = Math.max( end, offset + count );
+
+				}
+
+			} );
+
+			expect( start ).toBe( options.range.start / 3 );
+			expect( end ).toBe( ( options.range.start + options.range.count ) / 3 );
+
+		} );
+
+		it( 'should respect the range option with groups.', () => {
+
+			// [-------------------------------------------------------------]
+			// |__________________|
+			//   g0 = [0, 20]  |______________________||_____________________|
+			//                      g1 = [16, 40]           g2 = [41, 60]
+			//
+			// we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
+
+			geometry.addGroup( 0 * 3, ( 20 - 0 + 1 ) * 3 );
+			geometry.addGroup( 16 * 3, ( 40 - 16 + 1 ) * 3 );
+			geometry.addGroup( 41 * 3, ( 60 - 41 + 1 ) * 3 );
+
+			const options = { range: { start: 10 * 3, count: 45 * 3 } }; // range [10, 55]
+			const bvh = new MeshBVH( geometry, options );
+			const start = [];
+			const end = [];
+			const bvhCount = bvh._roots.length;
+
+			expect( bvhCount ).toBe( 4 );
+
+			for ( let i = 0, l = bvhCount; i < l; i ++ ) {
+
+				start[ i ] = Infinity;
+				end[ i ] = 0;
+
+				bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+					if ( isLeaf ) {
+
+						start[ i ] = Math.min( start[ i ], offset );
+						end[ i ] = Math.max( end[ i ], offset + count );
+
+					}
+
+				}, i );
+
+			}
+
+			// [10, 15], [16, 20], [21, 40], [41, 54]
+
+			expect( start[ 0 ] ).toBe( 10 );
+			expect( end[ 0 ] ).toBe( 16 );
+			expect( start[ 1 ] ).toBe( 16 );
+			expect( end[ 1 ] ).toBe( 21 );
+			expect( start[ 2 ] ).toBe( 21 );
+			expect( end[ 2 ] ).toBe( 41 );
+			expect( start[ 3 ] ).toBe( 41 );
+			expect( end[ 3 ] ).toBe( 55 );
+
+		} );
+
+		it( 'should respect the range option without groups, indirect.', () => {
+
+			const options = { indirect: true, range: { start: 300, count: 600 } };
+			const bvh = new MeshBVH( geometry, options );
+			let start = Infinity;
+			let end = 0;
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					start = Math.min( start, offset );
+					end = Math.max( end, offset + count );
+
+				}
+
+			} );
+
+			expect( start ).toBe( options.range.start / 3 );
+			expect( end ).toBe( ( options.range.start + options.range.count ) / 3 );
+
+		} );
+
+		it( 'should respect the range option with groups, indirect.', () => {
+
+			geometry.addGroup( 0 * 3, ( 20 - 0 + 1 ) * 3 );
+			geometry.addGroup( 16 * 3, ( 40 - 16 + 1 ) * 3 );
+			geometry.addGroup( 41 * 3, ( 60 - 41 + 1 ) * 3 );
+
+			const options = { indirect: true, range: { start: 10 * 3, count: 45 * 3 } }; // range [10, 55]
+			const bvh = new MeshBVH( geometry, options );
+			let start = Infinity;
+			let end = 0;
+			const bvhCount = bvh._roots.length;
+
+			expect( bvhCount ).toBe( 1 );
+
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					start = Math.min( start, offset );
+					end = Math.max( end, offset + count );
+
+				}
+
+			} );
+
+			expect( start ).toBe( 10 );
+			expect( end ).toBe( 55 );
+
+		} );
+
+	} );
+
 } );
