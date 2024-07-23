@@ -208,23 +208,19 @@ export function acceleratedRaycast(
   intersects: Array<Intersection>
 ): void;
 
-declare module 'three/src/core/BufferGeometry' {
+declare module 'three' {
   export interface BufferGeometry {
     boundsTree?: MeshBVH;
     computeBoundsTree: typeof computeBoundsTree;
     disposeBoundsTree: typeof disposeBoundsTree;
   }
-}
 
-declare module 'three/src/objects/BatchedMesh' {
   export interface BatchedMesh {
     boundsTrees?: MeshBVH[];
     computeBoundsTree: typeof computeBoundsTree;
     disposeBoundsTree: typeof disposeBoundsTree;
   }
-}
 
-declare module 'three/src/core/Raycaster' {
   export interface Raycaster {
     firstHitOnly?: boolean;
   }
