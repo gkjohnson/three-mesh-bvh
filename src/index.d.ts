@@ -199,13 +199,9 @@ export class MeshBVHHelper extends Group {
 
 // THREE.js Extensions
 
-export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH;
-
-export function computeBatchedBoundsTree( options?: MeshBVHOptions ): MeshBVH[];
+export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH | MeshBVH[];
 
 export function disposeBoundsTree(): void;
-
-export function disposeBatchedBoundsTree(): void;
 
 export function acceleratedRaycast(
   raycaster: Raycaster,
@@ -222,9 +218,9 @@ declare module 'three/src/core/BufferGeometry' {
 
 declare module 'three/src/objects/BatchedMesh' {
   export interface BatchedMesh {
-    batchedBoundsTree?: MeshBVH[];
-    computeBatchedBoundsTree: typeof computeBatchedBoundsTree;
-    disposeBatchedBoundsTree: typeof disposeBatchedBoundsTree;
+    boundsTrees?: MeshBVH[];
+    computeBoundsTree: typeof computeBoundsTree;
+    disposeBoundsTree: typeof disposeBoundsTree;
   }
 }
 

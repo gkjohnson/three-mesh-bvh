@@ -3,10 +3,10 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { radixSort } from 'three/examples/jsm/utils/SortUtils.js';
-import { computeBatchedBoundsTree, disposeBatchedBoundsTree, acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '..';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '..';
 
-THREE.BatchedMesh.prototype.computeBatchedBoundsTree = computeBatchedBoundsTree;
-THREE.BatchedMesh.prototype.disposeBatchedBoundsTree = disposeBatchedBoundsTree;
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -191,7 +191,7 @@ function initBatchedMesh() {
 
 	scene.add(mesh);
 
-	mesh.computeBatchedBoundsTree();
+	mesh.computeBoundsTree();
 
 }
 

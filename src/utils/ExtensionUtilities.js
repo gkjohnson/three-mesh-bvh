@@ -27,9 +27,9 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
-	if ( this.batchedBoundsTree ) {
+	if ( this.boundsTrees ) {
 
-		const batchedBoundsTree = this.batchedBoundsTree;
+		const boundsTrees = this.boundsTrees;
 		const drawInfo = this._drawInfo;
 		const drawRanges = this._drawRanges;
 		const matrixWorld = this.matrixWorld;
@@ -50,13 +50,13 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 			const geometryId = drawInfo[ i ].geometryIndex;
 
-			_mesh.geometry.boundsTree = batchedBoundsTree[ geometryId ];
+			_mesh.geometry.boundsTree = boundsTrees[ geometryId ];
 
 			this.getMatrixAt( i, _mesh.matrixWorld ).premultiply( matrixWorld );
 
 			if ( ! _mesh.geometry.boundsTree ) {
 
-				this.getBoundingBoxAt( geometryId, _mesh.geometry.boundingBox ); // I'm curios, do we actually need this?
+				this.getBoundingBoxAt( geometryId, _mesh.geometry.boundingBox );
 				this.getBoundingSphereAt( geometryId, _mesh.geometry.boundingSphere );
 
 				const drawRange = drawRanges[ geometryId ];
@@ -143,52 +143,50 @@ function acceleratedMeshRaycast( raycaster, intersects ) {
 
 }
 
-export function computeBoundsTree( options ) {
+export function computeBoundsTree( options = {} ) {
+
+	if ( this.isBatchedMesh ) {
+
+		options = {
+			...options,
+			indirect: false,
+			range: null
+		};
+
+		// three r166+
+
+		const drawRanges = this._drawRanges;
+		const geometryCount = this._geometryCount;
+		const boundsTrees = [];
+
+		for ( let i = 0; i < geometryCount; i ++ ) {
+
+			options.range = drawRanges[ i ];
+			boundsTrees[ i ] = new MeshBVH( this.geometry, options );
+
+		}
+
+		this.boundsTrees = boundsTrees;
+		return this.boundsTrees;
+
+	}
 
 	this.boundsTree = new MeshBVH( this, options );
 	return this.boundsTree;
 
 }
 
-export function computeBatchedBoundsTree( options ) {
-
-	if ( ! this.geometry ) throw new Error( "geometry is missing" ); // TODO better mesage
-
-	if ( ! options ) options = {};
-
-	// ignore 'indirect' and 'range' from options?
-	// add offset when recostruction
-	// this may change if BatchedMesh.deleteGeometry will be implemented
-
-	options.indirect = false;
-
-	// three r166+
-
-	const drawRanges = this._drawRanges;
-	const geometryCount = this._geometryCount;
-	const boundsTrees = [];
-
-	for ( let i = 0; i < geometryCount; i ++ ) {
-
-		options.range = drawRanges[ i ];
-		boundsTrees[ i ] = new MeshBVH( this.geometry, options );
-
-	}
-
-	this.batchedBoundsTree = boundsTrees;
-	return this.batchedBoundsTree;
-
-}
-
 export function disposeBoundsTree() {
 
-	this.boundsTree = null;
+	if ( this.isBatchedMesh ) {
 
-}
+		this.boundsTrees = null;
 
-export function disposeBatchedBoundsTree() {
+	} else {
 
-	this.batchedBoundsTree = null;
+		this.boundsTree = null;
+
+	}
 
 }
 
