@@ -147,13 +147,18 @@ export function computeBoundsTree( options = {} ) {
 
 	if ( this.isBatchedMesh ) {
 
+		if ( ! this.addInstance ) {
+
+			console.error( 'Three r166+ is required.' );
+			return;
+
+		}
+
 		options = {
 			...options,
 			indirect: false,
 			range: null
 		};
-
-		// three r166+
 
 		const drawRanges = this._drawRanges;
 		const geometryCount = this._geometryCount;
