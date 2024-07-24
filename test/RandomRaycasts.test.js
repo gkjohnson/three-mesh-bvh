@@ -8,7 +8,9 @@ import {
 	InterleavedBuffer,
 	InterleavedBufferAttribute,
 	InstancedMesh,
-	Object3D
+	Object3D,
+	BatchedMesh,
+	SphereGeometry
 } from 'three';
 import {
 	acceleratedRaycast,
@@ -23,6 +25,9 @@ import { random, setSeed } from './utils.js';
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+BatchedMesh.prototype.raycast = acceleratedRaycast;
+BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
+BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
 
 describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
 describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
@@ -43,6 +48,13 @@ describe( 'Random CENTER intersections with near', () => runRandomTests( { strat
 describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
 describe( 'Random CENTER intersections with near and far', () => runRandomTests( { strategy: CENTER, near: 6, far: 7 } ) );
 
+describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
+describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
+describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
+// describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true } ) );
+// describe( 'Random Batched CENTER intersections replacing a geometry', () => runRandomTests( { strategy: CENTER, batched: true } ) );
+// describe( 'Random Batched CENTER intersections with three version below 166', () => runRandomTests( { strategy: CENTER, batched: true } ) );
+
 function runRandomTests( options ) {
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
@@ -53,7 +65,9 @@ function runRandomTests( options ) {
 			ungroupedGeometry,
 			ungroupedBvh,
 			groupedGeometry,
-			groupedBvh;
+			groupedBvh,
+			batchedMesh,
+			batchedMeshBvh;
 
 		beforeAll( () => {
 
@@ -117,6 +131,32 @@ function runRandomTests( options ) {
 
 				}
 
+			} else if ( options.batched ) {
+
+				const geo = ungroupedGeometry;
+				const geo2 = new SphereGeometry( 1, 32, 16 );
+				const count = geo.attributes.position.count + geo2.attributes.position.count;
+				const indexCount = geo.index.count + geo2.index.count;
+				batchedMesh = new BatchedMesh( 10, count, indexCount, new MeshBasicMaterial() );
+				randomizeObjectTransform( batchedMesh );
+				scene.add( batchedMesh );
+
+				const geoId = batchedMesh.addGeometry( geo );
+				const geo2Id = batchedMesh.addGeometry( geo2 );
+
+				const tempObj = new Object3D();
+
+				for ( let i = 0; i < 10; i ++ ) {
+
+					randomizeObjectTransform( tempObj );
+					const id = batchedMesh.addInstance( i % 2 == 0 ? geoId : geo2Id );
+					batchedMesh.setMatrixAt( id, tempObj.matrix );
+
+				}
+
+				batchedMesh.computeBoundsTree( options );
+				batchedMeshBvh = batchedMesh.boundsTrees;
+
 			} else {
 
 				for ( let i = 0; i < 10; i ++ ) {
@@ -147,6 +187,8 @@ function runRandomTests( options ) {
 
 				ungroupedGeometry.boundsTree = ungroupedBvh;
 				groupedGeometry.boundsTree = groupedBvh;
+				if ( batchedMesh ) batchedMesh.boundsTrees = batchedMeshBvh;
+
 				const bvhHits = raycaster.intersectObject( scene, true );
 
 				raycaster.firstHitOnly = true;
@@ -154,6 +196,7 @@ function runRandomTests( options ) {
 
 				ungroupedGeometry.boundsTree = null;
 				groupedGeometry.boundsTree = null;
+				if ( batchedMesh ) batchedMesh.boundsTrees = null;
 				const ogHits = raycaster.intersectObject( scene, true );
 
 				expect( ogHits ).toEqual( bvhHits );

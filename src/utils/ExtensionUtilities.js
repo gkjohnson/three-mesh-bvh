@@ -65,7 +65,6 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 			}
 
 			_mesh.raycast( raycaster, _batchIntersects );
-			// acceleratedMeshRaycast.call( mesh, raycaster, _batchIntersects ); OR
 
 			for ( let j = 0, l = _batchIntersects.length; j < l; j ++ ) {
 
