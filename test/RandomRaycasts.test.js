@@ -51,9 +51,9 @@ describe( 'Random CENTER intersections with near and far', () => runRandomTests(
 describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
 describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
 describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
-describe( 'Random Batched CENTER intersections with three version below 166', () => runRandomTests( { strategy: CENTER, batched: true, olderVersion: true } ) );
 describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
 // describe( 'Random Batched CENTER intersections replacing a geometry', () => runRandomTests( { strategy: CENTER, batched: true, replaceGeo: true } ) );
+// describe( 'Random Batched CENTER intersections with three version below 166', () => runRandomTests( { strategy: CENTER, batched: true, olderVersion: true } ) );
 
 function runRandomTests( options ) {
 
@@ -141,14 +141,6 @@ function runRandomTests( options ) {
 				randomizeObjectTransform( batchedMesh );
 				scene.add( batchedMesh );
 
-				const originalAddInstance = batchedMesh.addInstance;
-
-				if ( options.olderVersion ) {
-
-					batchedMesh.addInstance = null;
-
-				}
-
 				const geoId = batchedMesh.addGeometry( geo );
 				if ( options.onlyOneGeo ) {
 
@@ -162,8 +154,6 @@ function runRandomTests( options ) {
 					batchedMesh.computeBoundsTree( options );
 
 				}
-
-				batchedMesh.addInstance = originalAddInstance;
 
 				const tempObj = new Object3D();
 

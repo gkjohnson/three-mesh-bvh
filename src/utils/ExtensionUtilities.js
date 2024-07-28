@@ -1,7 +1,8 @@
-import { Ray, Matrix4, Mesh, Vector3, BatchedMesh, Sphere } from 'three';
+import { Ray, Matrix4, Mesh, Vector3, BatchedMesh, Sphere, REVISION } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
+const IS_REVISION_166 = parseInt( REVISION ) >= 166;
 const ray = /* @__PURE__ */ new Ray();
 const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
@@ -152,7 +153,7 @@ export function computeBoundsTree( options = {} ) {
 
 	if ( this.isBatchedMesh ) {
 
-		if ( ! this.addInstance ) {
+		if ( ! IS_REVISION_166 ) {
 
 			console.error( 'Three r166+ is required.' );
 			return;
