@@ -46,7 +46,7 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 		// iterate over the second set of roots
 		for ( let j = 0, jl = otherRoots.length; j < jl; j ++ ) {
 
-			_bufferStack2.setBuffer( otherRoots[ i ] );
+			_bufferStack2.setBuffer( otherRoots[ j ] );
 
 			result = _traverse(
 				0, 0, matrixToLocal, invMat, intersectsRanges,
