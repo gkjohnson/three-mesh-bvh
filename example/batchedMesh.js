@@ -1,418 +1,347 @@
-// import * as THREE from 'three';
-// import Stats from 'three/examples/jsm/libs/stats.module.js';
-// import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-// import { radixSort } from 'three/examples/jsm/utils/SortUtils.js';
-// import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from '..';
+import Stats from 'stats.js';
+import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
+import * as THREE from 'three';
+import {
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
+	CENTER, SAH, AVERAGE,
+} from '..';
+
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
+
+const bgColor = 0x263238 / 2;
+
+let renderer, scene, stats, camera;
+let material, containerObj, batchedMesh; // boundsViz
+const rayCasterObjects = [];
+
+// Create ray casters in the scene
+const raycaster = new THREE.Raycaster();
+const sphere = new THREE.SphereGeometry( 0.25, 20, 20 );
+const cylinder = new THREE.CylinderGeometry( 0.01, 0.01 );
+const pointDist = 25;
+
+// Delta timer
+let lastFrameTime = null;
+let deltaTime = 0;
+
+const params = {
+	raycasters: {
+		count: 150,
+		speed: 1,
+		near: 0,
+		far: pointDist
+	},
+
+	mesh: {
+		splitStrategy: CENTER,
+		useBoundsTree: true,
+		// visualizeBounds: false,
+		// displayParents: false,
+		speed: 1,
+		// visualBoundsDepth: 10
+	}
+};
+
+init();
+updateFromOptions();
+render();
+
+function init() {
+
+	// renderer setup
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setClearColor( bgColor, 1 );
+	document.body.appendChild( renderer.domElement );
+
+	// scene setup
+	scene = new THREE.Scene();
+	scene.fog = new THREE.Fog( 0x263238 / 2, 40, 80 );
+
+	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	light.position.set( 1, 1, 1 );
+	scene.add( light );
+	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
+
+	containerObj = new THREE.Object3D();
+	material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
+	containerObj.scale.multiplyScalar( 10 );
+	containerObj.rotation.x = 10.989999999999943;
+	containerObj.rotation.y = 10.989999999999943;
+	scene.add( containerObj );
+
+	createBatchedMesh();
+
+	// camera setup
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	camera.position.z = 60;
+	camera.far = 100;
+	camera.updateProjectionMatrix();
+
+	// stats setup
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// Run
+	const gui = new dat.GUI();
+	const rcFolder = gui.addFolder( 'Raycasters' );
+	rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
+	rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
+	rcFolder.add( params.raycasters, 'near' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
+	rcFolder.add( params.raycasters, 'far' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
+	rcFolder.open();
+
+	const meshFolder = gui.addFolder( 'Mesh' );
+	meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
+	// meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
+	// meshFolder.add( params.mesh, 'displayParents' ).onChange( () => updateFromOptions() );
+	// meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
+	meshFolder.open();
 
-// THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
-// THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
-// THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-// THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
-// THREE.Mesh.prototype.raycast = acceleratedRaycast;
-// THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
 
-// let stats, gui, guiStatsEl;
-// let camera, controls, scene, renderer;
-// let geometries, mesh, material;
-// const raycaster = new THREE.Raycaster();
-// const mouse = new THREE.Vector2( 1, 1 );
-// const ids = [];
-// const matrix = new THREE.Matrix4();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
 
-// //
+}
+
+function createBatchedMesh() {
 
-// const position = new THREE.Vector3();
-// const rotation = new THREE.Euler();
-// const quaternion = new THREE.Quaternion();
-// const scale = new THREE.Vector3();
-// const color = new THREE.Color();
-// const white = new THREE.Color().setHex( 0xffffff );
+	const radius = 0.5;
 
-// //
+	const knotGeometry = new THREE.TorusKnotGeometry( radius, 0.2, 200, 100, 2, 3 );
+	const knot2Geometry = new THREE.TorusKnotGeometry( radius, 0.2, 200, 100, 3, 4 );
+	const sphereGeometry = new THREE.SphereGeometry( radius, 100, 100 );
 
-// const MAX_GEOMETRY_COUNT = 20000;
+	const knotVertices = knotGeometry.attributes.position.count;
+	const knot2Vertices = knot2Geometry.attributes.position.count;
+	const sphereVertices = sphereGeometry.attributes.position.count;
+	const maxVertices = knotVertices + knot2Vertices + sphereVertices;
 
-// const Method = {
-// 	BATCHED: 'BATCHED',
-// 	NAIVE: 'NAIVE'
-// };
+	const knotIndexes = knotGeometry.index.count;
+	const knot2Indexes = knot2Geometry.index.count;
+	const sphereIndexes = sphereGeometry.index.count;
+	const maxIndexes = knotIndexes + knot2Indexes + sphereIndexes;
 
-// const api = {
-// 	method: Method.BATCHED,
-// 	count: 2,
-// 	dynamic: 16,
+	batchedMesh = new THREE.BatchedMesh( 3, maxVertices, maxIndexes, material );
 
-// 	sortObjects: true,
-// 	perObjectFrustumCulled: true,
-// 	opacity: 1,
-// 	useCustomSort: true,
-// };
+	const knotGeometryId = batchedMesh.addGeometry( knotGeometry );
+	const knot2GeometryId = batchedMesh.addGeometry( knot2Geometry );
+	const sphereGeometryId = batchedMesh.addGeometry( sphereGeometry );
 
-// init();
-// initGeometries();
-// initMesh();
+	const knotInstanceId = batchedMesh.addInstance( knotGeometryId );
+	const knot2InstanceId = batchedMesh.addInstance( knot2GeometryId );
+	const sphereInstanceId = batchedMesh.addInstance( sphereGeometryId );
 
-// //
+	const dolly = new THREE.Object3D();
 
-// function randomizeMatrix(matrix) {
+	dolly.position.x = - 1.5;
+	dolly.rotation.x = Math.random() * 10;
+	dolly.rotation.y = Math.random() * 10;
+	dolly.updateMatrix();
+	batchedMesh.setMatrixAt( knotInstanceId, dolly.matrix );
 
-// 	position.x = Math.random() * 40 - 20;
-// 	position.y = Math.random() * 40 - 20;
-// 	position.z = Math.random() * 40 - 20;
+	dolly.position.x = 0;
+	dolly.rotation.x = Math.random() * 10;
+	dolly.rotation.y = Math.random() * 10;
+	dolly.updateMatrix();
+	batchedMesh.setMatrixAt( knot2InstanceId, dolly.matrix );
 
-// 	rotation.x = Math.random() * 2 * Math.PI;
-// 	rotation.y = Math.random() * 2 * Math.PI;
-// 	rotation.z = Math.random() * 2 * Math.PI;
+	dolly.position.x = 1.5;
+	dolly.rotation.x = Math.random() * 10;
+	dolly.rotation.y = Math.random() * 10;
+	dolly.updateMatrix();
+	batchedMesh.setMatrixAt( sphereInstanceId, dolly.matrix );
 
-// 	quaternion.setFromEuler(rotation);
+	batchedMesh.rotation.x = Math.random() * 10;
+	batchedMesh.rotation.y = Math.random() * 10;
 
-// 	scale.x = scale.y = scale.z = 0.5 + (Math.random() * 0.5);
+	containerObj.add( batchedMesh );
 
-// 	return matrix.compose(position, quaternion, scale);
+}
 
-// }
+function addRaycaster() {
 
-// function randomizeRotationSpeed(rotation) {
+	// Objects
+	const obj = new THREE.Object3D();
+	const material = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+	const origMesh = new THREE.Mesh( sphere, material );
+	const hitMesh = new THREE.Mesh( sphere, material );
+	hitMesh.scale.multiplyScalar( 0.25 );
+	origMesh.scale.multiplyScalar( 0.5 );
 
-// 	rotation.x = Math.random() * 0.01;
-// 	rotation.y = Math.random() * 0.01;
-// 	rotation.z = Math.random() * 0.01;
-// 	return rotation;
+	const cylinderMesh = new THREE.Mesh( cylinder, new THREE.MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.25 } ) );
 
-// }
+	// Init the rotation root
+	obj.add( cylinderMesh );
+	obj.add( origMesh );
+	obj.add( hitMesh );
+	scene.add( obj );
 
-// function initGeometries() {
+	// set transforms
+	origMesh.position.set( pointDist, 0, 0 );
+	obj.rotation.x = Math.random() * 10;
+	obj.rotation.y = Math.random() * 10;
+	obj.rotation.z = Math.random() * 10;
 
-// 	geometries = [
-// 		new THREE.TorusKnotGeometry( 1, 0.4, 200, 50 ),
-// 		new THREE.TorusKnotGeometry( 2, 0.8, 400, 100 )
-// 	];
+	// reusable vectors
+	const origVec = new THREE.Vector3();
+	const dirVec = new THREE.Vector3();
+	const xDir = ( Math.random() - 0.5 );
+	const yDir = ( Math.random() - 0.5 );
+	const zDir = ( Math.random() - 0.5 );
+	rayCasterObjects.push( {
+		update: () => {
 
-// }
+			obj.rotation.x += xDir * 0.0001 * params.raycasters.speed * deltaTime;
+			obj.rotation.y += yDir * 0.0001 * params.raycasters.speed * deltaTime;
+			obj.rotation.z += zDir * 0.0001 * params.raycasters.speed * deltaTime;
 
-// function createMaterial() {
+			origMesh.updateMatrixWorld();
+			origVec.setFromMatrixPosition( origMesh.matrixWorld );
+			dirVec.copy( origVec ).multiplyScalar( - 1 ).normalize();
 
-// 	if (!material) {
+			raycaster.set( origVec, dirVec );
+			raycaster.firstHitOnly = true;
+			const res = raycaster.intersectObject( containerObj, true );
+			const length = res.length ? res[ 0 ].distance : pointDist;
 
-// 		material = new THREE.MeshPhongMaterial();
+			hitMesh.position.set( pointDist - length, 0, 0 );
 
-// 	}
+			const lineLength = res.length ? length - raycaster.near : length - raycaster.near - ( pointDist - raycaster.far );
 
-// 	return material;
+			cylinderMesh.position.set( pointDist - raycaster.near - ( lineLength / 2 ), 0, 0 );
+			cylinderMesh.scale.set( 1, lineLength, 1 );
 
-// }
+			cylinderMesh.rotation.z = Math.PI / 2;
 
-// function cleanup() {
+		},
 
-// 	if (mesh) {
+		remove: () => {
 
-// 		mesh.parent.remove(mesh);
+			scene.remove( obj );
 
-// 		if (mesh.dispose) {
+		}
+	} );
 
-// 			mesh.dispose();
+}
 
-// 		}
+function updateFromOptions() {
 
-// 	}
+	raycaster.near = params.raycasters.near;
+	raycaster.far = params.raycasters.far;
 
-// }
+	// Update raycaster count
+	while ( rayCasterObjects.length > params.raycasters.count ) {
 
-// function initMesh() {
+		rayCasterObjects.pop().remove();
 
-// 	cleanup();
+	}
 
-// 	if (api.method === Method.BATCHED) {
+	while ( rayCasterObjects.length < params.raycasters.count ) {
 
-// 		initBatchedMesh();
+		addRaycaster();
 
-// 	} else {
+	}
 
-// 		initRegularMesh();
+	if ( ! batchedMesh ) {
 
-// 	}
+		return;
 
-// }
+	}
 
-// function initRegularMesh() {
+	// Update whether or not to use the bounds tree
+	if (
+		! params.mesh.useBoundsTree && batchedMesh.boundsTrees ||
+		batchedMesh.boundsTrees && params.mesh.splitStrategy !== batchedMesh.boundsTrees.splitStrategy
+	) {
 
-// 	mesh = new THREE.Group();
-// 	const material = createMaterial();
+		batchedMesh.disposeBoundsTree();
 
-// 	for (let i = 0; i < api.count; i++) {
+	}
 
-// 		const child = new THREE.Mesh(geometries[i % geometries.length], material);
-// 		randomizeMatrix(child.matrix);
-// 		child.matrix.decompose(child.position, child.quaternion, child.scale);
-// 		child.userData.rotationSpeed = randomizeRotationSpeed(new THREE.Euler());
-// 		mesh.add(child);
+	if ( params.mesh.useBoundsTree && ! batchedMesh.boundsTrees ) {
 
-// 	}
+		console.time( 'computing bounds tree' );
+		batchedMesh.computeBoundsTree( {
+			maxLeafTris: 5,
+			strategy: parseFloat( params.mesh.splitStrategy ),
+		} );
+		batchedMesh.boundsTrees.splitStrategy = params.mesh.splitStrategy;
+		console.timeEnd( 'computing bounds tree' );
 
-// 	scene.add(mesh);
+		// if ( boundsViz ) {
 
-// }
+		// 	boundsViz.update();
 
-// function initBatchedMesh() {
+		// }
 
-// 	const geometryCount = api.count;
-// 	// const vertexCount = geometries.length * 512;
-// 	// const indexCount = geometries.length * 1024;
+	}
 
-// 	const euler = new THREE.Euler();
-// 	const matrix = new THREE.Matrix4();
-// 	mesh = new THREE.BatchedMesh(geometryCount, 250000, 500000, createMaterial());
-// 	mesh.userData.rotationSpeeds = [];
+	// // Update bounds viz
+	// const shouldDisplayBounds = params.mesh.visualizeBounds && geometry.boundsTree;
+	// if ( boundsViz && ! shouldDisplayBounds ) {
 
-// 	// disable full-object frustum culling since all of the objects can be dynamic.
-// 	mesh.frustumCulled = false;
+	// 	containerObj.remove( boundsViz );
+	// 	boundsViz = null;
 
-// 	ids.length = 0;
+	// }
 
-// 	const geometryIds = [
-// 		mesh.addGeometry(geometries[0]),
-// 		mesh.addGeometry(geometries[1]),
-// 	];
+	// if ( ! boundsViz && shouldDisplayBounds ) {
 
-// 	for (let i = 0; i < api.count; i++) {
+	// 	boundsViz = new MeshBVHHelper( knots[ 0 ] );
+	// 	containerObj.add( boundsViz );
 
-// 		const id = mesh.addInstance(geometryIds[i % geometryIds.length]);
-// 		mesh.setMatrixAt(id, randomizeMatrix(matrix));
-// 		mesh.setColorAt(id, white);
+	// }
 
-// 		const rotationMatrix = new THREE.Matrix4();
-// 		rotationMatrix.makeRotationFromEuler(randomizeRotationSpeed(euler));
-// 		mesh.userData.rotationSpeeds.push(rotationMatrix);
+	// if ( boundsViz ) {
 
-// 		ids.push(id);
+	// 	boundsViz.depth = params.mesh.visualBoundsDepth;
+	// 	boundsViz.displayParents = params.mesh.displayParents;
+	// 	boundsViz.update();
 
-// 	}
+	// }
 
-// 	scene.add(mesh);
+}
 
-// 	mesh.computeBoundsTree();
+function render() {
 
-// }
+	stats.begin();
 
-// function init() {
+	const currTime = window.performance.now();
+	lastFrameTime = lastFrameTime || currTime;
+	deltaTime = currTime - lastFrameTime;
 
-// 	const width = window.innerWidth;
-// 	const height = window.innerHeight;
+	containerObj.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
+	containerObj.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
+	containerObj.children.forEach( c => {
 
-// 	// camera
+		c.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
+		c.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
 
-// 	camera = new THREE.PerspectiveCamera(70, width / height, 1, 100);
-// 	camera.position.z = 30;
+	} );
+	containerObj.updateMatrixWorld();
 
-// 	// renderer
+	rayCasterObjects.forEach( f => f.update() );
 
-// 	renderer = new THREE.WebGLRenderer({ antialias: true });
-// 	renderer.setPixelRatio(window.devicePixelRatio);
-// 	renderer.setSize(width, height);
-// 	renderer.setAnimationLoop(animate);
-// 	document.body.appendChild(renderer.domElement);
+	renderer.render( scene, camera );
 
-// 	// scene
+	lastFrameTime = currTime;
 
-// 	scene = new THREE.Scene();
-// 	scene.background = new THREE.Color('gray');
+	stats.end();
 
-// 	// controls
+	requestAnimationFrame( render );
 
-// 	controls = new OrbitControls(camera, renderer.domElement);
-// 	controls.autoRotate = true;
-// 	controls.autoRotateSpeed = 1.0;
-
-// 	// lights
-
-// 	const light = new THREE.HemisphereLight( 0xffffff, 0x888888, 3 );
-// 	light.position.set( 0, 1, 0 );
-// 	scene.add( light );
-
-// 	// stats
-
-// 	stats = new Stats();
-// 	document.body.appendChild(stats.dom);
-
-// 	// gui
-
-// 	gui = new GUI();
-// 	gui.add(api, 'count', 1, MAX_GEOMETRY_COUNT).step(1).onChange(initMesh);
-// 	gui.add(api, 'dynamic', 0, MAX_GEOMETRY_COUNT).step(1);
-// 	gui.add(api, 'method', Method).onChange(initMesh);
-// 	gui.add(api, 'opacity', 0, 1).onChange(v => {
-
-// 		if (v < 1) {
-
-// 			material.transparent = true;
-// 			material.depthWrite = false;
-
-// 		} else {
-
-// 			material.transparent = false;
-// 			material.depthWrite = true;
-
-// 		}
-
-// 		material.opacity = v;
-// 		material.needsUpdate = true;
-
-// 	});
-// 	gui.add(api, 'sortObjects');
-// 	gui.add(api, 'perObjectFrustumCulled');
-// 	gui.add(api, 'useCustomSort');
-
-// 	guiStatsEl = document.createElement('li');
-// 	guiStatsEl.classList.add('gui-stats');
-
-// 	// listeners
-
-// 	window.addEventListener('resize', onWindowResize);
-// 	document.addEventListener( 'mousemove', onMouseMove );
-
-// }
-
-// //
-
-// function sortFunction(list) {
-
-// 	// initialize options
-// 	this._options = this._options || {
-// 		get: el => el.z,
-// 		aux: new Array(this.maxInstanceCount)
-// 	};
-
-// 	const options = this._options;
-// 	options.reversed = this.material.transparent;
-
-// 	let minZ = Infinity;
-// 	let maxZ = - Infinity;
-// 	for (let i = 0, l = list.length; i < l; i++) {
-
-// 		const z = list[i].z;
-// 		if (z > maxZ) maxZ = z;
-// 		if (z < minZ) minZ = z;
-
-// 	}
-
-// 	// convert depth to unsigned 32 bit range
-// 	const depthDelta = maxZ - minZ;
-// 	const factor = (2 ** 32 - 1) / depthDelta; // UINT32_MAX / z range
-// 	for (let i = 0, l = list.length; i < l; i++) {
-
-// 		list[i].z -= minZ;
-// 		list[i].z *= factor;
-
-// 	}
-
-// 	// perform a fast-sort using the hybrid radix sort function
-// 	radixSort(list, options);
-
-// }
-
-// function onWindowResize() {
-
-// 	const width = window.innerWidth;
-// 	const height = window.innerHeight;
-
-// 	camera.aspect = width / height;
-// 	camera.updateProjectionMatrix();
-
-// 	renderer.setSize(width, height);
-
-// }
-
-// function onMouseMove( event ) {
-
-// 	event.preventDefault();
-
-// 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-// 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-// }
-
-// function animate() {
-
-// 	animateMeshes();
-
-// 	raycaster.setFromCamera( mouse, camera );
-
-// 	console.time("raycast");
-
-// 	const intersection = raycaster.intersectObject( mesh );
-
-// 	console.timeEnd("raycast");
-
-// 	if ( intersection.length > 0 ) {
-
-// 		const batchId = intersection[ 0 ].batchId;
-
-// 		mesh.getColorAt( batchId, color );
-
-// 		if ( color.equals( white ) ) {
-
-// 			mesh.setColorAt( batchId, color.setHex( Math.random() * 0xffffff ) );
-
-// 			// mesh.instanceColor.needsUpdate = true;
-
-// 		}
-
-// 	}
-
-// 	controls.update();
-// 	stats.update();
-
-// 	render();
-
-// }
-
-// function animateMeshes() {
-
-// 	const loopNum = Math.min(api.count, api.dynamic);
-
-// 	if (api.method === Method.BATCHED) {
-
-// 		for (let i = 0; i < loopNum; i++) {
-
-// 			const rotationMatrix = mesh.userData.rotationSpeeds[i];
-// 			const id = ids[i];
-
-// 			mesh.getMatrixAt(id, matrix);
-// 			matrix.multiply(rotationMatrix);
-// 			mesh.setMatrixAt(id, matrix);
-
-// 		}
-
-// 	} else {
-
-// 		for (let i = 0; i < loopNum; i++) {
-
-// 			const child = mesh.children[i];
-// 			const rotationSpeed = child.userData.rotationSpeed;
-
-// 			child.rotation.set(
-// 				child.rotation.x + rotationSpeed.x,
-// 				child.rotation.y + rotationSpeed.y,
-// 				child.rotation.z + rotationSpeed.z
-// 			);
-
-// 		}
-
-// 	}
-
-// }
-
-// function render() {
-
-// 	if (mesh.isBatchedMesh) {
-
-// 		mesh.sortObjects = api.sortObjects;
-// 		mesh.perObjectFrustumCulled = api.perObjectFrustumCulled;
-// 		mesh.setCustomSort(api.useCustomSort ? sortFunction : null);
-
-// 	}
-
-// 	renderer.render(scene, camera);
-
-// }
+}
