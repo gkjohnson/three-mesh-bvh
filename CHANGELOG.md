@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Support for a custom "range" option to build a BVH from a sub range of the geometry.
 
+### Fixed
+- Bug in `MeshBVH.bvhcast` causing the incorrect bounds to be checked on the other bvh.
+
 ## [0.7.6] - 2024-07-02
 ### Fixed
 - Regression when intersecting InstancedMesh instances.
