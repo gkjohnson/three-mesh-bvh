@@ -160,6 +160,12 @@ export function computeBoundsTree( options = {} ) {
 
 		}
 
+		if ( options.indirect ) {
+
+			console.warn( '"Indirect" is set to false because it is not supported for BatchedMesh.' );
+
+		}
+
 		options = {
 			...options,
 			indirect: false,
