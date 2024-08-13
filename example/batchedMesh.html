@@ -15,9 +15,23 @@
             width: 100%;
             height: 100%;
         }
+
+        #info {
+			top: 0;
+			width: 100%;
+			pointer-events: none;
+			position: absolute;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
     </style>
 </head>
 <body>
+    <div id="info">
+		BatchedMesh with 3 geometries.
+	</div>
     <script type="module" src="./batchedMesh.js"></script>
 </body>
 </html>

@@ -16,7 +16,7 @@ THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
 const bgColor = 0x263238 / 2;
 
 let renderer, scene, stats, camera;
-let material, containerObj, batchedMesh; // boundsViz
+let material, containerObj, batchedMesh;
 const rayCasterObjects = [];
 
 // Create ray casters in the scene
@@ -24,6 +24,8 @@ const raycaster = new THREE.Raycaster();
 const sphere = new THREE.SphereGeometry( 0.25, 20, 20 );
 const cylinder = new THREE.CylinderGeometry( 0.01, 0.01 );
 const pointDist = 25;
+
+const dolly = new THREE.Object3D();
 
 // Delta timer
 let lastFrameTime = null;
@@ -40,10 +42,7 @@ const params = {
 	mesh: {
 		splitStrategy: CENTER,
 		useBoundsTree: true,
-		// visualizeBounds: false,
-		// displayParents: false,
 		speed: 1,
-		// visualBoundsDepth: 10
 	}
 };
 
@@ -101,9 +100,6 @@ function init() {
 	meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
 	meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
 	meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
-	// meshFolder.add( params.mesh, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-	// meshFolder.add( params.mesh, 'displayParents' ).onChange( () => updateFromOptions() );
-	// meshFolder.add( params.mesh, 'visualBoundsDepth' ).min( 1 ).max( 20 ).step( 1 ).onChange( () => updateFromOptions() );
 	meshFolder.open();
 
 	window.addEventListener( 'resize', function () {
@@ -141,34 +137,51 @@ function createBatchedMesh() {
 	const knot2GeometryId = batchedMesh.addGeometry( knot2Geometry );
 	const sphereGeometryId = batchedMesh.addGeometry( sphereGeometry );
 
-	const knotInstanceId = batchedMesh.addInstance( knotGeometryId );
-	const knot2InstanceId = batchedMesh.addInstance( knot2GeometryId );
-	const sphereInstanceId = batchedMesh.addInstance( sphereGeometryId );
-
-	const dolly = new THREE.Object3D();
+	batchedMesh.addInstance( knotGeometryId );
+	batchedMesh.addInstance( knot2GeometryId );
+	batchedMesh.addInstance( sphereGeometryId );
 
 	dolly.position.x = - 1.5;
-	dolly.rotation.x = Math.random() * 10;
-	dolly.rotation.y = Math.random() * 10;
 	dolly.updateMatrix();
-	batchedMesh.setMatrixAt( knotInstanceId, dolly.matrix );
+	batchedMesh.setMatrixAt( 0, dolly.matrix );
 
 	dolly.position.x = 0;
-	dolly.rotation.x = Math.random() * 10;
-	dolly.rotation.y = Math.random() * 10;
 	dolly.updateMatrix();
-	batchedMesh.setMatrixAt( knot2InstanceId, dolly.matrix );
+	batchedMesh.setMatrixAt( 1, dolly.matrix );
 
 	dolly.position.x = 1.5;
-	dolly.rotation.x = Math.random() * 10;
-	dolly.rotation.y = Math.random() * 10;
 	dolly.updateMatrix();
-	batchedMesh.setMatrixAt( sphereInstanceId, dolly.matrix );
+	batchedMesh.setMatrixAt( 2, dolly.matrix );
 
 	batchedMesh.rotation.x = Math.random() * 10;
 	batchedMesh.rotation.y = Math.random() * 10;
 
 	containerObj.add( batchedMesh );
+
+}
+
+function updateBatchedMeshInstances( deltaTime ) {
+
+	batchedMesh.getMatrixAt( 0, dolly.matrix );
+	dolly.matrix.decompose( dolly.position, dolly.quaternion, dolly.scale );
+	dolly.rotation.x += 0.0003 * params.mesh.speed * deltaTime;
+	dolly.rotation.y += 0.0003 * params.mesh.speed * deltaTime;
+	dolly.updateMatrix();
+	batchedMesh.setMatrixAt( 0, dolly.matrix );
+
+	batchedMesh.getMatrixAt( 1, dolly.matrix );
+	dolly.matrix.decompose( dolly.position, dolly.quaternion, dolly.scale );
+	dolly.rotation.x += 0.0009 * params.mesh.speed * deltaTime;
+	dolly.rotation.y += 0.0009 * params.mesh.speed * deltaTime;
+	dolly.updateMatrix();
+	batchedMesh.setMatrixAt( 1, dolly.matrix );
+
+	batchedMesh.getMatrixAt( 2, dolly.matrix );
+	dolly.matrix.decompose( dolly.position, dolly.quaternion, dolly.scale );
+	dolly.rotation.x += 0.0005 * params.mesh.speed * deltaTime;
+	dolly.rotation.y += 0.0005 * params.mesh.speed * deltaTime;
+	dolly.updateMatrix();
+	batchedMesh.setMatrixAt( 2, dolly.matrix );
 
 }
 
@@ -282,37 +295,7 @@ function updateFromOptions() {
 		batchedMesh.boundsTrees.splitStrategy = params.mesh.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
-		// if ( boundsViz ) {
-
-		// 	boundsViz.update();
-
-		// }
-
 	}
-
-	// // Update bounds viz
-	// const shouldDisplayBounds = params.mesh.visualizeBounds && geometry.boundsTree;
-	// if ( boundsViz && ! shouldDisplayBounds ) {
-
-	// 	containerObj.remove( boundsViz );
-	// 	boundsViz = null;
-
-	// }
-
-	// if ( ! boundsViz && shouldDisplayBounds ) {
-
-	// 	boundsViz = new MeshBVHHelper( knots[ 0 ] );
-	// 	containerObj.add( boundsViz );
-
-	// }
-
-	// if ( boundsViz ) {
-
-	// 	boundsViz.depth = params.mesh.visualBoundsDepth;
-	// 	boundsViz.displayParents = params.mesh.displayParents;
-	// 	boundsViz.update();
-
-	// }
 
 }
 
@@ -326,13 +309,9 @@ function render() {
 
 	containerObj.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
 	containerObj.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
-	containerObj.children.forEach( c => {
-
-		c.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
-		c.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
-
-	} );
 	containerObj.updateMatrixWorld();
+
+	updateBatchedMeshInstances( deltaTime );
 
 	rayCasterObjects.forEach( f => f.update() );
 
