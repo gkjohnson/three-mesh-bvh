@@ -280,7 +280,7 @@ function* rebuildVoxels() {
 					ray.origin.copy( position ).applyMatrix4( invMat );
 
 					// If we hit a face backside we know we're inside the mesh. Alternatively we
-					// could check if we jot an odd number of faces when checking all intersections.
+					// could check if we hit an odd number of faces when checking all intersections.
 					const res = bvh.raycastFirst( ray, 2 );
 					if ( res && res.face.normal.dot( ray.direction ) > 0.0 ) {
 
