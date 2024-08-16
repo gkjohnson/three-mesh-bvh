@@ -30,6 +30,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [BVH options inspector](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
 
+[BatchedMesh Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/batchedMesh.html)
+
 **Tools**
 
 [Sculpting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
@@ -86,10 +88,19 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
+
 // Generate geometry and associated BVH
 const geom = new THREE.TorusKnotBufferGeometry( 10, 3, 400, 100 );
 const mesh = new THREE.Mesh( geom, material );
 geom.computeBoundsTree();
+
+// Generate BatchedMesh and associated BVH
+const batchedMesh = new THREE.BatchedMesh( ... );
+// ... set geometries and instances
+batchedMesh.computeBoundsTree();
 ```
 
 Or manually building the BVH
@@ -837,10 +848,11 @@ If the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRa
 computeBoundsTree( options : Object ) : void
 ```
 
-A pre-made BufferGeometry extension function that builds a new BVH, assigns it to `boundsTree`, and applies the new index buffer to the geometry. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
+A pre-made BufferGeometry and BatchedMesh extension function that builds a new BVH, assigns it to `boundsTree` for BufferGeometry or `boundsTrees` for BatchedMesh, and applies the new index buffer to the geometry. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
 
 ```js
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
 ```
 
 ### .disposeBoundsTree
@@ -849,10 +861,11 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 disposeBoundsTree() : void
 ```
 
-A BufferGeometry extension function that disposes of the BVH.
+A BufferGeometry and BatchedMesh extension function that disposes of the BVH.
 
 ```js
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
 ```
 
 ### .acceleratedRaycast
