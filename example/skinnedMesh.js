@@ -160,7 +160,7 @@ function init() {
 		} );
 
 
-	const plane = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.ShadowMaterial( { color: 0xffffff, opacity: 0.025, transparent: true } ) );
+	const plane = new THREE.Mesh( new THREE.PlaneGeometry(), new THREE.ShadowMaterial( { color: 0xffffff, opacity: 0.025, transparent: true } ) );
 	plane.rotation.x = - Math.PI / 2;
 	plane.receiveShadow = true;
 	plane.scale.setScalar( 50 );

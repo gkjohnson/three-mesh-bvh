@@ -93,7 +93,7 @@ THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
 
 // Generate geometry and associated BVH
-const geom = new THREE.TorusKnotBufferGeometry( 10, 3, 400, 100 );
+const geom = new THREE.TorusKnotGeometry( 10, 3, 400, 100 );
 const mesh = new THREE.Mesh( geom, material );
 geom.computeBoundsTree();
 
@@ -184,7 +184,7 @@ geometry.boundsTree.refit();
 ## Serialization and Deserialization
 
 ```js
-const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
+const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
 const bvh = new MeshBVH( geometry );
 const serialized = MeshBVH.serialize( bvh );
 
@@ -203,7 +203,7 @@ import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBV
 
 // ...
 
-const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
+const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
 const worker = new GenerateMeshBVHWorker();
 worker.generate( geometry ).then( bvh => {
 
@@ -219,7 +219,7 @@ import { ParallelMeshBVHWorker } from 'three-mesh-bvh/src/workers/ParallelMeshBV
 
 // ...
 
-const geometry = new KnotBufferGeometry( 1, 0.5, 40, 10 );
+const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
 const worker = new ParallelMeshBVHWorker();
 worker.generate( geometry ).then( bvh => {
 

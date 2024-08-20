@@ -48,7 +48,7 @@ function init() {
 	const bgColor = new THREE.Color( 0x263238 ).multiplyScalar( 0.1 );
 
 	// renderer setup
-	renderer = new THREE.WebGLRenderer( { antialias: true } );
+	renderer = new THREE.WebGLRenderer( { antialias: true, stencil: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
@@ -83,7 +83,7 @@ function init() {
 		new THREE.Plane(),
 	];
 
-	planeMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry(), new THREE.MeshBasicMaterial( {
+	planeMesh = new THREE.Mesh( new THREE.PlaneGeometry(), new THREE.MeshBasicMaterial( {
 		side: THREE.DoubleSide,
 		stencilWrite: true,
 		stencilFunc: THREE.NotEqualStencilFunc,

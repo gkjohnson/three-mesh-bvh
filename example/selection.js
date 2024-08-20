@@ -132,7 +132,7 @@ function init() {
 	scene.add( gridHelper );
 
 	const shadowPlane = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry(),
+		new THREE.PlaneGeometry(),
 		new THREE.ShadowMaterial( { color: 0, opacity: 0.2, depthWrite: false } )
 	);
 	shadowPlane.position.y = - 2.74;

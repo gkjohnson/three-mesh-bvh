@@ -60,7 +60,7 @@ function reset() {
 	}
 
 	// merge the vertices because they're not already merged
-	let geometry = new THREE.IcosahedronBufferGeometry( 1, 100 );
+	let geometry = new THREE.IcosahedronGeometry( 1, 100 );
 	geometry.deleteAttribute( 'uv' );
 	geometry = BufferGeometryUtils.mergeVertices( geometry );
 	geometry.attributes.position.setUsage( THREE.DynamicDrawUsage );

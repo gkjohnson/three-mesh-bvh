@@ -69,7 +69,7 @@ function init() {
 	// geometry setup
 	const size = 50;
 	const dim = 250;
-	const planeGeom = new THREE.PlaneBufferGeometry( size, size, dim - 1, dim - 1 );
+	const planeGeom = new THREE.PlaneGeometry( size, size, dim - 1, dim - 1 );
 	const posAttr = planeGeom.attributes.position;
 
 	const seed = Math.floor( Math.random() * 100 );
@@ -113,7 +113,7 @@ function init() {
 	targetContainer = new THREE.Group();
 	scene.add( targetContainer );
 
-	targetMesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( 0.5, 0.25, 1, 20, 1 ), shapeMaterial );
+	targetMesh = new THREE.Mesh( new THREE.CylinderGeometry( 0.5, 0.25, 1, 20, 1 ), shapeMaterial );
 	targetMesh.castShadow = true;
 	targetMesh.receiveShadow = true;
 	targetMesh.geometry.computeBoundsTree();

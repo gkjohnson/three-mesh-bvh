@@ -143,7 +143,7 @@ function init() {
 	scene.add( light );
 
 	lightMesh = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry( 1, 1, 1, 1 ),
+		new THREE.PlaneGeometry( 1, 1, 1, 1 ),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } ),
 	);
 	lightMesh.position.set( 2, 2, 2 );
@@ -151,7 +151,7 @@ function init() {
 	scene.add( lightMesh );
 
 	floorMesh = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry( 1, 1, 1, 1 ),
+		new THREE.PlaneGeometry( 1, 1, 1, 1 ),
 		new THREE.MeshStandardMaterial( { side: THREE.DoubleSide } ),
 	);
 	floorMesh.rotation.x = - Math.PI / 2;
@@ -187,7 +187,7 @@ function init() {
 	models[ 'Cornell Box' ] = null;
 	{
 
-		const planeGeom = new THREE.PlaneBufferGeometry( 1, 1, 1, 1 );
+		const planeGeom = new THREE.PlaneGeometry( 1, 1, 1, 1 );
 		const leftWall = new THREE.Mesh(
 			planeGeom,
 			new THREE.MeshStandardMaterial( {
@@ -439,7 +439,7 @@ function mergeMeshes( meshes, cloneGeometry = true ) {
 
 	}
 
-	const geometry = BufferGeometryUtils.mergeBufferGeometries( transformedGeometry, false );
+	const geometry = BufferGeometryUtils.mergeGeometries( transformedGeometry, false );
 	return { geometry, materials };
 
 }
