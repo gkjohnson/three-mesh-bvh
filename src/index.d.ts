@@ -301,8 +301,17 @@ export class MeshBVHUniformStruct {
 
 }
 
+export const BVHShaderGLSL: {
+	bvh_distance_functions: string,
+	bvh_ray_functions: string,
+	bvh_struct_definitions: string,
+	common_functions: string
+}
+
+// backwards compatibility
 export const shaderStructs: string;
-export const shaderFunctions: string;
+export const shaderDistanceFunction: string;
+export const shaderIntersectFunction: string;
 
 // Math classes
 export class ExtendedTriangle extends Triangle {
