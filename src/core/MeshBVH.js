@@ -5,7 +5,8 @@ import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
-import { closestPointToPoint } from './cast/closestPointToPoint.js';
+import { closestPointToPoint } from './cast/closestPointToPoint.generated.js';
+import { closestPointToPoint_indirect } from './cast/closestPointToPoint_indirect.generated.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -519,13 +520,26 @@ export class MeshBVH {
 
 	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		return closestPointToPoint(
-			this,
-			point,
-			target,
-			minThreshold,
-			maxThreshold,
-		);
+		const closestPointToPointFunc = this.indirect ? closestPointToPoint_indirect : closestPointToPoint;
+		const roots = this._roots;
+		let result = null;
+
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			result = closestPointToPointFunc(
+				this,
+				i,
+				point,
+				target,
+				minThreshold,
+				maxThreshold,
+			);
+
+			if ( result && result.distance <= minThreshold ) break;
+
+		}
+
+		return result;
 
 	}
 
