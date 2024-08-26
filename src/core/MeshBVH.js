@@ -7,6 +7,7 @@ import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.generated.js';
 import { closestPointToPoint_indirect } from './cast/closestPointToPoint_indirect.generated.js';
+import { closestPointToPointOld } from './cast/closestPointToPoint.js'; // REMOVE AFTER TEST
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -540,6 +541,19 @@ export class MeshBVH {
 		}
 
 		return result;
+
+	}
+
+	// REMOVE AFTER TEST
+	closestPointToPointOld( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
+
+		return closestPointToPointOld(
+			this,
+			point,
+			target,
+			minThreshold,
+			maxThreshold,
+		);
 
 	}
 

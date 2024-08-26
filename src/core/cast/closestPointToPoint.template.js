@@ -43,6 +43,10 @@ export function closestPointToPoint/* @echo INDIRECT_STRING */(
 	return target;
 
 
+	// early out if under minThreshold
+	// skip checking if over maxThreshold
+	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
+	// returns Infinity if no value found
 	function _closestPointToPoint( nodeIndex32 ) {
 
 		const nodeIndex16 = nodeIndex32 * 2;
