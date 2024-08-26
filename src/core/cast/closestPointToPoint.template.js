@@ -7,8 +7,6 @@ import { setTriangle } from '../../utils/TriangleUtilities.js';
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
 
-// ADD INDIRECT SUPPORT
-
 export function closestPointToPoint/* @echo INDIRECT_STRING */(
 	bvh,
 	root,
