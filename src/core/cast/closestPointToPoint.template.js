@@ -95,7 +95,7 @@ export function closestPointToPoint/* @echo INDIRECT_STRING */(
 		const leftDistance = distanceSquaredPointToBox( leftIndex, float32Array, point );
 		const rightDistance = distanceSquaredPointToBox( rightIndex, float32Array, point );
 
-		if ( leftDistance < rightDistance ) {
+		if ( leftDistance <= rightDistance ) {
 
 			if ( leftDistance < closestDistanceSq && leftDistance < maxThresholdSq ) {
 
