@@ -14,9 +14,9 @@ export function closestPointToPointSort/* @echo INDIRECT_STRING */(
 	bvh,
 	root,
 	point,
-	target = { },
-	minThreshold = 0,
-	maxThreshold = Infinity
+	target,
+	minThreshold,
+	maxThreshold
 ) {
 
 	const minThresholdSq = minThreshold * minThreshold;

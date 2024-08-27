@@ -3,13 +3,14 @@ import { computeBoundsTree, SAH } from '../src';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 
-const spawnPointRadius = 10;
+const spawnPointRadius = 0.1;
 const radius = 100; // if radius 100 and tube 0.1, sort works really good.
 const tube = 0.1;
-const segmentsMultiplier = 8;
+const segmentsMultiplier = 32;
 const maxLeafTris = 5;
 const strategy = SAH;
 
+const tries = 1000;
 const seed = 20000;
 
 // const geometry = new THREE.SphereGeometry( radius, 8 * segmentsMultiplier, 4 * segmentsMultiplier );
@@ -44,13 +45,12 @@ export class PRNG {
 
 const bvh = geometry.boundsTree;
 const target = new THREE.Vector3();
-const target2 = new THREE.Vector3();
+// const target2 = new THREE.Vector3();
 
-const count = 5000;
 const r = new PRNG( seed );
 
-const points = new Array( count );
-for ( let i = 0; i < count; i ++ ) {
+const points = new Array( tries );
+for ( let i = 0; i < tries; i ++ ) {
 
 	points[ i ] = new THREE.Vector3( r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ) );
 
@@ -78,7 +78,7 @@ function benchmark() {
 
 	const startOld = performance.now();
 
-	for ( let i = 0; i < count; i ++ ) {
+	for ( let i = 0; i < tries; i ++ ) {
 
 		bvh.closestPointToPointOld( points[ i ], target );
 
@@ -87,7 +87,7 @@ function benchmark() {
 	const endOld = performance.now() - startOld;
 	const startNew = performance.now();
 
-	for ( let i = 0; i < count; i ++ ) {
+	for ( let i = 0; i < tries; i ++ ) {
 
 		bvh.closestPointToPoint( points[ i ], target );
 
@@ -96,17 +96,27 @@ function benchmark() {
 	const endNew = performance.now() - startNew;
 	const startSort = performance.now();
 
-	for ( let i = 0; i < count; i ++ ) {
+	for ( let i = 0; i < tries; i ++ ) {
 
 		bvh.closestPointToPointSort( points[ i ], target );
 
 	}
 
 	const endSort = performance.now() - startSort;
+	const startHybrid = performance.now();
 
-	const bestEnd = Math.min( endSort, endNew );
+	for ( let i = 0; i < tries; i ++ ) {
 
-	console.log( `New: ${endNew.toFixed( 1 )} / Sort: ${endSort.toFixed( 1 )} / Old: ${endOld.toFixed( 1 )} / Diff: ${( ( 1 - ( endOld / bestEnd ) ) * 100 ).toFixed( 2 )} %` );
+		bvh.closestPointToPointHybrid( points[ i ], target );
+
+	}
+
+	const endHybrid = performance.now() - startHybrid;
+
+	const bestEnd = Math.min( endSort, endNew, endHybrid );
+	const best = bestEnd === endSort ? "Sorted" : ( bestEnd === endNew ? "New" : "Hybrid" );
+
+	console.log( `New: ${endNew.toFixed( 1 )}ms / Sorted: ${endSort.toFixed( 1 )}ms / Hybrid: ${endHybrid.toFixed( 1 )}ms / Old: ${endOld.toFixed( 1 )}ms / Diff: ${( ( 1 - ( endOld / bestEnd ) ) * 100 ).toFixed( 2 )} % / Best: ${best}` );
 
 }
 

@@ -9,6 +9,8 @@ import { closestPointToPoint } from './cast/closestPointToPoint.generated.js';
 import { closestPointToPoint_indirect } from './cast/closestPointToPoint_indirect.generated.js';
 import { closestPointToPointSort } from './cast/closestPointToPointSort.generated.js';
 import { closestPointToPointSort_indirect } from './cast/closestPointToPointSort_indirect.generated.js';
+import { closestPointToPointHybrid } from './cast/closestPointToPointHybrid.generated.js';
+import { closestPointToPointHybrid_indirect } from './cast/closestPointToPointHybrid_indirect.generated.js';
 import { closestPointToPointOld } from './cast/closestPointToPoint.js'; // REMOVE AFTER TEST
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
@@ -559,6 +561,32 @@ export class MeshBVH {
 				i,
 				point,
 				target,
+				minThreshold,
+				maxThreshold,
+			);
+
+			if ( result && result.distance <= minThreshold ) break;
+
+		}
+
+		return result;
+
+	}
+
+	closestPointToPointHybrid( point, target = { }, sortedListMaxCount = 16, minThreshold = 0, maxThreshold = Infinity ) {
+
+		const closestPointToPointFunc = this.indirect ? closestPointToPointHybrid_indirect : closestPointToPointHybrid;
+		const roots = this._roots;
+		let result = null;
+
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			result = closestPointToPointFunc(
+				this,
+				i,
+				point,
+				target,
+				sortedListMaxCount,
 				minThreshold,
 				maxThreshold,
 			);
