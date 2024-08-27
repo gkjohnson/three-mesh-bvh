@@ -3,10 +3,11 @@ import { computeBoundsTree, SAH } from '../src';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 
-const spawnPointRadius = 0.1;
-const radius = 100; // if radius 100 and tube 0.1, sort works really good.
-const tube = 0.1;
+const spawnPointRadius = 10;
+const radius = 100; // if radius 100 and tube 0.1 and spawnRadiusu 10, sort works really good.
+const tube = 1;
 const segmentsMultiplier = 32;
+const sortedListMaxCount = 32;
 const maxLeafTris = 5;
 const strategy = SAH;
 
@@ -107,7 +108,7 @@ function benchmark() {
 
 	for ( let i = 0; i < tries; i ++ ) {
 
-		bvh.closestPointToPointHybrid( points[ i ], target );
+		bvh.closestPointToPointHybrid( points[ i ], target, sortedListMaxCount );
 
 	}
 
