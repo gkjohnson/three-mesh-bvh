@@ -4,11 +4,13 @@ import { BufferStack } from '../utils/BufferStack.js';
 import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { closestDistanceSquaredPointToBox } from '../utils/distanceUtils.js';
+import { SortedListDesc } from '../utils/SortedListDesc.js';
 
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
+const sortedList = new SortedListDesc();
 
-export function closestPointToPoint/* @echo INDIRECT_STRING */(
+export function closestPointToPointSort/* @echo INDIRECT_STRING */(
 	bvh,
 	root,
 	point,
@@ -27,28 +29,19 @@ export function closestPointToPoint/* @echo INDIRECT_STRING */(
 	const pos = geometry.attributes.position;
 	const triangle = ExtendedTrianglePool.getPrimitive();
 
+	sortedList.clear();
 	BufferStack.setBuffer( bvh._roots[ root ] );
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
-	_closestPointToPoint( root );
-	BufferStack.clearBuffer();
 
-	if ( closestDistanceSq === Infinity ) return null;
+	let node = { nodeIndex32: 0, distance: closestDistanceSquaredPointToBox( 0, float32Array, point ) };
 
-	const closestDistance = Math.sqrt( closestDistanceSq );
+	do {
 
-	if ( ! target.point ) target.point = temp1.clone();
-	else target.point.copy( temp1 );
-	target.distance = closestDistance;
-	target.faceIndex = closestDistanceTriIndex;
+		const { distance } = node;
 
-	return target;
+		if ( distance >= closestDistanceSq ) return;
 
-
-	// early out if under minThreshold
-	// skip checking if over maxThreshold
-	// set minThreshold = maxThreshold to quickly check if a point is within a threshold
-	// returns Infinity if no value found
-	function _closestPointToPoint( nodeIndex32 ) {
+		const { nodeIndex32 } = node;
 
 		const nodeIndex16 = nodeIndex32 * 2;
 		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
@@ -86,7 +79,7 @@ export function closestPointToPoint/* @echo INDIRECT_STRING */(
 
 			}
 
-			return;
+			continue;
 
 		}
 
@@ -96,22 +89,31 @@ export function closestPointToPoint/* @echo INDIRECT_STRING */(
 		const leftDistance = closestDistanceSquaredPointToBox( leftIndex, float32Array, point );
 		const rightDistance = closestDistanceSquaredPointToBox( rightIndex, float32Array, point );
 
-		if ( leftDistance <= rightDistance ) {
+		if ( leftDistance < closestDistanceSq && leftDistance < maxThresholdSq ) {
 
-			if ( leftDistance < closestDistanceSq && leftDistance < maxThresholdSq ) {
-
-				if ( _closestPointToPoint( leftIndex ) ) return true;
-				if ( rightDistance < closestDistanceSq ) return _closestPointToPoint( rightIndex );
-
-			}
-
-		} else if ( rightDistance < closestDistanceSq && rightDistance < maxThresholdSq ) {
-
-			if ( _closestPointToPoint( rightIndex ) ) return true;
-			if ( leftDistance < closestDistanceSq ) return _closestPointToPoint( leftIndex );
+			sortedList.push( { nodeIndex32: leftIndex, distance: leftDistance } );
 
 		}
 
-	}
+		if ( rightDistance < closestDistanceSq && rightDistance < maxThresholdSq ) {
+
+			sortedList.push( { nodeIndex32: rightIndex, distance: rightDistance } );
+
+		}
+
+	} while ( node = sortedList.pop() );
+
+	BufferStack.clearBuffer();
+
+	if ( closestDistanceSq === Infinity ) return null;
+
+	const closestDistance = Math.sqrt( closestDistanceSq );
+
+	if ( ! target.point ) target.point = temp1.clone();
+	else target.point.copy( temp1 );
+	target.distance = closestDistance;
+	target.faceIndex = closestDistanceTriIndex;
+
+	return target;
 
 }

@@ -3,17 +3,19 @@ import { computeBoundsTree, SAH } from '../src';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 
-const radius = 100;
-const tube = 0.5;
-// const tube = 0.5 * radius;
-const tubularSegments = 800;
-const radialSegments = 200;
-const geometry = new THREE.TorusKnotGeometry( radius, tube, tubularSegments, radialSegments );
+const spawnPointRadius = 10;
+const radius = 100; // if radius 100 and tube 0.1, sort works really good.
+const tube = 0.1;
+const segmentsMultiplier = 8;
+const maxLeafTris = 5;
+const strategy = SAH;
 
-geometry.computeBoundsTree( {
-	maxLeafTris: 5,
-	strategy: SAH,
-} );
+const seed = 20000;
+
+// const geometry = new THREE.SphereGeometry( radius, 8 * segmentsMultiplier, 4 * segmentsMultiplier );
+const geometry = new THREE.TorusKnotGeometry( radius, tube, 64 * segmentsMultiplier, 8 * segmentsMultiplier );
+
+geometry.computeBoundsTree( { maxLeafTris, strategy } );
 
 export class PRNG {
 
@@ -40,36 +42,35 @@ export class PRNG {
 
 }
 
-
 const bvh = geometry.boundsTree;
 const target = new THREE.Vector3();
 const target2 = new THREE.Vector3();
 
-const count = 10000;
-const r = new PRNG( 10000 );
+const count = 5000;
+const r = new PRNG( seed );
 
 const points = new Array( count );
 for ( let i = 0; i < count; i ++ ) {
 
-	points[ i ] = new THREE.Vector3( r.next(), r.next(), r.next() ).multiplyScalar( 5 ).subScalar( 2.5 );
+	points[ i ] = new THREE.Vector3( r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ) );
 
 }
 
-// TEST EQUALS RESULTS
+// // TEST EQUALS RESULTS
 
-for ( let i = 0; i < count; i ++ ) {
+// for ( let i = 0; i < count; i ++ ) {
 
-	bvh.closestPointToPoint( points[ i ], target );
-	bvh.closestPointToPointOld( points[ i ], target2 );
+// 	bvh.closestPointToPoint( points[ i ], target );
+// 	bvh.closestPointToPointOld( points[ i ], target2 );
 
-	if ( target.distance !== target2.distance ) {
+// 	if ( target.distance !== target2.distance ) {
 
-		const diff = target.distance - target2.distance;
-		console.error( "error: " + ( diff / target2.distance * 100 ) + "%" );
+// 		const diff = target.distance - target2.distance;
+// 		console.error( "error: " + ( diff / target2.distance * 100 ) + "%" );
 
-	}
+// 	}
 
-}
+// }
 
 // TEST PERFORMANCE
 
@@ -93,10 +94,19 @@ function benchmark() {
 	}
 
 	const endNew = performance.now() - startNew;
+	const startSort = performance.now();
 
-	console.log( `New: ${endNew.toFixed( 1 )} / Old: ${endOld.toFixed( 1 )} / Diff: ${( ( 1 - ( endOld / endNew ) ) * 100).toFixed( 2 )} %` );
+	for ( let i = 0; i < count; i ++ ) {
 
-	console.log( "..." );
+		bvh.closestPointToPointSort( points[ i ], target );
+
+	}
+
+	const endSort = performance.now() - startSort;
+
+	const bestEnd = Math.min( endSort, endNew );
+
+	console.log( `New: ${endNew.toFixed( 1 )} / Sort: ${endSort.toFixed( 1 )} / Old: ${endOld.toFixed( 1 )} / Diff: ${( ( 1 - ( endOld / bestEnd ) ) * 100 ).toFixed( 2 )} %` );
 
 }
 

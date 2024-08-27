@@ -7,6 +7,8 @@ import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.generated.js';
 import { closestPointToPoint_indirect } from './cast/closestPointToPoint_indirect.generated.js';
+import { closestPointToPointSort } from './cast/closestPointToPointSort.generated.js';
+import { closestPointToPointSort_indirect } from './cast/closestPointToPointSort_indirect.generated.js';
 import { closestPointToPointOld } from './cast/closestPointToPoint.js'; // REMOVE AFTER TEST
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
@@ -522,6 +524,31 @@ export class MeshBVH {
 	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
 		const closestPointToPointFunc = this.indirect ? closestPointToPoint_indirect : closestPointToPoint;
+		const roots = this._roots;
+		let result = null;
+
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			result = closestPointToPointFunc(
+				this,
+				i,
+				point,
+				target,
+				minThreshold,
+				maxThreshold,
+			);
+
+			if ( result && result.distance <= minThreshold ) break;
+
+		}
+
+		return result;
+
+	}
+
+	closestPointToPointSort( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
+
+		const closestPointToPointFunc = this.indirect ? closestPointToPointSort_indirect : closestPointToPointSort;
 		const roots = this._roots;
 		let result = null;
 
