@@ -30,23 +30,17 @@ export class SortedListDesc {
 
 		const array = this.array;
 
-		let start = 0;
-		let end = array.length - 1;
-		let index = 0;
+		let low = 0, high = array.length;
 
-		while ( start <= end ) {
+		while ( low < high ) {
 
-			index = Math.ceil( ( start + end ) / 2 );
-
-			if ( index === 0 ) break;
-			if ( array[ index ].distance <= value && array[ index - 1 ].distance >= value ) return index;
-
-			if ( value > array[ index ].distance ) end = index - 1;
-			else start = index + 1;
+			const mid = ( low + high ) >>> 1;
+			if ( array[ mid ].distance > value ) low = mid + 1;
+			else high = mid;
 
 		}
 
-		return value < array[ index ]?.distance ? index + 1 : index;
+		return low;
 
 	}
 

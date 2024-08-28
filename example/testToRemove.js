@@ -3,12 +3,12 @@ import { computeBoundsTree, SAH } from '../src';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 
-const spawnPointRadius = 10;
-const radius = 100; // if radius 100 and tube 0.1 and spawnRadiusu 10, sort works really good.
-const tube = 1;
+const spawnPointRadius = 100;
+const radius = 10; // if radius 100 and tube 0.1 and spawnRadius 100, sort works really good.
+const tube = 0.1;
 const segmentsMultiplier = 32;
 const sortedListMaxCount = 32;
-const maxLeafTris = 5;
+const maxLeafTris = 10;
 const strategy = SAH;
 
 const tries = 1000;
@@ -45,24 +45,30 @@ export class PRNG {
 }
 
 const bvh = geometry.boundsTree;
-const target = new THREE.Vector3();
-// const target2 = new THREE.Vector3();
+const target = {};
 
 const r = new PRNG( seed );
-
 const points = new Array( tries );
-for ( let i = 0; i < tries; i ++ ) {
 
-	points[ i ] = new THREE.Vector3( r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ) );
+function generatePoints() {
+
+	for ( let i = 0; i < tries; i ++ ) {
+
+		points[ i ] = new THREE.Vector3( r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ), r.range( - spawnPointRadius, spawnPointRadius ) );
+
+	}
 
 }
 
+
 // // TEST EQUALS RESULTS
 
-// for ( let i = 0; i < count; i ++ ) {
+// generatePoints();
+// const target2 = {};
+// for ( let i = 0; i < tries; i ++ ) {
 
 // 	bvh.closestPointToPoint( points[ i ], target );
-// 	bvh.closestPointToPointOld( points[ i ], target2 );
+// 	bvh.closestPointToPointHybrid( points[ i ], target2 );
 
 // 	if ( target.distance !== target2.distance ) {
 
@@ -76,6 +82,8 @@ for ( let i = 0; i < tries; i ++ ) {
 // TEST PERFORMANCE
 
 function benchmark() {
+
+	generatePoints();
 
 	const startOld = performance.now();
 

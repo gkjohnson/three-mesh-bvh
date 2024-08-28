@@ -540,6 +540,8 @@ export class MeshBVH {
 				maxThreshold,
 			);
 
+			// fix here, check old result and new
+
 			if ( result && result.distance <= minThreshold ) break;
 
 		}
@@ -564,6 +566,8 @@ export class MeshBVH {
 				minThreshold,
 				maxThreshold,
 			);
+
+			// fix here, check old result and new
 
 			if ( result && result.distance <= minThreshold ) break;
 
@@ -590,6 +594,8 @@ export class MeshBVH {
 				minThreshold,
 				maxThreshold,
 			);
+
+			// fix here, check old result and new
 
 			if ( result && result.distance <= minThreshold ) break;
 

@@ -24,13 +24,13 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 	const maxThresholdSq = maxThreshold * maxThreshold;
 	let closestDistanceSq = Infinity;
 	let closestDistanceTriIndex = null;
+	BufferStack.setBuffer( bvh._roots[ root ] );
 
 	const { geometry } = bvh;
 	const { index } = geometry;
 	const pos = geometry.attributes.position;
 	const triangle = ExtendedTrianglePool.getPrimitive();
 
-	BufferStack.setBuffer( bvh._roots[ root ] );
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 
 	if ( sortedListMaxCount === 0 ) {
@@ -38,6 +38,26 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 		_closestPointToPoint( 0 );
 
 	} else {
+
+		_closestPointToPointSorted();
+
+	}
+
+	BufferStack.clearBuffer();
+
+	if ( closestDistanceSq === Infinity ) return null;
+
+	const closestDistance = Math.sqrt( closestDistanceSq );
+
+	if ( ! target.point ) target.point = temp1.clone();
+	else target.point.copy( temp1 );
+	target.distance = closestDistance;
+	target.faceIndex = closestDistanceTriIndex;
+
+	return target;
+
+
+	function _closestPointToPointSorted() {
 
 		sortedList.clear();
 		let count = 0;
@@ -51,7 +71,8 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 
 			if ( count >= sortedListMaxCount ) {
 
-				if ( _closestPointToPoint( nodeIndex32 ) ) return true;
+				if ( _closestPointToPoint( nodeIndex32 ) ) return;
+
 				continue;
 
 			}
@@ -88,7 +109,7 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 						closestDistanceSq = distSq;
 						closestDistanceTriIndex = i;
 
-						if ( distSq < minThresholdSq ) return true;
+						if ( distSq < minThresholdSq ) return;
 
 					}
 
@@ -120,18 +141,6 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 
 	}
 
-	BufferStack.clearBuffer();
-
-	if ( closestDistanceSq === Infinity ) return null;
-
-	const closestDistance = Math.sqrt( closestDistanceSq );
-
-	if ( ! target.point ) target.point = temp1.clone();
-	else target.point.copy( temp1 );
-	target.distance = closestDistance;
-	target.faceIndex = closestDistanceTriIndex;
-
-	return target;
 
 	function _closestPointToPoint( nodeIndex32 ) {
 
