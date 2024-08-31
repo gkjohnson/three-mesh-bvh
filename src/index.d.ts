@@ -199,9 +199,13 @@ export class MeshBVHHelper extends Group {
 
 // THREE.js Extensions
 
-export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH | MeshBVH[];
+export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH;
 
 export function disposeBoundsTree(): void;
+
+export function computeBatchedBoundsTree( index?: Number, options?: MeshBVHOptions ): MeshBVH | MeshBVH[];
+
+export function disposeBatchedBoundsTree( index?: Number ): void;
 
 export function acceleratedRaycast(
   raycaster: Raycaster,

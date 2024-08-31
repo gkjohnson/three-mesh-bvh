@@ -151,30 +151,53 @@ function acceleratedMeshRaycast( raycaster, intersects ) {
 
 export function computeBoundsTree( options = {} ) {
 
-	if ( this.isBatchedMesh ) {
+	this.boundsTree = new MeshBVH( this, options );
+	return this.boundsTree;
 
-		if ( ! IS_REVISION_166 ) {
+}
 
-			console.error( 'Three r166+ is required.' );
-			return;
+export function disposeBoundsTree() {
 
-		}
+	this.boundsTree = null;
 
-		if ( options.indirect ) {
+}
 
-			console.warn( '"Indirect" is set to false because it is not supported for BatchedMesh.' );
+export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
-		}
+	if ( ! IS_REVISION_166 ) {
 
-		options = {
-			...options,
-			indirect: false,
-			range: null
-		};
+		throw new Error( 'BatchedMesh: Three r166+ is required to compute bounds trees.' );
 
-		const drawRanges = this._drawRanges;
-		const geometryCount = this._geometryCount;
-		const boundsTrees = [];
+	}
+
+	if ( options.indirect ) {
+
+		console.warn( '"Indirect" is set to false because it is not supported for BatchedMesh.' );
+
+	}
+
+	options = {
+		...options,
+		indirect: false,
+		range: null
+	};
+
+	const drawRanges = this._drawRanges;
+	const geometryCount = this._geometryCount;
+	if ( ! this.boundsTrees ) {
+
+		this.boundsTrees = new Array( geometryCount ).fill( null );
+
+	}
+
+	const boundsTrees = this.boundsTrees;
+	while ( boundsTrees.length < geometryCount ) {
+
+		boundsTrees.push( null );
+
+	}
+
+	if ( index < 0 ) {
 
 		for ( let i = 0; i < geometryCount; i ++ ) {
 
@@ -183,25 +206,36 @@ export function computeBoundsTree( options = {} ) {
 
 		}
 
-		this.boundsTrees = boundsTrees;
 		return this.boundsTrees;
-
-	}
-
-	this.boundsTree = new MeshBVH( this, options );
-	return this.boundsTree;
-
-}
-
-export function disposeBoundsTree() {
-
-	if ( this.isBatchedMesh ) {
-
-		this.boundsTrees = null;
 
 	} else {
 
-		this.boundsTree = null;
+		if ( index < drawRanges.length ) {
+
+			options.range = drawRanges[ index ];
+			boundsTrees[ index ] = new MeshBVH( this.geometry, options );
+
+		}
+
+		return this.boundsTrees[ index ] || null;
+
+	}
+
+}
+
+export function disposeBatchedBoundsTree( index = - 1 ) {
+
+	if ( index < 0 ) {
+
+		this.boundsTrees.fill( null );
+
+	} else {
+
+		if ( index < this.boundsTree.length ) {
+
+			this.boundsTrees[ index ] = null;
+
+		}
 
 	}
 

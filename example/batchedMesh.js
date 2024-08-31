@@ -3,15 +3,15 @@ import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
+	computeBatchedBoundsTree, disposeBatchedBoundsTree,
 	CENTER, SAH, AVERAGE,
 } from '..';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
-THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
-THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const bgColor = 0x263238 / 2;
 
