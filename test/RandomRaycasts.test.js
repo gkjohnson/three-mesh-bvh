@@ -146,14 +146,14 @@ function runRandomTests( options ) {
 				const geoId = batchedMesh.addGeometry( geo );
 				if ( options.onlyOneGeo ) {
 
-					batchedMesh.computeBoundsTree( options );
+					batchedMesh.computeBoundsTree( - 1, options );
 
 				}
 
 				const geo2Id = batchedMesh.addGeometry( geo2 );
 				if ( ! options.onlyOneGeo ) {
 
-					batchedMesh.computeBoundsTree( options );
+					batchedMesh.computeBoundsTree( - 1, options );
 
 				}
 
