@@ -206,7 +206,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		}
 
-		return this.boundsTrees;
+		return boundsTrees;
 
 	} else {
 
@@ -217,7 +217,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		}
 
-		return this.boundsTrees[ index ] || null;
+		return boundsTrees[ index ] || null;
 
 	}
 

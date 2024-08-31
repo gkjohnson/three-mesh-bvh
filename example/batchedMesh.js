@@ -15,7 +15,9 @@ THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
 THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
 THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 
-const bgColor = 0x263238 / 2;
+const bgColor = 0xcfd8dc;
+const meshColor = 0x263238;
+const lineColor = 0xd81b60;
 
 let renderer, scene, stats, camera;
 let material, containerObj, batchedMesh;
@@ -63,15 +65,15 @@ function init() {
 
 	// scene setup
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0x263238 / 2, 40, 80 );
+	scene.fog = new THREE.Fog( bgColor, 40, 100 );
 
-	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	const light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
+	scene.add( new THREE.AmbientLight( 0xffffff, 1.2 ) );
 
 	containerObj = new THREE.Object3D();
-	material = new THREE.MeshPhongMaterial( { color: 0xE91E63 } );
+	material = new THREE.MeshPhongMaterial( { color: meshColor } );
 	containerObj.scale.multiplyScalar( 10 );
 	containerObj.rotation.x = 10.989999999999943;
 	containerObj.rotation.y = 10.989999999999943;
@@ -191,13 +193,13 @@ function addRaycaster() {
 
 	// Objects
 	const obj = new THREE.Object3D();
-	const material = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+	const material = new THREE.MeshBasicMaterial( { color: lineColor } );
 	const origMesh = new THREE.Mesh( sphere, material );
 	const hitMesh = new THREE.Mesh( sphere, material );
 	hitMesh.scale.multiplyScalar( 0.25 );
 	origMesh.scale.multiplyScalar( 0.5 );
 
-	const cylinderMesh = new THREE.Mesh( cylinder, new THREE.MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.25 } ) );
+	const cylinderMesh = new THREE.Mesh( cylinder, new THREE.MeshBasicMaterial( { color: lineColor, transparent: true, opacity: 0.5 } ) );
 
 	// Init the rotation root
 	obj.add( cylinderMesh );
