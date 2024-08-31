@@ -8,10 +8,12 @@ import {
 } from '..';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
-THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
-THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+
+THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 
 const bgColor = 0x263238 / 2;
 
@@ -288,7 +290,7 @@ function updateFromOptions() {
 	if ( params.mesh.useBoundsTree && ! batchedMesh.boundsTrees ) {
 
 		console.time( 'computing bounds tree' );
-		batchedMesh.computeBoundsTree( {
+		batchedMesh.computeBoundsTree( - 1, {
 			maxLeafTris: 5,
 			strategy: parseFloat( params.mesh.splitStrategy ),
 		} );
