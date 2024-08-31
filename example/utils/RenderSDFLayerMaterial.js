@@ -62,7 +62,7 @@ export class RenderSDFLayerMaterial extends ShaderMaterial {
 
 					#endif
 
-					#include <encodings_fragment>
+					#include <colorspace_fragment>
 
 				}
 			`

@@ -146,7 +146,7 @@ export class RayMarchSDFMaterial extends ShaderMaterial {
 
 					}
 
-					#include <encodings_fragment>
+					#include <colorspace_fragment>
 
 				}
 			`

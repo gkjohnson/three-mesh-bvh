@@ -39,7 +39,6 @@ async function init() {
 	// front / back faces would help this.
 	renderer = new THREE.WebGLRenderer( { antialias: false } );
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	document.body.appendChild( renderer.domElement );
 
@@ -238,7 +237,7 @@ async function init() {
 				}
 
 				#include <tonemapping_fragment>
-				#include <encodings_fragment>
+				#include <colorspace_fragment>
 
 			}
 		`
