@@ -220,9 +220,9 @@ declare module 'three' {
   }
 
   export interface BatchedMesh {
-    boundsTrees?: MeshBVH[];
-    computeBoundsTree: typeof computeBoundsTree;
-    disposeBoundsTree: typeof disposeBoundsTree;
+    boundsTrees?: Array<MeshBVH | null>;
+    computeBoundsTree: typeof computeBatchedBoundsTree;
+    disposeBoundsTree: typeof disposeBatchedBoundsTree;
   }
 
   export interface Raycaster {
