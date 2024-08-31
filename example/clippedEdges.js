@@ -54,7 +54,6 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	renderer.localClippingEnabled = true;
 	document.body.appendChild( renderer.domElement );
 
@@ -63,10 +62,10 @@ function init() {
 	scene.fog = new THREE.Fog( bgColor, 20, 70 );
 
 	// lights
-	const light = new THREE.DirectionalLight( 0xffffff, 0.8 );
+	const light = new THREE.DirectionalLight( 0xffffff, 2.5 );
 	light.position.set( 1, 1.5, 2 ).multiplyScalar( 50 );
 	scene.add( light );
-	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 0.5 ) );
+	scene.add( new THREE.HemisphereLight( 0xffffff, 0x223344, 1.5 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 50 );
@@ -92,7 +91,7 @@ function init() {
 		stencilZPass: THREE.ZeroStencilOp,
 	} ) );
 	planeMesh.scale.setScalar( 1.5 );
-	planeMesh.material.color.set( 0x80deea ).convertLinearToSRGB();
+	planeMesh.material.color.set( 0x80deea );
 	planeMesh.renderOrder = 2;
 	scene.add( planeMesh );
 
@@ -102,7 +101,7 @@ function init() {
 	linePosAttr.setUsage( THREE.DynamicDrawUsage );
 	lineGeometry.setAttribute( 'position', linePosAttr );
 	outlineLines = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial() );
-	outlineLines.material.color.set( 0x00acc1 ).convertSRGBToLinear();
+	outlineLines.material.color.set( 0x00acc1 );
 	outlineLines.frustumCulled = false;
 	outlineLines.renderOrder = 3;
 

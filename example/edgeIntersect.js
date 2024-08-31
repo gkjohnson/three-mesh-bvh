@@ -35,7 +35,6 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -100,7 +99,7 @@ function init() {
 
 	const lineGeometry = new THREE.BufferGeometry();
 	lineGeometry.setFromPoints( [ new THREE.Vector3( 0, 1, 0 ), new THREE.Vector3( 0, - 1, 0 ) ] );
-	line = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial( { color: 0xE91E63 } ) );
+	line = new THREE.LineSegments( lineGeometry, new THREE.LineBasicMaterial( { color: 0xe88baa } ) );
 
 	bgLine = line.clone();
 	bgLine.material = new THREE.LineBasicMaterial( {

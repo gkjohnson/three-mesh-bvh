@@ -46,15 +46,15 @@ function init() {
 	// scene setup
 	scene = new THREE.Scene();
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.position.set( 3, 6, 9 );
 	scene.add( light );
 
-	const revLight = new THREE.DirectionalLight( 0xffffff, 0.1 );
+	const revLight = new THREE.DirectionalLight( 0xffffff, 0.3 );
 	revLight.position.set( - 3, - 6, - 9 );
 	scene.add( revLight );
 
-	const ambient = new THREE.AmbientLight( 0xffffff, 0.25 );
+	const ambient = new THREE.AmbientLight( 0xffffff, 0.75 );
 	scene.add( ambient );
 
 	// camera setup

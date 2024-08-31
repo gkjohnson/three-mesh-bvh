@@ -47,18 +47,17 @@ function init() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
 	scene = new THREE.Scene();
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.castShadow = true;
 	light.shadow.mapSize.set( 2048, 2048 );
 	light.position.set( 10, 10, 10 );
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
+	scene.add( new THREE.AmbientLight( 0xb0bec5, 2.5 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -69,7 +68,7 @@ function init() {
 
 	// selection shape
 	selectionShape = new THREE.Line();
-	selectionShape.material.color.set( 0xff9800 ).convertSRGBToLinear();
+	selectionShape.material.color.set( 0xff9800 );
 	selectionShape.renderOrder = 1;
 	selectionShape.position.z = - .2;
 	selectionShape.depthTest = false;
@@ -108,7 +107,7 @@ function init() {
 		transparent: true,
 		depthWrite: false,
 	} );
-	highlightMesh.material.color.set( 0xff9800 ).convertSRGBToLinear();
+	highlightMesh.material.color.set( 0xff9800 );
 	highlightMesh.renderOrder = 1;
 	group.add( highlightMesh );
 

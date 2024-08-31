@@ -48,7 +48,6 @@ function init() {
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -56,7 +55,7 @@ function init() {
 	scene.fog = new THREE.Fog( bgColor, 20, 70 );
 
 	// lights
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
 	light.shadow.mapSize.setScalar( 2048 );
 	light.shadow.bias = - 1e-4;
@@ -260,7 +259,7 @@ function loadColliderEnvironment() {
 
 				if ( visualGeometries.length ) {
 
-					const newGeom = BufferGeometryUtils.mergeBufferGeometries( visualGeometries );
+					const newGeom = BufferGeometryUtils.mergeGeometries( visualGeometries );
 					const newMesh = new THREE.Mesh( newGeom, new THREE.MeshStandardMaterial( { color: parseInt( hex ), shadowSide: 2 } ) );
 					newMesh.castShadow = true;
 					newMesh.receiveShadow = true;

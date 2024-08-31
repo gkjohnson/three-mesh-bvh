@@ -47,17 +47,16 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
 	scene = new THREE.Scene();
 	scene.fog = new THREE.Fog( 0xffca28, 20, 60 );
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
+	scene.add( new THREE.AmbientLight( 0xb0bec5, 2.5 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -176,7 +175,7 @@ function regenerateKnot() {
 			params.q
 		),
 		new THREE.MeshStandardMaterial( {
-			color: new THREE.Color( 0x4db6ac ).convertSRGBToLinear(),
+			color: new THREE.Color( 0x4db6ac ),
 			roughness: 0.75
 
 		} )

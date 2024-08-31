@@ -29,7 +29,6 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
-	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 	renderer.domElement.style.touchAction = 'none';
 
@@ -37,10 +36,10 @@ function init() {
 	scene = new THREE.Scene();
 	scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
 
-	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	const light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xffffff, 0.4 ) );
+	scene.add( new THREE.AmbientLight( 0xffffff, 1.2 ) );
 
 	// geometry setup
 	const radius = 1;

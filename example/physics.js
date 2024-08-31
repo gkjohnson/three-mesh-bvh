@@ -65,14 +65,14 @@ function init() {
 	// lights
 	const light = new THREE.DirectionalLight( 0xaaccff, 1 );
 	light.position.set( 1, 1.5, 1 ).multiplyScalar( 50 );
-	light.intensity = 0.25;
+	light.intensity = 1.5;
 
 	const shadowCam = light.shadow.camera;
 	shadowCam.bottom = shadowCam.left = - 10;
 	shadowCam.top = shadowCam.right = 10;
 
 	scene.add( light );
-	scene.add( new THREE.HemisphereLight( 0x4488ff, 0x223344, 0.3 ) );
+	scene.add( new THREE.HemisphereLight( 0x8dc1ff, 0x667c8d, 1.2 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
@@ -178,12 +178,12 @@ function loadColliderEnvironment() {
 			environment = res.scene;
 			environment.scale.setScalar( 0.05 );
 
-			const pointLight = new THREE.PointLight( 0x00ffff );
+			const pointLight = new THREE.PointLight( 0x00ffff, 9 );
 			pointLight.distance = 7;
 			pointLight.position.set( - 100, - 40, 100 );
 			environment.add( pointLight );
 
-			const porchLight = new THREE.PointLight( 0xffdd66 );
+			const porchLight = new THREE.PointLight( 0xffdd66, 9 );
 			porchLight.distance = 15;
 			porchLight.intensity = 5;
 			porchLight.position.set( 80, 80, 135 );
@@ -262,7 +262,7 @@ function onCollide( object1, object2, point, normal, velocity, offset = 0 ) {
 function createSphere() {
 
 	const white = new THREE.Color( 0xffffff );
-	const color = new THREE.Color( 0x263238 / 2 ).lerp( white, Math.random() * 0.5 + 0.5 ).convertSRGBToLinear();
+	const color = new THREE.Color( 0x263238 / 2 ).lerp( white, Math.random() * 0.5 + 0.5 );
 	const sphere = new THREE.Mesh(
 		new THREE.SphereGeometry( 1, 20, 20 ),
 		new THREE.MeshStandardMaterial( { color } )

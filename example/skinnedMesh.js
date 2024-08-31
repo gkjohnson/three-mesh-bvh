@@ -59,7 +59,7 @@ function init() {
 	// scene setup
 	scene = new THREE.Scene();
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.position.set( 5, 5, 2.5 );
 	light.shadow.mapSize.setScalar( 1024 );
 	light.shadow.normalBias = 1e-2;
@@ -70,7 +70,7 @@ function init() {
 	shadowCam.right = shadowCam.top = 7.5;
 	shadowCam.updateProjectionMatrix();
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.8 ) );
+	scene.add( new THREE.AmbientLight( 0xb0bec5, 2.4 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );

@@ -53,7 +53,7 @@ function init() {
 	scene = new THREE.Scene();
 	scene.fog = new THREE.Fog( 0x263238 / 2, 10, 45 );
 
-	const light = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	const light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 20, 20, 20 );
 	light.castShadow = true;
 	light.shadow.mapSize.set( 2048, 2048 );
@@ -64,7 +64,7 @@ function init() {
 	shadowCam.updateProjectionMatrix();
 
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xE0F7FA, 0.5 ) );
+	scene.add( new THREE.AmbientLight( 0xE0F7FA, 1.5 ) );
 
 	// geometry setup
 	const size = 50;
