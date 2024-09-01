@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Added
 - Support for a custom "range" option to build a BVH from a sub range of the geometry.
+- BatchedMesh support for bounds tree generation functions and raycasting. See "computeBatchedBoundsTree" and "disposeBatchedBoundsTree".
+- MeshBVHHelper support for InstancedMesh, BatchedMesh.
 
 ### Fixed
 - Bug in `MeshBVH.bvhcast` causing the incorrect bounds to be checked on the other bvh.
+- Box3.setFromObject failing when MeshBVHHelper is included.
 
 ## [0.7.6] - 2024-07-02
 ### Fixed
