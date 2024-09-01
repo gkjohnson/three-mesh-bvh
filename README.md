@@ -651,6 +651,14 @@ displayEdges = true : Boolean
 
 If true displays the bounds as edges other displays the bounds as solid meshes.
 
+### .objectIndex
+
+```js
+objectIndex = 0 : Number
+```
+
+When using an `InstancedMesh` or a `BatchedMesh` this refers to the item index to use for the BVH and / or matrix transformation to use.
+
 ### .edgeMaterial
 
 ```js
