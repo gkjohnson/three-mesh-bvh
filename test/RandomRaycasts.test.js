@@ -16,6 +16,8 @@ import {
 	acceleratedRaycast,
 	computeBoundsTree,
 	disposeBoundsTree,
+	computeBatchedBoundsTree,
+	disposeBatchedBoundsTree,
 	CENTER,
 	SAH,
 	AVERAGE,
@@ -26,8 +28,8 @@ Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 BatchedMesh.prototype.raycast = acceleratedRaycast;
-BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
-BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
+BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 
 describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
 describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
@@ -144,14 +146,14 @@ function runRandomTests( options ) {
 				const geoId = batchedMesh.addGeometry( geo );
 				if ( options.onlyOneGeo ) {
 
-					batchedMesh.computeBoundsTree( options );
+					batchedMesh.computeBoundsTree( - 1, options );
 
 				}
 
 				const geo2Id = batchedMesh.addGeometry( geo2 );
 				if ( ! options.onlyOneGeo ) {
 
-					batchedMesh.computeBoundsTree( options );
+					batchedMesh.computeBoundsTree( - 1, options );
 
 				}
 

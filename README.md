@@ -77,19 +77,18 @@ Using pre-made functions
 ```js
 // Import via ES6 modules
 import * as THREE from 'three';
-import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
-
-// Or UMD
-const { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } = window.MeshBVHLib;
-
+import {
+	computeBoundsTree, disposeBoundsTree,
+	computeBatchedBoundsTree, disposeBatchedBoundsTree, acceleratedRaycast,
+} from 'three-mesh-bvh';
 
 // Add the extension functions
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 THREE.BatchedMesh.prototype.raycast = acceleratedRaycast;
 
 // Generate geometry and associated BVH
@@ -109,10 +108,6 @@ Or manually building the BVH
 // Import via ES6 modules
 import * as THREE from 'three';
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
-
-// Or UMD
-const { MeshBVH, acceleratedRaycast } = window.MeshBVHLib;
-
 
 // Add the raycast function. Assumes the BVH is available on
 // the `boundsTree` variable
@@ -845,14 +840,13 @@ If the `Raycaster` member `firstHitOnly` is set to true then the [.acceleratedRa
 ### .computeBoundsTree
 
 ```js
-computeBoundsTree( options : Object ) : void
+computeBoundsTree( options? : Object ) : void
 ```
 
-A pre-made BufferGeometry and BatchedMesh extension function that builds a new BVH, assigns it to `boundsTree` for BufferGeometry or `boundsTrees` for BatchedMesh, and applies the new index buffer to the geometry. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
+A pre-made BufferGeometry extension function that builds a new BVH, assigns it to `boundsTree` for BufferGeometry, and applies the new index buffer to the geometry. Comparable to `computeBoundingBox` and `computeBoundingSphere`.
 
 ```js
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
-THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
 ```
 
 ### .disposeBoundsTree
@@ -861,11 +855,34 @@ THREE.BatchedMesh.prototype.computeBoundsTree = computeBoundsTree;
 disposeBoundsTree() : void
 ```
 
-A BufferGeometry and BatchedMesh extension function that disposes of the BVH.
+A BufferGeometry extension function that disposes of the BVH.
 
 ```js
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
-THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBoundsTree;
+```
+
+### .computeBatchedBoundsTree
+
+```js
+computeBatchedBoundsTree( index = - 1 : Number, options? : Object ) : void
+```
+
+Equivalent of `computeBoundsTree` for BatchedMesh. Calling this generates a `BatchedMesh.boundsTrees` array if it doesn't exist and assigns the newly generated BVHs. If `index` is -1 then BVHs for all available geometry are generated. Otherwise only the BVH for the geometry at the given index is generated.
+
+```js
+THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+```
+
+### .disposeBatchedBoundsTree
+
+```js
+disposeBatchedBoundsTree( index = - 1 : Number, options? : Object ) : void
+```
+
+Equivalent of `disposeBoundsTree` for BatchedMesh. Calling this sets entries in `BatchedMesh.boundsTrees` array to null. If `index` is -1 then BVHs are disposed. Otherwise only the BVH for the geometry at the given index is disposed.
+
+```js
+THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 ```
 
 ### .acceleratedRaycast
