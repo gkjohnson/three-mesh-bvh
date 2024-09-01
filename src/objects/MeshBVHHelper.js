@@ -1,4 +1,4 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
@@ -20,6 +20,13 @@ class MeshBVHRootHelper extends Object3D {
 	get isLine() {
 
 		return this.displayEdges;
+
+	}
+
+	getVertexPosition( ...args ) {
+
+		// implement this function so it works with Box3.setFromObject
+		return Mesh.prototype.getVertexPosition.call( this, ...args );
 
 	}
 
