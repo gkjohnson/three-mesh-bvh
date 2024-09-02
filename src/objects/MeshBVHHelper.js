@@ -1,8 +1,10 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh, Matrix4 } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
+const matrix = /* @__PURE__ */ new Matrix4();
+
 class MeshBVHRootHelper extends Object3D {
 
 	get isMesh() {
@@ -254,6 +256,7 @@ class MeshBVHHelper extends Group {
 		this.bvh = bvh;
 		this.displayParents = false;
 		this.displayEdges = true;
+		this.objectIndex = 0;
 		this._roots = [];
 
 		const edgeMaterial = new LineBasicMaterial( {
@@ -281,7 +284,21 @@ class MeshBVHHelper extends Group {
 
 	update() {
 
-		const bvh = this.bvh || this.mesh.geometry.boundsTree;
+		const mesh = this.mesh;
+		let bvh = this.bvh || mesh.geometry.boundsTree || null;
+		if ( mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
+
+			// get the bvh from a batchedMesh if not provided
+			// TODO: we should have an official way to get the geometry index cleanly
+			const drawInfo = mesh._drawInfo[ this.objectIndex ];
+			if ( drawInfo ) {
+
+				bvh = mesh.boundsTrees[ drawInfo.geometryIndex ] || bvh;
+
+			}
+
+		}
+
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
@@ -335,6 +352,14 @@ class MeshBVHHelper extends Group {
 
 				this.matrix
 					.copy( mesh.matrixWorld );
+
+			}
+
+			// handle batched and instanced mesh bvhs
+			if ( mesh.isInstancedMesh || mesh.isBatchedMesh ) {
+
+				mesh.getMatrixAt( this.objectIndex, matrix );
+				this.matrix.multiply( matrix );
 
 			}
 
