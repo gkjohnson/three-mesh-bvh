@@ -90,7 +90,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 
 	}
 
-	// extract uvs
+	// extract normals
 	let normal = null;
 	if ( normals ) {
 
