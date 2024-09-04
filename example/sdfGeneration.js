@@ -10,6 +10,7 @@ import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
 import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterial.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { getTriangleHitPointInfo } from '../src/utils/TriangleUtilities.js';
 
 const params = {
 
@@ -243,6 +244,7 @@ function updateSDF() {
 		const delta = new THREE.Vector3();
 		const tri = new THREE.Triangle();
 		const target = {};
+		const triangleTarget = {};
 
 		// iterate over all pixels and check distance
 		for ( let x = 0; x < dim; x ++ ) {
@@ -263,12 +265,7 @@ function updateSDF() {
 					const dist = bvh.closestPointToPoint( point, target ).distance;
 
 					// get the face normal to determine if the distance should be positive or negative
-					const faceIndex = target.faceIndex;
-					const i0 = indexAttr.getX( faceIndex * 3 + 0 );
-					const i1 = indexAttr.getX( faceIndex * 3 + 1 );
-					const i2 = indexAttr.getX( faceIndex * 3 + 2 );
-					tri.setFromAttributeAndIndices( posAttr, i0, i1, i2 );
-					tri.getNormal( normal );
+					normal.copy( getTriangleHitPointInfo( target.point, geometry, target.faceIndex, triangleTarget ).normal );
 					delta.subVectors( target.point, point );
 
 					// set the distance in the texture data

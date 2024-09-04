@@ -39,12 +39,16 @@ const tempV3 = /* @__PURE__ */ new Vector3();
 const tempUV1 = /* @__PURE__ */ new Vector2();
 const tempUV2 = /* @__PURE__ */ new Vector2();
 const tempUV3 = /* @__PURE__ */ new Vector2();
+const tempNormal1 = /* @__PURE__ */ new Vector3();
+const tempNormal2 = /* @__PURE__ */ new Vector3();
+const tempNormal3 = /* @__PURE__ */ new Vector3();
 
 export function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 
 	const indices = geometry.getIndex().array;
 	const positions = geometry.getAttribute( 'position' );
 	const uvs = geometry.getAttribute( 'uv' );
+	const normals = geometry.getAttribute( 'normal' );
 
 	const a = indices[ triangleIndex * 3 ];
 	const b = indices[ triangleIndex * 3 + 1 ];
@@ -86,6 +90,21 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 
 	}
 
+	// extract uvs
+	let normal = null;
+	if ( normals ) {
+
+		tempNormal1.fromBufferAttribute( normals, a );
+		tempNormal2.fromBufferAttribute( normals, b );
+		tempNormal3.fromBufferAttribute( normals, c );
+
+		if ( target && target.normal ) normal = target.normal;
+		else normal = new Vector3();
+
+		Triangle.getInterpolation( point, tempV1, tempV2, tempV3, tempNormal1, tempNormal2, tempNormal3, normal );
+
+	}
+
 	// adjust the provided target or create a new one
 	if ( target ) {
 
@@ -98,20 +117,22 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 
 		if ( uv ) target.uv = uv;
+		target.normal = normal ?? target.face.normal;
 
 		return target;
 
 	} else {
-
+		let faceNormal = Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() );
 		return {
 			face: {
 				a: a,
 				b: b,
 				c: c,
 				materialIndex: materialIndex,
-				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
+				normal: faceNormal
 			},
-			uv: uv
+			uv: uv,
+			normal: normal ?? faceNormal
 		};
 
 	}

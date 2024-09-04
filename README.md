@@ -1065,14 +1065,16 @@ target : {
 		materialIndex: Number,
 		normal: Vector3
 	},
-	uv: Vector2
+	uv: Vector2,
+	normal: Vector3
 }
 ```
 
 - `a`, `b`, `c`: Triangle indices
 - `materialIndex`: Face material index or 0 if not available.
 - `normal`: Face normal
-- `uv`: UV coordinates.
+- `uv`: Interpolated UV coordinates.
+- `normal`: Interpolated normal
 
 This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
 
