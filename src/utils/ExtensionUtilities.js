@@ -47,14 +47,16 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 		}
 
+		// TODO: provide new method to get instances count instead of 'drawInfo.length'
 		for ( let i = 0, l = drawInfo.length; i < l; i ++ ) {
 
-			if ( ! drawInfo[ i ].visible || ! drawInfo[ i ].active ) {
+			if ( ! this.getVisibleAt( i ) ) {
 
 				continue;
 
 			}
 
+			// TODO: use getGeometryIndex
 			const geometryId = drawInfo[ i ].geometryIndex;
 
 			_mesh.geometry.boundsTree = boundsTrees[ geometryId ];
