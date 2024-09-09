@@ -75,7 +75,6 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 Using pre-made functions
 
 ```js
-// Import via ES6 modules
 import * as THREE from 'three';
 import {
 	computeBoundsTree, disposeBoundsTree,
@@ -96,16 +95,18 @@ const geom = new THREE.TorusKnotGeometry( 10, 3, 400, 100 );
 const mesh = new THREE.Mesh( geom, material );
 geom.computeBoundsTree();
 
-// Generate BatchedMesh and associated BVH
+// Or generate BatchedMesh and associated BVHs
 const batchedMesh = new THREE.BatchedMesh( ... );
-// ... set geometries and instances
-batchedMesh.computeBoundsTree();
+const geomId = batchedMesh.addGeometry( geom );
+const instId = batchedMesh.addGeometry( geom );
+
+// Generate bounds tree for sub geometry
+batchedMesh.computeBoundsTree( geomId );
 ```
 
 Or manually building the BVH
 
 ```js
-// Import via ES6 modules
 import * as THREE from 'three';
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 
