@@ -286,6 +286,7 @@ function updateFromOptions() {
 	) {
 
 		batchedMesh.disposeBoundsTree();
+		batchedMesh.boundsTrees = null;
 
 	}
 
