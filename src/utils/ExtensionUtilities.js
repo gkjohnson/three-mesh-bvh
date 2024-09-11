@@ -1,13 +1,15 @@
-import { Ray, Matrix4, Mesh, Vector3, BatchedMesh, Sphere, REVISION } from 'three';
+import { Ray, Matrix4, Mesh, Vector3, Sphere, REVISION } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
+import * as THREE from 'three';
 
+const BatchedMesh = THREE.BatchedMesh || null; // this is necessary to not break three.js r157-
 const IS_REVISION_166 = parseInt( REVISION ) >= 166;
 const ray = /* @__PURE__ */ new Ray();
 const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
 const origMeshRaycastFunc = Mesh.prototype.raycast;
-const origBatchedRaycastFunc = BatchedMesh.prototype.raycast;
+const origBatchedRaycastFunc = BatchedMesh !== null ? BatchedMesh.prototype.raycast : null;
 const _worldScale = /* @__PURE__ */ new Vector3();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
