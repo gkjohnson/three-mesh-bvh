@@ -1,5 +1,5 @@
 import { Vector3, Triangle, Line3, MathUtils, Plane, BufferGeometry, BufferAttribute } from 'three';
-import { ExtendedTriangle } from '../..';
+import { ExtendedTriangle } from '../../src/index.js';
 
 const _upVector = new Vector3( 0, 1, 0 );
 const EPSILON = 1e-16;

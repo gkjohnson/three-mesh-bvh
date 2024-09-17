@@ -1,5 +1,5 @@
 import { ShaderMaterial, Matrix4 } from 'three';
-import { BVHShaderGLSL, MeshBVHUniformStruct } from '../..';
+import { BVHShaderGLSL, MeshBVHUniformStruct } from '../../src/index.js';
 
 export class GenerateSDFMaterial extends ShaderMaterial {
 

@@ -7,7 +7,7 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper,
 	SAH, CENTER, AVERAGE, getBVHExtremes, estimateMemoryInBytes,
-} from '..';
+} from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

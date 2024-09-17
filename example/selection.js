@@ -8,7 +8,7 @@ import {
 	CONTAINED,
 	INTERSECTED,
 	NOT_INTERSECTED,
-} from '..';
+} from '../src/index.js';
 
 const params = {
 

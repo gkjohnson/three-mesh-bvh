@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { MarchingCubes } from './lib/MarchingCubes.js';
 import SimplexNoise from 'simplex-noise';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper } from '..';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper } from '../src/index.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
