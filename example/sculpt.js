@@ -151,10 +151,10 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	// init matcaps
-	matcaps[ 'Clay' ] = new THREE.TextureLoader().load( '../textures/B67F6B_4B2E2A_6C3A34_F3DBC6-256px.png' );
-	matcaps[ 'Red Wax' ] = new THREE.TextureLoader().load( '../textures/763C39_431510_210504_55241C-256px.png' );
-	matcaps[ 'Shiny Green' ] = new THREE.TextureLoader().load( '../textures/3B6E10_E3F2C3_88AC2E_99CE51-256px.png' );
-	matcaps[ 'Normal' ] = new THREE.TextureLoader().load( '../textures/7877EE_D87FC5_75D9C7_1C78C0-256px.png' );
+	matcaps[ 'Clay' ] = new THREE.TextureLoader().load( './textures/B67F6B_4B2E2A_6C3A34_F3DBC6-256px.png' );
+	matcaps[ 'Red Wax' ] = new THREE.TextureLoader().load( './textures/763C39_431510_210504_55241C-256px.png' );
+	matcaps[ 'Shiny Green' ] = new THREE.TextureLoader().load( './textures/3B6E10_E3F2C3_88AC2E_99CE51-256px.png' );
+	matcaps[ 'Normal' ] = new THREE.TextureLoader().load( './textures/7877EE_D87FC5_75D9C7_1C78C0-256px.png' );
 	material = new THREE.MeshMatcapMaterial( {
 		flatShading: params.flatShading,
 	} );
