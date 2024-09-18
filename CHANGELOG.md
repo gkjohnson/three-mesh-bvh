@@ -4,11 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.7.8] - 2024-09-11
+## [0.8.0] - 2024.09.18
+### Fixed
+- Updated three.js version to r158 where BatchedMesh is supported and available so certain bundlers do not fail on build.
+
+## ~[0.7.8] - 2024-09-11~
+_deprecated due to three.js version incompatibility. Use v0.8.0._
+
 ### Fixed
 - Failure with older versions of three.js.
 
-## [0.7.7] - 2024-09-09
+## ~[0.7.7] - 2024-09-09~
+_deprecated due to three.js version incompatibility. Use v0.8.0._
+
 ### Added
 - Support for a custom "range" option to build a BVH from a sub range of the geometry.
 - BatchedMesh support for bounds tree generation functions and raycasting. See "computeBatchedBoundsTree" and "disposeBatchedBoundsTree".
