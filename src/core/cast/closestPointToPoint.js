@@ -2,6 +2,8 @@ import { Vector3 } from 'three';
 
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
+const norm = /* @__PURE__ */ new Vector3();
+const deltaDir = /* @__PURE__ */ new Vector3();
 
 export function closestPointToPoint(
 	bvh,
@@ -19,6 +21,7 @@ export function closestPointToPoint(
 	const maxThresholdSq = maxThreshold * maxThreshold;
 	let closestDistanceSq = Infinity;
 	let closestDistanceTriIndex = null;
+	let dotValue = null;
 	bvh.shapecast(
 
 		{
@@ -39,12 +42,27 @@ export function closestPointToPoint(
 			intersectsTriangle: ( tri, triIndex ) => {
 
 				tri.closestPointToPoint( point, temp );
+				tri.getNormal( norm );
+				deltaDir.subVectors( point, temp ).normalize();
+
+				const newDot = deltaDir.dot( norm );
 				const distSq = point.distanceToSquared( temp );
-				if ( distSq < closestDistanceSq ) {
+				if ( Math.abs( distSq - closestDistanceSq ) < 1e-31 && temp1.distanceToSquared( temp ) < 1e-31 ) {
+
+					if ( Math.abs( newDot ) > Math.abs( dotValue ) ) {
+
+						closestDistanceTriIndex = triIndex;
+						bestIndex = dots.length;
+						dotValue = newDot;
+
+					}
+
+				} else if ( distSq < closestDistanceSq ) {
 
 					temp1.copy( temp );
 					closestDistanceSq = distSq;
 					closestDistanceTriIndex = triIndex;
+					dotValue = newDot;
 
 				}
 
