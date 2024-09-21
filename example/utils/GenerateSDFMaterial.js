@@ -60,8 +60,8 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 					vec3 outPoint;
 					float dist = bvhClosestPointToPoint( bvh, point.xyz, faceIndices, faceNormal, barycoord, side, outPoint );
 
-					//bool hit = bvhIntersectFirstHit( bvh, point.xyz, vec3(0.0, 0.0, 1.0), faceIndices, faceNormal, barycoord, side, rayDist );
-					//side = ( hit && side > 0.0 ) ? 1.0 : -1.0;
+					side = 1.0;
+					bvhIntersectFirstHit( bvh, point.xyz, vec3( 0.0, 0.0, 1.0 ), faceIndices, faceNormal, barycoord, side, rayDist );
 
 					// if the triangle side is the back then it must be on the inside and the value negative
 					gl_FragColor = vec4( side * dist, 0, 0, 0 );
