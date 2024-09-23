@@ -262,10 +262,10 @@ function updateSDF() {
 					ray.origin.copy( point );
 					ray.direction.set( 0, 0, 1 );
 					const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
-					let isInside = hit && hit.face.normal.dot( ray.direction ) > 0.0;
+					const isInside = hit && hit.face.normal.dot( ray.direction ) > 0.0;
 
 					// set the distance in the texture data
-					sdfTex.image.data[ index ] = isInside > 0.0 ? - dist : dist;
+					sdfTex.image.data[ index ] = isInside ? - dist : dist;
 
 				}
 
