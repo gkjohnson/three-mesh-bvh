@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Fixed
+- Made example SDF generation logic more robust
+
 ## [0.8.0] - 2024-09-18
 ### Fixed
 - Updated three.js version to r158 where BatchedMesh is supported and available so certain bundlers do not fail on build.
