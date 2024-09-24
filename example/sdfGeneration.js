@@ -236,12 +236,8 @@ function updateSDF() {
 		sdfTex.magFilter = THREE.LinearFilter;
 		sdfTex.needsUpdate = true;
 
-		const posAttr = geometry.attributes.position;
-		const indexAttr = geometry.index;
 		const point = new THREE.Vector3();
-		const normal = new THREE.Vector3();
-		const delta = new THREE.Vector3();
-		const tri = new THREE.Triangle();
+		const ray = new THREE.Ray();
 		const target = {};
 
 		// iterate over all pixels and check distance
@@ -262,17 +258,14 @@ function updateSDF() {
 					const index = x + y * dim + z * dim * dim;
 					const dist = bvh.closestPointToPoint( point, target ).distance;
 
-					// get the face normal to determine if the distance should be positive or negative
-					const faceIndex = target.faceIndex;
-					const i0 = indexAttr.getX( faceIndex * 3 + 0 );
-					const i1 = indexAttr.getX( faceIndex * 3 + 1 );
-					const i2 = indexAttr.getX( faceIndex * 3 + 2 );
-					tri.setFromAttributeAndIndices( posAttr, i0, i1, i2 );
-					tri.getNormal( normal );
-					delta.subVectors( target.point, point );
+					// raycast inside the mesh to determine if the distance should be positive or negative
+					ray.origin.copy( point );
+					ray.direction.set( 0, 0, 1 );
+					const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
+					const isInside = hit && hit.face.normal.dot( ray.direction ) > 0.0;
 
 					// set the distance in the texture data
-					sdfTex.image.data[ index ] = normal.dot( delta ) > 0.0 ? - dist : dist;
+					sdfTex.image.data[ index ] = isInside ? - dist : dist;
 
 				}
 
