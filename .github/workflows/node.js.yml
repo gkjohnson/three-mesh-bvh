@@ -17,6 +17,7 @@ jobs:
     strategy:
       matrix:
         node-version: [20.x]
+        three-version: [0.159.0, 0.168.0, latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -26,6 +27,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
+    - run: npm install three@${{ matrix.three-version }}
     - run: npm run build
     - run: npm run benchmark
     - run: npm run lint
