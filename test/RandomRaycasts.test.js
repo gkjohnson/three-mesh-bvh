@@ -23,6 +23,7 @@ import {
 	AVERAGE,
 } from '../src/index.js';
 import { random, setSeed } from './utils.js';
+import { REVISION } from 'three';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -54,10 +55,16 @@ describe( 'Random Batched CENTER intersections', () => runRandomTests( { strateg
 describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
 describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
 describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
-// describe( 'Random Batched CENTER intersections replacing a geometry', () => runRandomTests( { strategy: CENTER, batched: true, replaceGeo: true } ) );
-// describe( 'Random Batched CENTER intersections with three version below 166', () => runRandomTests( { strategy: CENTER, batched: true, olderVersion: true } ) );
 
 function runRandomTests( options ) {
+
+	// TODO: remove in future release
+	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+	if ( options.batched && ! IS_REVISION_166 ) {
+
+		return;
+
+	}
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
