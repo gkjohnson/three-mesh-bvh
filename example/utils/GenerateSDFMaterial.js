@@ -7,6 +7,12 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 
 		super( {
 
+			defines: {
+
+				USE_SHADER_RAYCAST: window.location.hash.includes( 'USE_SHADER_RAYCAST' ) ? 1 : 0,
+
+			},
+
 			uniforms: {
 
 				matrix: { value: new Matrix4() },
@@ -60,8 +66,13 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 					vec3 outPoint;
 					float dist = bvhClosestPointToPoint( bvh, point.xyz, faceIndices, faceNormal, barycoord, side, outPoint );
 
-					// side = 1.0;
-					// bvhIntersectFirstHit( bvh, point.xyz, vec3( 0.0, 0.0, 1.0 ), faceIndices, faceNormal, barycoord, side, rayDist );
+					// This currently causes issues on some devices when rendering to 3d textures and texture arrays
+					#if USE_SHADER_RAYCAST
+
+					side = 1.0;
+					bvhIntersectFirstHit( bvh, point.xyz, vec3( 0.0, 0.0, 1.0 ), faceIndices, faceNormal, barycoord, side, rayDist );
+
+					#endif
 
 					// if the triangle side is the back then it must be on the inside and the value negative
 					gl_FragColor = vec4( side * dist, 0, 0, 0 );
