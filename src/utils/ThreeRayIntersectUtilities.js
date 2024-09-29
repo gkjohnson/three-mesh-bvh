@@ -1,4 +1,6 @@
-import { Vector3, Vector2, Triangle, DoubleSide, BackSide } from 'three';
+import { Vector3, Vector2, Triangle, DoubleSide, BackSide, REVISION } from 'three';
+
+const IS_GT_REVISION_169 = parseInt( REVISION ) >= 169;
 
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
@@ -53,6 +55,9 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 	if ( intersection ) {
 
+		const barycoord = new Vector3();
+		Triangle.getBarycoord( _intersectionPoint, _vA, _vB, _vC, barycoord );
+
 		if ( uv ) {
 
 			_uvA.fromBufferAttribute( uv, a );
@@ -100,6 +105,12 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 
 		intersection.face = face;
 		intersection.faceIndex = a;
+
+		if ( IS_GT_REVISION_169 ) {
+
+			intersection.barycoord = barycoord;
+
+		}
 
 	}
 

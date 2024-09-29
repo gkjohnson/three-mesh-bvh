@@ -71,6 +71,10 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 
 	}
 
+	// extract barycoord
+	const barycoord = target && target.barycoord ? target.barycoord : new Vector3();
+	Triangle.getBarycoord( point, tempV1, tempV2, tempV3, barycoord );
+
 	// extract uvs
 	let uv = null;
 	if ( uvs ) {
@@ -98,6 +102,7 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 		Triangle.getNormal( tempV1, tempV2, tempV3, target.face.normal );
 
 		if ( uv ) target.uv = uv;
+		target.barycoord = barycoord;
 
 		return target;
 
@@ -111,7 +116,8 @@ export function getTriangleHitPointInfo( point, geometry, triangleIndex, target 
 				materialIndex: materialIndex,
 				normal: Triangle.getNormal( tempV1, tempV2, tempV3, new Vector3() )
 			},
-			uv: uv
+			uv: uv,
+			barycoord: barycoord,
 		};
 
 	}
