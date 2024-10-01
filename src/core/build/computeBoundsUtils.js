@@ -82,7 +82,7 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 	let triangleBounds;
 	if ( target === null ) {
 
-		triangleBounds = new Float32Array( triCount * 6 * 4 );
+		triangleBounds = new Float32Array( triCount * 6 );
 		offset = 0;
 		count = triCount;
 
