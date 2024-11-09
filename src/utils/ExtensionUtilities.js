@@ -11,6 +11,7 @@ const origBatchedRaycastFunc = BatchedMesh.prototype.raycast;
 const _worldScale = /* @__PURE__ */ new Vector3();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
+const _drawRangeInfo = {};
 
 export function acceleratedRaycast( raycaster, intersects ) {
 
@@ -68,7 +69,8 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 				this.getBoundingBoxAt( geometryId, _mesh.geometry.boundingBox );
 				this.getBoundingSphereAt( geometryId, _mesh.geometry.boundingSphere );
 
-				const drawRange = drawRanges[ geometryId ];
+				// TODO: remove use of drawRanges when r170 is minimum version
+				const drawRange = drawRanges ? drawRanges[ geometryId ] : this.getGeometryRangeAt( geometryId, _drawRangeInfo );
 				_mesh.geometry.setDrawRange( drawRange.start, drawRange.count );
 
 			}
