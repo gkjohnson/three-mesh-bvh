@@ -205,7 +205,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		for ( let i = 0; i < geometryCount; i ++ ) {
 
-			options.range = drawRanges[ i ];
+			options.range = drawRanges ? drawRanges[ i ] : this.getGeometryRangeAt( i, _drawRangeInfo );
 			boundsTrees[ i ] = new MeshBVH( this.geometry, options );
 
 		}
@@ -216,7 +216,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		if ( index < drawRanges.length ) {
 
-			options.range = drawRanges[ index ];
+			options.range = drawRanges ? drawRanges[ index ] : this.getGeometryRangeAt( index, _drawRangeInfo );
 			boundsTrees[ index ] = new MeshBVH( this.geometry, options );
 
 		}
