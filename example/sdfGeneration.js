@@ -207,24 +207,37 @@ function updateSDF() {
 		sdfTex.texture.type = floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType;
 		sdfTex.texture.minFilter = THREE.LinearFilter;
 		sdfTex.texture.magFilter = THREE.LinearFilter;
+		renderer.initRenderTarget( sdfTex );
 
 		// prep the sdf generation material pass
 		generateSdfPass.material.uniforms.bvh.value.updateFrom( bvh );
 		generateSdfPass.material.uniforms.matrix.value.copy( matrix );
+
+		// create a 2d render target to render in to
+		const scratchVec = new THREE.Vector3();
+		const scratchTarget = new THREE.WebGLRenderTarget( dim, dim );
+		scratchTarget.texture.format = THREE.RedFormat;
+		scratchTarget.texture.type = floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType;
 
 		// render into each layer
 		for ( let i = 0; i < dim; i ++ ) {
 
 			generateSdfPass.material.uniforms.zValue.value = i * pxWidth + halfWidth;
 
-			renderer.setRenderTarget( sdfTex, i );
+			renderer.setRenderTarget( scratchTarget );
 			generateSdfPass.render( renderer );
+
+			// copy the data into the 3d texture since rendering directly into the target causes significant gpu artifacts
+			// See issue #720
+			scratchVec.z = i;
+			renderer.copyTextureToTexture( scratchTarget.texture, sdfTex.texture, null, scratchVec );
 
 		}
 
 		// initiate read back to get a rough estimate of time taken to generate the sdf
-		renderer.readRenderTargetPixels( sdfTex, 0, 0, 1, 1, new Float32Array( 4 ) );
+		renderer.readRenderTargetPixels( scratchTarget, 0, 0, 1, 1, new Float32Array( 4 ) );
 		renderer.setRenderTarget( null );
+		scratchTarget.dispose();
 
 	} else {
 
