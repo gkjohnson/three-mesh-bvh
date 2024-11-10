@@ -117,7 +117,7 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 			}
 
-			const geometryId = getGeometryIndex( i );
+			const geometryId = getGeometryIndex( this, i );
 			_mesh.geometry.boundsTree = boundsTrees[ geometryId ];
 
 			this.getMatrixAt( i, _mesh.matrixWorld ).premultiply( matrixWorld );
@@ -243,7 +243,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 		range: null
 	};
 
-	const drawRanges = this._drawRanges;
+	// TODO: we need a way to query the number of geometries
 	const geometryCount = this._geometryCount;
 	if ( ! this.boundsTrees ) {
 
