@@ -62,6 +62,8 @@ function getDrawRange( batchedMesh, index, target ) {
 
 	}
 
+	return target;
+
 }
 
 export function acceleratedRaycast( raycaster, intersects ) {
