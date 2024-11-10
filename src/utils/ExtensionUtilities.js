@@ -22,7 +22,7 @@ function getGeometryIndex( batchedMesh, index ) {
 
 	} else {
 
-		return batchedMesh.drawInfo[ index ].geometryIndex;
+		return batchedMesh._drawInfo[ index ].geometryIndex;
 
 	}
 
