@@ -3,6 +3,7 @@ import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+const IS_REVISION_170 = parseInt( REVISION ) >= 170;
 const ray = /* @__PURE__ */ new Ray();
 const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
@@ -12,6 +13,56 @@ const _worldScale = /* @__PURE__ */ new Vector3();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
 const _drawRangeInfo = {};
+
+function getGeometryIndex( batchedMesh, index ) {
+
+	if ( IS_REVISION_170 ) {
+
+		return batchedMesh.getGeometryIdAt( index );
+
+	} else {
+
+		return batchedMesh.drawInfo[ index ].geometryIndex;
+
+	}
+
+}
+
+function getInstanceCount( batchedMesh ) {
+
+	if ( IS_REVISION_170 ) {
+
+		return batchedMesh.instanceCount;
+
+	} else {
+
+		return batchedMesh._drawInfo.length;
+
+	}
+
+}
+
+function getDrawRange( batchedMesh, index, target ) {
+
+	if ( IS_REVISION_170 ) {
+
+		try {
+
+			Object.assign( target, batchedMesh.getGeometryRangeAt( index, target ) );
+
+		} catch {
+
+			return null;
+
+		}
+
+	} else if ( index < batchedMesh._drawRanges.length ) {
+
+		Object.assign( target, batchedMesh._drawRanges[ index ] );
+
+	}
+
+}
 
 export function acceleratedRaycast( raycaster, intersects ) {
 
@@ -32,8 +83,6 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 	if ( this.boundsTrees ) {
 
 		const boundsTrees = this.boundsTrees;
-		const drawInfo = this._drawInfo;
-		const drawRanges = this._drawRanges;
 		const matrixWorld = this.matrixWorld;
 
 		_mesh.material = this.material;
@@ -48,18 +97,27 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 		}
 
-		// TODO: provide new method to get instances count instead of 'drawInfo.length'
-		for ( let i = 0, l = drawInfo.length; i < l; i ++ ) {
+		for ( let i = 0, l = getInstanceCount( this ); i < l; i ++ ) {
 
-			if ( ! this.getVisibleAt( i ) ) {
+			// check instance visibility
+			let isVisible = false;
+			try {
+
+				isVisible = this.getVisibleAt( i );
+
+			} catch {
+
+				isVisible = false;
+
+			}
+
+			if ( ! isVisible ) {
 
 				continue;
 
 			}
 
-			// TODO: use getGeometryIndex
-			const geometryId = drawInfo[ i ].geometryIndex;
-
+			const geometryId = getGeometryIndex( i );
 			_mesh.geometry.boundsTree = boundsTrees[ geometryId ];
 
 			this.getMatrixAt( i, _mesh.matrixWorld ).premultiply( matrixWorld );
@@ -69,8 +127,7 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 				this.getBoundingBoxAt( geometryId, _mesh.geometry.boundingBox );
 				this.getBoundingSphereAt( geometryId, _mesh.geometry.boundingSphere );
 
-				// TODO: remove use of drawRanges when r170 is minimum version
-				const drawRange = drawRanges ? drawRanges[ geometryId ] : this.getGeometryRangeAt( geometryId, _drawRangeInfo );
+				const drawRange = getDrawRange( this, geometryId, _drawRangeInfo );
 				_mesh.geometry.setDrawRange( drawRange.start, drawRange.count );
 
 			}
@@ -205,8 +262,16 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		for ( let i = 0; i < geometryCount; i ++ ) {
 
-			options.range = drawRanges ? drawRanges[ i ] : this.getGeometryRangeAt( i, _drawRangeInfo );
-			boundsTrees[ i ] = new MeshBVH( this.geometry, options );
+			options.range = getDrawRange( this, i, _drawRangeInfo );
+			if ( options.range !== null ) {
+
+				boundsTrees[ i ] = new MeshBVH( this.geometry, options );
+
+			} else {
+
+				boundsTrees[ i ] = null;
+
+			}
 
 		}
 
@@ -214,10 +279,14 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 	} else {
 
-		if ( index < drawRanges.length ) {
+		options.range = getDrawRange( this, index, _drawRangeInfo );
+		if ( options.range !== null ) {
 
-			options.range = drawRanges ? drawRanges[ index ] : this.getGeometryRangeAt( index, _drawRangeInfo );
 			boundsTrees[ index ] = new MeshBVH( this.geometry, options );
+
+		} else {
+
+			boundsTrees[ index ] = null;
 
 		}
 
