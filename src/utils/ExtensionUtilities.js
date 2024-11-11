@@ -11,7 +11,6 @@ const origBatchedRaycastFunc = BatchedMesh.prototype.raycast;
 const _worldScale = /* @__PURE__ */ new Vector3();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
-const _drawRangeInfo = {};
 
 export function acceleratedRaycast( raycaster, intersects ) {
 
