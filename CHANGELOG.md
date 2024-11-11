@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.8.3] - 2042-11-11
+## [0.8.3] - 2024-11-11
 ### Fixed
 - Library not working with BatchedMesh in three.js r170.
 
