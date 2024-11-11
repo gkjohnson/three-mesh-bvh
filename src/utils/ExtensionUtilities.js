@@ -31,9 +31,10 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 	if ( this.boundsTrees ) {
 
+		// TODO: remove use of geometry info, instance info when r170 is minimum version
 		const boundsTrees = this.boundsTrees;
-		const drawInfo = this._drawInfo;
-		const drawRanges = this._drawRanges;
+		const drawInfo = this._drawInfo || this._instanceInfo;
+		const drawRanges = this._drawRanges || this._geometryInfo;
 		const matrixWorld = this.matrixWorld;
 
 		_mesh.material = this.material;
@@ -69,8 +70,7 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 				this.getBoundingBoxAt( geometryId, _mesh.geometry.boundingBox );
 				this.getBoundingSphereAt( geometryId, _mesh.geometry.boundingSphere );
 
-				// TODO: remove use of drawRanges when r170 is minimum version
-				const drawRange = drawRanges ? drawRanges[ geometryId ] : this.getGeometryRangeAt( geometryId, _drawRangeInfo );
+				const drawRange = drawRanges[ geometryId ];
 				_mesh.geometry.setDrawRange( drawRange.start, drawRange.count );
 
 			}
@@ -186,7 +186,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 		range: null
 	};
 
-	const drawRanges = this._drawRanges;
+	const drawRanges = this._drawRanges || this._geometryInfo;
 	const geometryCount = this._geometryCount;
 	if ( ! this.boundsTrees ) {
 
@@ -205,7 +205,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		for ( let i = 0; i < geometryCount; i ++ ) {
 
-			options.range = drawRanges ? drawRanges[ i ] : this.getGeometryRangeAt( i, _drawRangeInfo );
+			options.range = drawRanges[ i ];
 			boundsTrees[ i ] = new MeshBVH( this.geometry, options );
 
 		}
@@ -216,7 +216,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 		if ( index < drawRanges.length ) {
 
-			options.range = drawRanges ? drawRanges[ index ] : this.getGeometryRangeAt( index, _drawRangeInfo );
+			options.range = drawRanges[ index ];
 			boundsTrees[ index ] = new MeshBVH( this.geometry, options );
 
 		}
