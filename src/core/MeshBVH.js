@@ -5,7 +5,13 @@ import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
-import { closestPointToPoint } from './cast/closestPointToPoint.js';
+import { closestPointToPoint } from './cast/closestPointToPoint.generated.js';
+import { closestPointToPoint_indirect } from './cast/closestPointToPoint_indirect.generated.js';
+import { closestPointToPointSort } from './cast/closestPointToPointSort.generated.js';
+import { closestPointToPointSort_indirect } from './cast/closestPointToPointSort_indirect.generated.js';
+import { closestPointToPointHybrid } from './cast/closestPointToPointHybrid.generated.js';
+import { closestPointToPointHybrid_indirect } from './cast/closestPointToPointHybrid_indirect.generated.js';
+import { closestPointToPointOld } from './cast/closestPointToPoint.js'; // REMOVE AFTER TEST
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -519,7 +525,90 @@ export class MeshBVH {
 
 	closestPointToPoint( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
 
-		return closestPointToPoint(
+		const closestPointToPointFunc = this.indirect ? closestPointToPoint_indirect : closestPointToPoint;
+		const roots = this._roots;
+		let result = null;
+
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			result = closestPointToPointFunc(
+				this,
+				i,
+				point,
+				target,
+				minThreshold,
+				maxThreshold,
+			);
+
+			// fix here, check old result and new
+
+			if ( result && result.distance <= minThreshold ) break;
+
+		}
+
+		return result;
+
+	}
+
+	closestPointToPointSort( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
+
+		const closestPointToPointFunc = this.indirect ? closestPointToPointSort_indirect : closestPointToPointSort;
+		const roots = this._roots;
+		let result = null;
+
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			result = closestPointToPointFunc(
+				this,
+				i,
+				point,
+				target,
+				minThreshold,
+				maxThreshold,
+			);
+
+			// fix here, check old result and new
+
+			if ( result && result.distance <= minThreshold ) break;
+
+		}
+
+		return result;
+
+	}
+
+	closestPointToPointHybrid( point, target = { }, sortedListMaxCount = 16, minThreshold = 0, maxThreshold = Infinity ) {
+
+		const closestPointToPointFunc = this.indirect ? closestPointToPointHybrid_indirect : closestPointToPointHybrid;
+		const roots = this._roots;
+		let result = null;
+
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			result = closestPointToPointFunc(
+				this,
+				i,
+				point,
+				target,
+				sortedListMaxCount,
+				minThreshold,
+				maxThreshold,
+			);
+
+			// fix here, check old result and new
+
+			if ( result && result.distance <= minThreshold ) break;
+
+		}
+
+		return result;
+
+	}
+
+	// REMOVE AFTER TEST
+	closestPointToPointOld( point, target = { }, minThreshold = 0, maxThreshold = Infinity ) {
+
+		return closestPointToPointOld(
 			this,
 			point,
 			target,
