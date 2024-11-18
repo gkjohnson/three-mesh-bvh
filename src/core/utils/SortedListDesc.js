@@ -8,7 +8,7 @@ export class SortedListDesc {
 
 	clear() {
 
-		this.array = [];
+		this.array.length = 0;
 
 	}
 

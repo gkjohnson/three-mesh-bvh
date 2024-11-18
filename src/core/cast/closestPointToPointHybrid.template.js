@@ -15,7 +15,7 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 	root,
 	point,
 	target,
-	sortedListMaxCount,
+	maxDepthSorted,
 	minThreshold,
 	maxThreshold
 ) {
@@ -33,13 +33,26 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 
-	if ( sortedListMaxCount === 0 ) {
+	sortedList.clear();
 
-		_closestPointToPoint( 0 );
+	if ( maxDepthSorted > 0 ) {
+
+		_fillSortedList( root, 0 );
 
 	} else {
 
-		_closestPointToPointSorted();
+		sortedList.push( { nodeIndex32: root, distance: closestDistanceSquaredPointToBox( root, float32Array, point ) } );
+
+	}
+
+	const nodes = sortedList.array;
+	for ( let i = nodes.length - 1; i >= 0; i -- ) {
+
+		const { distance, nodeIndex32 } = nodes[ i ];
+
+		if ( distance >= closestDistanceSq ) break;
+
+		_closestPointToPoint( nodeIndex32 );
 
 	}
 
@@ -57,87 +70,44 @@ export function closestPointToPointHybrid/* @echo INDIRECT_STRING */(
 	return target;
 
 
-	function _closestPointToPointSorted() {
+	function _fillSortedList( nodeIndex32, depth ) {
 
-		sortedList.clear();
-		let count = 0;
-		let node = { nodeIndex32: 0, distance: closestDistanceSquaredPointToBox( 0, float32Array, point ) };
+		const nodeIndex16 = nodeIndex32 * 2;
+		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
+		if ( isLeaf ) {
 
-		do {
+			sortedList.push( { nodeIndex32, distance: closestDistanceSquaredPointToBox( nodeIndex32, float32Array, point ) } );
 
-			const { distance, nodeIndex32 } = node;
+			return;
 
-			if ( distance >= closestDistanceSq ) return;
+		}
 
-			if ( count >= sortedListMaxCount ) {
+		const leftIndex = LEFT_NODE( nodeIndex32 );
+		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
 
-				if ( _closestPointToPoint( nodeIndex32 ) ) return;
-
-				continue;
-
-			}
-
-			count ++;
-
-			const nodeIndex16 = nodeIndex32 * 2;
-			const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
-			if ( isLeaf ) {
-
-				const offset = OFFSET( nodeIndex32, uint32Array );
-				const count = COUNT( nodeIndex16, uint16Array );
-
-				for ( let i = offset, l = count + offset; i < l; i ++ ) {
-
-					/* @if INDIRECT */
-
-					const ti = bvh.resolveTriangleIndex( i );
-					setTriangle( triangle, 3 * ti, index, pos );
-
-					/* @else */
-
-					setTriangle( triangle, i * 3, index, pos );
-
-					/* @endif */
-
-					triangle.needsUpdate = true;
-
-					triangle.closestPointToPoint( point, temp );
-					const distSq = point.distanceToSquared( temp );
-					if ( distSq < closestDistanceSq ) {
-
-						temp1.copy( temp );
-						closestDistanceSq = distSq;
-						closestDistanceTriIndex = i;
-
-						if ( distSq < minThresholdSq ) return;
-
-					}
-
-				}
-
-				continue;
-
-			}
-
-			const leftIndex = LEFT_NODE( nodeIndex32 );
-			const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
+		if ( depth === maxDepthSorted ) {
 
 			const leftDistance = closestDistanceSquaredPointToBox( leftIndex, float32Array, point );
 			const rightDistance = closestDistanceSquaredPointToBox( rightIndex, float32Array, point );
 
-			if ( leftDistance < closestDistanceSq && leftDistance < maxThresholdSq ) {
+			if ( leftDistance > rightDistance ) { // leftDistance < maxThresholdSq - consider this?
 
+				sortedList.push( { nodeIndex32: leftIndex, distance: leftDistance } );
+				sortedList.push( { nodeIndex32: rightIndex, distance: rightDistance } );
+
+			} else {
+
+				sortedList.push( { nodeIndex32: rightIndex, distance: rightDistance } );
 				sortedList.push( { nodeIndex32: leftIndex, distance: leftDistance } );
 
 			}
 
-			if ( rightDistance < closestDistanceSq && rightDistance < maxThresholdSq ) {
+			return;
 
-				sortedList.push( { nodeIndex32: rightIndex, distance: rightDistance } );
+		}
 
-			}
-
-		} while ( node = sortedList.pop() );
+		_fillSortedList( leftIndex, depth + 1 );
+		_fillSortedList( rightIndex, depth + 1 );
 
 	}
 
