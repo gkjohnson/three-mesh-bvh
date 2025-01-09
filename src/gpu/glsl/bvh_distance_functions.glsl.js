@@ -113,23 +113,13 @@ float distanceSqToBVHNodeBoundsPoint( vec3 point, sampler2D bvhBounds, uint curr
 
 // use a macro to hide the fact that we need to expand the struct into separate fields
 #define\
-	bvhClosestPointToPointClamped(\
-		bvh,\
-		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
-	)\
-	_bvhClosestPointToPoint(\
-		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
-		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
-	)
-
-#define\
 	bvhClosestPointToPoint(\
 		bvh,\
-		point, faceIndices, faceNormal, barycoord, side, outPoint\
+		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
 	)\
 	_bvhClosestPointToPoint(\
 		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
-		point, 100000.0, faceIndices, faceNormal, barycoord, side, outPoint\
+		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
 	)
 
 float _bvhClosestPointToPoint(
