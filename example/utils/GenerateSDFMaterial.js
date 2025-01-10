@@ -64,7 +64,7 @@ export class GenerateSDFMaterial extends ShaderMaterial {
 					float side;
 					float rayDist;
 					vec3 outPoint;
-					float dist = bvhClosestPointToPoint( bvh, point.xyz, faceIndices, faceNormal, barycoord, side, outPoint );
+					float dist = bvhClosestPointToPoint( bvh, point.xyz, 100000.0, faceIndices, faceNormal, barycoord, side, outPoint );
 
 					// This currently causes issues on some devices when rendering to 3d textures and texture arrays
 					#if USE_SHADER_RAYCAST

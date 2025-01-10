@@ -1136,18 +1136,29 @@ Dispose of the associated textures.
 ### shaderStructs
 
 ```js
+BVHShaderGLSL.bvh_struct_definitions : string
+
+or equivalent, legacy:
+
 shaderStructs : string
 ```
 
-Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/gpu/shaderFunctions.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/gpu/shaderFunctions.js) for full implementations and declarations.
+Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/gpu/bvh_struct_definitions.glsl.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/gpu/bvh_struct_definitions.glsl.js) for full implementations and declarations.
 
 ### shaderFunctions
 
 ```js
-shaderFunctions : string
+BVHShaderGLSL.bvh_distance_functions : string
+BVHShaderGLSL.bvh_ray_functions : string
+BVHShaderGLSL.common_functions : string
+
+or equivalent, bundled for specific usage (legacy):
+
+shaderDistanceFunction : string
+shaderIntersectFunction : string
 ```
 
-Set of shader functions used for interacting with the packed BVH in a shader and sampling [VertexAttributeTextures](#VertexAttributeTexture). See [src/gpu/shaderFunctions.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/gpu/shaderFunctions.js) for full implementations and declarations.
+Set of shader functions used for interacting with the packed BVH in a shader and sampling [VertexAttributeTextures](#VertexAttributeTexture). See [src/gpu/glsl](https://github.com/gkjohnson/three-mesh-bvh/tree/master/src/gpu/glsl) for full implementations and declarations.
 
 ## Gotchas
 

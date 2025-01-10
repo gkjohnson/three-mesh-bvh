@@ -115,11 +115,11 @@ float distanceSqToBVHNodeBoundsPoint( vec3 point, sampler2D bvhBounds, uint curr
 #define\
 	bvhClosestPointToPoint(\
 		bvh,\
-		point, faceIndices, faceNormal, barycoord, side, outPoint\
+		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
 	)\
 	_bvhClosestPointToPoint(\
 		bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents,\
-		point, faceIndices, faceNormal, barycoord, side, outPoint\
+		point, maxDistance, faceIndices, faceNormal, barycoord, side, outPoint\
 	)
 
 float _bvhClosestPointToPoint(
@@ -127,7 +127,7 @@ float _bvhClosestPointToPoint(
 	sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents,
 
 	// point to check
-	vec3 point,
+	vec3 point, float maxDistance,
 
 	// output variables
 	inout uvec4 faceIndices, inout vec3 faceNormal, inout vec3 barycoord,
@@ -140,7 +140,7 @@ float _bvhClosestPointToPoint(
 	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
 
-	float closestDistanceSquared = pow( 100000.0, 2.0 );
+	float closestDistanceSquared = maxDistance * maxDistance;
 	bool found = false;
 	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {
 
