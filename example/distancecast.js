@@ -134,7 +134,7 @@ function init() {
 		needsUpdate = true;
 
 	} );
-	scene.add( transformControls );
+	scene.add( transformControls.getHelper() );
 
 	const cubeMat = new THREE.MeshStandardMaterial( {
 		flatShading: true,
