@@ -190,6 +190,7 @@ export class MeshBVHHelper extends Group {
   meshMaterial: MeshBasicMaterial;
 
   constructor( mesh: Mesh, depth?: number );
+  constructor( mesh: Mesh, bvh: MeshBVH, depth?: number)
 
   update(): void;
 
