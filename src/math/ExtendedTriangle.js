@@ -2,7 +2,7 @@ import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
-const ZERO_EPSILON = 1e-15;
+const ZERO_EPSILON = 1e-14;
 function isNearZero( value ) {
 
 	return Math.abs( value ) < ZERO_EPSILON;
@@ -192,6 +192,13 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 					}
 
+					count ++;
+					if ( count === 2 && startPointIntersection === - 1 ) {
+
+						break;
+
+					}
+
 				} else if ( count >= 2 ) {
 
 					// if we're here that means that there must have been one point that had
@@ -199,13 +206,6 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 					const point = startPointIntersection === 1 ? targetEdge.start : targetEdge.end;
 					point.copy( tempPoint );
 					count = 2;
-					break;
-
-				}
-
-				count ++;
-				if ( count === 2 && startPointIntersection === - 1 ) {
-
 					break;
 
 				}
