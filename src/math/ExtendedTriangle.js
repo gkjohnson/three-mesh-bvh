@@ -16,8 +16,8 @@ export class ExtendedTriangle extends Triangle {
 		super( ...args );
 
 		this.isExtendedTriangle = true;
-		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
-		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
+		this.satAxes = new Array( 4 ).fill().map( () => new Vector3() );
+		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
 		this.sphere = new Sphere();
 		this.plane = new Plane();
@@ -42,25 +42,27 @@ export class ExtendedTriangle extends Triangle {
 		const satBounds = this.satBounds;
 
 		const axis0 = satAxes[ 0 ];
+		const sab0 = satBounds[ 0 ];
 		this.getNormal( axis0 );
-		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
+		sab0.setFromPoints( axis0, points );
 
-		const axis1 = satAxes[ 0 ];
-		const sab1 = satBounds[ 0 ];
+		const axis1 = satAxes[ 1 ];
+		const sab1 = satBounds[ 1 ];
 		axis1.subVectors( a, b );
 		sab1.setFromPoints( axis1, points );
 
-		const axis2 = satAxes[ 1 ];
-		const sab2 = satBounds[ 1 ];
+		const axis2 = satAxes[ 2 ];
+		const sab2 = satBounds[ 2 ];
 		axis2.subVectors( b, c );
 		sab2.setFromPoints( axis2, points );
 
-		const axis3 = satAxes[ 2 ];
-		const sab3 = satBounds[ 2 ];
+		const axis3 = satAxes[ 3 ];
+		const sab3 = satBounds[ 3 ];
 		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, points );
 
 		this.sphere.setFromPoints( this.points );
+		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
 		this.needsUpdate = false;
 
 	}
@@ -185,7 +187,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		arr2[ 0 ] = other.a;
 		arr2[ 1 ] = other.b;
 		arr2[ 2 ] = other.c;
-		for ( let i = 0; i < 3; i ++ ) {
+		for ( let i = 1; i < 4; i ++ ) {
 
 			const sb = satBounds1[ i ];
 			const sa = satAxes1[ i ];
@@ -199,7 +201,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		arr1[ 0 ] = self.a;
 		arr1[ 1 ] = self.b;
 		arr1[ 2 ] = self.c;
-		for ( let i = 0; i < 3; i ++ ) {
+		for ( let i = 1; i < 4; i ++ ) {
 
 			const sb = satBounds2[ i ];
 			const sa = satAxes2[ i ];
@@ -209,10 +211,10 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		}
 
 		// check crossed axes
-		for ( let i = 0; i < 3; i ++ ) {
+		for ( let i = 1; i < 4; i ++ ) {
 
 			const sa1 = satAxes1[ i ];
-			for ( let i2 = 0; i2 < 3; i2 ++ ) {
+			for ( let i2 = 1; i2 < 4; i2 ++ ) {
 
 				const sa2 = satAxes2[ i2 ];
 				cachedAxis.crossVectors( sa1, sa2 );
