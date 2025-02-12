@@ -2,7 +2,7 @@ import { Triangle, Vector3, Line3, Sphere, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
-const ZERO_EPSILON = 1e-14;
+const ZERO_EPSILON = 1e-15;
 function isNearZero( value ) {
 
 	return Math.abs( value ) < ZERO_EPSILON;
@@ -148,73 +148,99 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	function triIntersectPlane( tri, plane, targetEdge ) {
 
-		// find the edge that intersects the other triangle plane
-		const points = tri.points;
-		let count = 0;
-		let startPointIntersection = - 1;
+		// TODO pass signed distances in order not to check
+		// the edge that does not intersects the plane
+		let intersectionCount = 0;
 		for ( let i = 0; i < 3; i ++ ) {
 
-			const { start, end } = edge;
-			start.copy( points[ i ] );
-			end.copy( points[ ( i + 1 ) % 3 ] );
-			edge.delta( dir );
+			edge.start.copy( tri.points[ i ] );
+			edge.end.copy( tri.points[ ( i + 1 ) % 3 ] );
 
-			const startIntersects = isNearZero( plane.distanceToPoint( start ) );
-			if ( isNearZero( plane.normal.dot( dir ) ) && startIntersects ) {
+			const intersection = plane.intersectLine( edge, tempPoint );
+			if ( intersection !== null ) {
 
-				// if the edge lies on the plane then take the line
-				targetEdge.copy( edge );
-				count = 2;
-				break;
+				if ( intersectionCount === 0 ) {
 
-			}
+					targetEdge.start.copy( intersection );
 
-			// check if the start point is near the plane because "intersectLine" is not robust to that case
-			const doesIntersect = plane.intersectLine( edge, tempPoint );
-			if ( ! doesIntersect && startIntersects ) {
+				} else {
 
-				tempPoint.copy( start );
-
-			}
-
-			// ignore the end point
-			if ( ( doesIntersect || startIntersects ) && ! isNearZero( tempPoint.distanceTo( end ) ) ) {
-
-				if ( count <= 1 ) {
-
-					// assign to the start or end point and save which index was snapped to
-					// the start point if necessary
-					const point = count === 1 ? targetEdge.start : targetEdge.end;
-					point.copy( tempPoint );
-					if ( startIntersects ) {
-
-						startPointIntersection = count;
-
-					}
-
-					count ++;
-					if ( count === 2 && startPointIntersection === - 1 ) {
-
-						break;
-
-					}
-
-				} else if ( count >= 2 ) {
-
-					// if we're here that means that there must have been one point that had
-					// snapped to the start point so replace it here
-					const point = startPointIntersection === 1 ? targetEdge.start : targetEdge.end;
-					point.copy( tempPoint );
-					count = 2;
-					break;
+					targetEdge.end.copy( intersection );
 
 				}
+
+				intersectionCount ++;
 
 			}
 
 		}
 
-		return count;
+		return targetEdge;
+
+	}
+
+	function coplanarIntersectsTriangle( self, other, target, suppressLog ) {
+
+		// perform separating axis intersection test only for coplanar triangles
+		const satBounds1 = self.satBounds;
+		const satAxes1 = self.satAxes;
+		arr2[ 0 ] = other.a;
+		arr2[ 1 ] = other.b;
+		arr2[ 2 ] = other.c;
+		for ( let i = 0; i < 4; i ++ ) {
+
+			const sb = satBounds1[ i ];
+			const sa = satAxes1[ i ];
+			cachedSatBounds.setFromPoints( sa, arr2 );
+			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+		}
+
+		const satBounds2 = other.satBounds;
+		const satAxes2 = other.satAxes;
+		arr1[ 0 ] = self.a;
+		arr1[ 1 ] = self.b;
+		arr1[ 2 ] = self.c;
+		for ( let i = 0; i < 4; i ++ ) {
+
+			const sb = satBounds2[ i ];
+			const sa = satAxes2[ i ];
+			cachedSatBounds.setFromPoints( sa, arr1 );
+			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+		}
+
+		// check crossed axes
+		for ( let i = 0; i < 4; i ++ ) {
+
+			const sa1 = satAxes1[ i ];
+			for ( let i2 = 0; i2 < 4; i2 ++ ) {
+
+				const sa2 = satAxes2[ i2 ];
+				cachedAxis.crossVectors( sa1, sa2 );
+				cachedSatBounds.setFromPoints( cachedAxis, arr1 );
+				cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
+				if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
+
+			}
+
+		}
+
+		if ( target ) {
+
+			// TODO find two points that intersect on the edges and make that the result
+			if ( ! suppressLog ) {
+
+				console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+
+			}
+
+			target.start.set( 0, 0, 0 );
+			target.end.set( 0, 0, 0 );
+
+		}
+
+		return true;
 
 	}
 
@@ -243,165 +269,213 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		const plane1 = this.plane;
 		const plane2 = other.plane;
 
-		if ( Math.abs( plane1.normal.dot( plane2.normal ) ) > 1.0 - 1e-10 ) {
+		const a1Dist = plane2.distanceToPoint( this.a );
+		const b1Dist = plane2.distanceToPoint( this.b );
+		const c1Dist = plane2.distanceToPoint( this.c );
 
-			// perform separating axis intersection test only for coplanar triangles
-			const satBounds1 = this.satBounds;
-			const satAxes1 = this.satAxes;
-			arr2[ 0 ] = other.a;
-			arr2[ 1 ] = other.b;
-			arr2[ 2 ] = other.c;
-			for ( let i = 0; i < 4; i ++ ) {
+		let zeroCnt = 0;
+		// Indicies into points
+		arr1[ 0 ] = 0;
+		arr1[ 1 ] = 1;
+		arr1[ 2 ] = 2;
 
-				const sb = satBounds1[ i ];
-				const sa = satAxes1[ i ];
-				cachedSatBounds.setFromPoints( sa, arr2 );
-				if ( sb.isSeparated( cachedSatBounds ) ) return false;
+		arr2[ 0 ] = a1Dist;
+		arr2[ 1 ] = b1Dist;
+		arr2[ 2 ] = c1Dist;
+		if ( isNearZero( a1Dist ) ) {
 
-			}
-
-			const satBounds2 = other.satBounds;
-			const satAxes2 = other.satAxes;
-			arr1[ 0 ] = this.a;
-			arr1[ 1 ] = this.b;
-			arr1[ 2 ] = this.c;
-			for ( let i = 0; i < 4; i ++ ) {
-
-				const sb = satBounds2[ i ];
-				const sa = satAxes2[ i ];
-				cachedSatBounds.setFromPoints( sa, arr1 );
-				if ( sb.isSeparated( cachedSatBounds ) ) return false;
-
-			}
-
-			// check crossed axes
-			for ( let i = 0; i < 4; i ++ ) {
-
-				const sa1 = satAxes1[ i ];
-				for ( let i2 = 0; i2 < 4; i2 ++ ) {
-
-					const sa2 = satAxes2[ i2 ];
-					cachedAxis.crossVectors( sa1, sa2 );
-					cachedSatBounds.setFromPoints( cachedAxis, arr1 );
-					cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
-					if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
-
-				}
-
-			}
-
-			if ( target ) {
-
-				// TODO find two points that intersect on the edges and make that the result
-				if ( ! suppressLog ) {
-
-					console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
-
-				}
-
-				target.start.set( 0, 0, 0 );
-				target.end.set( 0, 0, 0 );
-
-			}
-
-			return true;
-
-		} else {
-
-			// find the edge that intersects the other triangle plane
-			const count1 = triIntersectPlane( this, plane2, edge1 );
-			if ( count1 === 1 && other.containsPoint( edge1.end ) ) {
-
-				if ( target ) {
-
-					target.start.copy( edge1.end );
-					target.end.copy( edge1.end );
-
-				}
-
-				return true;
-
-			} else if ( count1 !== 2 ) {
-
-				return false;
-
-			}
-
-			// find the other triangles edge that intersects this plane
-			const count2 = triIntersectPlane( other, plane1, edge2 );
-			if ( count2 === 1 && this.containsPoint( edge2.end ) ) {
-
-				if ( target ) {
-
-					target.start.copy( edge2.end );
-					target.end.copy( edge2.end );
-
-				}
-
-				return true;
-
-			} else if ( count2 !== 2 ) {
-
-				return false;
-
-			}
-
-			// find swap the second edge so both lines are running the same direction
-			edge1.delta( dir1 );
-			edge2.delta( dir2 );
-
-			if ( dir1.dot( dir2 ) < 0 ) {
-
-				let tmp = edge2.start;
-				edge2.start = edge2.end;
-				edge2.end = tmp;
-
-			}
-
-			// check if the edges are overlapping
-			const s1 = edge1.start.dot( dir1 );
-			const e1 = edge1.end.dot( dir1 );
-			const s2 = edge2.start.dot( dir1 );
-			const e2 = edge2.end.dot( dir1 );
-			const separated1 = e1 < s2;
-			const separated2 = s1 < e2;
-
-			if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
-
-				return false;
-
-			}
-
-			// assign the target output
-			if ( target ) {
-
-				tempDir.subVectors( edge1.start, edge2.start );
-				if ( tempDir.dot( dir1 ) > 0 ) {
-
-					target.start.copy( edge1.start );
-
-				} else {
-
-					target.start.copy( edge2.start );
-
-				}
-
-				tempDir.subVectors( edge1.end, edge2.end );
-				if ( tempDir.dot( dir1 ) < 0 ) {
-
-					target.end.copy( edge1.end );
-
-				} else {
-
-					target.end.copy( edge2.end );
-
-				}
-
-			}
-
-			return true;
+			zeroCnt += 1;
 
 		}
+
+		if ( isNearZero( b1Dist ) ) {
+
+			arr1[ 1 ] = arr1[ zeroCnt ];
+			arr1[ zeroCnt ] = 1;
+			zeroCnt += 1;
+
+		}
+
+		if ( isNearZero( c1Dist ) ) {
+
+			arr1[ 2 ] = arr1[ zeroCnt ];
+			arr1[ zeroCnt ] = 2;
+			zeroCnt += 1;
+
+		}
+
+		switch ( zeroCnt ) {
+
+			case 1:
+				if ( arr2[ arr1[ 1 ] ] * arr2[ arr1[ 2 ] ] > 0 ) {
+
+					if ( ! other.containsPoint( this.points[ arr1[ 0 ] ] ) ) return false;
+					if ( target ) {
+
+						target.start.copy( this.points[ arr1[ 0 ] ] );
+						target.end.copy( this.points[ arr1[ 0 ] ] );
+
+					}
+
+					return true;
+
+				} else {
+
+					edge1.start.copy( this.points[ arr1[ 0 ] ] );
+					edge.start.copy( this.points[ arr1[ 1 ] ] );
+					edge.end.copy( this.points[ arr1[ 2 ] ] );
+					plane2.intersectLine( edge, tempPoint );
+					edge1.end.copy( tempPoint );
+
+					break;
+
+				}
+
+			case 2:
+				edge1.start.copy( this.points[ arr1[ 0 ] ] );
+				edge1.end.copy( this.points[ arr1[ 1 ] ] );
+				break;
+			case 3:
+				return coplanarIntersectsTriangle( this, other, target, suppressLog );
+			case 0:
+				if ( a1Dist * b1Dist > 0 && a1Dist * c1Dist > 0 && b1Dist * c1Dist > 0 ) return false;
+				// find the edge that intersects the other triangle's plane
+				triIntersectPlane( this, plane2, edge1 );
+				break;
+
+		}
+
+		const a2Dist = plane1.distanceToPoint( other.a );
+		const b2Dist = plane1.distanceToPoint( other.b );
+		const c2Dist = plane1.distanceToPoint( other.c );
+
+		zeroCnt = 0;
+		arr1[ 0 ] = 0;
+		arr1[ 1 ] = 1;
+		arr1[ 2 ] = 2;
+
+		arr2[ 0 ] = a2Dist;
+		arr2[ 1 ] = b2Dist;
+		arr2[ 2 ] = c2Dist;
+
+		if ( isNearZero( a2Dist ) ) {
+
+			zeroCnt += 1;
+
+		}
+
+		if ( isNearZero( b2Dist ) ) {
+
+			arr1[ 1 ] = arr1[ zeroCnt ];
+			arr1[ zeroCnt ] = 1;
+			zeroCnt += 1;
+
+		}
+
+		if ( isNearZero( c2Dist ) ) {
+
+			arr1[ 2 ] = arr1[ zeroCnt ];
+			arr1[ zeroCnt ] = 2;
+			zeroCnt += 1;
+
+		}
+
+		switch ( zeroCnt ) {
+
+			case 1:
+				if ( arr2[ arr1[ 1 ] ] * arr2[ arr1[ 2 ] ] > 0 ) {
+
+					if ( ! this.containsPoint( other.points[ arr1[ 0 ] ] ) ) return false;
+					if ( target ) {
+
+						target.start.copy( other.points[ arr1[ 0 ] ] );
+						target.end.copy( other.points[ arr1[ 0 ] ] );
+
+					}
+
+					return true;
+
+				} else {
+
+					edge2.start.copy( other.points[ arr1[ 0 ] ] );
+					edge.start.copy( other.points[ arr1[ 1 ] ] );
+					edge.end.copy( other.points[ arr1[ 2 ] ] );
+					plane1.intersectLine( edge, tempPoint );
+					edge2.end.copy( tempPoint );
+
+					break;
+
+				}
+
+			case 2:
+				edge2.start.copy( other.points[ arr1[ 0 ] ] );
+				edge2.end.copy( other.points[ arr1[ 1 ] ] );
+				break;
+			case 3:
+				// This should not happen, but just in case
+				return coplanarIntersectsTriangle( this, other, target, suppressLog );
+			case 0:
+				if ( a2Dist * b2Dist > 0 && a2Dist * c2Dist > 0 && b2Dist * c2Dist > 0 ) return false;
+				// find the other triangle's edge that intersects this plane
+				triIntersectPlane( other, plane1, edge2 );
+				break;
+
+		}
+
+		// find swap the second edge so both lines are running the same direction
+		edge1.delta( dir1 );
+		edge2.delta( dir2 );
+
+		if ( dir1.dot( dir2 ) < 0 ) {
+
+			let tmp = edge2.start;
+			edge2.start = edge2.end;
+			edge2.end = tmp;
+
+		}
+
+		// check if the edges are overlapping
+		const s1 = edge1.start.dot( dir1 );
+		const e1 = edge1.end.dot( dir1 );
+		const s2 = edge2.start.dot( dir1 );
+		const e2 = edge2.end.dot( dir1 );
+		const separated1 = e1 < s2;
+		const separated2 = s1 < e2;
+
+		if ( s1 !== e2 && s2 !== e1 && separated1 === separated2 ) {
+
+			return false;
+
+		}
+
+		// assign the target output
+		if ( target ) {
+
+			tempDir.subVectors( edge1.start, edge2.start );
+			if ( tempDir.dot( dir1 ) > 0 ) {
+
+				target.start.copy( edge1.start );
+
+			} else {
+
+				target.start.copy( edge2.start );
+
+			}
+
+			tempDir.subVectors( edge1.end, edge2.end );
+			if ( tempDir.dot( dir1 ) < 0 ) {
+
+				target.end.copy( edge1.end );
+
+			} else {
+
+				target.end.copy( edge2.end );
+
+			}
+
+		}
+
+		return true;
 
 	};
 
