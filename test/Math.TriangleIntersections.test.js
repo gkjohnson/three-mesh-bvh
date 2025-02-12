@@ -322,9 +322,7 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-	// this test fails due to floating point precision issues. If the triangles are scaled up
-	// it reports an intersection as expected.
-	it.skip( 'triangles almost coplanar should intersect on point', () => {
+	it( 'triangles almost coplanar should intersect on point', () => {
 
 		t1.a.set( 0.0720, 0.2096, 0.3220 );
 		t1.b.set( 0.0751, 0.2148, 0.3234 );
