@@ -61,7 +61,7 @@ export class ExtendedTriangle extends Triangle {
 		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, points );
 
-		this.sphere.setFromPoints( this.points );
+		// this.sphere.setFromPoints( this.points );
 		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
 		this.needsUpdate = false;
 
@@ -308,19 +308,46 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		const comp2 = Math.abs( intersectionLine.z );
 		if ( comp2 > maxComponent ) {
 
-			maxComponent = comp2; // Not needed ?
 			componentIndex = 2;
 
 		}
 
 		// One big switch should be better?
-		const a1Proj = this.a.getComponent( componentIndex );
-		const b1Proj = this.b.getComponent( componentIndex );
-		const c1Proj = this.c.getComponent( componentIndex );
+		let a1Proj, b1Proj, c1Proj;
+		let a2Proj, b2Proj, c2Proj;
+		switch ( componentIndex ) {
 
-		const a2Proj = other.a.getComponent( componentIndex );
-		const b2Proj = other.b.getComponent( componentIndex );
-		const c2Proj = other.c.getComponent( componentIndex );
+			case 0:
+				a1Proj = this.a.x;
+				b1Proj = this.b.x;
+				c1Proj = this.c.x;
+
+				a2Proj = other.a.x;
+				b2Proj = other.b.x;
+				c2Proj = other.c.x;
+				break;
+
+			case 1:
+				a1Proj = this.a.y;
+				b1Proj = this.b.y;
+				c1Proj = this.c.y;
+
+				a2Proj = other.a.y;
+				b2Proj = other.b.y;
+				c2Proj = other.c.y;
+				break;
+
+			case 2:
+				a1Proj = this.a.z;
+				b1Proj = this.b.z;
+				c1Proj = this.c.z;
+
+				a2Proj = other.a.z;
+				b2Proj = other.b.z;
+				c2Proj = other.c.z;
+				break;
+
+		}
 
 		// TODO: Make a structure with { point, projection, signed distance } for less verbosity, check perf
 		// TODO: Extract into a function
