@@ -177,28 +177,12 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		// check crossed axes
-		for ( let i = 1; i < 4; i ++ ) {
-
-			const sa1 = satAxes1[ i ];
-			for ( let i2 = 1; i2 < 4; i2 ++ ) {
-
-				const sa2 = satAxes2[ i2 ];
-				cachedAxis.crossVectors( sa1, sa2 );
-				cachedSatBounds.setFromPoints( cachedAxis, arr1 );
-				cachedSatBounds2.setFromPoints( cachedAxis, arr2 );
-				if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
-
-			}
-
-		}
-
 		if ( target ) {
 
 			// TODO find two points that intersect on the edges and make that the result
 			if ( ! suppressLog ) {
 
-				console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+				// console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
 
 			}
 
