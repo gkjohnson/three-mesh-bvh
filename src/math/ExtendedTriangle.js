@@ -19,7 +19,6 @@ export class ExtendedTriangle extends Triangle {
 		this.satAxes = new Array( 4 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
-		this.sphere = new Sphere();
 		this.plane = new Plane();
 		this.needsUpdate = true;
 
@@ -61,7 +60,6 @@ export class ExtendedTriangle extends Triangle {
 		axis3.subVectors( c, a );
 		sab3.setFromPoints( axis3, points );
 
-		// this.sphere.setFromPoints( this.points );
 		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
 		this.needsUpdate = false;
 
@@ -213,7 +211,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	}
 
-	function findBounds( a, b, c, aProj, bProj, cProj, aDist, bDist, cDist, bounds, edge ) {
+	function findSingleBounds( a, b, c, aProj, bProj, cProj, aDist, bDist, cDist, bounds, edge ) {
 
 		let t = aDist / ( aDist - bDist );
 		bounds.x = aProj + ( bProj - aProj ) * t;
@@ -222,6 +220,39 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		t = aDist / ( aDist - cDist );
 		bounds.y = aProj + ( cProj - aProj ) * t;
 		edge.end.subVectors( c, a ).multiplyScalar( t ).add( a );
+
+	}
+
+	function findBounds( self, aProj, bProj, cProj, abDist, acDist, aDist, bDist, cDist, bounds, edge ) {
+
+		if ( abDist > 0 ) {
+
+			// then bcDist < 0
+			findSingleBounds( self.c, self.a, self.b, cProj, aProj, bProj, cDist, aDist, bDist, bounds, edge );
+
+		} else if ( acDist > 0 ) {
+
+			findSingleBounds( self.b, self.a, self.c, bProj, aProj, cProj, bDist, aDist, cDist, bounds, edge );
+
+		} else if ( bDist * cDist > 0 || aDist != 0 ) {
+
+			findSingleBounds( self.a, self.b, self.c, aProj, bProj, cProj, aDist, bDist, cDist, bounds, edge );
+
+		} else if ( bDist != 0 ) {
+
+			findSingleBounds( self.b, self.a, self.c, bProj, aProj, cProj, bDist, aDist, cDist, bounds, edge );
+
+		} else if ( cDist != 0 ) {
+
+			findSingleBounds( self.c, self.a, self.b, cProj, aProj, bProj, cDist, aDist, bDist, bounds, edge );
+
+		} else {
+
+			return true;
+
+		}
+
+		return false;
 
 	}
 
@@ -349,59 +380,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		// TODO: Make a structure with { point, projection, signed distance } for less verbosity, check perf
-		// TODO: Extract into a function
-		if ( a1b1Dist > 0 ) {
-
-			// then b1c1Dist < 0
-			findBounds( this.c, this.a, this.b, c1Proj, a1Proj, b1Proj, c1Dist, a1Dist, b1Dist, bounds1, edge1 );
-
-		} else if ( a1c1Dist > 0 ) {
-
-			findBounds( this.b, this.a, this.c, b1Proj, a1Proj, c1Proj, b1Dist, a1Dist, c1Dist, bounds1, edge1 );
-
-		} else if ( b1Dist * c1Dist > 0 || a1Dist != 0 ) {
-
-			findBounds( this.a, this.b, this.c, a1Proj, b1Proj, c1Proj, a1Dist, b1Dist, c1Dist, bounds1, edge1 );
-
-		} else if ( b1Dist != 0 ) {
-
-			findBounds( this.b, this.a, this.c, b1Proj, a1Proj, c1Proj, b1Dist, a1Dist, c1Dist, bounds1, edge1 );
-
-		} else if ( c1Dist != 0 ) {
-
-			findBounds( this.c, this.a, this.b, c1Proj, a1Proj, b1Proj, c1Dist, a1Dist, b1Dist, bounds1, edge1 );
-
-		} else {
+		if ( findBounds( this, a1Proj, b1Proj, c1Proj, a1b1Dist, a1c1Dist, a1Dist, b1Dist, c1Dist, bounds1, edge1 ) ) {
 
 			return coplanarIntersectsTriangle( this, other, target, suppressLog );
 
 		}
 
-		if ( a2b2Dist > 0 ) {
+		if ( findBounds( other, a2Proj, b2Proj, c2Proj, a2b2Dist, a2c2Dist, a2Dist, b2Dist, c2Dist, bounds2, edge2 ) ) {
 
-			// then b2c2Dist < 0
-			findBounds( other.c, other.a, other.b, c2Proj, a2Proj, b2Proj, c2Dist, a2Dist, b2Dist, bounds2, edge2 );
-
-		} else if ( a2c2Dist > 0 ) {
-
-			findBounds( other.b, other.a, other.c, b2Proj, a2Proj, c2Proj, b2Dist, a2Dist, c2Dist, bounds2, edge2 );
-
-		} else if ( b2Dist * c2Dist > 0 || a2Dist != 0 ) {
-
-			findBounds( other.a, other.b, other.c, a2Proj, b2Proj, c2Proj, a2Dist, b2Dist, c2Dist, bounds2, edge2 );
-
-		} else if ( b2Dist != 0 ) {
-
-			findBounds( other.b, other.a, other.c, b2Proj, a2Proj, c2Proj, b2Dist, a2Dist, c2Dist, bounds2, edge2 );
-
-		} else if ( c2Dist != 0 ) {
-
-			findBounds( other.c, other.a, other.b, c2Proj, a2Proj, b2Proj, c2Dist, a2Dist, b2Dist, bounds2, edge2 );
-
-		} else {
-
-			// Shouldn't happen, but just in case
 			return coplanarIntersectsTriangle( this, other, target, suppressLog );
 
 		}
