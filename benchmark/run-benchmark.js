@@ -32,131 +32,185 @@ import {
 } from '../src/index.js';
 import { logObjectAsRows } from './lib/logTable.js';
 import { generateGroupGeometry } from './utils.js';
+import seedrandom from 'seedrandom';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const LOG_JSON = process.argv.includes( '--json' );
-if ( ! LOG_JSON ) {
+// if ( ! LOG_JSON ) {
 
-	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
-	console.log( '**Extremes**' );
-	logExtremes( bvh );
-	console.log();
+// 	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
+// 	console.log( '**Extremes**' );
+// 	logExtremes( bvh );
+// 	console.log();
 
-}
+// }
 
-suite( 'BVH General', () => {
+// suite( 'BVH General', () => {
 
-	let geometry, bvh, serialized;
-	beforeAll( () => {
+// 	let geometry, bvh, serialized;
+// 	beforeAll( () => {
 
-		geometry = new TorusGeometry( 5, 5, 700, 300 );
-		bvh = new MeshBVH( geometry );
-		serialized = MeshBVH.serialize( bvh );
+// 		geometry = new TorusGeometry( 5, 5, 700, 300 );
+// 		bvh = new MeshBVH( geometry );
+// 		serialized = MeshBVH.serialize( bvh );
 
-	} );
+// 	} );
 
-	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
-	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
+// 	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
+// 	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
 
-} );
+// } );
 
-runSuiteWithOptions( '', { indirect: false } );
+// runSuiteWithOptions( '', { indirect: false } );
 
-runSuiteWithOptions( 'Indirect', { indirect: true } );
+// runSuiteWithOptions( 'Indirect', { indirect: true } );
 
-suite( 'Math Functions', () => {
+runTriangleTriangleSuiteWithSetupFunc( 'Random', ( tri1, tri2, rng ) => {
 
-	let tri1,
-		tri2,
-		target;
-	beforeAll( () => {
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.set( rng.double(), rng.double(), rng.double() );
+	tri1.update();
+	tri1.needsUpdate = false;
 
-		tri1 = new ExtendedTriangle();
-		tri2 = new ExtendedTriangle();
-		target = new Line3();
-
-		tri1.a.set( - 1, 0, 0 );
-		tri1.b.set( 2, 0, - 2 );
-		tri1.c.set( 2, 0, 2 );
-
-		tri2.a.set( 1, 0, 0 );
-		tri2.b.set( - 2, - 2, 0 );
-		tri2.c.set( - 2, 2, 0 );
-
-		tri1.update();
-		tri2.update();
-
-	} );
-
-	bench( 'IntersectTri w/o Target', 	() => tri1.intersectsTriangle( tri2 ) );
-
-	bench( 'IntersectTri w/ Target', () => tri1.intersectsTriangle( tri2, target ) );
-
-	bench( 'IntersectTri w/ Update', () => {
-
-		tri2.needsUpdate = true;
-		tri1.intersectsTriangle( tri2, target );
-
-	} );
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.set( rng.double(), rng.double(), rng.double() );
+	tri2.c.set( rng.double(), rng.double(), rng.double() );
+	tri2.update();
+	tri2.needsUpdate = false;
 
 } );
 
-suite( 'Tower Case Geometry', () => {
+function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
-	let raycaster,
-		mesh,
-		centerBVH,
-		sahBVH,
-		averageBVH;
+	suite( `Triangle.intersectsTriangle [${postfix}]`, () => {
 
-	beforeAll( () => {
+		let tri1,
+			tri2,
+			target,
+			rng;
 
-		const geometry = new PlaneGeometry( 10, 10, 400, 400 );
-		const posAttr = geometry.getAttribute( 'position' );
-		for ( let x = 0; x <= 100; x ++ ) {
+		beforeAll( () => {
 
-			for ( let y = 0; y <= 100; y ++ ) {
+			// array = new Float64Array( 1000 );
+			tri1 = new ExtendedTriangle();
+			tri2 = new ExtendedTriangle();
+			rng = seedrandom.alea( 'Triangle seed' );
 
-				const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
-				const i = x * 100 + y;
-				const z = inCenter ? 50 : - 50;
-				posAttr.setZ( i, z + x * 0.01 );
+		} );
+
+		bench( 'w/o Target', () => {
+
+			// for ( let i = 0; i < array.length; i ++ ) {
+
+			// 	array[ i ] = array[ i ] + 1;
+
+			// }
+
+			setupFunc( tri1, tri2, rng );
+
+		}, () => {
+
+			let i = 100;
+			while ( i -- > 0 ) {
+
+				tri1.intersectsTriangle( tri2, target );
 
 			}
 
-		}
+		} );
 
-		raycaster = new Raycaster();
-		raycaster.ray.origin.set( 100, 100, 100 );
-		raycaster.ray.direction.set( - 1, - 1, - 1 );
+		bench( 'w/ Target', () => {
 
-		mesh = new Mesh( geometry );
+			// for ( let i = 0; i < array.length; i ++ ) {
 
-		centerBVH = new MeshBVH( geometry, { strategy: CENTER } );
-		averageBVH = new MeshBVH( geometry, { strategy: AVERAGE } );
-		sahBVH = new MeshBVH( geometry, { strategy: SAH } );
+			// 	array[ i ] = array[ i ] + 1;
+
+			// }
+
+			setupFunc( tri1, tri2, rng );
+
+		}, () => {
+
+			let i = 100;
+			while ( i -- > 0 ) {
+
+				tri1.intersectsTriangle( tri2, target );
+
+			}
+
+		} );
+
+		bench( 'Update', () => {
+
+			setupFunc( tri1, tri2, rng );
+
+		}, () => {
+
+			tri2.update();
+
+		} );
 
 	} );
 
-	bench( 'CENTER raycast',
-		() => mesh.geometry.boundsTree = centerBVH,
-		() => mesh.raycast( raycaster, [] ),
-	);
+}
 
-	bench( 'AVERAGE raycast',
-		() => mesh.geometry.boundsTree = averageBVH,
-		() => mesh.raycast( raycaster, [] )
-	);
+// suite( 'Tower Case Geometry', () => {
 
-	bench( 'SAH raycast',
-		() => mesh.geometry.boundsTree = sahBVH,
-		() => mesh.raycast( raycaster, [] )
-	);
+// 	let raycaster,
+// 		mesh,
+// 		centerBVH,
+// 		sahBVH,
+// 		averageBVH;
 
-} );
+// 	beforeAll( () => {
+
+// 		const geometry = new PlaneGeometry( 10, 10, 400, 400 );
+// 		const posAttr = geometry.getAttribute( 'position' );
+// 		for ( let x = 0; x <= 100; x ++ ) {
+
+// 			for ( let y = 0; y <= 100; y ++ ) {
+
+// 				const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
+// 				const i = x * 100 + y;
+// 				const z = inCenter ? 50 : - 50;
+// 				posAttr.setZ( i, z + x * 0.01 );
+
+// 			}
+
+// 		}
+
+// 		raycaster = new Raycaster();
+// 		raycaster.ray.origin.set( 100, 100, 100 );
+// 		raycaster.ray.direction.set( - 1, - 1, - 1 );
+
+// 		mesh = new Mesh( geometry );
+
+// 		centerBVH = new MeshBVH( geometry, { strategy: CENTER } );
+// 		averageBVH = new MeshBVH( geometry, { strategy: AVERAGE } );
+// 		sahBVH = new MeshBVH( geometry, { strategy: SAH } );
+
+// 	} );
+
+// 	bench( 'CENTER raycast',
+// 		() => mesh.geometry.boundsTree = centerBVH,
+// 		() => mesh.raycast( raycaster, [] ),
+// 	);
+
+// 	bench( 'AVERAGE raycast',
+// 		() => mesh.geometry.boundsTree = averageBVH,
+// 		() => mesh.raycast( raycaster, [] )
+// 	);
+
+// 	bench( 'SAH raycast',
+// 		() => mesh.geometry.boundsTree = sahBVH,
+// 		() => mesh.raycast( raycaster, [] )
+// 	);
+
+// } );
 
 function logExtremes( bvh ) {
 
@@ -202,9 +256,9 @@ function runSuiteWithOptions( name, options ) {
 
 		beforeAll( () => {
 
-			OG_GEOMETRY = new TorusGeometry( 5, 5, 700, 300 );
+			OG_GEOMETRY = new TorusGeometry( 5, 4, 700, 300 );
 			OG_GROUP_GEOMETRY = generateGroupGeometry( 200 );
-			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 5, 30, 10 );
+			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 4, 30, 10 );
 
 			raycaster = new Raycaster();
 			raycaster.ray.origin.set( 10, 20, 30 );
