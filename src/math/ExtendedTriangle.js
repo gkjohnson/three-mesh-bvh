@@ -151,29 +151,33 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		// perform separating axis intersection test only for coplanar triangles
 		const satBounds1 = self.satBounds;
 		const satAxes1 = self.satAxes;
-		arr2[ 0 ] = other.a;
-		arr2[ 1 ] = other.b;
-		arr2[ 2 ] = other.c;
 		for ( let i = 1; i < 4; i ++ ) {
 
 			const sb = satBounds1[ i ];
 			const sa = satAxes1[ i ];
-			cachedSatBounds.setFromPoints( sa, arr2 );
+			cachedSatBounds.setFromPoints( sa, other.points );
 			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			tempDir.copy( satAxes1[ 0 ] ).cross( sa );
+			cachedSatBounds.setFromPoints( tempDir, self.points );
+			cachedSatBounds2.setFromPoints( tempDir, other.points );
+			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
 
 		}
 
 		const satBounds2 = other.satBounds;
 		const satAxes2 = other.satAxes;
-		arr1[ 0 ] = self.a;
-		arr1[ 1 ] = self.b;
-		arr1[ 2 ] = self.c;
 		for ( let i = 1; i < 4; i ++ ) {
 
 			const sb = satBounds2[ i ];
 			const sa = satAxes2[ i ];
-			cachedSatBounds.setFromPoints( sa, arr1 );
+			cachedSatBounds.setFromPoints( sa, self.points );
 			if ( sb.isSeparated( cachedSatBounds ) ) return false;
+
+			tempDir.copy( satAxes2[ 0 ] ).cross( sa );
+			cachedSatBounds.setFromPoints( tempDir, self.points );
+			cachedSatBounds2.setFromPoints( tempDir, other.points );
+			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
 
 		}
 

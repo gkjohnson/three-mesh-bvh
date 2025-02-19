@@ -187,6 +187,22 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+	it( 'coplanar triangles should be separated by an axis orthogonal to edge', () => {
+
+		t1.a.set( 1, 4, 0 );
+		t1.b.set( 3, 2, 0 );
+		t1.c.set( 4, 4, 0 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 4, 3, 0 );
+		t2.b.set( 5, 1, 0 );
+		t2.c.set( 6, 3, 0 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
 } );
 
 describe( 'Triangle Intersection line', () => {
