@@ -95,7 +95,6 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 		beforeAll( () => {
 
-			// array = new Float64Array( 1000 );
 			tri1 = new ExtendedTriangle();
 			tri2 = new ExtendedTriangle();
 			rng = seedrandom.alea( 'Triangle seed' );
@@ -104,12 +103,6 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 		bench( 'w/o Target', () => {
 
-			// for ( let i = 0; i < array.length; i ++ ) {
-
-			// 	array[ i ] = array[ i ] + 1;
-
-			// }
-
 			setupFunc( tri1, tri2, rng );
 
 		}, () => {
@@ -117,19 +110,13 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 			let i = 100;
 			while ( i -- > 0 ) {
 
-				tri1.intersectsTriangle( tri2, target );
+				tri1.intersectsTriangle( tri2 );
 
 			}
 
 		} );
 
 		bench( 'w/ Target', () => {
-
-			// for ( let i = 0; i < array.length; i ++ ) {
-
-			// 	array[ i ] = array[ i ] + 1;
-
-			// }
 
 			setupFunc( tri1, tri2, rng );
 
