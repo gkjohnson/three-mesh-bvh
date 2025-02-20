@@ -3,6 +3,7 @@ import {
 	bench,
 	beforeAll,
 	beforeEach,
+	afterEach,
 } from './lib/bench.js';
 import {
 	Mesh,
@@ -91,13 +92,78 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 		let tri1,
 			tri2,
 			target,
-			rng;
+			rng,
+			array;
+
+		let intersectionCount = 0;
+		const intersectWithTarget = () => {
+
+			let i = 200;
+			while ( i -- > 0 ) {
+
+				tri1.intersectsTriangle( tri2, target );
+
+			}
+
+			if ( tri1.intersectsTriangle( tri2, target ) ) {
+
+				intersectionCount += 1;
+
+			}
+
+		};
+
+		const intersectWithoutTarget = () => {
+
+			let i = 200;
+			while ( i -- > 0 ) {
+
+				tri1.intersectsTriangle( tri2 );
+
+			}
+
+			if ( tri1.intersectsTriangle( tri2 ) ) {
+
+				intersectionCount += 1;
+
+			}
+
+		};
 
 		beforeAll( () => {
 
 			tri1 = new ExtendedTriangle();
 			tri2 = new ExtendedTriangle();
+			array = new Float64Array( 10000000 );
+
+		} );
+
+		beforeEach( () => {
+
 			rng = seedrandom.alea( 'Triangle seed' );
+			for ( let i = 0; i < 10000; i ++ ) {
+
+				setupFunc( tri1, tri2, rng );
+				intersectWithoutTarget();
+				intersectWithTarget();
+
+			}
+
+			for ( let i = 0; i < array.length; i ++ ) {
+
+				array[ i ] = i;
+
+				intersectionCount += array[ i ];
+
+			}
+
+			intersectionCount = 0;
+
+		} );
+
+		afterEach( () => {
+
+			console.log( `intersectionCount = ${intersectionCount} ` );
 
 		} );
 
@@ -105,31 +171,13 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 			setupFunc( tri1, tri2, rng );
 
-		}, () => {
-
-			let i = 100;
-			while ( i -- > 0 ) {
-
-				tri1.intersectsTriangle( tri2 );
-
-			}
-
-		} );
+		}, intersectWithoutTarget );
 
 		bench( 'w/ Target', () => {
 
 			setupFunc( tri1, tri2, rng );
 
-		}, () => {
-
-			let i = 100;
-			while ( i -- > 0 ) {
-
-				tri1.intersectsTriangle( tri2, target );
-
-			}
-
-		} );
+		}, intersectWithTarget );
 
 		bench( 'Update', () => {
 
