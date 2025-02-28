@@ -12,15 +12,29 @@ import {
 
 const params = {
 
+	/** Selection tool: lasso (freehand shape) or box. */
 	toolMode: 'lasso',
+	/**
+	 * How triangles are marked for selection:
+	 * - intersection: if any part of the triangle is within the selection shape.
+	 * - centroid: if the center of the triangle is within the selection shape.
+	 * - centroid-visible: if the center of the triangle is within the selection shape and the triangle is visible.
+	 */
 	selectionMode: 'intersection',
+	/** Show selected triangles during the drag or only after the selection is completed. */
 	liveUpdate: false,
+	/** Select the whole mesh if one of its triangles was intersected. */
 	selectModel: false,
+	/** How to render the object: with solid material or edges only (wireframe). */
 	wireframe: false,
+	/** Use the BVH to speed up computations. */
 	useBoundsTree: true,
 
+	/** Show the boxes of the BVH. */
 	displayHelper: false,
+	/** The depth of BVH boxes to display, needs `displayHelper: true`. */
 	helperDepth: 10,
+	/** Continuously rotate the object. */
 	rotate: true,
 
 };
