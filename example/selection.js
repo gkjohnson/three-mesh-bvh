@@ -415,7 +415,6 @@ const faceNormal = new THREE.Vector3();
 const toScreenSpaceMatrix = new THREE.Matrix4();
 const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
-const perBoundsSegments = [];
 function updateSelection() {
 
 	// TODO: Possible improvements
@@ -434,6 +433,11 @@ function updateSelection() {
 		convertTripletsToPoints( selectionPoints )
 	);
 
+	/**
+	 * Per-depth cache of lasso segments that were filtered to be to the right of a box for that depth.
+	 * @type {Array<Array<THREE.Line3>>}
+	 */
+	const perBoundsSegmentCache = [];
 	const startTime = window.performance.now();
 	const indices = [];
 	mesh.geometry.boundsTree.shapecast( {
@@ -461,32 +465,13 @@ function updateSelection() {
 
 			}
 
-			// Find all the relevant segments here and cache them in the above array for
-			// subsequent child checks to use.
-			const parentSegments = perBoundsSegments[ depth - 1 ] || lassoSegments;
-			const segmentsToCheck = perBoundsSegments[ depth ] || [];
-			segmentsToCheck.length = 0;
-			perBoundsSegments[ depth ] = segmentsToCheck;
-			for ( let i = 0, l = parentSegments.length; i < l; i ++ ) {
-
-				const line = parentSegments[ i ];
-				const sx = line.start.x;
-				const sy = line.start.y;
-				const ex = line.end.x;
-				const ey = line.end.y;
-				if ( sx < minX && ex < minX ) continue;
-
-				const startAbove = sy > maxY;
-				const endAbove = ey > maxY;
-				if ( startAbove && endAbove ) continue;
-
-				const startBelow = sy < minY;
-				const endBelow = ey < minY;
-				if ( startBelow && endBelow ) continue;
-
-				segmentsToCheck.push( line );
-
-			}
+			// filter the lasso segments to only leave the ones to the right of the bounding box.
+			// cache them in the above array for subsequent child checks to use.
+			const parentSegments = perBoundsSegmentCache[ depth - 1 ] || lassoSegments;
+			const segmentsToCheck = parentSegments.filter( ( segment ) =>
+				isSegmentToTheRight( segment, minX, minY, maxY )
+			);
+			perBoundsSegmentCache[ depth ] = segmentsToCheck;
 
 			if ( segmentsToCheck.length === 0 ) {
 
@@ -564,7 +549,7 @@ function updateSelection() {
 			const c = i3 + 2;
 
 			// check all the segments if using no bounds tree
-			const segmentsToCheck = params.useBoundsTree ? perBoundsSegments[ depth ] : lassoSegments;
+			const segmentsToCheck = params.useBoundsTree ? perBoundsSegmentCache[ depth ] : lassoSegments;
 			if ( params.selectionMode === 'centroid' || params.selectionMode === 'centroid-visible' ) {
 
 				// get the center of the triangle
@@ -740,6 +725,30 @@ function extractBoxVertices( box, target ) {
 	}
 
 	return target;
+
+}
+
+/**
+ * Determine if a line segment is to the right of a box.
+ *
+ * @param {THREE.Line3} segment
+ * @param {number} minX The leftmost X coordinate of the box
+ * @param {number} minY The bottommost Y coordinate of the box
+ * @param {number} maxY The topmost Y coordinate of the box
+ * @returns {boolean}
+ */
+function isSegmentToTheRight( segment, minX, minY, maxY ) {
+
+	const sx = segment.start.x;
+	const sy = segment.start.y;
+	const ex = segment.end.x;
+	const ey = segment.end.y;
+
+	if ( sx < minX && ex < minX ) return false;
+	if ( sy > maxY && ey > maxY ) return false;
+	if ( sy < minY && ey < minY ) return false;
+
+	return true;
 
 }
 
