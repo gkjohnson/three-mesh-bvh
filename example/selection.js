@@ -446,34 +446,18 @@ function updateSelection() {
 
 			}
 
-			// Get the bounding box points
-			const { min, max } = box;
-			let index = 0;
+			const projectedBoxPoints = extractBoxVertices( box, boxPoints ).map( ( v ) =>
+				v.applyMatrix4( toScreenSpaceMatrix )
+			);
 
 			let minY = Infinity;
 			let maxY = - Infinity;
 			let minX = Infinity;
-			for ( let x = 0; x <= 1; x ++ ) {
+			for ( const point of projectedBoxPoints ) {
 
-				for ( let y = 0; y <= 1; y ++ ) {
-
-					for ( let z = 0; z <= 1; z ++ ) {
-
-						const v = boxPoints[ index ];
-						v.x = x === 0 ? min.x : max.x;
-						v.y = y === 0 ? min.y : max.y;
-						v.z = z === 0 ? min.z : max.z;
-						v.w = 1;
-						v.applyMatrix4( toScreenSpaceMatrix );
-						index ++;
-
-						if ( v.y < minY ) minY = v.y;
-						if ( v.y > maxY ) maxY = v.y;
-						if ( v.x < minX ) minX = v.x;
-
-					}
-
-				}
+				if ( point.y < minY ) minY = point.y;
+				if ( point.y > maxY ) maxY = point.y;
+				if ( point.x < minX ) minX = point.x;
 
 			}
 
@@ -722,6 +706,40 @@ function updateSelection() {
 		newIndexAttr.needsUpdate = true;
 
 	}
+
+}
+
+/**
+ * Produce a list of 3D points representing vertices of the box.
+ *
+ * @param {THREE.Box3} box
+ * @param {Array<THREE.Vector3>} target Array of 8 vectors to write to
+ * @returns {Array<THREE.Vector3>}
+ */
+function extractBoxVertices( box, target ) {
+
+	const { min, max } = box;
+	let index = 0;
+
+	for ( let x = 0; x <= 1; x ++ ) {
+
+		for ( let y = 0; y <= 1; y ++ ) {
+
+			for ( let z = 0; z <= 1; z ++ ) {
+
+				const v = target[ index ];
+				v.x = x === 0 ? min.x : max.x;
+				v.y = y === 0 ? min.y : max.y;
+				v.z = z === 0 ? min.z : max.z;
+				index ++;
+
+			}
+
+		}
+
+	}
+
+	return target;
 
 }
 
