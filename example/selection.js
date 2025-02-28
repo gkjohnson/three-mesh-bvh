@@ -513,12 +513,11 @@ function updateSelection() {
 			}
 
 			// check if there are any intersections
-			for ( let i = 0, l = hullSegments.length; i < l; i ++ ) {
+			for ( const hullSegment of hullSegments ) {
 
-				const boxLine = hullSegments[ i ];
-				for ( let s = 0, ls = segmentsToCheck.length; s < ls; s ++ ) {
+				for ( const selectionSegment of segmentsToCheck ) {
 
-					if ( lineCrossesLine( boxLine, segmentsToCheck[ s ] ) ) {
+					if ( lineCrossesLine( hullSegment, selectionSegment ) ) {
 
 						return INTERSECTED;
 
@@ -605,12 +604,11 @@ function updateSelection() {
 					projectedTriangle,
 					boxLines
 				);
-				for ( let i = 0; i < 3; i ++ ) {
+				for ( const segment of triangleSegments ) {
 
-					const l = triangleSegments[ i ];
-					for ( let s = 0, sl = segmentsToCheck.length; s < sl; s ++ ) {
+					for ( const selectionSegment of segmentsToCheck ) {
 
-						if ( lineCrossesLine( l, segmentsToCheck[ s ] ) ) {
+						if ( lineCrossesLine( segment, selectionSegment ) ) {
 
 							indices.push( a, b, c );
 							return params.selectModel;
