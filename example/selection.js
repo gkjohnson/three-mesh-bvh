@@ -507,26 +507,12 @@ function updateSelection() {
 
 			}
 
-			// check if the screen space hull is in the lasso
-			let crossings = 0;
-			for ( let i = 0, l = hull.length; i < l; i ++ ) {
+			// determine if the box is intersected by the lasso by counting the number of crossings
+			// https://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
+			const firstPointCrossings = pointRayCrossesSegments( hull[ 0 ], segmentsToCheck );
+			if ( hull.some( point => pointRayCrossesSegments( point, segmentsToCheck ) !== firstPointCrossings ) ) {
 
-				const v = hull[ i ];
-				const pCrossings = pointRayCrossesSegments( v, segmentsToCheck );
-
-				if ( i === 0 ) {
-
-					crossings = pCrossings;
-
-				}
-
-				// if two points on the hull have different amounts of crossings then
-				// it can only be intersected
-				if ( crossings !== pCrossings ) {
-
-					return INTERSECTED;
-
-				}
+				return INTERSECTED;
 
 			}
 
@@ -545,7 +531,7 @@ function updateSelection() {
 
 			}
 
-			return crossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
+			return firstPointCrossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
 
 		},
 
