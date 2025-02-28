@@ -479,20 +479,11 @@ function updateSelection() {
 
 			}
 
-			// Get the screen space hull lines
-			const hull = getConvexHull( boxPoints );
-			const lines = hull.map( ( p, i ) => {
-
-				const nextP = hull[ ( i + 1 ) % hull.length ];
-				const line = boxLines[ i ];
-				line.start.copy( p );
-				line.end.copy( nextP );
-				return line;
-
-			} );
+			const hull = getConvexHull( projectedBoxPoints );
+			const hullSegments = connectPointsWithLines( hull, boxLines );
 
 			// If a lasso point is inside the hull then it's intersected and cannot be contained
-			if ( pointRayCrossesSegments( segmentsToCheck[ 0 ].start, lines ) % 2 === 1 ) {
+			if ( pointRayCrossesSegments( segmentsToCheck[ 0 ].start, hullSegments ) % 2 === 1 ) {
 
 				return INTERSECTED;
 
@@ -522,9 +513,9 @@ function updateSelection() {
 			}
 
 			// check if there are any intersections
-			for ( let i = 0, l = lines.length; i < l; i ++ ) {
+			for ( let i = 0, l = hullSegments.length; i < l; i ++ ) {
 
-				const boxLine = lines[ i ];
+				const boxLine = hullSegments[ i ];
 				for ( let s = 0, ls = segmentsToCheck.length; s < ls; s ++ ) {
 
 					if ( lineCrossesLine( boxLine, segmentsToCheck[ s ] ) ) {
@@ -594,20 +585,13 @@ function updateSelection() {
 
 				}
 
-				// get the projected vertices
-				const vertices = [
-					tri.a,
-					tri.b,
-					tri.c,
-				];
+				// check if any of the projected vertices are inside the selection and if so then the triangle is selected
+				const projectedTriangle = [ tri.a, tri.b, tri.c ].map( ( v ) =>
+					v.applyMatrix4( toScreenSpaceMatrix )
+				);
+				for ( const point of projectedTriangle ) {
 
-				// check if any of the vertices are inside the selection and if so then the triangle is selected
-				for ( let j = 0; j < 3; j ++ ) {
-
-					const v = vertices[ j ];
-					v.applyMatrix4( toScreenSpaceMatrix );
-
-					const crossings = pointRayCrossesSegments( v, segmentsToCheck );
+					const crossings = pointRayCrossesSegments( point, segmentsToCheck );
 					if ( crossings % 2 === 1 ) {
 
 						indices.push( a, b, c );
@@ -617,27 +601,15 @@ function updateSelection() {
 
 				}
 
-				// get the lines for the triangle
-				const lines = [
-					boxLines[ 0 ],
-					boxLines[ 1 ],
-					boxLines[ 2 ],
-				];
-
-				lines[ 0 ].start.copy( tri.a );
-				lines[ 0 ].end.copy( tri.b );
-
-				lines[ 1 ].start.copy( tri.b );
-				lines[ 1 ].end.copy( tri.c );
-
-				lines[ 2 ].start.copy( tri.c );
-				lines[ 2 ].end.copy( tri.a );
-
 				// check for the case where a selection intersects a triangle but does not contain any
 				// of the vertices
+				const triangleSegments = connectPointsWithLines(
+					projectedTriangle,
+					boxLines
+				);
 				for ( let i = 0; i < 3; i ++ ) {
 
-					const l = lines[ i ];
+					const l = triangleSegments[ i ];
 					for ( let s = 0, sl = segmentsToCheck.length; s < sl; s ++ ) {
 
 						if ( lineCrossesLine( l, segmentsToCheck[ s ] ) ) {
