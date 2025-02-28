@@ -769,7 +769,13 @@ function convertTripletsToPoints( array ) {
 
 
 // Math Functions
-// https://www.geeksforgeeks.org/convex-hull-set-2-graham-scan/
+/**
+ * Compute a convex hull of the given points.
+ *
+ * Source: https://www.geeksforgeeks.org/convex-hull-set-2-graham-scan/
+ * @param {Array<THREE.Vector3>} points
+ * @returns {Array<THREE.Vector3>}
+ */
 function getConvexHull( points ) {
 
 	function orientation( p, q, r ) {
@@ -916,6 +922,12 @@ function pointRayCrossesLine( point, line, prevDirection, thisDirection ) {
 
 }
 
+/**
+ * Count how many times a ray cast from the given point crosses the segments.
+ * @param {THREE.Vector3} point
+ * @param {Array<THREE.Line3>} segments
+ * @returns {number}
+ */
 function pointRayCrossesSegments( point, segments ) {
 
 	let crossings = 0;
@@ -951,7 +963,14 @@ function isPointInsidePolygon( point, polygon ) {
 
 }
 
-// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+/**
+ * Check if two line segments intersect.
+ *
+ * Source: https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+ * @param {THREE.Line3} l1
+ * @param {THREE.Line3} l2
+ * @returns {boolean}
+ */
 function lineCrossesLine( l1, l2 ) {
 
 	function ccw( A, B, C ) {
