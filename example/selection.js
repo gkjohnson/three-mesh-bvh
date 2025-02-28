@@ -415,7 +415,6 @@ const faceNormal = new THREE.Vector3();
 const toScreenSpaceMatrix = new THREE.Matrix4();
 const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
-const lassoSegments = [];
 const perBoundsSegments = [];
 function updateSelection() {
 
@@ -428,29 +427,12 @@ function updateSelection() {
 		.premultiply( camera.matrixWorldInverse )
 		.premultiply( camera.projectionMatrix );
 
-	// create scratch points and lines to use for selection
-	while ( lassoSegments.length < selectionPoints.length ) {
-
-		lassoSegments.push( new THREE.Line3() );
-
-	}
-
-	lassoSegments.length = selectionPoints.length;
-
-	for ( let s = 0, l = selectionPoints.length; s < l; s += 3 ) {
-
-		const line = lassoSegments[ s ];
-		const sNext = ( s + 3 ) % l;
-		line.start.x = selectionPoints[ s ];
-		line.start.y = selectionPoints[ s + 1 ];
-
-		line.end.x = selectionPoints[ sNext ];
-		line.end.y = selectionPoints[ sNext + 1 ];
-
-	}
-
 	invWorldMatrix.copy( mesh.matrixWorld ).invert();
 	camLocalPosition.set( 0, 0, 0 ).applyMatrix4( camera.matrixWorld ).applyMatrix4( invWorldMatrix );
+
+	const lassoSegments = connectPointsWithLines(
+		convertTripletsToPoints( selectionPoints )
+	);
 
 	const startTime = window.performance.now();
 	const indices = [];
@@ -742,6 +724,52 @@ function updateSelection() {
 	}
 
 }
+
+/**
+ * Given a list of points representing a polygon, produce a list of line segments of that polygon.
+ *
+ * @param {Array<THREE.Vector3>} points
+ * @param {Array<THREE.Line3> | null} target Array of the same length as `points` of lines to write to
+ * @returns {Array<THREE.Line3>}
+ */
+function connectPointsWithLines( points, target = null ) {
+
+	if ( target === null ) {
+
+		target = new Array( points.length ).fill( null ).map( () => new THREE.Line3() );
+
+	}
+
+	return points.map( ( p, i ) => {
+
+		const nextP = points[ ( i + 1 ) % points.length ];
+		const line = target[ i ];
+		line.start.copy( p );
+		line.end.copy( nextP );
+		return line;
+
+	} );
+
+}
+
+/**
+ * Convert a list of triplets representing coordinates into a list of 3D points.
+ * @param {Array<number>} array Array of points in the form [x0, y0, z0, x1, y1, z1, …]
+ * @returns {Array<THREE.Vector3>}
+ */
+function convertTripletsToPoints( array ) {
+
+	const points = [];
+	for ( let i = 0; i < array.length; i += 3 ) {
+
+		points.push( new THREE.Vector3( array[ i ], array[ i + 1 ], array[ i + 2 ] ) );
+
+	}
+
+	return points;
+
+}
+
 
 // Math Functions
 // https://www.geeksforgeeks.org/convex-hull-set-2-graham-scan/
