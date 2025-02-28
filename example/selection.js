@@ -35,6 +35,7 @@ let selectionNeedsUpdate = false;
 init();
 render();
 
+/** Set up the scene, controls GUI, and event listeners. */
 function init() {
 
 	outputContainer = document.getElementById( 'output' );
@@ -415,6 +416,15 @@ const faceNormal = new THREE.Vector3();
 const toScreenSpaceMatrix = new THREE.Matrix4();
 const boxPoints = new Array( 8 ).fill().map( () => new THREE.Vector3() );
 const boxLines = new Array( 12 ).fill().map( () => new THREE.Line3() );
+
+/**
+ * Compute selected triangles:
+ *
+ * 1. Construct a list of screen space line segments that represent the lasso shape drawn by the user.
+ * 2. For every triangle in the geometry check if any part is within the lasso. If it is then consider the triangle selected.
+ *
+ * @see https://github.com/gkjohnson/three-mesh-bvh/issues/166#issuecomment-752194034
+ */
 function updateSelection() {
 
 	// TODO: Possible improvements
@@ -438,12 +448,20 @@ function updateSelection() {
 	 * @type {Array<Array<THREE.Line3>>}
 	 */
 	const perBoundsSegmentCache = [];
-	const startTime = window.performance.now();
+
+	/**
+	 * Array of triplets representing indices of vertices of selected triangles.
+	 * @type {Array<number>}
+	 */
 	const indices = [];
+	const startTime = window.performance.now();
+
+	// find all the triangles in the mesh that intersect the lasso
 	mesh.geometry.boundsTree.shapecast( {
 		intersectsBounds: ( box, isLeaf, score, depth ) => {
 
-			// check if bounds intersect or contain the lasso region
+			// check if bounds intersect or contain the lasso region to narrow down on the triangles
+
 			if ( ! params.useBoundsTree ) {
 
 				return INTERSECTED;
@@ -482,7 +500,7 @@ function updateSelection() {
 			const hull = getConvexHull( projectedBoxPoints );
 			const hullSegments = connectPointsWithLines( hull, boxLines );
 
-			// If a lasso point is inside the hull then it's intersected and cannot be contained
+			// If a lasso point is inside the hull then the box cannot be contained inside the lasso, so it must be intersected by the lasso.
 			if ( isPointInsidePolygon( segmentsToCheck[ 0 ].start, hullSegments ) ) {
 
 				return INTERSECTED;
@@ -512,7 +530,7 @@ function updateSelection() {
 
 			}
 
-			// check if there are any intersections
+			// check if there are any intersections between the hull and the lasso segments
 			for ( const hullSegment of hullSegments ) {
 
 				for ( const selectionSegment of segmentsToCheck ) {
@@ -532,6 +550,8 @@ function updateSelection() {
 		},
 
 		intersectsTriangle: ( tri, index, contained, depth ) => {
+
+			// if the box containing this triangle was intersected or contained, check if the triangle itself should be selected
 
 			const i3 = index * 3;
 			const a = i3 + 0;
