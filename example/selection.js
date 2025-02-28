@@ -483,7 +483,7 @@ function updateSelection() {
 			const hullSegments = connectPointsWithLines( hull, boxLines );
 
 			// If a lasso point is inside the hull then it's intersected and cannot be contained
-			if ( pointRayCrossesSegments( segmentsToCheck[ 0 ].start, hullSegments ) % 2 === 1 ) {
+			if ( isPointInsidePolygon( segmentsToCheck[ 0 ].start, hullSegments ) ) {
 
 				return INTERSECTED;
 
@@ -547,10 +547,9 @@ function updateSelection() {
 				centroid.copy( tri.a ).add( tri.b ).add( tri.c ).multiplyScalar( 1 / 3 );
 				screenCentroid.copy( centroid ).applyMatrix4( toScreenSpaceMatrix );
 
-				// counting the crossings
 				if (
 					contained ||
-					pointRayCrossesSegments( screenCentroid, segmentsToCheck ) % 2 === 1
+          isPointInsidePolygon( screenCentroid, segmentsToCheck )
 				) {
 
 					// if we're only selecting visible faces then perform a ray check to ensure the centroid
@@ -591,8 +590,7 @@ function updateSelection() {
 				);
 				for ( const point of projectedTriangle ) {
 
-					const crossings = pointRayCrossesSegments( point, segmentsToCheck );
-					if ( crossings % 2 === 1 ) {
+					if ( isPointInsidePolygon( point, segmentsToCheck ) ) {
 
 						indices.push( a, b, c );
 						return params.selectModel;
@@ -938,6 +936,18 @@ function pointRayCrossesSegments( point, segments ) {
 	}
 
 	return crossings;
+
+}
+
+/**
+ * Check if the given point is inside the given polygon.
+ * @param {THREE.Vector3} point
+ * @param {Array<THREE.Line3>} polygon
+ * @returns {boolean}
+ */
+function isPointInsidePolygon( point, polygon ) {
+
+	return pointRayCrossesSegments( point, polygon ) % 2 === 1;
 
 }
 
