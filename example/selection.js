@@ -39,12 +39,207 @@ const params = {
 
 };
 
+/** Abstract class representing a selection using a pointer. */
+class Selection {
+
+	constructor() {
+
+		this.dragging = false;
+
+	}
+
+	handlePointerDown() {
+
+		this.dragging = true;
+
+	}
+	handlePointerUp() {
+
+		this.dragging = false;
+
+	}
+	handlePointerMove() {}
+
+	get points() {
+
+		return [];
+
+	}
+
+	/** Convert absolute screen coordinates `x` and `y` to relative coordinates in range [-1; 1]. */
+	static normalizePoint( x, y ) {
+
+		return [
+			( x / window.innerWidth ) * 2 - 1,
+			- ( ( y / window.innerHeight ) * 2 - 1 ),
+		];
+
+	}
+
+}
+
+
+const tempVec0 = new THREE.Vector2();
+const tempVec1 = new THREE.Vector2();
+const tempVec2 = new THREE.Vector2();
+/** Selection that adds points on drag and connects the start and end points with a straight line. */
+class LassoSelection extends Selection {
+
+	constructor() {
+
+		super();
+		this.lassoPoints = [];
+		this.prevX = - Infinity;
+		this.prevY = - Infinity;
+
+	}
+
+	handlePointerDown( e ) {
+
+		super.handlePointerDown();
+		this.prevX = e.clientX;
+		this.prevY = e.clientY;
+		this.lassoPoints = [];
+
+	}
+
+	handlePointerMove( e ) {
+
+		const ex = e.clientX;
+		const ey = e.clientY;
+		const [ nx, ny ] = Selection.normalizePoint( ex, ey );
+
+		// If the mouse hasn't moved a lot since the last point
+		if ( Math.abs( ex - this.prevX ) >= 3 || Math.abs( ey - this.prevY ) >= 3 ) {
+
+			// Check if the mouse moved in roughly the same direction as the previous point
+			// and replace it if so.
+			const i = this.lassoPoints.length / 3 - 1;
+			const i3 = i * 3;
+			let doReplace = false;
+			if ( this.lassoPoints.length > 3 ) {
+
+				// prev segment direction
+				tempVec0.set(
+					this.lassoPoints[ i3 - 3 ],
+					this.lassoPoints[ i3 - 3 + 1 ]
+				);
+				tempVec1.set( this.lassoPoints[ i3 ], this.lassoPoints[ i3 + 1 ] );
+				tempVec1.sub( tempVec0 ).normalize();
+
+				// this segment direction
+				tempVec0.set( this.lassoPoints[ i3 ], this.lassoPoints[ i3 + 1 ] );
+				tempVec2.set( nx, ny );
+				tempVec2.sub( tempVec0 ).normalize();
+
+				const dot = tempVec1.dot( tempVec2 );
+				doReplace = dot > 0.99;
+
+			}
+
+			if ( doReplace ) {
+
+				this.lassoPoints[ i3 ] = nx;
+				this.lassoPoints[ i3 + 1 ] = ny;
+
+			} else {
+
+				this.lassoPoints.push( nx, ny, 0 );
+
+			}
+
+			selectionShapeNeedsUpdate = true;
+			selectionShape.visible = true;
+
+			this.prevX = ex;
+			this.prevY = ey;
+
+			if ( params.liveUpdate ) {
+
+				selectionNeedsUpdate = true;
+
+			}
+
+		}
+
+	}
+
+	get points() {
+
+		return this.lassoPoints;
+
+	}
+
+}
+
+class BoxSelection extends Selection {
+
+	constructor() {
+
+		super();
+		this.startX = 0;
+		this.startY = 0;
+		this.currentX = 0;
+		this.currentY = 0;
+
+	}
+
+	handlePointerDown( e ) {
+
+		super.handlePointerDown();
+		this.prevX = e.clientX;
+		this.prevY = e.clientY;
+		const [ nx, ny ] = Selection.normalizePoint( e.clientX, e.clientY );
+		this.startX = nx;
+		this.startY = ny;
+		this.lassoPoints = [];
+
+	}
+
+	handlePointerMove( e ) {
+
+		const ex = e.clientX;
+		const ey = e.clientY;
+
+		const [ nx, ny ] = Selection.normalizePoint( e.clientX, e.clientY );
+		this.currentX = nx;
+		this.currentY = ny;
+
+		if ( ex !== this.prevX || ey !== this.prevY ) {
+
+			selectionShapeNeedsUpdate = true;
+
+		}
+
+		this.prevX = ex;
+		this.prevY = ey;
+		selectionShape.visible = true;
+		if ( params.liveUpdate ) {
+
+			selectionNeedsUpdate = true;
+
+		}
+
+	}
+
+	get points() {
+
+		return [
+			[ this.startX, this.startY, 0 ],
+			[ this.currentX, this.startY, 0 ],
+			[ this.currentX, this.currentY, 0 ],
+			[ this.startX, this.currentY, 0 ],
+		].flat();
+
+	}
+
+}
+
 let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
 let highlightMesh, highlightWireframeMesh, outputContainer, group;
-const selectionPoints = [];
-let dragging = false;
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
+let tool = new LassoSelection();
 
 init();
 render();
@@ -172,7 +367,19 @@ function init() {
 	// gui
 	gui = new GUI();
 	const selectionFolder = gui.addFolder( 'selection' );
-	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] );
+	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] ).onChange( ( v ) => {
+
+		if ( v === 'box' ) {
+
+			tool = new BoxSelection();
+
+		} else {
+
+			tool = new LassoSelection();
+
+		}
+
+	} );
 	selectionFolder.add( params, 'selectionMode', [ 'centroid', 'centroid-visible', 'intersection' ] );
 	selectionFolder.add( params, 'selectModel' );
 	selectionFolder.add( params, 'liveUpdate' );
@@ -192,32 +399,17 @@ function init() {
 	displayFolder.open();
 	gui.open();
 
-	// handle building lasso shape
-	let startX = - Infinity;
-	let startY = - Infinity;
+	renderer.domElement.addEventListener( 'pointerdown', ( e ) => {
 
-	let prevX = - Infinity;
-	let prevY = - Infinity;
-
-	const tempVec0 = new THREE.Vector2();
-	const tempVec1 = new THREE.Vector2();
-	const tempVec2 = new THREE.Vector2();
-	renderer.domElement.addEventListener( 'pointerdown', e => {
-
-		prevX = e.clientX;
-		prevY = e.clientY;
-		startX = ( e.clientX / window.innerWidth ) * 2 - 1;
-		startY = - ( ( e.clientY / window.innerHeight ) * 2 - 1 );
-		selectionPoints.length = 0;
-		dragging = true;
+		tool.handlePointerDown( e );
 
 	} );
 
 	renderer.domElement.addEventListener( 'pointerup', () => {
 
+		tool.handlePointerUp();
 		selectionShape.visible = false;
-		dragging = false;
-		if ( selectionPoints.length ) {
+		if ( tool.points.length ) {
 
 			selectionNeedsUpdate = true;
 
@@ -234,108 +426,7 @@ function init() {
 
 		}
 
-		const ex = e.clientX;
-		const ey = e.clientY;
-
-		const nx = ( e.clientX / window.innerWidth ) * 2 - 1;
-		const ny = - ( ( e.clientY / window.innerHeight ) * 2 - 1 );
-
-		if ( params.toolMode === 'box' ) {
-
-			// set points for the corner of the box
-			selectionPoints.length = 3 * 5;
-
-			selectionPoints[ 0 ] = startX;
-			selectionPoints[ 1 ] = startY;
-			selectionPoints[ 2 ] = 0;
-
-			selectionPoints[ 3 ] = nx;
-			selectionPoints[ 4 ] = startY;
-			selectionPoints[ 5 ] = 0;
-
-			selectionPoints[ 6 ] = nx;
-			selectionPoints[ 7 ] = ny;
-			selectionPoints[ 8 ] = 0;
-
-			selectionPoints[ 9 ] = startX;
-			selectionPoints[ 10 ] = ny;
-			selectionPoints[ 11 ] = 0;
-
-			selectionPoints[ 12 ] = startX;
-			selectionPoints[ 13 ] = startY;
-			selectionPoints[ 14 ] = 0;
-
-			if ( ex !== prevX || ey !== prevY ) {
-
-				selectionShapeNeedsUpdate = true;
-
-			}
-
-			prevX = ex;
-			prevY = ey;
-			selectionShape.visible = true;
-			if ( params.liveUpdate ) {
-
-				selectionNeedsUpdate = true;
-
-			}
-
-		} else {
-
-			// If the mouse hasn't moved a lot since the last point
-			if (
-				Math.abs( ex - prevX ) >= 3 ||
-				Math.abs( ey - prevY ) >= 3
-			) {
-
-				// Check if the mouse moved in roughly the same direction as the previous point
-				// and replace it if so.
-				const i = ( selectionPoints.length / 3 ) - 1;
-				const i3 = i * 3;
-				let doReplace = false;
-				if ( selectionPoints.length > 3 ) {
-
-					// prev segment direction
-					tempVec0.set( selectionPoints[ i3 - 3 ], selectionPoints[ i3 - 3 + 1 ] );
-					tempVec1.set( selectionPoints[ i3 ], selectionPoints[ i3 + 1 ] );
-					tempVec1.sub( tempVec0 ).normalize();
-
-					// this segment direction
-					tempVec0.set( selectionPoints[ i3 ], selectionPoints[ i3 + 1 ] );
-					tempVec2.set( nx, ny );
-					tempVec2.sub( tempVec0 ).normalize();
-
-					const dot = tempVec1.dot( tempVec2 );
-					doReplace = dot > 0.99;
-
-				}
-
-				if ( doReplace ) {
-
-					selectionPoints[ i3 ] = nx;
-					selectionPoints[ i3 + 1 ] = ny;
-
-				} else {
-
-					selectionPoints.push( nx, ny, 0 );
-
-				}
-
-				selectionShapeNeedsUpdate = true;
-				selectionShape.visible = true;
-
-				prevX = ex;
-				prevY = ey;
-
-				if ( params.liveUpdate ) {
-
-					selectionNeedsUpdate = true;
-
-				}
-
-			}
-
-		}
+		tool.handlePointerMove( e );
 
 	} );
 
@@ -357,34 +448,19 @@ function render() {
 
 	mesh.material.wireframe = params.wireframe;
 	helper.visible = params.displayHelper;
+	const selectionPoints = tool.points;
 
 	// Update the selection lasso lines
 	if ( selectionShapeNeedsUpdate ) {
 
-		if ( params.toolMode === 'lasso' ) {
-
-			const ogLength = selectionPoints.length;
-			selectionPoints.push(
-				selectionPoints[ 0 ],
-				selectionPoints[ 1 ],
-				selectionPoints[ 2 ]
-			);
-
-			selectionShape.geometry.setAttribute(
-				'position',
-				new THREE.Float32BufferAttribute( selectionPoints, 3, false )
-			);
-
-			selectionPoints.length = ogLength;
-
-		} else {
-
-			selectionShape.geometry.setAttribute(
-				'position',
-				new THREE.Float32BufferAttribute( selectionPoints, 3, false )
-			);
-
-		}
+		selectionShape.geometry.setAttribute(
+			'position',
+			new THREE.Float32BufferAttribute(
+				selectionPoints.concat( selectionPoints.slice( 0, 3 ) ),
+				3,
+				false
+			)
+		);
 
 		selectionShape.frustumCulled = false;
 		selectionShapeNeedsUpdate = false;
@@ -411,7 +487,7 @@ function render() {
 	if ( params.rotate ) {
 
 		group.rotation.y += 0.01;
-		if ( params.liveUpdate && dragging ) {
+		if ( params.liveUpdate && tool.dragging ) {
 
 			selectionNeedsUpdate = true;
 
@@ -454,7 +530,7 @@ function updateSelection() {
 	camLocalPosition.set( 0, 0, 0 ).applyMatrix4( camera.matrixWorld ).applyMatrix4( invWorldMatrix );
 
 	const lassoSegments = connectPointsWithLines(
-		convertTripletsToPoints( selectionPoints )
+		convertTripletsToPoints( tool.points )
 	);
 
 	/**
