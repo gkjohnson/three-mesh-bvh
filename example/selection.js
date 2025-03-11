@@ -16,29 +16,22 @@ import { getConvexHull } from './utils/math/getConvexHull.js';
 
 const params = {
 
-	/** Selection tool: lasso (freehand shape) or box. */
+	/** Selection tool: 'lasso' or 'box'. */
 	toolMode: 'lasso',
 	/**
 	 * How triangles are marked for selection:
-	 * - intersection: if any part of the triangle is within the selection shape.
-	 * - centroid: if the center of the triangle is within the selection shape.
-	 * - centroid-visible: if the center of the triangle is within the selection shape and the triangle is visible.
+	 * - 'intersection': if any part of the triangle is within the selection shape.
+	 * - 'centroid': if the center of the triangle is within the selection shape.
+	 * - 'centroid-visible': if the center of the triangle is within the selection shape and the triangle is visible.
 	 */
 	selectionMode: 'intersection',
-	/** Show selected triangles during the drag or only after the selection is completed. */
 	liveUpdate: false,
-	/** Select the whole mesh if one of its triangles was intersected. */
-	selectModel: false,
-	/** How to render the object: with solid material or edges only (wireframe). */
+	selectWholeModel: false,
 	wireframe: false,
-	/** Use the BVH to speed up computations. */
 	useBoundsTree: true,
 
-	/** Show the boxes of the BVH. */
 	displayHelper: false,
-	/** The depth of BVH boxes to display, needs `displayHelper: true`. */
 	helperDepth: 10,
-	/** Continuously rotate the object. */
 	rotate: true,
 
 };
@@ -189,7 +182,7 @@ function init() {
 
 	} );
 	selectionFolder.add( params, 'selectionMode', [ 'centroid', 'centroid-visible', 'intersection' ] );
-	selectionFolder.add( params, 'selectModel' );
+	selectionFolder.add( params, 'selectWholeModel' );
 	selectionFolder.add( params, 'liveUpdate' );
 	selectionFolder.add( params, 'useBoundsTree' );
 	selectionFolder.open();
@@ -473,7 +466,7 @@ function updateSelection() {
 					}
 
 					indices.push( a, b, c );
-					return params.selectModel;
+					return params.selectWholeModel;
 
 				}
 
@@ -483,7 +476,7 @@ function updateSelection() {
 				if ( contained ) {
 
 					indices.push( a, b, c );
-					return params.selectModel;
+					return params.selectWholeModel;
 
 				}
 
@@ -496,7 +489,7 @@ function updateSelection() {
 					if ( isPointInsidePolygon( point, segmentsToCheck ) ) {
 
 						indices.push( a, b, c );
-						return params.selectModel;
+						return params.selectWholeModel;
 
 					}
 
@@ -515,7 +508,7 @@ function updateSelection() {
 						if ( lineCrossesLine( segment, selectionSegment ) ) {
 
 							indices.push( a, b, c );
-							return params.selectModel;
+							return params.selectWholeModel;
 
 						}
 
@@ -536,7 +529,7 @@ function updateSelection() {
 
 	const indexAttr = mesh.geometry.index;
 	const newIndexAttr = highlightMesh.geometry.index;
-	if ( indices.length && params.selectModel ) {
+	if ( indices.length && params.selectWholeModel ) {
 
 		// if we found indices and we want to select the whole model
 		for ( let i = 0, l = indexAttr.count; i < l; i ++ ) {
