@@ -10,8 +10,10 @@ import {
 /**
  * Compute selected triangles:
  *
- * 1. Construct a list of screen space line segments that represent the lasso shape drawn by the user.
- * 2. For every triangle in the geometry check if any part is within the lasso. If it is then consider the triangle selected.
+ * 1. Construct a list of screen space line segments that represent the shape drawn by the user.
+ * 2. For every triangle in the geometry check if any part is within the shape. If it is then consider the triangle selected.
+ *
+ * @returns Array of triplets representing indices of vertices of selected triangles
  *
  * @see https://github.com/gkjohnson/three-mesh-bvh/issues/166#issuecomment-752194034
  */
@@ -76,7 +78,8 @@ export function computeSelectedTriangles( mesh, camera, selectionTool, params ) 
 			}
 
 			// filter the lasso segments to only leave the ones to the right of the bounding box.
-			// cache them in the above array for subsequent child checks to use.
+			// we don't need the ones on the left because the point-in-polygon ray casting algorithm casts rays to the right.
+			// cache the filtered segments in the above array for subsequent child checks to use.
 			const parentSegments = perBoundsSegmentCache[ depth - 1 ] || lassoSegments;
 			const segmentsToCheck = parentSegments.filter( ( segment ) =>
 				isSegmentToTheRight( segment, minX, minY, maxY )
