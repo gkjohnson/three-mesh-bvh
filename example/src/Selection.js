@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 /** Abstract class representing a selection using a pointer. */
 class Selection {
 
@@ -78,10 +80,7 @@ export class LassoSelection extends Selection {
 			if ( this.lassoPoints.length > 3 ) {
 
 				// prev segment direction
-				tempVec0.set(
-					this.lassoPoints[ i3 - 3 ],
-					this.lassoPoints[ i3 - 3 + 1 ]
-				);
+				tempVec0.set( this.lassoPoints[ i3 - 3 ], this.lassoPoints[ i3 - 3 + 1 ] );
 				tempVec1.set( this.lassoPoints[ i3 ], this.lassoPoints[ i3 + 1 ] );
 				tempVec1.sub( tempVec0 ).normalize();
 
@@ -106,19 +105,14 @@ export class LassoSelection extends Selection {
 
 			}
 
-			selectionShapeNeedsUpdate = true;
-			selectionShape.visible = true;
-
 			this.prevX = ex;
 			this.prevY = ey;
 
-			if ( params.liveUpdate ) {
-
-				selectionNeedsUpdate = true;
-
-			}
+			return { changed: true };
 
 		}
+
+		return { changed: false };
 
 	}
 
@@ -163,20 +157,16 @@ export class BoxSelection extends Selection {
 		this.currentX = nx;
 		this.currentY = ny;
 
-		if ( ex !== this.prevX || ey !== this.prevY ) {
+		if ( ex === this.prevX && ey === this.prevY ) {
 
-			selectionShapeNeedsUpdate = true;
+			return { changed: false };
 
 		}
 
 		this.prevX = ex;
 		this.prevY = ey;
-		selectionShape.visible = true;
-		if ( params.liveUpdate ) {
 
-			selectionNeedsUpdate = true;
-
-		}
+		return { changed: true };
 
 	}
 

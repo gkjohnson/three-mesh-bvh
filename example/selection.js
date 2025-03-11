@@ -222,7 +222,19 @@ function init() {
 
 		}
 
-		tool.handlePointerMove( e );
+		const { changed } = tool.handlePointerMove( e );
+
+		if ( changed ) {
+
+			selectionShapeNeedsUpdate = true;
+			selectionShape.visible = true;
+			if ( params.liveUpdate ) {
+
+				selectionNeedsUpdate = true;
+
+			}
+
+		}
 
 	} );
 
