@@ -4,7 +4,6 @@ import { getConvexHull } from "../utils/math/getConvexHull.js";
 import { lineCrossesLine } from "../utils/math/lineCrossesLine.js";
 import {
 	isPointInsidePolygon,
-	pointRayCrossesSegments,
 } from "../utils/math/pointRayCrossesSegments.js";
 
 /**
@@ -54,7 +53,7 @@ export function computeSelectedTriangles( mesh, camera, selectionTool, params ) 
 	mesh.geometry.boundsTree.shapecast( {
 		intersectsBounds: ( box, isLeaf, score, depth ) => {
 
-			// check if bounds intersect or contain the lasso region to narrow down on the triangles
+			// check if the bounds are intersected or contained by the lasso region to narrow down on the triangles
 
 			if ( ! params.useBoundsTree ) {
 
@@ -77,7 +76,7 @@ export function computeSelectedTriangles( mesh, camera, selectionTool, params ) 
 
 			}
 
-			// filter the lasso segments to only leave the ones to the right of the bounding box.
+			// filter the lasso segments to remove the ones completely to the left, above, or below the bounding box.
 			// we don't need the ones on the left because the point-in-polygon ray casting algorithm casts rays to the right.
 			// cache the filtered segments in the above array for subsequent child checks to use.
 			const parentSegments = perBoundsSegmentCache[ depth - 1 ] || lassoSegments;
@@ -95,32 +94,14 @@ export function computeSelectedTriangles( mesh, camera, selectionTool, params ) 
 			const hull = getConvexHull( projectedBoxPoints );
 			const hullSegments = connectPointsWithLines( hull, boxLines );
 
-			// If a lasso point is inside the hull then the box cannot be contained inside the lasso, so it must be intersected by the lasso.
+			// If any lasso point is inside the hull (arbitrarily checking the first) then the bounds are intersected by the lasso.
 			if ( isPointInsidePolygon( segmentsToCheck[ 0 ].start, hullSegments ) ) {
 
 				return INTERSECTED;
 
 			}
 
-			// determine if the box is intersected by the lasso by counting the number of crossings
-			// https://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
-			const firstPointCrossings = pointRayCrossesSegments(
-				hull[ 0 ],
-				segmentsToCheck
-			);
-			if (
-				hull.some(
-					( point ) =>
-						pointRayCrossesSegments( point, segmentsToCheck ) !==
-						firstPointCrossings
-				)
-			) {
-
-				return INTERSECTED;
-
-			}
-
-			// check if there are any intersections between the hull and the lasso segments
+			// if any hull segment is intersected by any lasso segment then the bounds are intersected by the lasso
 			for ( const hullSegment of hullSegments ) {
 
 				for ( const selectionSegment of segmentsToCheck ) {
@@ -135,7 +116,9 @@ export function computeSelectedTriangles( mesh, camera, selectionTool, params ) 
 
 			}
 
-			return firstPointCrossings % 2 === 0 ? NOT_INTERSECTED : CONTAINED;
+			// No lasso segments intersected the bounds, and at least the first point is definitely outside the hull,
+			// so either the entire hull is inside the lasso, or the lasso is somewhere different and does not touch the hull.
+			return isPointInsidePolygon( hull[ 0 ], segmentsToCheck ) ? CONTAINED : NOT_INTERSECTED;
 
 		},
 
