@@ -92,22 +92,14 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 		let tri1,
 			tri2,
 			target,
-			rng,
-			array;
+			rng;
 
-		let intersectionCount = 0;
 		const intersectWithTarget = () => {
 
 			let i = 200;
 			while ( i -- > 0 ) {
 
 				tri1.intersectsTriangle( tri2, target );
-
-			}
-
-			if ( tri1.intersectsTriangle( tri2, target ) ) {
-
-				intersectionCount += 1;
 
 			}
 
@@ -122,19 +114,12 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 			}
 
-			if ( tri1.intersectsTriangle( tri2 ) ) {
-
-				intersectionCount += 1;
-
-			}
-
 		};
 
 		beforeAll( () => {
 
 			tri1 = new ExtendedTriangle();
 			tri2 = new ExtendedTriangle();
-			array = new Float64Array( 10000000 );
 
 		} );
 
@@ -148,22 +133,6 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 				intersectWithTarget();
 
 			}
-
-			for ( let i = 0; i < array.length; i ++ ) {
-
-				array[ i ] = i;
-
-				intersectionCount += array[ i ];
-
-			}
-
-			intersectionCount = 0;
-
-		} );
-
-		afterEach( () => {
-
-			console.log( `intersectionCount = ${intersectionCount} ` );
 
 		} );
 
