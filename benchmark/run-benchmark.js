@@ -18,6 +18,7 @@ import {
 	Line3,
 	PlaneGeometry,
 	Triangle,
+	Plane,
 } from 'three';
 import {
 	CENTER,
@@ -85,6 +86,97 @@ runTriangleTriangleSuiteWithSetupFunc( 'Random', ( tri1, tri2, rng ) => {
 
 } );
 
+runTriangleTriangleSuiteWithSetupFunc( 'Random Coplanar', ( tri1, tri2, rng ) => {
+
+	let plane = new Plane(new Vector3(rng.double(), rng.double(), rng.double()), rng.double());
+
+	let tmp = new Vector3();
+	let pointOnPlane = (outPoint) => {
+		tmp.x = rng.double();
+		tmp.y = rng.double();
+		tmp.z = rng.double();
+
+		plane.projectPoint(tmp, outPoint);
+	};
+
+	pointOnPlane( tri1.a );
+	pointOnPlane( tri1.b );
+	pointOnPlane( tri1.c );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	pointOnPlane( tri2.a );
+	pointOnPlane( tri2.b );
+	pointOnPlane( tri2.c );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Triangle-Segment', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.set( rng.double(), rng.double(), rng.double() );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.set( rng.double(), rng.double(), rng.double() );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Triangle-Point', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.set( rng.double(), rng.double(), rng.double() );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.copy( tri2.a );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Segment-Segment', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.copy( tri1.b );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.set( rng.double(), rng.double(), rng.double() );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Segment-Point', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.copy( tri1.b );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.copy( tri2.a );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
 function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 	suite( `Triangle.intersectsTriangle [${postfix}]`, () => {
@@ -94,6 +186,8 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 			target,
 			rng;
 
+		let intersectionCount = 0;
+		let iterationCount = 0;
 		const intersectWithTarget = () => {
 
 			let i = 200;
@@ -102,6 +196,12 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 				tri1.intersectsTriangle( tri2, target );
 
 			}
+
+			if (tri1.intersectsTriangle( tri2 )) {
+				intersectionCount++;
+			}
+
+			iterationCount++;
 
 		};
 
@@ -113,6 +213,12 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 				tri1.intersectsTriangle( tri2 );
 
 			}
+
+			if (tri1.intersectsTriangle( tri2 )) {
+				intersectionCount++;
+			}
+
+			iterationCount++;
 
 		};
 
@@ -134,6 +240,13 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 			}
 
+			intersectionCount = 0;
+			iterationCount = 0;
+
+		} );
+
+		afterEach( () => {
+			console.log(`intersection count: ${intersectionCount}/${iterationCount}`)	
 		} );
 
 		bench( 'w/o Target', () => {
@@ -148,15 +261,14 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 		}, intersectWithTarget );
 
-		bench( 'Update', () => {
+		bench( 'w/ Update', () => {
 
 			setupFunc( tri1, tri2, rng );
 
-		}, () => {
+			tri1.needsUpdate = true;
+			tri2.needsUpdate = true;
 
-			tri2.update();
-
-		} );
+		}, intersectWithTarget );
 
 	} );
 
