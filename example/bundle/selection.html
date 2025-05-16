@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Geometry Collect Triangles</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+			font-family: monospace;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#info, #output {
+			position: absolute;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		#info {
+			top: 0;
+			width: 100%;
+			pointer-events: none;
+		}
+
+		#output {
+			padding: 5px;
+			bottom: 0;
+			left: 0;
+			opacity: 0.5;
+		}
+    </style>
+  <script type="module" crossorigin src="./assets/selection-CiGxI_3N.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-CFC-kWKu.js">
+  <link rel="modulepreload" crossorigin href="./assets/_commonjsHelpers-Cpj98o6Y.js">
+  <link rel="modulepreload" crossorigin href="./assets/stats.min-GTpOrGrX.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-jESndyO-.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-DPxOa-V_.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-CE-cOGaL.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVHHelper-PaFFnbA9.js">
+</head>
+<body>
+	<div id="info">
+		Right click rotate, left click drag selection
+		<br/>
+		NOTE: Triangles and bounds clipped by the camera not supported
+	</div>
+	<div id="output"></div>
+</body>
+</html>
