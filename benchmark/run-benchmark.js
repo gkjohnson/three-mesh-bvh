@@ -3,6 +3,7 @@ import {
 	bench,
 	beforeAll,
 	beforeEach,
+	afterEach,
 } from './lib/bench.js';
 import {
 	Mesh,
@@ -17,6 +18,7 @@ import {
 	Line3,
 	PlaneGeometry,
 	Triangle,
+	Plane,
 } from 'three';
 import {
 	CENTER,
@@ -32,131 +34,299 @@ import {
 } from '../src/index.js';
 import { logObjectAsRows } from './lib/logTable.js';
 import { generateGroupGeometry } from './utils.js';
+import seedrandom from 'seedrandom';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const LOG_JSON = process.argv.includes( '--json' );
-if ( ! LOG_JSON ) {
+// if ( ! LOG_JSON ) {
 
-	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
-	console.log( '**Extremes**' );
-	logExtremes( bvh );
-	console.log();
+// 	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
+// 	console.log( '**Extremes**' );
+// 	logExtremes( bvh );
+// 	console.log();
 
-}
+// }
 
-suite( 'BVH General', () => {
+// suite( 'BVH General', () => {
 
-	let geometry, bvh, serialized;
-	beforeAll( () => {
+// 	let geometry, bvh, serialized;
+// 	beforeAll( () => {
 
-		geometry = new TorusGeometry( 5, 5, 700, 300 );
-		bvh = new MeshBVH( geometry );
-		serialized = MeshBVH.serialize( bvh );
+// 		geometry = new TorusGeometry( 5, 5, 700, 300 );
+// 		bvh = new MeshBVH( geometry );
+// 		serialized = MeshBVH.serialize( bvh );
 
-	} );
+// 	} );
 
-	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
-	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
+// 	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
+// 	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
 
-} );
+// } );
 
-runSuiteWithOptions( '', { indirect: false } );
+// runSuiteWithOptions( '', { indirect: false } );
 
-runSuiteWithOptions( 'Indirect', { indirect: true } );
+// runSuiteWithOptions( 'Indirect', { indirect: true } );
 
-suite( 'Math Functions', () => {
+runTriangleTriangleSuiteWithSetupFunc( 'Random', ( tri1, tri2, rng ) => {
 
-	let tri1,
-		tri2,
-		target;
-	beforeAll( () => {
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.set( rng.double(), rng.double(), rng.double() );
+	tri1.update();
+	tri1.needsUpdate = false;
 
-		tri1 = new ExtendedTriangle();
-		tri2 = new ExtendedTriangle();
-		target = new Line3();
-
-		tri1.a.set( - 1, 0, 0 );
-		tri1.b.set( 2, 0, - 2 );
-		tri1.c.set( 2, 0, 2 );
-
-		tri2.a.set( 1, 0, 0 );
-		tri2.b.set( - 2, - 2, 0 );
-		tri2.c.set( - 2, 2, 0 );
-
-		tri1.update();
-		tri2.update();
-
-	} );
-
-	bench( 'IntersectTri w/o Target', 	() => tri1.intersectsTriangle( tri2 ) );
-
-	bench( 'IntersectTri w/ Target', () => tri1.intersectsTriangle( tri2, target ) );
-
-	bench( 'IntersectTri w/ Update', () => {
-
-		tri2.needsUpdate = true;
-		tri1.intersectsTriangle( tri2, target );
-
-	} );
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.set( rng.double(), rng.double(), rng.double() );
+	tri2.c.set( rng.double(), rng.double(), rng.double() );
+	tri2.update();
+	tri2.needsUpdate = false;
 
 } );
 
-suite( 'Tower Case Geometry', () => {
+runTriangleTriangleSuiteWithSetupFunc( 'Random Coplanar', ( tri1, tri2, rng ) => {
 
-	let raycaster,
-		mesh,
-		centerBVH,
-		sahBVH,
-		averageBVH;
+	let plane = new Plane(new Vector3(rng.double(), rng.double(), rng.double()), rng.double());
 
-	beforeAll( () => {
+	let tmp = new Vector3();
+	let pointOnPlane = (outPoint) => {
+		tmp.x = rng.double();
+		tmp.y = rng.double();
+		tmp.z = rng.double();
 
-		const geometry = new PlaneGeometry( 10, 10, 400, 400 );
-		const posAttr = geometry.getAttribute( 'position' );
-		for ( let x = 0; x <= 100; x ++ ) {
+		plane.projectPoint(tmp, outPoint);
+	};
 
-			for ( let y = 0; y <= 100; y ++ ) {
+	pointOnPlane( tri1.a );
+	pointOnPlane( tri1.b );
+	pointOnPlane( tri1.c );
+	tri1.update();
+	tri1.needsUpdate = false;
 
-				const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
-				const i = x * 100 + y;
-				const z = inCenter ? 50 : - 50;
-				posAttr.setZ( i, z + x * 0.01 );
+	pointOnPlane( tri2.a );
+	pointOnPlane( tri2.b );
+	pointOnPlane( tri2.c );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Triangle-Segment', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.set( rng.double(), rng.double(), rng.double() );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.set( rng.double(), rng.double(), rng.double() );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Triangle-Point', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.set( rng.double(), rng.double(), rng.double() );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.copy( tri2.a );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Segment-Segment', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.copy( tri1.b );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.set( rng.double(), rng.double(), rng.double() );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+runTriangleTriangleSuiteWithSetupFunc( 'Random Segment-Point', ( tri1, tri2, rng ) => {
+
+	tri1.a.set( rng.double(), rng.double(), rng.double() );
+	tri1.b.set( rng.double(), rng.double(), rng.double() );
+	tri1.c.copy( tri1.b );
+	tri1.update();
+	tri1.needsUpdate = false;
+
+	tri2.a.set( rng.double(), rng.double(), rng.double() );
+	tri2.b.copy( tri2.a );
+	tri2.c.copy( tri2.b );
+	tri2.update();
+	tri2.needsUpdate = false;
+
+} );
+
+function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
+
+	suite( `Triangle.intersectsTriangle [${postfix}]`, () => {
+
+		let tri1,
+			tri2,
+			target,
+			rng;
+
+		let intersectionCount = 0;
+		let iterationCount = 0;
+		const intersectWithTarget = () => {
+
+			let i = 200;
+			while ( i -- > 0 ) {
+
+				tri1.intersectsTriangle( tri2, target );
 
 			}
 
-		}
+			if (tri1.intersectsTriangle( tri2 )) {
+				intersectionCount++;
+			}
 
-		raycaster = new Raycaster();
-		raycaster.ray.origin.set( 100, 100, 100 );
-		raycaster.ray.direction.set( - 1, - 1, - 1 );
+			iterationCount++;
 
-		mesh = new Mesh( geometry );
+		};
 
-		centerBVH = new MeshBVH( geometry, { strategy: CENTER } );
-		averageBVH = new MeshBVH( geometry, { strategy: AVERAGE } );
-		sahBVH = new MeshBVH( geometry, { strategy: SAH } );
+		const intersectWithoutTarget = () => {
+
+			let i = 200;
+			while ( i -- > 0 ) {
+
+				tri1.intersectsTriangle( tri2 );
+
+			}
+
+			if (tri1.intersectsTriangle( tri2 )) {
+				intersectionCount++;
+			}
+
+			iterationCount++;
+
+		};
+
+		beforeAll( () => {
+
+			tri1 = new ExtendedTriangle();
+			tri2 = new ExtendedTriangle();
+
+		} );
+
+		beforeEach( () => {
+
+			rng = seedrandom.alea( 'Triangle seed' );
+			for ( let i = 0; i < 10000; i ++ ) {
+
+				setupFunc( tri1, tri2, rng );
+				intersectWithoutTarget();
+				intersectWithTarget();
+
+			}
+
+			intersectionCount = 0;
+			iterationCount = 0;
+
+		} );
+
+		afterEach( () => {
+			console.log(`intersection count: ${intersectionCount}/${iterationCount}`)	
+		} );
+
+		bench( 'w/o Target', () => {
+
+			setupFunc( tri1, tri2, rng );
+
+		}, intersectWithoutTarget );
+
+		bench( 'w/ Target', () => {
+
+			setupFunc( tri1, tri2, rng );
+
+		}, intersectWithTarget );
+
+		bench( 'w/ Update', () => {
+
+			setupFunc( tri1, tri2, rng );
+
+			tri1.needsUpdate = true;
+			tri2.needsUpdate = true;
+
+		}, intersectWithTarget );
 
 	} );
 
-	bench( 'CENTER raycast',
-		() => mesh.geometry.boundsTree = centerBVH,
-		() => mesh.raycast( raycaster, [] ),
-	);
+}
 
-	bench( 'AVERAGE raycast',
-		() => mesh.geometry.boundsTree = averageBVH,
-		() => mesh.raycast( raycaster, [] )
-	);
+// suite( 'Tower Case Geometry', () => {
 
-	bench( 'SAH raycast',
-		() => mesh.geometry.boundsTree = sahBVH,
-		() => mesh.raycast( raycaster, [] )
-	);
+// 	let raycaster,
+// 		mesh,
+// 		centerBVH,
+// 		sahBVH,
+// 		averageBVH;
 
-} );
+// 	beforeAll( () => {
+
+// 		const geometry = new PlaneGeometry( 10, 10, 400, 400 );
+// 		const posAttr = geometry.getAttribute( 'position' );
+// 		for ( let x = 0; x <= 100; x ++ ) {
+
+// 			for ( let y = 0; y <= 100; y ++ ) {
+
+// 				const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
+// 				const i = x * 100 + y;
+// 				const z = inCenter ? 50 : - 50;
+// 				posAttr.setZ( i, z + x * 0.01 );
+
+// 			}
+
+// 		}
+
+// 		raycaster = new Raycaster();
+// 		raycaster.ray.origin.set( 100, 100, 100 );
+// 		raycaster.ray.direction.set( - 1, - 1, - 1 );
+
+// 		mesh = new Mesh( geometry );
+
+// 		centerBVH = new MeshBVH( geometry, { strategy: CENTER } );
+// 		averageBVH = new MeshBVH( geometry, { strategy: AVERAGE } );
+// 		sahBVH = new MeshBVH( geometry, { strategy: SAH } );
+
+// 	} );
+
+// 	bench( 'CENTER raycast',
+// 		() => mesh.geometry.boundsTree = centerBVH,
+// 		() => mesh.raycast( raycaster, [] ),
+// 	);
+
+// 	bench( 'AVERAGE raycast',
+// 		() => mesh.geometry.boundsTree = averageBVH,
+// 		() => mesh.raycast( raycaster, [] )
+// 	);
+
+// 	bench( 'SAH raycast',
+// 		() => mesh.geometry.boundsTree = sahBVH,
+// 		() => mesh.raycast( raycaster, [] )
+// 	);
+
+// } );
 
 function logExtremes( bvh ) {
 
@@ -202,9 +372,9 @@ function runSuiteWithOptions( name, options ) {
 
 		beforeAll( () => {
 
-			OG_GEOMETRY = new TorusGeometry( 5, 5, 700, 300 );
+			OG_GEOMETRY = new TorusGeometry( 5, 4, 700, 300 );
 			OG_GROUP_GEOMETRY = generateGroupGeometry( 200 );
-			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 5, 30, 10 );
+			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 4, 30, 10 );
 
 			raycaster = new Raycaster();
 			raycaster.ray.origin.set( 10, 20, 30 );
