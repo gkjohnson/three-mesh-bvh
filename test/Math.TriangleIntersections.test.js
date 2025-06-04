@@ -159,6 +159,50 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+	it( 'triangles should return a correct intersection (issue #655)', () => {
+
+		t1.a.set( 32.22699737548828, 1.2630000114440918, - 11.8149995803833 );
+		t1.b.set( 31.316997528076172, 1.2630000114440918, - 11.739999771118164 );
+		t1.c.set( 32.22699737548828, 1.2630000114440918, - 11.739999771118164 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 31.316997528076172, 1.933000087738037, - 7.585000038146973 );
+		t2.b.set( 31.316997528076172, - 0.8669999837875366, - 7.295000076293945 );
+		t2.c.set( 31.316997528076172, - 0.8669999837875366, - 7.585000038146973 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+		t2.a.set( 32.22699737548828, 1.2630000114440918, - 11.8149995803833 );
+		t2.b.set( 31.316997528076172, 1.2630000114440918, - 11.739999771118164 );
+		t2.c.set( 32.22699737548828, 1.2630000114440918, - 11.739999771118164 );
+		t2.needsUpdate = true;
+
+		t1.a.set( 31.316997528076172, 1.933000087738037, - 7.585000038146973 );
+		t1.b.set( 31.316997528076172, - 0.8669999837875366, - 7.295000076293945 );
+		t1.c.set( 31.316997528076172, - 0.8669999837875366, - 7.585000038146973 );
+		t1.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
+	it( 'coplanar triangles should be separated by an axis orthogonal to edge', () => {
+
+		t1.a.set( 1, 4, 0 );
+		t1.b.set( 3, 2, 0 );
+		t1.c.set( 4, 4, 0 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 4, 3, 0 );
+		t2.b.set( 5, 1, 0 );
+		t2.c.set( 6, 3, 0 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
 } );
 
 describe( 'Triangle Intersection line', () => {
@@ -294,9 +338,7 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
-	// this test fails due to floating point precision issues. If the triangles are scaled up
-	// it reports an intersection as expected.
-	it.skip( 'triangles almost coplanar should intersect on point', () => {
+	it( 'triangles almost coplanar should intersect on point', () => {
 
 		t1.a.set( 0.0720, 0.2096, 0.3220 );
 		t1.b.set( 0.0751, 0.2148, 0.3234 );
