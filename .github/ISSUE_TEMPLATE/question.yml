@@ -1,0 +1,34 @@
+name: Question
+description: Ask a question about how to use the library.
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Please include sufficient detail on what's confusing, not working, or unexpected behavior including code with what you tried.
+    validations:
+      required: true
+  - type: textarea
+    id: supplemental
+    attributes:
+      label: Supplemental Data
+      description: Provide screenshots or live example if the question pertains to a specific set up.
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Library Version
+      description: Which version of the library are you using?
+      placeholder: v
+    validations:
+      required: true
+  - type: input
+    id: three_version
+    attributes:
+      label: Three.js Version
+      description: Which version of three.js are you using?
+      placeholder: r
+    validations:
+      required: true
