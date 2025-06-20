@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Clipped Edges</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: #eee;
+		}
+
+		#output {
+			padding: 5px;
+			bottom: 0;
+			left: 0;
+			opacity: 0.5;
+			position: absolute;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+		}
+    </style>
+  <script type="module" crossorigin src="./assets/clippedEdges-NUYE-ATI.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-CFC-kWKu.js">
+  <link rel="modulepreload" crossorigin href="./assets/BufferGeometryUtils-e7tZihaS.js">
+  <link rel="modulepreload" crossorigin href="./assets/GLTFLoader-C_LgBif7.js">
+  <link rel="modulepreload" crossorigin href="./assets/meshopt_decoder.module-Cf1-17OU.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-DPxOa-V_.js">
+  <link rel="modulepreload" crossorigin href="./assets/_commonjsHelpers-Cpj98o6Y.js">
+  <link rel="modulepreload" crossorigin href="./assets/stats.min-GTpOrGrX.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-jESndyO-.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-CE-cOGaL.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVHHelper-PaFFnbA9.js">
+</head>
+<body>
+	<div id="info">
+
+		Using MeshBVH to quickly detect plane-clipped triangle edges on static,
+		<br/>
+		merged 2 million polygon model. Stencil buffer used for solid clip cap.
+		<br/>
+
+		Model by <a href="https://sketchfab.com/3d-models/internal-combustion-engine-0be463c1041743d88f0c35b1c2f50f2f">T-FLEX CAD on Sketchfab</a>.
+	</div>
+	<div id="output"></div>
+</body>
+</html>

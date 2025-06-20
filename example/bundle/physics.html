@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Rudimentary Sphere Physics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: #eee;
+		}
+    </style>
+  <script type="module" crossorigin src="./assets/physics-C-Dtite6.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-CFC-kWKu.js">
+  <link rel="modulepreload" crossorigin href="./assets/BufferGeometryUtils-e7tZihaS.js">
+  <link rel="modulepreload" crossorigin href="./assets/GLTFLoader-C_LgBif7.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-DPxOa-V_.js">
+  <link rel="modulepreload" crossorigin href="./assets/_commonjsHelpers-Cpj98o6Y.js">
+  <link rel="modulepreload" crossorigin href="./assets/stats.min-GTpOrGrX.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-jESndyO-.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-CE-cOGaL.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVHHelper-PaFFnbA9.js">
+  <link rel="modulepreload" crossorigin href="./assets/StaticGeometryGenerator-C_A6oj1a.js">
+</head>
+<body>
+	<div id="info">
+		Rudimentary sphere collision physics with an environment using MeshBVH.
+
+		<br/>
+		<br/>
+
+		Model by <a href="https://sketchfab.com/3d-models/low-poly-environment-jungle-scene-b07cbb11f78b43a3a51405e6c77a629e">Lowpolyprincipal on Sketchfab</a>.
+	</div>
+</body>
+</html>

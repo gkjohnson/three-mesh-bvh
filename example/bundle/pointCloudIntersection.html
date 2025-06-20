@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Geometry point clouds</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: #eee;
+		}
+
+		#output {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			padding: 5px;
+			color: white;
+			opacity: 0.5;
+			font-family: monospace;
+		}
+    </style>
+  <script type="module" crossorigin src="./assets/pointCloudIntersection-B4i3DrfH.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-CFC-kWKu.js">
+  <link rel="modulepreload" crossorigin href="./assets/Stats-9dH8FB2H.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-DPxOa-V_.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-jESndyO-.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-CE-cOGaL.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVHHelper-PaFFnbA9.js">
+  <link rel="modulepreload" crossorigin href="./assets/ExtensionUtilities-DtfWnSqQ.js">
+</head>
+<body>
+    <div id="info">
+		Point cloud intersection by modeling points as degenerate triangles with MeshBVH.
+
+		<br/>
+		<br/>
+
+		Model by <a href="https://sketchfab.com/3d-models/1982-porsche-911-sitescape-3d-scan-7e315942b6db428194314285183b5896">SiteScape on Sketchfab</a>.
+	</div>
+	<div id="output"></div>
+</body>
+</html>
