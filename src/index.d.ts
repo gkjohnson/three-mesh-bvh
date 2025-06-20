@@ -26,6 +26,7 @@ export interface MeshBVHOptions {
   maxLeafTris?: number;
   setBoundingBox?: boolean;
   useSharedArrayBuffer?: boolean;
+  indirect?: boolean;
   verbose?: boolean;
   onProgress?: ( progress: number ) => void;
   range?: { start: number; count: number };
