@@ -110,7 +110,7 @@ export class RayMarchSDFMaterial extends ShaderMaterial {
 							}
 
 							// get the distance to surface and exit the loop if we're close to the surface
-							float distanceToSurface = texture2D( sdfTex, uv ).r - surface;
+							float distanceToSurface = texture( sdfTex, uv ).r - surface;
 							if ( distanceToSurface < SURFACE_EPSILON ) {
 
 								intersectsSurface = true;
