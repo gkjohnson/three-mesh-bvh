@@ -65,6 +65,9 @@ export class ExtendedTriangle extends Triangle {
 		const axis2Length = axis2.length();
 		const axis3Length = axis3.length();
 
+		this.isDegenerateIntoPoint = false;
+		this.isDegenerateIntoSegment = false;
+
 		if ( axis1Length < ZERO_EPSILON ) {
 
 			if ( axis2Length < ZERO_EPSILON ) {

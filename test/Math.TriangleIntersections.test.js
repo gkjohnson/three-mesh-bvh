@@ -208,10 +208,12 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( 1, 4, 0 );
 		t1.b.set( 3, 2, 0 );
 		t1.c.set( 4, 4, 0 );
+		t1.needsUpdate = true;
 
 		t2.a.set( 1, 5, 0 );
 		t2.b.set( 1, 5 + 1e-16, 0 );
 		t2.c.set( 5, 5, 0 );
+		t2.needsUpdate = true;
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
@@ -222,10 +224,12 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( 1, 4, 0 );
 		t1.b.set( 3, 2, 0 );
 		t1.c.set( 4, 4, 0 );
+		t1.needsUpdate = true;
 
 		t2.a.set( 3, 5, 0 );
 		t2.b.set( 3, 5 + 1e-16, 0 );
 		t2.c.set( 3, 3, 0 );
+		t2.needsUpdate = true;
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
 
@@ -236,29 +240,49 @@ describe( 'Triangle Intersections', () => {
 		t1.a.set( 1, 4, 0 );
 		t1.b.set( 3, 2, 0 );
 		t1.c.set( 5, 4, 0 );
+		t1.needsUpdate = true;
 
 		t2.a.set( 0, 1, 0 );
 		t2.b.set( 20, 6, 0 );
 		t2.c.set( 20, 6, 0 );
+		t2.needsUpdate = true;
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
 	} );
 
-	it( 'Segment-point intersection', () => {
+	it( 'Segment-point intersection false', () => {
 
 		t1.a.set( 0.157, 0.062, 0.211 );
 		t1.b.set( 0.277, 0.386, 0.535 );
 		t1.c.set( 0.277, 0.386, 0.535 );
+		t1.needsUpdate = true;
 
 		t2.a.set( 0.463, 0.382, 0.150 );
 		t2.b.set( 0.463, 0.382, 0.150 );
 		t2.c.set( 0.463, 0.382, 0.150 );
+		t2.needsUpdate = true;
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 
 	} );
 
+	it( 'Segment-point intersection true', () => {
+
+		t1.a.set( 0.157, 0.062, 0.211 );
+		t1.b.set( 0.277, 0.386, 0.535 );
+		t1.c.set( 0.277, 0.386, 0.535 );
+		t1.needsUpdate = true;
+
+		// Midpoint
+		t2.a.set( 0.217, 0.224, 0.373 );
+		t2.b.set( 0.217, 0.224, 0.373 );
+		t2.c.set( 0.217, 0.224, 0.373 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	} );
 
 } );
 
