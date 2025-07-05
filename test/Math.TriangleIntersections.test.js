@@ -203,6 +203,63 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+	it( 'Triangle-segment intersection parallel to edge', () => {
+
+		t1.a.set( 1, 4, 0 );
+		t1.b.set( 3, 2, 0 );
+		t1.c.set( 4, 4, 0 );
+
+		t2.a.set( 1, 5, 0 );
+		t2.b.set( 1, 5 + 1e-16, 0 );
+		t2.c.set( 5, 5, 0 );
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
+	it( 'Triangle-segment intersection intersecting edge', () => {
+
+		t1.a.set( 1, 4, 0 );
+		t1.b.set( 3, 2, 0 );
+		t1.c.set( 4, 4, 0 );
+
+		t2.a.set( 3, 5, 0 );
+		t2.b.set( 3, 5 + 1e-16, 0 );
+		t2.c.set( 3, 3, 0 );
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	} );
+
+	it( 'Triangle-segment intersection; segment separating axis', () => {
+
+		t1.a.set( 1, 4, 0 );
+		t1.b.set( 3, 2, 0 );
+		t1.c.set( 5, 4, 0 );
+
+		t2.a.set( 0, 1, 0 );
+		t2.b.set( 20, 6, 0 );
+		t2.c.set( 20, 6, 0 );
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
+	it( 'Segment-point intersection', () => {
+
+		t1.a.set( 0.157, 0.062, 0.211 );
+		t1.b.set( 0.277, 0.386, 0.535 );
+		t1.c.set( 0.277, 0.386, 0.535 );
+
+		t2.a.set( 0.463, 0.382, 0.150 );
+		t2.b.set( 0.463, 0.382, 0.150 );
+		t2.c.set( 0.463, 0.382, 0.150 );
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
+
 } );
 
 describe( 'Triangle Intersection line', () => {

@@ -3,6 +3,7 @@ import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
 const ZERO_EPSILON = 1e-15;
+const ZERO_EPSILON_SQR = ZERO_EPSILON * ZERO_EPSILON;
 function isNearZero( value ) {
 
 	return Math.abs( value ) < ZERO_EPSILON;
@@ -20,6 +21,9 @@ export class ExtendedTriangle extends Triangle {
 		this.satBounds = new Array( 4 ).fill().map( () => new SeparatingAxisBounds() );
 		this.points = [ this.a, this.b, this.c ];
 		this.plane = new Plane();
+		this.isDegenerateIntoSegment = false;
+		this.isDegenerateIntoPoint = false;
+		this.degenerateSegment = new Line3();
 		this.needsUpdate = true;
 
 	}
@@ -43,24 +47,71 @@ export class ExtendedTriangle extends Triangle {
 		const axis0 = satAxes[ 0 ];
 		const sab0 = satBounds[ 0 ];
 		this.getNormal( axis0 );
-		sab0.setFromPoints( axis0, points );
 
 		const axis1 = satAxes[ 1 ];
 		const sab1 = satBounds[ 1 ];
 		axis1.subVectors( a, b );
-		sab1.setFromPoints( axis1, points );
 
 		const axis2 = satAxes[ 2 ];
 		const sab2 = satBounds[ 2 ];
 		axis2.subVectors( b, c );
-		sab2.setFromPoints( axis2, points );
 
 		const axis3 = satAxes[ 3 ];
 		const sab3 = satBounds[ 3 ];
 		axis3.subVectors( c, a );
+
+		// TODO: Is that really necessary? I need to check failing case again.
+		const axis1Length = axis1.length();
+		const axis2Length = axis2.length();
+		const axis3Length = axis3.length();
+
+		if ( axis1Length < ZERO_EPSILON ) {
+
+			if ( axis2Length < ZERO_EPSILON ) {
+
+				this.isDegenerateIntoPoint = true;
+
+			} else if ( axis3Length < ZERO_EPSILON ) {
+
+				this.isDegenerateIntoPoint = true;
+
+			} else {
+
+				this.isDegenerateIntoSegment = true;
+				this.degenerateSegment.start.copy( a );
+				this.degenerateSegment.end.copy( c );
+
+			}
+
+		} else if ( axis2Length < ZERO_EPSILON ) {
+
+			if ( axis3Length < ZERO_EPSILON ) {
+
+				this.isDegenerateIntoPoint = true;
+
+			} else {
+
+				this.isDegenerateIntoSegment = true;
+				this.degenerateSegment.start.copy( b );
+				this.degenerateSegment.end.copy( a );
+
+			}
+
+		} else if ( axis3Length < ZERO_EPSILON ) {
+
+			this.isDegenerateIntoSegment = true;
+			this.degenerateSegment.start.copy( c );
+			this.degenerateSegment.end.copy( b );
+
+		}
+
+		sab0.setFromPoints( axis0, points );
+		sab1.setFromPoints( axis1, points );
+		sab2.setFromPoints( axis2, points );
 		sab3.setFromPoints( axis3, points );
 
 		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
+
 		this.needsUpdate = false;
 
 	}
@@ -135,7 +186,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 	const cachedSatBounds = new SeparatingAxisBounds();
 	const cachedSatBounds2 = new SeparatingAxisBounds();
 	const cachedAxis = new Vector3();
-	const dir = new Vector3();
+	const tmpVec = new Vector3();
 	const dir1 = new Vector3();
 	const dir2 = new Vector3();
 	const tempDir = new Vector3();
@@ -149,6 +200,19 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 	function coplanarIntersectsTriangle( self, other, target, suppressLog ) {
 
 		// perform separating axis intersection test only for coplanar triangles
+		// There should be at least one non-degenerate triangle when calling this
+		// Otherwise we won't know the plane normal
+		const planeNormal = tmpVec;
+		if ( ! self.isDegenerateIntoPoint && ! self.isDegenerateIntoSegment ) {
+
+			planeNormal.copy( self.plane.normal );
+
+		} else {
+
+			planeNormal.copy( other.plane.normal );
+
+		}
+
 		const satBounds1 = self.satBounds;
 		const satAxes1 = self.satAxes;
 		for ( let i = 1; i < 4; i ++ ) {
@@ -158,7 +222,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			cachedSatBounds.setFromPoints( sa, other.points );
 			if ( sb.isSeparated( cachedSatBounds ) ) return false;
 
-			tempDir.copy( satAxes1[ 0 ] ).cross( sa );
+			tempDir.copy( planeNormal ).cross( sa );
 			cachedSatBounds.setFromPoints( tempDir, self.points );
 			cachedSatBounds2.setFromPoints( tempDir, other.points );
 			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
@@ -174,7 +238,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			cachedSatBounds.setFromPoints( sa, self.points );
 			if ( sb.isSeparated( cachedSatBounds ) ) return false;
 
-			tempDir.copy( satAxes2[ 0 ] ).cross( sa );
+			tempDir.copy( planeNormal ).cross( sa );
 			cachedSatBounds.setFromPoints( tempDir, self.points );
 			cachedSatBounds2.setFromPoints( tempDir, other.points );
 			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
@@ -244,6 +308,162 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	}
 
+	function intersectTriangleSegment( triangle, degenerateTriangle, target, suppressLog ) {
+
+		const segment = degenerateTriangle.degenerateSegment;
+		const startDist = triangle.plane.distanceToPoint( segment.start );
+		const endDist = triangle.plane.distanceToPoint( segment.end );
+		if ( isNearZero( startDist ) ) {
+
+			if ( isNearZero( endDist ) ) {
+
+				return coplanarIntersectsTriangle( triangle, degenerateTriangle, target, suppressLog );
+
+			} else {
+
+				// Is this fine to modify target even there might be no intersection?
+				target.start.copy( segment.start );
+				target.end.copy( segment.start );
+				return triangle.containsPoint( segment.start );
+
+			}
+
+		} else if ( isNearZero( endDist ) ) {
+
+			target.start.copy( segment.end );
+			target.end.copy( segment.end );
+			return triangle.containsPoint( segment.end );
+
+		} else {
+
+			if ( triangle.plane.intersectLine( segment, tmpVec ) != null ) {
+
+				target.start.copy( tmpVec );
+				target.end.copy( tmpVec );
+				return true;
+
+			} else {
+
+				return false;
+
+			}
+
+		}
+
+	}
+
+
+
+	function handleDegenerateCases( self, other, target, suppressLog ) {
+
+		if ( self.isDegenerateIntoSegment ) {
+
+			if ( other.isDegenerateIntoSegment ) {
+
+				const segment1 = self.degenerateSegment;
+				const segment2 = other.degenerateSegment;
+				segment1.delta( edge1 );
+				segment2.delta( edge2 );
+				const startDelta = tmpVec.subVectors( segment2.start, segment1.start );
+
+				const denom = edge1.x * edge2.y - edge1.y * edge2.x;
+				if ( isNearZero( denom ) ) {
+
+					return false;
+
+				}
+
+				const t = ( startDelta.x * edge2.y - startDelta.y * edge2.x ) / denom;
+				const u = ( edge1.x * startDelta.y - edge1.y * startDelta.x ) / denom;
+
+				if ( t < 0 || t > 1 || u < 0 || u > 1 ) {
+
+					return false;
+
+				}
+
+				const z1 = segment1.start.z + edge1.z * t;
+				const z2 = segment2.start.z + edge2.z * u;
+
+				if ( isNearZero( z1 - z2 ) ) {
+
+					if ( target ) {
+
+						target.start.copy( segment1.start ).addScaledVector( edge1.start, t );
+						target.end.copy( segment1.start ).addScaledVector( edge1.start, t );
+
+					}
+
+					return true;
+
+				} else {
+
+					return false;
+
+				}
+
+			} else if ( other.isDegenerateIntoPoint ) {
+
+				self.degenerateSegment.closestPointToPoint( other.a, true, tmpVec );
+
+				return other.a.distanceToSquared( tmpVec ) < ZERO_EPSILON_SQR;
+
+			} else {
+
+				return intersectTriangleSegment( other, self, target, suppressLog );
+
+			}
+
+		} else if ( self.isDegenerateIntoPoint ) {
+
+			if ( other.isDegenerateIntoPoint ) {
+
+				return other.a.distanceTo( self.a ) < ZERO_EPSILON;
+
+			} else if ( other.isDegenerateIntoSegment ) {
+
+				other.degenerateSegment.closestPointToPoint( self.a, true, tmpVec );
+
+				return self.a.distanceToSquared( tmpVec ) < ZERO_EPSILON_SQR;
+
+			} else {
+
+				if ( isNearZero( other.plane.distanceToPoint( self.a ) ) ) {
+
+					return other.containsPoint( self.a );
+
+				} else {
+
+					return false;
+
+				}
+
+			}
+
+		} else {
+
+			if ( other.isDegenerateIntoPoint ) {
+
+				if ( isNearZero( self.plane.distanceToPoint( other.a ) ) ) {
+
+					return other.containsPoint( other.a );
+
+				} else {
+
+					return false;
+
+				}
+
+			} else if ( other.isDegenerateIntoSegment ) {
+
+				return intersectTriangleSegment( self, other, target, suppressLog );
+
+			} /* else this is a general triangle-traingle case, so return undefined */
+
+		}
+
+	}
+
 	// TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
 	// be a line contained by both triangles if not a different special case somehow represented in the return result.
 	return function intersectsTriangle( other, target = null, suppressLog = false ) {
@@ -263,6 +483,13 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		} else if ( other.needsUpdate ) {
 
 			other.update();
+
+		}
+
+		const res = handleDegenerateCases( this, other, target, suppressLog );
+		if ( res !== undefined ) {
+
+			return res;
 
 		}
 
