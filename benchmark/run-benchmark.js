@@ -41,34 +41,34 @@ BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const LOG_JSON = process.argv.includes( '--json' );
-// if ( ! LOG_JSON ) {
+if ( ! LOG_JSON ) {
 
-// 	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
-// 	console.log( '**Extremes**' );
-// 	logExtremes( bvh );
-// 	console.log();
+	const bvh = new MeshBVH( new TorusGeometry( 5, 5, 700, 300 ) );
+	console.log( '**Extremes**' );
+	logExtremes( bvh );
+	console.log();
 
-// }
+}
 
-// suite( 'BVH General', () => {
+suite( 'BVH General', () => {
 
-// 	let geometry, bvh, serialized;
-// 	beforeAll( () => {
+	let geometry, bvh, serialized;
+	beforeAll( () => {
 
-// 		geometry = new TorusGeometry( 5, 5, 700, 300 );
-// 		bvh = new MeshBVH( geometry );
-// 		serialized = MeshBVH.serialize( bvh );
+		geometry = new TorusGeometry( 5, 5, 700, 300 );
+		bvh = new MeshBVH( geometry );
+		serialized = MeshBVH.serialize( bvh );
 
-// 	} );
+	} );
 
-// 	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
-// 	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
+	bench( 'Serialize', 		() => MeshBVH.serialize( bvh ) );
+	bench( 'Desrialize', 		() => MeshBVH.deserialize( serialized, geometry ) );
 
-// } );
+} );
 
-// runSuiteWithOptions( '', { indirect: false } );
+runSuiteWithOptions( '', { indirect: false } );
 
-// runSuiteWithOptions( 'Indirect', { indirect: true } );
+runSuiteWithOptions( 'Indirect', { indirect: true } );
 
 runTriangleTriangleSuiteWithSetupFunc( 'Random', ( tri1, tri2, rng ) => {
 

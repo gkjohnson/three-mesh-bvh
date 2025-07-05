@@ -1,4 +1,4 @@
-import { Triangle, Vector3, Vector2, Line3, Sphere, Plane } from 'three';
+import { Triangle, Vector3, Vector2, Line3, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
@@ -184,16 +184,12 @@ ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	const saTri2 = new ExtendedTriangle();
-	const arr1 = new Array( 3 );
-	const arr2 = new Array( 3 );
 	const cachedSatBounds = new SeparatingAxisBounds();
 	const cachedSatBounds2 = new SeparatingAxisBounds();
-	const cachedAxis = new Vector3();
 	const tmpVec = new Vector3();
 	const dir1 = new Vector3();
 	const dir2 = new Vector3();
 	const tempDir = new Vector3();
-	const edge = new Line3();
 	const edge1 = new Line3();
 	const edge2 = new Line3();
 	const tempPoint = new Vector3();
