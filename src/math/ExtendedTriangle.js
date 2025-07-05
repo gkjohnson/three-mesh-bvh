@@ -380,19 +380,21 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 				const segment1 = self.degenerateSegment;
 				const segment2 = other.degenerateSegment;
-				segment1.delta( edge1 );
-				segment2.delta( edge2 );
+				const delta1 = dir1;
+				const delta2 = dir2;
+				segment1.delta( delta1 );
+				segment2.delta( delta2 );
 				const startDelta = tmpVec.subVectors( segment2.start, segment1.start );
 
-				const denom = edge1.x * edge2.y - edge1.y * edge2.x;
+				const denom = delta1.x * delta2.y - delta1.y * delta2.x;
 				if ( isNearZero( denom ) ) {
 
 					return false;
 
 				}
 
-				const t = ( startDelta.x * edge2.y - startDelta.y * edge2.x ) / denom;
-				const u = ( edge1.x * startDelta.y - edge1.y * startDelta.x ) / denom;
+				const t = ( startDelta.x * delta2.y - startDelta.y * delta2.x ) / denom;
+				const u = ( delta1.x * startDelta.y - delta1.y * startDelta.x ) / denom;
 
 				if ( t < 0 || t > 1 || u < 0 || u > 1 ) {
 
@@ -400,15 +402,15 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 				}
 
-				const z1 = segment1.start.z + edge1.z * t;
-				const z2 = segment2.start.z + edge2.z * u;
+				const z1 = segment1.start.z + delta1.z * t;
+				const z2 = segment2.start.z + delta2.z * u;
 
 				if ( isNearZero( z1 - z2 ) ) {
 
 					if ( target ) {
 
-						target.start.copy( segment1.start ).addScaledVector( edge1.start, t );
-						target.end.copy( segment1.start ).addScaledVector( edge1.start, t );
+						target.start.copy( segment1.start ).addScaledVector( delta1, t );
+						target.end.copy( segment1.start ).addScaledVector( delta1, t );
 
 					}
 
@@ -576,7 +578,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		// One big switch should be better?
+		// How to do this more concisely?
 		let a1Proj, b1Proj, c1Proj;
 		let a2Proj, b2Proj, c2Proj;
 		switch ( componentIndex ) {

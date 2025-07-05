@@ -88,15 +88,17 @@ runTriangleTriangleSuiteWithSetupFunc( 'Random', ( tri1, tri2, rng ) => {
 
 runTriangleTriangleSuiteWithSetupFunc( 'Random Coplanar', ( tri1, tri2, rng ) => {
 
-	let plane = new Plane(new Vector3(rng.double(), rng.double(), rng.double()), rng.double());
+	let plane = new Plane( new Vector3( rng.double(), rng.double(), rng.double() ), rng.double() );
 
 	let tmp = new Vector3();
-	let pointOnPlane = (outPoint) => {
+	let pointOnPlane = ( outPoint ) => {
+
 		tmp.x = rng.double();
 		tmp.y = rng.double();
 		tmp.z = rng.double();
 
-		plane.projectPoint(tmp, outPoint);
+		plane.projectPoint( tmp, outPoint );
+
 	};
 
 	pointOnPlane( tri1.a );
@@ -197,11 +199,13 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 			}
 
-			if (tri1.intersectsTriangle( tri2 )) {
-				intersectionCount++;
+			if ( tri1.intersectsTriangle( tri2 ) ) {
+
+				intersectionCount ++;
+
 			}
 
-			iterationCount++;
+			iterationCount ++;
 
 		};
 
@@ -214,11 +218,13 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 			}
 
-			if (tri1.intersectsTriangle( tri2 )) {
-				intersectionCount++;
+			if ( tri1.intersectsTriangle( tri2 ) ) {
+
+				intersectionCount ++;
+
 			}
 
-			iterationCount++;
+			iterationCount ++;
 
 		};
 
@@ -246,7 +252,9 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 		} );
 
 		afterEach( () => {
-			console.log(`intersection count: ${intersectionCount}/${iterationCount}`)	
+
+			console.log( `intersection count: ${intersectionCount}/${iterationCount}` );
+
 		} );
 
 		bench( 'w/o Target', () => {
