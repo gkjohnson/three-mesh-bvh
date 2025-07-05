@@ -56,7 +56,7 @@ export class MeshBVH {
 
   raycast( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Array<Intersection>
 
-  raycastFirst( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Intersection;
+  raycastFirst( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Intersection | null;
 
   intersectsSphere( sphere: Sphere ): boolean;
 
