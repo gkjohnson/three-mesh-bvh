@@ -300,6 +300,40 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+	it( 'Segment-segment intersection false', () => {
+
+		t1.a.set( 0.157, 0.062, 0.211 );
+		t1.b.set( 0.277, 0.386, 0.535 );
+		t1.c.set( 0.277, 0.386, 0.535 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 0.147, 0.062, 0.211 );
+		t2.b.set( 0.077, 0.860, 0.135 );
+		t2.c.set( 0.077, 0.860, 0.135 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+
+	} );
+
+	it( 'Segment-segment intersection true', () => {
+
+		t1.a.set( 0.157, 0.062, 0.211 );
+		t1.b.set( 0.277, 0.386, 0.535 );
+		t1.c.set( 0.277, 0.386, 0.535 );
+		t1.needsUpdate = true;
+
+		// Intersect at midpoint ( 0.217, 0.224, 0.373 );
+
+		t2.a.set( 0.217, 0.324, 0.373 );
+		t2.b.set( 0.217, 0.124, 0.373 );
+		t2.c.set( 0.217, 0.124, 0.373 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	} );
+
 } );
 
 describe( 'Triangle Intersection line', () => {

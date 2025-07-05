@@ -394,7 +394,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 				}
 
 				const t = ( startDelta.x * delta2.y - startDelta.y * delta2.x ) / denom;
-				const u = ( delta1.x * startDelta.y - delta1.y * startDelta.x ) / denom;
+				const u = - ( delta1.x * startDelta.y - delta1.y * startDelta.x ) / denom;
 
 				if ( t < 0 || t > 1 || u < 0 || u > 1 ) {
 
