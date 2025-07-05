@@ -324,25 +324,40 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			} else {
 
-				// Is this fine to modify target even there might be no intersection?
-				target.start.copy( segment.start );
-				target.end.copy( segment.start );
+				// Is this fine to modify target even if there might be no intersection?
+				if ( target ) {
+
+					target.start.copy( segment.start );
+					target.end.copy( segment.start );
+
+				}
+
 				return triangle.containsPoint( segment.start );
 
 			}
 
 		} else if ( isNearZero( endDist ) ) {
 
-			target.start.copy( segment.end );
-			target.end.copy( segment.end );
+			if ( target ) {
+
+				target.start.copy( segment.end );
+				target.end.copy( segment.end );
+
+			}
+
 			return triangle.containsPoint( segment.end );
 
 		} else {
 
 			if ( triangle.plane.intersectLine( segment, tmpVec ) != null ) {
 
-				target.start.copy( tmpVec );
-				target.end.copy( tmpVec );
+				if ( target ) {
+
+					target.start.copy( tmpVec );
+					target.end.copy( tmpVec );
+
+				}
+
 				return true;
 
 			} else {

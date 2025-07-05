@@ -251,6 +251,22 @@ describe( 'Triangle Intersections', () => {
 
 	} );
 
+	it( 'Triangle-segment intersection; Non-coplanar', () => {
+
+		t1.a.set( 1, 4, 0 );
+		t1.b.set( 3, 2, 0 );
+		t1.c.set( 5, 4, 0 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 3, 3, 2 );
+		t2.b.set( 3, 3, 2 );
+		t2.c.set( 3, 3, - 2 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( true );
+
+	} );
+
 	it( 'Segment-point intersection false', () => {
 
 		t1.a.set( 0.157, 0.062, 0.211 );
