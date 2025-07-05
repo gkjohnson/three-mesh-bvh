@@ -370,7 +370,54 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	}
 
+	function intersectTrianglePoint( triangle, degenerateTriangle, target ) {
 
+		const point = degenerateTriangle.a;
+
+		if ( isNearZero( triangle.plane.distanceToPoint( point ) ) && triangle.containsPoint( point ) ) {
+
+			if ( target ) {
+
+				target.start.copy( point );
+				target.end.copy( point );
+
+			}
+
+			return true;
+
+		} else {
+
+			return false;
+
+		}
+
+	}
+
+	function intersectSegmentPoint( segmentTri, pointTri, target ) {
+
+		const segment = segmentTri.degenerateSegment;
+		const point = pointTri.a;
+
+		segment.closestPointToPoint( point, true, tmpVec );
+
+		if ( point.distanceToSquared( tmpVec ) < ZERO_EPSILON_SQR ) {
+
+			if ( target ) {
+
+				target.start.copy( point );
+				target.end.copy( point );
+
+			}
+
+			return true;
+
+		} else {
+
+			return false;
+
+		}
+
+	}
 
 	function handleDegenerateCases( self, other, target, suppressLog ) {
 
@@ -424,9 +471,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			} else if ( other.isDegenerateIntoPoint ) {
 
-				self.degenerateSegment.closestPointToPoint( other.a, true, tmpVec );
-
-				return other.a.distanceToSquared( tmpVec ) < ZERO_EPSILON_SQR;
+				return intersectSegmentPoint( self, other, target );
 
 			} else {
 
@@ -438,25 +483,30 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			if ( other.isDegenerateIntoPoint ) {
 
-				return other.a.distanceTo( self.a ) < ZERO_EPSILON;
+				if ( other.a.distanceToSquared( self.a ) < ZERO_EPSILON_SQR ) {
 
-			} else if ( other.isDegenerateIntoSegment ) {
+					if ( target ) {
 
-				other.degenerateSegment.closestPointToPoint( self.a, true, tmpVec );
+						target.start.copy( self.a );
+						target.end.copy( self.a );
 
-				return self.a.distanceToSquared( tmpVec ) < ZERO_EPSILON_SQR;
+					}
 
-			} else {
-
-				if ( isNearZero( other.plane.distanceToPoint( self.a ) ) ) {
-
-					return other.containsPoint( self.a );
+					return true;
 
 				} else {
 
 					return false;
 
 				}
+
+			} else if ( other.isDegenerateIntoSegment ) {
+
+				return intersectSegmentPoint( other, self, target );
+
+			} else {
+
+				return intersectTrianglePoint( other, self, target );
 
 			}
 
@@ -464,15 +514,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			if ( other.isDegenerateIntoPoint ) {
 
-				if ( isNearZero( self.plane.distanceToPoint( other.a ) ) ) {
-
-					return other.containsPoint( other.a );
-
-				} else {
-
-					return false;
-
-				}
+				return intersectTrianglePoint( self, other, target );
 
 			} else if ( other.isDegenerateIntoSegment ) {
 
