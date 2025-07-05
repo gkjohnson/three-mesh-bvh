@@ -188,43 +188,26 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 			target,
 			rng;
 
-		let intersectionCount = 0;
-		let iterationCount = 0;
+		const iterationCount = 2000;
+		const warmupIterationCount = 10000;
+
 		const intersectWithTarget = () => {
 
-			let i = 200;
-			while ( i -- > 0 ) {
+			for ( let i = 0; i < iterationCount; i ++ ) {
 
 				tri1.intersectsTriangle( tri2, target );
 
 			}
 
-			if ( tri1.intersectsTriangle( tri2 ) ) {
-
-				intersectionCount ++;
-
-			}
-
-			iterationCount ++;
-
 		};
 
 		const intersectWithoutTarget = () => {
 
-			let i = 200;
-			while ( i -- > 0 ) {
+			for ( let i = 0; i < iterationCount; i ++ ) {
 
 				tri1.intersectsTriangle( tri2 );
 
 			}
-
-			if ( tri1.intersectsTriangle( tri2 ) ) {
-
-				intersectionCount ++;
-
-			}
-
-			iterationCount ++;
 
 		};
 
@@ -238,22 +221,13 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 		beforeEach( () => {
 
 			rng = seedrandom.alea( 'Triangle seed' );
-			for ( let i = 0; i < 10000; i ++ ) {
+			for ( let i = 0; i < warmupIterationCount; i ++ ) {
 
 				setupFunc( tri1, tri2, rng );
 				intersectWithoutTarget();
 				intersectWithTarget();
 
 			}
-
-			intersectionCount = 0;
-			iterationCount = 0;
-
-		} );
-
-		afterEach( () => {
-
-			console.log( `intersection count: ${intersectionCount}/${iterationCount}` );
 
 		} );
 
