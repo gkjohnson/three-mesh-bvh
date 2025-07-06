@@ -127,23 +127,23 @@ async function init() {
 
 	const vertexShader = wgslFn(`
 
-        fn vertexShader(
-            projectionMatrix: mat4x4<f32>,
-            modelWorldMatrix: mat4x4<f32>,
-            cameraViewMatrix: mat4x4<f32>,
-            position: vec3<f32>,
-            uv: vec2<f32>
-        ) -> vec4<f32> {
+		fn vertexShader(
+			projectionMatrix: mat4x4<f32>,
+			modelWorldMatrix: mat4x4<f32>,
+			cameraViewMatrix: mat4x4<f32>,
+			position: vec3<f32>,
+			uv: vec2<f32>
+		) -> vec4<f32> {
 
-            var outPosition = projectionMatrix * cameraViewMatrix * modelWorldMatrix * vec4<f32>( position, 1.0 );
+			var outPosition = projectionMatrix * cameraViewMatrix * modelWorldMatrix * vec4<f32>( position, 1.0 );
 
-            varyings.vUv = uv;
+			varyings.vUv = uv;
 
-            return outPosition;
+			return outPosition;
 
-        }
+		}
 
-    `, [ vUv ] );
+	`, [ vUv ] );
 
 
 
@@ -175,9 +175,9 @@ async function init() {
 			);
 
 			return select(
-    			vec4<f32>( 0.0366, 0.0813, 0.1057, 1.0 ),
-    			vec4<f32>( normal, 1.0 ),
-    			hitResult.didHit
+				vec4<f32>( 0.0366, 0.0813, 0.1057, 1.0 ),
+				vec4<f32>( normal, 1.0 ),
+				hitResult.didHit
 			);
 
 		}
