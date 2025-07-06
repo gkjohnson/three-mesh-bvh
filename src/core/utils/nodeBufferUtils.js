@@ -1,18 +1,42 @@
-export function IS_LEAF( n16, uint16Array ) {
+export function IS_LEAF( n16, array, useUint32 = false ) {
 
-	return uint16Array[ n16 + 15 ] === 0xFFFF;
+	if ( ! useUint32 ) {
+
+		return array[ n16 + 15 ] === 0xFFFF;
+
+	} else {
+
+		const wordIndex = ( n16 + 15 ) >> 1;
+		const word = array[ wordIndex ];
+		const value = ( ( n16 + 15 ) % 2 === 0 ) ? ( word & 0xFFFF ) : ( word >>> 16 );
+
+		return value === 0xFFFF;
+
+	}
+
+}
+
+export function COUNT( n16, array, useUint32 = false ) {
+
+	if ( ! useUint32 ) {
+
+		return array[ n16 + 14 ];
+
+	} else {
+
+		const wordIndex = ( n16 + 14 ) >> 1;
+		const word = array[ wordIndex ];
+		const value = ( ( n16 + 14 ) % 2 === 0 ) ? ( word & 0xFFFF ) : ( word >>> 16 );
+
+		return value;
+
+	}
 
 }
 
 export function OFFSET( n32, uint32Array ) {
 
 	return uint32Array[ n32 + 6 ];
-
-}
-
-export function COUNT( n16, uint16Array ) {
-
-	return uint16Array[ n16 + 14 ];
 
 }
 
