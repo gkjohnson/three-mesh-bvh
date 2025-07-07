@@ -106,7 +106,7 @@ describe( 'intersectTri', () => {
 		const position = new BufferAttribute( new Float32Array( [
 			2, 0, 0,
 			0, 0, 0,
-			1, 1e-20, 0,
+			1, 1e-40, 0,
 		] ), 3 );
 
 		const normal = new BufferAttribute( new Float32Array( [
