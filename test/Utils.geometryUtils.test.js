@@ -106,7 +106,7 @@ describe( 'intersectTri', () => {
 		const position = new BufferAttribute( new Float32Array( [
 			2, 0, 0,
 			0, 0, 0,
-			1, 1e-40, 0,
+			1, 1e-20, 0,
 		] ), 3 );
 
 		const normal = new BufferAttribute( new Float32Array( [
@@ -137,7 +137,8 @@ describe( 'intersectTri', () => {
 
 		expect( intersection !== null ).toBe( true );
 
-		if ( parseInt( REVISION ) >= 169 ) {
+		const revision = parseInt( REVISION );
+		if ( revision >= 169 || 159 <= revision ) {
 
 			expect( intersection.barycoord.equals( new Vector3() ) ).toBe( true );
 			expect( intersection.uv.equals( new Vector3() ) ).toBe( true );
