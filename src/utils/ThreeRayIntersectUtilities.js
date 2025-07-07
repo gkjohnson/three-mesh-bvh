@@ -1,6 +1,7 @@
 import { Vector3, Vector2, Triangle, DoubleSide, BackSide, REVISION } from 'three';
 
 const IS_GT_REVISION_169 = parseInt( REVISION ) >= 169;
+const IS_LT_REVISION_161 = parseInt( REVISION ) <= 161;
 
 // Ripped and modified From THREE.js Mesh raycast
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L115
@@ -82,6 +83,12 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 			if ( ! IS_GT_REVISION_169 ) {
 
 				intersection.uv1 = res;
+
+			}
+
+			if ( IS_LT_REVISION_161 ) {
+
+				intersection.uv2 = intersection.uv1;
 
 			}
 

@@ -1,6 +1,6 @@
-import { SphereGeometry, BoxGeometry, Ray, Vector3, BufferGeometry, DoubleSide, REVISION, BufferAttribute, Vector2 } from 'three';
+import { SphereGeometry, BoxGeometry, BufferGeometry, BufferAttribute, Raycaster, Mesh, DoubleSide, REVISION } from 'three';
 import { getVertexCount, hasGroupGaps } from '../src/core/build/geometryUtils.js';
-import { intersectTri } from '../src/utils/ThreeRayIntersectUtilities.js';
+import { MeshBVH } from '../src/index.js';
 
 describe( 'hasGroupGaps', () => {
 
@@ -99,14 +99,14 @@ describe( 'intersectTri', () => {
 
 	it( 'should comply with three.js return values in a degenerate case', () => {
 
-		const ray = new Ray();
-		ray.origin.set( 0, 0, 1 );
-		ray.direction.set( 0, 0, - 1 );
+		const raycaster = new Raycaster();
+		raycaster.ray.origin.set( 0, 0, 1 );
+		raycaster.ray.direction.set( 0, 0, - 1 );
 
 		const position = new BufferAttribute( new Float32Array( [
 			2, 0, 0,
 			0, 0, 0,
-			1, 1e-20, 0,
+			1, 1e-15, 0,
 		] ), 3 );
 
 		const normal = new BufferAttribute( new Float32Array( [
@@ -127,38 +127,55 @@ describe( 'intersectTri', () => {
 			1, 1,
 		] ), 2 );
 
-		const geo = new BufferGeometry();
-		geo.setAttribute( 'position', position );
-		geo.setAttribute( 'normal', normal );
-		geo.setAttribute( 'uv', uv );
-		geo.setAttribute( 'uv1', uv1 );
+		const degenerateGeometry = new BufferGeometry();
+		degenerateGeometry.setAttribute( 'position', position );
+		degenerateGeometry.setAttribute( 'normal', normal );
+		degenerateGeometry.setAttribute( 'uv', uv );
+		degenerateGeometry.setAttribute( 'uv1', uv1 );
 
-		const intersection = intersectTri( geo, DoubleSide, ray, 0, undefined, 0, 10 );
+		const mesh = new Mesh( degenerateGeometry );
+		mesh.material.side = DoubleSide;
+		const bvh = new MeshBVH( degenerateGeometry );
 
-		expect( intersection !== null ).toBe( true );
+		const bvhHit = bvh.raycastFirst( raycaster.ray, DoubleSide );
+		let threeHit;
+		const getThreeHit = () => {
+
+			threeHit = raycaster.intersectObject( mesh, true )[ 0 ];
+
+		};
 
 		const revision = parseInt( REVISION );
-		if ( revision >= 169 ) {
+		if ( 169 > revision && revision > 159 ) {
 
-			expect( intersection.barycoord.equals( new Vector3() ) ).toBe( true );
-			expect( intersection.uv.equals( new Vector3() ) ).toBe( true );
-			expect( intersection.uv1.equals( new Vector3() ) ).toBe( true );
-			expect( intersection.normal.equals( new Vector3() ) ).toBe( true );
+			expect( getThreeHit ).toThrow();
 
-		} else if ( revision > 159 ) {
+			expect( bvhHit.barycoord ).toBeUndefined();
+			expect( bvhHit.normal ).toBeNull();
+			expect( bvhHit.uv ).toBeNull();
+			expect( bvhHit.uv1 ).toBeNull();
 
-			expect( intersection.barycoord === undefined ).toBe( true );
-			expect( intersection.uv === null ).toBe( true );
-			expect( intersection.uv1 === null ).toBe( true );
-			expect( intersection.normal === null ).toBe( true );
+			if ( revision <= 161 ) {
+
+				expect( bvhHit.uv2 ).toBeNull();
+
+			} else {
+
+				expect( bvhHit.uv2 ).toBeUndefined();
+
+			}
 
 		} else {
 
-			// Before r159 getBarycoord returned (-2, -1, -1) for collinear case...
-			expect( intersection.barycoord === undefined ).toBe( true );
-			expect( intersection.uv.equals( new Vector2( - 4, - 4 ) ) ).toBe( true );
-			expect( intersection.uv1.equals( new Vector2( - 4, - 4 ) ) ).toBe( true );
-			expect( intersection.normal.equals( new Vector3( 0, 0, 4 ) ) ).toBe( true );
+			getThreeHit();
+
+			if ( 'object' in threeHit ) {
+
+				delete threeHit.object;
+
+			}
+
+			expect( bvhHit ).toEqual( threeHit );
 
 		}
 
