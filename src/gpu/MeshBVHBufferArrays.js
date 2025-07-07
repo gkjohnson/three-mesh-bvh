@@ -8,8 +8,7 @@ import {
 	SPLIT_AXIS,
 } from '../core/utils/nodeBufferUtils.js';
 import { getIndexArray, getVertexCount } from '../core/build/geometryUtils.js';
-
-
+import { BufferAttribute } from 'three';
 
 export class MeshBVHBufferArrays {
 
@@ -130,7 +129,7 @@ function bvhToArrays( bvh ) {
 	const nodeCount = root.byteLength / BYTES_PER_NODE;
 
 	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
- 	const boundsArray = new Float32Array( 4 * boundsDimension * boundsDimension );
+	const boundsArray = new Float32Array( 4 * boundsDimension * boundsDimension );
 
 	const contentsDimension = Math.ceil( Math.sqrt( nodeCount ) );
 	const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );

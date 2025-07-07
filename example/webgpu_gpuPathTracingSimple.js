@@ -1,13 +1,13 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 import { WebGPURenderer, StorageBufferAttribute, MeshBasicNodeMaterial } from 'three/webgpu';
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
 	attribute, uniform, texture, wgslFn, varyingProperty,
 	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix
-} from "three/tsl";
+} from 'three/tsl';
 
 
 import {
@@ -19,7 +19,7 @@ import {
 
 import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
-import { colorSpaceToWorking } from "three/tsl";
+import { colorSpaceToWorking } from 'three/tsl';
 
 
 const params = {
@@ -90,10 +90,10 @@ async function init() {
 
 	const meshNormalTexture = new FloatVertexAttributeTexture();
 	meshNormalTexture.updateFrom( knotGeometry.attributes.normal );
-	meshNormalTexture.internalFormat = "rgba32float";	//WebGPU format
+	meshNormalTexture.internalFormat = 'rgba32float';	//WebGPU format
 
 
-	const vUv = varyingProperty( "vec2", "vUv" );
+	const vUv = varyingProperty( 'vec2', 'vUv' );
 
 	const bvh_index = new StorageBufferAttribute( meshBVHDatas.index, 4 );
 	const bvh_position = new StorageBufferAttribute( meshBVHDatas.position, 4 );
@@ -106,8 +106,8 @@ async function init() {
 		projectionMatrix: cameraProjectionMatrix,
 		modelWorldMatrix: modelWorldMatrix,
 		cameraViewMatrix: cameraViewMatrix,
-		position: attribute( "position" ),
-		uv: attribute( "uv" ),
+		position: attribute( 'position' ),
+		uv: attribute( 'uv' ),
 	};
 
 
@@ -278,6 +278,9 @@ function render() {
 		rtMaterial.fragmentNode.colorNode.parameters.cameraWorldMatrix.value = camera.matrixWorld;
 		rtMaterial.fragmentNode.colorNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
 		rtMaterial.fragmentNode.colorNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
+
+		window.MAT = rtMaterial;
+		// fragmentShaderParams.cameraWorldMatrix.value = camera.matrixWorld;
 
 		rtQuad.render( renderer );
 

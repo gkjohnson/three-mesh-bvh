@@ -1,4 +1,4 @@
-import { wgslFn } from "three/tsl";
+import { wgslFn } from 'three/tsl';
 
 
 const intersectsTriangle = wgslFn( /* wgsl */ `
@@ -50,7 +50,7 @@ const intersectsTriangle = wgslFn( /* wgsl */ `
 
 	}
 
-`);
+` );
 
 
 const intersectTriangles = wgslFn( /* wgsl */ `
@@ -91,7 +91,7 @@ const intersectTriangles = wgslFn( /* wgsl */ `
 
 	}
 
-`);
+` );
 
 
 const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
@@ -144,7 +144,7 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 				let offset = boundsInfoy;
 
 				let localHit = intersectTriangles(
-					bvh_position, bvh_index, offset, 
+					bvh_position, bvh_index, offset,
 					count, rayOrigin, rayDirection
 				);
 
@@ -178,7 +178,7 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	}
 
-`);
+` );
 
 
 export { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit };

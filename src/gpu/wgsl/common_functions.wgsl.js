@@ -1,4 +1,4 @@
-import { wgslFn } from "three/tsl";
+import { wgslFn } from 'three/tsl';
 
 
 const normalSampleBarycoord = wgslFn( /* wgsl */`
@@ -21,7 +21,7 @@ const normalSampleBarycoord = wgslFn( /* wgsl */`
 
 	}
 
-`);
+` );
 
 
 const ndcToCameraRay = wgslFn( /* wgsl*/`
@@ -56,7 +56,7 @@ const ndcToCameraRay = wgslFn( /* wgsl*/`
 
 	}
 
-`);
+` );
 
 
 const intersectsBounds = wgslFn( /* wgsl */`
@@ -95,17 +95,17 @@ const intersectsBounds = wgslFn( /* wgsl */`
 
 	}
 
-`);
+` );
 
 
 const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBVHNodeBounds(
-		rayOrigin: vec3<f32>, 
-		rayDirection: vec3<f32>, 
-		bvh_bounds: ptr<storage, 
-		array<vec4<f32>>, read>, 
-		currNodeIndex: u32, 
+		rayOrigin: vec3<f32>,
+		rayDirection: vec3<f32>,
+		bvh_bounds: ptr<storage,
+		array<vec4<f32>>, read>,
+		currNodeIndex: u32,
 		dist: ptr<function, f32>
 		) -> bool {
 
@@ -117,7 +117,7 @@ const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 
 	}
 
-`);
+` );
 
 
 export { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord };
