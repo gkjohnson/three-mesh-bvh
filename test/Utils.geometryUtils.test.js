@@ -1,5 +1,6 @@
-import { SphereGeometry, BoxGeometry } from 'three';
+import { SphereGeometry, BoxGeometry, Ray, Vector3, Triangle, BufferGeometry, DoubleSide, REVISION, BufferAttribute } from 'three';
 import { getVertexCount, hasGroupGaps } from '../src/core/build/geometryUtils.js';
+import { intersectTri } from '../src/utils/ThreeRayIntersectUtilities.js';
 
 describe( 'hasGroupGaps', () => {
 
@@ -89,6 +90,68 @@ describe( 'hasGroupGaps', () => {
 		geometry.addGroup( 0, getVertexCount( geometry ) - 1, 0 );
 		const range = { start: 0, count: Infinity };
 		expect( hasGroupGaps( geometry, range ) ).toBe( true );
+
+	} );
+
+} );
+
+describe( 'intersectTri', () => {
+
+	it( 'should comply with three.js return values in a degenerate case', () => {
+
+		const ray = new Ray();
+		ray.origin.set( 0, 0, 1 );
+		ray.direction.set( 0, 0, - 1 );
+
+		const position = new BufferAttribute( new Float32Array( [
+			2, 0, 0,
+			0, 0, 0,
+			1, 1e-16, 0,
+		] ), 3 );
+
+		const normal = new BufferAttribute( new Float32Array( [
+			0, 0, 1,
+			0, 0, 1,
+			0, 0, 1,
+		] ), 3 );
+
+		const uv = new BufferAttribute( new Float32Array( [
+			1, 1,
+			1, 1,
+			1, 1,
+		] ), 2 );
+
+		const uv1 = new BufferAttribute( new Float32Array( [
+			1, 1,
+			1, 1,
+			1, 1,
+		] ), 2 );
+
+		const geo = new BufferGeometry();
+		geo.setAttribute( 'position', position );
+		geo.setAttribute( 'normal', normal );
+		geo.setAttribute( 'uv', uv );
+		geo.setAttribute( 'uv1', uv1 );
+
+		const intersection = intersectTri( geo, DoubleSide, ray, 0, undefined, 0, 10 );
+
+		expect( intersection !== undefined ).toBe( true );
+
+		if ( parseInt( REVISION ) >= 169 ) {
+
+			expect( intersection.barycoord.equals( new Vector3() ) ).toBe( true );
+			expect( intersection.uv.equals( new Vector3() ) ).toBe( true );
+			expect( intersection.uv1.equals( new Vector3() ) ).toBe( true );
+			expect( intersection.normal.equals( new Vector3() ) ).toBe( true );
+
+		} else {
+
+			expect( intersection.barycoord === undefined ).toBe( true );
+			expect( intersection.uv === null ).toBe( true );
+			expect( intersection.uv1 === null ).toBe( true );
+			expect( intersection.normal === null ).toBe( true );
+
+		}
 
 	} );
 
