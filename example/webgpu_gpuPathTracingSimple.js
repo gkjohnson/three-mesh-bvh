@@ -88,11 +88,6 @@ async function init() {
 	meshBVHDatas.updateFrom( bvh );
 
 
-	const meshNormalTexture = new FloatVertexAttributeTexture();
-	meshNormalTexture.updateFrom( knotGeometry.attributes.normal );
-	meshNormalTexture.internalFormat = 'rgba32float';	//WebGPU format
-
-
 	const vUv = varyingProperty( 'vec2', 'vUv' );
 
 	const bvh_index = new StorageBufferAttribute( meshBVHDatas.index, 4 );
@@ -113,7 +108,6 @@ async function init() {
 
 	const fragmentShaderParams = {
 		vUv: vUv,
-		normalAttribute: texture( meshNormalTexture ),
 		cameraWorldMatrix: uniform( new THREE.Matrix4() ),
 		invProjectionMatrix: uniform( new THREE.Matrix4() ),
 		invModelMatrix: uniform( new THREE.Matrix4() ),
@@ -151,7 +145,6 @@ async function init() {
 
 		fn fragmentShader(
 			vUv: vec2<f32>,
-			normalAttribute: texture_2d<f32>,
 			cameraWorldMatrix: mat4x4<f32>,
 			invProjectionMatrix: mat4x4<f32>,
 			invModelMatrix: mat4x4<f32>,
