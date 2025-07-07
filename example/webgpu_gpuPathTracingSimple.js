@@ -34,8 +34,7 @@ let rtQuad, mesh, clock;
 let rtMaterial;
 
 
-await init();
-render();
+init();
 
 async function init() {
 
@@ -238,6 +237,8 @@ async function init() {
 
 	window.addEventListener( 'resize', resize, false );
 	resize();
+
+	render();
 
 }
 
