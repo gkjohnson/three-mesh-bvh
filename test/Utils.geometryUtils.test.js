@@ -138,7 +138,7 @@ describe( 'intersectTri', () => {
 		expect( intersection !== null ).toBe( true );
 
 		const revision = parseInt( REVISION );
-		if ( revision >= 169 || 159 <= revision ) {
+		if ( revision >= 169 || 159 >= revision ) {
 
 			expect( intersection.barycoord.equals( new Vector3() ) ).toBe( true );
 			expect( intersection.uv.equals( new Vector3() ) ).toBe( true );
