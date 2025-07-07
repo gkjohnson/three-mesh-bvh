@@ -1,4 +1,4 @@
-import { SphereGeometry, BoxGeometry, Ray, Vector3, BufferGeometry, DoubleSide, REVISION, BufferAttribute } from 'three';
+import { SphereGeometry, BoxGeometry, Ray, Vector3, BufferGeometry, DoubleSide, REVISION, BufferAttribute, Vector2 } from 'three';
 import { getVertexCount, hasGroupGaps } from '../src/core/build/geometryUtils.js';
 import { intersectTri } from '../src/utils/ThreeRayIntersectUtilities.js';
 
@@ -138,19 +138,27 @@ describe( 'intersectTri', () => {
 		expect( intersection !== null ).toBe( true );
 
 		const revision = parseInt( REVISION );
-		if ( revision >= 169 || 159 >= revision ) {
+		if ( revision >= 169 ) {
 
 			expect( intersection.barycoord.equals( new Vector3() ) ).toBe( true );
 			expect( intersection.uv.equals( new Vector3() ) ).toBe( true );
 			expect( intersection.uv1.equals( new Vector3() ) ).toBe( true );
 			expect( intersection.normal.equals( new Vector3() ) ).toBe( true );
 
-		} else {
+		} else if ( revision > 159 ) {
 
 			expect( intersection.barycoord === undefined ).toBe( true );
 			expect( intersection.uv === null ).toBe( true );
 			expect( intersection.uv1 === null ).toBe( true );
 			expect( intersection.normal === null ).toBe( true );
+
+		} else {
+
+			// Before r159 getBarycoord returned (-2, -1, -1) for collinear case...
+			expect( intersection.barycoord === undefined ).toBe( true );
+			expect( intersection.uv.equals( new Vector2( - 4, - 4 ) ) ).toBe( true );
+			expect( intersection.uv1.equals( new Vector2( - 4, - 4 ) ) ).toBe( true );
+			expect( intersection.normal.equals( new Vector3( 0, 0, 4 ) ) ).toBe( true );
 
 		}
 
