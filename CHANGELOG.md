@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.9.2] - Unreleased
 ### Fixed
 - Type definitions.
+- Case where raycasting results would not match three.js' behavior.
 
 ## [0.9.1] - 2025.06-20
 ### Fixed
