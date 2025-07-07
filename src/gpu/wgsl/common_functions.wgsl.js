@@ -1,7 +1,7 @@
 import { wgslFn } from "three/tsl";
 
 
-const normalSampleBarycoord = wgslFn(`
+const normalSampleBarycoord = wgslFn( /* wgsl */`
 
 	fn normalSampleBarycoord(
 		barycoord: vec3<f32>,
@@ -24,7 +24,7 @@ const normalSampleBarycoord = wgslFn(`
 `);
 
 
-const ndcToCameraRay = wgslFn(`
+const ndcToCameraRay = wgslFn( /* wgsl*/`
 
 	fn ndcToCameraRay(
 		coord: vec2<f32>,
@@ -59,7 +59,7 @@ const ndcToCameraRay = wgslFn(`
 `);
 
 
-const intersectsBounds = wgslFn(`
+const intersectsBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBounds(
 		rayOrigin: vec3<f32>,
@@ -98,7 +98,7 @@ const intersectsBounds = wgslFn(`
 `);
 
 
-const intersectsBVHNodeBounds = wgslFn(`
+const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBVHNodeBounds(
 		rayOrigin: vec3<f32>, 

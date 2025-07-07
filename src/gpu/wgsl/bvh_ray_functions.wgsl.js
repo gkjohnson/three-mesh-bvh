@@ -1,7 +1,7 @@
 import { wgslFn } from "three/tsl";
 
 
-const intersectsTriangle = wgslFn(`
+const intersectsTriangle = wgslFn( /* wgsl */ `
 
 	fn intersectsTriangle(
 		rayOrigin: vec3<f32>, rayDirection: vec3<f32>,
@@ -53,7 +53,7 @@ const intersectsTriangle = wgslFn(`
 `);
 
 
-const intersectTriangles = wgslFn(`
+const intersectTriangles = wgslFn( /* wgsl */ `
 
 	fn intersectTriangles(
 		bvh_position: ptr<storage, array<vec4<f32>>, read>,
@@ -94,7 +94,7 @@ const intersectTriangles = wgslFn(`
 `);
 
 
-const bvhIntersectFirstHit = wgslFn(`
+const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	fn bvhIntersectFirstHit(
 		bvh_index: ptr<storage, array<vec4<u32>>, read>,

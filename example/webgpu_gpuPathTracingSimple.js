@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { WebGPURenderer, StorageBufferAttribute, MeshBasicNodeMaterial } from 'three/webgpu';
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
@@ -18,7 +19,7 @@ import {
 
 import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
-
+import { colorSpaceToWorking } from "three/tsl";
 
 
 const params = {
@@ -38,7 +39,7 @@ render();
 
 async function init() {
 
-	renderer = new THREE.WebGPURenderer( {
+	renderer = new WebGPURenderer( {
 
 		canvas: document.createElement( 'canvas' ),
 		antialias: true,
@@ -95,11 +96,11 @@ async function init() {
 
 	const vUv = varyingProperty( "vec2", "vUv" );
 
-	const bvh_index = new THREE.StorageBufferAttribute( meshBVHDatas.index, 4 );
-	const bvh_position = new THREE.StorageBufferAttribute( meshBVHDatas.position, 4 );
-	const bvh_bounds = new THREE.StorageBufferAttribute( meshBVHDatas.bvhBounds, 4 );
-	const bvh_contents = new THREE.StorageBufferAttribute( meshBVHDatas.bvhContents, 1 );
-	const normals = new THREE.StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
+	const bvh_index = new StorageBufferAttribute( meshBVHDatas.index, 4 );
+	const bvh_position = new StorageBufferAttribute( meshBVHDatas.position, 4 );
+	const bvh_bounds = new StorageBufferAttribute( meshBVHDatas.bvhBounds, 4 );
+	const bvh_contents = new StorageBufferAttribute( meshBVHDatas.bvhContents, 1 );
+	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 
 
 	const vertexShaderParams = {
@@ -125,7 +126,7 @@ async function init() {
 	};
 
 
-	const vertexShader = wgslFn(`
+	const vertexShader = wgslFn( /* wgsl */ `
 
 		fn vertexShader(
 			projectionMatrix: mat4x4<f32>,
@@ -147,7 +148,7 @@ async function init() {
 
 
 
-	const fragmentShader = wgslFn(`
+	const fragmentShader = wgslFn( /* wgsl */`
 
 		fn fragmentShader(
 			vUv: vec2<f32>,
@@ -213,10 +214,9 @@ async function init() {
 	] );
 
 
-	rtMaterial = new THREE.MeshBasicNodeMaterial();
+	rtMaterial = new MeshBasicNodeMaterial();
 	rtMaterial.vertexNode = vertexShader( vertexShaderParams );
-	rtMaterial.fragmentNode = fragmentShader( fragmentShaderParams );
-	rtMaterial.colorSpace = THREE.SRGBColorSpace;
+	rtMaterial.fragmentNode = colorSpaceToWorking( fragmentShader( fragmentShaderParams ), THREE.SRGBColorSpace );
 
 
 	rtQuad = new FullScreenQuad( rtMaterial );
@@ -274,9 +274,9 @@ function render() {
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
-		rtMaterial.fragmentNode.parameters.cameraWorldMatrix.value = camera.matrixWorld;
-		rtMaterial.fragmentNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
-		rtMaterial.fragmentNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
+		rtMaterial.fragmentNode.colorNode.parameters.cameraWorldMatrix.value = camera.matrixWorld;
+		rtMaterial.fragmentNode.colorNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
+		rtMaterial.fragmentNode.colorNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
 
 		rtQuad.render( renderer );
 
