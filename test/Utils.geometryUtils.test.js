@@ -1,4 +1,4 @@
-import { SphereGeometry, BoxGeometry, Ray, Vector3, Triangle, BufferGeometry, DoubleSide, REVISION, BufferAttribute } from 'three';
+import { SphereGeometry, BoxGeometry, Ray, Vector3, BufferGeometry, DoubleSide, REVISION, BufferAttribute } from 'three';
 import { getVertexCount, hasGroupGaps } from '../src/core/build/geometryUtils.js';
 import { intersectTri } from '../src/utils/ThreeRayIntersectUtilities.js';
 
@@ -106,7 +106,7 @@ describe( 'intersectTri', () => {
 		const position = new BufferAttribute( new Float32Array( [
 			2, 0, 0,
 			0, 0, 0,
-			1, 1e-16, 0,
+			1, 1e-20, 0,
 		] ), 3 );
 
 		const normal = new BufferAttribute( new Float32Array( [
@@ -135,7 +135,7 @@ describe( 'intersectTri', () => {
 
 		const intersection = intersectTri( geo, DoubleSide, ray, 0, undefined, 0, 10 );
 
-		expect( intersection !== undefined ).toBe( true );
+		expect( intersection !== null ).toBe( true );
 
 		if ( parseInt( REVISION ) >= 169 ) {
 
