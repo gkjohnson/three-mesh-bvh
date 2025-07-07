@@ -279,9 +279,6 @@ function render() {
 		rtMaterial.fragmentNode.colorNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
 		rtMaterial.fragmentNode.colorNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
 
-		window.MAT = rtMaterial;
-		// fragmentShaderParams.cameraWorldMatrix.value = camera.matrixWorld;
-
 		rtQuad.render( renderer );
 
 	} else {
