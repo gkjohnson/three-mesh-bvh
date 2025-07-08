@@ -6,6 +6,7 @@ export * from './utils/ExtensionUtilities.js';
 export { getTriangleHitPointInfo } from './utils/TriangleUtilities.js';
 export * from './math/ExtendedTriangle.js';
 export * from './math/OrientedBox.js';
+export * from './gpu/MeshBVHBufferArrays.js';
 export * from './gpu/MeshBVHUniformStruct.js';
 export * from './gpu/VertexAttributeTexture.js';
 export * from './utils/StaticGeometryGenerator.js';
