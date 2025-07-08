@@ -99,8 +99,7 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 	fn bvhIntersectFirstHit(
 		bvh_index: ptr<storage, array<vec4<u32>>, read>,
 		bvh_position: ptr<storage, array<vec4<f32>>, read>,
-		bvh_bounds: ptr<storage, array<vec4<f32>>, read>,
-		bvh_contents: ptr<storage, array<u32>, read>,
+		bvh: ptr<storage, array<BVHNode>,read>,
 		rayOrigin: vec3<f32>,
 		rayDirection: vec3<f32>
 	) -> IntersectionResult {
@@ -123,19 +122,21 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 			}
 
 			let currNodeIndex = stack[ ptr ];
+			let node = bvh[ currNodeIndex ];
 
 			ptr = ptr - 1;
 
 			var boundsHitDistance: f32 = 0.0;
 
-			if ( !intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh_bounds, currNodeIndex, &boundsHitDistance ) || boundsHitDistance > bestHit.dist ) {
+			if ( !intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh, currNodeIndex, &boundsHitDistance ) || boundsHitDistance > bestHit.dist ) {
 
 				continue;
 
 			}
 
-			let boundsInfox = bvh_contents[ currNodeIndex * 2u + 1u ];
-			let boundsInfoy = bvh_contents[ currNodeIndex * 2u ];
+			let boundsInfox = node.splitAxisOrTriangleCount;
+			let boundsInfoy = node.rightChildOrTriangleOffset;
+
 			let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
 
 			if ( isLeaf ) {

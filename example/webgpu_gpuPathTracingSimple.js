@@ -95,7 +95,7 @@ async function init() {
 	const bvh_bounds = new StorageBufferAttribute( meshBVHDatas.bvhBounds, 4 );
 	const bvh_contents = new StorageBufferAttribute( meshBVHDatas.bvhContents, 1 );
 	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
-
+	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
 
 	const vertexShaderParams = {
 		projectionMatrix: cameraProjectionMatrix,
@@ -116,6 +116,8 @@ async function init() {
 		bvh_position: storage( bvh_position, 'vec4', bvh_position.count ).toReadOnly(),
 		bvh_contents: storage( bvh_contents, 'uint', bvh_contents.count ).toReadOnly(),
 		normalBuffer: storage( normals, 'vec3', normals.count ).toReadOnly(),
+		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
+
 	};
 
 
@@ -153,13 +155,14 @@ async function init() {
 			bvh_bounds: ptr<storage, array<vec4<f32>>, read>,
 			bvh_contents: ptr<storage, array<u32>, read>,
 			normalBuffer: ptr<storage, array<vec3<f32>>, read>,
+			bvh: ptr<storage, array<BVHNode>, read>,
 		) -> vec4<f32> {
 
 			var ndc = 2.0 * vUv - vec2<f32>( 1, 1 );
 
 			let ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
 
-			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh_bounds, bvh_contents, ray.origin, ray.direction );
+			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray.origin, ray.direction );
 
 			let normal = normalSampleBarycoord(
 				hitResult.barycoord,
@@ -195,6 +198,20 @@ async function init() {
 			side: f32,
 			dist: f32,
 
+		};
+
+		struct BVHNode {
+			// doesn't work
+			// boundingBoxMin: vec3<f32>,
+			// boundingBoxMax: vec3<f32>,
+
+			// works
+			boundingBoxMin: array<f32, 3>,
+			boundingBoxMax: array<f32, 3>,
+
+			//
+			rightChildOrTriangleOffset: u32,
+			splitAxisOrTriangleCount: u32,
 		};
 
 	`, [

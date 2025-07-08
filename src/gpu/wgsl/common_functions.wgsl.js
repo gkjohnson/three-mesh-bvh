@@ -103,15 +103,14 @@ const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 	fn intersectsBVHNodeBounds(
 		rayOrigin: vec3<f32>,
 		rayDirection: vec3<f32>,
-		bvh_bounds: ptr<storage,
-		array<vec4<f32>>, read>,
+		bvh: ptr<storage, array<BVHNode>, read>,
 		currNodeIndex: u32,
 		dist: ptr<function, f32>
 		) -> bool {
 
-		let cni2 = currNodeIndex * 2u;
-		let boundsMin = bvh_bounds[ cni2 ].xyz;
-		let boundsMax = bvh_bounds[ cni2 + 1u ].xyz;
+		let node = bvh[ currNodeIndex ];
+		let boundsMin = vec3( node.boundingBoxMin[0], node.boundingBoxMin[1], node.boundingBoxMin[2] );
+		let boundsMax = vec3( node.boundingBoxMax[0], node.boundingBoxMax[1], node.boundingBoxMax[2] );
 
 		return intersectsBounds( rayOrigin, rayDirection, boundsMin, boundsMax, dist );
 
