@@ -1,7 +1,8 @@
 import { Vector3 } from 'three';
 import { ExtendedTrianglePool } from '../../utils/ExtendedTrianglePool.js';
-import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { BufferStack } from '../utils/BufferStack.js';
+import { iterateOverTriangles } from '../utils/iterationUtils.generated.js';
+import { iterateOverTriangles_indirect } from '../utils/iterationUtils_indirect.generated.js';
 import { closestDistanceSquaredPointToBox } from '../utils/distanceUtils.js';
 import { MinHeap } from '../utils/minHeap.js';
 import { COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
@@ -24,18 +25,19 @@ export function closestPointToPointSort/* @echo INDIRECT_STRING */(
 	const maxThresholdSq = maxThreshold * maxThreshold;
 	let closestDistanceSq = Infinity;
 	let closestDistanceTriIndex = null;
-	BufferStack.setBuffer( bvh._roots[ root ] );
 
-	const { geometry } = bvh;
-	const { index } = geometry;
-	const pos = geometry.attributes.position;
 	const triangle = ExtendedTrianglePool.getPrimitive();
+
+	const iterateOverTrianglesFunc = bvh.indirect ? iterateOverTriangles_indirect : iterateOverTriangles;
+
+	BufferStack.setBuffer( bvh._roots[ root ] );
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	// heapQueue.reset();
 
 	_closestPointToPoint( { nodeIndex32: 0, distance: closestDistanceSquaredPointToBox( 0, float32Array, point ) } );
 
 	BufferStack.clearBuffer();
+	ExtendedTrianglePool.releasePrimitive( triangle );
 
 	if ( closestDistanceSq === Infinity ) return null;
 
@@ -60,10 +62,13 @@ export function closestPointToPointSort/* @echo INDIRECT_STRING */(
 
 			if ( distance >= closestDistanceSq ) return;
 
-			const isLeaf = IS_LEAF( nodeIndex32 * 2, uint16Array );
+			const nodeIndex16 = nodeIndex32 * 2;
+			const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 			if ( isLeaf ) {
 
-				if ( testTris( nodeIndex32 ) ) return;
+				const offset = OFFSET( nodeIndex32, uint32Array );
+				const count = COUNT( nodeIndex16, uint16Array );
+				if ( iterateOverTrianglesFunc( offset, count, bvh, intersectTriangle, null, null, triangle ) ) return true;
 
 			} else if ( minHeap.isFull() ) {
 
@@ -103,7 +108,9 @@ export function closestPointToPointSort/* @echo INDIRECT_STRING */(
 		const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 		if ( isLeaf ) {
 
-			if ( testTris( nodeIndex32 ) ) return true;
+			const offset = OFFSET( nodeIndex32, uint32Array );
+			const count = COUNT( nodeIndex16, uint16Array );
+			return iterateOverTrianglesFunc( offset, count, bvh, intersectTriangle, null, null, triangle );
 
 		} else {
 
@@ -133,39 +140,19 @@ export function closestPointToPointSort/* @echo INDIRECT_STRING */(
 
 	}
 
-	function testTris( nodeIndex32 ) {
+	function intersectTriangle( triangle, triIndex ) {
 
-		const offset = OFFSET( nodeIndex32, uint32Array );
-		const count = COUNT( nodeIndex32 * 2, uint16Array );
+		triangle.closestPointToPoint( point, temp );
+		const distSq = point.distanceToSquared( temp );
+		if ( distSq < closestDistanceSq ) {
 
-		for ( let i = offset, l = count + offset; i < l; i ++ ) {
-
-			/* @if INDIRECT */
-
-			const ti = bvh.resolveTriangleIndex( i );
-			setTriangle( triangle, 3 * ti, index, pos );
-
-			/* @else */
-
-			setTriangle( triangle, i * 3, index, pos );
-
-			/* @endif */
-
-			triangle.needsUpdate = true;
-
-			triangle.closestPointToPoint( point, temp );
-			const distSq = point.distanceToSquared( temp );
-			if ( distSq < closestDistanceSq ) {
-
-				temp1.copy( temp );
-				closestDistanceSq = distSq;
-				closestDistanceTriIndex = i;
-
-				if ( distSq < minThresholdSq ) return true;
-
-			}
+			temp1.copy( temp );
+			closestDistanceSq = distSq;
+			closestDistanceTriIndex = triIndex;
 
 		}
+
+		return distSq < minThresholdSq;
 
 	}
 

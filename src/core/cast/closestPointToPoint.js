@@ -50,15 +50,7 @@ export function closestPointToPointOld(
 
 				}
 
-				if ( distSq < minThresholdSq ) {
-
-					return true;
-
-				} else {
-
-					return false;
-
-				}
+				return distSq < minThresholdSq;
 
 			},
 

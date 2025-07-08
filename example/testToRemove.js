@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { computeBoundsTree, CENTER } from '../src';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 
@@ -37,105 +36,92 @@ const strategy = CENTER;
 const tries = 1000;
 const seed = 123456;
 
-let mesh = null;
+const radius = 10; // if radius 100 and tube 0.1 and spawnRadius 100, sort works really good.
+const tube = 0.1;
+const segmentsMultiplier = 32;
 
-// Load dragon
-const modelPath = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/dragon-attenuation/DragonAttenuation.glb';
-const loader = new GLTFLoader();
-loader
-	.load( modelPath, gltf => {
+// const geometry = new THREE.SphereGeometry( radius, 8 * segmentsMultiplier, 4 * segmentsMultiplier );
+const geometry = new THREE.TorusKnotGeometry( radius, tube, 64 * segmentsMultiplier, 8 * segmentsMultiplier );
 
-		gltf.scene.traverse( c => {
+geometry.computeBoundsTree( { maxLeafTris, strategy } );
 
-			if ( c.isMesh && c.name === 'Dragon' ) {
+geometry.computeBoundsTree( { maxLeafTris, strategy } );
 
-				mesh = c;
+const bvh = geometry.boundsTree;
+const target = {};
 
-			}
+const r = new PRNG( seed );
+const points = new Array( tries );
 
-		} );
+function generatePoints() {
 
-		const geometry = mesh.geometry;
+	for ( let i = 0; i < tries; i ++ ) {
 
-		geometry.computeBoundsTree( { maxLeafTris, strategy } );
+		points[ i ] = new THREE.Vector3( r.range( - maxSpawnPointRadius, maxSpawnPointRadius ), r.range( - maxSpawnPointRadius, maxSpawnPointRadius ), r.range( - maxSpawnPointRadius, maxSpawnPointRadius ) );
 
-		const bvh = geometry.boundsTree;
-		const target = {};
+	}
 
-		const r = new PRNG( seed );
-		const points = new Array( tries );
-
-		function generatePoints() {
-
-			for ( let i = 0; i < tries; i ++ ) {
-
-				points[ i ] = new THREE.Vector3( r.range( - maxSpawnPointRadius, maxSpawnPointRadius ), r.range( - maxSpawnPointRadius, maxSpawnPointRadius ), r.range( - maxSpawnPointRadius, maxSpawnPointRadius ) );
-
-			}
-
-		}
+}
 
 
-		// TEST EQUALS RESULTS
+// TEST EQUALS RESULTS
 
-		// generatePoints();
-		// const target2 = {};
-		// for ( let i = 0; i < tries; i ++ ) {
+// generatePoints();
+// const target2 = {};
+// for ( let i = 0; i < tries; i ++ ) {
 
-		// 	bvh.closestPointToPoint( points[ i ], target );
-		// 	bvh.closestPointToPointHybrid( points[ i ], target2 );
+// 	bvh.closestPointToPoint( points[ i ], target );
+// 	bvh.closestPointToPointHybrid( points[ i ], target2 );
 
-		// 	if ( target.distance !== target2.distance ) {
+// 	if ( target.distance !== target2.distance ) {
 
-		// 		const diff = target.distance - target2.distance;
-		// 		console.error( "error: " + ( diff / target2.distance * 100 ) + "%" );
+// 		const diff = target.distance - target2.distance;
+// 		console.error( "error: " + ( diff / target2.distance * 100 ) + "%" );
 
-		// 	}
+// 	}
 
-		// }
+// }
 
-		// TEST PERFORMANCE
+// TEST PERFORMANCE
 
-		function benchmark() {
+function benchmark() {
 
-			generatePoints();
+	generatePoints();
 
-			const startOld = performance.now();
+	const startOld = performance.now();
 
-			for ( let i = 0; i < tries; i ++ ) {
+	for ( let i = 0; i < tries; i ++ ) {
 
-				bvh.closestPointToPointOld( points[ i ], target );
+		bvh.closestPointToPointOld( points[ i ], target );
 
-			}
+	}
 
-			const endOld = performance.now() - startOld;
-			const startNew = performance.now();
+	const endOld = performance.now() - startOld;
+	const startNew = performance.now();
 
-			for ( let i = 0; i < tries; i ++ ) {
+	for ( let i = 0; i < tries; i ++ ) {
 
-				bvh.closestPointToPoint( points[ i ], target );
+		bvh.closestPointToPoint( points[ i ], target );
 
-			}
+	}
 
-			const endNew = performance.now() - startNew;
-			const startSort = performance.now();
+	const endNew = performance.now() - startNew;
+	const startSort = performance.now();
 
-			for ( let i = 0; i < tries; i ++ ) {
+	for ( let i = 0; i < tries; i ++ ) {
 
-				bvh.closestPointToPointSort( points[ i ], target );
+		bvh.closestPointToPointSort( points[ i ], target );
 
-			}
+	}
 
-			const endSort = performance.now() - startSort;
+	const endSort = performance.now() - startSort;
 
-			const bestEnd = Math.min( endSort, endNew );
-			const best = bestEnd === endSort ? "Sorted" : "New";
+	const bestEnd = Math.min( endSort, endNew );
+	const best = bestEnd === endSort ? "Sorted" : "New";
 
-			console.log( `New: ${endNew.toFixed( 1 )}ms / Sorted: ${endSort.toFixed( 1 )}ms / Old: ${endOld.toFixed( 1 )}ms / Diff: ${( ( 1 - ( endOld / bestEnd ) ) * 100 ).toFixed( 2 )} % / Best: ${best}` );
+	console.log( `New: ${endNew.toFixed( 1 )}ms / Sorted: ${endSort.toFixed( 1 )}ms / Old: ${endOld.toFixed( 1 )}ms / Diff: ${( ( 1 - ( endOld / bestEnd ) ) * 100 ).toFixed( 2 )} % / Best: ${best}` );
 
-		}
+}
 
-		benchmark();
-		setInterval( () => benchmark(), 1000 );
-
-	} );
+benchmark();
+setInterval( () => benchmark(), 2000 );
