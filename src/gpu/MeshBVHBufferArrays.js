@@ -128,11 +128,8 @@ function bvhToArrays( bvh ) {
 
 	const nodeCount = root.byteLength / BYTES_PER_NODE;
 
-	const boundsDimension = 2 * Math.ceil( Math.sqrt( nodeCount / 2 ) );
-	const boundsArray = new Float32Array( 4 * boundsDimension * boundsDimension );
-
-	const contentsDimension = Math.ceil( Math.sqrt( nodeCount ) );
-	const contentsArray = new Uint32Array( 2 * contentsDimension * contentsDimension );
+ 	const boundsArray = new Float32Array( 8 * nodeCount );
+	const contentsArray = new Uint32Array( 2 * nodeCount );
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 

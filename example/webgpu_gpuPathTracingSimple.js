@@ -5,7 +5,7 @@ import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
-	attribute, uniform, texture, wgslFn, varyingProperty,
+	attribute, uniform, wgslFn, varyingProperty,
 	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix
 } from 'three/tsl';
 
@@ -13,7 +13,6 @@ import {
 import {
 	MeshBVH,
 	MeshBVHBufferArrays,
-	FloatVertexAttributeTexture,
 	SAH
 } from '../src/index.js';
 
