@@ -134,8 +134,8 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 			}
 
-			let boundsInfox = bvh_contents[ currNodeIndex * 2u ];
-			let boundsInfoy = bvh_contents[ currNodeIndex * 2u + 1u ];
+			let boundsInfox = bvh_contents[ currNodeIndex * 2u + 1u ];
+			let boundsInfoy = bvh_contents[ currNodeIndex * 2u ];
 			let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
 
 			if ( isLeaf ) {
@@ -148,17 +148,17 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 					count, rayOrigin, rayDirection
 				);
 
-			if ( localHit.didHit && localHit.dist < bestHit.dist ) {
+				if ( localHit.didHit && localHit.dist < bestHit.dist ) {
 
-				bestHit = localHit;
+					bestHit = localHit;
 
-			}
+				}
 
 			} else {
 
 				let leftIndex = currNodeIndex + 1u;
 				let splitAxis = boundsInfox & 0x0000ffffu;
-				let rightIndex = boundsInfoy;
+				let rightIndex = 4u * boundsInfoy / 32u;
 
 				let leftToRight = rayDirection[splitAxis] >= 0.0;
 				let c1 = select( rightIndex, leftIndex, leftToRight );

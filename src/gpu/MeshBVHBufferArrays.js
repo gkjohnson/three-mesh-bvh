@@ -136,38 +136,17 @@ function bvhToArrays( bvh ) {
 
 	for ( let i = 0; i < nodeCount; i ++ ) {
 
-		const nodeIndex32 = i * BYTES_PER_NODE / 4;
-		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex32 );
-
+		// copy bounds data
 		for ( let b = 0; b < 3; b ++ ) {
 
-			boundsArray[ 8 * i + 0 + b ] = float32Array[ boundsIndex + 0 + b ];
-			boundsArray[ 8 * i + 4 + b ] = float32Array[ boundsIndex + 3 + b ];
+			boundsArray[ 8 * i + 0 + b ] = float32Array[ 8 * i + 0 + b ];
+			boundsArray[ 8 * i + 4 + b ] = float32Array[ 8 * i + 3 + b ];
 
 		}
 
-		const flagsOffset = nodeIndex32 * 2;
-
-		const isLeaf = IS_LEAF( flagsOffset, uint32Array, true );
-
-		if ( isLeaf ) {
-
-			const count = COUNT( flagsOffset, uint32Array, true );
-			const offset = OFFSET( nodeIndex32, uint32Array );
-			const mergedLeafCount = 0xffff0000 | count;
-
-			contentsArray[ i * 2 + 0 ] = mergedLeafCount;
-			contentsArray[ i * 2 + 1 ] = offset;
-
-		} else {
-
-			const rightIndex = 4 * RIGHT_NODE( nodeIndex32, uint32Array ) / BYTES_PER_NODE;
-			const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
-
-			contentsArray[ i * 2 + 0 ] = splitAxis;
-			contentsArray[ i * 2 + 1 ] = rightIndex;
-
-		}
+		// copy offset, count, and child index data
+		contentsArray[ i * 2 + 0 ] = uint32Array[ 8 * i + 6 ];
+		contentsArray[ i * 2 + 1 ] = uint32Array[ 8 * i + 7 ];
 
 	}
 
