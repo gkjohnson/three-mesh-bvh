@@ -18,7 +18,6 @@ export class MeshBVHBufferArrays {
 		this.index = null;
 		this.position = null;
 		this.bvhBounds = null;
-		this.bvhContents = null;
 
 		this._cachedIndexAttr = null;
 
