@@ -97,9 +97,6 @@ async function init() {
 	const width = Math.ceil( window.innerWidth );
 	const height = Math.ceil( window.innerHeight );
 
-	console.log(width)
-	console.log(height)
-
 	const rayTex = new THREE.StorageTexture( width, height );
 	rayTex.format = THREE.RGBAFormat;
 	rayTex.type = THREE.UnsignedByteType;
