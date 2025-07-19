@@ -30,6 +30,7 @@ const params = {
 let renderer, camera, scene, gui, stats;
 let rtQuad, mesh, clock;
 let rtMaterial, computeBVH;
+let dispatchSize = [];
 
 
 await init();
@@ -89,10 +90,10 @@ async function init() {
 
 	const vUv = varyingProperty( "vec2", "vUv" );  
 
-	const bvh_position = new THREE.StorageBufferAttribute( meshBVHDatas.position, 4 );
-	const bvh_bounds = new THREE.StorageBufferAttribute( meshBVHDatas.bvhBounds, 4 );
-	const bvh_index = new THREE.StorageBufferAttribute( meshBVHDatas.index, 4 );
-	const normals = new THREE.StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
+	const bvh_position = new StorageBufferAttribute( meshBVHDatas.position, 4 );
+	const bvh_index = new StorageBufferAttribute( meshBVHDatas.index, 4 );
+	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
+	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 
 	const width = Math.ceil( window.innerWidth );
 	const height = Math.ceil( window.innerHeight );
@@ -110,8 +111,8 @@ async function init() {
 		cameraWorldMatrix: uniform( new THREE.Matrix4() ),
 		invModelMatrix: uniform( new THREE.Matrix4() ),
 		bvh_position: storage( bvh_position, 'vec4', bvh_position.count ).toReadOnly(),
-		bvh_bounds: storage( bvh_bounds, 'BVHNode', bvh_bounds.count ).toReadOnly(),
 		bvh_index: storage( bvh_index, 'uvec4', bvh_index.count ).toReadOnly(),
+		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 		normals: storage( normals, 'vec3', normals.count ).toReadOnly(),
 	}
 
@@ -139,8 +140,8 @@ async function init() {
 			cameraWorldMatrix: mat4x4<f32>,
 			invModelMatrix: mat4x4<f32>,
 			bvh_position: ptr<storage, array<vec4<f32>>, read>,
-			bvh_bounds: ptr<storage, array<BVHNode>, read>,
 			bvh_index: ptr<storage, array<vec4<u32>>, read>,
+			bvh: ptr<storage, array<BVHNode>, read>,
 			normals: ptr<storage, array<vec3<f32>>, read>,
 		) -> void {
 
@@ -159,7 +160,7 @@ async function init() {
 
 			let ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
 
-			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh_bounds, ray.origin, ray.direction );
+			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray.origin, ray.direction );
 
 			let normal = normalSampleBarycoord(
 				hitResult.barycoord,
@@ -200,10 +201,10 @@ async function init() {
 		};
 
 		struct BVHNode {
-
-			boundingBoxMin: vec4<f32>,
-			boundingBoxMax: vec4<f32>,
-
+			boundingBoxMin: array<f32, 3>,
+			boundingBoxMax: array<f32, 3>,
+			rightChildOrTriangleOffset: u32,
+			splitAxisOrTriangleCount: u32,
 		};
 
 	`, [
@@ -251,7 +252,15 @@ async function init() {
 	`);
 
 
-	computeBVH = computeShader( computeShaderParams ).compute( width * height );
+	const workgroup = [ 16, 16, 1 ];
+
+	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroup );
+
+	dispatchSize = [
+		Math.ceil( width / workgroup[ 0 ] ),
+		Math.ceil( height / workgroup[ 1 ] ),
+		1,
+	];
 
 	rtMaterial = new THREE.MeshBasicNodeMaterial();
 	rtMaterial.vertexNode = vertexShader( vertexShaderParams );
@@ -316,7 +325,7 @@ function render() {
 		computeBVH.computeNode.parameters.cameraWorldMatrix.value = camera.matrixWorld;
 		computeBVH.computeNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
 		computeBVH.computeNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
-		renderer.compute( computeBVH );
+		renderer.compute( computeBVH, dispatchSize );
 
 		rtQuad.render( renderer );
 
