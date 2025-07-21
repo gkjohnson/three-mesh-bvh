@@ -56,8 +56,8 @@ const intersectsTriangle = wgslFn( /* wgsl */ `
 const intersectTriangles = wgslFn( /* wgsl */ `
 
 	fn intersectTriangles(
-		bvh_position: ptr<storage, array<vec4<f32>>, read>,
-		bvh_index: ptr<storage, array<vec4<u32>>, read>,
+		bvh_position: ptr<storage, array<vec3<f32>>, read>,
+		bvh_index: ptr<storage, array<vec3<u32>>, read>,
 		offset: u32,
 		count: u32,
 		rayOrigin: vec3<f32>,
@@ -71,10 +71,10 @@ const intersectTriangles = wgslFn( /* wgsl */ `
 
 		for ( var i = offset; i < offset + count; i = i + 1u ) {
 
-			let indices = bvh_index[ i ].xyz;
-			let a = bvh_position[ indices.x ].rgb;
-			let b = bvh_position[ indices.y ].rgb;
-			let c = bvh_position[ indices.z ].rgb;
+			let indices = bvh_index[ i ];
+			let a = bvh_position[ indices.x ];
+			let b = bvh_position[ indices.y ];
+			let c = bvh_position[ indices.z ];
 
 			var triResult = intersectsTriangle( rayOrigin, rayDirection, a, b, c );
 
@@ -97,8 +97,8 @@ const intersectTriangles = wgslFn( /* wgsl */ `
 const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	fn bvhIntersectFirstHit(
-		bvh_index: ptr<storage, array<vec4<u32>>, read>,
-		bvh_position: ptr<storage, array<vec4<f32>>, read>,
+		bvh_index: ptr<storage, array<vec3<u32>>, read>,
+		bvh_position: ptr<storage, array<vec3<f32>>, read>,
 		bvh: ptr<storage, array<BVHNode>,read>,
 		rayOrigin: vec3<f32>,
 		rayDirection: vec3<f32>

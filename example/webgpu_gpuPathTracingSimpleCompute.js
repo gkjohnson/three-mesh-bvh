@@ -4,20 +4,18 @@ import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
-	attribute, uniform, wgslFn, varyingProperty, instanceIndex, textureStore, texture,
-	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix
+	attribute, uniform, wgslFn, varyingProperty, instanceIndex, textureStore, texture, colorSpaceToWorking,
+	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix, workgroupId, localId
 } from "three/tsl";
 
 
 import {
 	MeshBVH,
-	MeshBVHBufferArrays,
 	SAH
 } from '../src/index.js';
 
 import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
-import { colorSpaceToWorking } from 'three/tsl';
 
 
 const params = {
@@ -83,15 +81,10 @@ async function init() {
 
 	//------------------------end-threejs-setup-start-example-code-----------------------------------
 
-
-	const meshBVHDatas = new MeshBVHBufferArrays();
-	meshBVHDatas.updateFrom( bvh );
-
-
 	const vUv = varyingProperty( "vec2", "vUv" );  
 
-	const bvh_position = new StorageBufferAttribute( meshBVHDatas.position, 4 );
-	const bvh_index = new StorageBufferAttribute( meshBVHDatas.index, 4 );
+	const bvh_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
+	const bvh_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
 	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
 	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 
@@ -103,17 +96,26 @@ async function init() {
 	rayTex.type = THREE.UnsignedByteType;
 	rayTex.magFilter = THREE.LinearFilter;
 
+	const workgroupSize = [ 16, 16, 1 ];
+
+	dispatchSize = [
+		Math.ceil( width / workgroupSize[ 0 ] ),
+		Math.ceil( height / workgroupSize[ 1 ] ),
+		1,
+	];
 
 	const computeShaderParams = {
-		index: instanceIndex,
-		rayTex: textureStore( rayTex ),
+		writeTex: textureStore( rayTex ),
 		invProjectionMatrix: uniform( new THREE.Matrix4() ),
 		cameraWorldMatrix: uniform( new THREE.Matrix4() ),
 		invModelMatrix: uniform( new THREE.Matrix4() ),
-		bvh_position: storage( bvh_position, 'vec4', bvh_position.count ).toReadOnly(),
-		bvh_index: storage( bvh_index, 'uvec4', bvh_index.count ).toReadOnly(),
+		bvh_position: storage( bvh_position, 'vec3', bvh_position.count ).toReadOnly(),
+		bvh_index: storage( bvh_index, 'uvec3', bvh_index.count ).toReadOnly(),
 		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 		normals: storage( normals, 'vec3', normals.count ).toReadOnly(),
+		workgroupSize: uniform( new THREE.Vector3().fromArray( workgroupSize ) ),
+		workgroupId: workgroupId,
+		localId: localId
 	}
 
 	const vertexShaderParams = {
@@ -134,28 +136,24 @@ async function init() {
 	const computeShader = wgslFn(`
 
 		fn compute(
-			rayTex: texture_storage_2d<rgba8unorm, write>,
-			index: u32,
+			writeTex: texture_storage_2d<rgba8unorm, write>,
 			invProjectionMatrix: mat4x4<f32>,
 			cameraWorldMatrix: mat4x4<f32>,
 			invModelMatrix: mat4x4<f32>,
-			bvh_position: ptr<storage, array<vec4<f32>>, read>,
-			bvh_index: ptr<storage, array<vec4<u32>>, read>,
+			bvh_position: ptr<storage, array<vec3<f32>>, read>,
+			bvh_index: ptr<storage, array<vec3<u32>>, read>,
 			bvh: ptr<storage, array<BVHNode>, read>,
 			normals: ptr<storage, array<vec3<f32>>, read>,
+			workgroupSize: vec3<u32>,
+			workgroupId: vec3<u32>,
+			localId: vec3<u32>,
 		) -> void {
 
-			let width = textureDimensions( rayTex ).x;
-			let height = textureDimensions( rayTex ).y;
+			let dimensions = textureDimensions( writeTex );
+			let indexUV = workgroupSize.xy * workgroupId.xy + localId.xy;
 
-			let posX = index % width;
-			let posY = index / width;
+			let uv = vec2f( f32( indexUV.x ) / f32( dimensions.x ), f32( indexUV.y ) / f32( dimensions.y ) );
 
-			if ( posX >= width || posY >= height ) {
-				return;
-			}
-
-			let uv = vec2<f32>( f32( posX ) / f32( width ), f32( posY ) / f32( height ) );
 			let ndc = uv * 2.0 - vec2<f32>( 1.0, 1.0 );
 
 			let ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
@@ -174,7 +172,7 @@ async function init() {
 				hitResult.didHit
 			);
 
-			textureStore( rayTex, vec2<u32>( posX, posY ), result );
+			textureStore( writeTex, indexUV, result );
 
 		}
 
@@ -252,15 +250,7 @@ async function init() {
 	`);
 
 
-	const workgroup = [ 16, 16, 1 ];
-
-	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroup );
-
-	dispatchSize = [
-		Math.ceil( width / workgroup[ 0 ] ),
-		Math.ceil( height / workgroup[ 1 ] ),
-		1,
-	];
+	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroupSize );
 
 	rtMaterial = new THREE.MeshBasicNodeMaterial();
 	rtMaterial.vertexNode = vertexShader( vertexShaderParams );
