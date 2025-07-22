@@ -2,8 +2,8 @@ import { wgslFn, wgsl } from 'three/tsl';
 
 export const rayStruct = wgsl( /* wgsl */`
 	struct Ray {
-		origin: vec3<f32>,
-		direction: vec3<f32>,
+		origin: vec3f,
+		direction: vec3f,
 	};
 ` );
 
