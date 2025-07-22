@@ -10,7 +10,7 @@
       "require": "./build/index.umd.cjs"
     },
     "./worker": "./src/workers/index.js",
-    "./webgpu": "./src/gpu/wgsl/index.js",
+    "./webgpu": "./src/webgpu/index.js",
     "./src/*": "./src/*"
   },
   "type": "module",

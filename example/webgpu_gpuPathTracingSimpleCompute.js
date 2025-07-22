@@ -19,9 +19,9 @@ import {
 
 const params = {
 	enableRaytracing: true,
-	animate: false,
+	animate: true,
 	resolutionScale: 1.0 / window.devicePixelRatio,
-	smoothNormals: false,
+	smoothNormals: true,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -178,7 +178,7 @@ function init() {
 	gui.add( params, 'enableRaytracing' );
 	gui.add( params, 'animate' );
 	gui.add( params, 'smoothNormals' );
-	gui.add( params, 'resolutionScale', 0.1, 2, 0.01 ).onChange( resize );
+	gui.add( params, 'resolutionScale', 0.1, 1, 0.01 ).onChange( resize );
 	gui.open();
 
 	// resize
