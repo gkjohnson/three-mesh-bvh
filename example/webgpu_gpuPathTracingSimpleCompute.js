@@ -21,8 +21,9 @@ const params = {
 
 let renderer, camera, scene, gui, stats;
 let fsQuad, mesh, clock, controls;
-let fsMaterial, computeBVH;
+let fsMaterial, computeBVH, outputTex;
 let dispatchSize = [];
+const WORKGROUP_SIZE = [ 16, 16, 1 ];
 
 init();
 
@@ -78,24 +79,13 @@ function init() {
 	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
 	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 
-	const width = Math.ceil( window.innerWidth );
-	const height = Math.ceil( window.innerHeight );
-
-	const rayTex = new StorageTexture( width, height );
-	rayTex.format = THREE.RGBAFormat;
-	rayTex.type = THREE.UnsignedByteType;
-	rayTex.magFilter = THREE.LinearFilter;
-
-	const workgroupSize = [ 16, 16, 1 ];
-
-	dispatchSize = [
-		Math.ceil( width / workgroupSize[ 0 ] ),
-		Math.ceil( height / workgroupSize[ 1 ] ),
-		1,
-	];
+	outputTex = new StorageTexture( 1, 1 );
+	outputTex.format = THREE.RGBAFormat;
+	outputTex.type = THREE.UnsignedByteType;
+	outputTex.magFilter = THREE.LinearFilter;
 
 	const computeShaderParams = {
-		writeTex: textureStore( rayTex ),
+		writeTex: textureStore( outputTex ),
 		invProjectionMatrix: uniform( new THREE.Matrix4() ),
 		cameraWorldMatrix: uniform( new THREE.Matrix4() ),
 		invModelMatrix: uniform( new THREE.Matrix4() ),
@@ -103,7 +93,7 @@ function init() {
 		bvh_index: storage( bvh_index, 'uvec3', bvh_index.count ).toReadOnly(),
 		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 		normals: storage( normals, 'vec3', normals.count ).toReadOnly(),
-		workgroupSize: uniform( new THREE.Vector3().fromArray( workgroupSize ) ),
+		workgroupSize: uniform( new THREE.Vector3().fromArray( WORKGROUP_SIZE ) ),
 		workgroupId: workgroupId,
 		localId: localId
 	};
@@ -118,8 +108,8 @@ function init() {
 
 	const fragmentShaderParams = {
 		vUv: vUv,
-		rayTex: texture( rayTex ),
-		sample: texture( rayTex ),
+		outputTex: texture( outputTex ),
+		sample: texture( outputTex ),
 	};
 
 
@@ -227,17 +217,17 @@ function init() {
 
 		fn fragmentShader(
 			vUv: vec2<f32>,
-			rayTex: texture_2d<f32>,
+			outputTex: texture_2d<f32>,
 			sample: sampler
 		) -> vec4<f32> {
 
-			return textureSample( rayTex, sample, vUv );
+			return textureSample( outputTex, sample, vUv );
 
 		}
 
 	` );
 
-	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroupSize );
+	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
 	// screen quad
 	fsMaterial = new MeshBasicNodeMaterial();
@@ -272,12 +262,20 @@ function resize() {
 	const w = window.innerWidth;
 	const h = window.innerHeight;
 	const dpr = window.devicePixelRatio;
+	const scale = params.resolutionScale;
 
 	camera.aspect = w / h;
 	camera.updateProjectionMatrix();
 
 	renderer.setSize( w, h );
 	renderer.setPixelRatio( dpr );
+
+	// reconstruct texture
+	outputTex.dispose();
+	outputTex = new StorageTexture( w * dpr * scale, h * dpr * scale );
+	outputTex.format = THREE.RGBAFormat;
+	outputTex.type = THREE.UnsignedByteType;
+	outputTex.magFilter = THREE.LinearFilter;
 
 }
 
@@ -296,14 +294,23 @@ function render() {
 
 	if ( params.enableRaytracing ) {
 
+		dispatchSize = [
+			Math.ceil( outputTex.width / WORKGROUP_SIZE[ 0 ] ),
+			Math.ceil( outputTex.height / WORKGROUP_SIZE[ 1 ] ),
+			1,
+		];
+
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
+		computeBVH.computeNode.parameters.writeTex.value = outputTex;
 		computeBVH.computeNode.parameters.cameraWorldMatrix.value = camera.matrixWorld;
 		computeBVH.computeNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
 		computeBVH.computeNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
 		renderer.compute( computeBVH, dispatchSize );
 
+		fsMaterial.fragmentNode.colorNode.parameters.outputTex.value = outputTex;
+		fsMaterial.fragmentNode.colorNode.parameters.sample.value = outputTex;
 		fsQuad.render( renderer );
 
 	} else {
