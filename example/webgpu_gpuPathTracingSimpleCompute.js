@@ -9,15 +9,19 @@ import {
 	textureStore, texture, colorSpaceToWorking,
 	storage, workgroupId, localId,
 } from 'three/tsl';
-import { MeshBVH, SAH } from '../src/index.js';
-import { ndcToCameraRay, getVertexAttribute, intersectionResultStruct } from '../src/gpu/wgsl/common_functions.wgsl.js';
-import { bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
+
+// three-mesh-bvh
+import { MeshBVH, SAH } from 'three-mesh-bvh';
+import {
+	ndcToCameraRay, getVertexAttribute, intersectionResultStruct,
+	bvhIntersectFirstHit, constants,
+} from 'three-mesh-bvh/webgpu';
 
 const params = {
 	enableRaytracing: true,
-	animate: true,
+	animate: false,
 	resolutionScale: 1.0 / window.devicePixelRatio,
-	smoothNormals: true,
+	smoothNormals: false,
 };
 
 let renderer, camera, scene, gui, stats;
@@ -73,10 +77,10 @@ function init() {
 	clock = new THREE.Clock();
 
 	// TSL
-	const bvh_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
-	const bvh_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
+	const geom_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
+	const geom_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
+	const geom_normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
-	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 
 	const computeShaderParams = {
 		outputTex: textureStore( outputTex ),
@@ -87,10 +91,10 @@ function init() {
 		cameraToModelMatrix: uniform( new THREE.Matrix4() ),
 
 		// bvh and geometry definition
-		bvh_position: storage( bvh_position, 'vec3', bvh_position.count ).toReadOnly(),
-		bvh_index: storage( bvh_index, 'uvec3', bvh_index.count ).toReadOnly(),
+		geom_index: storage( geom_index, 'uvec3', geom_index.count ).toReadOnly(),
+		geom_position: storage( geom_position, 'vec3', geom_position.count ).toReadOnly(),
+		geom_normals: storage( geom_normals, 'vec3', geom_normals.count ).toReadOnly(),
 		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
-		normals: storage( normals, 'vec3', normals.count ).toReadOnly(),
 
 		// compute variables
 		workgroupSize: uniform( new THREE.Vector3() ),
@@ -105,10 +109,10 @@ function init() {
 			smoothNormals: u32,
 			inverseProjectionMatrix: mat4x4f,
 			cameraToModelMatrix: mat4x4f,
-			bvh_position: ptr<storage, array<vec3f>, read>,
-			bvh_index: ptr<storage, array<vec3u>, read>,
+			geom_position: ptr<storage, array<vec3f>, read>,
+			geom_index: ptr<storage, array<vec3u>, read>,
+			geom_normals: ptr<storage, array<vec3f>, read>,
 			bvh: ptr<storage, array<BVHNode>, read>,
-			normals: ptr<storage, array<vec3f>, read>,
 			workgroupSize: vec3u,
 			workgroupId: vec3u,
 			localId: vec3u,
@@ -124,14 +128,14 @@ function init() {
 			var ray = ndcToCameraRay( ndc, cameraToModelMatrix * inverseProjectionMatrix );
 
 			// get hit result
-			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray );
+			let hitResult = bvhIntersectFirstHit( geom_index, geom_position, bvh, ray );
 
 			// write result
 			if ( hitResult.didHit && hitResult.dist < 1.0 ) {
 
 				let normal = select(
 					hitResult.normal,
-					normalize( getVertexAttribute( hitResult.barycoord, hitResult.indices.xyz, normals ) ),
+					normalize( getVertexAttribute( hitResult.barycoord, hitResult.indices.xyz, geom_normals ) ),
 					smoothNormals > 0u,
 				);
 				textureStore( outputTex, indexUV, vec4f( normal, 1.0 ) );
@@ -144,11 +148,7 @@ function init() {
 			}
 
 		}
-
-		const BVH_STACK_DEPTH = 60u;
-		const INFINITY = 1e20;
-		const TRI_INTERSECT_EPSILON = 1e-5;
-	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute, intersectionResultStruct ] );
+	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute, intersectionResultStruct, constants ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 

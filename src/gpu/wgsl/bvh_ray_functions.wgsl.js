@@ -3,10 +3,7 @@ import { bvhNodeStruct, intersectionResultStruct, intersectsBounds, rayStruct } 
 
 export const intersectsTriangle = wgslFn( /* wgsl */ `
 
-	fn intersectsTriangle(
-		ray: Ray,
-		a: vec3f, b: vec3f, c: vec3f
-	) -> IntersectionResult {
+	fn intersectsTriangle( ray: Ray, a: vec3f, b: vec3f, c: vec3f ) -> IntersectionResult {
 
 		var result: IntersectionResult;
 		result.didHit = false;
@@ -15,7 +12,7 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 		let edge2 = c - a;
 		let n = cross( edge1, edge2 );
 
-		let det = -dot( ray.direction, n );
+		let det = - dot( ray.direction, n );
 
 		if ( abs( det ) < TRI_INTERSECT_EPSILON ) {
 
@@ -34,7 +31,7 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 
 		let w = 1.0 - u - v;
 
-		if ( u < -TRI_INTERSECT_EPSILON || v < -TRI_INTERSECT_EPSILON || w < -TRI_INTERSECT_EPSILON || t < TRI_INTERSECT_EPSILON ) {
+		if ( u < - TRI_INTERSECT_EPSILON || v < - TRI_INTERSECT_EPSILON || w < - TRI_INTERSECT_EPSILON || t < TRI_INTERSECT_EPSILON ) {
 
 			return result;
 

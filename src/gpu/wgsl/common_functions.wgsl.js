@@ -1,5 +1,13 @@
 import { wgslFn, wgsl } from 'three/tsl';
 
+export const constants = wgsl( /* wgsl */`
+
+	const BVH_STACK_DEPTH = 60u;
+	const INFINITY = 1e20;
+	const TRI_INTERSECT_EPSILON = 1e-5;
+
+` );
+
 export const rayStruct = wgsl( /* wgsl */`
 	struct Ray {
 		origin: vec3f,
