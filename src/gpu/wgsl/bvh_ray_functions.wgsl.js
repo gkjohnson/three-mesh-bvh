@@ -1,5 +1,5 @@
 import { wgslFn } from 'three/tsl';
-import { bvhNodeStruct, intersectsBounds, rayStruct } from './common_functions.wgsl.js';
+import { bvhNodeStruct, intersectionResultStruct, intersectsBounds, rayStruct } from './common_functions.wgsl.js';
 
 export const intersectsTriangle = wgslFn( /* wgsl */ `
 
@@ -44,13 +44,13 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 		result.barycoord = vec3f( w, u, v );
 		result.dist = t;
 		result.side = sign( det );
-		result.faceNormal = result.side * normalize( n );
+		result.normal = result.side * normalize( n );
 
 		return result;
 
 	}
 
-`, [ rayStruct ] );
+`, [ rayStruct, intersectionResultStruct ] );
 
 export const intersectTriangles = wgslFn( /* wgsl */ `
 
@@ -79,7 +79,7 @@ export const intersectTriangles = wgslFn( /* wgsl */ `
 			if ( triResult.didHit && triResult.dist < closestResult.dist ) {
 
 				closestResult = triResult;
-				closestResult.faceIndices = vec4<u32>( indices.xyz, i );
+				closestResult.indices = vec4u( indices.xyz, i );
 
 			}
 
@@ -89,7 +89,7 @@ export const intersectTriangles = wgslFn( /* wgsl */ `
 
 	}
 
-`, [ intersectsTriangle, rayStruct ] );
+`, [ intersectsTriangle, rayStruct, intersectionResultStruct ] );
 
 export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
@@ -175,4 +175,4 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	}
 
-`, [ intersectTriangles, intersectsBounds, rayStruct, bvhNodeStruct ] );
+`, [ intersectTriangles, intersectsBounds, rayStruct, bvhNodeStruct, intersectionResultStruct ] );

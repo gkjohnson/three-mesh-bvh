@@ -10,8 +10,8 @@ import {
 	storage, workgroupId, localId,
 } from 'three/tsl';
 import { MeshBVH, SAH } from '../src/index.js';
-import { intersectsBounds, ndcToCameraRay, getVertexAttribute } from '../src/gpu/wgsl/common_functions.wgsl.js';
-import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
+import { ndcToCameraRay, getVertexAttribute, intersectionResultStruct } from '../src/gpu/wgsl/common_functions.wgsl.js';
+import { bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
 
 const params = {
 	enableRaytracing: true,
@@ -81,6 +81,7 @@ function init() {
 
 	const computeShaderParams = {
 		outputTex: textureStore( outputTex ),
+		smoothNormals: uniform( 1 ),
 
 		// transforms
 		inverseProjectionMatrix: uniform( new THREE.Matrix4() ),
@@ -102,6 +103,7 @@ function init() {
 
 		fn compute(
 			outputTex: texture_storage_2d<rgba8unorm, write>,
+			smoothNormals: u32,
 			inverseProjectionMatrix: mat4x4f,
 			cameraToModelMatrix: mat4x4f,
 			bvh_position: ptr<storage, array<vec3f>, read>,
@@ -125,31 +127,29 @@ function init() {
 			// get hit result
 			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray );
 
-			// sample normal attribute
-			let normal = normalize( getVertexAttribute( hitResult.barycoord, hitResult.faceIndices.xyz, normals ) );
+			// write result
+			if ( hitResult.didHit ) {
 
-			// write color
-			let background = vec4f( 0.0366, 0.0813, 0.1057, 1.0 );
-			let result = select( background, vec4f( normal, 1.0 ), hitResult.didHit );
-			textureStore( outputTex, indexUV, result );
+				let normal = select(
+					hitResult.normal,
+					normalize( getVertexAttribute( hitResult.barycoord, hitResult.indices.xyz, normals ) ),
+					smoothNormals > 0u,
+				);
+				textureStore( outputTex, indexUV, vec4f( normal, 1.0 ) );
+
+			} else {
+
+				let background = vec4f( 0.0366, 0.0813, 0.1057, 1.0 );
+				textureStore( outputTex, indexUV, background );
+
+			}
 
 		}
 
 		const BVH_STACK_DEPTH = 60u;
 		const INFINITY = 1e20;
 		const TRI_INTERSECT_EPSILON = 1e-5;
-
-		struct IntersectionResult {
-			didHit: bool,
-			faceIndices: vec4u,
-			faceNormal: vec3f,
-			barycoord: vec3f,
-			side: f32,
-			dist: f32,
-		};
-	`, [
-		ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute
-	] );
+	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute, intersectionResultStruct ] );
 
 	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
@@ -178,12 +178,7 @@ function init() {
 	gui = new GUI();
 	gui.add( params, 'enableRaytracing' );
 	gui.add( params, 'animate' );
-	gui.add( params, 'smoothNormals' ).onChange( v => {
-
-		fsQuad.material.defines.SMOOTH_NORMALS = Number( v );
-		fsQuad.material.needsUpdate = true;
-
-	} );
+	gui.add( params, 'smoothNormals' );
 	gui.add( params, 'resolutionScale', 0.1, 2, 0.01 ).onChange( resize );
 	gui.open();
 
@@ -242,6 +237,7 @@ function render() {
 		mesh.updateMatrixWorld();
 
 		computeBVH.computeNode.parameters.outputTex.value = outputTex;
+		computeBVH.computeNode.parameters.smoothNormals.value = Number( params.smoothNormals );
 		computeBVH.computeNode.parameters.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
 		computeBVH.computeNode.parameters.cameraToModelMatrix.value.copy( mesh.matrixWorld ).invert().multiply( camera.matrixWorld );
 		computeBVH.computeNode.parameters.workgroupSize.value.fromArray( WORKGROUP_SIZE );

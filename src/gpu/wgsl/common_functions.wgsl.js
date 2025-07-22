@@ -22,17 +22,28 @@ export const bvhNodeStruct = wgsl( /* wgsl */`
 	};
 `, [ bvhNodeBoundsStruct ] );
 
+export const intersectionResultStruct = wgsl( /* wgsl */`
+	struct IntersectionResult {
+		didHit: bool,
+		indices: vec4u,
+		normal: vec3f,
+		barycoord: vec3f,
+		side: f32,
+		dist: f32,
+	};
+` );
+
 export const getVertexAttribute = wgslFn( /* wgsl */`
 
 	fn getVertexAttribute(
 		barycoord: vec3f,
-		faceIndices: vec3u,
+		indices: vec3u,
 		attributeBuffer: ptr<storage, array<vec3f>, read>
 	) -> vec3f {
 
-		let n0 = attributeBuffer[ faceIndices.x ];
-		let n1 = attributeBuffer[ faceIndices.y ];
-		let n2 = attributeBuffer[ faceIndices.z ];
+		let n0 = attributeBuffer[ indices.x ];
+		let n1 = attributeBuffer[ indices.y ];
+		let n2 = attributeBuffer[ indices.z ];
 		return barycoord.x * n0 + barycoord.y * n1 + barycoord.z * n2;
 
 	}
