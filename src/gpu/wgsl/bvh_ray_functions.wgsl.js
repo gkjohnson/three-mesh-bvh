@@ -128,7 +128,7 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 			var boundsHitDistance: f32 = 0.0;
 
-			if ( !intersectsBVHNodeBounds( rayOrigin, rayDirection, bvh, currNodeIndex, &boundsHitDistance ) || boundsHitDistance > bestHit.dist ) {
+			if ( ! intersectsBVHNodeBounds( rayOrigin, rayDirection, node.bounds, &boundsHitDistance ) || boundsHitDistance > bestHit.dist ) {
 
 				continue;
 

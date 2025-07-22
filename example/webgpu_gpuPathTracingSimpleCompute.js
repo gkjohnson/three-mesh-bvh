@@ -152,9 +152,13 @@ function init() {
 
 		};
 
+		struct BVHBoundingBox {
+			min: array<f32, 3>,
+			max: array<f32, 3>,
+		}
+
 		struct BVHNode {
-			boundingBoxMin: array<f32, 3>,
-			boundingBoxMax: array<f32, 3>,
+			bounds: BVHBoundingBox,
 			rightChildOrTriangleOffset: u32,
 			splitAxisOrTriangleCount: u32,
 		};
