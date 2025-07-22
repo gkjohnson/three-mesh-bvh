@@ -55,9 +55,8 @@ function init() {
 	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.5 ) );
 
 	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10 );
 	camera.position.set( 0, 0, 4 );
-	camera.far = 100;
 	camera.updateProjectionMatrix();
 
 	// stats setup
@@ -122,13 +121,13 @@ function init() {
 			let ndc = uv * 2.0 - vec2f( 1.0 );
 
 			// scene ray
-			let ray = ndcToCameraRay( ndc, cameraToModelMatrix, inverseProjectionMatrix );
+			var ray = ndcToCameraRay( ndc, cameraToModelMatrix * inverseProjectionMatrix );
 
 			// get hit result
 			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray );
 
 			// write result
-			if ( hitResult.didHit ) {
+			if ( hitResult.didHit && hitResult.dist < 1.0 ) {
 
 				let normal = select(
 					hitResult.normal,

@@ -52,33 +52,22 @@ export const getVertexAttribute = wgslFn( /* wgsl */`
 
 export const ndcToCameraRay = wgslFn( /* wgsl*/`
 
-	fn ndcToCameraRay(
-		coord: vec2f,
-		cameraWorld: mat4x4f,
-		invProjectionMatrix: mat4x4f
-	) -> Ray {
+	fn ndcToCameraRay( ndc: vec2f, inverseModelViewProjection: mat4x4f ) -> Ray {
 
-		let lookDirection = cameraWorld * vec4f( 0.0, 0.0, -1.0, 0.0 );
-		let nearVector = invProjectionMatrix * vec4f( 0.0, 0.0, -1.0, 1.0 );
-		let near = abs( nearVector.z / nearVector.w );
+		// Calculate the ray by picking the points at the near and far plane and deriving the ray
+		// direction from the two points. This approach works for both orthographic and perspective
+		// camera projection matrices.
+		// The returned ray direction is not normalized and extends to the camera far plane.
+		var homogeneous = vec4f();
+		var ray = Ray();
 
-		var origin = cameraWorld * vec4f( 0.0, 0.0, 0.0, 1.0 );
-		var direction = invProjectionMatrix * vec4f( coord, 0.5, 1.0 );
+		homogeneous = inverseModelViewProjection * vec4f( ndc, 0.0, 1.0 );
+		ray.origin = homogeneous.xyz / homogeneous.w;
 
-		direction = direction / direction.w;
-		direction = ( cameraWorld * direction ) - origin;
+		homogeneous = inverseModelViewProjection * vec4f( ndc, 1.0, 1.0 );
+		ray.direction = ( homogeneous.xyz / homogeneous.w ) - ray.origin;
 
-		let slide = near / dot( direction.xyz, lookDirection.xyz );
-
-		origin = vec4f(
-			origin.xyz + direction.xyz * slide,
-			origin.w
-		);
-
-		return Ray(
-			origin.xyz,
-			direction.xyz
-		);
+		return ray;
 
 	}
 ` );
