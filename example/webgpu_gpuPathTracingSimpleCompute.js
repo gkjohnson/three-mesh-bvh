@@ -1,13 +1,13 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 import { WebGPURenderer, StorageBufferAttribute, StorageTexture, MeshBasicNodeMaterial } from 'three/webgpu';
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
-	attribute, uniform, wgslFn, varyingProperty, instanceIndex, textureStore, texture, colorSpaceToWorking,
+	attribute, uniform, wgslFn, varyingProperty, textureStore, texture, colorSpaceToWorking,
 	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix, workgroupId, localId
-} from "three/tsl";
+} from 'three/tsl';
 import { MeshBVH, SAH } from '../src/index.js';
 import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
@@ -25,8 +25,7 @@ let rtMaterial, computeBVH;
 let dispatchSize = [];
 
 
-await init();
-render();
+init();
 
 async function init() {
 
@@ -37,6 +36,7 @@ async function init() {
 		forceWebGL: false,
 
 	} );
+	renderer.setAnimationLoop( render );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setClearColor( 0x09141a );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -75,7 +75,7 @@ async function init() {
 
 	//------------------------end-threejs-setup-start-example-code-----------------------------------
 
-	const vUv = varyingProperty( "vec2", "vUv" );
+	const vUv = varyingProperty( 'vec2', 'vUv' );
 
 	const bvh_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
 	const bvh_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
@@ -116,8 +116,8 @@ async function init() {
 		projectionMatrix: cameraProjectionMatrix,
 		modelWorldMatrix: modelWorldMatrix,
 		cameraViewMatrix: cameraViewMatrix,
-		position: attribute( "position" ),
-		uv: attribute( "uv" ),
+		position: attribute( 'position' ),
+		uv: attribute( 'uv' ),
 	};
 
 	const fragmentShaderParams = {
@@ -289,8 +289,6 @@ function resize() {
 function render() {
 
 	stats.update();
-
-	requestAnimationFrame( render );
 
 	const delta = clock.getDelta();
 
