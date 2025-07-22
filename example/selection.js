@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
 	MeshBVHHelper,
 	MeshBVH,
-} from '..';
+} from 'three-mesh-bvh';
 import { LassoSelection, BoxSelection } from "./src/Selection.js";
 import { computeSelectedTriangles } from "./src/computeSelectedTriangles.js";
 

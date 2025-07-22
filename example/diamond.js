@@ -9,7 +9,7 @@ import {
 	MeshBVHUniformStruct,
 	BVHShaderGLSL,
 	SAH
-} from '../src/index.js';
+} from 'three-mesh-bvh';
 
 let scene, camera, renderer, environment, controls, diamond, gui, stats, clock;
 

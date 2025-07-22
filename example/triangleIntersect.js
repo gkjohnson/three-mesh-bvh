@@ -2,7 +2,7 @@ import Stats from 'stats.js';
 import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { ExtendedTriangle } from '../src/index.js';
+import { ExtendedTriangle } from 'three-mesh-bvh';
 
 
 const params = {
