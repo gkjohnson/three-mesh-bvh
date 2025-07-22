@@ -10,7 +10,7 @@ import {
 	storage, workgroupId, localId,
 } from 'three/tsl';
 import { MeshBVH, SAH } from '../src/index.js';
-import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, getVertexAttribute } from '../src/gpu/wgsl/common_functions.wgsl.js';
+import { intersectsBounds, ndcToCameraRay, getVertexAttribute } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
 
 const params = {
@@ -123,7 +123,7 @@ function init() {
 			let ray = ndcToCameraRay( ndc, cameraToModelMatrix, inverseProjectionMatrix );
 
 			// get hit result
-			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray.origin, ray.direction );
+			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray );
 
 			// sample normal attribute
 			let normal = normalize( getVertexAttribute( hitResult.barycoord, hitResult.faceIndices.xyz, normals ) );
@@ -164,9 +164,8 @@ function init() {
 			splitAxisOrTriangleCount: u32,
 		};
 	`, [
-		ndcToCameraRay, intersectsBVHNodeBounds, intersectsBounds,
-		bvhIntersectFirstHit, intersectsTriangle, intersectTriangles,
-		getVertexAttribute
+		ndcToCameraRay, intersectsBounds, bvhIntersectFirstHit,
+		intersectsTriangle, intersectTriangles, getVertexAttribute
 	] );
 
 	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );

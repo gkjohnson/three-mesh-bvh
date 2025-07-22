@@ -48,23 +48,22 @@ export const ndcToCameraRay = wgslFn( /* wgsl*/`
 		);
 
 	}
-
 ` );
 
 export const intersectsBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBounds(
-		rayOrigin: vec3f,
-		rayDirection: vec3f,
-		boundsMin: vec3f,
-		boundsMax: vec3f,
+		ray: Ray,
+		bounds: BVHBoundingBox,
 		dist: ptr<function, f32>
 	) -> bool {
 
-		let invDir = 1.0 / rayDirection;
+		let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
+		let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
 
-		let tMinPlane = ( boundsMin - rayOrigin ) * invDir;
-		let tMaxPlane = ( boundsMax - rayOrigin ) * invDir;
+		let invDir = 1.0 / ray.direction;
+		let tMinPlane = ( boundsMin - ray.origin ) * invDir;
+		let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
 
 		let tMinHit = vec3f(
 			min( tMinPlane.x, tMaxPlane.x ),
@@ -84,23 +83,6 @@ export const intersectsBounds = wgslFn( /* wgsl */`
 		( *dist ) = max( t0, 0.0 );
 
 		return t1 >= ( *dist );
-
-	}
-
-` );
-
-export const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
-
-	fn intersectsBVHNodeBounds(
-		rayOrigin: vec3f,
-		rayDirection: vec3f,
-		bounds: BVHBoundingBox,
-		dist: ptr<function, f32>
-		) -> bool {
-
-		let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
-		let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
-		return intersectsBounds( rayOrigin, rayDirection, boundsMin, boundsMax, dist );
 
 	}
 

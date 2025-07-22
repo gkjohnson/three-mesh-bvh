@@ -3,7 +3,7 @@ import { wgslFn } from 'three/tsl';
 export const intersectsTriangle = wgslFn( /* wgsl */ `
 
 	fn intersectsTriangle(
-		rayOrigin: vec3f, rayDirection: vec3f,
+		ray: Ray,
 		a: vec3f, b: vec3f, c: vec3f
 	) -> IntersectionResult {
 
@@ -14,7 +14,7 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 		let edge2 = c - a;
 		let n = cross( edge1, edge2 );
 
-		let det = -dot( rayDirection, n );
+		let det = -dot( ray.direction, n );
 
 		if ( abs(det) < TRI_INTERSECT_EPSILON ) {
 
@@ -24,8 +24,8 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 
 		let invdet = 1.0 / det;
 
-		let AO = rayOrigin - a;
-		let DAO = cross( AO, rayDirection );
+		let AO = ray.origin - a;
+		let DAO = cross( AO, ray.direction );
 
 		let u = dot( edge2, DAO ) * invdet;
 		let v = -dot( edge1, DAO ) * invdet;
@@ -58,8 +58,7 @@ export const intersectTriangles = wgslFn( /* wgsl */ `
 		bvh_index: ptr<storage, array<vec3u>, read>,
 		offset: u32,
 		count: u32,
-		rayOrigin: vec3f,
-		rayDirection: vec3f
+		ray: Ray
 	) -> IntersectionResult {
 
 		var closestResult: IntersectionResult;
@@ -74,7 +73,7 @@ export const intersectTriangles = wgslFn( /* wgsl */ `
 			let b = bvh_position[ indices.y ];
 			let c = bvh_position[ indices.z ];
 
-			var triResult = intersectsTriangle( rayOrigin, rayDirection, a, b, c );
+			var triResult = intersectsTriangle( ray, a, b, c );
 
 			if ( triResult.didHit && triResult.dist < closestResult.dist ) {
 
@@ -97,8 +96,7 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 		bvh_index: ptr<storage, array<vec3u>, read>,
 		bvh_position: ptr<storage, array<vec3f>, read>,
 		bvh: ptr<storage, array<BVHNode>,read>,
-		rayOrigin: vec3f,
-		rayDirection: vec3f
+		ray: Ray,
 	) -> IntersectionResult {
 
 		var ptr = 0;
@@ -125,7 +123,7 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 			var boundsHitDistance: f32 = 0.0;
 
-			if ( ! intersectsBVHNodeBounds( rayOrigin, rayDirection, node.bounds, &boundsHitDistance ) || boundsHitDistance > bestHit.dist ) {
+			if ( ! intersectsBounds( ray, node.bounds, &boundsHitDistance ) || boundsHitDistance > bestHit.dist ) {
 
 				continue;
 
@@ -143,7 +141,7 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 				let localHit = intersectTriangles(
 					bvh_position, bvh_index, offset,
-					count, rayOrigin, rayDirection
+					count, ray
 				);
 
 				if ( localHit.didHit && localHit.dist < bestHit.dist ) {
@@ -158,7 +156,7 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 				let splitAxis = boundsInfox & 0x0000ffffu;
 				let rightIndex = 4u * boundsInfoy / 32u;
 
-				let leftToRight = rayDirection[splitAxis] >= 0.0;
+				let leftToRight = ray.direction[splitAxis] >= 0.0;
 				let c1 = select( rightIndex, leftIndex, leftToRight );
 				let c2 = select( leftIndex, rightIndex, leftToRight );
 
