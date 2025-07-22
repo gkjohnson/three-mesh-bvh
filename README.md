@@ -62,6 +62,10 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Gem Refraction Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/diamond.html)
 
+**WebGPU Compute Shaders**
+
+[Simple Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_gpuPathTracingSimple.html)
+
 **External Projects**
 
 [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer)
