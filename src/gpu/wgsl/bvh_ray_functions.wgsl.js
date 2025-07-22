@@ -1,4 +1,5 @@
 import { wgslFn } from 'three/tsl';
+import { bvhNodeStruct, intersectsBounds, rayStruct } from './common_functions.wgsl.js';
 
 export const intersectsTriangle = wgslFn( /* wgsl */ `
 
@@ -49,7 +50,7 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 
 	}
 
-` );
+`, [ rayStruct ] );
 
 export const intersectTriangles = wgslFn( /* wgsl */ `
 
@@ -88,7 +89,7 @@ export const intersectTriangles = wgslFn( /* wgsl */ `
 
 	}
 
-` );
+`, [ intersectsTriangle, rayStruct ] );
 
 export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
@@ -174,4 +175,4 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	}
 
-` );
+`, [ intersectTriangles, intersectsBounds, rayStruct, bvhNodeStruct ] );

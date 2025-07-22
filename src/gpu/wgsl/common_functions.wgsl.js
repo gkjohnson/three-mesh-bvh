@@ -1,4 +1,26 @@
-import { wgslFn } from 'three/tsl';
+import { wgslFn, wgsl } from 'three/tsl';
+
+export const rayStruct = wgsl( /* wgsl */`
+	struct Ray {
+		origin: vec3<f32>,
+		direction: vec3<f32>,
+	};
+` );
+
+export const bvhNodeBoundsStruct = wgsl( /* wgsl */`
+	struct BVHBoundingBox {
+		min: array<f32, 3>,
+		max: array<f32, 3>,
+	}
+` );
+
+export const bvhNodeStruct = wgsl( /* wgsl */`
+	struct BVHNode {
+		bounds: BVHBoundingBox,
+		rightChildOrTriangleOffset: u32,
+		splitAxisOrTriangleCount: u32,
+	};
+`, [ bvhNodeBoundsStruct ] );
 
 export const getVertexAttribute = wgslFn( /* wgsl */`
 
@@ -86,4 +108,4 @@ export const intersectsBounds = wgslFn( /* wgsl */`
 
 	}
 
-` );
+`, [ rayStruct, bvhNodeBoundsStruct ] );

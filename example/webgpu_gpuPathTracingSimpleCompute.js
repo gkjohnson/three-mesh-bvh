@@ -102,15 +102,15 @@ function init() {
 
 		fn compute(
 			outputTex: texture_storage_2d<rgba8unorm, write>,
-			inverseProjectionMatrix: mat4x4<f32>,
-			cameraToModelMatrix: mat4x4<f32>,
-			bvh_position: ptr<storage, array<vec3<f32>>, read>,
-			bvh_index: ptr<storage, array<vec3<u32>>, read>,
+			inverseProjectionMatrix: mat4x4f,
+			cameraToModelMatrix: mat4x4f,
+			bvh_position: ptr<storage, array<vec3f>, read>,
+			bvh_index: ptr<storage, array<vec3u>, read>,
 			bvh: ptr<storage, array<BVHNode>, read>,
-			normals: ptr<storage, array<vec3<f32>>, read>,
-			workgroupSize: vec3<u32>,
-			workgroupId: vec3<u32>,
-			localId: vec3<u32>,
+			normals: ptr<storage, array<vec3f>, read>,
+			workgroupSize: vec3u,
+			workgroupId: vec3u,
+			localId: vec3u,
 		) -> void {
 
 			// to screen coordinates
@@ -139,33 +139,16 @@ function init() {
 		const INFINITY = 1e20;
 		const TRI_INTERSECT_EPSILON = 1e-5;
 
-		struct Ray {
-			origin: vec3<f32>,
-			direction: vec3<f32>,
-		};
-
 		struct IntersectionResult {
 			didHit: bool,
-			faceIndices: vec4<u32>,
-			faceNormal: vec3<f32>,
-			barycoord: vec3<f32>,
+			faceIndices: vec4u,
+			faceNormal: vec3f,
+			barycoord: vec3f,
 			side: f32,
 			dist: f32,
 		};
-
-		struct BVHBoundingBox {
-			min: array<f32, 3>,
-			max: array<f32, 3>,
-		}
-
-		struct BVHNode {
-			bounds: BVHBoundingBox,
-			rightChildOrTriangleOffset: u32,
-			splitAxisOrTriangleCount: u32,
-		};
 	`, [
-		ndcToCameraRay, intersectsBounds, bvhIntersectFirstHit,
-		intersectsTriangle, intersectTriangles, getVertexAttribute
+		ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute
 	] );
 
 	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
@@ -173,7 +156,7 @@ function init() {
 	// screen quad
 	const vUv = varyingProperty( 'vec2', 'vUv' );
 	const wgslVertexShader = wgslFn( /* wgsl */`
-		fn vertex( position: vec3f, uv: vec2f ) -> vec3<f32> {
+		fn vertex( position: vec3f, uv: vec2f ) -> vec3f {
 			varyings.vUv = uv;
 			return position;
 		}
