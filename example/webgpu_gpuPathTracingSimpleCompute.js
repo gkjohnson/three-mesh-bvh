@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { WebGPURenderer, StorageBufferAttribute, StorageTexture, MeshBasicNodeMaterial } from 'three/webgpu';
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
@@ -7,16 +8,9 @@ import {
 	attribute, uniform, wgslFn, varyingProperty, instanceIndex, textureStore, texture, colorSpaceToWorking,
 	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix, workgroupId, localId
 } from "three/tsl";
-
-
-import {
-	MeshBVH,
-	SAH
-} from '../src/index.js';
-
+import { MeshBVH, SAH } from '../src/index.js';
 import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
-
 
 const params = {
 	enableRaytracing: true,
@@ -36,7 +30,7 @@ render();
 
 async function init() {
 
-	renderer = new THREE.WebGPURenderer( {
+	renderer = new WebGPURenderer( {
 
 		canvas: document.createElement( 'canvas' ),
 		antialias: true,
@@ -81,7 +75,7 @@ async function init() {
 
 	//------------------------end-threejs-setup-start-example-code-----------------------------------
 
-	const vUv = varyingProperty( "vec2", "vUv" );  
+	const vUv = varyingProperty( "vec2", "vUv" );
 
 	const bvh_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
 	const bvh_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
@@ -91,7 +85,7 @@ async function init() {
 	const width = Math.ceil( window.innerWidth );
 	const height = Math.ceil( window.innerHeight );
 
-	const rayTex = new THREE.StorageTexture( width, height );
+	const rayTex = new StorageTexture( width, height );
 	rayTex.format = THREE.RGBAFormat;
 	rayTex.type = THREE.UnsignedByteType;
 	rayTex.magFilter = THREE.LinearFilter;
@@ -252,7 +246,7 @@ async function init() {
 
 	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroupSize );
 
-	rtMaterial = new THREE.MeshBasicNodeMaterial();
+	rtMaterial = new MeshBasicNodeMaterial();
 	rtMaterial.vertexNode = vertexShader( vertexShaderParams );
 	rtMaterial.fragmentNode = colorSpaceToWorking( fragmentShader( fragmentShaderParams ), THREE.SRGBColorSpace );
 
