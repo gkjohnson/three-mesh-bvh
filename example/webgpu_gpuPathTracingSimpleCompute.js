@@ -22,7 +22,7 @@ const params = {
 
 let renderer, camera, scene, gui, stats;
 let fsQuad, mesh, clock, controls;
-let fsMaterial, computeBVH, outputTex;
+let fsMaterial, computeKernel, outputTex;
 let dispatchSize = [];
 const WORKGROUP_SIZE = [ 8, 8, 1 ];
 
@@ -151,7 +151,7 @@ function init() {
 		const TRI_INTERSECT_EPSILON = 1e-5;
 	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute, intersectionResultStruct ] );
 
-	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
+	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
 	// screen quad
 	const vUv = varyingProperty( 'vec2', 'vUv' );
@@ -236,12 +236,12 @@ function render() {
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
-		computeBVH.computeNode.parameters.outputTex.value = outputTex;
-		computeBVH.computeNode.parameters.smoothNormals.value = Number( params.smoothNormals );
-		computeBVH.computeNode.parameters.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
-		computeBVH.computeNode.parameters.cameraToModelMatrix.value.copy( mesh.matrixWorld ).invert().multiply( camera.matrixWorld );
-		computeBVH.computeNode.parameters.workgroupSize.value.fromArray( WORKGROUP_SIZE );
-		renderer.compute( computeBVH, dispatchSize );
+		computeKernel.computeNode.parameters.outputTex.value = outputTex;
+		computeKernel.computeNode.parameters.smoothNormals.value = Number( params.smoothNormals );
+		computeKernel.computeNode.parameters.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
+		computeKernel.computeNode.parameters.cameraToModelMatrix.value.copy( mesh.matrixWorld ).invert().multiply( camera.matrixWorld );
+		computeKernel.computeNode.parameters.workgroupSize.value.fromArray( WORKGROUP_SIZE );
+		renderer.compute( computeKernel, dispatchSize );
 
 		fsMaterial.colorNode.colorNode.value = outputTex;
 		fsQuad.render( renderer );
