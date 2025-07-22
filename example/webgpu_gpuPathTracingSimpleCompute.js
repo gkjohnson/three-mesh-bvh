@@ -108,29 +108,24 @@ function init() {
 			localId: vec3<u32>,
 		) -> void {
 
+			// to screen coordinates
 			let dimensions = textureDimensions( writeTex );
 			let indexUV = workgroupSize.xy * workgroupId.xy + localId.xy;
+			let uv = vec2f( indexUV ) / vec2f( dimensions );
+			let ndc = uv * 2.0 - vec2f( 1.0 );
 
-			let uv = vec2f( f32( indexUV.x ) / f32( dimensions.x ), f32( indexUV.y ) / f32( dimensions.y ) );
-
-			let ndc = uv * 2.0 - vec2<f32>( 1.0, 1.0 );
-
+			// scene ray
 			let ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
 
+			// get hit result
 			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray.origin, ray.direction );
 
-			let normal = normalSampleBarycoord(
-				hitResult.barycoord,
-				hitResult.faceIndices.xyz,
-				normals
-			);
+			// sample normal attribute
+			let normal = normalSampleBarycoord( hitResult.barycoord, hitResult.faceIndices.xyz, normals );
 
-			let result = select(
-				vec4<f32>( 0.0366, 0.0813, 0.1057, 1.0 ),
-				vec4<f32>( normal, 1.0 ),
-				hitResult.didHit
-			);
-
+			// write color
+			let background = vec4f( 0.0366, 0.0813, 0.1057, 1.0 );
+			let result = select( background, vec4f( normal, 1.0 ), hitResult.didHit );
 			textureStore( writeTex, indexUV, result );
 
 		}
