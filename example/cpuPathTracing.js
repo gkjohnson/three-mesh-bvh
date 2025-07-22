@@ -16,7 +16,7 @@ import {
 } from 'three-mesh-bvh';
 import {
 	GenerateMeshBVHWorker,
-} from '../src/workers/GenerateMeshBVHWorker.js';
+} from 'three-mesh-bvh/worker';
 import { ANTIALIAS_OFFSETS, ANTIALIAS_WIDTH, EPSILON, getBasisFromNormal, isDirectionValid } from './pathtracing/utils.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;

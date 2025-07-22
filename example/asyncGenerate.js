@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { ParallelMeshBVHWorker } from '../src/workers/ParallelMeshBVHWorker.js';
+import { ParallelMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { AVERAGE, CENTER, MeshBVH, MeshBVHHelper, SAH } from 'three-mesh-bvh';
 
 // Parallel BVH generation is only supported with SharedArrayBuffer

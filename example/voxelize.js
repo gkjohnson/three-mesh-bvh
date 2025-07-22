@@ -6,7 +6,7 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { MeshBVH } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 let renderer, camera, scene, gui, stats, outputContainer;
 let voxels, controls, boxHelper;

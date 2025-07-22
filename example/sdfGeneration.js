@@ -4,7 +4,7 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
-import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
 import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
