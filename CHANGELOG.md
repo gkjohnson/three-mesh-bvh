@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.9.2] - Unreleased
+### Added
+- Types for web workers.
+- Add "three-mesh-bvh/worker"  export.
+
 ### Fixed
 - Type definitions.
 - Case where raycasting results would not match three.js' behavior.
