@@ -20,14 +20,15 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats;
-let rtQuad, mesh, clock;
-let rtMaterial, computeBVH;
+let fsQuad, mesh, clock, controls;
+let fsMaterial, computeBVH;
 let dispatchSize = [];
 
 init();
 
-async function init() {
+function init() {
 
+	// renderer
 	renderer = new WebGPURenderer( {
 
 		canvas: document.createElement( 'canvas' ),
@@ -42,9 +43,7 @@ async function init() {
 	renderer.outputColorSpace = THREE.SRGBColorSpace;
 	document.body.appendChild( renderer.domElement );
 
-	await renderer.init();
-
-	// scene setup
+	// scene init
 	scene = new THREE.Scene();
 
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
@@ -62,18 +61,16 @@ async function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	// scene init
 	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.3, 300, 50 );
-
 	const bvh = new MeshBVH( knotGeometry, { maxLeafTris: 1, strategy: SAH } );
-
-
 	mesh = new THREE.Mesh( knotGeometry, new THREE.MeshStandardMaterial() );
 	scene.add( mesh );
 
+	// animation
 	clock = new THREE.Clock();
 
-	//------------------------end-threejs-setup-start-example-code-----------------------------------
-
+	// TSL
 	const vUv = varyingProperty( 'vec2', 'vUv' );
 
 	const bvh_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
@@ -240,31 +237,31 @@ async function init() {
 
 	` );
 
-
 	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroupSize );
 
-	rtMaterial = new MeshBasicNodeMaterial();
-	rtMaterial.vertexNode = vertexShader( vertexShaderParams );
-	rtMaterial.fragmentNode = colorSpaceToWorking( fragmentShader( fragmentShaderParams ), THREE.SRGBColorSpace );
+	// screen quad
+	fsMaterial = new MeshBasicNodeMaterial();
+	fsMaterial.vertexNode = vertexShader( vertexShaderParams );
+	fsMaterial.fragmentNode = colorSpaceToWorking( fragmentShader( fragmentShaderParams ), THREE.SRGBColorSpace );
+	fsQuad = new FullScreenQuad( fsMaterial );
 
+	// controls
+	controls = new OrbitControls( camera, renderer.domElement );
 
-	rtQuad = new FullScreenQuad( rtMaterial );
-
-
-	new OrbitControls( camera, renderer.domElement );
-
+	// gui
 	gui = new GUI();
 	gui.add( params, 'enableRaytracing' );
 	gui.add( params, 'animate' );
 	gui.add( params, 'smoothNormals' ).onChange( v => {
 
-		rtQuad.material.defines.SMOOTH_NORMALS = Number( v );
-		rtQuad.material.needsUpdate = true;
+		fsQuad.material.defines.SMOOTH_NORMALS = Number( v );
+		fsQuad.material.needsUpdate = true;
 
 	} );
-	gui.add( params, 'resolutionScale', 0.1, 1, 0.01 ).onChange( resize );
+	gui.add( params, 'resolutionScale', 0.1, 2, 0.01 ).onChange( resize );
 	gui.open();
 
+	// resize
 	window.addEventListener( 'resize', resize, false );
 	resize();
 
@@ -272,12 +269,13 @@ async function init() {
 
 function resize() {
 
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
 	const w = window.innerWidth;
 	const h = window.innerHeight;
-	const dpr = window.devicePixelRatio * params.resolutionScale;
+	const dpr = window.devicePixelRatio;
+
+	camera.aspect = w / h;
+	camera.updateProjectionMatrix();
+
 	renderer.setSize( w, h );
 	renderer.setPixelRatio( dpr );
 
@@ -306,7 +304,7 @@ function render() {
 		computeBVH.computeNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
 		renderer.compute( computeBVH, dispatchSize );
 
-		rtQuad.render( renderer );
+		fsQuad.render( renderer );
 
 	} else {
 
