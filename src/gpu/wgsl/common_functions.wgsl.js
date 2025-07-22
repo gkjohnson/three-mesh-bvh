@@ -6,7 +6,7 @@ export const getVertexAttribute = wgslFn( /* wgsl */`
 		barycoord: vec3f,
 		faceIndices: vec3u,
 		attributeBuffer: ptr<storage, array<vec3f>, read>
-	) -> vec3<f32> {
+	) -> vec3f {
 
 		let n0 = attributeBuffer[ faceIndices.x ];
 		let n1 = attributeBuffer[ faceIndices.y ];
@@ -20,24 +20,24 @@ export const getVertexAttribute = wgslFn( /* wgsl */`
 export const ndcToCameraRay = wgslFn( /* wgsl*/`
 
 	fn ndcToCameraRay(
-		coord: vec2<f32>,
-		cameraWorld: mat4x4<f32>,
-		invProjectionMatrix: mat4x4<f32>
+		coord: vec2f,
+		cameraWorld: mat4x4f,
+		invProjectionMatrix: mat4x4f
 	) -> Ray {
 
-		let lookDirection = cameraWorld * vec4<f32>( 0.0, 0.0, -1.0, 0.0 );
-		let nearVector = invProjectionMatrix * vec4<f32>( 0.0, 0.0, -1.0, 1.0 );
+		let lookDirection = cameraWorld * vec4f( 0.0, 0.0, -1.0, 0.0 );
+		let nearVector = invProjectionMatrix * vec4f( 0.0, 0.0, -1.0, 1.0 );
 		let near = abs( nearVector.z / nearVector.w );
 
-		var origin = cameraWorld * vec4<f32>( 0.0, 0.0, 0.0, 1.0 );
-		var direction = invProjectionMatrix * vec4<f32>( coord, 0.5, 1.0 );
+		var origin = cameraWorld * vec4f( 0.0, 0.0, 0.0, 1.0 );
+		var direction = invProjectionMatrix * vec4f( coord, 0.5, 1.0 );
 
 		direction = direction / direction.w;
 		direction = ( cameraWorld * direction ) - origin;
 
 		let slide = near / dot( direction.xyz, lookDirection.xyz );
 
-		origin = vec4<f32>(
+		origin = vec4f(
 			origin.xyz + direction.xyz * slide,
 			origin.w
 		);
@@ -54,10 +54,10 @@ export const ndcToCameraRay = wgslFn( /* wgsl*/`
 export const intersectsBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBounds(
-		rayOrigin: vec3<f32>,
-		rayDirection: vec3<f32>,
-		boundsMin: vec3<f32>,
-		boundsMax: vec3<f32>,
+		rayOrigin: vec3f,
+		rayDirection: vec3f,
+		boundsMin: vec3f,
+		boundsMax: vec3f,
 		dist: ptr<function, f32>
 	) -> bool {
 
@@ -66,13 +66,13 @@ export const intersectsBounds = wgslFn( /* wgsl */`
 		let tMinPlane = ( boundsMin - rayOrigin ) * invDir;
 		let tMaxPlane = ( boundsMax - rayOrigin ) * invDir;
 
-		let tMinHit = vec3<f32>(
+		let tMinHit = vec3f(
 			min( tMinPlane.x, tMaxPlane.x ),
 			min( tMinPlane.y, tMaxPlane.y ),
 			min( tMinPlane.z, tMaxPlane.z )
 		);
 
-		let tMaxHit = vec3<f32>(
+		let tMaxHit = vec3f(
 			max( tMinPlane.x, tMaxPlane.x ),
 			max( tMinPlane.y, tMaxPlane.y ),
 			max( tMinPlane.z, tMaxPlane.z )
@@ -92,8 +92,8 @@ export const intersectsBounds = wgslFn( /* wgsl */`
 export const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBVHNodeBounds(
-		rayOrigin: vec3<f32>,
-		rayDirection: vec3<f32>,
+		rayOrigin: vec3f,
+		rayDirection: vec3f,
 		bounds: BVHBoundingBox,
 		dist: ptr<function, f32>
 		) -> bool {

@@ -3,8 +3,8 @@ import { wgslFn } from 'three/tsl';
 export const intersectsTriangle = wgslFn( /* wgsl */ `
 
 	fn intersectsTriangle(
-		rayOrigin: vec3<f32>, rayDirection: vec3<f32>,
-		a: vec3<f32>, b: vec3<f32>, c: vec3<f32>
+		rayOrigin: vec3f, rayDirection: vec3f,
+		a: vec3f, b: vec3f, c: vec3f
 	) -> IntersectionResult {
 
 		var result: IntersectionResult;
@@ -40,7 +40,7 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 		}
 
 		result.didHit = true;
-		result.barycoord = vec3<f32>( w, u, v );
+		result.barycoord = vec3f( w, u, v );
 		result.dist = t;
 		result.side = sign( det );
 		result.faceNormal = result.side * normalize( n );
@@ -54,12 +54,12 @@ export const intersectsTriangle = wgslFn( /* wgsl */ `
 export const intersectTriangles = wgslFn( /* wgsl */ `
 
 	fn intersectTriangles(
-		bvh_position: ptr<storage, array<vec3<f32>>, read>,
-		bvh_index: ptr<storage, array<vec3<u32>>, read>,
+		bvh_position: ptr<storage, array<vec3f>, read>,
+		bvh_index: ptr<storage, array<vec3u>, read>,
 		offset: u32,
 		count: u32,
-		rayOrigin: vec3<f32>,
-		rayDirection: vec3<f32>
+		rayOrigin: vec3f,
+		rayDirection: vec3f
 	) -> IntersectionResult {
 
 		var closestResult: IntersectionResult;
@@ -94,11 +94,11 @@ export const intersectTriangles = wgslFn( /* wgsl */ `
 export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	fn bvhIntersectFirstHit(
-		bvh_index: ptr<storage, array<vec3<u32>>, read>,
-		bvh_position: ptr<storage, array<vec3<f32>>, read>,
+		bvh_index: ptr<storage, array<vec3u>, read>,
+		bvh_position: ptr<storage, array<vec3f>, read>,
 		bvh: ptr<storage, array<BVHNode>,read>,
-		rayOrigin: vec3<f32>,
-		rayDirection: vec3<f32>
+		rayOrigin: vec3f,
+		rayDirection: vec3f
 	) -> IntersectionResult {
 
 		var ptr = 0;
