@@ -24,7 +24,6 @@ let rtQuad, mesh, clock;
 let rtMaterial, computeBVH;
 let dispatchSize = [];
 
-
 init();
 
 async function init() {
@@ -110,7 +109,7 @@ async function init() {
 		workgroupSize: uniform( new THREE.Vector3().fromArray( workgroupSize ) ),
 		workgroupId: workgroupId,
 		localId: localId
-	}
+	};
 
 	const vertexShaderParams = {
 		projectionMatrix: cameraProjectionMatrix,
@@ -127,7 +126,7 @@ async function init() {
 	};
 
 
-	const computeShader = wgslFn(`
+	const computeShader = wgslFn( /* wgsl */`
 
 		fn compute(
 			writeTex: texture_storage_2d<rgba8unorm, write>,
@@ -207,8 +206,7 @@ async function init() {
 
 	] );
 
-
-	const vertexShader = wgslFn(`
+	const vertexShader = wgslFn( /* wgsl */`
 
 		fn vertexShader(
 			projectionMatrix: mat4x4<f32>,
@@ -228,8 +226,7 @@ async function init() {
 
 	`, [ vUv ] );
 
-
-	const fragmentShader = wgslFn(`
+	const fragmentShader = wgslFn( /* wgsl */`
 
 		fn fragmentShader(
 			vUv: vec2<f32>,
@@ -241,7 +238,7 @@ async function init() {
 
 		}
 
-	`);
+	` );
 
 
 	computeBVH = computeShader( computeShaderParams ).computeKernel( workgroupSize );
