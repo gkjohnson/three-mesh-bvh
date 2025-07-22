@@ -6,13 +6,13 @@ export * from './utils/ExtensionUtilities.js';
 export { getTriangleHitPointInfo } from './utils/TriangleUtilities.js';
 export * from './math/ExtendedTriangle.js';
 export * from './math/OrientedBox.js';
-export * from './gpu/MeshBVHUniformStruct.js';
-export * from './gpu/VertexAttributeTexture.js';
+export * from './webgl/MeshBVHUniformStruct.js';
+export * from './webgl/VertexAttributeTexture.js';
 export * from './utils/StaticGeometryGenerator.js';
-export * as BVHShaderGLSL from './gpu/BVHShaderGLSL.js';
+export * as BVHShaderGLSL from './webgl/BVHShaderGLSL.js';
 
 // backwards compatibility
-import * as BVHShaderGLSL from './gpu/BVHShaderGLSL.js';
+import * as BVHShaderGLSL from './webgl/BVHShaderGLSL.js';
 export const shaderStructs = BVHShaderGLSL.bvh_struct_definitions;
 export const shaderDistanceFunction = BVHShaderGLSL.bvh_distance_functions;
 export const shaderIntersectFunction = `
