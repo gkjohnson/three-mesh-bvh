@@ -4,6 +4,14 @@
   "description": "A BVH implementation to speed up raycasting against three.js meshes.",
   "module": "src/index.js",
   "main": "build/index.umd.cjs",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./build/index.umd.cjs"
+    },
+    "./worker": "./src/workers/index.js",
+    "./src/*": "./src/*"
+  },
   "type": "module",
   "types": "src/index.d.ts",
   "sideEffects": false,
