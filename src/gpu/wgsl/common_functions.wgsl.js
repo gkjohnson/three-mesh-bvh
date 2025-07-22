@@ -1,30 +1,23 @@
 import { wgslFn } from 'three/tsl';
 
+export const getVertexAttribute = wgslFn( /* wgsl */`
 
-const normalSampleBarycoord = wgslFn( /* wgsl */`
-
-	fn normalSampleBarycoord(
-		barycoord: vec3<f32>,
-		faceIndices: vec3<u32>,
-		normalBuffer: ptr<storage, array<vec3<f32>>, read>
+	fn getVertexAttribute(
+		barycoord: vec3f,
+		faceIndices: vec3u,
+		attributeBuffer: ptr<storage, array<vec3f>, read>
 	) -> vec3<f32> {
 
-		let n0 = normalBuffer[ faceIndices.x ].xyz;
-		let n1 = normalBuffer[ faceIndices.y ].xyz;
-		let n2 = normalBuffer[ faceIndices.z ].xyz;
-
-		return normalize(
-			barycoord.x * n0 +
-			barycoord.y * n1 +
-			barycoord.z * n2
-		);
+		let n0 = attributeBuffer[ faceIndices.x ];
+		let n1 = attributeBuffer[ faceIndices.y ];
+		let n2 = attributeBuffer[ faceIndices.z ];
+		return barycoord.x * n0 + barycoord.y * n1 + barycoord.z * n2;
 
 	}
 
 ` );
 
-
-const ndcToCameraRay = wgslFn( /* wgsl*/`
+export const ndcToCameraRay = wgslFn( /* wgsl*/`
 
 	fn ndcToCameraRay(
 		coord: vec2<f32>,
@@ -58,8 +51,7 @@ const ndcToCameraRay = wgslFn( /* wgsl*/`
 
 ` );
 
-
-const intersectsBounds = wgslFn( /* wgsl */`
+export const intersectsBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBounds(
 		rayOrigin: vec3<f32>,
@@ -97,8 +89,7 @@ const intersectsBounds = wgslFn( /* wgsl */`
 
 ` );
 
-
-const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
+export const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBVHNodeBounds(
 		rayOrigin: vec3<f32>,
@@ -114,6 +105,3 @@ const intersectsBVHNodeBounds = wgslFn( /* wgsl */`
 	}
 
 ` );
-
-
-export { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord };

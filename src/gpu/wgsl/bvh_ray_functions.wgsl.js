@@ -1,7 +1,6 @@
 import { wgslFn } from 'three/tsl';
 
-
-const intersectsTriangle = wgslFn( /* wgsl */ `
+export const intersectsTriangle = wgslFn( /* wgsl */ `
 
 	fn intersectsTriangle(
 		rayOrigin: vec3<f32>, rayDirection: vec3<f32>,
@@ -17,7 +16,7 @@ const intersectsTriangle = wgslFn( /* wgsl */ `
 
 		let det = -dot( rayDirection, n );
 
-		if abs(det) < TRI_INTERSECT_EPSILON {
+		if ( abs(det) < TRI_INTERSECT_EPSILON ) {
 
 			return result;
 
@@ -34,7 +33,7 @@ const intersectsTriangle = wgslFn( /* wgsl */ `
 
 		let w = 1.0 - u - v;
 
-		if u < -TRI_INTERSECT_EPSILON || v < -TRI_INTERSECT_EPSILON || w < -TRI_INTERSECT_EPSILON {
+		if ( u < -TRI_INTERSECT_EPSILON || v < -TRI_INTERSECT_EPSILON || w < -TRI_INTERSECT_EPSILON ) {
 
 			return result;
 
@@ -52,8 +51,7 @@ const intersectsTriangle = wgslFn( /* wgsl */ `
 
 ` );
 
-
-const intersectTriangles = wgslFn( /* wgsl */ `
+export const intersectTriangles = wgslFn( /* wgsl */ `
 
 	fn intersectTriangles(
 		bvh_position: ptr<storage, array<vec3<f32>>, read>,
@@ -78,7 +76,7 @@ const intersectTriangles = wgslFn( /* wgsl */ `
 
 			var triResult = intersectsTriangle( rayOrigin, rayDirection, a, b, c );
 
-			if triResult.didHit && triResult.dist < closestResult.dist {
+			if ( triResult.didHit && triResult.dist < closestResult.dist ) {
 
 				closestResult = triResult;
 				closestResult.faceIndices = vec4<u32>( indices.xyz, i );
@@ -93,8 +91,7 @@ const intersectTriangles = wgslFn( /* wgsl */ `
 
 ` );
 
-
-const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
+export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 	fn bvhIntersectFirstHit(
 		bvh_index: ptr<storage, array<vec3<u32>>, read>,
@@ -180,6 +177,3 @@ const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 	}
 
 ` );
-
-
-export { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit };

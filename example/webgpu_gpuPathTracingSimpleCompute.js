@@ -5,11 +5,12 @@ import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
-	attribute, uniform, wgslFn, varyingProperty, textureStore, texture, colorSpaceToWorking,
-	storage, workgroupId, localId
+	attribute, uniform, wgslFn, varyingProperty,
+	textureStore, texture, colorSpaceToWorking,
+	storage, workgroupId, localId,
 } from 'three/tsl';
 import { MeshBVH, SAH } from '../src/index.js';
-import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
+import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, getVertexAttribute } from '../src/gpu/wgsl/common_functions.wgsl.js';
 import { intersectsTriangle, intersectTriangles, bvhIntersectFirstHit } from '../src/gpu/wgsl/bvh_ray_functions.wgsl.js';
 
 const params = {
@@ -79,15 +80,20 @@ function init() {
 	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
 
 	const computeShaderParams = {
-		writeTex: textureStore( outputTex ),
-		invProjectionMatrix: uniform( new THREE.Matrix4() ),
-		cameraWorldMatrix: uniform( new THREE.Matrix4() ),
-		invModelMatrix: uniform( new THREE.Matrix4() ),
+		outputTex: textureStore( outputTex ),
+
+		// transforms
+		inverseProjectionMatrix: uniform( new THREE.Matrix4() ),
+		cameraToModelMatrix: uniform( new THREE.Matrix4() ),
+
+		// bvh and geometry definition
 		bvh_position: storage( bvh_position, 'vec3', bvh_position.count ).toReadOnly(),
 		bvh_index: storage( bvh_index, 'uvec3', bvh_index.count ).toReadOnly(),
 		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 		normals: storage( normals, 'vec3', normals.count ).toReadOnly(),
-		workgroupSize: uniform( new THREE.Vector3().fromArray( WORKGROUP_SIZE ) ),
+
+		// compute variables
+		workgroupSize: uniform( new THREE.Vector3() ),
 		workgroupId: workgroupId,
 		localId: localId
 	};
@@ -95,10 +101,9 @@ function init() {
 	const computeShader = wgslFn( /* wgsl */`
 
 		fn compute(
-			writeTex: texture_storage_2d<rgba8unorm, write>,
-			invProjectionMatrix: mat4x4<f32>,
-			cameraWorldMatrix: mat4x4<f32>,
-			invModelMatrix: mat4x4<f32>,
+			outputTex: texture_storage_2d<rgba8unorm, write>,
+			inverseProjectionMatrix: mat4x4<f32>,
+			cameraToModelMatrix: mat4x4<f32>,
 			bvh_position: ptr<storage, array<vec3<f32>>, read>,
 			bvh_index: ptr<storage, array<vec3<u32>>, read>,
 			bvh: ptr<storage, array<BVHNode>, read>,
@@ -109,47 +114,43 @@ function init() {
 		) -> void {
 
 			// to screen coordinates
-			let dimensions = textureDimensions( writeTex );
+			let dimensions = textureDimensions( outputTex );
 			let indexUV = workgroupSize.xy * workgroupId.xy + localId.xy;
 			let uv = vec2f( indexUV ) / vec2f( dimensions );
 			let ndc = uv * 2.0 - vec2f( 1.0 );
 
 			// scene ray
-			let ray = ndcToCameraRay( ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix );
+			let ray = ndcToCameraRay( ndc, cameraToModelMatrix, inverseProjectionMatrix );
 
 			// get hit result
 			let hitResult = bvhIntersectFirstHit( bvh_index, bvh_position, bvh, ray.origin, ray.direction );
 
 			// sample normal attribute
-			let normal = normalSampleBarycoord( hitResult.barycoord, hitResult.faceIndices.xyz, normals );
+			let normal = normalize( getVertexAttribute( hitResult.barycoord, hitResult.faceIndices.xyz, normals ) );
 
 			// write color
 			let background = vec4f( 0.0366, 0.0813, 0.1057, 1.0 );
 			let result = select( background, vec4f( normal, 1.0 ), hitResult.didHit );
-			textureStore( writeTex, indexUV, result );
+			textureStore( outputTex, indexUV, result );
 
 		}
 
-		const BVH_STACK_DEPTH: u32 = 60u;
-		const INFINITY: f32 = 1e20;
-		const TRI_INTERSECT_EPSILON: f32 = 1e-5;
+		const BVH_STACK_DEPTH = 60u;
+		const INFINITY = 1e20;
+		const TRI_INTERSECT_EPSILON = 1e-5;
 
 		struct Ray {
-
 			origin: vec3<f32>,
 			direction: vec3<f32>,
-
 		};
 
 		struct IntersectionResult {
-
 			didHit: bool,
 			faceIndices: vec4<u32>,
 			faceNormal: vec3<f32>,
 			barycoord: vec3<f32>,
 			side: f32,
 			dist: f32,
-
 		};
 
 		struct BVHBoundingBox {
@@ -162,13 +163,10 @@ function init() {
 			rightChildOrTriangleOffset: u32,
 			splitAxisOrTriangleCount: u32,
 		};
-
 	`, [
-
 		ndcToCameraRay, intersectsBVHNodeBounds, intersectsBounds,
 		bvhIntersectFirstHit, intersectsTriangle, intersectTriangles,
-		normalSampleBarycoord
-
+		getVertexAttribute
 	] );
 
 	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
@@ -245,11 +243,9 @@ function render() {
 	stats.update();
 
 	const delta = clock.getDelta();
-
 	if ( params.animate ) {
 
 		mesh.rotation.y += delta;
-
 
 	}
 
@@ -258,16 +254,15 @@ function render() {
 		dispatchSize = [
 			Math.ceil( outputTex.width / WORKGROUP_SIZE[ 0 ] ),
 			Math.ceil( outputTex.height / WORKGROUP_SIZE[ 1 ] ),
-			1,
 		];
 
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
-		computeBVH.computeNode.parameters.writeTex.value = outputTex;
-		computeBVH.computeNode.parameters.cameraWorldMatrix.value = camera.matrixWorld;
-		computeBVH.computeNode.parameters.invProjectionMatrix.value = camera.projectionMatrixInverse;
-		computeBVH.computeNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
+		computeBVH.computeNode.parameters.outputTex.value = outputTex;
+		computeBVH.computeNode.parameters.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
+		computeBVH.computeNode.parameters.cameraToModelMatrix.value.copy( mesh.matrixWorld ).invert().multiply( camera.matrixWorld );
+		computeBVH.computeNode.parameters.workgroupSize.value.fromArray( WORKGROUP_SIZE );
 		renderer.compute( computeBVH, dispatchSize );
 
 		fsMaterial.colorNode.colorNode.value = outputTex;
