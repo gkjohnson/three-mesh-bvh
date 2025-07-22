@@ -23,7 +23,7 @@ let renderer, camera, scene, gui, stats;
 let fsQuad, mesh, clock, controls;
 let fsMaterial, computeBVH, outputTex;
 let dispatchSize = [];
-const WORKGROUP_SIZE = [ 16, 16, 1 ];
+const WORKGROUP_SIZE = [ 8, 8, 1 ];
 
 init();
 
@@ -47,6 +47,7 @@ function init() {
 	// scene init
 	scene = new THREE.Scene();
 
+	// light init
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
@@ -62,7 +63,7 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// scene init
+	// geometry init
 	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.3, 300, 50 );
 	const bvh = new MeshBVH( knotGeometry, { maxLeafTris: 1, strategy: SAH } );
 	mesh = new THREE.Mesh( knotGeometry, new THREE.MeshStandardMaterial() );
@@ -78,11 +79,6 @@ function init() {
 	const bvh_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
 	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
 	const normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
-
-	outputTex = new StorageTexture( 1, 1 );
-	outputTex.format = THREE.RGBAFormat;
-	outputTex.type = THREE.UnsignedByteType;
-	outputTex.magFilter = THREE.LinearFilter;
 
 	const computeShaderParams = {
 		writeTex: textureStore( outputTex ),
@@ -271,7 +267,12 @@ function resize() {
 	renderer.setPixelRatio( dpr );
 
 	// reconstruct texture
-	outputTex.dispose();
+	if ( outputTex ) {
+
+		outputTex.dispose();
+
+	}
+
 	outputTex = new StorageTexture( w * dpr * scale, h * dpr * scale );
 	outputTex.format = THREE.RGBAFormat;
 	outputTex.type = THREE.UnsignedByteType;
