@@ -6,7 +6,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
 	attribute, uniform, wgslFn, varyingProperty, textureStore, texture, colorSpaceToWorking,
-	storage, cameraProjectionMatrix, modelWorldMatrix, cameraViewMatrix, workgroupId, localId
+	storage, workgroupId, localId
 } from 'three/tsl';
 import { MeshBVH, SAH } from '../src/index.js';
 import { intersectsBVHNodeBounds, intersectsBounds, ndcToCameraRay, normalSampleBarycoord } from '../src/gpu/wgsl/common_functions.wgsl.js';
@@ -73,8 +73,6 @@ function init() {
 	clock = new THREE.Clock();
 
 	// TSL
-	const vUv = varyingProperty( 'vec2', 'vUv' );
-
 	const bvh_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
 	const bvh_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
 	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
@@ -93,21 +91,6 @@ function init() {
 		workgroupId: workgroupId,
 		localId: localId
 	};
-
-	const vertexShaderParams = {
-		projectionMatrix: cameraProjectionMatrix,
-		modelWorldMatrix: modelWorldMatrix,
-		cameraViewMatrix: cameraViewMatrix,
-		position: attribute( 'position' ),
-		uv: attribute( 'uv' ),
-	};
-
-	const fragmentShaderParams = {
-		vUv: vUv,
-		outputTex: texture( outputTex ),
-		sample: texture( outputTex ),
-	};
-
 
 	const computeShader = wgslFn( /* wgsl */`
 
@@ -189,46 +172,24 @@ function init() {
 
 	] );
 
-	const vertexShader = wgslFn( /* wgsl */`
-
-		fn vertexShader(
-			projectionMatrix: mat4x4<f32>,
-			modelWorldMatrix: mat4x4<f32>,
-			cameraViewMatrix: mat4x4<f32>,
-			position: vec3<f32>,
-			uv: vec2<f32>
-		) -> vec4<f32> {
-
-			var outPosition = projectionMatrix * cameraViewMatrix * modelWorldMatrix * vec4<f32>( position, 1.0 );
-
-			varyings.vUv = uv;
-
-			return outPosition;
-
-		}
-
-	`, [ vUv ] );
-
-	const fragmentShader = wgslFn( /* wgsl */`
-
-		fn fragmentShader(
-			vUv: vec2<f32>,
-			outputTex: texture_2d<f32>,
-			sample: sampler
-		) -> vec4<f32> {
-
-			return textureSample( outputTex, sample, vUv );
-
-		}
-
-	` );
-
 	computeBVH = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
 	// screen quad
+	const vUv = varyingProperty( 'vec2', 'vUv' );
+	const wgslVertexShader = wgslFn( /* wgsl */`
+		fn vertex( position: vec3f, uv: vec2f ) -> vec3<f32> {
+			varyings.vUv = uv;
+			return position;
+		}
+	`, [ vUv ] );
+
 	fsMaterial = new MeshBasicNodeMaterial();
-	fsMaterial.vertexNode = vertexShader( vertexShaderParams );
-	fsMaterial.fragmentNode = colorSpaceToWorking( fragmentShader( fragmentShaderParams ), THREE.SRGBColorSpace );
+	fsMaterial.positionNode = wgslVertexShader( {
+		position: attribute( 'position' ),
+		uv: attribute( 'uv' )
+	} );
+
+	fsMaterial.colorNode = colorSpaceToWorking( texture( outputTex, vUv ), THREE.SRGBColorSpace );
 	fsQuad = new FullScreenQuad( fsMaterial );
 
 	// controls
@@ -310,8 +271,7 @@ function render() {
 		computeBVH.computeNode.parameters.invModelMatrix.value = mesh.matrixWorld.invert();
 		renderer.compute( computeBVH, dispatchSize );
 
-		fsMaterial.fragmentNode.colorNode.parameters.outputTex.value = outputTex;
-		fsMaterial.fragmentNode.colorNode.parameters.sample.value = outputTex;
+		fsMaterial.colorNode.colorNode.value = outputTex;
 		fsQuad.render( renderer );
 
 	} else {
