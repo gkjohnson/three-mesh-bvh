@@ -198,10 +198,10 @@ geometry.boundsTree = deserializedBVH;
 
 ## Asynchronous Generation
 
-_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is not exported from the package root. If needed the code from `src/worker` can be copied and modified to accommodate a particular build process._
+_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is exported separately via `three-mesh-bvh/worker` subpath. If needed the code from `src/worker` can be copied and modified to accommodate a particular build process._
 
 ```js
-import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 // ...
 
@@ -217,7 +217,7 @@ worker.generate( geometry ).then( bvh => {
 _Parallel BVH generation is also supported using "ParallelMeshBVHWorker", which requires support for SharedArrayBuffer. If SharedArrayBuffer is not available it falls back to "GenerateMeshBVHWorker". It is recommended that geometry passed to this function have `position` and `index` with SharedArrayBuffer arrays, otherwise buffer copies must be made._
 
 ```js
-import { ParallelMeshBVHWorker } from 'three-mesh-bvh/src/workers/ParallelMeshBVHWorker.js';
+import { ParallelMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 // ...
 
