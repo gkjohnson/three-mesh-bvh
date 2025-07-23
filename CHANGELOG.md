@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.9.2] - Unreleased
 ### Added
 - Types for web workers.
-- Add "three-mesh-bvh/worker"  export.
+- Add tsl functions for running bvh raycasting via compute shaders.
+- Add "three-mesh-bvh/worker" export.
+- Add "three-mesh-bvh/webgpu" export.
 
 ### Fixed
 - Type definitions.
