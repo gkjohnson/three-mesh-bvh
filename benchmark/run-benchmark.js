@@ -3,7 +3,6 @@ import {
 	bench,
 	beforeAll,
 	beforeEach,
-	afterEach,
 } from './lib/bench.js';
 import {
 	Mesh,

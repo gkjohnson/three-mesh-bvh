@@ -48,33 +48,33 @@ export class ExtendedTriangle extends Triangle {
 		const axis0 = satAxes[ 0 ];
 		const sab0 = satBounds[ 0 ];
 		this.getNormal( axis0 );
+		sab0.setFromPoints( axis0, points );
 
 		const axis1 = satAxes[ 1 ];
 		const sab1 = satBounds[ 1 ];
 		axis1.subVectors( a, b );
+		sab1.setFromPoints( axis1, points );
 
 		const axis2 = satAxes[ 2 ];
 		const sab2 = satBounds[ 2 ];
 		axis2.subVectors( b, c );
+		sab2.setFromPoints( axis2, points );
 
 		const axis3 = satAxes[ 3 ];
 		const sab3 = satBounds[ 3 ];
 		axis3.subVectors( c, a );
+		sab3.setFromPoints( axis3, points );
 
-		const axis1Length = axis1.length();
-		const axis2Length = axis2.length();
-		const axis3Length = axis3.length();
+		const lengthAB = axis1.length();
+		const lengthBC = axis2.length();
+		const lengthCA = axis3.length();
 
 		this.isDegenerateIntoPoint = false;
 		this.isDegenerateIntoSegment = false;
 
-		if ( axis1Length < ZERO_EPSILON ) {
+		if ( lengthAB < ZERO_EPSILON ) {
 
-			if ( axis2Length < ZERO_EPSILON ) {
-
-				this.isDegenerateIntoPoint = true;
-
-			} else if ( axis3Length < ZERO_EPSILON ) {
+			if ( lengthBC < ZERO_EPSILON || lengthCA < ZERO_EPSILON ) {
 
 				this.isDegenerateIntoPoint = true;
 
@@ -86,9 +86,9 @@ export class ExtendedTriangle extends Triangle {
 
 			}
 
-		} else if ( axis2Length < ZERO_EPSILON ) {
+		} else if ( lengthBC < ZERO_EPSILON ) {
 
-			if ( axis3Length < ZERO_EPSILON ) {
+			if ( lengthCA < ZERO_EPSILON ) {
 
 				this.isDegenerateIntoPoint = true;
 
@@ -100,18 +100,13 @@ export class ExtendedTriangle extends Triangle {
 
 			}
 
-		} else if ( axis3Length < ZERO_EPSILON ) {
+		} else if ( lengthCA < ZERO_EPSILON ) {
 
 			this.isDegenerateIntoSegment = true;
 			this.degenerateSegment.start.copy( c );
 			this.degenerateSegment.end.copy( b );
 
 		}
-
-		sab0.setFromPoints( axis0, points );
-		sab1.setFromPoints( axis1, points );
-		sab2.setFromPoints( axis2, points );
-		sab3.setFromPoints( axis3, points );
 
 		this.plane.setFromNormalAndCoplanarPoint( axis0, a );
 
@@ -237,7 +232,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			cachedSatBounds.setFromPoints( sa, self.points );
 			if ( sb.isSeparated( cachedSatBounds ) ) return false;
 
-			tempDir.copy( planeNormal ).cross( sa );
+			tempDir.crossVectors( planeNormal, sa );
 			cachedSatBounds.setFromPoints( tempDir, self.points );
 			cachedSatBounds2.setFromPoints( tempDir, other.points );
 			if ( cachedSatBounds.isSeparated( cachedSatBounds2 ) ) return false;
