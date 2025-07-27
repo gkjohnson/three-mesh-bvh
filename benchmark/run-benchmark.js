@@ -256,59 +256,59 @@ function runTriangleTriangleSuiteWithSetupFunc( postfix, setupFunc ) {
 
 }
 
-// suite( 'Tower Case Geometry', () => {
+suite( 'Tower Case Geometry', () => {
 
-// 	let raycaster,
-// 		mesh,
-// 		centerBVH,
-// 		sahBVH,
-// 		averageBVH;
+	let raycaster,
+		mesh,
+		centerBVH,
+		sahBVH,
+		averageBVH;
 
-// 	beforeAll( () => {
+	beforeAll( () => {
 
-// 		const geometry = new PlaneGeometry( 10, 10, 400, 400 );
-// 		const posAttr = geometry.getAttribute( 'position' );
-// 		for ( let x = 0; x <= 100; x ++ ) {
+		const geometry = new PlaneGeometry( 10, 10, 400, 400 );
+		const posAttr = geometry.getAttribute( 'position' );
+		for ( let x = 0; x <= 100; x ++ ) {
 
-// 			for ( let y = 0; y <= 100; y ++ ) {
+			for ( let y = 0; y <= 100; y ++ ) {
 
-// 				const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
-// 				const i = x * 100 + y;
-// 				const z = inCenter ? 50 : - 50;
-// 				posAttr.setZ( i, z + x * 0.01 );
+				const inCenter = x > 100 && x < 300 && y > 100 && y < 300;
+				const i = x * 100 + y;
+				const z = inCenter ? 50 : - 50;
+				posAttr.setZ( i, z + x * 0.01 );
 
-// 			}
+			}
 
-// 		}
+		}
 
-// 		raycaster = new Raycaster();
-// 		raycaster.ray.origin.set( 100, 100, 100 );
-// 		raycaster.ray.direction.set( - 1, - 1, - 1 );
+		raycaster = new Raycaster();
+		raycaster.ray.origin.set( 100, 100, 100 );
+		raycaster.ray.direction.set( - 1, - 1, - 1 );
 
-// 		mesh = new Mesh( geometry );
+		mesh = new Mesh( geometry );
 
-// 		centerBVH = new MeshBVH( geometry, { strategy: CENTER } );
-// 		averageBVH = new MeshBVH( geometry, { strategy: AVERAGE } );
-// 		sahBVH = new MeshBVH( geometry, { strategy: SAH } );
+		centerBVH = new MeshBVH( geometry, { strategy: CENTER } );
+		averageBVH = new MeshBVH( geometry, { strategy: AVERAGE } );
+		sahBVH = new MeshBVH( geometry, { strategy: SAH } );
 
-// 	} );
+	} );
 
-// 	bench( 'CENTER raycast',
-// 		() => mesh.geometry.boundsTree = centerBVH,
-// 		() => mesh.raycast( raycaster, [] ),
-// 	);
+	bench( 'CENTER raycast',
+		() => mesh.geometry.boundsTree = centerBVH,
+		() => mesh.raycast( raycaster, [] ),
+	);
 
-// 	bench( 'AVERAGE raycast',
-// 		() => mesh.geometry.boundsTree = averageBVH,
-// 		() => mesh.raycast( raycaster, [] )
-// 	);
+	bench( 'AVERAGE raycast',
+		() => mesh.geometry.boundsTree = averageBVH,
+		() => mesh.raycast( raycaster, [] )
+	);
 
-// 	bench( 'SAH raycast',
-// 		() => mesh.geometry.boundsTree = sahBVH,
-// 		() => mesh.raycast( raycaster, [] )
-// 	);
+	bench( 'SAH raycast',
+		() => mesh.geometry.boundsTree = sahBVH,
+		() => mesh.raycast( raycaster, [] )
+	);
 
-// } );
+} );
 
 function logExtremes( bvh ) {
 
@@ -354,9 +354,9 @@ function runSuiteWithOptions( name, options ) {
 
 		beforeAll( () => {
 
-			OG_GEOMETRY = new TorusGeometry( 5, 4, 700, 300 );
+			OG_GEOMETRY = new TorusGeometry( 5, 5, 700, 300 );
 			OG_GROUP_GEOMETRY = generateGroupGeometry( 200 );
-			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 4, 30, 10 );
+			OG_INTERSECTS_GEOMETRY = new TorusGeometry( 5, 5, 30, 10 );
 
 			raycaster = new Raycaster();
 			raycaster.ray.origin.set( 10, 20, 30 );

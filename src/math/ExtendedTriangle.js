@@ -2,6 +2,7 @@ import { Triangle, Vector3, Vector2, Line3, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
 
+const componentKeys = [ 'x', 'y', 'z' ];
 const ZERO_EPSILON = 1e-15;
 const ZERO_EPSILON_SQR = ZERO_EPSILON * ZERO_EPSILON;
 function isNearZero( value ) {
@@ -60,7 +61,6 @@ export class ExtendedTriangle extends Triangle {
 		const sab3 = satBounds[ 3 ];
 		axis3.subVectors( c, a );
 
-		// TODO: Is that really necessary? I need to check failing case again.
 		const axis1Length = axis1.length();
 		const axis2Length = axis2.length();
 		const axis3Length = axis3.length();
@@ -198,7 +198,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	function coplanarIntersectsTriangle( self, other, target, suppressLog ) {
 
-		// perform separating axis intersection test only for coplanar triangles
+		// Perform separating axis intersection test only for coplanar triangles
 		// There should be at least one non-degenerate triangle when calling this
 		// Otherwise we won't know the plane normal
 		const planeNormal = tmpVec;
@@ -249,7 +249,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 			// TODO find two points that intersect on the edges and make that the result
 			if ( ! suppressLog ) {
 
-				// console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
+				console.warn( 'ExtendedTriangle.intersectsTriangle: Triangles are coplanar which does not support an output edge. Setting edge to 0, 0, 0.' );
 
 			}
 
@@ -274,7 +274,13 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	}
 
-	function findBounds( self, aProj, bProj, cProj, abDist, acDist, aDist, bDist, cDist, bounds, edge ) {
+	/**
+	 * Calculates intersection segment of a triangle with intersection line.
+	 * Intersection line is snapped to its biggest component.
+	 * And triangle points are passed as a projection on that component.
+	 * @returns whether this is a coplanar case or not
+	 */
+	function findIntersectionLineBounds( self, aProj, bProj, cProj, abDist, acDist, aDist, bDist, cDist, bounds, edge ) {
 
 		if ( abDist > 0 ) {
 
@@ -421,6 +427,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 			if ( other.isDegenerateIntoSegment ) {
 
+				// TODO: replace with Line.distanceSqToLine3 after r179
 				const segment1 = self.degenerateSegment;
 				const segment2 = other.degenerateSegment;
 				const delta1 = dir1;
@@ -522,8 +529,14 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	}
 
-	// TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
-	// be a line contained by both triangles if not a different special case somehow represented in the return result.
+	/* TODO: If the triangles are coplanar and intersecting the target is nonsensical. It should at least
+	 * be a line contained by both triangles if not a different special case somehow represented in the return result.
+	 *
+	 * General triangle intersection code is based on Moller's algorithm from here: https://web.stanford.edu/class/cs277/resources/papers/Moller1997b.pdf
+	 * Reference implementation from here: https://github.com/erich666/jgt-code/blob/master/Volume_08/Number_1/Shen2003/tri_tri_test/include/Moller97.c#L570
+	 * All degeneracies are handled before the general algorithm.
+	 * Coplanar check is different from Moller's and based on SAT tests.
+	 */
 	return function intersectsTriangle( other, target = null, suppressLog = false ) {
 
 		if ( this.needsUpdate ) {
@@ -599,6 +612,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 		dir1.copy( plane1.normal );
 		dir2.copy( plane2.normal );
 		const intersectionLine = dir1.cross( dir2 );
+
 		let componentIndex = 0;
 		let maxComponent = Math.abs( intersectionLine.x );
 		const comp1 = Math.abs( intersectionLine.y );
@@ -616,50 +630,22 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 		}
 
-		// How to do this more concisely?
-		let a1Proj, b1Proj, c1Proj;
-		let a2Proj, b2Proj, c2Proj;
-		switch ( componentIndex ) {
+		const key = componentKeys[ componentIndex ];
+		const a1Proj = this.a[ key ];
+		const b1Proj = this.b[ key ];
+		const c1Proj = this.c[ key ];
 
-			case 0:
-				a1Proj = this.a.x;
-				b1Proj = this.b.x;
-				c1Proj = this.c.x;
+		const a2Proj = other.a[ key ];
+		const b2Proj = other.b[ key ];
+		const c2Proj = other.c[ key ];
 
-				a2Proj = other.a.x;
-				b2Proj = other.b.x;
-				c2Proj = other.c.x;
-				break;
-
-			case 1:
-				a1Proj = this.a.y;
-				b1Proj = this.b.y;
-				c1Proj = this.c.y;
-
-				a2Proj = other.a.y;
-				b2Proj = other.b.y;
-				c2Proj = other.c.y;
-				break;
-
-			case 2:
-				a1Proj = this.a.z;
-				b1Proj = this.b.z;
-				c1Proj = this.c.z;
-
-				a2Proj = other.a.z;
-				b2Proj = other.b.z;
-				c2Proj = other.c.z;
-				break;
-
-		}
-
-		if ( findBounds( this, a1Proj, b1Proj, c1Proj, a1b1Dist, a1c1Dist, a1Dist, b1Dist, c1Dist, bounds1, edge1 ) ) {
+		if ( findIntersectionLineBounds( this, a1Proj, b1Proj, c1Proj, a1b1Dist, a1c1Dist, a1Dist, b1Dist, c1Dist, bounds1, edge1 ) ) {
 
 			return coplanarIntersectsTriangle( this, other, target, suppressLog );
 
 		}
 
-		if ( findBounds( other, a2Proj, b2Proj, c2Proj, a2b2Dist, a2c2Dist, a2Dist, b2Dist, c2Dist, bounds2, edge2 ) ) {
+		if ( findIntersectionLineBounds( other, a2Proj, b2Proj, c2Proj, a2b2Dist, a2c2Dist, a2Dist, b2Dist, c2Dist, bounds2, edge2 ) ) {
 
 			return coplanarIntersectsTriangle( this, other, target, suppressLog );
 
