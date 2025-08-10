@@ -13,7 +13,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 
 const params = {
 
-	gpuGeneration: true,
+	generationMode: 'WebGL',
 	resolution: 75,
 	margin: 0.2,
 	regenerate: () => updateSDF(),
@@ -24,16 +24,16 @@ const params = {
 
 };
 
-let renderer, camera, scene, gui, stats, boxHelper;
+let device, renderer, camera, scene, gui, stats, boxHelper;
 let outputContainer, bvh, geometry, sdfTex, mesh;
 let generateSdfPass, layerPass, raymarchPass;
 let bvhGenerationWorker;
+let shaderModule, pipeline, dstBuffer, resultBuffer, bindGroup;
 const inverseBoundsMatrix = new THREE.Matrix4();
 
-init();
-render();
+init().then( render );
 
-function init() {
+async function init() {
 
 	outputContainer = document.getElementById( 'output' );
 
@@ -106,6 +106,55 @@ function init() {
 
 		} );
 
+	const adapter = await navigator.gpu?.requestAdapter();
+	device = await adapter?.requestDevice();
+	if ( device !== undefined ) {
+
+		shaderModule = device.createShaderModule( {
+			label: "Sdf generation module",
+			code: /* wgsl */ `
+			@group(0) @binding(0) var<storage, read_write> data: array<f32>;
+
+			@compute @workgroup_size(16) fn computeSdf( @builtin(global_invocation_id) id: vec3u) {
+				let i = id.x;
+				let len = arrayLength(&data);
+				if (i < len) {
+					data[i] = 1.0;
+				}
+			}
+		`,
+		} );
+
+		pipeline = device.createComputePipeline( {
+			label: "Sdf generation pipeline",
+			layout: 'auto',
+			compute: {
+				module: shaderModule,
+			}
+		} );
+
+		dstBuffer = device.createBuffer( {
+			label: "Sdf generation result usable",
+			size: params.resolution ** 3 * 4,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+		} );
+
+		resultBuffer = device.createBuffer( {
+			label: "Sdf generation result readable",
+			size: params.resolution ** 3 * 4,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+		} );
+
+		bindGroup = device.createBindGroup( {
+			label: "Sdf generation bind group",
+			layout: pipeline.getBindGroupLayout( 0 ),
+			entries: [
+				{ binding: 0, resource: { buffer: dstBuffer } },
+			],
+		} );
+
+	}
+
 	rebuildGUI();
 
 	window.addEventListener( 'resize', function () {
@@ -133,7 +182,14 @@ function rebuildGUI() {
 	gui = new GUI();
 
 	const generationFolder = gui.addFolder( 'generation' );
-	generationFolder.add( params, 'gpuGeneration' );
+	const generationOptions = [ 'CPU', 'WebGL' ];
+	if ( device !== undefined ) {
+
+		generationOptions.push( 'WebGPU' );
+
+	}
+
+	generationFolder.add( params, 'generationMode', generationOptions );
 	generationFolder.add( params, 'resolution', 10, 200, 1 );
 	generationFolder.add( params, 'margin', 0, 1 );
 	generationFolder.add( params, 'regenerate' );
@@ -198,91 +254,135 @@ function updateSDF() {
 	const halfWidth = 0.5 * pxWidth;
 
 	const startTime = window.performance.now();
-	if ( params.gpuGeneration ) {
+	switch ( params.generationMode ) {
 
-		// create a new 3d render target texture
-		const floatLinearExtSupported = renderer.extensions.get( 'OES_texture_float_linear' );
-		sdfTex = new THREE.WebGL3DRenderTarget( dim, dim, dim );
-		sdfTex.texture.format = THREE.RedFormat;
-		sdfTex.texture.type = floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType;
-		sdfTex.texture.minFilter = THREE.LinearFilter;
-		sdfTex.texture.magFilter = THREE.LinearFilter;
-		renderer.initRenderTarget( sdfTex );
+		case 'WebGL': {
 
-		// prep the sdf generation material pass
-		generateSdfPass.material.uniforms.bvh.value.updateFrom( bvh );
-		generateSdfPass.material.uniforms.matrix.value.copy( matrix );
+			// create a new 3d render target texture
+			const floatLinearExtSupported = renderer.extensions.get( 'OES_texture_float_linear' );
+			sdfTex = new THREE.WebGL3DRenderTarget( dim, dim, dim );
+			sdfTex.texture.format = THREE.RedFormat;
+			sdfTex.texture.type = floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType;
+			sdfTex.texture.minFilter = THREE.LinearFilter;
+			sdfTex.texture.magFilter = THREE.LinearFilter;
+			renderer.initRenderTarget( sdfTex );
 
-		// create a 2d render target to render in to
-		const scratchVec = new THREE.Vector3();
-		const scratchTarget = new THREE.WebGLRenderTarget( dim, dim );
-		scratchTarget.texture.format = THREE.RedFormat;
-		scratchTarget.texture.type = floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType;
+			// prep the sdf generation material pass
+			generateSdfPass.material.uniforms.bvh.value.updateFrom( bvh );
+			generateSdfPass.material.uniforms.matrix.value.copy( matrix );
 
-		// render into each layer
-		for ( let i = 0; i < dim; i ++ ) {
+			// create a 2d render target to render in to
+			const scratchVec = new THREE.Vector3();
+			const scratchTarget = new THREE.WebGLRenderTarget( dim, dim );
+			scratchTarget.texture.format = THREE.RedFormat;
+			scratchTarget.texture.type = floatLinearExtSupported ? THREE.FloatType : THREE.HalfFloatType;
 
-			generateSdfPass.material.uniforms.zValue.value = i * pxWidth + halfWidth;
+			// render into each layer
+			for ( let i = 0; i < dim; i ++ ) {
 
-			renderer.setRenderTarget( scratchTarget );
-			generateSdfPass.render( renderer );
+				generateSdfPass.material.uniforms.zValue.value = i * pxWidth + halfWidth;
 
-			// copy the data into the 3d texture since rendering directly into the target causes significant gpu artifacts
-			// See issue #720
-			scratchVec.z = i;
-			renderer.copyTextureToTexture( scratchTarget.texture, sdfTex.texture, null, scratchVec );
+				renderer.setRenderTarget( scratchTarget );
+				generateSdfPass.render( renderer );
+
+				// copy the data into the 3d texture since rendering directly into the target causes significant gpu artifacts
+				// See issue #720
+				scratchVec.z = i;
+				renderer.copyTextureToTexture( scratchTarget.texture, sdfTex.texture, null, scratchVec );
+
+			}
+
+			// initiate read back to get a rough estimate of time taken to generate the sdf
+			renderer.readRenderTargetPixels( scratchTarget, 0, 0, 1, 1, new Float32Array( 4 ) );
+			renderer.setRenderTarget( null );
+			scratchTarget.dispose();
+			break;
 
 		}
 
-		// initiate read back to get a rough estimate of time taken to generate the sdf
-		renderer.readRenderTargetPixels( scratchTarget, 0, 0, 1, 1, new Float32Array( 4 ) );
-		renderer.setRenderTarget( null );
-		scratchTarget.dispose();
+		case 'CPU': {
 
-	} else {
+			// create a new 3d data texture
+			sdfTex = new THREE.Data3DTexture( new Float32Array( dim ** 3 ), dim, dim, dim );
+			sdfTex.format = THREE.RedFormat;
+			sdfTex.type = THREE.FloatType;
+			sdfTex.minFilter = THREE.LinearFilter;
+			sdfTex.magFilter = THREE.LinearFilter;
+			sdfTex.needsUpdate = true;
 
-		// create a new 3d data texture
-		sdfTex = new THREE.Data3DTexture( new Float32Array( dim ** 3 ), dim, dim, dim );
-		sdfTex.format = THREE.RedFormat;
-		sdfTex.type = THREE.FloatType;
-		sdfTex.minFilter = THREE.LinearFilter;
-		sdfTex.magFilter = THREE.LinearFilter;
-		sdfTex.needsUpdate = true;
+			const point = new THREE.Vector3();
+			const ray = new THREE.Ray();
+			const target = {};
 
-		const point = new THREE.Vector3();
-		const ray = new THREE.Ray();
-		const target = {};
+			// iterate over all pixels and check distance
+			for ( let x = 0; x < dim; x ++ ) {
 
-		// iterate over all pixels and check distance
-		for ( let x = 0; x < dim; x ++ ) {
+				for ( let y = 0; y < dim; y ++ ) {
 
-			for ( let y = 0; y < dim; y ++ ) {
+					for ( let z = 0; z < dim; z ++ ) {
 
-				for ( let z = 0; z < dim; z ++ ) {
+						// adjust by half width of the pixel so we sample the pixel center
+						// and offset by half the box size.
+						point.set(
+							halfWidth + x * pxWidth - 0.5,
+							halfWidth + y * pxWidth - 0.5,
+							halfWidth + z * pxWidth - 0.5,
+						).applyMatrix4( matrix );
 
-					// adjust by half width of the pixel so we sample the pixel center
-					// and offset by half the box size.
-					point.set(
-						halfWidth + x * pxWidth - 0.5,
-						halfWidth + y * pxWidth - 0.5,
-						halfWidth + z * pxWidth - 0.5,
-					).applyMatrix4( matrix );
+						const index = x + y * dim + z * dim * dim;
+						const dist = bvh.closestPointToPoint( point, target ).distance;
 
-					const index = x + y * dim + z * dim * dim;
-					const dist = bvh.closestPointToPoint( point, target ).distance;
+						// raycast inside the mesh to determine if the distance should be positive or negative
+						ray.origin.copy( point );
+						ray.direction.set( 0, 0, 1 );
+						const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
+						const isInside = hit && hit.face.normal.dot( ray.direction ) > 0.0;
 
-					// raycast inside the mesh to determine if the distance should be positive or negative
-					ray.origin.copy( point );
-					ray.direction.set( 0, 0, 1 );
-					const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
-					const isInside = hit && hit.face.normal.dot( ray.direction ) > 0.0;
+						// set the distance in the texture data
+						sdfTex.image.data[ index ] = isInside ? - dist : dist;
 
-					// set the distance in the texture data
-					sdfTex.image.data[ index ] = isInside ? - dist : dist;
+					}
 
 				}
 
 			}
+
+			break;
+
+		}
+
+		case 'WebGPU': {
+
+			// create a new 3d data texture
+
+			const encoder = device.createCommandEncoder( { label: "sdf generation encoder" } );
+			const pass = encoder.beginComputePass( { label: "sdf generation pass" } );
+			pass.setPipeline( pipeline );
+			pass.setBindGroup( 0, bindGroup );
+			pass.dispatchWorkgroups( dim ** 3 / 16 );
+			pass.end();
+
+			encoder.copyBufferToBuffer( dstBuffer, resultBuffer, resultBuffer.length );
+
+			const commandBuffer = encoder.finish();
+			device.queue.submit( [ commandBuffer ] );
+
+			resultBuffer.mapAsync( GPUMapMode.READ ).then( () => {
+
+				const result = new Float32Array( resultBuffer.getMappedRange().slice() );
+
+				sdfTex = new THREE.Data3DTexture( result, dim, dim, dim );
+				sdfTex.format = THREE.RedFormat;
+				sdfTex.type = THREE.FloatType;
+				sdfTex.minFilter = THREE.LinearFilter;
+				sdfTex.magFilter = THREE.LinearFilter;
+				sdfTex.needsUpdate = true;
+
+				resultBuffer.unmap();
+
+			} );
+
+			break;
 
 		}
 
