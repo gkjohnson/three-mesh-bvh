@@ -83,7 +83,7 @@ async function init() {
 	// load model and generate bvh
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-	new GLTFLoader()
+	await new GLTFLoader()
 		.setMeshoptDecoder( MeshoptDecoder )
 		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' )
 		.then( gltf => {
@@ -134,10 +134,11 @@ async function init() {
 				dim: f32,
 			};
 
-			// @group(0) @binding(0) var<storage, read> bvh: array<BVHNode>;
-			// @group(0) @binding(2) var<storage, read> 
 			@group(0) @binding(0) var<storage, read_write> data: array<f32>;
 			@group(0) @binding(1) var<uniform> params: Params;
+			@group(0) @binding(2) var<storage, read> bvh: array<BVHNode>;
+			@group(0) @binding(3) var<storage, read> bvh_index: array<vec3u>;
+			@group(0) @binding(4) var<storage, read> bvh_position: array<vec3f>;
 
 			@compute @workgroup_size(16, 16) fn computeSdf( @builtin(global_invocation_id) id: vec3u) {
 				let dim = u32(params.dim);
@@ -161,211 +162,207 @@ async function init() {
 				) * params.matrix;
 				let point = pointHomo.xyz / pointHomo.w;
 
-				let centerHomo = vec4f(0.0, 0.0, 0.0, 1.0) * params.matrix;
-				let center = centerHomo.xyz / centerHomo.w;
-
-				let dif = point - center;
-				let distanceSq = dot(dif, dif);
+				let res = _bvhClosestPointToPoint(&bvh_index, &bvh_position, &bvh, point, 10000.0);
 
 				let index = id.x + id.y * dim + id.z * dim * dim;
-				data[index] = distanceSq - 0.25;
-				// data[index] = 1.0;
-				// data[index] = f32(id.z) - 0.5 * params.dim;
+				data[index] = res.side * sqrt( res.distanceSq );
 			}
 
-			// struct ClosestPointToTriangleResult {
-			// 	vec3f barycoord;
-			// 	vec3f point;
-			// };
+			struct ClosestPointToTriangleResult {
+				barycoord: vec3f,
+				point: vec3f,
+			};
 
-			// // https://www.shadertoy.com/view/ttfGWl
-			// fn closestPointToTriangle( p: vec3f, v0: vec3f, v1: vec3f, v2: vec3f) -> ClosestPointToTriangleResult {
+			// https://www.shadertoy.com/view/ttfGWl
+			fn closestPointToTriangle( p: vec3f, v0: vec3f, v1: vec3f, v2: vec3f ) -> ClosestPointToTriangleResult {
 
-			// 	let v10 = v1 - v0;
-			// 	let v21 = v2 - v1;
-			// 	let v02 = v0 - v2;
+				let v10 = v1 - v0;
+				let v21 = v2 - v1;
+				let v02 = v0 - v2;
 
-			// 	let p0 = p - v0;
-			// 	let p1 = p - v1;
-			// 	let p2 = p - v2;
+				let p0 = p - v0;
+				let p1 = p - v1;
+				let p2 = p - v2;
 
-			// 	let nor = cross( v10, v02 );
+				let nor = cross( v10, v02 );
 
-			// 	// method 2, in barycentric space
-			// 	let  q = cross( nor, p0 );
-			// 	let d = 1.0 / dot( nor, nor );
-			// 	var u = d * dot( q, v02 );
-			// 	var v = d * dot( q, v10 );
-			// 	var w = 1.0 - u - v;
+				// method 2, in barycentric space
+				let  q = cross( nor, p0 );
+				let d = 1.0 / dot( nor, nor );
+				var u = d * dot( q, v02 );
+				var v = d * dot( q, v10 );
+				var w = 1.0 - u - v;
 
-			// 	if( u < 0.0 ) {
+				if( u < 0.0 ) {
 
-			// 		w = clamp( dot( p2, v02 ) / dot( v02, v02 ), 0.0, 1.0 );
-			// 		u = 0.0;
-			// 		v = 1.0 - w;
+					w = clamp( dot( p2, v02 ) / dot( v02, v02 ), 0.0, 1.0 );
+					u = 0.0;
+					v = 1.0 - w;
 
-			// 	} else if( v < 0.0 ) {
+				} else if( v < 0.0 ) {
 
-			// 		u = clamp( dot( p0, v10 ) / dot( v10, v10 ), 0.0, 1.0 );
-			// 		v = 0.0;
-			// 		w = 1.0 - u;
+					u = clamp( dot( p0, v10 ) / dot( v10, v10 ), 0.0, 1.0 );
+					v = 0.0;
+					w = 1.0 - u;
 
-			// 	} else if( w < 0.0 ) {
+				} else if( w < 0.0 ) {
 
-			// 		v = clamp( dot( p1, v21 ) / dot( v21, v21 ), 0.0, 1.0 );
-			// 		w = 0.0;
-			// 		u = 1.0-v;
+					v = clamp( dot( p1, v21 ) / dot( v21, v21 ), 0.0, 1.0 );
+					w = 0.0;
+					u = 1.0 - v;
 
-			// 	}
+				}
 
-			// 	var result: ClosestPointToTriangleResult;
-			// 	result.barycoord = vec3f( u, v, w );
-			// 	result.point = u * v1 + v * v2 + w * v0;
+				var result: ClosestPointToTriangleResult;
+				result.barycoord = vec3f( u, v, w );
+				result.point = u * v1 + v * v2 + w * v0;
 
-			// 	return result;
+				return result;
 
-			// }
+			}
 
-			// struct ClosestPointToPointResult {
-			// 	faceIndices: vec4u;
-			// 	faceNormal: vec3f;
-			// 	barycoord: vec3f;
-			// 	point: vec3f;
-			// 	side: f32;
-			// 	distanceSq: f32;
-			// };
+			struct ClosestPointToPointResult {
+				faceIndices: vec4u,
+				faceNormal: vec3f,
+				barycoord: vec3f,
+				point: vec3f,
+				side: f32,
+				distanceSq: f32,
+				found: bool,
+			};
 
-			// fn distanceToTriangles(
-			// 	// geometry info and triangle range
-			// 	bvh_index: ptr<storage, array<vec3u>, read>,
-			// 	bvh_position: ptr<storage, array<vec3f>, read>,
+			fn distanceToTriangles(
+				// geometry info and triangle range
+				bvh_index: ptr<storage, array<vec3u>, read>,
+				bvh_position: ptr<storage, array<vec3f>, read>,
 
-			// 	offset: u32, count: u32,
+				offset: u32, count: u32,
 
-			// 	// point and current result. Cut off range is taken from the struct
-			// 	point: vec3f,
-			// 	ioRes: ptr<function, ClosestPointToPointResult>,
-			// ) {
+				// point and current result. Cut off range is taken from the struct
+				point: vec3f,
+				ioRes: ptr<function, ClosestPointToPointResult>,
+			) {
 
-			// 	bool found = false;
-			// 	for ( var i = offset; i < offset + count; i = i + 1u ) {
+				for ( var i = offset; i < offset + count; i = i + 1u ) {
 
-			// 		let indices = bvh_index[ i ];
-			// 		vec3 a = bvh_position[ indices.x ];
-			// 		vec3 b = bvh_position[ indices.y ];
-			// 		vec3 c = bvh_position[ indices.z ];
+					let indices = bvh_index[ i ];
+					let a = bvh_position[ indices.x ];
+					let b = bvh_position[ indices.y ];
+					let c = bvh_position[ indices.z ];
 
-			// 		// get the closest point and barycoord
-			// 		let pointRes = closestPointToTriangle( point, a, b, c );
-			// 		let delta = point - pointRes.point;
-			// 		let distSq = dot( delta, delta );
-			// 		if ( distSq < ioRes.distanceSq ) {
+					// get the closest point and barycoord
+					let pointRes = closestPointToTriangle( point, a, b, c );
+					let delta = point - pointRes.point;
+					let distSq = dot( delta, delta );
+					if ( distSq < ( *ioRes ).distanceSq ) {
 
-			// 			// set the output results
-			// 			ioRes.distanceSq = sqDist;
-			// 			ioRes.faceIndices = vec4u( indices.xyz, i );
-			// 			ioRes.faceNormal = normalize( cross( a - b, b - c ) );
-			// 			ioRes.barycoord = pointRes.barycoord;
-			// 			ioRes.point = pointRes.point;
-			// 			ioRes.side = sign( dot( ioRes.faceNormal, delta ) );
+						// set the output results
+						( *ioRes ).distanceSq = distSq;
+						( *ioRes ).faceIndices = vec4u( indices.xyz, i );
+						( *ioRes ).faceNormal = normalize( cross( a - b, b - c ) );
+						( *ioRes ).barycoord = pointRes.barycoord;
+						( *ioRes ).point = pointRes.point;
+						( *ioRes ).side = sign( dot( ( *ioRes ).faceNormal, delta ) );
 
-			// 		}
+					}
 
-			// 	}
+				}
 
-			// }
+			}
 
-			// fn distanceSqToBounds( point: vec3, boundsMin: vec3, boundsMax: vec3 ) -> f32 {
+			fn distanceSqToBounds( point: vec3f, boundsMin: vec3f, boundsMax: vec3f ) -> f32 {
 
-			// 	let clampedPoint = clamp( point, boundsMin, boundsMax );
-			// 	let delta = point - clampedPoint;
-			// 	return dot( delta, delta );
+				let clampedPoint = clamp( point, boundsMin, boundsMax );
+				let delta = point - clampedPoint;
+				return dot( delta, delta );
 
-			// }
+			}
 
-			// fn distanceSqToBVHNodeBoundsPoint( 
-			// 	point: vec3,
-			// 	bvh: ptr<storage, array<BVHNode>, read>,
-			// 	currNodeIndex: u32,
-			// ) -> f32 {
+			fn distanceSqToBVHNodeBoundsPoint( 
+				point: vec3f,
+				bvh: ptr<storage, array<BVHNode>, read>,
+				currNodeIndex: u32,
+			) -> f32 {
 
-			// 	let node = bvh[ currNodeIndex ];
-			// 	return distanceSqToBounds( point, node.bounds.min, node.bounds.max );
+				let node = bvh[ currNodeIndex ];
+				let minBounds = vec3f(node.bounds.min[0], node.bounds.min[1], node.bounds.min[2]);
+				let maxBounds = vec3f(node.bounds.max[0], node.bounds.max[1], node.bounds.max[2]);
+				return distanceSqToBounds( point, minBounds, maxBounds );
 
-			// }
+			}
 
-			// fn _bvhClosestPointToPoint(
-			// 	bvh_index: ptr<storage, array<vec3u>, read>,
-			// 	bvh_position: ptr<storage, array<vec3f>, read>,
-			// 	bvh: ptr<storage, array<BVHNode>, read>,
+			fn _bvhClosestPointToPoint(
+				bvh_index: ptr<storage, array<vec3u>, read>,
+				bvh_position: ptr<storage, array<vec3f>, read>,
+				bvh: ptr<storage, array<BVHNode>, read>,
 
-			// 	point: vec3,
-			// 	maxDistance: f32
-			// ) -> ClosestPointToPointResult {
+				point: vec3f,
+				maxDistance: f32
+			) -> ClosestPointToPointResult {
 
-			// 	let BVH_STACK_DEPTH = 64;
+				const BVH_STACK_DEPTH = 64;
 
-			// 	// stack needs to be twice as long as the deepest tree we expect because
-			// 	// we push both the left and right child onto the stack every traversal
-			// 	var ptr = 0;
-			// 	var stack: array<u32, BVH_STACK_DEPTH>();
-			// 	stack[ 0 ] = 0u;
+				// stack needs to be twice as long as the deepest tree we expect because
+				// we push both the left and right child onto the stack every traversal
+				var ptr = 0;
+				var stack: array<u32, BVH_STACK_DEPTH>;
+				stack[ 0 ] = 0u;
 
-			// 	var res: ClosestPointToPointResult;
-			// 	res.distanceSq = maxDistance * maxDistance;
+				var res: ClosestPointToPointResult;
+				res.distanceSq = maxDistance * maxDistance;
 
-			// 	var found = false;
-			// 	while ptr > - 1 && ptr < BVH_STACK_DEPTH {
+				while ptr > - 1 && ptr < BVH_STACK_DEPTH {
 
-			// 		let currNodeIndex = stack[ ptr ];
-			// 		ptr = ptr - 1;
+					let currNodeIndex = stack[ ptr ];
+					let node = bvh[ currNodeIndex ];
+					ptr = ptr - 1;
 
-			// 		// check if we intersect the current bounds
-			// 		let boundsDistance = distanceSqToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
-			// 		if ( boundsDistance > closestDistanceSquared ) {
+					// check if we intersect the current bounds
+					let boundsDistance = distanceSqToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
+					if ( boundsDistance > res.distanceSq ) {
 
-			// 			continue;
+						continue;
 
-			// 		}
+					}
 
-			// 		let boundsInfox = node.splitAxisOrTriangleCount;
-			// 		let boundsInfoy = node.rightChildOrTriangleOffset;
+					let boundsInfox = node.splitAxisOrTriangleCount;
+					let boundsInfoy = node.rightChildOrTriangleOffset;
 
-			// 		let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
+					let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
 
-			// 		if ( isLeaf ) {
+					if ( isLeaf ) {
 
-			// 			let count = boundsInfox & 0x0000ffffu;
-			// 			let offset = boundsInfoy;
-			// 			distanceToTriangles(
-			// 				bvh_index, bvh_position,
-			// 				offset, count,
-			// 				point, &res
-			// 			);
+						let count = boundsInfox & 0x0000ffffu;
+						let offset = boundsInfoy;
+						distanceToTriangles(
+							bvh_index, bvh_position,
+							offset, count,
+							point, &res
+						);
 
-			// 		} else {
+					} else {
 
-			// 			let leftIndex = currNodeIndex + 1u;
-			// 			let splitAxis = boundsInfox & 0x0000ffffu;
-			// 			let rightIndex = 4u * boundsInfoy / 32u;
+						let leftIndex = currNodeIndex + 1u;
+						let splitAxis = boundsInfox & 0x0000ffffu;
+						let rightIndex = 4u * boundsInfoy / 32u;
 
-			// 			let leftToRight = ray.direction[splitAxis] >= 0.0;
-			// 			let c1 = select( rightIndex, leftIndex, leftToRight );
-			// 			let c2 = select( leftIndex, rightIndex, leftToRight );
+						let leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
+						let c1 = select( rightIndex, leftIndex, leftToRight );
+						let c2 = select( leftIndex, rightIndex, leftToRight );
 
-			// 			ptr = ptr + 1;
-			// 			stack[ ptr ] = c2;
+						ptr = ptr + 1;
+						stack[ ptr ] = c2;
 
-			// 			ptr = ptr + 1;
-			// 			stack[ ptr ] = c1;
+						ptr = ptr + 1;
+						stack[ ptr ] = c1;
 
-			// 		}
+					}
 
-			// 	}
+				}
 
-			// 	return res;
+				return res;
 
-			// }
+			}
 		`,
 		} );
 
@@ -382,7 +379,22 @@ async function init() {
 					binding: 1,
 					visibility: GPUShaderStage.COMPUTE,
 					buffer: { type: "uniform" },
-				}
+				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: { type: "read-only-storage" },
+				},
+				{
+					binding: 3,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: { type: "read-only-storage" },
+				},
+				{
+					binding: 4,
+					visibility: GPUShaderStage.COMPUTE,
+					buffer: { type: "read-only-storage" },
+				},
 			]
 		} );
 
@@ -417,12 +429,57 @@ async function init() {
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		} );
 
+		const bvhBufferData = bvh._roots[ 0 ];
+		const bvhBuffer = device.createBuffer( {
+			label: "Bvh buffer",
+			size: bvhBufferData.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		} );
+		device.queue.writeBuffer( bvhBuffer, 0, bvhBufferData );
+
+		const indexBufferData = new Uint32Array( mesh.geometry.index.count * 4 );
+		for ( let i = 0; i < mesh.geometry.index.count / 3; i = i + 1 ) {
+
+			indexBufferData[ 4 * i + 0 ] = mesh.geometry.index.getX( 3 * i + 0 );
+			indexBufferData[ 4 * i + 1 ] = mesh.geometry.index.getX( 3 * i + 1 );
+			indexBufferData[ 4 * i + 2 ] = mesh.geometry.index.getX( 3 * i + 2 );
+			indexBufferData[ 4 * i + 3 ] = 0;
+
+		}
+
+		const indexBuffer = device.createBuffer( {
+			label: "index buffer",
+			size: indexBufferData.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		} );
+		device.queue.writeBuffer( indexBuffer, 0, indexBufferData );
+
+		const positionBufferData = new Float32Array( mesh.geometry.attributes.position.count * 4 );
+		for ( let i = 0; i < mesh.geometry.attributes.position.count; i = i + 1 ) {
+
+			positionBufferData[ 4 * i + 0 ] = mesh.geometry.attributes.position.getX( i );
+			positionBufferData[ 4 * i + 1 ] = mesh.geometry.attributes.position.getY( i );
+			positionBufferData[ 4 * i + 2 ] = mesh.geometry.attributes.position.getZ( i );
+			positionBufferData[ 4 * i + 3 ] = 0;
+
+		}
+
+		const positionBuffer = device.createBuffer( {
+			label: "index buffer",
+			size: positionBufferData.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		} );
+		device.queue.writeBuffer( positionBuffer, 0, positionBufferData );
+
 		bindGroup = device.createBindGroup( {
 			label: "Sdf generation bind group",
 			layout: pipeline.getBindGroupLayout( 0 ),
 			entries: [
 				{ binding: 0, resource: { buffer: dstBuffer } },
 				{ binding: 1, resource: { buffer: uniformBuffer } },
+				{ binding: 2, resource: { buffer: bvhBuffer } },
+				{ binding: 3, resource: { buffer: indexBuffer } },
+				{ binding: 4, resource: { buffer: positionBuffer } },
 			],
 		} );
 
@@ -656,6 +713,9 @@ function updateSDF() {
 				sdfTex.needsUpdate = true;
 
 				resultBuffer.unmap();
+
+				const delta = window.performance.now() - startTime;
+				outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
 			} );
 
