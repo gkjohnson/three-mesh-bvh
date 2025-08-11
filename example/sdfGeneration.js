@@ -10,11 +10,9 @@ import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
 import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterial.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import {
-	ndcToCameraRay, getVertexAttribute, intersectionResultStruct,
-	bvhIntersectFirstHit, constants, bvhNodeStruct,
-} from 'three-mesh-bvh/webgpu';
 
+const MAX_RESOLUTION = 200;
+const MIN_RESOLUTION = 10;
 const params = {
 
 	generationMode: 'WebGL',
@@ -254,15 +252,15 @@ async function init() {
 					let pointRes = closestPointToTriangle( point, a, b, c );
 					let delta = point - pointRes.point;
 					let distSq = dot( delta, delta );
-					if ( distSq < ( *ioRes ).distanceSq ) {
+					if ( distSq < ioRes.distanceSq ) {
 
 						// set the output results
-						( *ioRes ).distanceSq = distSq;
-						( *ioRes ).faceIndices = vec4u( indices.xyz, i );
-						( *ioRes ).faceNormal = normalize( cross( a - b, b - c ) );
-						( *ioRes ).barycoord = pointRes.barycoord;
-						( *ioRes ).point = pointRes.point;
-						( *ioRes ).side = sign( dot( ( *ioRes ).faceNormal, delta ) );
+						ioRes.distanceSq = distSq;
+						ioRes.faceIndices = vec4u( indices.xyz, i );
+						ioRes.faceNormal = normalize( cross( a - b, b - c ) );
+						ioRes.barycoord = pointRes.barycoord;
+						ioRes.point = pointRes.point;
+						ioRes.side = sign( dot( ioRes.faceNormal, delta ) );
 
 					}
 
@@ -413,13 +411,13 @@ async function init() {
 
 		dstBuffer = device.createBuffer( {
 			label: "Sdf generation result usable",
-			size: params.resolution ** 3 * 4,
+			size: MAX_RESOLUTION ** 3 * 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
 		} );
 
 		resultBuffer = device.createBuffer( {
 			label: "Sdf generation result readable",
-			size: params.resolution ** 3 * 4,
+			size: MAX_RESOLUTION ** 3 * 4,
 			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
 		} );
 
@@ -520,7 +518,7 @@ function rebuildGUI() {
 	}
 
 	generationFolder.add( params, 'generationMode', generationOptions );
-	generationFolder.add( params, 'resolution', 10, 200, 1 );
+	generationFolder.add( params, 'resolution', MIN_RESOLUTION, MAX_RESOLUTION, 1 );
 	generationFolder.add( params, 'margin', 0, 1 );
 	generationFolder.add( params, 'regenerate' );
 
