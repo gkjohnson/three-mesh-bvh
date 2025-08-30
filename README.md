@@ -18,7 +18,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Skinned geometry](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/skinnedMesh.html)
 
-[Point cloud interesection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+[Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
@@ -699,7 +699,7 @@ constructor(
 
 Instantiates the helper to visualize a MeshBVH.
 
-If a `mesh` and no `bvh` is provided then the `mesh.geometry.boundsTree` is displayed. Otherwise the provided bvh is displayed. Addtionally, if `mesh` is provided then the helper world transform is automatically synchronized with the Mesh. Otherwise if not `mesh` is provided then the user can manage the transform.
+If a `mesh` and no `bvh` is provided then the `mesh.geometry.boundsTree` is displayed. Otherwise the provided bvh is displayed. Additionally, if `mesh` is provided then the helper world transform is automatically synchronized with the Mesh. Otherwise if not `mesh` is provided then the user can manage the transform.
 
 ### .update
 
@@ -974,7 +974,7 @@ Helper class for generating a MeshBVH for a given geometry in asynchronously in 
 
 _NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating a new Worker._
 
-_See note in [Asyncronous Generation](#asynchronous-generation) use snippet._
+_See note in [Asynchronous Generation](#asynchronous-generation) use snippet._
 
 ### .running
 
@@ -1145,7 +1145,7 @@ Dispose of the associated textures.
 BVHShaderGLSL.bvh_struct_definitions : string
 ```
 
-Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/webgl/bvh_struct_definitions.glsl.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/webgl/bvh_struct_definitions.glsl.js) for full implementations and declarations.
+Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/webgl/glsl/bvh_struct_definitions.glsl.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/webgl/glsl/bvh_struct_definitions.glsl.js) for full implementations and declarations.
 
 ### shaderFunctions
 
