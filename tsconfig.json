@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "noEmit": true,
+    "lib": [ "dom", "es2017" ],
+    "module": "node20",
+    "types": [],
     "strict": true,
-    "noUnusedParameters": true,
-    "strictNullChecks":true,
+    "noEmit": true
   },
   "include": [
     "src",

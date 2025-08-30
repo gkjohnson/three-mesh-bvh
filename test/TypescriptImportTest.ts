@@ -1,5 +1,5 @@
 import { BufferGeometry, Mesh, Raycaster, BatchedMesh } from 'three';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, computeBatchedBoundsTree, disposeBatchedBoundsTree } from '../src/index';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, computeBatchedBoundsTree, disposeBatchedBoundsTree } from '../src/index.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
