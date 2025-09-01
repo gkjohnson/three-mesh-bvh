@@ -188,6 +188,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 	if ( ! this.userData.triangleBounds ) {
 
+		// TODO we should recompute it if batchedMesh geometry changes
 		const triCount = getTriCount( this.geometry );
 		this.userData.triangleBounds = new Float32Array( triCount * 6 );
 
