@@ -164,7 +164,7 @@ export function buildPackedTree( bvh, options ) {
 
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 
-	const triangleBounds = computeTriangleBounds( geometry );
+	const triangleBounds = computeTriangleBounds( geometry, options.triangleBounds, options.range.start / 3, options.range.count / 3 );
 	const geometryRanges = options.indirect ? getFullGeometryRange( geometry, options.range ) : getRootIndexRanges( geometry, options.range );
 	bvh._roots = geometryRanges.map( range => {
 

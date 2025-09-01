@@ -1,6 +1,7 @@
 import { Ray, Matrix4, Mesh, Vector3, Sphere, BatchedMesh, REVISION } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
+import { getTriCount } from '../core/build/geometryUtils.js';
 
 const IS_REVISION_166 = parseInt( REVISION ) >= 166;
 const ray = /* @__PURE__ */ new Ray();
@@ -184,6 +185,15 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 		indirect: false,
 		range: null
 	};
+
+	if ( ! this.userData.triangleBounds ) {
+
+		const triCount = getTriCount( this.geometry );
+		this.userData.triangleBounds = new Float32Array( triCount * 6 );
+
+	}
+
+	options.triangleBounds = this.userData.triangleBounds;
 
 	const drawRanges = this._drawRanges || this._geometryInfo;
 	const geometryCount = this._geometryCount;
