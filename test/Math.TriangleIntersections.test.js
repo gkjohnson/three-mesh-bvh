@@ -540,4 +540,21 @@ describe( 'Triangle Intersection line', () => {
 
 	} );
 
+	it( 'triangles should not intersect (issue #762)', () => {
+
+		t1.a.set( - 8.367500305175781, - 7.513999938964844, 34.45796585083008 );
+		t1.b.set( - 8.367500305175781, - 7.513999938964844, 34.45796585083008 );
+		t1.c.set( - 7.6875, - 6.870999813079834, 8.499966621398926 );
+		t1.needsUpdate = true;
+
+		t2.a.set( 110.03839111328125, - 110.03839111328125, 220.1000061035156 );
+		t2.b.set( - 110.03839111328125, - 110.03839111328125, 220.1000061035156 );
+		t2.c.set( 110.07498931884766, - 110.07498931884766, 220.17320251464844 );
+		t2.needsUpdate = true;
+
+		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
+		expect( t2.intersectsTriangle( t1 ) ).toBe( false );
+
+	} );
+
 } );

@@ -355,7 +355,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 				}
 
-				return true;
+				return triangle.containsPoint( tmpVec );
 
 			} else {
 
