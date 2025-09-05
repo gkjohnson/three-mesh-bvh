@@ -542,6 +542,20 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
+		it( 'should function even when the other geometry has no index.', () => {
+
+			intersectGeometry = intersectGeometry.toNonIndexed();
+
+			const geomToWorld = new Matrix4()
+				.compose(
+					new Vector3( 0, 1, 0 ),
+					new Quaternion(),
+					new Vector3( 0.1, 0.1, 0.1 ) );
+
+			expect( bvh.intersectsGeometry( intersectGeometry, geomToWorld ) ).toBe( true );
+
+		} );
+
 	} );
 
 	describe( 'IntersectsSphere', () => {
