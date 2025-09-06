@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
-import { MeshBVH, MeshBVHUniformStruct } from '../src/index.js';
+import { MeshBVH, MeshBVHUniformStruct } from 'three-mesh-bvh';
 
 class GenerateSDFMaterial extends THREE.ShaderMaterial {
 

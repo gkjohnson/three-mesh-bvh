@@ -1,6 +1,6 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
-  Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
-  LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D } from 'three';
+	Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
+	LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D } from 'three';
 
 // Contants
 export enum SplitStrategy {}
@@ -26,6 +26,7 @@ export interface MeshBVHOptions {
   maxLeafTris?: number;
   setBoundingBox?: boolean;
   useSharedArrayBuffer?: boolean;
+  indirect?: boolean;
   verbose?: boolean;
   onProgress?: ( progress: number ) => void;
   range?: { start: number; count: number };
@@ -42,36 +43,36 @@ export interface MeshBVHDeserializeOptions {
 
 export class MeshBVH {
 
-  readonly geometry: BufferGeometry;
+	readonly geometry: BufferGeometry;
 
-  static serialize( bvh: MeshBVH, options?: MeshBVHSerializeOptions ): SerializedBVH;
+	static serialize( bvh: MeshBVH, options?: MeshBVHSerializeOptions ): SerializedBVH;
 
-  static deserialize(
+	static deserialize(
     data: SerializedBVH,
     geometry: BufferGeometry,
     options?: MeshBVHDeserializeOptions
   ): MeshBVH;
 
-  constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
+	constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
 
-  raycast( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Array<Intersection>
+	raycast( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Array<Intersection>
 
-  raycastFirst( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Intersection;
+	raycastFirst( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Intersection | null;
 
-  intersectsSphere( sphere: Sphere ): boolean;
+	intersectsSphere( sphere: Sphere ): boolean;
 
-  intersectsBox( box: Box3, boxToMesh: Matrix4 ): boolean;
+	intersectsBox( box: Box3, boxToMesh: Matrix4 ): boolean;
 
-  intersectsGeometry( geometry: BufferGeometry, geometryToBvh: Matrix4 ): boolean;
+	intersectsGeometry( geometry: BufferGeometry, geometryToBvh: Matrix4 ): boolean;
 
-  closestPointToPoint(
+	closestPointToPoint(
     point: Vector3,
     target?: HitPointInfo,
     minThreshold?: number,
     maxThreshold?: number
   ): HitPointInfo | null;
 
-  closestPointToGeometry(
+	closestPointToGeometry(
     geometry: BufferGeometry,
     geometryToBvh: Matrix4,
     target1?: HitPointInfo,
@@ -80,9 +81,9 @@ export class MeshBVH {
     maxThreshold?: number
   ): HitPointInfo | null;
 
-  // union types to enable at least one of two functions:
-  // https://stackoverflow.com/a/60617060/9838891
-  shapecast(
+	// union types to enable at least one of two functions:
+	// https://stackoverflow.com/a/60617060/9838891
+	shapecast(
     callbacks: {
 
       intersectsBounds: (
@@ -120,9 +121,9 @@ export class MeshBVH {
     } )
   ): boolean;
 
-  // union types to enable at least one of two functions:
-  // https://stackoverflow.com/a/60617060/9838891
-  bvhcast(
+	// union types to enable at least one of two functions:
+	// https://stackoverflow.com/a/60617060/9838891
+	bvhcast(
     otherBVH: MeshBVH,
     matrixToLocal: Matrix4,
     callbacks: ( {
@@ -154,7 +155,7 @@ export class MeshBVH {
     } )
   ): boolean;
 
-  traverse(
+	traverse(
     callback: (
       depth: number,
       isLeaf: boolean,
@@ -165,35 +166,35 @@ export class MeshBVH {
     rootIndex?: number
   ): void;
 
-  refit( nodeIndices?: Array<number> | Set<number> ): void;
+	refit( nodeIndices?: Array<number> | Set<number> ): void;
 
-  getBoundingBox( target: Box3 ): Box3;
+	getBoundingBox( target: Box3 ): Box3;
 
 }
 
 // SerializedBVH
 export class SerializedBVH {
 
-  roots: Array<ArrayBuffer>;
-  index: ArrayBufferView;
+	roots: Array<ArrayBuffer>;
+	index: ArrayBufferView;
 
 }
 
 // MeshBVHHelper
 export class MeshBVHHelper extends Group {
 
-  opacity: number;
-  depth: number;
-  displayParents: boolean;
-  displayEdges: boolean;
-  edgeMaterial: LineBasicMaterial;
-  meshMaterial: MeshBasicMaterial;
+	opacity: number;
+	depth: number;
+	displayParents: boolean;
+	displayEdges: boolean;
+	edgeMaterial: LineBasicMaterial;
+	meshMaterial: MeshBasicMaterial;
 
-  constructor( mesh: Mesh, depth?: number );
+	constructor( mesh: Mesh, depth?: number );
 
-  update(): void;
+	update(): void;
 
-  get color(): Color;
+	get color(): Color;
 
 }
 
@@ -289,8 +290,8 @@ export function getTriangleHitPointInfo(
 // Shader Utilities
 declare class VertexAttributeTexture extends DataTexture {
 
-  overrideItemSize: number | null;
-  updateFrom( attribute: BufferAttribute ): void;
+	overrideItemSize: number | null;
+	updateFrom( attribute: BufferAttribute ): void;
 
 }
 
@@ -300,8 +301,8 @@ export class IntVertexAttributeTexture extends VertexAttributeTexture {}
 
 export class MeshBVHUniformStruct {
 
-  updateFrom( bvh: MeshBVH ): void;
-  dispose(): void;
+	updateFrom( bvh: MeshBVH ): void;
+	dispose(): void;
 
 }
 
@@ -320,41 +321,41 @@ export const shaderIntersectFunction: string;
 // Math classes
 export class ExtendedTriangle extends Triangle {
 
-  needsUpdate : boolean;
+	needsUpdate : boolean;
 
-  intersectsTriangle( other : Triangle, target? : Line3 ) : boolean;
-  intersectsSphere( sphere : Sphere ) : boolean;
-  closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : number;
-  distanceToPoint( point : Vector3 ) : number;
-  distanceToTriangle( tri : Triangle ) : number;
+	intersectsTriangle( other : Triangle, target? : Line3 ) : boolean;
+	intersectsSphere( sphere : Sphere ) : boolean;
+	closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : number;
+	distanceToPoint( point : Vector3 ) : number;
+	distanceToTriangle( tri : Triangle ) : number;
 
 }
 
 export class OrientedBox {
 
-  min: Vector3;
-  max: Vector3;
-  matrix : Matrix4;
-  needsUpdate : boolean;
+	min: Vector3;
+	max: Vector3;
+	matrix : Matrix4;
+	needsUpdate : boolean;
 
-  constructor( min : Vector3, max : Vector3 );
-  set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
-  intersectsBox( box : Box3 ) : boolean;
-  intersectsTriangle( tri : Triangle ) : boolean;
-  closestPointToPoint( point : Vector3, target? : Vector3 ) : number;
-  distanceToPoint( point : Vector3 ) : number;
-  distanceToBox( box : Box3, threshold? : number, target1? : Vector3, target2? : Vector3 ) : number;
+	constructor( min : Vector3, max : Vector3 );
+	set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
+	intersectsBox( box : Box3 ) : boolean;
+	intersectsTriangle( tri : Triangle ) : boolean;
+	closestPointToPoint( point : Vector3, target? : Vector3 ) : number;
+	distanceToPoint( point : Vector3 ) : number;
+	distanceToBox( box : Box3, threshold? : number, target1? : Vector3, target2? : Vector3 ) : number;
 
 }
 
 export class StaticGeometryGenerator {
 
-  useGroups : boolean;
-  attributes : Array<string>;
-  applyWorldTransforms : boolean;
+	useGroups : boolean;
+	attributes : Array<string>;
+	applyWorldTransforms : boolean;
 
-  constructor( objects : Array<Object3D> | Object3D );
-  getMaterials() : Array<Material>;
-  generate( target? : BufferGeometry ) : BufferGeometry;
+	constructor( objects : Array<Object3D> | Object3D );
+	getMaterials() : Array<Material>;
+	generate( target? : BufferGeometry ) : BufferGeometry;
 
 }

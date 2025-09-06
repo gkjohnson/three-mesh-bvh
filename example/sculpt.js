@@ -11,7 +11,7 @@ import {
 	INTERSECTED,
 	NOT_INTERSECTED,
 	MeshBVHHelper,
-} from '..';
+} from 'three-mesh-bvh';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

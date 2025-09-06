@@ -6,6 +6,7 @@ import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { COUNT, OFFSET, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
+import { getTriCount } from '../build/geometryUtils.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
 const triangle = /* @__PURE__ */ new ExtendedTriangle();
@@ -50,8 +51,8 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		const thisIndex = thisGeometry.index;
 		const thisPos = thisGeometry.attributes.position;
 
-		const index = otherGeometry.index;
-		const pos = otherGeometry.attributes.position;
+		const otherIndex = otherGeometry.index;
+		const otherPos = otherGeometry.attributes.position;
 
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
@@ -123,6 +124,8 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		} else {
 
 			// if we're just dealing with raw geometry
+			const otherTriangleCount = getTriCount( otherGeometry );
+
 			/* @if INDIRECT */
 
 			for ( let i = offset, l = count + offset; i < l; i ++ ) {
@@ -145,9 +148,9 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 				triangle.c.applyMatrix4( invertedMat );
 				triangle.needsUpdate = true;
 
-				for ( let i2 = 0, l2 = index.count; i2 < l2; i2 += 3 ) {
+				for ( let i2 = 0, l2 = otherTriangleCount * 3; i2 < l2; i2 += 3 ) {
 
-					setTriangle( triangle2, i2, index, pos );
+					setTriangle( triangle2, i2, otherIndex, otherPos );
 					triangle2.needsUpdate = true;
 
 					if ( triangle.intersectsTriangle( triangle2 ) ) {

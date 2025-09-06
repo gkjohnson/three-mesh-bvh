@@ -5,7 +5,7 @@ import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
 	computeBatchedBoundsTree, disposeBatchedBoundsTree,
 	CENTER, SAH, AVERAGE,
-} from '..';
+} from 'three-mesh-bvh';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

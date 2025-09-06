@@ -3,10 +3,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH } from '..';
+import { MeshBVH } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { GenerateMeshBVHWorker } from '../src/workers/GenerateMeshBVHWorker.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 let renderer, camera, scene, gui, stats, outputContainer;
 let voxels, controls, boxHelper;

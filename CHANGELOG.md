@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - Unreleased
+### Added
+- Types for web workers.
+- Add tsl functions for running bvh raycasting via compute shaders.
+- Add "three-mesh-bvh/worker" export.
+- Add "three-mesh-bvh/webgpu" export.
+
+### Fixed
+- Type definitions.
+- Case where raycasting results would not match three.js' behavior.
+- Case where "intersectsGeometry" would throw an error if a geometry without an index was provided.
+
+## [0.9.1] - 2025.06-20
+### Fixed
+- Type definitions.
+
 ## [0.9.0] - 2025-01-21
 ### Changed
 - Changed "bvhClosestPointToPoint" function signature to include "maxDistance" argument.

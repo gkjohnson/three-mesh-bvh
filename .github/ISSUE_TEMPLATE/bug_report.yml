@@ -1,0 +1,64 @@
+name: Bug Report
+description: Report a reproducible bug or regression.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: How do you trigger this bug? Please walk us through it step by step.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code
+      description: Code snippent including critical library settings related to the bug and reproduction.
+      value: |
+        ```js
+        // code goes here
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Live example
+      description: Link to [jsfiddle](https://jsfiddle.net/) or [codesandbox](https://codesandbox.io/) demonstrating the bug.
+      value: <!-- insert link to the reproduction -->
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Provide screenshots of the render problem or logged error and the tile set data that's causing the problem if applicable. 
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Library Version
+      description: Which version of the library are you using?
+      placeholder: v
+    validations:
+      required: true
+  - type: input
+    id: three_version
+    attributes:
+      label: Three.js Version
+      description: Which version of three.js are you using?
+      placeholder: r
+    validations:
+      required: true

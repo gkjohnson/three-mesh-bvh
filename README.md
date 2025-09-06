@@ -18,7 +18,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Skinned geometry](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/skinnedMesh.html)
 
-[Point cloud interesection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+[Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
@@ -61,6 +61,12 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 [CPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
 
 [Gem Refraction Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/diamond.html)
+
+<!--
+**WebGPU Compute Shaders**
+
+[Simple Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_gpuPathTracingSimple.html)
+-->
 
 **External Projects**
 
@@ -192,10 +198,10 @@ geometry.boundsTree = deserializedBVH;
 
 ## Asynchronous Generation
 
-_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is not exported from the package root. If needed the code from `src/worker` can be copied and modified to accommodate a particular build process._
+_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is exported separately via `three-mesh-bvh/worker` subpath. If needed the code from `src/worker` can be copied and modified to accommodate a particular build process._
 
 ```js
-import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 // ...
 
@@ -211,7 +217,7 @@ worker.generate( geometry ).then( bvh => {
 _Parallel BVH generation is also supported using "ParallelMeshBVHWorker", which requires support for SharedArrayBuffer. If SharedArrayBuffer is not available it falls back to "GenerateMeshBVHWorker". It is recommended that geometry passed to this function have `position` and `index` with SharedArrayBuffer arrays, otherwise buffer copies must be made._
 
 ```js
-import { ParallelMeshBVHWorker } from 'three-mesh-bvh/src/workers/ParallelMeshBVHWorker.js';
+import { ParallelMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 // ...
 
@@ -351,7 +357,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     onProgress: null,
 
     // If false then an index buffer is created if it does not exist and is rearranged
-    // to hold the bvh structure. If false then a separate buffer is created to store the
+    // to hold the bvh structure. If true then a separate buffer is created to store the
     // structure and the index buffer (or lack thereof) is retained. This can be used
     // when the existing index layout is important or groups are being used so a
     // single BVH hierarchy can be created to improve performance.
@@ -693,7 +699,7 @@ constructor(
 
 Instantiates the helper to visualize a MeshBVH.
 
-If a `mesh` and no `bvh` is provided then the `mesh.geometry.boundsTree` is displayed. Otherwise the provided bvh is displayed. Addtionally, if `mesh` is provided then the helper world transform is automatically synchronized with the Mesh. Otherwise if not `mesh` is provided then the user can manage the transform.
+If a `mesh` and no `bvh` is provided then the `mesh.geometry.boundsTree` is displayed. Otherwise the provided bvh is displayed. Additionally, if `mesh` is provided then the helper world transform is automatically synchronized with the Mesh. Otherwise if not `mesh` is provided then the user can manage the transform.
 
 ### .update
 
@@ -968,7 +974,7 @@ Helper class for generating a MeshBVH for a given geometry in asynchronously in 
 
 _NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating a new Worker._
 
-_See note in [Asyncronous Generation](#asynchronous-generation) use snippet._
+_See note in [Asynchronous Generation](#asynchronous-generation) use snippet._
 
 ### .running
 
@@ -1131,7 +1137,7 @@ dispose() : void
 
 Dispose of the associated textures.
 
-## Shader Function and Struct Exports
+## WebGL Shader Function and Struct Exports
 
 ### shaderStructs
 
@@ -1139,7 +1145,7 @@ Dispose of the associated textures.
 BVHShaderGLSL.bvh_struct_definitions : string
 ```
 
-Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/gpu/bvh_struct_definitions.glsl.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/gpu/bvh_struct_definitions.glsl.js) for full implementations and declarations.
+Set of shaders structs and defined constants used for interacting with the packed BVH in a shader. See [src/webgl/glsl/bvh_struct_definitions.glsl.js](https://github.com/gkjohnson/three-mesh-bvh/blob/master/src/webgl/glsl/bvh_struct_definitions.glsl.js) for full implementations and declarations.
 
 ### shaderFunctions
 
@@ -1149,7 +1155,7 @@ BVHShaderGLSL.bvh_ray_functions : string
 BVHShaderGLSL.common_functions : string
 ```
 
-Set of shader functions used for interacting with the packed BVH in a shader and sampling [VertexAttributeTextures](#VertexAttributeTexture). See [src/gpu/glsl](https://github.com/gkjohnson/three-mesh-bvh/tree/master/src/gpu/glsl) for full implementations and declarations.
+Set of shader functions used for interacting with the packed BVH in a shader and sampling [VertexAttributeTextures](#VertexAttributeTexture). See [src/webgl/glsl](https://github.com/gkjohnson/three-mesh-bvh/tree/master/src/webgl/glsl) for full implementations and declarations.
 
 ## Gotchas
 
