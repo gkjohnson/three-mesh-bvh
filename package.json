@@ -69,6 +69,7 @@
     "@types/eslint": "^7.28.1",
     "@types/jest": "^27.0.2",
     "@types/three": "^0.179.0",
+    "@types/node": "^24.3.1",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
     "babel-jest": "^27.2.4",
@@ -84,7 +85,7 @@
     "simplex-noise": "^2.4.0",
     "stats.js": "^0.17.0",
     "three": "^0.179.0",
-    "typescript": "^5.6.0",
+    "typescript": "^5.9.2",
     "vite": "^6.2.2",
 		"seedrandom": "^3.0.5"
   }
