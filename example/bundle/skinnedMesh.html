@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Skinned Mesh BVH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+			font-family: monospace;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#model-info {
+			color: white;
+			position: absolute;
+			left: 10px;
+			bottom: 10px;
+			opacity: 0.5;
+		}
+
+		#output {
+			white-space: pre;
+			margin-bottom: 10px;
+		}
+
+		#info {
+			top: 0;
+			width: 100%;
+			pointer-events: none;
+			position: absolute;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+    </style>
+  <script type="module" crossorigin src="./assets/skinnedMesh-C3NHToKQ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-BkZCZYIu.js">
+  <link rel="modulepreload" crossorigin href="./assets/BufferGeometryUtils-Dh24p8-o.js">
+  <link rel="modulepreload" crossorigin href="./assets/GLTFLoader-d1CTSjhw.js">
+  <link rel="modulepreload" crossorigin href="./assets/_commonjsHelpers-CqkleIqs.js">
+  <link rel="modulepreload" crossorigin href="./assets/stats.min-DbzWzcqd.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-BH_YJbPT.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-6mqzx8gr.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-Bv-nt3z5.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVHHelper-ByQnppBs.js">
+  <link rel="modulepreload" crossorigin href="./assets/Debug-BnBpEt3x.js">
+  <link rel="modulepreload" crossorigin href="./assets/ExtensionUtilities-C9XFoj_Y.js">
+  <link rel="modulepreload" crossorigin href="./assets/StaticGeometryGenerator-B-8uAvzJ.js">
+</head>
+<body>
+	<div id="info">
+		SkinnedMesh and morph target BVH support by iteratively generating a static version of<br/>
+		the geometry and refitting the existing BVH.
+	</div>
+	<div id="model-info">
+		<div id="output"></div>
+		<div>Model by DailyArt on Sketchfab</div>
+	</div>
+</body>
+</html>
