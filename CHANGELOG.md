@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Type definitions.
 - Case where raycasting results would not match three.js' behavior.
+- Case where "intersectsGeometry" would throw an error if a geometry without an index was provided.
 
 ## [0.9.1] - 2025.06-20
 ### Fixed

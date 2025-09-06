@@ -1,4 +1,4 @@
-import { MeshBVH, MeshBVHOptions } from '../index';
+import { MeshBVH, MeshBVHOptions } from '../index.js';
 import { BufferGeometry } from 'three';
 
 export class GenerateMeshBVHWorker {
