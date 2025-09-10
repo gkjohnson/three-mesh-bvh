@@ -164,11 +164,14 @@ export function buildPackedTree( bvh, options ) {
 
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 
+	// TODO: Remove this when per-sub-geometry support for `triangleBounds` is implemented.
+
 	let triangleBounds;
 
 	if ( options.triangleBounds ) {
 
-		triangleBounds = computeTriangleBounds( geometry, options.triangleBounds, options.range.start / 3, options.range.count / 3 );
+		const range = getFullGeometryRange( geometry, options.range )[ 0 ];
+		triangleBounds = computeTriangleBounds( geometry, options.triangleBounds, range.offset, range.count );
 
 	} else {
 
