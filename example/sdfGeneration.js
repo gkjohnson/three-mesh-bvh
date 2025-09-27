@@ -87,32 +87,22 @@ async function init() {
 	// load model and generate bvh
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-	await new GLTFLoader()
+	const gltf = await new GLTFLoader()
 		.setMeshoptDecoder( MeshoptDecoder )
-		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' )
-		.then( gltf => {
+		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' );
 
-			gltf.scene.updateMatrixWorld( true );
+	gltf.scene.updateMatrixWorld( true );
 
-			const staticGen = new StaticGeometryGenerator( gltf.scene );
-			staticGen.attributes = [ 'position', 'normal' ];
-			staticGen.useGroups = false;
+	const staticGen = new StaticGeometryGenerator( gltf.scene );
+	staticGen.attributes = [ 'position', 'normal' ];
+	staticGen.useGroups = false;
 
-			geometry = staticGen.generate().center();
+	geometry = staticGen.generate().center();
 
-			return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
+	bvh = await bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
 
-		} )
-		.then( result => {
-
-			bvh = result;
-
-			mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-			scene.add( mesh );
-
-			updateSDF();
-
-		} );
+	mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+	scene.add( mesh );
 
 	webgpuRenderer = new WebGPURenderer( {
 		forceWebGL: false,
@@ -137,7 +127,7 @@ async function init() {
 
 	const computeShader = wgslFn( /* wgsl */ `
 
-		fn computeSdf( 
+		fn computeSdf(
 			bvh_index: ptr<storage, array<vec3u>, read>,
 			bvh_position: ptr<storage, array<vec3f>, read>,
 			bvh: ptr<storage, array<BVHNode>, read>,
@@ -178,6 +168,7 @@ async function init() {
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
+	updateSDF();
 	rebuildGUI();
 
 	window.addEventListener( 'resize', function () {
