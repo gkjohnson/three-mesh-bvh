@@ -210,6 +210,7 @@ async function init() {
 	const fragmentShaderParams = {
 		dim: uniform( 0 ),
 		layer: uniform( 0 ),
+		grid_mode: uniform( false ),
 
 		uv: varying( uv() ),
 		sdf_sampler: sampler( sdfTex ),
@@ -220,6 +221,7 @@ async function init() {
 		fn layer(
 			dim: u32,
 			layer: u32,
+			grid_mode: bool,
 
 			uv: vec2f,
 			sdf_sampler: sampler,
@@ -227,7 +229,21 @@ async function init() {
 		) -> vec4f {
 			let actualDimension = textureDimensions( sdf ).x;
 			let scaleFactor = f32(dim) / f32(actualDimension);
-			let texelCoords = vec3f(scaleFactor * uv, f32(layer) / f32(actualDimension));
+
+			var texelCoords = vec3f(scaleFactor * uv, f32(layer) / f32(actualDimension));
+
+			if (grid_mode) {
+				let square_size = ceil(sqrt(f32(dim)));
+				let max_image_offset = vec2f(square_size - 1.0, square_size - 1.0);
+				let new_uv = uv * square_size;
+				let image_offset = min(floor(new_uv), max_image_offset);
+				let in_image_uv = new_uv - image_offset;
+				let z_layer = image_offset.x + (square_size - 1 - image_offset.y) * square_size;
+				if (z_layer >= f32(dim)) {
+					return vec4f(0.0, 0.0, 0.0, 1.0);
+				}
+				texelCoords = vec3f(scaleFactor * in_image_uv, z_layer / f32(actualDimension));
+			}
 			let dist = textureSample(sdf, sdf_sampler, texelCoords).r;
 			return distToColor(dist);
 		}
@@ -429,6 +445,7 @@ function render() {
 
 		material.fragmentNode.parameters.dim.value = params.currentImageResolution;
 		material.fragmentNode.parameters.layer.value = params.layer;
+		material.fragmentNode.parameters.grid_mode.value = ( params.mode === 'grid layers' );
 		// material.uniforms.layer.value = params.layer / sdfTex.width;
 		// material.uniforms.sdfTex.value = sdfTex.texture;
 		// tex = sdfTex.texture;
