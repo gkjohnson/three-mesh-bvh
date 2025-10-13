@@ -14,8 +14,7 @@ import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
 import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterialWebGPU';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
 
-// TODO: experiment with size
-const WORKGROUP_SIZE = [ 16, 16, 1 ];
+const WORKGROUP_SIZE = [ 4, 4, 4 ];
 const params = {
 
 	resolution: 25,
@@ -55,6 +54,7 @@ async function init() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( 0, 0 );
 	document.body.appendChild( renderer.domElement );
+	await renderer.init();
 
 	// scene setup
 	scene = new THREE.Scene();
@@ -294,13 +294,19 @@ function updateSDF() {
 		Math.ceil( dim / WORKGROUP_SIZE[ 1 ] ),
 		Math.ceil( dim / WORKGROUP_SIZE[ 2 ] ),
 	];
-	renderer.computeAsync( computeKernel, dispatchSize ).then( () => {
+	renderer.compute( computeKernel, dispatchSize );
+	if ( renderer.backend.device !== null ) {
 
-		// update the timing display
-		const delta = window.performance.now() - startTime;
-		outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
+		renderer.backend.device.queue.onSubmittedWorkDone().then( () => {
 
-	} );
+			// update the timing display
+			const endTime = window.performance.now();
+			const delta = endTime - startTime;
+			outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
+
+		} );
+
+	}
 
 	rebuildGUI();
 
