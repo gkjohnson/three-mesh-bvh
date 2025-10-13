@@ -123,7 +123,7 @@ export const distanceSqToBounds = wgslFn( /* wgsl */ `
 ` );
 
 export const distanceSqToBVHNodeBoundsPoint = wgslFn( /* wgsl */ `
-	fn distanceSqToBVHNodeBoundsPoint( 
+	fn distanceSqToBVHNodeBoundsPoint(
 		point: vec3f,
 		bvh: ptr<storage, array<BVHNode>, read>,
 		currNodeIndex: u32,
@@ -193,7 +193,7 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 				let splitAxis = boundsInfox & 0x0000ffffu;
 				let rightIndex = 4u * boundsInfoy / 32u;
 
-				let leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
+				let leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );
 				let c1 = select( rightIndex, leftIndex, leftToRight );
 				let c2 = select( leftIndex, rightIndex, leftToRight );
 
