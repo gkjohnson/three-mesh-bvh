@@ -8,10 +8,13 @@ import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
-import { uniform, wgslFn, storage, globalId, uv, varying, texture3D, positionGeometry, storageTexture, sampler, } from 'three/tsl';
+import { uniform, wgslFn, storage, globalId, storageTexture, } from 'three/tsl';
 
 import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
+import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterialWebGPU';
+import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
 
+// TODO: experiment with size
 const WORKGROUP_SIZE = [ 16, 16, 1 ];
 const params = {
 
@@ -30,7 +33,6 @@ const params = {
 let renderer, camera, scene, gui, stats, boxHelper;
 let outputContainer, bvh, geometry, sdfTex, mesh;
 let layerPass, raymarchPass;
-let sdfLayerMaterialFragmentShader;
 let bvhGenerationWorker;
 let computeKernel;
 const inverseBoundsMatrix = new THREE.Matrix4();
@@ -172,189 +174,8 @@ async function init() {
 
 	updateSDF();
 
-	// screen pass to render a single layer of the 3d texture
-	const sdfLayerMaterial = new THREE.NodeMaterial();
-
-	const distToColor = wgslFn( /* wgsl */`
-		fn distToColor(dist: f32) -> vec4f {
-			if (dist > 0.0) {
-				return vec4f(0.0, dist, 0.0, 1.0);
-			} else {
-				return vec4f(-dist, 0.0, 0.0, 1.0);
-			}
-		}
-	` );
-
-	const fragmentShaderParams = {
-		layer: uniform( 0 ),
-		grid_mode: uniform( false ),
-
-		uv: varying( uv() ),
-		sdf_sampler: sampler( sdfTex ),
-		sdf: texture3D( sdfTex ),
-	};
-	sdfLayerMaterialFragmentShader = wgslFn( /* wgsl */ `
-		fn layer(
-			layer: u32,
-			grid_mode: bool,
-
-			uv: vec2f,
-			sdf_sampler: sampler,
-			sdf: texture_3d<f32>,
-		) -> vec4f {
-			let dim = textureDimensions( sdf ).x;
-
-			var texelCoords = vec3f(uv, f32(layer) / f32(dim));
-
-			if (grid_mode) {
-				let square_size = ceil(sqrt(f32(dim)));
-				let max_image_offset = vec2f(square_size - 1.0, square_size - 1.0);
-				let new_uv = uv * square_size;
-				let image_offset = min(floor(new_uv), max_image_offset);
-				let in_image_uv = new_uv - image_offset;
-				let z_layer = image_offset.x + (square_size - 1 - image_offset.y) * square_size;
-				if (z_layer >= f32(dim)) {
-					return vec4f(0.0, 0.0, 0.0, 1.0);
-				}
-				texelCoords = vec3f(in_image_uv, z_layer / f32(dim));
-			}
-			let dist = textureSample(sdf, sdf_sampler, texelCoords).r;
-			return distToColor(dist);
-		}
-
-	`, [ distToColor ] );
-
-	const vertexShaderParams = {
-		position: positionGeometry,
-	};
-	const fullScreenQuadVertex = wgslFn( /* wgsl */ `
-
-		fn noop(position: vec4f) -> vec4f {
-			return position;
-		}
-
-	` );
-	sdfLayerMaterial.fragmentNode = sdfLayerMaterialFragmentShader( fragmentShaderParams );
-	sdfLayerMaterial.vertexNode = fullScreenQuadVertex( vertexShaderParams );
-	layerPass = new FullScreenQuad( sdfLayerMaterial );
-
-	// screen pass to render the sdf ray marching (WGSL)
-	const raymarchMaterial = new THREE.NodeMaterial();
-
-	const raymarchFragmentParams = {
-		surface: uniform( 0 ),
-		normalStep: uniform( new THREE.Vector3() ),
-		projectionInverse: uniform( new THREE.Matrix4() ),
-		sdfTransformInverse: uniform( new THREE.Matrix4() ),
-		sdfTransform: uniform( new THREE.Matrix4() ),
-
-		uv: varying( uv() ),
-		sdf_sampler: sampler( sdfTex ),
-		sdf: texture3D( sdfTex ),
-	};
-
-	const rayBoxDistFn = wgslFn( /* wgsl */ `
-		fn rayBoxDist(boundsMin: vec3f, boundsMax: vec3f, rayOrigin: vec3f, rayDir: vec3f) -> vec2f {
-			let t0 = (boundsMin - rayOrigin) / rayDir;
-			let t1 = (boundsMax - rayOrigin) / rayDir;
-			let tmin = min(t0, t1);
-			let tmax = max(t0, t1);
-
-			let distA = max( max( tmin.x, tmin.y ), tmin.z );
-			let distB = min( tmax.x, min( tmax.y, tmax.z ) );
-
-			let distToBox = max( 0.0, distA );
-			let distInsideBox = max( 0.0, distB - distToBox );
-			return vec2f( distToBox, distInsideBox );
-		}
-	` );
-
-	const raymarchFragmentShader = wgslFn( /* wgsl */ `
-		fn raymarch(
-			surface: f32,
-			projectionInverse: mat4x4f,
-			sdfTransformInverse: mat4x4f,
-			sdfTransform: mat4x4f,
-			normalStep: vec3f,
-
-			uv: vec2f,
-			sdf_sampler: sampler,
-			sdf: texture_3d<f32>,
-		) -> vec4f {
-			const MAX_STEPS: i32 = 500;
-			const SURFACE_EPSILON: f32 = 0.001;
-
-			let clipSpace = 2.0 * uv - vec2f( 1.0, 1.0 );
-
-			let rayOrigin = vec3f( 0.0, 0.0, 0.0 );
-			let homogenousDirection = projectionInverse * vec4f( clipSpace, -1.0, 1.0 );
-			let rayDirection = normalize( homogenousDirection.xyz / homogenousDirection.w );
-
-			let sdfRayOrigin = ( sdfTransformInverse * vec4f( rayOrigin, 1.0 ) ).xyz;
-			let sdfRayDirection = normalize( ( sdfTransformInverse * vec4f( rayDirection, 0.0 ) ).xyz );
-
-			let boxIntersectionInfo = rayBoxDist( vec3f( -0.5 ), vec3f( 0.5 ), sdfRayOrigin, sdfRayDirection );
-			let distToBox = boxIntersectionInfo.x;
-			let distInsideBox = boxIntersectionInfo.y;
-			let intersectsBox = distInsideBox > 0.0;
-
-			var color = vec4f( 0.0 );
-
-			if ( intersectsBox ) {
-
-				var intersectsSurface = false;
-				var localPoint = vec4f( sdfRayOrigin + sdfRayDirection * ( distToBox + 1e-5 ), 1.0 );
-				var point = sdfTransform * localPoint;
-
-				for ( var i: i32 = 0; i < MAX_STEPS; i = i + 1 ) {
-
-					let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
-
-					if ( uv3.x < 0.0 || uv3.x > 1.0 || uv3.y < 0.0 || uv3.y > 1.0 || uv3.z < 0.0 || uv3.z > 1.0 ) {
-						break;
-					}
-
-					let distanceToSurface = textureSample( sdf, sdf_sampler, uv3 ).r - surface;
-					if ( distanceToSurface < SURFACE_EPSILON ) {
-						intersectsSurface = true;
-						break;
-					}
-
-					point = vec4f(point.xyz + rayDirection * distanceToSurface, point.w);
-				}
-
-				if ( intersectsSurface ) {
-
-					let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
-
-					let dx = textureSample( sdf, sdf_sampler, uv3 + vec3f( normalStep.x, 0.0, 0.0 ) ).r
-						   - textureSample( sdf, sdf_sampler, uv3 - vec3f( normalStep.x, 0.0, 0.0 ) ).r;
-
-					let dy = textureSample( sdf, sdf_sampler, uv3 + vec3f( 0.0, normalStep.y, 0.0 ) ).r
-						   - textureSample( sdf, sdf_sampler, uv3 - vec3f( 0.0, normalStep.y, 0.0 ) ).r;
-
-					let dz = textureSample( sdf, sdf_sampler, uv3 + vec3f( 0.0, 0.0, normalStep.z ) ).r
-						   - textureSample( sdf, sdf_sampler, uv3 - vec3f( 0.0, 0.0, normalStep.z ) ).r;
-
-					let normal = normalize( vec3f( dx, dy, dz ) );
-
-					let lightDirection = normalize( vec3f( 1.0, 1.0, 1.0 ) );
-					let lightIntensity =
-						saturate( dot( normal, lightDirection ) ) +
-						saturate( dot( normal, -lightDirection ) ) * 0.05 +
-						0.1;
-
-					color = vec4f( vec3f( lightIntensity ), 1.0 );
-				}
-			}
-
-			return color;
-		}
-	`, [ rayBoxDistFn ] );
-
-	raymarchMaterial.fragmentNode = raymarchFragmentShader( raymarchFragmentParams );
-	raymarchMaterial.vertexNode = fullScreenQuadVertex( vertexShaderParams );
-	raymarchPass = new FullScreenQuad( raymarchMaterial );
+	layerPass = new FullScreenQuad( new RenderSDFLayerMaterial( sdfTex ) );
+	raymarchPass = new FullScreenQuad( new RayMarchSDFMaterial( sdfTex ) );
 
 }
 
@@ -483,7 +304,7 @@ function updateSDF() {
 		renderer.computeAsync( computeKernel, dispatchSize ).then( () => {
 
 			const delta = window.performance.now() - startTime;
-			outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
+			outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
 
 		} );
 
@@ -533,7 +354,7 @@ function updateSDF() {
 	params.currentImageResolution = params.resolution;
 	// update the timing display
 	const delta = window.performance.now() - startTime;
-	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
+	outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
 
 	rebuildGUI();
 
