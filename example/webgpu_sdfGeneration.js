@@ -6,16 +6,12 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
-import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
-import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 import { uniform, wgslFn, storage, globalId, uv, varying, texture3D, positionGeometry, storageTexture, sampler, } from 'three/tsl';
 
 import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
 
-const MAX_RESOLUTION = 200;
-const MIN_RESOLUTION = 10;
 const WORKGROUP_SIZE = [ 16, 16, 1 ];
 const params = {
 
@@ -79,49 +75,29 @@ async function init() {
 
 	new OrbitControls( camera, renderer.domElement );
 
-	sdfTex = new THREE.Storage3DTexture( MAX_RESOLUTION, MAX_RESOLUTION, MAX_RESOLUTION );
-	sdfTex.format = THREE.RedFormat;
-	sdfTex.type = THREE.FloatType;
-	sdfTex.generateMipmaps = false;
-	sdfTex.needsUpdate = true;
-	sdfTex.wrapR = THREE.ClampToEdgeWrapping;
-	sdfTex.wrapS = THREE.ClampToEdgeWrapping;
-	sdfTex.wrapT = THREE.ClampToEdgeWrapping;
-
 	// stats setup
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// screen pass to render the sdf ray marching
-	// raymarchPass = new FullScreenQuad( new RayMarchSDFMaterial() );
-
 	// load model and generate bvh
 	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-	await new GLTFLoader()
+	const gltf = await new GLTFLoader()
 		.setMeshoptDecoder( MeshoptDecoder )
-		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' )
-		.then( gltf => {
+		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' );
 
-			gltf.scene.updateMatrixWorld( true );
+	gltf.scene.updateMatrixWorld( true );
 
-			const staticGen = new StaticGeometryGenerator( gltf.scene );
-			staticGen.attributes = [ 'position', 'normal' ];
-			staticGen.useGroups = false;
+	const staticGen = new StaticGeometryGenerator( gltf.scene );
+	staticGen.attributes = [ 'position', 'normal' ];
+	staticGen.useGroups = false;
 
-			geometry = staticGen.generate().center();
+	geometry = staticGen.generate().center();
 
-			return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
+	bvh = await bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
 
-		} )
-		.then( result => {
-
-			bvh = result;
-
-			mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
-			scene.add( mesh );
-
-		} );
+	mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+	scene.add( mesh );
 
 	const geom_index = new THREE.StorageBufferAttribute( mesh.geometry.index.array, 3 );
 	const geom_position = new THREE.StorageBufferAttribute( mesh.geometry.attributes.position.array, 3 );
@@ -210,7 +186,6 @@ async function init() {
 	` );
 
 	const fragmentShaderParams = {
-		dim: uniform( 0 ),
 		layer: uniform( 0 ),
 		grid_mode: uniform( false ),
 
@@ -219,9 +194,7 @@ async function init() {
 		sdf: texture3D( sdfTex ),
 	};
 	sdfLayerMaterialFragmentShader = wgslFn( /* wgsl */ `
-
 		fn layer(
-			dim: u32,
 			layer: u32,
 			grid_mode: bool,
 
@@ -229,10 +202,9 @@ async function init() {
 			sdf_sampler: sampler,
 			sdf: texture_3d<f32>,
 		) -> vec4f {
-			let actualDimension = textureDimensions( sdf ).x;
-			let scaleFactor = f32(dim) / f32(actualDimension);
+			let dim = textureDimensions( sdf ).x;
 
-			var texelCoords = vec3f(scaleFactor * uv, f32(layer) / f32(actualDimension));
+			var texelCoords = vec3f(uv, f32(layer) / f32(dim));
 
 			if (grid_mode) {
 				let square_size = ceil(sqrt(f32(dim)));
@@ -244,7 +216,7 @@ async function init() {
 				if (z_layer >= f32(dim)) {
 					return vec4f(0.0, 0.0, 0.0, 1.0);
 				}
-				texelCoords = vec3f(scaleFactor * in_image_uv, z_layer / f32(actualDimension));
+				texelCoords = vec3f(in_image_uv, z_layer / f32(dim));
 			}
 			let dist = textureSample(sdf, sdf_sampler, texelCoords).r;
 			return distToColor(dist);
@@ -271,7 +243,6 @@ async function init() {
 
 	const raymarchFragmentParams = {
 		surface: uniform( 0 ),
-		dim: uniform( 0 ),
 		normalStep: uniform( new THREE.Vector3() ),
 		projectionInverse: uniform( new THREE.Matrix4() ),
 		sdfTransformInverse: uniform( new THREE.Matrix4() ),
@@ -301,7 +272,6 @@ async function init() {
 	const raymarchFragmentShader = wgslFn( /* wgsl */ `
 		fn raymarch(
 			surface: f32,
-			dim: u32,
 			projectionInverse: mat4x4f,
 			sdfTransformInverse: mat4x4f,
 			sdfTransform: mat4x4f,
@@ -313,8 +283,6 @@ async function init() {
 		) -> vec4f {
 			const MAX_STEPS: i32 = 500;
 			const SURFACE_EPSILON: f32 = 0.001;
-			let actualDimension = textureDimensions( sdf ).x;
-			let scaleFactor = f32(dim) / f32(actualDimension);
 
 			let clipSpace = 2.0 * uv - vec2f( 1.0, 1.0 );
 
@@ -346,7 +314,7 @@ async function init() {
 						break;
 					}
 
-					let distanceToSurface = textureSample( sdf, sdf_sampler, scaleFactor * uv3 ).r - surface;
+					let distanceToSurface = textureSample( sdf, sdf_sampler, uv3 ).r - surface;
 					if ( distanceToSurface < SURFACE_EPSILON ) {
 						intersectsSurface = true;
 						break;
@@ -359,14 +327,14 @@ async function init() {
 
 					let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
 
-					let dx = textureSample( sdf, sdf_sampler, scaleFactor * (uv3 + vec3f( normalStep.x, 0.0, 0.0 )) ).r
-						   - textureSample( sdf, sdf_sampler, scaleFactor * (uv3 - vec3f( normalStep.x, 0.0, 0.0 )) ).r;
+					let dx = textureSample( sdf, sdf_sampler, uv3 + vec3f( normalStep.x, 0.0, 0.0 ) ).r
+						   - textureSample( sdf, sdf_sampler, uv3 - vec3f( normalStep.x, 0.0, 0.0 ) ).r;
 
-					let dy = textureSample( sdf, sdf_sampler, scaleFactor * (uv3 + vec3f( 0.0, normalStep.y, 0.0 )) ).r
-						   - textureSample( sdf, sdf_sampler, scaleFactor * (uv3 - vec3f( 0.0, normalStep.y, 0.0 )) ).r;
+					let dy = textureSample( sdf, sdf_sampler, uv3 + vec3f( 0.0, normalStep.y, 0.0 ) ).r
+						   - textureSample( sdf, sdf_sampler, uv3 - vec3f( 0.0, normalStep.y, 0.0 ) ).r;
 
-					let dz = textureSample( sdf, sdf_sampler, scaleFactor * (uv3 + vec3f( 0.0, 0.0, normalStep.z )) ).r
-						   - textureSample( sdf, sdf_sampler, scaleFactor * (uv3 - vec3f( 0.0, 0.0, normalStep.z )) ).r;
+					let dz = textureSample( sdf, sdf_sampler, uv3 + vec3f( 0.0, 0.0, normalStep.z ) ).r
+						   - textureSample( sdf, sdf_sampler, uv3 - vec3f( 0.0, 0.0, normalStep.z ) ).r;
 
 					let normal = normalize( vec3f( dx, dy, dz ) );
 
@@ -406,7 +374,7 @@ function rebuildGUI() {
 	const generationFolder = gui.addFolder( 'generation' );
 
 	generationFolder.add( params, 'gpuGeneration' );
-	generationFolder.add( params, 'resolution', MIN_RESOLUTION, MAX_RESOLUTION, 1 );
+	generationFolder.add( params, 'resolution', 10, 200, 1 );
 	generationFolder.add( params, 'margin', 0, 1 );
 	generationFolder.add( params, 'regenerate' );
 
@@ -459,12 +427,44 @@ function updateSDF() {
 	boxHelper.box.max.y += params.margin;
 	boxHelper.box.max.z += params.margin;
 
-	// dispose of the existing sdf
-	// if ( sdfTex ) {
+	// dispose and recreate storage 3D texture for this update
+	if ( sdfTex ) {
 
-	// 	sdfTex.dispose();
+		sdfTex.dispose();
 
-	// }
+	}
+
+	sdfTex = new THREE.Storage3DTexture( dim, dim, dim );
+	sdfTex.format = THREE.RedFormat;
+	sdfTex.type = THREE.FloatType;
+	sdfTex.generateMipmaps = false;
+	sdfTex.needsUpdate = true;
+	sdfTex.wrapR = THREE.ClampToEdgeWrapping;
+	sdfTex.wrapS = THREE.ClampToEdgeWrapping;
+	sdfTex.wrapT = THREE.ClampToEdgeWrapping;
+
+	// Rebind compute and material nodes to the new texture
+	if ( computeKernel ) {
+
+		computeKernel.computeNode.parameters.output.value = sdfTex;
+
+	}
+
+	if ( layerPass ) {
+
+		const mat = layerPass.material;
+		mat.fragmentNode.parameters.sdf.value = sdfTex;
+		mat.fragmentNode.parameters.sdf_sampler.node.value = sdfTex;
+
+	}
+
+	if ( raymarchPass ) {
+
+		const mat = raymarchPass.material;
+		mat.fragmentNode.parameters.sdf.value = sdfTex;
+		mat.fragmentNode.parameters.sdf_sampler.node.value = sdfTex;
+
+	}
 
 	const pxWidth = 1 / dim;
 	const halfWidth = 0.5 * pxWidth;
@@ -528,13 +528,6 @@ function updateSDF() {
 
 		}
 
-		// create a new 3d data texture
-		// TODO: figure out how to load the texture to the gpu
-		// sdfTex = new THREE.Texture( data, dim, dim, dim );
-		// sdfTex.format = THREE.RedFormat;
-		// sdfTex.type = THREE.FloatType;
-		// sdfTex.needsUpdate = true;
-
 	}
 
 	params.currentImageResolution = params.resolution;
@@ -567,36 +560,19 @@ function render() {
 		// let tex;
 		const material = layerPass.material;
 
-		material.fragmentNode.parameters.dim.value = params.currentImageResolution;
 		material.fragmentNode.parameters.layer.value = params.layer;
 		material.fragmentNode.parameters.grid_mode.value = ( params.mode === 'grid layers' );
-		// material.uniforms.layer.value = params.layer / sdfTex.width;
-		// material.uniforms.sdfTex.value = sdfTex.texture;
-		// tex = sdfTex.texture;
-
-		// material.uniforms.layers.value = tex.image.width;
-
-		// const gridMode = params.mode === 'layer' ? 0 : 1;
-		// if ( gridMode !== material.defines.DISPLAY_GRID ) {
-
-		// 	material.defines.DISPLAY_GRID = gridMode;
-		// 	material.needsUpdate = true;
-
-		// }
 
 		layerPass.render( renderer );
 
 	} else if ( params.mode === 'raymarching' ) {
 
-		// render the ray marched texture (WGSL)
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
 		const material = raymarchPass.material;
 
-		// uniforms
 		material.fragmentNode.parameters.surface.value = params.surface;
-		material.fragmentNode.parameters.dim.value = params.currentImageResolution;
 		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.currentImageResolution );
 		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
