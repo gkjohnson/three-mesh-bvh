@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - Fast SDF Generation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+			font-family: monospace;
+			background-color: #440727;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+		#output {
+			color: #ffffff;
+			position: absolute;
+			left: 10px;
+			bottom: 10px;
+			white-space: pre;
+		}
+
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
+
+		a {
+			color: white;
+		}
+    </style>
+</head>
+<body>
+	<div id="info">
+		3D Texture <a href="https://en.wikipedia.org/wiki/Signed_distance_function">Signed Distance Field</a> generation on the gpu and raymarching.
+		<br/>
+		"Surface" sets the distance at which the surface is rendered.
+		<br/>
+		"Layers" show the raw signed distance values.
+
+	</div>
+	<div id="output"></div>
+    <script type="module" src="./webgpu_sdfGeneration.js"></script>
+</body>
+</html>
