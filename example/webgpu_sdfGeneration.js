@@ -18,9 +18,7 @@ import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
 const WORKGROUP_SIZE = [ 16, 16, 1 ];
 const params = {
 
-	gpuGeneration: true,
 	resolution: 25,
-	currentImageResolution: 25,
 	margin: 0.2,
 	regenerate: () => updateSDF(),
 
@@ -194,7 +192,6 @@ function rebuildGUI() {
 
 	const generationFolder = gui.addFolder( 'generation' );
 
-	generationFolder.add( params, 'gpuGeneration' );
 	generationFolder.add( params, 'resolution', 10, 200, 1 );
 	generationFolder.add( params, 'margin', 0, 1 );
 	generationFolder.add( params, 'regenerate' );
@@ -287,74 +284,23 @@ function updateSDF() {
 
 	}
 
-	const pxWidth = 1 / dim;
-	const halfWidth = 0.5 * pxWidth;
-
 	const startTime = window.performance.now();
-	if ( params.gpuGeneration ) {
 
-		computeKernel.computeNode.parameters.matrix.value.copy( matrix );
-		computeKernel.computeNode.parameters.dim.value = dim;
+	computeKernel.computeNode.parameters.matrix.value.copy( matrix );
+	computeKernel.computeNode.parameters.dim.value = dim;
 
-		const dispatchSize = [
-			Math.ceil( dim / WORKGROUP_SIZE[ 0 ] ),
-			Math.ceil( dim / WORKGROUP_SIZE[ 1 ] ),
-			Math.ceil( dim / WORKGROUP_SIZE[ 2 ] ),
-		];
-		renderer.computeAsync( computeKernel, dispatchSize ).then( () => {
+	const dispatchSize = [
+		Math.ceil( dim / WORKGROUP_SIZE[ 0 ] ),
+		Math.ceil( dim / WORKGROUP_SIZE[ 1 ] ),
+		Math.ceil( dim / WORKGROUP_SIZE[ 2 ] ),
+	];
+	renderer.computeAsync( computeKernel, dispatchSize ).then( () => {
 
-			const delta = window.performance.now() - startTime;
-			outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
+		// update the timing display
+		const delta = window.performance.now() - startTime;
+		outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
 
-		} );
-
-	} else {
-
-		const data = new Float32Array( dim ** 3 );
-
-		const point = new THREE.Vector3();
-		const ray = new THREE.Ray();
-		const target = {};
-
-		// iterate over all pixels and check distance
-		for ( let x = 0; x < dim; x ++ ) {
-
-			for ( let y = 0; y < dim; y ++ ) {
-
-				for ( let z = 0; z < dim; z ++ ) {
-
-					// adjust by half width of the pixel so we sample the pixel center
-					// and offset by half the box size.
-					point.set(
-						halfWidth + x * pxWidth - 0.5,
-						halfWidth + y * pxWidth - 0.5,
-						halfWidth + z * pxWidth - 0.5,
-					).applyMatrix4( matrix );
-
-					const index = x + y * dim + z * dim * dim;
-					const dist = bvh.closestPointToPoint( point, target ).distance;
-
-					// raycast inside the mesh to determine if the distance should be positive or negative
-					ray.origin.copy( point );
-					ray.direction.set( 0, 0, 1 );
-					const hit = bvh.raycastFirst( ray, THREE.DoubleSide );
-					const isInside = hit && hit.face.normal.dot( ray.direction ) > 0.0;
-
-					// set the distance in the texture data
-					data[ index ] = isInside ? - dist : dist;
-
-				}
-
-			}
-
-		}
-
-	}
-
-	params.currentImageResolution = params.resolution;
-	// update the timing display
-	const delta = window.performance.now() - startTime;
-	outputContainer.innerText = `${delta.toFixed( 2 )}ms`;
+	} );
 
 	rebuildGUI();
 
@@ -394,7 +340,7 @@ function render() {
 		const material = raymarchPass.material;
 
 		material.fragmentNode.parameters.surface.value = params.surface;
-		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.currentImageResolution );
+		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.resolution );
 		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
 		const sdfInv = new THREE.Matrix4()
