@@ -8,7 +8,6 @@ import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
 import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
-import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterial.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 import { uniform, wgslFn, storage, globalId, uv, varying, texture3D, positionGeometry, storageTexture, sampler, } from 'three/tsl';
@@ -85,6 +84,9 @@ async function init() {
 	sdfTex.type = THREE.FloatType;
 	sdfTex.generateMipmaps = false;
 	sdfTex.needsUpdate = true;
+	sdfTex.wrapR = THREE.ClampToEdgeWrapping;
+	sdfTex.wrapS = THREE.ClampToEdgeWrapping;
+	sdfTex.wrapT = THREE.ClampToEdgeWrapping;
 
 	// stats setup
 	stats = new Stats();
@@ -264,6 +266,128 @@ async function init() {
 	sdfLayerMaterial.vertexNode = fullScreenQuadVertex( vertexShaderParams );
 	layerPass = new FullScreenQuad( sdfLayerMaterial );
 
+	// screen pass to render the sdf ray marching (WGSL)
+	const raymarchMaterial = new THREE.NodeMaterial();
+
+	const raymarchFragmentParams = {
+		surface: uniform( 0 ),
+		dim: uniform( 0 ),
+		normalStep: uniform( new THREE.Vector3() ),
+		projectionInverse: uniform( new THREE.Matrix4() ),
+		sdfTransformInverse: uniform( new THREE.Matrix4() ),
+		sdfTransform: uniform( new THREE.Matrix4() ),
+
+		uv: varying( uv() ),
+		sdf_sampler: sampler( sdfTex ),
+		sdf: texture3D( sdfTex ),
+	};
+
+	const rayBoxDistFn = wgslFn( /* wgsl */ `
+		fn rayBoxDist(boundsMin: vec3f, boundsMax: vec3f, rayOrigin: vec3f, rayDir: vec3f) -> vec2f {
+			let t0 = (boundsMin - rayOrigin) / rayDir;
+			let t1 = (boundsMax - rayOrigin) / rayDir;
+			let tmin = min(t0, t1);
+			let tmax = max(t0, t1);
+
+			let distA = max( max( tmin.x, tmin.y ), tmin.z );
+			let distB = min( tmax.x, min( tmax.y, tmax.z ) );
+
+			let distToBox = max( 0.0, distA );
+			let distInsideBox = max( 0.0, distB - distToBox );
+			return vec2f( distToBox, distInsideBox );
+		}
+	` );
+
+	const raymarchFragmentShader = wgslFn( /* wgsl */ `
+		fn raymarch(
+			surface: f32,
+			dim: u32,
+			projectionInverse: mat4x4f,
+			sdfTransformInverse: mat4x4f,
+			sdfTransform: mat4x4f,
+			normalStep: vec3f,
+
+			uv: vec2f,
+			sdf_sampler: sampler,
+			sdf: texture_3d<f32>,
+		) -> vec4f {
+			const MAX_STEPS: i32 = 500;
+			const SURFACE_EPSILON: f32 = 0.001;
+			let actualDimension = textureDimensions( sdf ).x;
+			let scaleFactor = f32(dim) / f32(actualDimension);
+
+			let clipSpace = 2.0 * uv - vec2f( 1.0, 1.0 );
+
+			let rayOrigin = vec3f( 0.0, 0.0, 0.0 );
+			let homogenousDirection = projectionInverse * vec4f( clipSpace, -1.0, 1.0 );
+			let rayDirection = normalize( homogenousDirection.xyz / homogenousDirection.w );
+
+			let sdfRayOrigin = ( sdfTransformInverse * vec4f( rayOrigin, 1.0 ) ).xyz;
+			let sdfRayDirection = normalize( ( sdfTransformInverse * vec4f( rayDirection, 0.0 ) ).xyz );
+
+			let boxIntersectionInfo = rayBoxDist( vec3f( -0.5 ), vec3f( 0.5 ), sdfRayOrigin, sdfRayDirection );
+			let distToBox = boxIntersectionInfo.x;
+			let distInsideBox = boxIntersectionInfo.y;
+			let intersectsBox = distInsideBox > 0.0;
+
+			var color = vec4f( 0.0 );
+
+			if ( intersectsBox ) {
+
+				var intersectsSurface = false;
+				var localPoint = vec4f( sdfRayOrigin + sdfRayDirection * ( distToBox + 1e-5 ), 1.0 );
+				var point = sdfTransform * localPoint;
+
+				for ( var i: i32 = 0; i < MAX_STEPS; i = i + 1 ) {
+
+					let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
+
+					if ( uv3.x < 0.0 || uv3.x > 1.0 || uv3.y < 0.0 || uv3.y > 1.0 || uv3.z < 0.0 || uv3.z > 1.0 ) {
+						break;
+					}
+
+					let distanceToSurface = textureSample( sdf, sdf_sampler, scaleFactor * uv3 ).r - surface;
+					if ( distanceToSurface < SURFACE_EPSILON ) {
+						intersectsSurface = true;
+						break;
+					}
+
+					point = vec4f(point.xyz + rayDirection * distanceToSurface, point.w);
+				}
+
+				if ( intersectsSurface ) {
+
+					let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
+
+					let dx = textureSample( sdf, sdf_sampler, scaleFactor * (uv3 + vec3f( normalStep.x, 0.0, 0.0 )) ).r
+						   - textureSample( sdf, sdf_sampler, scaleFactor * (uv3 - vec3f( normalStep.x, 0.0, 0.0 )) ).r;
+
+					let dy = textureSample( sdf, sdf_sampler, scaleFactor * (uv3 + vec3f( 0.0, normalStep.y, 0.0 )) ).r
+						   - textureSample( sdf, sdf_sampler, scaleFactor * (uv3 - vec3f( 0.0, normalStep.y, 0.0 )) ).r;
+
+					let dz = textureSample( sdf, sdf_sampler, scaleFactor * (uv3 + vec3f( 0.0, 0.0, normalStep.z )) ).r
+						   - textureSample( sdf, sdf_sampler, scaleFactor * (uv3 - vec3f( 0.0, 0.0, normalStep.z )) ).r;
+
+					let normal = normalize( vec3f( dx, dy, dz ) );
+
+					let lightDirection = normalize( vec3f( 1.0, 1.0, 1.0 ) );
+					let lightIntensity =
+						saturate( dot( normal, lightDirection ) ) +
+						saturate( dot( normal, -lightDirection ) ) * 0.05 +
+						0.1;
+
+					color = vec4f( vec3f( lightIntensity ), 1.0 );
+				}
+			}
+
+			return color;
+		}
+	`, [ rayBoxDistFn ] );
+
+	raymarchMaterial.fragmentNode = raymarchFragmentShader( raymarchFragmentParams );
+	raymarchMaterial.vertexNode = fullScreenQuadVertex( vertexShaderParams );
+	raymarchPass = new FullScreenQuad( raymarchMaterial );
+
 }
 
 // build the gui with parameters based on the selected display mode
@@ -295,7 +419,7 @@ function rebuildGUI() {
 
 	if ( params.mode === 'layer' ) {
 
-		displayFolder.add( params, 'layer', 0, params.resolution, 1 );
+		displayFolder.add( params, 'layer', 0, params.resolution - 1, 1 );
 
 	}
 
@@ -464,28 +588,28 @@ function render() {
 
 	} else if ( params.mode === 'raymarching' ) {
 
-		// // render the ray marched texture
-		// camera.updateMatrixWorld();
-		// mesh.updateMatrixWorld();
+		// render the ray marched texture (WGSL)
+		camera.updateMatrixWorld();
+		mesh.updateMatrixWorld();
 
-		// let tex;
-		// if ( sdfTex.isData3DTexture ) {
+		const material = raymarchPass.material;
 
-		// 	tex = sdfTex;
+		// uniforms
+		material.fragmentNode.parameters.surface.value = params.surface;
+		material.fragmentNode.parameters.dim.value = params.currentImageResolution;
+		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.currentImageResolution );
+		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
-		// } else {
+		const sdfInv = new THREE.Matrix4()
+			.copy( mesh.matrixWorld ).invert()
+			.premultiply( inverseBoundsMatrix )
+			.multiply( camera.matrixWorld );
 
-		// 	tex = sdfTex.texture;
+		material.fragmentNode.parameters.sdfTransformInverse.value.copy( sdfInv );
+		sdfInv.invert();
+		material.fragmentNode.parameters.sdfTransform.value.copy( sdfInv );
 
-		// }
-
-		// const { width, depth, height } = tex.image;
-		// raymarchPass.material.uniforms.sdfTex.value = tex;
-		// raymarchPass.material.uniforms.normalStep.value.set( 1 / width, 1 / height, 1 / depth );
-		// raymarchPass.material.uniforms.surface.value = params.surface;
-		// raymarchPass.material.uniforms.projectionInverse.value.copy( camera.projectionMatrixInverse );
-		// raymarchPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).invert().premultiply( inverseBoundsMatrix ).multiply( camera.matrixWorld );
-		// raymarchPass.render( renderer );
+		raymarchPass.render( renderer );
 
 	}
 
