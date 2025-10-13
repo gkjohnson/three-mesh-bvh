@@ -286,7 +286,7 @@ class MeshBVHHelper extends Group {
 
 		const mesh = this.mesh;
 		let bvh = this.bvh || mesh.geometry.boundsTree || null;
-		if ( mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
+		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
 
 			// get the bvh from a batchedMesh if not provided
 			// TODO: we should have an official way to get the geometry index cleanly
