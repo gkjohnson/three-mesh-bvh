@@ -13,6 +13,7 @@ export const closestPointToTriangleResultStruct: ReturnType<typeof wgsl>;
 export const intersectsTriangle: ReturnType<typeof wgslFn>;
 export const intersectTriangles: ReturnType<typeof wgslFn>;
 export const intersectsBounds: ReturnType<typeof wgslFn>;
+export const getVertexAttribute: ReturnType<typeof wgslFn>;
 export const ndcToCameraRay: ReturnType<typeof wgslFn>;
 export const closestPointToTriangle: ReturnType<typeof wgslFn>;
 export const distanceToTriangles: ReturnType<typeof wgslFn>;
