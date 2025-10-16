@@ -87,6 +87,6 @@
     "three": "^0.179.0",
     "typescript": "^5.9.2",
     "vite": "^6.2.2",
-		"seedrandom": "^3.0.5"
+    "seedrandom": "^3.0.5"
   }
 }

@@ -43,7 +43,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 
 		v = clamp( dot( p1, v21 ) / dot2( v21 ), 0.0, 1.0 );
 		w = 0.0;
-		u = 1.0-v;
+		u = 1.0 - v;
 
 	}
 
