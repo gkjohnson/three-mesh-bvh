@@ -1,18 +1,18 @@
 import * as THREE from 'three/webgpu';
+import { uniform, wgslFn, storage, globalId, storageTexture, } from 'three/tsl';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
+
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-
-import { uniform, wgslFn, storage, globalId, storageTexture, } from 'three/tsl';
-
 import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
-import { RayMarchSDFNodeMaterial } from './utils/RayMarchSDFMaterialWebGPU';
-import { RenderSDFLayerNodeMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
+
+import { RayMarchSDFNodeMaterial } from './utils/RayMarchSDFNodeMaterial';
+import { RenderSDFLayerNodeMaterial } from './utils/RenderSDFLayerNodeMaterial';
 
 const WORKGROUP_SIZE = [ 4, 4, 4 ];
 const params = {
