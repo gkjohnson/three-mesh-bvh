@@ -1,6 +1,7 @@
 import { Ray, Matrix4, Mesh, Vector3, Sphere, BatchedMesh, REVISION } from 'three';
 import { convertRaycastIntersect } from './GeometryRayIntersectUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
+import { getTriCount } from '../core/build/geometryUtils.js';
 
 const IS_REVISION_166 = parseInt( REVISION ) >= 166;
 const ray = /* @__PURE__ */ new Ray();
@@ -11,6 +12,8 @@ const origBatchedRaycastFunc = BatchedMesh.prototype.raycast;
 const _worldScale = /* @__PURE__ */ new Vector3();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
+const _triangleBoundsMap = /* @__PURE__ */ new WeakMap(); // TODO: Remove this when per-sub-geometry support for `triangleBounds` is implemented.
+
 
 export function acceleratedRaycast( raycaster, intersects ) {
 
@@ -184,6 +187,30 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 		indirect: false,
 		range: null
 	};
+
+	const triCount = getTriCount( this.geometry );
+
+	// TODO: Remove this when per-sub-geometry support for `triangleBounds` is implemented.
+	if ( ! _triangleBoundsMap.has( this ) ) {
+
+		_triangleBoundsMap.set( this, new Float32Array( triCount * 6 ) );
+
+	}
+
+	let triangleBounds = _triangleBoundsMap.get( this );
+
+	if ( triangleBounds.length < triCount * 6 ) {
+
+		// expand the buffer if necessary
+		const expandedTriangleBounds = new Float32Array( triCount * 6 );
+		expandedTriangleBounds.set( triangleBounds );
+
+		triangleBounds = expandedTriangleBounds;
+		_triangleBoundsMap.set( this, triangleBounds );
+
+	}
+
+	options.triangleBounds = triangleBounds;
 
 	const drawRanges = this._drawRanges || this._geometryInfo;
 	const geometryCount = this._geometryCount;
