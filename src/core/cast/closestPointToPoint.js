@@ -1,9 +1,11 @@
 import { Vector3 } from 'three';
 
+// DELETE THIS AFTER TEST
+
 const temp = /* @__PURE__ */ new Vector3();
 const temp1 = /* @__PURE__ */ new Vector3();
 
-export function closestPointToPoint(
+export function closestPointToPointOld(
 	bvh,
 	point,
 	target = { },
@@ -48,15 +50,7 @@ export function closestPointToPoint(
 
 				}
 
-				if ( distSq < minThresholdSq ) {
-
-					return true;
-
-				} else {
-
-					return false;
-
-				}
+				return distSq < minThresholdSq;
 
 			},
 
