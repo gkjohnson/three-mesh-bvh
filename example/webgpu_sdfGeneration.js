@@ -17,11 +17,11 @@ import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
 const WORKGROUP_SIZE = [ 4, 4, 4 ];
 const params = {
 
-	resolution: 25,
+	resolution: 75,
 	margin: 0.2,
 	regenerate: () => updateSDF(),
 
-	mode: 'layer',
+	mode: 'raymarching',
 	layer: 0,
 	surface: 0.1,
 
