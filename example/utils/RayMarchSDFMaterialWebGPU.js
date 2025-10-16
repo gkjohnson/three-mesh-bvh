@@ -1,7 +1,7 @@
-import * as THREE from 'three/webgpu';
+import { NodeMaterial, Vector3, Matrix4 } from 'three/webgpu';
 import { uniform, wgslFn, uv, varying, texture3D, sampler, positionGeometry } from 'three/tsl';
 
-export class RayMarchSDFMaterial extends THREE.NodeMaterial {
+export class RayMarchSDFMaterial extends NodeMaterial {
 
 	constructor( sdfTexture ) {
 
@@ -9,10 +9,10 @@ export class RayMarchSDFMaterial extends THREE.NodeMaterial {
 
 		const raymarchFragmentParams = {
 			surface: uniform( 0 ),
-			normalStep: uniform( new THREE.Vector3() ),
-			projectionInverse: uniform( new THREE.Matrix4() ),
-			sdfTransformInverse: uniform( new THREE.Matrix4() ),
-			sdfTransform: uniform( new THREE.Matrix4() ),
+			normalStep: uniform( new Vector3() ),
+			projectionInverse: uniform( new Matrix4() ),
+			sdfTransformInverse: uniform( new Matrix4() ),
+			sdfTransform: uniform( new Matrix4() ),
 
 			uv: varying( uv() ),
 			sdf_sampler: sampler( sdfTexture ),
