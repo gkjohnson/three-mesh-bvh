@@ -1,7 +1,7 @@
 import { NodeMaterial, Vector3, Matrix4 } from 'three/webgpu';
 import { uniform, wgslFn, uv, varying, texture3D, sampler, positionGeometry } from 'three/tsl';
 
-export class RayMarchSDFMaterial extends NodeMaterial {
+export class RayMarchSDFNodeMaterial extends NodeMaterial {
 
 	constructor( sdfTexture ) {
 

@@ -11,8 +11,8 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { uniform, wgslFn, storage, globalId, storageTexture, } from 'three/tsl';
 
 import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
-import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterialWebGPU';
-import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
+import { RayMarchSDFNodeMaterial } from './utils/RayMarchSDFMaterialWebGPU';
+import { RenderSDFLayerNodeMaterial } from './utils/RenderSDFLayerMaterialWebGPU';
 
 const WORKGROUP_SIZE = [ 4, 4, 4 ];
 const params = {
@@ -172,8 +172,8 @@ async function init() {
 
 	updateSDF();
 
-	layerPass = new FullScreenQuad( new RenderSDFLayerMaterial( sdfTex ) );
-	raymarchPass = new FullScreenQuad( new RayMarchSDFMaterial( sdfTex ) );
+	layerPass = new FullScreenQuad( new RenderSDFLayerNodeMaterial( sdfTex ) );
+	raymarchPass = new FullScreenQuad( new RayMarchSDFNodeMaterial( sdfTex ) );
 
 }
 

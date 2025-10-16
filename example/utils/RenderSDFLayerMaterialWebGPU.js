@@ -1,7 +1,7 @@
 import { NodeMaterial } from 'three/webgpu';
 import { uniform, wgslFn, uv, varying, texture3D, positionGeometry, sampler, } from 'three/tsl';
 
-export class RenderSDFLayerMaterial extends NodeMaterial {
+export class RenderSDFLayerNodeMaterial extends NodeMaterial {
 
 	constructor( sdfTexture ) {
 
