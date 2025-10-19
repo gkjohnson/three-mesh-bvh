@@ -83,7 +83,7 @@
     "script-loader": "^0.7.2",
     "simple-git": "^3.19.1",
     "simplex-noise": "^2.4.0",
-    "static-server": "^2.2.1",
+    "static-server": "^3.0.0",
     "stats.js": "^0.17.0",
     "three": "^0.170.0",
     "typescript": "^5.1.3",
