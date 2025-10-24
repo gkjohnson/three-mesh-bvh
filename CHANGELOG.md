@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Case where "intersectsGeometry" would throw an error if a geometry without an index was provided.
 - MeshBVHHelper: fix types to align with docs.
 - MeshBVHHelper: fix case where "update" causes an error if "mesh" is not provided.
+- MeshBVH: Fixed case where generating a bvh for a sub geometry was significantly slower, impacting BatchedMesh generation.
 
 ## [0.9.1] - 2025.06-20
 ### Fixed
