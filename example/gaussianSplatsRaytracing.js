@@ -48,8 +48,8 @@ let pixelsRT1, pixelsRT2;
 let splatColorsRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
 let frameId = 0;
 
-const sceneFile = 'sportcar.ply';
-//const sceneFile = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
+//const sceneFile = 'sportcar.ply';
+const sceneFile = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
 //const sceneFile = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb';
 
 class GSplatsDataUniformStruct {
