@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import Stats from 'stats.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import Stats from 'stats.js';
 
 import {
-  MeshBVHHelper, MeshBVH,
+  MeshBVHHelper,
   computeBoundsTree, disposeBoundsTree,
   SAH,
   BVHShaderGLSL,
@@ -48,7 +48,8 @@ let pixelsRT1, pixelsRT2;
 let splatColorsRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
 let frameId = 0;
 
-const sceneFile = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
+const sceneFile = 'sportcar.ply';
+//const sceneFile = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
 //const sceneFile = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb';
 
 class GSplatsDataUniformStruct {
@@ -57,11 +58,6 @@ class GSplatsDataUniformStruct {
   splatOpacity = 2 ** params.splatOpacity;
   splatColors = splatColorsRT.texture;
 }
-
-THREE.ShaderChunk['yuv_rgb'] = /* glsl */`
-  const mat3 YUV_RGB = transpose(mat3(1,1,1,  0,-0.34,1.77, 1.4,-0.72,0));
-  const mat3 RGB_YUV = inverse(YUV_RGB); // yuv = rgb * RGB_YUV
-`;
 
 THREE.ShaderChunk['gsplats_data'] = /* glsl */`
   struct GSplatsData {
@@ -72,73 +68,30 @@ THREE.ShaderChunk['gsplats_data'] = /* glsl */`
   };
 `;
 
-THREE.ShaderChunk['unpack_4x16'] = /* glsl */`
-  #define pack2(xy) uintBitsToFloat(packHalf2x16(vec2(xy)))
-  #define unpack2(f32) unpackHalf2x16(floatBitsToUint(float(f32)))
-  // float 0..1 <-> uint 0..65535
-  #define PACK_2x16(xy)   uintBitsToFloat(packUnorm2x16(vec2(xy)))
-  #define PACK_4x16(v)    vec2(PACK_2x16(v.xy), PACK_2x16(v.zw))
-  #define UNPACK_2x16(x)  unpackUnorm2x16(floatBitsToUint(x))
-  #define UNPACK_4x16(v)  vec4(UNPACK_2x16(v.x), UNPACK_2x16(v.y))
-`;
-
-THREE.ShaderChunk['pack_pixel_data'] = /* glsl */`
+THREE.ShaderChunk['pixel_data'] = /* glsl */`
   struct PixelData { 
-    vec4 color; // .w < 1.0 - the accumulated density
-    float zDepth; 
-    int cost; 
+    vec4 color;   // 0..1, precision: 24 bits
+    float zDepth;
   };
 
+  #define f2i(x) floatBitsToUint(float(x))
+  #define i2f(x) uintBitsToFloat(uint(x))
+
   vec4 packPixelData(PixelData pd) {
-    vec3 yuv = pd.color.rgb * RGB_YUV;
-    vec4 pixel;
-    pixel.x = yuv.x; // Y' of Y'UV
-    pixel.y = pack2(yuv.yz); // UV of Y'UV, as 2 x float16
-    pixel.z = pd.zDepth;
-    pixel.w = PACK_2x16(vec2(pd.color.w, float(pd.cost) / float(0xFFFF)));
-    return pixel;
+    pd.color = clamp(pd.color, 0., 1.);
+    ivec4 u = ivec4(pd.color * vec4(0xFFFFFF));
+    ivec4 d = ivec4(f2i(pd.zDepth)) >> ivec4(0,8,16,24);
+    u |= (d & 255) << 24;
+    return vec4(i2f(u.x), i2f(u.y), i2f(u.z), i2f(u.w));
   }
 
-  PixelData unpackPixelData(vec4 pixel) {
-    vec3 yuv;
-    yuv.x = pixel.x;
-    yuv.yz = unpack2(pixel.y);
-    vec2 wc = UNPACK_2x16(pixel.w);
+  PixelData unpackPixelData(vec4 p) {
+    ivec4 u = ivec4(f2i(p.x), f2i(p.y), f2i(p.z), f2i(p.w));
+    ivec4 d = (u >> 24 & 255) << ivec4(0,8,16,24);
     PixelData pd;
-    pd.color = vec4(yuv * YUV_RGB, wc.x);
-    pd.zDepth = pixel.z;
-    pd.cost = int(wc.y * float(0xFFFF));
+    pd.color = vec4(u & 0xFFFFFF) / vec4(0xFFFFFF);
+    pd.zDepth = i2f(d.x | d.y | d.z | d.w);
     return pd;
-  }
-`;
-
-THREE.ShaderChunk['gaussian_utils'] = /* glsl */`
-  const float SQRT_PI = sqrt(radians(180.));
-  const float SQRT_2 = sqrt(2.0);
-
-  float gaussian3d(vec3 r) {
-    return exp(-dot(r, r));
-  }
-  
-  // integrate( exp(-x*x))*2/sqrt(PI), 0..x ) = -1..1
-  // https://en.wikipedia.org/wiki/Error_function
-  float erf(float x) {
-    if (abs(x) > 3.5)
-        return sign(x);
-
-    return sign(x)*sqrt(1. - exp2(-SQRT_PI*x*x));
-  }
-
-  // 2/sqrt(PI) * integrate( exp(-|pos + dir*t|^2), t=0..len )
-  // https://en.wikipedia.org/wiki/Gaussian_integral
-  float erf3d(vec3 pos, vec3 dir, float len) {
-    if (len < 0.01)
-      return len*gaussian3d(pos + dir*len*0.5);
-
-    float b = dot(pos, dir);          // -INF..INF
-    float h = dot(pos, pos) - b*b;    // 0..INF
-    float s = erf(b + len) - erf(b);  // 0..2
-    return exp(-h)*s*SQRT_PI*0.5;     // 0..sqrt(PI)
   }
 `;
 
@@ -155,6 +108,67 @@ THREE.ShaderChunk['ray_utils'] = /* glsl */`
     tt.x = max(tx.x, tx.y);
     tt.y = min(ty.x, ty.y);
     return tt;
+  }
+`;
+
+THREE.ShaderChunk['bvh_gsplat_ray_functions'] = /* glsl */`
+  // The caller needs to define the following functions:
+  //
+  //    bvhInitSearch
+  //    bvhVisitSplat
+  //    bvhVisitBoundingBox
+  //
+  int bvhTexLookups = 0;
+
+  // use a macro to hide the fact that we need to expand the struct into separate fields
+  #define	bvhSearchSplats(bvh) _bvhSearchSplats(\
+    bvh.position, bvh.index, bvh.bvhBounds, bvh.bvhContents)
+
+  bool _bvhSearchSplats(sampler2D bvh_position, usampler2D bvh_index, sampler2D bvh_bvhBounds, usampler2D bvh_bvhContents) {
+    int ptr = 0;
+    uint stack[ BVH_STACK_DEPTH ];
+    stack[ 0 ] = 0u;
+    bool found = false;
+    bvhTexLookups = 0;
+
+    bvhInitSearch();
+
+    while ( ptr >= 0 && ptr < BVH_STACK_DEPTH ) {
+      uint nodeId = stack[ ptr-- ];
+      vec3 boundsMin = texelFetch1D( bvh_bvhBounds, nodeId * 2u + 0u ).xyz;
+      vec3 boundsMax = texelFetch1D( bvh_bvhBounds, nodeId * 2u + 1u ).xyz;
+      bvhTexLookups++;
+
+      if (!bvhVisitBoundingBox(boundsMin, boundsMax))
+        continue;
+
+      uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, nodeId ).xy;
+      bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
+      bvhTexLookups++;
+
+      if ( isLeaf ) {
+        uint count = boundsInfo.x & 0x0000ffffu;
+        uint offset = boundsInfo.y;
+
+        bvhTexLookups += int(count);
+
+        for (uint id = 0u; id < count; id++) {
+          uint splatId = uTexelFetch1D( bvh_index, id + offset ).x / 3u;
+
+          if (bvhVisitSplat(splatId))
+            found = true;
+        }
+      } else {
+        uint leftIndex = nodeId + 1u;
+        uint splitAxis = boundsInfo.x & 0x0000ffffu;
+        uint rightIndex = boundsInfo.y;
+        bool leftToRight = bvhRayDir[ splitAxis ] >= 0.0;
+        stack[ ++ptr ] = leftToRight ? rightIndex : leftIndex; // traverse later
+        stack[ ++ptr ] = leftToRight ? leftIndex : rightIndex; // traverse first
+      }
+    }
+
+    return found;
   }
 `;
 
@@ -200,10 +214,7 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
         #include <ray_utils>
         #include <gsplats_data>
         #include <common>
-        #include <yuv_rgb>
-        #include <unpack_4x16>
-        #include <pack_pixel_data>
-        #include <gaussian_utils>
+        #include <pixel_data>
 
         uniform BVH bvh;
         uniform GSplatsData gsd;
@@ -217,7 +228,6 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
 
         vec3 bvhRayDir;
         vec3 gRayOrigin;
-        float gDistScale = 1.0;
         mat4 gSplats; // the closest 8 splats sorted by distance
 
         void bvhInitSearch() {
@@ -232,26 +242,22 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
 
         bool bvhVisitSplat(uint splatId) {
           vec4 splat = texelFetch1D( bvh.position, splatId );
+          float r0 = splat.w; // splat radius
+
+          if (r0 <= 0.) return false;
           
-          if (splat.w < 1e-6)
-              return false;
-          
-          vec3 r = (gRayOrigin - splat.xyz) / splat.w;
-          
+          vec3 r = (gRayOrigin - splat.xyz) / r0;
           float t = dot(r, -bvhRayDir);
           float h = dot(r, r) - t*t;
 
-          // TODO: Multiply sqrt(h) by the distance from the screen.
-          // True rendering needs to capture all splats that map
-          // to a pixel, not just those that intersect with a ray.
-          if (h >= gDistScale || t <= 0. || t*splat.w >= gSplats[3].z)
+          if (h >= 1. || t <= 0. || t*r0 >= gSplats[3].z)
             return false;          
 
           vec4 a = gSplats[0]; // a.x <= a.z <= b.x
           vec4 b = gSplats[1]; // b.x <= b.z <= c.x
           vec4 c = gSplats[2]; // c.x <= c.z <= d.x
           vec4 d = gSplats[3]; // d.x <= d.z
-          vec2 s = vec2(t*splat.w, splatId);
+          vec2 s = vec2(t*r0, splatId);
           
           if (s.x < d.z) d.zw = s.xy;
           if (d.z < d.x) d = d.zwxy;
@@ -266,9 +272,13 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
           return true;
         }
         
-        ${BVHShaderGLSL.bvh_gsplat_ray_functions}
+        #include <bvh_gsplat_ray_functions>
 
         ///// splat color blending ///////////////////////////////////////////
+
+        float gaussian3d(vec3 r) {
+          return exp(-dot(r, r)*0.5);
+        }
         
         bool blendSplat(vec2 entry, inout vec4 sumColor) {
           uint splatId = uint(entry.y);
@@ -281,11 +291,10 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
           vec4 color = texelFetch1D(gsd.splatColors, splatId);
 
           color.w *= gsd.splatOpacity;
-          color.w /= gDistScale;
 
           // rasterizer-style blending: splats are approximated with flat ellipses
-          vec3 r = (gRayOrigin + bvhRayDir*dist - splat.xyz) / splat.w;
-          color.w *= gaussian3d(r * gsd.maxStdDev / SQRT_2 / gDistScale);
+          vec3 r = gRayOrigin + bvhRayDir*dist - splat.xyz;
+          color.w *= gaussian3d(r / splat.w * gsd.maxStdDev);
 
           color.rgb *= color.w;
           sumColor += (1. - sumColor.w) * color;
@@ -312,14 +321,13 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
           if (frameId == 0) {
             pd.color = vec4(0);
             pd.zDepth = 0.;
-            pd.cost = 0;
           }
           
           bvhRayDir = normalize(rayDirection);
           gRayOrigin = rayOrigin + pd.zDepth * bvhRayDir;
-          //gDistScale = 1.0 + pd.zDepth/length(rayOrigin);
-          bvhSearchSplats( bvh );
-          pd.cost += bvhTexLookups; // total cost
+
+          bvhSearchSplats( bvh ); // BVH traversal
+          
           vec4 rgba = pd.color;
 
           blendSplat(gSplats[0].xy, rgba) &&
@@ -330,7 +338,7 @@ class RaytracingMaterial extends THREE.ShaderMaterial {
           blendSplat(gSplats[2].zw, rgba) &&
           blendSplat(gSplats[3].xy, rgba) &&
           blendSplat(gSplats[3].zw, rgba);
-          
+
           pd.color = rgba;
           // add some margin to make sure the next run skips this splat
           pd.zDepth += (1. + 1e-6) * gSplats[3].z + 1e-6;
@@ -344,7 +352,6 @@ class CanvasDrawMaterial extends THREE.ShaderMaterial {
   constructor() {
     super({
       uniforms: {
-        monochrome: { value: false },
         pixelData: { value: null },
         frameId: { value: 0 },
         gsd: { value: null },
@@ -363,12 +370,9 @@ class CanvasDrawMaterial extends THREE.ShaderMaterial {
 
         uniform sampler2D pixelData;
         uniform int frameId;
-        uniform bool monochrome;
 
-        #include <yuv_rgb>
-        #include <unpack_4x16>
         #include <gsplats_data>
-        #include <pack_pixel_data>
+        #include <pixel_data>
 
         ${BVHShaderGLSL.common_functions}
 
@@ -384,20 +388,8 @@ class CanvasDrawMaterial extends THREE.ShaderMaterial {
           vec4 pixel = texelFetch(pixelData, ivec2(uv*size), 0);
           PixelData pd = unpackPixelData(pixel);
 
-          if (pd.zDepth < INFINITY) {
-            float weight = 8.0*pd.color.w;
-            o.rgb = vec3(3,1,9) * exp(-weight);
-          }
-        }
-
-        void drawCost(inout vec4 o) {
-          vec2 uv = vUv*float(M) - vec2(M-1,0);
-          if (uv != clamp(uv, 0., 1.))
-            return;
-
-          vec4 pixel = texture(pixelData, uv);
-          PixelData pd = unpackPixelData(pixel);
-          o.rgb = vec3(9,3,1) * float(pd.cost)/float(0x10000);
+          if (pd.zDepth < INFINITY)
+            o.rgb = vec3(3,1,9) * (1.0 - pd.color.w);
         }
 
         void main() {
@@ -406,10 +398,7 @@ class CanvasDrawMaterial extends THREE.ShaderMaterial {
           PixelData pd = unpackPixelData(pixel);
           vec4 o = pd.color;
 
-          //o.rgb += exp(-o.w) * backgroundRGB;
-
           drawProgress(o);
-          drawCost(o);
 
           if (isnan(dot(o, vec4(1))))
             o = vec4(0,1,0,1);
@@ -464,13 +453,15 @@ async function init() {
   outputContainer = document.getElementById('output');
 
   let [w, h] = params.size();
-  console.log('Canvas size:', w, 'x', h);
-
   renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
+  //renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(w, h, false);
   renderer.setClearColor(0, 0);
   document.body.appendChild(renderer.domElement);
+
+  let rs = new THREE.Vector2();
+  renderer.getDrawingBufferSize(rs);
+  console.log('Canvas size:', rs.x, 'x', rs.y);
 
   scene = new THREE.Scene();
 
@@ -497,10 +488,6 @@ async function init() {
   canvasDrawPass = new FullScreenQuad(new CanvasDrawMaterial());
   raytracingPass = new FullScreenQuad(new RaytracingMaterial());
   raytracingPass.material.updateDefines(params);
-
-  window.params = params;
-  window.THREE = THREE;
-  window.renderer = renderer;
 
   initGeometry();
   rebuildGUI();
@@ -608,26 +595,22 @@ async function updateBVHMesh() {
   await sleep(0);
   frameId = -1;
 
-  bvhGeometry = new THREE.BufferGeometry();
   let attributes = pointCloud.geometry.attributes;
-
-  let m = 1;
   let position = attributes.position;
   let numSplats = position.count;
-  let numSplatsM = numSplats / m | 0;
-
-  if (numSplatsM > 1e5) console.time('updateBVH');
 
   let position3 = new THREE.BufferAttribute(new Float32Array(numSplats * 9), 3); // [xyz, xyz - r, xyz + r]
   let position4 = new THREE.BufferAttribute(new Float32Array(numSplats * 4), 4); // (xyz, radius)
-  let baseScale = 2 ** (params.maxStdDev + params.splatScale);
+  let baseScale = 2 ** params.maxStdDev;
   let defaultScale = attributes.scale && Number.isFinite(attributes.scale.array[0]) ? 0 : 0.0025;
 
+  baseScale *= 2 ** params.splatScale;
+
   for (let i = 0; i < numSplats; i++) {
-    let x = position.array[i * m * 3 + 0];
-    let y = position.array[i * m * 3 + 1];
-    let z = position.array[i * m * 3 + 2];
-    let r = baseScale * (defaultScale || Math.exp(attributes.scale.array[i * m * 3]));
+    let x = position.array[i * 3 + 0];
+    let y = position.array[i * 3 + 1];
+    let z = position.array[i * 3 + 2];
+    let r = baseScale * (defaultScale || Math.exp(attributes.scale.array[i * 3]));
 
     // this is for GLSL shaders
 
@@ -654,47 +637,47 @@ async function updateBVHMesh() {
   //console.log('max(position3)', position3.array.reduce((s, x) => Math.max(s, Math.abs(x)), 0));
   //console.log('max(position4)', position4.array.reduce((s, x) => Math.max(s, Math.abs(x)), 0));
 
-  let index = [];
+  console.time('updateBVH');
 
-  for (let i = 0; i < numSplatsM; i++) {
-    let j = i * m * 3;
-    index.push(j + 0, j + 1, j + 2);
+  if (bvhGeometry) {
+    bvhGeometry.setAttribute('position', position3);
+    bvhGeometry.boundsTree.refit(); // this is much faster
+  } else {
+    let index = [];
+    for (let i = 0; i < numSplats; i++)
+      index.push(i * 3 + 0, i * 3 + 1, i * 3 + 2);
+    bvhGeometry = new THREE.BufferGeometry();
+    bvhGeometry.setIndex(index);
+    bvhGeometry.setAttribute('position', position3);
+    bvhGeometry.computeBoundsTree(params.bvhOptions);
+    bvh = bvhGeometry.boundsTree;
+
+    let bbox = new THREE.Box3();
+    bvh.getBoundingBox(bbox);
+    let { min, max } = bbox;
+    let dx = max.x - min.x, dy = max.y - min.y, dz = max.z - min.z;
+    console.debug('Bounding box:', dx.toFixed(2), 'x', dy.toFixed(2), 'x', dz.toFixed(2));
   }
 
-  bvhGeometry.setIndex(index);
-  bvhGeometry.setAttribute('position', position3);
-  bvhGeometry.computeBoundsTree(params.bvhOptions);
-
-  // BVH must be aligned with sunrays for best performance
-  let bvhHelperMesh = new THREE.Mesh(bvhGeometry, new THREE.MeshBasicMaterial());
-  bvhHelperMesh.matrix = pointCloud.matrix.clone();
-  bvhHelperMesh.matrixAutoUpdate = false;
-
-  scene.remove(bvhHelper);
-  bvhHelper = new MeshBVHHelper(bvhHelperMesh, params.depth);
-  scene.add(bvhHelper);
-  bvhHelper.displayParents = true;
-  bvhHelper.opacity = 0.1;
-  bvhHelper.update();
-
-  // GLSL needs 4-element position attr for efficiency, but MeshBVH doesn't support that,
+  // RaytracingMaterial needs 4-element position for efficiency, but MeshBVH doesn't support that,
   // so build the BVH first, and then replace the position attr, as MeshBVH no longer needs it.
-  bvh = new MeshBVH(bvhGeometry, params.bvhOptions);
   bvhGeometry.attributes.position.copy(position4);
   position3 = null; // it's been replaced with position4
+  console.timeEnd('updateBVH');
 
-  let bbox = new THREE.Box3();
-  bvh.getBoundingBox(bbox);
-  let dx = bbox.max.x - bbox.min.x;
-  let dy = bbox.max.y - bbox.min.y;
-  let dz = bbox.max.z - bbox.min.z;
-  console.debug('Bounding box:', dx.toFixed(2), 'x', dy.toFixed(2), 'x', dz.toFixed(2));
+  if (!bvhHelper) {
+    let bvhHelperMesh = new THREE.Mesh(bvhGeometry, new THREE.MeshBasicMaterial());
+    bvhHelper = new MeshBVHHelper(bvhHelperMesh, params.depth);
+    bvhHelper.displayParents = true;
+    bvhHelper.opacity = 0.1;
+    scene.add(bvhHelper);
+  }
 
-  if (numSplatsM > 1e5) console.timeEnd('updateBVH');
+  bvhHelper.update();
 
-  let str = numSplatsM < 1e3 ? numSplatsM :
-    numSplatsM < 1e6 ? (numSplatsM / 1e3).toFixed(0) + 'K' :
-      (numSplatsM / 1e6).toFixed(1) + 'M';
+  let str = numSplats < 1e3 ? numSplats :
+    numSplats < 1e6 ? (numSplats / 1e3).toFixed(0) + 'K' :
+      (numSplats / 1e6).toFixed(1) + 'M';
   outputContainer.textContent = str + ' splats';
   clearRenderTargets();
 }
@@ -702,34 +685,34 @@ async function updateBVHMesh() {
 function rebuildGUI() {
   gui?.destroy();
   gui = new GUI();
-  gui.onChange((e) => {
+  gui.onFinishChange((e) => {
     if (e.property != 'render')
       clearRenderTargets();
   });
 
   gui.add(params, 'open');
 
-  gui.add(params, 'render').onChange(() => {
+  gui.add(params, 'render').onFinishChange(() => {
     orbit.enabled = params.render;
   });
 
   const bvhFolder = gui.addFolder('BVH');
 
-  bvhFolder.add(params, 'maxDepth', 4, 64, 1).onChange(v => {
+  bvhFolder.add(params, 'maxDepth', 4, 64, 1).onFinishChange(v => {
     updateBVHMesh();
   });
   bvhFolder.open();
 
   const renderFolder = gui.addFolder('Render');
-  renderFolder.add(params, 'mode', ['points', 'raytracing']).onChange(v => {
+  renderFolder.add(params, 'mode', ['points', 'raytracing']).onFinishChange(v => {
     rebuildGUI();
   });
 
   if (params.mode == 'raytracing') {
-    renderFolder.add(params, 'maxStdDev', 0, 3, 0.5).onChange(() => {
+    renderFolder.add(params, 'maxStdDev', 0, 3, 0.5).onFinishChange(() => {
       updateBVHMesh();
     });
-    renderFolder.add(params, 'splatScale', -4, 4, 0.5).onChange(() => {
+    renderFolder.add(params, 'splatScale', -4, 4, 0.5).onFinishChange(() => {
       updateBVHMesh();
     });
     renderFolder.add(params, 'splatOpacity', -4, 8, 0.5);
@@ -760,8 +743,10 @@ function updateSplatColors() {
   renderer.setRenderTarget(splatColorsRT);
   shader.render(renderer);
 
+  rgb.dispose();
   f_dc.dispose();
   opacity.dispose();
+  shader.dispose();
 }
 
 function render() {
