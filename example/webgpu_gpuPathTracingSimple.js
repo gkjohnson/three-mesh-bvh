@@ -12,10 +12,7 @@ import {
 
 // three-mesh-bvh
 import { MeshBVH, SAH } from 'three-mesh-bvh';
-import {
-	ndcToCameraRay, getVertexAttribute, intersectionResultStruct,
-	bvhIntersectFirstHit, constants,
-} from 'three-mesh-bvh/webgpu';
+import { ndcToCameraRay, bvhIntersectFirstHit } from 'three-mesh-bvh/webgpu';
 
 const params = {
 	enableRaytracing: true,
