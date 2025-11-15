@@ -148,7 +148,7 @@ function init() {
 			}
 
 		}
-	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute, intersectionResultStruct, constants ] );
+	`, [ ndcToCameraRay, bvhIntersectFirstHit ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
