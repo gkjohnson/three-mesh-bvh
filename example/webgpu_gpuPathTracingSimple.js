@@ -12,10 +12,7 @@ import {
 
 // three-mesh-bvh
 import { MeshBVH, SAH } from 'three-mesh-bvh';
-import {
-	ndcToCameraRay, getVertexAttribute, intersectionResultStruct,
-	bvhIntersectFirstHit, constants,
-} from 'three-mesh-bvh/webgpu';
+import { ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute } from 'three-mesh-bvh/webgpu';
 
 const params = {
 	enableRaytracing: true,
@@ -148,7 +145,7 @@ function init() {
 			}
 
 		}
-	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute, intersectionResultStruct, constants ] );
+	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
