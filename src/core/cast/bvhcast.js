@@ -134,6 +134,8 @@ function _traverse(
 	if ( isLeaf2 && isLeaf1 ) {
 
 		// if both bounds are leaf nodes then fire the callback if the boxes intersect
+		// Note the "nodeIndex" values are just intended to be used as unique identifiers in the tree and
+		// not used for accessing data
 		if ( reversed ) {
 
 			result = intersectsRangesFunc(
