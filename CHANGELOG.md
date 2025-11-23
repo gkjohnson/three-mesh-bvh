@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Fixed
 - Fixed dependencies on WebGPURenderer compute nodes.
+- Fixed MeshBVH.bvhcast passing "NaN" `nodeIndex` values to callbacks when more than one group was present.
 
 ## [0.9.2] - 2025-10-24
 ### Added
