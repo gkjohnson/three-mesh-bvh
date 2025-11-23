@@ -55,7 +55,7 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 			);
 
 			_bufferStack2.clearBuffer();
-			offset2 += otherRoots[ j ].length;
+			offset2 += otherRoots[ j ].byteLength;
 
 			if ( result ) {
 
@@ -68,7 +68,7 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 		// release stack info
 		_boxPool.releasePrimitive( localBox );
 		_bufferStack1.clearBuffer();
-		offset1 += roots[ i ].length;
+		offset1 += roots[ i ].byteLength;
 
 		if ( result ) {
 
@@ -134,6 +134,8 @@ function _traverse(
 	if ( isLeaf2 && isLeaf1 ) {
 
 		// if both bounds are leaf nodes then fire the callback if the boxes intersect
+		// Note the "nodeIndex" values are just intended to be used as unique identifiers in the tree and
+		// not used for accessing data
 		if ( reversed ) {
 
 			result = intersectsRangesFunc(
