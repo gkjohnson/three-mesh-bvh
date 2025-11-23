@@ -55,7 +55,7 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 			);
 
 			_bufferStack2.clearBuffer();
-			offset2 += otherRoots[ j ].length;
+			offset2 += otherRoots[ j ].byteLength;
 
 			if ( result ) {
 
@@ -68,7 +68,7 @@ export function bvhcast( bvh, otherBvh, matrixToLocal, intersectsRanges ) {
 		// release stack info
 		_boxPool.releasePrimitive( localBox );
 		_bufferStack1.clearBuffer();
-		offset1 += roots[ i ].length;
+		offset1 += roots[ i ].byteLength;
 
 		if ( result ) {
 
