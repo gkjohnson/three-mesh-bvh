@@ -80,18 +80,15 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 	const triCount = getTriCount( geo );
 	const normalized = posAttr.normalized;
 	let triangleBounds;
-	if ( target === null ) {
+offset = offset || 0;
+count = count || triCount;
 
-		triangleBounds = new Float32Array( triCount * 6 );
+if (target) {
+    triangleBounds = target;
+} else {
+    triangleBounds = new Float32Array(count * 6); // only allocate for needed range
+}
 
-	} else {
-
-		triangleBounds = target;
-
-	}
-
-	offset = offset || 0;
-	count = count || triCount;
 
 	// used for non-normalized positions
 	const posArr = posAttr.array;
