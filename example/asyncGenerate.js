@@ -12,6 +12,7 @@ const params = {
 	useWebWorker: true,
 	maxWorkerCount: sharedArrayBufferSupported ? navigator.hardwareConcurrency : 1,
 	strategy: CENTER,
+	indirect: false,
 
 	radius: 1,
 	tube: 0.3,
@@ -126,6 +127,7 @@ function init() {
 
 	const bvhFolder = gui.addFolder( 'bvh' );
 	bvhFolder.add( params, 'useWebWorker' );
+	bvhFolder.add( params, 'indirect' );
 	bvhFolder.add( params, 'maxWorkerCount', 1, 16, 1 ).disable( ! sharedArrayBufferSupported );
 	bvhFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } );
 
@@ -182,7 +184,7 @@ function regenerateKnot() {
 	);
 	const geomTime = window.performance.now() - geomStartTime;
 	const startTime = window.performance.now();
-	const options = { strategy: params.strategy };
+	const options = { strategy: params.strategy, indirect: params.indirect };
 	let totalStallTime;
 	if ( params.useWebWorker ) {
 

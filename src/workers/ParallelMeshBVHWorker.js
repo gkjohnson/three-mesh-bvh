@@ -28,7 +28,7 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
-			if ( ! geometry.index && ! options.indirect ) {
+			if ( ! options.indirect ) {
 
 				ensureIndex( geometry, options );
 
@@ -120,7 +120,7 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 					...options,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
-					groups: [ ... geometry.groups ],
+					groups: [ ...geometry.groups ],
 				},
 
 			} );

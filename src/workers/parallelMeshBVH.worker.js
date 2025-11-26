@@ -4,7 +4,7 @@ import { BYTES_PER_NODE } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
-import { getFullGeometryRange, getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
+import { getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
 
 let isRunning = false;
@@ -34,15 +34,28 @@ onmessage = async ( { data } ) => {
 		// initialize the number of workers balanced for a binary tree
 		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
 
-		// generate necessary buffers and objects
-		const geometry = getGeometry( index, position );
-		const geometryRanges = options.indirect ? getFullGeometryRange( geometry, options.range ) : getRootIndexRanges( geometry, options.range );
-		const indirectBuffer = options.indirect ? generateIndirectBuffer( geometry, true ) : null;
-		const triCount = getTriCount( geometry );
-		const triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );
+		// generate necessary buffers and objects - based on the "buildTree" implementation
+		const geometry = getGeometry( index, position, options.groups );
+		let indirectBuffer = null;
+		let triangleBounds, geometryRanges;
+		if ( options.indirect ) {
+
+			const ranges = getRootIndexRanges( geometry, options.range );
+			indirectBuffer = generateIndirectBuffer( geometry, true, ranges );
+			triangleBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
+			geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
+
+		} else {
+
+			const triCount = getTriCount( geometry );
+			triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );
+			geometryRanges = getRootIndexRanges( geometry, options.range );
+
+		}
 
 		// generate portions of the triangle bounds buffer over multiple frames
 		const boundsPromises = [];
+		const triCount = triangleBounds.length / 6;
 		for ( let i = 0, l = workerPool.workerCount; i < l; i ++ ) {
 
 			const countPerWorker = Math.ceil( triCount / l );
@@ -58,6 +71,7 @@ onmessage = async ( { data } ) => {
 					index,
 					position,
 					triangleBounds,
+					indirectBuffer,
 				}
 			) );
 
@@ -214,10 +228,11 @@ onmessage = async ( { data } ) => {
 			triangleBounds,
 			offset,
 			count,
+			indirectBuffer,
 		} = data;
 
 		const geometry = getGeometry( index, position );
-		computeTriangleBounds( geometry, triangleBounds, offset, count );
+		computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
 		postMessage( { type: 'result' } );
 
 	} else if ( operation === 'REFIT' ) {
@@ -266,7 +281,7 @@ function triggerOnProgress( progress ) {
 
 }
 
-function getGeometry( index, position ) {
+function getGeometry( index, position, groups = null ) {
 
 	const geometry = new BufferGeometry();
 	if ( index ) {
@@ -276,6 +291,18 @@ function getGeometry( index, position ) {
 	}
 
 	geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
+
+	if ( groups ) {
+
+		for ( let i = 0, l = groups.length; i < l; i ++ ) {
+
+			const { start, count, materialIndex } = groups[ i ];
+			geometry.addGroup( start, count, materialIndex );
+
+		}
+
+	}
+
 	return geometry;
 
 }
