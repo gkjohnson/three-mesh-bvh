@@ -82,6 +82,7 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 	const bufferSize = indirectBuffer ? indirectBuffer.length : triCount;
 	const triangleBounds = new Float32Array( bufferSize * 6 );
 
+	// TODO: buffer size count should not need to be different than the calculated range
 	count = count || triCount;
 
 	// used for non-normalized positions
