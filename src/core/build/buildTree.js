@@ -20,6 +20,7 @@ export function generateIndirectBuffer( geometry, useSharedArrayBuffer, range = 
 	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
 	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
 
+	// construct a compact form of the triangles in these ranges
 	let index = 0;
 	for ( let r = 0; r < ranges.length; r ++ ) {
 
@@ -40,7 +41,7 @@ export function generateIndirectBuffer( geometry, useSharedArrayBuffer, range = 
 
 export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
-	// epxand variables
+	// expand variables
 	const {
 		maxDepth,
 		verbose,
@@ -152,24 +153,28 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
 export function buildPackedTree( bvh, options ) {
 
+	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 	const geometry = bvh.geometry;
+	const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
+	let triangleBounds, geometryRanges;
 	if ( options.indirect ) {
 
-		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, options.range );
+		// construct an buffer that is indirectly sorts the triangles used for the BVH
+		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, options.range );
+		bvh._indirectBuffer = indirectBuffer;
+		triangleBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
+		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
-	}
+	} else {
 
-	if ( ! bvh._indirectBuffer ) {
-
+		//
 		ensureIndex( geometry, options );
+		triangleBounds = computeTriangleBounds( geometry, fullRange.offset, fullRange.count );
+		geometryRanges = getRootIndexRanges( geometry, options.range );
 
 	}
 
-	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-
-	const fullRange = getFullGeometryRange( geometry, options.range );
-	const triangleBounds = computeTriangleBounds( geometry, null, fullRange[ 0 ].offset, fullRange[ 0 ].count );
-	const geometryRanges = options.indirect ? fullRange : getRootIndexRanges( geometry, options.range );
+	// Build BVH roots
 	bvh._roots = geometryRanges.map( range => {
 
 		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );
