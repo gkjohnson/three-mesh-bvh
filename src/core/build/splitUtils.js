@@ -48,8 +48,9 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
 		// iterate over all axes
-		const cStart = offset * 6;
-		const cEnd = ( offset + count ) * 6;
+		const boundsOffset = triangleBounds.offset || 0;
+		const cStart = ( offset - boundsOffset ) * 6;
+		const cEnd = ( offset + count - boundsOffset ) * 6;
 		for ( let a = 0; a < 3; a ++ ) {
 
 			const axisLeft = centroidBoundingData[ a ];
@@ -296,9 +297,10 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 function getAverage( triangleBounds, offset, count, axis ) {
 
 	let avg = 0;
+	const boundsOffset = triangleBounds.offset;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		avg += triangleBounds[ i * 6 + axis * 2 ];
+		avg += triangleBounds[ ( i - boundsOffset ) * 6 + axis * 2 ];
 
 	}
 

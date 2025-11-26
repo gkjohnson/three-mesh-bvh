@@ -20,7 +20,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 	let cmaxy = - Infinity;
 	let cmaxz = - Infinity;
 
-	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
+	const boundsOffset = triangleBounds.offset || 0;
+	for ( let i = ( offset - boundsOffset ) * 6, end = ( offset + count - boundsOffset ) * 6; i < end; i += 6 ) {
 
 		const cx = triangleBounds[ i + 0 ];
 		const hx = triangleBounds[ i + 1 ];
@@ -70,8 +71,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 }
 
 // precomputes the bounding box for each triangle; required for quickly calculating tree splits.
-// result is an array of size tris.length * 6 where triangle i maps to a
-// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
+// result is an array of size count * 6 where triangle i maps to a
+// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
 // representing the center and half-extent in each dimension of triangle i
 export function computeTriangleBounds( geo, target = null, offset = null, count = null ) {
 
@@ -79,19 +80,23 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 	const index = geo.index ? geo.index.array : null;
 	const triCount = getTriCount( geo );
 	const normalized = posAttr.normalized;
+
+	offset = offset || 0;
+	count = count || triCount;
+
 	let triangleBounds;
 	if ( target === null ) {
 
-		triangleBounds = new Float32Array( triCount * 6 );
+		// Allocate only for the range being computed
+		triangleBounds = new Float32Array( count * 6 );
+		// Store offset on the array for later use
+		triangleBounds.offset = offset;
 
 	} else {
 
 		triangleBounds = target;
 
 	}
-
-	offset = offset || 0;
-	count = count || triCount;
 
 	// used for non-normalized positions
 	const posArr = posAttr.array;
@@ -111,7 +116,7 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 	for ( let tri = offset; tri < offset + count; tri ++ ) {
 
 		const tri3 = tri * 3;
-		const tri6 = tri * 6;
+		const tri6 = ( tri - offset ) * 6; // Adjust for offset-based indexing
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
