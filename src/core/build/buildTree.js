@@ -1,4 +1,4 @@
-import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount } from './geometryUtils.js';
 import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
