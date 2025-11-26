@@ -1,4 +1,4 @@
-import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps, } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount } from './geometryUtils.js';
 import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
@@ -8,17 +8,30 @@ import { partition } from './sortUtils.generated.js';
 import { partition_indirect } from './sortUtils_indirect.generated.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
-export function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
+// construct a new buffer that points to the set of triangles represented by the given ranges
+export function generateIndirectBuffer( geometry, useSharedArrayBuffer, ranges ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
+
+	// use getRootIndexRanges which excludes gaps
+	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
 	const byteCount = useUint32 ? 4 : 2;
-
-	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
 	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
-	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
 
-		indirectBuffer[ i ] = i;
+	// construct a compact form of the triangles in these ranges
+	let index = 0;
+	for ( let r = 0; r < ranges.length; r ++ ) {
+
+		const { offset, count } = ranges[ r ];
+		for ( let i = 0; i < count; i ++ ) {
+
+			indirectBuffer[ index + i ] = offset + i;
+
+		}
+
+		index += count;
 
 	}
 
@@ -28,7 +41,7 @@ export function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
 
 export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
-	// epxand variables
+	// expand variables
 	const {
 		maxDepth,
 		verbose,
@@ -140,33 +153,29 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
 export function buildPackedTree( bvh, options ) {
 
+	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 	const geometry = bvh.geometry;
+	let triangleBounds, geometryRanges;
 	if ( options.indirect ) {
 
-		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
+		// construct an buffer that is indirectly sorts the triangles used for the BVH
+		const ranges = getRootIndexRanges( geometry, options.range );
+		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
+		bvh._indirectBuffer = indirectBuffer;
+		triangleBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
+		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
-		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
-
-			console.warn(
-				'MeshBVH: Provided geometry contains groups or a range that do not fully span the vertex contents while using the "indirect" option. ' +
-				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
-			);
-
-		}
-
-	}
-
-	if ( ! bvh._indirectBuffer ) {
+	} else {
 
 		ensureIndex( geometry, options );
 
+		const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
+		triangleBounds = computeTriangleBounds( geometry, fullRange.offset, fullRange.count );
+		geometryRanges = getRootIndexRanges( geometry, options.range );
+
 	}
 
-	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-
-	const fullRange = getFullGeometryRange( geometry, options.range );
-	const triangleBounds = computeTriangleBounds( geometry, null, fullRange[ 0 ].offset, fullRange[ 0 ].count );
-	const geometryRanges = options.indirect ? fullRange : getRootIndexRanges( geometry, options.range );
+	// Build BVH roots
 	bvh._roots = geometryRanges.map( range => {
 
 		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );

@@ -243,8 +243,8 @@ describe( 'Options', () => {
 
 			} );
 
-			expect( start ).toBe( 100 );
-			expect( end ).toBe( 300 );
+			expect( start ).toBe( 0 );
+			expect( end ).toBe( 200 );
 
 		} );
 
@@ -262,6 +262,33 @@ describe( 'Options', () => {
 
 			const results = raycaster.intersectObject( mesh );
 			expect( results.length ).toBeGreaterThan( 0 );
+
+		} );
+
+		it( 'should handle overlapping groups.', () => {
+
+			geometry.clearGroups();
+			geometry.addGroup( 0, 300, 0 ); // triangles 0-99
+			geometry.addGroup( 150, 300, 1 ); // triangles 50-149 (overlaps with first)
+
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+			expect( validateBounds( bvh ) ).toBeTruthy();
+
+		} );
+
+		it( 'should serialize and deserialize with indirect buffer.', () => {
+
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+			const serialized = MeshBVH.serialize( bvh );
+
+			expect( serialized.indirectBuffer ).toBeTruthy();
+
+			const deserialized = MeshBVH.deserialize( serialized, geometry );
+
+			expect( deserialized.indirect ).toBe( true );
+			expect( deserialized._indirectBuffer ).toBeTruthy();
+			expect( deserialized._indirectBuffer ).toHaveLength( bvh._indirectBuffer.length );
+			expect( deserialized._indirectBuffer ).toEqual( bvh._indirectBuffer );
 
 		} );
 
@@ -373,18 +400,21 @@ describe( 'Options', () => {
 
 			} );
 
-			expect( start ).toBe( options.range.start / 3 );
-			expect( end ).toBe( ( options.range.start + options.range.count ) / 3 );
+			expect( start ).toBe( 0 );
+			expect( end ).toBe( 200 );
 
 		} );
 
 		it( 'should respect the range option with groups, indirect.', () => {
 
-			geometry.addGroup( 0 * 3, ( 20 - 0 + 1 ) * 3 );
-			geometry.addGroup( 16 * 3, ( 40 - 16 + 1 ) * 3 );
-			geometry.addGroup( 41 * 3, ( 60 - 41 + 1 ) * 3 );
+			// groups
+			// [ 0, 20 ], [ 16, 40 ], [ 40, 60 ]
+			geometry.addGroup( 0 * 3, ( 20 - 0 ) * 3 );
+			geometry.addGroup( 16 * 3, ( 40 - 16 ) * 3 );
+			geometry.addGroup( 40 * 3, ( 60 - 40 ) * 3 );
 
-			const options = { indirect: true, range: { start: 10 * 3, count: 45 * 3 } }; // range [10, 55]
+			// range [10, 55]
+			const options = { indirect: true, range: { start: 10 * 3, count: 45 * 3 } };
 			const bvh = new MeshBVH( geometry, options );
 			let start = Infinity;
 			let end = 0;
@@ -403,8 +433,39 @@ describe( 'Options', () => {
 
 			} );
 
-			expect( start ).toBe( 10 );
-			expect( end ).toBe( 55 );
+			expect( start ).toBe( 0 );
+			expect( end ).toBe( 45 );
+
+		} );
+
+		it( 'should respect group gaps, indirect.', () => {
+
+			// groups
+			geometry.addGroup( 0, 30 );
+			geometry.addGroup( 60, 30 );
+
+			// range [10, 55]
+			const options = { indirect: true };
+			const bvh = new MeshBVH( geometry, options );
+			let start = Infinity;
+			let end = 0;
+			const bvhCount = bvh._roots.length;
+
+			expect( bvhCount ).toBe( 1 );
+
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					start = Math.min( start, offset );
+					end = Math.max( end, offset + count );
+
+				}
+
+			} );
+
+			expect( start ).toBe( 0 );
+			expect( end ).toBe( 20 );
 
 		} );
 

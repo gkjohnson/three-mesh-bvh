@@ -74,22 +74,20 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 // result is an array of size count * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo, target = null, offset = null, count = null ) {
+export function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, target = null ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
-	const triCount = getTriCount( geo );
 	const normalized = posAttr.normalized;
 
-	offset = offset || 0;
-	count = count || triCount;
-
+	const triCount = getTriCount( geo );
+	const bufferSize = indirectBuffer ? indirectBuffer.length : triCount;
 	let triangleBounds;
 	if ( target === null ) {
 
-		// Allocate only for the range being computed
-		triangleBounds = new Float32Array( count * 6 );
 		// Store offset on the array for later use
+		// Allocate only for the range being computed
+		triangleBounds = new Float32Array( bufferSize * 6 );
 		triangleBounds.offset = offset;
 
 	} else {
@@ -97,6 +95,9 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 		triangleBounds = target;
 
 	}
+
+	// TODO: buffer size count should not need to be different than the calculated range
+	count = count || triCount;
 
 	// used for non-normalized positions
 	const posArr = posAttr.array;
@@ -113,10 +114,11 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 	// used for normalized positions
 	const getters = [ 'getX', 'getY', 'getZ' ];
 
-	for ( let tri = offset; tri < offset + count; tri ++ ) {
+	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
+		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
 		const tri3 = tri * 3;
-		const tri6 = ( tri - offset ) * 6; // Adjust for offset-based indexing
+		const boundsIndexOffset = ( i - offset ) * 6;
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
@@ -171,8 +173,8 @@ export function computeTriangleBounds( geo, target = null, offset = null, count 
 			// worked with.
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			triangleBounds[ tri6 + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ tri6 + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
+			triangleBounds[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
+			triangleBounds[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 
