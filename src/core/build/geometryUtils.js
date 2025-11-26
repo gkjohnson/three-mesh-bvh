@@ -73,6 +73,8 @@ export function getFullGeometryRange( geo, range ) {
 
 }
 
+// Function that extracts a set of mutually exclusive ranges representing the triangles being
+// drawn as determined by the geometry groups, draw range, and user specified range
 export function getRootIndexRanges( geo, range ) {
 
 	if ( ! geo.groups || ! geo.groups.length ) {
@@ -82,32 +84,59 @@ export function getRootIndexRanges( geo, range ) {
 	}
 
 	const ranges = [];
-	const rangeBoundaries = new Set();
-
 	const drawRange = range ? range : geo.drawRange;
 	const drawRangeStart = drawRange.start / 3;
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
+
+	// Create events for group boundaries
+	const events = [];
 	for ( const group of geo.groups ) {
 
 		const groupStart = group.start / 3;
 		const groupEnd = ( group.start + group.count ) / 3;
-		rangeBoundaries.add( Math.max( drawRangeStart, groupStart ) );
-		rangeBoundaries.add( Math.min( drawRangeEnd, groupEnd ) );
+
+		// Only add events if the group intersects with the draw range
+		if ( groupStart < drawRangeEnd && groupEnd > drawRangeStart ) {
+
+			events.push( { pos: Math.max( drawRangeStart, groupStart ), isStart: true } );
+			events.push( { pos: Math.min( drawRangeEnd, groupEnd ), isStart: false } );
+
+		}
 
 	}
 
+	// Sort events by position, with 'end' events before 'start' events at the same position
+	events.sort( ( a, b ) => {
 
-	// note that if you don't pass in a comparator, it sorts them lexicographically as strings :-(
-	const sortedBoundaries = Array.from( rangeBoundaries.values() ).sort( ( a, b ) => a - b );
-	for ( let i = 0; i < sortedBoundaries.length - 1; i ++ ) {
+		if ( a.pos !== b.pos ) {
 
-		const start = sortedBoundaries[ i ];
-		const end = sortedBoundaries[ i + 1 ];
+			return a.pos - b.pos;
 
-		ranges.push( {
-			offset: Math.floor( start ),
-			count: Math.floor( end - start ),
-		} );
+		} else {
+
+			return a.type === 'end' ? - 1 : 1;
+
+		}
+
+	} );
+
+	// sweep through events and create ranges where activeGroups > 0
+	let activeGroups = 0;
+	let lastPos = null;
+	for ( const event of events ) {
+
+		const newPos = event.pos;
+		if ( activeGroups !== 0 && newPos !== lastPos ) {
+
+			ranges.push( {
+				offset: lastPos,
+				count: newPos - lastPos,
+			} );
+
+		}
+
+		activeGroups += event.isStart ? 1 : - 1;
+		lastPos = newPos;
 
 	}
 
