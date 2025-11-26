@@ -1,5 +1,4 @@
 import { FLOAT32_EPSILON } from '../Constants.js';
-import { getTriCount } from './geometryUtils.js';
 
 // computes the union of the bounds of all of the given triangles and puts the resulting box in "target".
 // A bounding box is computed for the centroids of the triangles, as well, and placed in "centroidTarget".
