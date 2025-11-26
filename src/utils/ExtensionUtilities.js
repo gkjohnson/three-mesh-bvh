@@ -234,7 +234,7 @@ export function disposeBatchedBoundsTree( index = - 1 ) {
 
 	} else {
 
-		if ( index < this.boundsTree.length ) {
+		if ( index < this.boundsTrees.length ) {
 
 			this.boundsTrees[ index ] = null;
 
