@@ -1,4 +1,4 @@
-import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps, } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount, hasGroupGaps } from './geometryUtils.js';
 import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
@@ -8,19 +8,33 @@ import { partition } from './sortUtils.generated.js';
 import { partition_indirect } from './sortUtils_indirect.generated.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
-export function generateIndirectBuffer( geometry, useSharedArrayBuffer ) {
+export function generateIndirectBuffer( geometry, useSharedArrayBuffer, range = null ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
+
+	// Use getRootIndexRanges which excludes gaps
+	const ranges = getRootIndexRanges( geometry, range );
+	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
 	const byteCount = useUint32 ? 4 : 2;
-
-	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( triCount * byteCount ) : new ArrayBuffer( triCount * byteCount );
+	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
 	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
-	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
 
-		indirectBuffer[ i ] = i;
+	let index = 0;
+	for ( let r = 0; r < ranges.length; r ++ ) {
+
+		const { offset, count } = ranges[ r ];
+		for ( let i = 0; i < count; i ++ ) {
+
+			indirectBuffer[ index + i ] = offset + i;
+
+		}
+
+		index += count;
 
 	}
+
+	console.log( indirectBuffer )
 
 	return indirectBuffer;
 
@@ -143,13 +157,12 @@ export function buildPackedTree( bvh, options ) {
 	const geometry = bvh.geometry;
 	if ( options.indirect ) {
 
-		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer );
+		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, options.range );
 
-		if ( hasGroupGaps( geometry, options.range ) && ! options.verbose ) {
+		if ( hasGroupGaps( geometry, options.range ) && options.verbose ) {
 
-			console.warn(
-				'MeshBVH: Provided geometry contains groups or a range that do not fully span the vertex contents while using the "indirect" option. ' +
-				'BVH may incorrectly report intersections on unrendered portions of the geometry.'
+			console.log(
+				'MeshBVH: Geometry has groups with gaps. Indirect buffer includes only triangles within defined groups.'
 			);
 
 		}
