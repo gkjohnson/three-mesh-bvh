@@ -274,6 +274,8 @@ Indicate the shape entirely contains the given bounding box.
 
 The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it does not. The BVH will no longer work correctly if the index buffer is modified.
 
+Only triangles within the geometry's draw range (or provided `range` option) are included in the BVH. When a geometry has multiple groups, only triangles within the defined group ranges are included. Triangles in gaps between groups are excluded.
+
 Note that all query functions expect arguments in local space of the BVH and return results in local space, as well. If world space results are needed they must be transformed into world space using `object.matrixWorld`.
 
 ### static .serialize
@@ -361,7 +363,7 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // structure and the index buffer (or lack thereof) is retained. This can be used
     // when the existing index layout is important or groups are being used so a
     // single BVH hierarchy can be created to improve performance.
-    // Note: This setting is experimental.
+	// Note that this setting is still experimental
     indirect: false,
 
     // Print out warnings encountered during tree construction.
@@ -1165,7 +1167,7 @@ Set of shader functions used for interacting with the packed BVH in a shader and
 - The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.
 - If the geometry is changed then a new bounds tree will need to be generated or refit.
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
-- A separate bounds tree is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in less than optimal raycast performance on geometry with lots of groups.
+- A separate bounds tree root is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in less than optimal raycast performance on geometry with lots of groups. Triangles excluded from these groups are not included in the BVH.
 - Due to errors related to floating point precision it is recommended that geometry be centered using `BufferGeometry.center()` before creating the BVH if the geometry is sufficiently large or off center so bounds tightly contain the geometry as much as possible.
 
 # Running Examples Locally

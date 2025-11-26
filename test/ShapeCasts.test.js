@@ -972,6 +972,30 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			} );
 
+			it( 'should not hit triangles in gaps between groups', () => {
+
+				const boxGeometry = new BoxGeometry( 1, 1, 1 );
+
+				// create groups such that the -X face is missing (triangles 6-11)
+				boxGeometry.clearGroups();
+				boxGeometry.addGroup( 0, 6, 0 );
+				boxGeometry.addGroup( 12, 24, 1 );
+
+				const bvh = new MeshBVH( boxGeometry );
+				const boxMesh = new Mesh( boxGeometry, new MeshBasicMaterial() );
+				boxMesh.geometry.boundsTree = bvh;
+
+				// raycast towards the -X face
+				const raycaster = new Raycaster();
+				raycaster.ray.origin.set( - 2, 0, 0 );
+				raycaster.ray.direction.set( 1, 0, 0 );
+
+				// expect no hits because the -X face is excluded from groups
+				const hits = raycaster.intersectObject( boxMesh );
+				expect( hits ).toHaveLength( 0 );
+
+			} );
+
 		} );
 
 		describe( 'firstHitOnly = true', () => {
