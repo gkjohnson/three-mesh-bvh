@@ -8,13 +8,13 @@ import { partition } from './sortUtils.generated.js';
 import { partition_indirect } from './sortUtils_indirect.generated.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
-export function generateIndirectBuffer( geometry, useSharedArrayBuffer, range = null ) {
+// construct a new buffer that points to the set of triangles represented by the given ranges
+export function generateIndirectBuffer( geometry, useSharedArrayBuffer, ranges ) {
 
 	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 	const useUint32 = triCount > 2 ** 16;
 
-	// Use getRootIndexRanges which excludes gaps
-	const ranges = getRootIndexRanges( geometry, range );
+	// use getRootIndexRanges which excludes gaps
 	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
 	const byteCount = useUint32 ? 4 : 2;
 	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
@@ -160,7 +160,8 @@ export function buildPackedTree( bvh, options ) {
 	if ( options.indirect ) {
 
 		// construct an buffer that is indirectly sorts the triangles used for the BVH
-		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, options.range );
+		const ranges = getRootIndexRanges( geometry, options.range );
+		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
 		bvh._indirectBuffer = indirectBuffer;
 		triangleBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
 		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
