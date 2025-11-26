@@ -34,8 +34,6 @@ export function generateIndirectBuffer( geometry, useSharedArrayBuffer, range = 
 
 	}
 
-	console.log( indirectBuffer )
-
 	return indirectBuffer;
 
 }
@@ -158,14 +156,6 @@ export function buildPackedTree( bvh, options ) {
 	if ( options.indirect ) {
 
 		bvh._indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, options.range );
-
-		if ( hasGroupGaps( geometry, options.range ) && options.verbose ) {
-
-			console.log(
-				'MeshBVH: Geometry has groups with gaps. Indirect buffer includes only triangles within defined groups.'
-			);
-
-		}
 
 	}
 

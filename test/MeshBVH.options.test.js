@@ -3,6 +3,7 @@ import {
 	Raycaster,
 	MeshBasicMaterial,
 	TorusGeometry,
+	BoxGeometry,
 } from 'three';
 import {
 	MeshBVH,
@@ -262,6 +263,60 @@ describe( 'Options', () => {
 
 			const results = raycaster.intersectObject( mesh );
 			expect( results.length ).toBeGreaterThan( 0 );
+
+		} );
+
+		it( 'should not hit triangles in gaps between groups.', () => {
+
+			const boxGeometry = new BoxGeometry( 1, 1, 1 );
+			const boxMesh = new Mesh( boxGeometry, new MeshBasicMaterial() );
+
+			// create groups such that the -X face is missing
+			boxGeometry.clearGroups();
+			boxGeometry.addGroup( 0, 6, 0 );
+			boxGeometry.addGroup( 12, 24, 1 );
+
+			const bvh = new MeshBVH( boxGeometry, { indirect: true } );
+			boxMesh.geometry.boundsTree = bvh;
+			boxMesh.raycast = acceleratedRaycast;
+
+			// raycast towards the -X face
+			const raycaster = new Raycaster();
+			raycaster.ray.origin.set( - 2, 0, 0 );
+			raycaster.ray.direction.set( 1, 0, 0 );
+
+			// expect no hits because backface culling is enabled
+			const hits = raycaster.intersectObject( boxMesh );
+			expect( hits ).toHaveLength( 0 );
+
+			expect( bvh._indirectBuffer ).toHaveLength( 10 );
+
+		} );
+
+		it( 'should handle overlapping groups.', () => {
+
+			geometry.clearGroups();
+			geometry.addGroup( 0, 300, 0 ); // triangles 0-99
+			geometry.addGroup( 150, 300, 1 ); // triangles 50-149 (overlaps with first)
+
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+			expect( validateBounds( bvh ) ).toBeTruthy();
+
+		} );
+
+		it( 'should serialize and deserialize with indirect buffer.', () => {
+
+			const bvh = new MeshBVH( geometry, { indirect: true } );
+			const serialized = MeshBVH.serialize( bvh );
+
+			expect( serialized.indirectBuffer ).toBeTruthy();
+
+			const deserialized = MeshBVH.deserialize( serialized, geometry );
+
+			expect( deserialized.indirect ).toBe( true );
+			expect( deserialized._indirectBuffer ).toBeTruthy();
+			expect( deserialized._indirectBuffer ).toHaveLength( bvh._indirectBuffer.length );
+			expect( deserialized._indirectBuffer ).toEqual( bvh._indirectBuffer );
 
 		} );
 

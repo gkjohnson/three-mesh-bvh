@@ -361,7 +361,6 @@ Constructs the bounds tree for the given geometry and produces a new index attri
     // structure and the index buffer (or lack thereof) is retained. This can be used
     // when the existing index layout is important or groups are being used so a
     // single BVH hierarchy can be created to improve performance.
-    // Note: This setting is experimental.
     indirect: false,
 
     // Print out warnings encountered during tree construction.
