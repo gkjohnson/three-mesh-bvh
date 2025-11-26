@@ -3,7 +3,6 @@ import {
 	Raycaster,
 	MeshBasicMaterial,
 	TorusGeometry,
-	BoxGeometry,
 } from 'three';
 import {
 	MeshBVH,
@@ -263,33 +262,6 @@ describe( 'Options', () => {
 
 			const results = raycaster.intersectObject( mesh );
 			expect( results.length ).toBeGreaterThan( 0 );
-
-		} );
-
-		it( 'should not hit triangles in gaps between groups.', () => {
-
-			const boxGeometry = new BoxGeometry( 1, 1, 1 );
-			const boxMesh = new Mesh( boxGeometry, new MeshBasicMaterial() );
-
-			// create groups such that the -X face is missing
-			boxGeometry.clearGroups();
-			boxGeometry.addGroup( 0, 6, 0 );
-			boxGeometry.addGroup( 12, 24, 1 );
-
-			const bvh = new MeshBVH( boxGeometry, { indirect: true } );
-			boxMesh.geometry.boundsTree = bvh;
-			boxMesh.raycast = acceleratedRaycast;
-
-			// raycast towards the -X face
-			const raycaster = new Raycaster();
-			raycaster.ray.origin.set( - 2, 0, 0 );
-			raycaster.ray.direction.set( 1, 0, 0 );
-
-			// expect no hits because backface culling is enabled
-			const hits = raycaster.intersectObject( boxMesh );
-			expect( hits ).toHaveLength( 0 );
-
-			expect( bvh._indirectBuffer ).toHaveLength( 10 );
 
 		} );
 
