@@ -71,7 +71,7 @@
     "@types/three": "^0.179.0",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
-    "@vitest/browser": "^2.1.8",
+    "@vitest/browser": "^4.0.14",
     "@vitest/eslint-plugin": "^1.5.0",
     "concurrently": "^8.2.1",
     "eslint": "^8.56.0",
@@ -88,6 +88,6 @@
     "three": "^0.179.0",
     "typescript": "^5.9.2",
     "vite": "^6.2.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.14"
   }
 }
