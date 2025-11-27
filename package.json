@@ -72,6 +72,7 @@
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
     "@vitest/browser": "^2.1.8",
+    "@vitest/eslint-plugin": "^1.5.0",
     "concurrently": "^8.2.1",
     "eslint": "^8.56.0",
     "eslint-config-mdcs": "^5.0.0",
