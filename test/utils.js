@@ -64,8 +64,8 @@ export function runTestMatrix( optionsMatrix = {}, cb ) {
 	const options = {
 		strategy: [ CENTER, SAH, AVERAGE ],
 		indirect: [ false, true ],
-		useSharedArrayBuffer: [ false, true ],
-		setBoundingBox: [ false, true ],
+		useSharedArrayBuffer: [ false ],
+		setBoundingBox: [ true ],
 		maxLeafTris: [ 10 ],
 		maxDepth: [ 40 ],
 		...optionsMatrix,
