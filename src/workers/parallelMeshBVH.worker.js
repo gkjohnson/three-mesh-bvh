@@ -4,7 +4,7 @@ import { BYTES_PER_NODE } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
-import { getFullGeometryRange, getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
+import { getFullGeometryRange, getRootIndexRanges } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
 
 let isRunning = false;
