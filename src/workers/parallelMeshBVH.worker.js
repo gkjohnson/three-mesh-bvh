@@ -4,7 +4,7 @@ import { BYTES_PER_NODE } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
-import { getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
+import { getFullGeometryRange, getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
 
 let isRunning = false;
@@ -47,8 +47,9 @@ onmessage = async ( { data } ) => {
 
 		} else {
 
-			const triCount = getTriCount( geometry );
-			triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );
+			const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
+			triangleBounds = new Float32Array( new SharedArrayBuffer( fullRange.count * 6 * 4 ) );
+			triangleBounds.offset = fullRange.offset;
 			geometryRanges = getRootIndexRanges( geometry, options.range );
 
 		}

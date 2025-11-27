@@ -73,28 +73,31 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 // result is an array of size count * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, target = null ) {
+export function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, targetBuffer = null ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
 	const normalized = posAttr.normalized;
 
 	let triangleBounds;
-	if ( target === null ) {
+	let triangleOffset; // Tracks the geometry triangle offset when writing to a target buffer
+	if ( targetBuffer === null ) {
 
 		// Store offset on the array for later use
 		// Allocate only for the range being computed
 		triangleBounds = new Float32Array( count * 6 );
 		triangleBounds.offset = offset;
+		triangleOffset = 0; // No adjustment needed - offset remains geometry-relative
 
 	} else {
 
-		triangleBounds = target;
-		offset = target.offset;
+		triangleBounds = targetBuffer;
+		triangleOffset = targetBuffer.offset; // Store base offset for converting buffer-relative to geometry-relative
+		offset = offset - targetBuffer.offset; // Convert offset to buffer-relative
 
-		if ( count + offset > target.length / 6 ) {
+		if ( offset < 0 || count + offset > targetBuffer.length / 6 ) {
 
-			throw new Error( '' );
+			throw new Error( 'MeshBVH: compute triangle bounds range is invalid.' );
 
 		}
 
@@ -117,9 +120,10 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 
 	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
+		const tri = indirectBuffer ? indirectBuffer[ i ] : triangleOffset + i;
 		const tri3 = tri * 3;
-		const boundsIndexOffset = ( i - offset ) * 6;
+		// When writing to a shared buffer, use absolute position; otherwise use relative position
+		const boundsIndexOffset = ( targetBuffer ? i : i - offset ) * 6;
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
