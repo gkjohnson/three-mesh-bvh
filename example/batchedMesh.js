@@ -46,6 +46,7 @@ const params = {
 	mesh: {
 		splitStrategy: CENTER,
 		useBoundsTree: true,
+		indirect: false,
 		speed: 1,
 	}
 };
@@ -102,6 +103,7 @@ function init() {
 
 	const meshFolder = gui.addFolder( 'Mesh' );
 	meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
+	meshFolder.add( params.mesh, 'indirect' ).onChange( () => updateFromOptions() );
 	meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
 	meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
 	meshFolder.open();
@@ -282,7 +284,10 @@ function updateFromOptions() {
 	// Update whether or not to use the bounds tree
 	if (
 		! params.mesh.useBoundsTree && batchedMesh.boundsTrees ||
-		batchedMesh.boundsTrees && params.mesh.splitStrategy !== batchedMesh.boundsTrees.splitStrategy
+		batchedMesh.boundsTrees && (
+			params.mesh.splitStrategy !== batchedMesh.boundsTrees.splitStrategy ||
+			params.mesh.indirect !== batchedMesh.boundsTrees.indirect
+		)
 	) {
 
 		batchedMesh.disposeBoundsTree();
@@ -296,8 +301,10 @@ function updateFromOptions() {
 		batchedMesh.computeBoundsTree( - 1, {
 			maxLeafTris: 5,
 			strategy: parseFloat( params.mesh.splitStrategy ),
+			indirect: params.mesh.indirect,
 		} );
 		batchedMesh.boundsTrees.splitStrategy = params.mesh.splitStrategy;
+		batchedMesh.boundsTrees.indirect = params.mesh.indirect;
 		console.timeEnd( 'computing bounds tree' );
 
 	}
