@@ -27,18 +27,14 @@ const rayCasterObjects = [];
 const raycaster = new THREE.Raycaster();
 const sphere = new THREE.SphereGeometry( 0.25, 20, 20 );
 const cylinder = new THREE.CylinderGeometry( 0.01, 0.01 );
-const pointDist = 25;
+const pointDist = 23;
 
 const dolly = new THREE.Object3D();
 
 // Delta timer
-let lastFrameTime = null;
-let deltaTime = 0;
-
 const params = {
 	raycasters: {
 		count: 150,
-		speed: 1,
 		near: 0,
 		far: pointDist
 	},
@@ -47,7 +43,6 @@ const params = {
 		splitStrategy: CENTER,
 		useBoundsTree: true,
 		indirect: false,
-		speed: 1,
 	}
 };
 
@@ -83,8 +78,8 @@ function init() {
 	createBatchedMesh();
 
 	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.z = 60;
+	camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 50 );
+	camera.position.z = 50;
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -96,7 +91,6 @@ function init() {
 	const gui = new dat.GUI();
 	const rcFolder = gui.addFolder( 'Raycasters' );
 	rcFolder.add( params.raycasters, 'count' ).min( 1 ).max( 1000 ).step( 1 ).onChange( () => updateFromOptions() );
-	rcFolder.add( params.raycasters, 'speed' ).min( 0 ).max( 20 );
 	rcFolder.add( params.raycasters, 'near' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
 	rcFolder.add( params.raycasters, 'far' ).min( 0 ).max( pointDist ).onChange( () => updateFromOptions() );
 	rcFolder.open();
@@ -105,7 +99,6 @@ function init() {
 	meshFolder.add( params.mesh, 'useBoundsTree' ).onChange( () => updateFromOptions() );
 	meshFolder.add( params.mesh, 'indirect' ).onChange( () => updateFromOptions() );
 	meshFolder.add( params.mesh, 'splitStrategy', { 'CENTER': CENTER, 'SAH': SAH, 'AVERAGE': AVERAGE } ).onChange( () => updateFromOptions() );
-	meshFolder.add( params.mesh, 'speed' ).min( 0 ).max( 20 );
 	meshFolder.open();
 
 	window.addEventListener( 'resize', function () {
@@ -166,26 +159,28 @@ function createBatchedMesh() {
 
 }
 
-function updateBatchedMeshInstances( deltaTime ) {
+function updateBatchedMeshInstances() {
 
+	const time = window.performance.now();
+
+	// Instance 0: update rotation state and apply
 	batchedMesh.getMatrixAt( 0, dolly.matrix );
 	dolly.matrix.decompose( dolly.position, dolly.quaternion, dolly.scale );
-	dolly.rotation.x += 0.0003 * params.mesh.speed * deltaTime;
-	dolly.rotation.y += 0.0003 * params.mesh.speed * deltaTime;
+	dolly.rotation.set( 0.0003 * time, 0.0003 * time, 0 );
 	dolly.updateMatrix();
 	batchedMesh.setMatrixAt( 0, dolly.matrix );
 
+	// Instance 1: update rotation state and apply
 	batchedMesh.getMatrixAt( 1, dolly.matrix );
 	dolly.matrix.decompose( dolly.position, dolly.quaternion, dolly.scale );
-	dolly.rotation.x += 0.0009 * params.mesh.speed * deltaTime;
-	dolly.rotation.y += 0.0009 * params.mesh.speed * deltaTime;
+	dolly.rotation.set( 0.0009 * time, 0.0009 * time, 0 );
 	dolly.updateMatrix();
 	batchedMesh.setMatrixAt( 1, dolly.matrix );
 
+	// Instance 2: update rotation state and apply
 	batchedMesh.getMatrixAt( 2, dolly.matrix );
 	dolly.matrix.decompose( dolly.position, dolly.quaternion, dolly.scale );
-	dolly.rotation.x += 0.0005 * params.mesh.speed * deltaTime;
-	dolly.rotation.y += 0.0005 * params.mesh.speed * deltaTime;
+	dolly.rotation.set( 0.0005 * time, 0.0005 * time, 0 );
 	dolly.updateMatrix();
 	batchedMesh.setMatrixAt( 2, dolly.matrix );
 
@@ -211,9 +206,9 @@ function addRaycaster() {
 
 	// set transforms
 	origMesh.position.set( pointDist, 0, 0 );
-	obj.rotation.x = Math.random() * 10;
-	obj.rotation.y = Math.random() * 10;
-	obj.rotation.z = Math.random() * 10;
+	const x = Math.random() * 10;
+	const y = Math.random() * 10;
+	const z = Math.random() * 10;
 
 	// reusable vectors
 	const origVec = new THREE.Vector3();
@@ -221,12 +216,14 @@ function addRaycaster() {
 	const xDir = ( Math.random() - 0.5 );
 	const yDir = ( Math.random() - 0.5 );
 	const zDir = ( Math.random() - 0.5 );
+
 	rayCasterObjects.push( {
 		update: () => {
 
-			obj.rotation.x += xDir * 0.0001 * params.raycasters.speed * deltaTime;
-			obj.rotation.y += yDir * 0.0001 * params.raycasters.speed * deltaTime;
-			obj.rotation.z += zDir * 0.0001 * params.raycasters.speed * deltaTime;
+			const time = window.performance.now();
+			obj.rotation.x = xDir * 0.0001 * time + x;
+			obj.rotation.y = yDir * 0.0001 * time + y;
+			obj.rotation.z = zDir * 0.0001 * time + z;
 
 			origMesh.updateMatrixWorld();
 			origVec.setFromMatrixPosition( origMesh.matrixWorld );
@@ -315,21 +312,16 @@ function render() {
 
 	stats.begin();
 
-	const currTime = window.performance.now();
-	lastFrameTime = lastFrameTime || currTime;
-	deltaTime = currTime - lastFrameTime;
-
-	containerObj.rotation.x += 0.0001 * params.mesh.speed * deltaTime;
-	containerObj.rotation.y += 0.0001 * params.mesh.speed * deltaTime;
+	const time = window.performance.now();
+	containerObj.rotation.x = 0.0001 * time;
+	containerObj.rotation.y = 0.0001 * time;
 	containerObj.updateMatrixWorld();
 
-	updateBatchedMeshInstances( deltaTime );
+	updateBatchedMeshInstances();
 
 	rayCasterObjects.forEach( f => f.update() );
 
 	renderer.render( scene, camera );
-
-	lastFrameTime = currTime;
 
 	stats.end();
 
