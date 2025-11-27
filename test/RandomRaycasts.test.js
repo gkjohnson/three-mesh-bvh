@@ -51,20 +51,20 @@ describe( 'Random CENTER intersections with near', () => runRandomTests( { strat
 describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
 describe( 'Random CENTER intersections with near and far', () => runRandomTests( { strategy: CENTER, near: 6, far: 7 } ) );
 
-describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
-describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
-describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
-describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
+// TODO: remove in future release
+const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+if ( IS_REVISION_166 ) {
+
+	describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
+	describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
+	describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
+	describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
+
+}
 
 function runRandomTests( options ) {
 
-	// TODO: remove in future release
-	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
-	if ( options.batched && ! IS_REVISION_166 ) {
 
-		return;
-
-	}
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
