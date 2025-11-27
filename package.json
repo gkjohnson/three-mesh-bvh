@@ -87,7 +87,7 @@
     "simple-git": "^3.19.1",
     "simplex-noise": "^2.4.0",
     "stats.js": "^0.17.0",
-    "three": "^0.168.0",
+    "three": "^0.179.0",
     "typescript": "^5.9.2",
     "vite": "^6.2.2",
     "vitest": "^4.0.14"
