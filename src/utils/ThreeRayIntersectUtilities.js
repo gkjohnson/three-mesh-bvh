@@ -145,7 +145,7 @@ function checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, 
 }
 
 // https://github.com/mrdoob/three.js/blob/0aa87c999fe61e216c1133fba7a95772b503eddf/src/objects/Mesh.js#L258
-function intersectTri( geo, side, ray, tri, intersections, near, far ) {
+function intersectTri( geo, materialOrSide, ray, tri, intersections, near, far ) {
 
 	const triOffset = tri * 3;
 	let a = triOffset + 0;
@@ -162,17 +162,74 @@ function intersectTri( geo, side, ray, tri, intersections, near, far ) {
 	}
 
 	const { position, normal, uv, uv1 } = geo.attributes;
-	const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
+	let closestIntersection = null;
+	let closestDistance = Infinity;
 
-	if ( intersection ) {
+	// Collect groups this triangle belongs to
+	const groups = geo.groups;
 
-		intersection.faceIndex = tri;
-		if ( intersections ) intersections.push( intersection );
-		return intersection;
+	// Determine how many intersection tests to perform
+	if ( Array.isArray( materialOrSide ) && groups && groups.length > 0 ) {
+
+		// Test against each overlapping group's material
+		const firstVertexIndex = tri * 3;
+		for ( let i = 0, l = groups.length; i < l; i ++ ) {
+
+			const group = groups[ i ];
+			if ( firstVertexIndex >= group.start && firstVertexIndex < group.start + group.count ) {
+
+				const materialIndex = group.materialIndex || 0;
+				const side = materialOrSide[ materialIndex ].side;
+				const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
+
+				if ( intersection ) {
+
+					intersection.faceIndex = tri;
+					intersection.face.materialIndex = materialIndex;
+
+					if ( intersections ) {
+
+						intersections.push( intersection );
+
+					} else if ( intersection.distance < closestDistance ) {
+
+						closestDistance = intersection.distance;
+						closestIntersection = intersection;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	} else {
+
+		// Single test with material or side constant
+		const side = materialOrSide && materialOrSide.isMaterial ? materialOrSide.side : materialOrSide;
+		const intersection = checkBufferGeometryIntersection( ray, position, normal, uv, uv1, a, b, c, side, near, far );
+
+		if ( intersection ) {
+
+			intersection.faceIndex = tri;
+			intersection.face.materialIndex = 0;
+
+			if ( intersections ) {
+
+				intersections.push( intersection );
+
+			} else {
+
+				closestIntersection = intersection;
+
+			}
+
+		}
 
 	}
 
-	return null;
+	return closestIntersection;
 
 }
 
