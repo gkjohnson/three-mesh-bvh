@@ -309,27 +309,58 @@ export class MeshBVH {
 			intersectsBounds,
 			intersectsRange,
 			intersectsTriangle,
+			useBox3 = false,
 		} = callbacks;
 
-		// wrap the intersectsRange function
-		if ( intersectsRange && intersectsTriangle ) {
+		// The internal shapecast function always passes Float32Array (6 values) to callbacks.
+		// If useBox3 is false (default), wrap callbacks to convert arrays to Box3 for backwards compatibility
+		if ( ! useBox3 ) {
 
-			const originalIntersectsRange = intersectsRange;
-			intersectsRange = ( offset, count, contained, depth, nodeIndex ) => {
+			// Backwards compatible Box3-based API: wrap user callbacks to convert arrays to Box3
+			if ( intersectsBounds ) {
 
-				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
+				const originalIntersectsBounds = intersectsBounds;
+				const tempBox = new Box3();
+				intersectsBounds = ( boundsArray, isLeaf, score, depth, nodeIndex ) => {
 
-					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
+					arrayToBox( 0, boundsArray, tempBox );
+					return originalIntersectsBounds( tempBox, isLeaf, score, depth, nodeIndex );
 
-				}
+				};
 
-				return true;
+			}
 
-			};
+			// Wrap intersectsRange to handle both array format and triangle iteration
+			if ( intersectsRange && intersectsTriangle ) {
 
-		} else if ( ! intersectsRange ) {
+				const originalIntersectsRange = intersectsRange;
+				const tempBox = new Box3();
+				intersectsRange = ( offset, count, contained, depth, nodeIndex, boundsArray ) => {
 
-			if ( intersectsTriangle ) {
+					arrayToBox( 0, boundsArray, tempBox );
+
+					if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex, tempBox ) ) {
+
+						return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
+
+					}
+
+					return true;
+
+				};
+
+			} else if ( intersectsRange ) {
+
+				const originalIntersectsRange = intersectsRange;
+				const tempBox = new Box3();
+				intersectsRange = ( offset, count, contained, depth, nodeIndex, boundsArray ) => {
+
+					arrayToBox( 0, boundsArray, tempBox );
+					return originalIntersectsRange( offset, count, contained, depth, nodeIndex, tempBox );
+
+				};
+
+			} else if ( intersectsTriangle ) {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
@@ -344,6 +375,46 @@ export class MeshBVH {
 					return contained;
 
 				};
+
+			}
+
+		} else {
+
+			// New array-based API: callbacks expect Float32Array directly, just handle triangle iteration
+			if ( intersectsRange && intersectsTriangle ) {
+
+				const originalIntersectsRange = intersectsRange;
+				intersectsRange = ( offset, count, contained, depth, nodeIndex, boundsArray ) => {
+
+					if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex, boundsArray ) ) {
+
+						return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
+
+					}
+
+					return true;
+
+				};
+
+			} else if ( ! intersectsRange ) {
+
+				if ( intersectsTriangle ) {
+
+					intersectsRange = ( offset, count, contained, depth ) => {
+
+						return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
+
+					};
+
+				} else {
+
+					intersectsRange = ( offset, count, contained ) => {
+
+						return contained;
+
+					};
+
+				}
 
 			}
 
