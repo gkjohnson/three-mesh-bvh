@@ -37,9 +37,9 @@ runTestMatrix( {
 	onlyOneGeo: [ false, true ],
 	near: [ undefined, 6 ],
 	far: [ undefined, 7 ],
-}, ( description, BVH, options ) => {
+}, ( description, options ) => {
 
-	describe( `Random intersections: ${description}`, () => runRandomTests( options ) );
+	describe( `Random intersections: ${ description }`, () => runRandomTests( options ) );
 
 } );
 
