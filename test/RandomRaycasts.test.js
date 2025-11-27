@@ -18,11 +18,8 @@ import {
 	disposeBoundsTree,
 	computeBatchedBoundsTree,
 	disposeBatchedBoundsTree,
-	CENTER,
-	SAH,
-	AVERAGE,
 } from '../src/index.js';
-import { random, setSeed } from './utils.js';
+import { random, setSeed, runTestMatrix } from './utils.js';
 import { REVISION } from 'three';
 
 Mesh.prototype.raycast = acceleratedRaycast;
@@ -32,29 +29,19 @@ BatchedMesh.prototype.raycast = acceleratedRaycast;
 BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
 BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 
-describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
-describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
-describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
-describe( 'Random Instanced CENTER intersections', () => runRandomTests( { strategy: CENTER, instanced: true } ) );
+// Run tests with all strategy combinations
+runTestMatrix( {
+	interleaved: [ false, true ],
+	instanced: [ false, true ],
+	batched: [ false, true ],
+	onlyOneGeo: [ false, true ],
+	near: [ undefined, 6 ],
+	far: [ undefined, 7 ],
+}, ( description, BVH, options ) => {
 
-describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
-describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
-describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
-describe( 'Random Instanced AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, instanced: true } ) );
+	describe( `Random intersections: ${description}`, () => runRandomTests( options ) );
 
-describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
-describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
-describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
-describe( 'Random Instanced SAH intersections', () => runRandomTests( { strategy: SAH, instanced: true } ) );
-
-describe( 'Random CENTER intersections with near', () => runRandomTests( { strategy: CENTER, near: 6 } ) );
-describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
-describe( 'Random CENTER intersections with near and far', () => runRandomTests( { strategy: CENTER, near: 6, far: 7 } ) );
-
-describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
-describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
-describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
-describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
+} );
 
 function runRandomTests( options ) {
 

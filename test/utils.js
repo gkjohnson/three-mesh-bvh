@@ -82,18 +82,7 @@ export function runTestMatrix( optionsMatrix = {}, cb ) {
 
 		if ( remainingKeys.length === 0 ) {
 
-			const newOptions = { ...state };
-			const newClass = class extends MeshBVH {
-
-				constructor( geometry, options ) {
-
-					super( geometry, { ...newOptions, ...options } );
-
-				}
-
-			};
-
-			cb( description, newClass, { ...state } );
+			cb( description, { ...state } );
 			return;
 
 		}
