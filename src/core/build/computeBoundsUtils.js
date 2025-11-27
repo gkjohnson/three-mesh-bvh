@@ -1,5 +1,4 @@
 import { FLOAT32_EPSILON } from '../Constants.js';
-import { getTriCount } from './geometryUtils.js';
 
 // computes the union of the bounds of all of the given triangles and puts the resulting box in "target".
 // A bounding box is computed for the centroids of the triangles, as well, and placed in "centroidTarget".
@@ -20,7 +19,8 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 	let cmaxy = - Infinity;
 	let cmaxz = - Infinity;
 
-	for ( let i = offset * 6, end = ( offset + count ) * 6; i < end; i += 6 ) {
+	const boundsOffset = triangleBounds.offset || 0;
+	for ( let i = ( offset - boundsOffset ) * 6, end = ( offset + count - boundsOffset ) * 6; i < end; i += 6 ) {
 
 		const cx = triangleBounds[ i + 0 ];
 		const hx = triangleBounds[ i + 1 ];
@@ -70,20 +70,31 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 }
 
 // precomputes the bounding box for each triangle; required for quickly calculating tree splits.
-// result is an array of size tris.length * 6 where triangle i maps to a
-// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index i * 6,
+// result is an array of size count * 6 where triangle i maps to a
+// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
 // representing the center and half-extent in each dimension of triangle i
 export function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, targetBuffer = null ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
 	const normalized = posAttr.normalized;
-	const triCount = getTriCount( geo );
-	const bufferSize = indirectBuffer ? indirectBuffer.length : triCount;
-	const triangleBounds = targetBuffer || new Float32Array( bufferSize * 6 );
 
-	// TODO: buffer size count should not need to be different than the calculated range
-	count = count || triCount;
+	if ( targetBuffer === null ) {
+
+		// store offset on the array for later use & allocate only for the
+		// range being computed
+		targetBuffer = new Float32Array( count * 6 );
+		targetBuffer.offset = offset;
+
+	} else {
+
+		if ( offset < 0 || count + offset > targetBuffer.length / 6 ) {
+
+			throw new Error( 'MeshBVH: compute triangle bounds range is invalid.' );
+
+		}
+
+	}
 
 	// used for non-normalized positions
 	const posArr = posAttr.array;
@@ -99,12 +110,14 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 
 	// used for normalized positions
 	const getters = [ 'getX', 'getY', 'getZ' ];
+	const writeOffset = targetBuffer.offset;
 
+	// iterate over the triangle range
 	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
 		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
 		const tri3 = tri * 3;
-		const boundsIndexOffset = i * 6;
+		const boundsIndexOffset = ( i - writeOffset ) * 6;
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
@@ -159,13 +172,13 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 			// worked with.
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			triangleBounds[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
+			targetBuffer[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
+			targetBuffer[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 
 	}
 
-	return triangleBounds;
+	return targetBuffer;
 
 }

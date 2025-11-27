@@ -7,18 +7,19 @@ export function partition/* @echo INDIRECT_STRING */( indirectBuffer, index, tri
 	let right = offset + count - 1;
 	const pos = split.pos;
 	const axisOffset = split.axis * 2;
+	const boundsOffset = triangleBounds.offset || 0;
 
 	// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 	while ( true ) {
 
-		while ( left <= right && triangleBounds[ left * 6 + axisOffset ] < pos ) {
+		while ( left <= right && triangleBounds[ ( left - boundsOffset ) * 6 + axisOffset ] < pos ) {
 
 			left ++;
 
 		}
 
 		// if a triangle center lies on the partition plane it is considered to be on the right side
-		while ( left <= right && triangleBounds[ right * 6 + axisOffset ] >= pos ) {
+		while ( left <= right && triangleBounds[ ( right - boundsOffset ) * 6 + axisOffset ] >= pos ) {
 
 			right --;
 
@@ -50,9 +51,11 @@ export function partition/* @echo INDIRECT_STRING */( indirectBuffer, index, tri
 			// swap bounds
 			for ( let i = 0; i < 6; i ++ ) {
 
-				let tb = triangleBounds[ left * 6 + i ];
-				triangleBounds[ left * 6 + i ] = triangleBounds[ right * 6 + i ];
-				triangleBounds[ right * 6 + i ] = tb;
+				const l = left - boundsOffset;
+				const r = right - boundsOffset;
+				const tb = triangleBounds[ l * 6 + i ];
+				triangleBounds[ l * 6 + i ] = triangleBounds[ r * 6 + i ];
+				triangleBounds[ r * 6 + i ] = tb;
 
 			}
 
