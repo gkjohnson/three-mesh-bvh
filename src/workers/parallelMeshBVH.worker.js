@@ -245,7 +245,7 @@ self.onmessage = async ( { data } ) => {
 
 		const geometry = getGeometry( index, position );
 		computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
-		postMessage( { type: 'result' } );
+		self.postMessage( { type: 'result' } );
 
 	} else if ( operation === 'REFIT' ) {
 

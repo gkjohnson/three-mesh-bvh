@@ -9,8 +9,9 @@ describe( 'GenerateMeshBVHWorker', () => {
 
 } );
 
-// ParallelMeshBVHWorker requires nested workers and SharedArrayBuffer
-// which are not fully supported by @vitest/web-worker
+// ParallelMeshBVHWorker requires nested workers & SharedArrayBuffer
+// which seem to not be fully supported by @vitest/web-worker
+// TODO: get these running in a browser somehow
 describe.skip( 'ParallelMeshBVHWorker', () => {
 
 	runTests( ParallelMeshBVHWorker );
@@ -39,54 +40,54 @@ function runTests( generatorConstructor = GenerateMeshBVHWorker ) {
 
 	} );
 
-	// it( 'should correctly generate a BVH using the worker with indirect options', async () => {
+	it( 'should correctly generate a BVH using the worker with indirect options', async () => {
 
-	// 	const generator = new generatorConstructor();
-	// 	const workerBvh = await generator.generate( geometry.clone(), { indirect: true } );
-	// 	const bvh = new MeshBVH( geometry.clone(), { indirect: true } );
+		const generator = new generatorConstructor();
+		const workerBvh = await generator.generate( geometry.clone(), { indirect: true } );
+		const bvh = new MeshBVH( geometry.clone(), { indirect: true } );
 
-	// 	expect( workerBvh ).toEqualBVH( bvh );
+		expect( workerBvh ).toEqualBVH( bvh );
 
-	// 	generator.dispose();
+		generator.dispose();
 
-	// } );
+	} );
 
-	// it( 'should correctly generate a BVH using the worker with groups', async () => {
+	it( 'should correctly generate a BVH using the worker with groups', async () => {
 
-	// 	geometry.clearGroups();
+		geometry.clearGroups();
 
-	// 	const chunks = geometry.index.count / 3;
-	// 	geometry.addGroup( 0, chunks, 0 );
-	// 	geometry.addGroup( chunks, chunks, 0 );
-	// 	geometry.addGroup( chunks * 2, chunks, 0 );
+		const chunks = geometry.index.count / 3;
+		geometry.addGroup( 0, chunks, 0 );
+		geometry.addGroup( chunks, chunks, 0 );
+		geometry.addGroup( chunks * 2, chunks, 0 );
 
-	// 	const generator = new generatorConstructor();
-	// 	const workerBvh = await generator.generate( geometry.clone() );
-	// 	const bvh = new MeshBVH( geometry.clone() );
+		const generator = new generatorConstructor();
+		const workerBvh = await generator.generate( geometry.clone() );
+		const bvh = new MeshBVH( geometry.clone() );
 
-	// 	expect( workerBvh ).toEqualBVH( bvh );
+		expect( workerBvh ).toEqualBVH( bvh );
 
-	// 	generator.dispose();
+		generator.dispose();
 
-	// } );
+	} );
 
-	// it( 'should correctly generate a BVH using the worker with indirect groups', async () => {
+	it( 'should correctly generate a BVH using the worker with indirect groups', async () => {
 
-	// 	geometry.clearGroups();
+		geometry.clearGroups();
 
-	// 	const chunks = geometry.index.count / 3;
-	// 	geometry.addGroup( 0, chunks, 0 );
-	// 	geometry.addGroup( chunks, chunks, 0 );
-	// 	geometry.addGroup( chunks * 2, chunks, 0 );
+		const chunks = geometry.index.count / 3;
+		geometry.addGroup( 0, chunks, 0 );
+		geometry.addGroup( chunks, chunks, 0 );
+		geometry.addGroup( chunks * 2, chunks, 0 );
 
-	// 	const generator = new generatorConstructor();
-	// 	const workerBvh = await generator.generate( geometry.clone(), { indirect: true } );
-	// 	const bvh = new MeshBVH( geometry.clone(), { indirect: true } );
+		const generator = new generatorConstructor();
+		const workerBvh = await generator.generate( geometry.clone(), { indirect: true } );
+		const bvh = new MeshBVH( geometry.clone(), { indirect: true } );
 
-	// 	expect( workerBvh ).toEqualBVH( bvh );
+		expect( workerBvh ).toEqualBVH( bvh );
 
-	// 	generator.dispose();
+		generator.dispose();
 
-	// } );
+	} );
 
 }
