@@ -79,21 +79,14 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 	const index = geo.index ? geo.index.array : null;
 	const normalized = posAttr.normalized;
 
-	let triangleBounds;
-	let triangleOffset; // Tracks the geometry triangle offset when writing to a target buffer
 	if ( targetBuffer === null ) {
 
-		// Store offset on the array for later use
-		// Allocate only for the range being computed
-		triangleBounds = new Float32Array( count * 6 );
-		triangleBounds.offset = offset;
-		triangleOffset = 0; // No adjustment needed - offset remains geometry-relative
+		// store offset on the array for later use & allocate only for the
+		// range being computed
+		targetBuffer = new Float32Array( count * 6 );
+		targetBuffer.offset = offset;
 
 	} else {
-
-		triangleBounds = targetBuffer;
-		triangleOffset = targetBuffer.offset; // Store base offset for converting buffer-relative to geometry-relative
-		offset = offset - targetBuffer.offset; // Convert offset to buffer-relative
 
 		if ( offset < 0 || count + offset > targetBuffer.length / 6 ) {
 
@@ -117,13 +110,14 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 
 	// used for normalized positions
 	const getters = [ 'getX', 'getY', 'getZ' ];
+	const writeOffset = targetBuffer.offset;
 
+	// iterate over the triangle range
 	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-		const tri = indirectBuffer ? indirectBuffer[ i ] : triangleOffset + i;
+		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
 		const tri3 = tri * 3;
-		// When writing to a shared buffer, use absolute position; otherwise use relative position
-		const boundsIndexOffset = ( targetBuffer ? i : i - offset ) * 6;
+		const boundsIndexOffset = ( i - writeOffset ) * 6;
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
@@ -178,13 +172,13 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 			// worked with.
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			triangleBounds[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
+			targetBuffer[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
+			targetBuffer[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 
 	}
 
-	return triangleBounds;
+	return targetBuffer;
 
 }

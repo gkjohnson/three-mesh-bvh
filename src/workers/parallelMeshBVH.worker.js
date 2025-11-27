@@ -43,6 +43,7 @@ onmessage = async ( { data } ) => {
 			const ranges = getRootIndexRanges( geometry, options.range );
 			indirectBuffer = generateIndirectBuffer( geometry, true, ranges );
 			triangleBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
+			triangleBounds.offset = 0;
 			geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 		} else {
@@ -72,6 +73,7 @@ onmessage = async ( { data } ) => {
 					index,
 					position,
 					triangleBounds,
+					triangleBoundsOffset: triangleBounds.offset,
 					indirectBuffer,
 				}
 			) );
@@ -141,6 +143,7 @@ onmessage = async ( { data } ) => {
 							index,
 							position,
 							triangleBounds,
+							triangleBoundsOffset: triangleBounds.offset,
 							options: workerOptions,
 						},
 						getOnProgressDeltaCallback( delta => {
@@ -201,6 +204,7 @@ onmessage = async ( { data } ) => {
 			index,
 			position,
 			triangleBounds,
+			triangleBoundsOffset,
 			options,
 		} = data;
 
@@ -215,6 +219,8 @@ onmessage = async ( { data } ) => {
 			onProgress: options.includedProgressCallback ? triggerOnProgress : null,
 		};
 
+		triangleBounds.offset = triangleBoundsOffset;
+
 		const root = buildTree( proxyBvh, triangleBounds, offset, count, localOptions );
 		const nodeCount = countNodes( root );
 		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
@@ -227,10 +233,14 @@ onmessage = async ( { data } ) => {
 			index,
 			position,
 			triangleBounds,
+			triangleBoundsOffset,
 			offset,
 			count,
 			indirectBuffer,
 		} = data;
+
+
+		triangleBounds.offset = triangleBoundsOffset;
 
 		const geometry = getGeometry( index, position );
 		computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
