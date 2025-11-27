@@ -90,6 +90,13 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 	} else {
 
 		triangleBounds = target;
+		offset = target.offset;
+
+		if ( count + offset > target.length / 6 ) {
+
+			throw new Error( '' );
+
+		}
 
 	}
 
