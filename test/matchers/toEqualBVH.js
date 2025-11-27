@@ -21,7 +21,7 @@ expect.extend( {
 
 		} catch ( error ) {
 
-			console.log( error.message )
+			console.log( error.message );
 			pass = false;
 
 		}
