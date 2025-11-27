@@ -14,6 +14,7 @@ const params = {
 	strategy: CENTER,
 	indirect: false,
 
+	useGroups: false,
 	radius: 1,
 	tube: 0.3,
 	tubularSegments: 500,
@@ -117,6 +118,7 @@ function init() {
 	helperFolder.open();
 
 	const knotFolder = gui.addFolder( 'knot' );
+	knotFolder.add( params, 'useGroups' );
 	knotFolder.add( params, 'radius', 0.5, 2, 0.01 );
 	knotFolder.add( params, 'tube', 0.2, 1.2, 0.01 );
 	knotFolder.add( params, 'tubularSegments', 50, 2000, 1 );
@@ -158,7 +160,16 @@ function regenerateKnot() {
 
 	if ( knot ) {
 
-		knot.material.dispose();
+		if ( Array.isArray( knot.material ) ) {
+
+			knot.material.forEach( m => m.dispose() );
+
+		} else {
+
+			knot.material.dispose();
+
+		}
+
 		knot.geometry.dispose();
 		group.remove( knot );
 		group.remove( helper );
@@ -167,21 +178,47 @@ function regenerateKnot() {
 
 	const stallStartTime = window.performance.now();
 	const geomStartTime = window.performance.now();
-	knot = new THREE.Mesh(
-		new THREE.TorusKnotGeometry(
-			params.radius,
-			params.tube,
-			params.tubularSegments,
-			params.radialSegments,
-			params.p,
-			params.q
-		),
-		new THREE.MeshStandardMaterial( {
+
+	// Create geometry with multiple groups to test parallel worker offset handling
+	let material;
+	const geometry = new THREE.TorusKnotGeometry(
+		params.radius,
+		params.tube,
+		params.tubularSegments,
+		params.radialSegments,
+		params.p,
+		params.q
+	);
+
+
+	if ( params.useGroups ) {
+
+		geometry.clearGroups();
+
+		const triCount = geometry.index.count / 3;
+		const groupSize = Math.floor( triCount / 3 );
+		geometry.addGroup( 0, groupSize * 3, 0 );
+		geometry.addGroup( ( groupSize * 1 ) * 3, groupSize * 3, 1 );
+		geometry.addGroup( ( groupSize * 2 ) * 3, groupSize * 3, 2 );
+
+		material = [
+			new THREE.MeshStandardMaterial( { color: 0x4db6ac, roughness: 0.75 } ),
+			new THREE.MeshStandardMaterial( { color: 0xf06292, roughness: 0.75 } ),
+			new THREE.MeshStandardMaterial( { color: 0x64b5f6, roughness: 0.75 } )
+		];
+
+	} else {
+
+		material = new THREE.MeshStandardMaterial( {
 			color: new THREE.Color( 0x4db6ac ),
 			roughness: 0.75
+		} );
 
-		} )
-	);
+	}
+
+
+	knot = new THREE.Mesh( geometry, material );
+
 	const geomTime = window.performance.now() - geomStartTime;
 	const startTime = window.performance.now();
 	const options = { strategy: params.strategy, indirect: params.indirect };
