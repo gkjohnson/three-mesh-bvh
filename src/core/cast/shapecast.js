@@ -4,10 +4,21 @@ import { BufferStack } from '../utils/BufferStack.js';
 
 const boundsArray = /* @__PURE__ */ new Float32Array( 6 );
 
+function copyBuffer( float32Array, boundsIndex, target ) {
+
+	target[ 0 ] = float32Array[ boundsIndex ];
+	target[ 1 ] = float32Array[ boundsIndex + 1 ];
+	target[ 2 ] = float32Array[ boundsIndex + 2 ];
+	target[ 3 ] = float32Array[ boundsIndex + 3 ];
+	target[ 4 ] = float32Array[ boundsIndex + 4 ];
+	target[ 5 ] = float32Array[ boundsIndex + 5 ];
+
+}
+
 export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset, 0 );
+	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
 	BufferStack.clearBuffer();
 
 	return result;
@@ -33,14 +44,7 @@ function shapecastTraverse(
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 		const boundsIndex = BOUNDING_DATA_INDEX( nodeIndex32 );
-
-		// Copy bounds to the shared array
-		boundsArray[ 0 ] = float32Array[ boundsIndex ];
-		boundsArray[ 1 ] = float32Array[ boundsIndex + 1 ];
-		boundsArray[ 2 ] = float32Array[ boundsIndex + 2 ];
-		boundsArray[ 3 ] = float32Array[ boundsIndex + 3 ];
-		boundsArray[ 4 ] = float32Array[ boundsIndex + 4 ];
-		boundsArray[ 5 ] = float32Array[ boundsIndex + 5 ];
+		copyBuffer( float32Array, boundsIndex, boundsArray );
 
 		return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32, boundsArray );
 
@@ -60,23 +64,11 @@ function shapecastTraverse(
 			boundsIndex2 = BOUNDING_DATA_INDEX( c2 );
 
 			// Copy c1 bounds
-			boundsArray[ 0 ] = float32Array[ boundsIndex1 ];
-			boundsArray[ 1 ] = float32Array[ boundsIndex1 + 1 ];
-			boundsArray[ 2 ] = float32Array[ boundsIndex1 + 2 ];
-			boundsArray[ 3 ] = float32Array[ boundsIndex1 + 3 ];
-			boundsArray[ 4 ] = float32Array[ boundsIndex1 + 4 ];
-			boundsArray[ 5 ] = float32Array[ boundsIndex1 + 5 ];
-
+			copyBuffer( float32Array, boundsIndex1, boundsArray );
 			score1 = nodeScoreFunc( boundsArray );
 
 			// Copy c2 bounds
-			boundsArray[ 0 ] = float32Array[ boundsIndex2 ];
-			boundsArray[ 1 ] = float32Array[ boundsIndex2 + 1 ];
-			boundsArray[ 2 ] = float32Array[ boundsIndex2 + 2 ];
-			boundsArray[ 3 ] = float32Array[ boundsIndex2 + 3 ];
-			boundsArray[ 4 ] = float32Array[ boundsIndex2 + 4 ];
-			boundsArray[ 5 ] = float32Array[ boundsIndex2 + 5 ];
-
+			copyBuffer( float32Array, boundsIndex2, boundsArray );
 			score2 = nodeScoreFunc( boundsArray );
 
 			if ( score2 < score1 ) {
@@ -88,33 +80,16 @@ function shapecastTraverse(
 				score1 = score2;
 				score2 = temp;
 
-				const tempIndex = boundsIndex1;
-				boundsIndex1 = boundsIndex2;
-				boundsIndex2 = tempIndex;
-
 			}
 
 		}
 
 		// Check box 1 intersection
+		boundsIndex1 = BOUNDING_DATA_INDEX( c1 );
+		copyBuffer( float32Array, boundsIndex1, boundsArray );
+
 		const isC1Leaf = IS_LEAF( c1 * 2, uint16Array );
-		let c1Intersection;
-
-		if ( boundsIndex1 === undefined ) {
-
-			boundsIndex1 = BOUNDING_DATA_INDEX( c1 );
-
-		}
-
-		// Copy c1 bounds
-		boundsArray[ 0 ] = float32Array[ boundsIndex1 ];
-		boundsArray[ 1 ] = float32Array[ boundsIndex1 + 1 ];
-		boundsArray[ 2 ] = float32Array[ boundsIndex1 + 2 ];
-		boundsArray[ 3 ] = float32Array[ boundsIndex1 + 3 ];
-		boundsArray[ 4 ] = float32Array[ boundsIndex1 + 4 ];
-		boundsArray[ 5 ] = float32Array[ boundsIndex1 + 5 ];
-
-		c1Intersection = intersectsBoundsFunc( boundsArray, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
+		const c1Intersection = intersectsBoundsFunc( boundsArray, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
 
 		let c1StopTraversal;
 		if ( c1Intersection === CONTAINED ) {
@@ -144,24 +119,11 @@ function shapecastTraverse(
 		if ( c1StopTraversal ) return true;
 
 		// Check box 2 intersection
+		boundsIndex2 = BOUNDING_DATA_INDEX( c2 );
+		copyBuffer( float32Array, boundsIndex2, boundsArray );
+
 		const isC2Leaf = IS_LEAF( c2 * 2, uint16Array );
-		let c2Intersection;
-
-		if ( boundsIndex2 === undefined ) {
-
-			boundsIndex2 = BOUNDING_DATA_INDEX( c2 );
-
-		}
-
-		// Copy c2 bounds
-		boundsArray[ 0 ] = float32Array[ boundsIndex2 ];
-		boundsArray[ 1 ] = float32Array[ boundsIndex2 + 1 ];
-		boundsArray[ 2 ] = float32Array[ boundsIndex2 + 2 ];
-		boundsArray[ 3 ] = float32Array[ boundsIndex2 + 3 ];
-		boundsArray[ 4 ] = float32Array[ boundsIndex2 + 4 ];
-		boundsArray[ 5 ] = float32Array[ boundsIndex2 + 5 ];
-
-		c2Intersection = intersectsBoundsFunc( boundsArray, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
+		const c2Intersection = intersectsBoundsFunc( boundsArray, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
 
 		let c2StopTraversal;
 		if ( c2Intersection === CONTAINED ) {
