@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Fixed dependencies on WebGPURenderer compute nodes.
 - Fixed MeshBVH.bvhcast passing "NaN" `nodeIndex` values to callbacks when more than one group was present.
+- Fixed triangles being included in the BVH when they were not included in a groups range (eg exclude triangles in group gaps).
+- Ensure "triangle bounds" buffer is limited to the size it needs to be to avoid unnecessary memory overhead.
+- Remove limitation preventing "indirect" BVHs from being generated for BatchedMesh instances.
 
 ## [0.9.2] - 2025-10-24
 ### Added
