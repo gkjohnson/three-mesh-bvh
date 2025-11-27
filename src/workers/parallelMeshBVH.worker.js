@@ -219,6 +219,7 @@ onmessage = async ( { data } ) => {
 			onProgress: options.includedProgressCallback ? triggerOnProgress : null,
 		};
 
+		// reconstruct the triangle bounds structure before use
 		triangleBounds.offset = triangleBoundsOffset;
 
 		const root = buildTree( proxyBvh, triangleBounds, offset, count, localOptions );
@@ -239,7 +240,7 @@ onmessage = async ( { data } ) => {
 			indirectBuffer,
 		} = data;
 
-
+		// reconstruct the triangle bounds structure before use
 		triangleBounds.offset = triangleBoundsOffset;
 
 		const geometry = getGeometry( index, position );
