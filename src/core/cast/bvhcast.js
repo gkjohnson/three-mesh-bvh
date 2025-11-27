@@ -1,17 +1,12 @@
 import { Box3, Matrix4 } from 'three';
 import { BufferStack } from '../utils/BufferStack.js';
 import { BOUNDING_DATA_INDEX, COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
-import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
+import { arrayToBox, arrayIntersectsBox } from '../../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../../utils/PrimitivePool.js';
 
 const _bufferStack1 = new BufferStack.constructor();
 const _bufferStack2 = new BufferStack.constructor();
 const _boxPool = new PrimitivePool( () => new Box3() );
-const _leftBox1 = new Box3();
-const _rightBox1 = new Box3();
-
-const _leftBox2 = new Box3();
-const _rightBox2 = new Box3();
 
 let _active = false;
 
@@ -170,12 +165,10 @@ function _traverse(
 		// get the child bounds to check before traversal
 		const cl1 = LEFT_NODE( node1Index32 );
 		const cr1 = RIGHT_NODE( node1Index32, uint32Array1 );
-		arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
-		arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
 		// precompute the intersections otherwise the global boxes will be modified during traversal
-		const intersectCl1 = newBox.intersectsBox( _leftBox1 );
-		const intersectCr1 = newBox.intersectsBox( _rightBox1 );
+		const intersectCl1 = arrayIntersectsBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, newBox );
+		const intersectCr1 = arrayIntersectsBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, newBox );
 		result = (
 			intersectCl1 && _traverse(
 				node2Index32, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
@@ -200,11 +193,10 @@ function _traverse(
 		// get the child bounds to check
 		const cl2 = LEFT_NODE( node2Index32 );
 		const cr2 = RIGHT_NODE( node2Index32, uint32Array2 );
-		arrayToBox( BOUNDING_DATA_INDEX( cl2 ), float32Array2, _leftBox2 );
-		arrayToBox( BOUNDING_DATA_INDEX( cr2 ), float32Array2, _rightBox2 );
 
-		const leftIntersects = currBox.intersectsBox( _leftBox2 );
-		const rightIntersects = currBox.intersectsBox( _rightBox2 );
+		const leftIntersects = arrayIntersectsBox( BOUNDING_DATA_INDEX( cl2 ), float32Array2, currBox );
+		const rightIntersects = arrayIntersectsBox( BOUNDING_DATA_INDEX( cr2 ), float32Array2, currBox );
+
 		if ( leftIntersects && rightIntersects ) {
 
 			// continue to traverse both children if they both intersect
@@ -234,16 +226,15 @@ function _traverse(
 				// SWAP
 				// if only one box intersects then we have to swap to the other bvh to continue
 				const newBox = _boxPool.getPrimitive();
-				newBox.copy( _leftBox2 ).applyMatrix4( matrix2to1 );
+				arrayToBox( BOUNDING_DATA_INDEX( cl2 ), float32Array2, newBox );
+				newBox.applyMatrix4( matrix2to1 );
 
 				const cl1 = LEFT_NODE( node1Index32 );
 				const cr1 = RIGHT_NODE( node1Index32, uint32Array1 );
-				arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
-				arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
 				// precompute the intersections otherwise the global boxes will be modified during traversal
-				const intersectCl1 = newBox.intersectsBox( _leftBox1 );
-				const intersectCr1 = newBox.intersectsBox( _rightBox1 );
+				const intersectCl1 = arrayIntersectsBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, newBox );
+				const intersectCr1 = arrayIntersectsBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, newBox );
 				result = (
 					intersectCl1 && _traverse(
 						cl2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
@@ -278,16 +269,15 @@ function _traverse(
 				// SWAP
 				// if only one box intersects then we have to swap to the other bvh to continue
 				const newBox = _boxPool.getPrimitive();
-				newBox.copy( _rightBox2 ).applyMatrix4( matrix2to1 );
+				arrayToBox( BOUNDING_DATA_INDEX( cr2 ), float32Array2, newBox );
+				newBox.applyMatrix4( matrix2to1 );
 
 				const cl1 = LEFT_NODE( node1Index32 );
 				const cr1 = RIGHT_NODE( node1Index32, uint32Array1 );
-				arrayToBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, _leftBox1 );
-				arrayToBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, _rightBox1 );
 
 				// precompute the intersections otherwise the global boxes will be modified during traversal
-				const intersectCl1 = newBox.intersectsBox( _leftBox1 );
-				const intersectCr1 = newBox.intersectsBox( _rightBox1 );
+				const intersectCl1 = arrayIntersectsBox( BOUNDING_DATA_INDEX( cl1 ), float32Array1, newBox );
+				const intersectCr1 = arrayIntersectsBox( BOUNDING_DATA_INDEX( cr1 ), float32Array1, newBox );
 				result = (
 					intersectCl1 && _traverse(
 						cr2, cl1, matrix1to2, matrix2to1, intersectsRangesFunc,
