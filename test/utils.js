@@ -1,4 +1,4 @@
-import { getBVHExtremes, SAH, CENTER, AVERAGE, MeshBVH } from '../src';
+import { getBVHExtremes, SAH, CENTER, AVERAGE } from '../src';
 import { Vector3, Quaternion, Euler } from 'three';
 
 // https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
