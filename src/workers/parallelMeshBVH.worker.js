@@ -11,7 +11,7 @@ let isRunning = false;
 let prevTime = 0;
 const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
 
-onmessage = async ( { data } ) => {
+self.onmessage = async ( { data } ) => {
 
 	if ( isRunning ) {
 
@@ -182,7 +182,7 @@ onmessage = async ( { data } ) => {
 		}
 
 		// transfer the data back
-		postMessage( {
+		self.postMessage( {
 			error: null,
 			serialized: {
 				roots: packedRoots,
@@ -226,7 +226,7 @@ onmessage = async ( { data } ) => {
 		const nodeCount = countNodes( root );
 		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );
-		postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
+		self.postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
 
 	} else if ( operation === 'BUILD_TRIANGLE_BOUNDS' ) {
 
@@ -280,7 +280,7 @@ function triggerOnProgress( progress ) {
 	const currTime = performance.now();
 	if ( currTime - prevTime >= 10 && progress !== 1.0 ) {
 
-		postMessage( {
+		self.postMessage( {
 
 			error: null,
 			progress,
