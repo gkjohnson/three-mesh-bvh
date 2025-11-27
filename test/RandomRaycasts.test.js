@@ -168,7 +168,7 @@ function runRandomTests( options ) {
 
 				for ( let i = 0; i < 10; i ++ ) {
 
-					randomizeObjectTransform( tempObj, true );
+					randomizeObjectTransform( tempObj );
 					const id = batchedMesh.addInstance( i % 2 == 0 ? geoId : geo2Id );
 					batchedMesh.setMatrixAt( id, tempObj.matrix );
 
@@ -249,7 +249,7 @@ function createInterleavedPositionBuffer( bufferAttribute ) {
 
 }
 
-function randomizeObjectTransform( target, abs = false ) {
+function randomizeObjectTransform( target, uniformScale = false ) {
 
 	target.rotation.x = random() * 10;
 	target.rotation.y = random() * 10;
@@ -259,16 +259,16 @@ function randomizeObjectTransform( target, abs = false ) {
 	target.position.y = random();
 	target.position.z = random();
 
-	target.scale.x = random() * 2 - 1;
-	target.scale.y = random() * 2 - 1;
-	target.scale.z = random() * 2 - 1;
-
-	if ( abs ) {
+	if ( uniformScale ) {
 
 		// TODO: temp fix related to issue gkjohnson/three-mesh-bvh#794
-		target.scale.x = Math.abs( target.scale.x );
-		target.scale.y = Math.abs( target.scale.y );
-		target.scale.z = Math.abs( target.scale.z );
+		target.scale.setScalar( random() * 2 - 1 );
+
+	} else {
+
+		target.scale.x = random() * 2 - 1;
+		target.scale.y = random() * 2 - 1;
+		target.scale.z = random() * 2 - 1;
 
 	}
 
