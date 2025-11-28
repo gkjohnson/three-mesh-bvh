@@ -82,6 +82,7 @@
     "jsdom": "^26.0.0",
     "jsdom-worker": "^0.3.0",
     "preprocess": "^3.2.0",
+    "puppeteer": "^24.31.0",
     "rollup": "^3.28.1",
     "seedrandom": "^3.0.5",
     "simple-git": "^3.19.1",
