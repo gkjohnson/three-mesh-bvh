@@ -51,20 +51,20 @@ describe( 'Random CENTER intersections with near', () => runRandomTests( { strat
 describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
 describe( 'Random CENTER intersections with near and far', () => runRandomTests( { strategy: CENTER, near: 6, far: 7 } ) );
 
-describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
-describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
-describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
-describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
+// TODO: remove in future release
+const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+if ( IS_REVISION_166 ) {
+
+	describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
+	describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
+	describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
+	describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
+
+}
 
 function runRandomTests( options ) {
 
-	// TODO: remove in future release
-	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
-	if ( options.batched && ! IS_REVISION_166 ) {
 
-		return;
-
-	}
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
@@ -147,7 +147,7 @@ function runRandomTests( options ) {
 				const count = geo.attributes.position.count + geo2.attributes.position.count;
 				const indexCount = geo.index.count + geo2.index.count;
 				batchedMesh = new BatchedMesh( 10, count, indexCount, new MeshBasicMaterial() );
-				randomizeObjectTransform( batchedMesh );
+				randomizeObjectTransform( batchedMesh, true );
 				scene.add( batchedMesh );
 
 				const geoId = batchedMesh.addGeometry( geo );
@@ -249,7 +249,7 @@ function createInterleavedPositionBuffer( bufferAttribute ) {
 
 }
 
-function randomizeObjectTransform( target ) {
+function randomizeObjectTransform( target, uniformScale = false ) {
 
 	target.rotation.x = random() * 10;
 	target.rotation.y = random() * 10;
@@ -259,9 +259,18 @@ function randomizeObjectTransform( target ) {
 	target.position.y = random();
 	target.position.z = random();
 
-	target.scale.x = random() * 2 - 1;
-	target.scale.y = random() * 2 - 1;
-	target.scale.z = random() * 2 - 1;
+	if ( uniformScale ) {
+
+		// TODO: temp fix related to issue gkjohnson/three-mesh-bvh#794
+		target.scale.setScalar( random() * 2 - 1 );
+
+	} else {
+
+		target.scale.x = random() * 2 - 1;
+		target.scale.y = random() * 2 - 1;
+		target.scale.z = random() * 2 - 1;
+
+	}
 
 	target.updateMatrixWorld( true );
 
