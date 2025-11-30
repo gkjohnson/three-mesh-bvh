@@ -44,7 +44,6 @@ describe( 'Workers', () => {
 			}
 
 			return {
-				hasShared: ! ! SharedArrayBuffer,
 				error,
 				bvh: bvh && MeshBVH.serialize( bvh ),
 				workerBvh: workerBvh && MeshBVH.serialize( workerBvh ),
@@ -92,12 +91,18 @@ describe( 'Workers', () => {
 
 	} );
 
+	it( 'should have shared array buffers available', async () => {
+
+		const sharedArrayBuffersExist = await page.evaluate( async () => ! ! SharedArrayBuffer );
+		expect( sharedArrayBuffersExist ).toEqual( true );
+
+	} );
+
 	describe( 'GenerateMeshBVHWorker', () => {
 
 		it( 'should generate a matching bvh', async () => {
 
-			const { workerBvh, bvh, hasShared } = await generate();
-			expect( hasShared ).toEqual( true );
+			const { workerBvh, bvh } = await generate();
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
