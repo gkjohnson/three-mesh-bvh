@@ -4,14 +4,14 @@ import { BYTES_PER_NODE } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
-import { getRootIndexRanges, getTriCount } from '../core/build/geometryUtils.js';
+import { getFullGeometryRange, getRootIndexRanges } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
 
 let isRunning = false;
 let prevTime = 0;
 const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
 
-onmessage = async ( { data } ) => {
+self.onmessage = async ( { data } ) => {
 
 	if ( isRunning ) {
 
@@ -43,12 +43,14 @@ onmessage = async ( { data } ) => {
 			const ranges = getRootIndexRanges( geometry, options.range );
 			indirectBuffer = generateIndirectBuffer( geometry, true, ranges );
 			triangleBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
+			triangleBounds.offset = 0;
 			geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 		} else {
 
-			const triCount = getTriCount( geometry );
-			triangleBounds = new Float32Array( new SharedArrayBuffer( triCount * 6 * 4 ) );
+			const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
+			triangleBounds = new Float32Array( new SharedArrayBuffer( fullRange.count * 6 * 4 ) );
+			triangleBounds.offset = fullRange.offset;
 			geometryRanges = getRootIndexRanges( geometry, options.range );
 
 		}
@@ -71,6 +73,7 @@ onmessage = async ( { data } ) => {
 					index,
 					position,
 					triangleBounds,
+					triangleBoundsOffset: triangleBounds.offset,
 					indirectBuffer,
 				}
 			) );
@@ -140,6 +143,7 @@ onmessage = async ( { data } ) => {
 							index,
 							position,
 							triangleBounds,
+							triangleBoundsOffset: triangleBounds.offset,
 							options: workerOptions,
 						},
 						getOnProgressDeltaCallback( delta => {
@@ -178,7 +182,7 @@ onmessage = async ( { data } ) => {
 		}
 
 		// transfer the data back
-		postMessage( {
+		self.postMessage( {
 			error: null,
 			serialized: {
 				roots: packedRoots,
@@ -200,6 +204,7 @@ onmessage = async ( { data } ) => {
 			index,
 			position,
 			triangleBounds,
+			triangleBoundsOffset,
 			options,
 		} = data;
 
@@ -214,11 +219,14 @@ onmessage = async ( { data } ) => {
 			onProgress: options.includedProgressCallback ? triggerOnProgress : null,
 		};
 
+		// reconstruct the triangle bounds structure before use
+		triangleBounds.offset = triangleBoundsOffset;
+
 		const root = buildTree( proxyBvh, triangleBounds, offset, count, localOptions );
 		const nodeCount = countNodes( root );
 		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );
-		postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
+		self.postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
 
 	} else if ( operation === 'BUILD_TRIANGLE_BOUNDS' ) {
 
@@ -226,14 +234,18 @@ onmessage = async ( { data } ) => {
 			index,
 			position,
 			triangleBounds,
+			triangleBoundsOffset,
 			offset,
 			count,
 			indirectBuffer,
 		} = data;
 
+		// reconstruct the triangle bounds structure before use
+		triangleBounds.offset = triangleBoundsOffset;
+
 		const geometry = getGeometry( index, position );
 		computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
-		postMessage( { type: 'result' } );
+		self.postMessage( { type: 'result' } );
 
 	} else if ( operation === 'REFIT' ) {
 
@@ -268,7 +280,7 @@ function triggerOnProgress( progress ) {
 	const currTime = performance.now();
 	if ( currTime - prevTime >= 10 && progress !== 1.0 ) {
 
-		postMessage( {
+		self.postMessage( {
 
 			error: null,
 			progress,

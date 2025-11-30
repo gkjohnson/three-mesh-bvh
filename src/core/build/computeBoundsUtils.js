@@ -73,23 +73,26 @@ export function getBounds( triangleBounds, offset, count, target, centroidTarget
 // result is an array of size count * 6 where triangle i maps to a
 // [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
 // representing the center and half-extent in each dimension of triangle i
-export function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, target = null ) {
+export function computeTriangleBounds( geo, offset, count = null, indirectBuffer = null, targetBuffer = null ) {
 
 	const posAttr = geo.attributes.position;
 	const index = geo.index ? geo.index.array : null;
 	const normalized = posAttr.normalized;
 
-	let triangleBounds;
-	if ( target === null ) {
+	if ( targetBuffer === null ) {
 
-		// Store offset on the array for later use
-		// Allocate only for the range being computed
-		triangleBounds = new Float32Array( count * 6 );
-		triangleBounds.offset = offset;
+		// store offset on the array for later use & allocate only for the
+		// range being computed
+		targetBuffer = new Float32Array( count * 6 );
+		targetBuffer.offset = offset;
 
 	} else {
 
-		triangleBounds = target;
+		if ( offset < 0 || count + offset > targetBuffer.length / 6 ) {
+
+			throw new Error( 'MeshBVH: compute triangle bounds range is invalid.' );
+
+		}
 
 	}
 
@@ -107,12 +110,14 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 
 	// used for normalized positions
 	const getters = [ 'getX', 'getY', 'getZ' ];
+	const writeOffset = targetBuffer.offset;
 
+	// iterate over the triangle range
 	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
 		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
 		const tri3 = tri * 3;
-		const boundsIndexOffset = ( i - offset ) * 6;
+		const boundsIndexOffset = ( i - writeOffset ) * 6;
 
 		let ai = tri3 + 0;
 		let bi = tri3 + 1;
@@ -167,13 +172,13 @@ export function computeTriangleBounds( geo, offset, count = null, indirectBuffer
 			// worked with.
 			const halfExtents = ( max - min ) / 2;
 			const el2 = el * 2;
-			triangleBounds[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
-			triangleBounds[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
+			targetBuffer[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
+			targetBuffer[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 
 	}
 
-	return triangleBounds;
+	return targetBuffer;
 
 }

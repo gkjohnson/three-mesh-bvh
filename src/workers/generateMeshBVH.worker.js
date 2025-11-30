@@ -4,7 +4,7 @@ import {
 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 
-onmessage = ( { data } ) => {
+self.onmessage = ( { data } ) => {
 
 	let prevTime = performance.now();
 	function onProgressCallback( progress ) {
@@ -15,7 +15,7 @@ onmessage = ( { data } ) => {
 		const currTime = performance.now();
 		if ( currTime - prevTime >= 10 && progress !== 1.0 ) {
 
-			postMessage( {
+			self.postMessage( {
 
 				error: null,
 				serialized: null,
@@ -75,7 +75,7 @@ onmessage = ( { data } ) => {
 
 		}
 
-		postMessage( {
+		self.postMessage( {
 
 			error: null,
 			serialized,
@@ -86,7 +86,7 @@ onmessage = ( { data } ) => {
 
 	} catch ( error ) {
 
-		postMessage( {
+		self.postMessage( {
 
 			error,
 			serialized: null,
