@@ -63,7 +63,7 @@ describe( 'Workers', () => {
 
 		browser = await puppeteer.launch( {
 			headless: true,
-			args: [ '--enable-features=SharedArrayBuffer', '--no-sandbox' ],
+			args: [ '--enable-features=SharedArrayBuffer', '--no-sandbox', '--disable-setuid-sandbox' ],
 		} );
 
 		await viteServer.listen();
