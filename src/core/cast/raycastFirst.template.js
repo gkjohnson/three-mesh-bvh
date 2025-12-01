@@ -6,17 +6,17 @@ import { intersectClosestTri_indirect } from '../utils/iterationUtils_indirect.g
 
 const _xyzFields = [ 'x', 'y', 'z' ];
 
-export function raycastFirst/* @echo INDIRECT_STRING */( bvh, root, side, ray, near, far ) {
+export function raycastFirst/* @echo INDIRECT_STRING */( bvh, root, materialOrSide, ray, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst( 0, bvh, side, ray, near, far );
+	const result = _raycastFirst( 0, bvh, materialOrSide, ray, near, far );
 	BufferStack.clearBuffer();
 
 	return result;
 
 }
 
-function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
+function _raycastFirst( nodeIndex32, bvh, materialOrSide, ray, near, far ) {
 
 	const { float32Array, uint16Array, uint32Array } = BufferStack;
 	let nodeIndex16 = nodeIndex32 * 2;
@@ -29,12 +29,12 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 
 		/* @if INDIRECT */
 
-		return intersectClosestTri_indirect( bvh, side, ray, offset, count, near, far );
+		return intersectClosestTri_indirect( bvh, materialOrSide, ray, offset, count, near, far );
 
 		/* @else */
 
 		// eslint-disable-next-line no-unreachable
-		return intersectClosestTri( bvh, side, ray, offset, count, near, far );
+		return intersectClosestTri( bvh, materialOrSide, ray, offset, count, near, far );
 
 		/* @endif */
 
@@ -62,7 +62,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 		}
 
 		const c1Intersection = intersectRay( c1, float32Array, ray, near, far );
-		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, side, ray, near, far ) : null;
+		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, materialOrSide, ray, near, far ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
 		// box, we don't need to consider the second node because it couldn't possibly be a better result
@@ -86,7 +86,7 @@ function _raycastFirst( nodeIndex32, bvh, side, ray, near, far ) {
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
 		const c2Intersection = intersectRay( c2, float32Array, ray, near, far );
-		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, side, ray, near, far ) : null;
+		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, materialOrSide, ray, near, far ) : null;
 
 		if ( c1Result && c2Result ) {
 
