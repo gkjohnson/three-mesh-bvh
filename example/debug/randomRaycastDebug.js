@@ -195,7 +195,7 @@ function init() {
 	raycaster.ray.direction.copy( raycaster.ray.origin ).multiplyScalar( - 1 ).normalize();
 
 	// visualize hits
-	const { bvhHits, ogHits } = performRaycasts( scene, raycaster, batchedMesh, boundsTrees );
+	const { bvhHits, ogHits } = performRaycasts();
 	visualizeRay();
 	addSphere( raycaster.ray.origin, 0xffff00 );
 	bvhHits.forEach( ( hit, i ) => {
