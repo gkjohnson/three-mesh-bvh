@@ -64,8 +64,6 @@ if ( IS_REVISION_166 ) {
 
 function runRandomTests( options ) {
 
-
-
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
 
@@ -128,7 +126,7 @@ function runRandomTests( options ) {
 
 				const geo = groupedGeometry; // ungroupedGeometry not used...
 				const instancedMesh = new InstancedMesh( geo, new MeshBasicMaterial(), 10 );
-				randomizeObjectTransform( instancedMesh );
+				randomizeObjectTransform( instancedMesh, true );
 				scene.add( instancedMesh );
 
 				const tempObj = new Object3D();
