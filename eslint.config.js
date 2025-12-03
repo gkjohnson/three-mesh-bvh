@@ -6,44 +6,51 @@ import globals from 'globals';
 import mdcs from 'eslint-config-mdcs';
 
 export default [
+	// files to ignore
 	{
-		ignores: [ '**/*.generated.js', '**/node_modules/**', '**/build/**' ],
+		ignores: [
+			'**/*.generated.js',
+			'**/node_modules/**',
+			'**/build/**',
+		],
 	},
+
+	// recommended settings
 	js.configs.recommended,
+
+	// js & ts settings
 	{
 		files: [ '**/*.js', '**/*.ts' ],
 		languageOptions: {
 			ecmaVersion: 2020,
 			sourceType: 'module',
-			globals: {
-				...globals.browser,
-				...globals.node,
-			},
-		},
-		rules: {
-			...mdcs.rules,
-			'no-unused-vars': [ 'error', { args: 'none' } ],
-			'no-inner-declarations': 'off',
-			'no-constant-condition': 'off',
-		},
-	},
-	{
-		files: [ '**/*.ts' ],
-		languageOptions: {
 			parser: tsparser,
 			parserOptions: {
 				ecmaVersion: 2020,
 				sourceType: 'module',
+			},
+			globals: {
+				...globals.browser,
+				...globals.node,
 			},
 		},
 		plugins: {
 			'@typescript-eslint': tseslint,
 		},
 		rules: {
-			'no-unused-vars': [ 'error', { args: 'none' } ],
-			'indent': [ 'error', 'tab' ],
+			...mdcs.rules,
 		},
 	},
+
+	// typescript declaration files
+	{
+		files: [ '**/*.d.ts' ],
+		rules: {
+			'no-unused-vars': 'off',
+		},
+	},
+
+	// vitest
 	{
 		files: [ '**/*.test.js', '**/*.test.ts' ],
 		plugins: {
@@ -52,16 +59,10 @@ export default [
 		languageOptions: {
 			globals: {
 				...vitest.environments.env.globals,
-				...globals.node,
 			},
 		},
 		rules: {
 			...vitest.configs.recommended.rules,
-			'vitest/no-disabled-tests': 'warn',
-			'vitest/no-focused-tests': 'error',
-			'vitest/no-identical-title': 'error',
-			'vitest/prefer-to-have-length': 'warn',
-			'vitest/valid-expect': 'error',
 			'vitest/valid-describe-callback': 0,
 		},
 	},
