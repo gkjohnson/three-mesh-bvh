@@ -22,7 +22,7 @@
     "build-silent": "rollup -c rollup-templating.config.js --silent && rollup -c --silent",
     "build-examples": "npm run build && vite build --config ./vite.config.js && cp ./example/coi-serviceworker.js ./example/bundle/",
     "test": "npm run build-silent && vitest run",
-    "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" \"./eslint.config.js\" && tsc --noEmit",
+    "lint": "eslint . && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"
   },

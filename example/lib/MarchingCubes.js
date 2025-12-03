@@ -512,7 +512,7 @@ class MarchingCubes extends Mesh {
 									Math.min( Math.abs( colors[ 0 ] ), 1 ),
 									Math.min( Math.abs( colors[ 1 ] ), 1 ),
 									Math.min( Math.abs( colors[ 2 ] ), 1 )
-							  )
+								)
 								: new Color( colors );
 
 				} catch ( err ) {
@@ -836,7 +836,7 @@ class MarchingCubes extends Mesh {
 						const fx = ( x - this.halfsize ) / this.halfsize; //+ 1
 						const q = y_offset + x;
 
-						 polygonize( fx, fy, fz, q, this.isolation );
+						polygonize( fx, fy, fz, q, this.isolation );
 
 					}
 
