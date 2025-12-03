@@ -214,31 +214,11 @@ export class MeshBVH {
 	raycast( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
-		const geometry = this.geometry;
 		const intersects = [];
-		const isMaterial = materialOrSide.isMaterial;
-		const isArrayMaterial = Array.isArray( materialOrSide );
-
-		const groups = geometry.groups;
-		const side = isMaterial ? materialOrSide.side : materialOrSide;
 		const raycastFunc = this.indirect ? raycast_indirect : raycast;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const startCount = intersects.length;
-
-			raycastFunc( this, i, materialSide, ray, intersects, near, far );
-
-			if ( isArrayMaterial ) {
-
-				const materialIndex = groups[ i ].materialIndex;
-				for ( let j = startCount, jl = intersects.length; j < jl; j ++ ) {
-
-					intersects[ j ].face.materialIndex = materialIndex;
-
-				}
-
-			}
+			raycastFunc( this, i, materialOrSide, ray, intersects, near, far );
 
 		}
 
@@ -249,27 +229,15 @@ export class MeshBVH {
 	raycastFirst( ray, materialOrSide = FrontSide, near = 0, far = Infinity ) {
 
 		const roots = this._roots;
-		const geometry = this.geometry;
-		const isMaterial = materialOrSide.isMaterial;
-		const isArrayMaterial = Array.isArray( materialOrSide );
-
 		let closestResult = null;
 
-		const groups = geometry.groups;
-		const side = isMaterial ? materialOrSide.side : materialOrSide;
 		const raycastFirstFunc = this.indirect ? raycastFirst_indirect : raycastFirst;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
-			const materialSide = isArrayMaterial ? materialOrSide[ groups[ i ].materialIndex ].side : side;
-			const result = raycastFirstFunc( this, i, materialSide, ray, near, far );
+			const result = raycastFirstFunc( this, i, materialOrSide, ray, near, far );
 			if ( result != null && ( closestResult == null || result.distance < closestResult.distance ) ) {
 
 				closestResult = result;
-				if ( isArrayMaterial ) {
-
-					result.face.materialIndex = groups[ i ].materialIndex;
-
-				}
 
 			}
 
