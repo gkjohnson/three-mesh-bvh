@@ -146,7 +146,7 @@ describe( 'intersectTri', () => {
 		};
 
 		const revision = parseInt( REVISION );
-		/* eslint-disable @vitest/no-conditional-expect */
+		/* eslint-disable vitest/no-conditional-expect */
 		if ( 169 > revision && revision > 159 ) {
 
 			expect( getThreeHit ).toThrow();
@@ -179,7 +179,7 @@ describe( 'intersectTri', () => {
 			expect( bvhHit ).toEqual( threeHit );
 
 		}
-		/* eslint-enable @vitest/no-conditional-expect */
+		/* eslint-enable vitest/no-conditional-expect */
 
 	} );
 
