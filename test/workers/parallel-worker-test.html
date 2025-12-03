@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+</head>
+<body>
+	<script type="module">
+		import * as THREE from 'three';
+		import { MeshBVH } from 'three-mesh-bvh';
+		import { ParallelMeshBVHWorker, GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
+
+		window.THREE = THREE;
+		window.MeshBVH = MeshBVH;
+		window.ParallelMeshBVHWorker = ParallelMeshBVHWorker;
+		window.GenerateMeshBVHWorker = GenerateMeshBVHWorker;
+	</script>
+</body>
+</html>
