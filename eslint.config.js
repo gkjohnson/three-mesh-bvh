@@ -1,6 +1,5 @@
 import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
 import globals from 'globals';
 import mdcs from 'eslint-config-mdcs';
@@ -24,25 +23,28 @@ export default [
 		languageOptions: {
 			ecmaVersion: 2020,
 			sourceType: 'module',
-			parser: tsparser,
 			globals: {
 				...globals.browser,
 				...globals.node,
 			},
-		},
-		plugins: {
-			'@typescript-eslint': tseslint,
 		},
 		rules: {
 			...mdcs.rules,
 		},
 	},
 
-	// typescript declaration files
+	// ts recommended settings
+	...tseslint.configs.recommended.map( config => ( {
+		...config,
+		files: [ '**/*.ts' ],
+	} ) ),
+
+	// ts overrides
 	{
-		files: [ '**/*.d.ts' ],
+		files: [ '**/*.ts' ],
 		rules: {
 			'no-unused-vars': 'off',
+			'@typescript-eslint/no-unused-vars': 'off',
 		},
 	},
 

@@ -22,7 +22,7 @@
     "build-silent": "rollup -c rollup-templating.config.js --silent && rollup -c --silent",
     "build-examples": "npm run build && vite build --config ./vite.config.js && cp ./example/coi-serviceworker.js ./example/bundle/",
     "test": "npm run build-silent && vitest run",
-    "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" && tsc --noEmit",
+    "lint": "eslint \"./src/**/*.{js,ts}\" \"./test/**/*.{js,ts}\" \"./example/*.js\" \"./eslint.config.js\" && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
     "prepublishOnly": "npm run build"
   },
@@ -92,6 +92,7 @@
     "stats.js": "^0.17.0",
     "three": "^0.179.0",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.48.1",
     "vite": "^6.2.2",
     "vitest": "^4.0.14"
   }
