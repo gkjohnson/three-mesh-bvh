@@ -277,7 +277,39 @@ export class MeshBVH {
 			intersectsBounds,
 			intersectsRange,
 			intersectsTriangle,
+			useBox3 = true,
 		} = callbacks;
+
+		// If useBox3 is true the callbacks are wrapped to provide a box3 rather than a float32 bounds array
+		if ( useBox3 ) {
+
+			// backwards compatible API: wrap user callbacks to convert arrays to Box3
+			const tempBox = new Box3();
+			if ( intersectsBounds ) {
+
+				const originalIntersectsBounds = intersectsBounds;
+				intersectsBounds = ( boundsArray, isLeaf, score, depth, nodeIndex ) => {
+
+					arrayToBox( 0, boundsArray, tempBox );
+					return originalIntersectsBounds( tempBox, isLeaf, score, depth, nodeIndex );
+
+				};
+
+			}
+
+			if ( boundsTraverseOrder ) {
+
+				const originalBoundsTraverseOrder = boundsTraverseOrder;
+				boundsTraverseOrder = boundsArray => {
+
+					arrayToBox( 0, boundsArray, tempBox );
+					return originalBoundsTraverseOrder( tempBox );
+
+				};
+
+			}
+
+		}
 
 		// wrap the intersectsRange function
 		if ( intersectsRange && intersectsTriangle ) {
