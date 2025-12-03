@@ -3,14 +3,13 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import vitest from '@vitest/eslint-plugin';
 import globals from 'globals';
-// import mdcs from 'eslint-config-mdcs';
+import mdcs from 'eslint-config-mdcs';
 
 export default [
 	{
 		ignores: [ '**/*.generated.js', '**/node_modules/**', '**/build/**' ],
 	},
 	js.configs.recommended,
-	// mdcs,
 	{
 		files: [ '**/*.js', '**/*.ts' ],
 		languageOptions: {
@@ -18,20 +17,14 @@ export default [
 			sourceType: 'module',
 			globals: {
 				...globals.browser,
+				...globals.node,
 			},
 		},
 		rules: {
+			...mdcs.rules,
 			'no-unused-vars': [ 'error', { args: 'none' } ],
 			'no-inner-declarations': 'off',
 			'no-constant-condition': 'off',
-		},
-	},
-	{
-		files: [ 'example/**/*.js' ],
-		languageOptions: {
-			globals: {
-				...globals.browser,
-			},
 		},
 	},
 	{
