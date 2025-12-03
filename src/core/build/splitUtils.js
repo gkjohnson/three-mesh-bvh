@@ -3,7 +3,7 @@ import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from '.
 
 const BIN_COUNT = 32;
 const binsSort = ( a, b ) => a.candidate - b.candidate;
-const sahBins = new Array( BIN_COUNT ).fill().map( () => {
+const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
 
 	return {
 
@@ -16,7 +16,7 @@ const sahBins = new Array( BIN_COUNT ).fill().map( () => {
 	};
 
 } );
-const leftBounds = new Float32Array( 6 );
+const leftBounds = /* @__PURE__ */ new Float32Array( 6 );
 
 export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
 

@@ -4,14 +4,14 @@ import { BOUNDING_DATA_INDEX, COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE } fr
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../../utils/PrimitivePool.js';
 
-const _bufferStack1 = new BufferStack.constructor();
-const _bufferStack2 = new BufferStack.constructor();
-const _boxPool = new PrimitivePool( () => new Box3() );
-const _leftBox1 = new Box3();
-const _rightBox1 = new Box3();
+const _bufferStack1 = /* @__PURE__ */ new BufferStack.constructor();
+const _bufferStack2 = /* @__PURE__ */ new BufferStack.constructor();
+const _boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
+const _leftBox1 = /* @__PURE__ */ new Box3();
+const _rightBox1 = /* @__PURE__ */ new Box3();
 
-const _leftBox2 = new Box3();
-const _rightBox2 = new Box3();
+const _leftBox2 = /* @__PURE__ */ new Box3();
+const _rightBox2 = /* @__PURE__ */ new Box3();
 
 let _active = false;
 

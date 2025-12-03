@@ -102,7 +102,7 @@ OrientedBox.prototype.update = ( function () {
 
 OrientedBox.prototype.intersectsBox = ( function () {
 
-	const aabbBounds = new SeparatingAxisBounds();
+	const aabbBounds = /* @__PURE__ */ new SeparatingAxisBounds();
 	return function intersectsBox( box ) {
 
 		// TODO: should this be doing SAT against the AABB?
@@ -147,11 +147,11 @@ OrientedBox.prototype.intersectsBox = ( function () {
 
 OrientedBox.prototype.intersectsTriangle = ( function () {
 
-	const saTri = new ExtendedTriangle();
-	const pointsArr = new Array( 3 );
-	const cachedSatBounds = new SeparatingAxisBounds();
-	const cachedSatBounds2 = new SeparatingAxisBounds();
-	const cachedAxis = new Vector3();
+	const saTri = /* @__PURE__ */ new ExtendedTriangle();
+	const pointsArr = /* @__PURE__ */ new Array( 3 );
+	const cachedSatBounds = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedSatBounds2 = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedAxis = /* @__PURE__ */ new Vector3();
 	return function intersectsTriangle( triangle ) {
 
 		if ( this.needsUpdate ) {
@@ -259,11 +259,11 @@ OrientedBox.prototype.distanceToPoint = ( function () {
 OrientedBox.prototype.distanceToBox = ( function () {
 
 	const xyzFields = [ 'x', 'y', 'z' ];
-	const segments1 = new Array( 12 ).fill().map( () => new Line3() );
-	const segments2 = new Array( 12 ).fill().map( () => new Line3() );
+	const segments1 = /* @__PURE__ */ new Array( 12 ).fill().map( () => new Line3() );
+	const segments2 = /* @__PURE__ */ new Array( 12 ).fill().map( () => new Line3() );
 
-	const point1 = new Vector3();
-	const point2 = new Vector3();
+	const point1 = /* @__PURE__ */ new Vector3();
+	const point2 = /* @__PURE__ */ new Vector3();
 
 	// early out if we find a value below threshold
 	return function distanceToBox( box, threshold = 0, target1 = null, target2 = null ) {

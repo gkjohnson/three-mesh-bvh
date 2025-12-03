@@ -42,4 +42,4 @@ class _BufferStack {
 
 }
 
-export const BufferStack = new _BufferStack();
+export const BufferStack = /* @__PURE__ */ new _BufferStack();
