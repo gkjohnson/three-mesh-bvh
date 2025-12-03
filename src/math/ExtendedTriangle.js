@@ -118,9 +118,9 @@ export class ExtendedTriangle extends Triangle {
 
 ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
-	const point1 = new Vector3();
-	const point2 = new Vector3();
-	const edge = new Line3();
+	const point1 = /* @__PURE__ */ new Vector3();
+	const point2 = /* @__PURE__ */ new Vector3();
+	const edge = /* @__PURE__ */ new Line3();
 
 	return function distanceToSegment( segment, target1 = null, target2 = null ) {
 
@@ -178,18 +178,18 @@ ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
 ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
-	const saTri2 = new ExtendedTriangle();
-	const cachedSatBounds = new SeparatingAxisBounds();
-	const cachedSatBounds2 = new SeparatingAxisBounds();
-	const tmpVec = new Vector3();
-	const dir1 = new Vector3();
-	const dir2 = new Vector3();
-	const tempDir = new Vector3();
-	const edge1 = new Line3();
-	const edge2 = new Line3();
-	const tempPoint = new Vector3();
-	const bounds1 = new Vector2();
-	const bounds2 = new Vector2();
+	const saTri2 = /* @__PURE__ */ new ExtendedTriangle();
+	const cachedSatBounds = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedSatBounds2 = /* @__PURE__ */ new SeparatingAxisBounds();
+	const tmpVec = /* @__PURE__ */ new Vector3();
+	const dir1 = /* @__PURE__ */ new Vector3();
+	const dir2 = /* @__PURE__ */ new Vector3();
+	const tempDir = /* @__PURE__ */ new Vector3();
+	const edge1 = /* @__PURE__ */ new Line3();
+	const edge2 = /* @__PURE__ */ new Line3();
+	const tempPoint = /* @__PURE__ */ new Vector3();
+	const bounds1 = /* @__PURE__ */ new Vector2();
+	const bounds2 = /* @__PURE__ */ new Vector2();
 
 	function coplanarIntersectsTriangle( self, other, target, suppressLog ) {
 
@@ -709,7 +709,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
-	const target = new Vector3();
+	const target = /* @__PURE__ */ new Vector3();
 	return function distanceToPoint( point ) {
 
 		this.closestPointToPoint( point, target );
@@ -722,11 +722,11 @@ ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
 ExtendedTriangle.prototype.distanceToTriangle = ( function () {
 
-	const point = new Vector3();
-	const point2 = new Vector3();
+	const point = /* @__PURE__ */ new Vector3();
+	const point2 = /* @__PURE__ */ new Vector3();
 	const cornerFields = [ 'a', 'b', 'c' ];
-	const line1 = new Line3();
-	const line2 = new Line3();
+	const line1 = /* @__PURE__ */ new Line3();
+	const line2 = /* @__PURE__ */ new Line3();
 
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
 

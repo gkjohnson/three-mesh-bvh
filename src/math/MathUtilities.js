@@ -3,9 +3,9 @@ import { Vector3, Vector2, Plane, Line3 } from 'three';
 export const closestPointLineToLine = ( function () {
 
 	// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Line.cpp#L56
-	const dir1 = new Vector3();
-	const dir2 = new Vector3();
-	const v02 = new Vector3();
+	const dir1 = /* @__PURE__ */ new Vector3();
+	const dir2 = /* @__PURE__ */ new Vector3();
+	const v02 = /* @__PURE__ */ new Vector3();
 	return function closestPointLineToLine( l1, l2, result ) {
 
 		const v0 = l1.start;
@@ -58,9 +58,9 @@ export const closestPointLineToLine = ( function () {
 export const closestPointsSegmentToSegment = ( function () {
 
 	// https://github.com/juj/MathGeoLib/blob/master/src/Geometry/LineSegment.cpp#L187
-	const paramResult = new Vector2();
-	const temp1 = new Vector3();
-	const temp2 = new Vector3();
+	const paramResult = /* @__PURE__ */ new Vector2();
+	const temp1 = /* @__PURE__ */ new Vector3();
+	const temp2 = /* @__PURE__ */ new Vector3();
 	return function closestPointsSegmentToSegment( l1, l2, target1, target2 ) {
 
 		closestPointLineToLine( l1, l2, paramResult );
@@ -160,10 +160,10 @@ export const closestPointsSegmentToSegment = ( function () {
 export const sphereIntersectTriangle = ( function () {
 
 	// https://stackoverflow.com/questions/34043955/detect-collision-between-sphere-and-triangle-in-three-js
-	const closestPointTemp = new Vector3();
-	const projectedPointTemp = new Vector3();
-	const planeTemp = new Plane();
-	const lineTemp = new Line3();
+	const closestPointTemp = /* @__PURE__ */ new Vector3();
+	const projectedPointTemp = /* @__PURE__ */ new Vector3();
+	const planeTemp = /* @__PURE__ */ new Plane();
+	const lineTemp = /* @__PURE__ */ new Line3();
 	return function sphereIntersectTriangle( sphere, triangle ) {
 
 		const { radius, center } = sphere;

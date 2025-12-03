@@ -55,7 +55,7 @@ export class SeparatingAxisBounds {
 
 SeparatingAxisBounds.prototype.setFromBox = ( function () {
 
-	const p = new Vector3();
+	const p = /* @__PURE__ */ new Vector3();
 	return function setFromBox( axis, box ) {
 
 		const boxMin = box.min;
@@ -91,7 +91,7 @@ SeparatingAxisBounds.prototype.setFromBox = ( function () {
 
 export const areIntersecting = ( function () {
 
-	const cacheSatBounds = new SeparatingAxisBounds();
+	const cacheSatBounds = /* @__PURE__ */ new SeparatingAxisBounds();
 	return function areIntersecting( shape1, shape2 ) {
 
 		const points1 = shape1.points;
