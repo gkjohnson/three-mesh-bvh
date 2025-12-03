@@ -3,7 +3,7 @@ import { Box3, Matrix4 } from 'three';
 import { OrientedBox } from '../../math/OrientedBox.js';
 import { ExtendedTriangle } from '../../math/ExtendedTriangle.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
-import { setOBBFromArray } from '../../utils/ArrayBoxUtilities.js';
+import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { COUNT, OFFSET, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 import { getTriCount } from '../build/geometryUtils.js';
@@ -65,8 +65,9 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		if ( otherGeometry.boundsTree ) {
 
 			// if there's a bounds tree
-			setOBBFromArray( obb2, BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array );
+			arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, obb2 );
 			obb2.matrix.copy( invertedMat );
+			obb2.needsUpdate = true;
 
 			// TODO: use a triangle iteration function here
 			const res = otherGeometry.boundsTree.shapecast( {
@@ -177,30 +178,14 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 		const left = nodeIndex32 + 8;
 		const right = uint32Array[ nodeIndex32 + 6 ];
 
-		// Check left child - inline bounds setting to avoid function call
-		const leftBoundsIndex = BOUNDING_DATA_INDEX( left );
-		boundingBox.min.x = float32Array[ leftBoundsIndex ];
-		boundingBox.min.y = float32Array[ leftBoundsIndex + 1 ];
-		boundingBox.min.z = float32Array[ leftBoundsIndex + 2 ];
-		boundingBox.max.x = float32Array[ leftBoundsIndex + 3 ];
-		boundingBox.max.y = float32Array[ leftBoundsIndex + 4 ];
-		boundingBox.max.z = float32Array[ leftBoundsIndex + 5 ];
-
+		arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 		const leftIntersection =
 			cachedObb.intersectsBox( boundingBox ) &&
 			_intersectsGeometry( left, bvh, otherGeometry, geometryToBvh, cachedObb );
 
 		if ( leftIntersection ) return true;
 
-		// Check right child - inline bounds setting to avoid function call
-		const rightBoundsIndex = BOUNDING_DATA_INDEX( right );
-		boundingBox.min.x = float32Array[ rightBoundsIndex ];
-		boundingBox.min.y = float32Array[ rightBoundsIndex + 1 ];
-		boundingBox.min.z = float32Array[ rightBoundsIndex + 2 ];
-		boundingBox.max.x = float32Array[ rightBoundsIndex + 3 ];
-		boundingBox.max.y = float32Array[ rightBoundsIndex + 4 ];
-		boundingBox.max.z = float32Array[ rightBoundsIndex + 5 ];
-
+		arrayToBox( BOUNDING_DATA_INDEX( right ), float32Array, boundingBox );
 		const rightIntersection =
 			cachedObb.intersectsBox( boundingBox ) &&
 			_intersectsGeometry( right, bvh, otherGeometry, geometryToBvh, cachedObb );

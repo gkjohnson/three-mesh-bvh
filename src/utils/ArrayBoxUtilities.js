@@ -12,34 +12,6 @@ export function arrayToBox( nodeIndex32, array, target ) {
 
 }
 
-// Optimized box intersection test that reads directly from array without creating a Box3
-export function arrayIntersectsBox( nodeIndex32, array, box ) {
-
-	return array[ nodeIndex32 + 3 ] >= box.min.x &&
-		array[ nodeIndex32 ] <= box.max.x &&
-		array[ nodeIndex32 + 4 ] >= box.min.y &&
-		array[ nodeIndex32 + 1 ] <= box.max.y &&
-		array[ nodeIndex32 + 5 ] >= box.min.z &&
-		array[ nodeIndex32 + 2 ] <= box.max.z;
-
-}
-
-// Helper for OBB intersection test - reads bounds from array and sets OBB min/max directly
-// This avoids creating an intermediate Box3 object for the common case
-export function setOBBFromArray( obb, nodeIndex32, array ) {
-
-	obb.min.x = array[ nodeIndex32 ];
-	obb.min.y = array[ nodeIndex32 + 1 ];
-	obb.min.z = array[ nodeIndex32 + 2 ];
-
-	obb.max.x = array[ nodeIndex32 + 3 ];
-	obb.max.y = array[ nodeIndex32 + 4 ];
-	obb.max.z = array[ nodeIndex32 + 5 ];
-
-	obb.needsUpdate = true;
-
-}
-
 export function makeEmptyBounds( target ) {
 
 	target[ 0 ] = target[ 1 ] = target[ 2 ] = Infinity;
