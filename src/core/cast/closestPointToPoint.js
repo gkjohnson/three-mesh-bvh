@@ -23,14 +23,17 @@ export function closestPointToPoint(
 
 		{
 
-			boundsTraverseOrder: box => {
+			useBox3: false,
+			boundsTraverseOrder: boundsArray => {
 
-				temp.copy( point ).clamp( box.min, box.max );
+				temp.x = Math.max( boundsArray[ 0 ], Math.min( boundsArray[ 3 ], point.x ) );
+				temp.y = Math.max( boundsArray[ 1 ], Math.min( boundsArray[ 4 ], point.y ) );
+				temp.z = Math.max( boundsArray[ 2 ], Math.min( boundsArray[ 5 ], point.z ) );
 				return temp.distanceToSquared( point );
 
 			},
 
-			intersectsBounds: ( box, isLeaf, score ) => {
+			intersectsBounds: ( boundsArray, isLeaf, score ) => {
 
 				return score < closestDistanceSq && score < maxThresholdSq;
 
