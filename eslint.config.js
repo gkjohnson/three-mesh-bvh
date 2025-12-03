@@ -7,6 +7,7 @@ import mdcs from 'eslint-config-mdcs';
 export default [
 	// files to ignore
 	{
+		name: 'files to ignore',
 		ignores: [
 			'**/*.generated.js',
 			'**/node_modules/**',
@@ -14,11 +15,12 @@ export default [
 		],
 	},
 
-	// recommended settings
+	// recommended
 	js.configs.recommended,
 
-	// js & ts settings
+	// base rules
 	{
+		name: 'base rules',
 		files: [ '**/*.js', '**/*.ts' ],
 		languageOptions: {
 			ecmaVersion: 2020,
@@ -33,14 +35,15 @@ export default [
 		},
 	},
 
-	// ts recommended settings
+	// ts recommended
 	...tseslint.configs.recommended.map( config => ( {
 		...config,
 		files: [ '**/*.ts' ],
 	} ) ),
 
-	// ts overrides
+	// ts rule overrides
 	{
+		name: 'ts rule overrides',
 		files: [ '**/*.ts' ],
 		rules: {
 			'no-unused-vars': 'off',
@@ -50,6 +53,7 @@ export default [
 
 	// vitest
 	{
+		name: 'vitest rules',
 		files: [ '**/*.test.js', '**/*.test.ts' ],
 		plugins: {
 			vitest,
