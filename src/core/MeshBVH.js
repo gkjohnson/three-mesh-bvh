@@ -280,15 +280,13 @@ export class MeshBVH {
 			useBox3 = true,
 		} = callbacks;
 
-		// The internal shapecast function always passes Float32Array (6 values) to callbacks.
-		// If useBox3 is false (default), wrap callbacks to convert arrays to Box3 for backwards compatibility
+		// If useBox3 is true the callbacks are wrapped to provide a box3 rather than a float32 bounds array
 		if ( useBox3 ) {
 
+			// backwards compatible API: wrap user callbacks to convert arrays to Box3
 			const tempBox = new Box3();
-
 			if ( intersectsBounds ) {
 
-				// Backwards compatible Box3-based API: wrap user callbacks to convert arrays to Box3
 				const originalIntersectsBounds = intersectsBounds;
 				intersectsBounds = ( boundsArray, isLeaf, score, depth, nodeIndex ) => {
 
