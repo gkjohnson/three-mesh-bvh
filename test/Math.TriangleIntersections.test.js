@@ -1,5 +1,5 @@
 import { Triangle, Line3 } from 'three';
-import { ExtendedTriangle } from '../src/math/ExtendedTriangle.js';
+import { ExtendedTriangle } from 'three-mesh-bvh';
 
 describe( 'Triangle Intersections', () => {
 

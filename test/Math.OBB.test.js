@@ -1,5 +1,5 @@
 import { Vector3, Triangle, Plane } from 'three';
-import { OrientedBox } from '../src/math/OrientedBox.js';
+import { OrientedBox } from 'three-mesh-bvh';
 import { setRandomVector, getRandomOrientation } from './utils.js';
 
 describe( 'OBB Intersections', () => {

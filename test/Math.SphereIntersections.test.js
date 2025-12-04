@@ -1,5 +1,5 @@
 import { Vector3, Triangle, Sphere, Plane } from 'three';
-import { sphereIntersectTriangle } from '../src/math/MathUtilities.js';
+import { sphereIntersectTriangle } from 'three-mesh-bvh/src/math/MathUtilities.js';
 import { setRandomVector } from './utils.js';
 
 describe( 'Sphere Intersections', () => {
