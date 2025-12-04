@@ -18,11 +18,8 @@ import {
 	disposeBoundsTree,
 	computeBatchedBoundsTree,
 	disposeBatchedBoundsTree,
-	CENTER,
-	SAH,
-	AVERAGE,
-} from '../src/index.js';
-import { random, setSeed } from './utils.js';
+} from 'three-mesh-bvh';
+import { random, runTestMatrix, setSeed } from './utils.js';
 import { REVISION } from 'three';
 
 Mesh.prototype.raycast = acceleratedRaycast;
@@ -32,37 +29,26 @@ BatchedMesh.prototype.raycast = acceleratedRaycast;
 BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
 BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 
-describe( 'Random CENTER intersections', () => runRandomTests( { strategy: CENTER } ) );
-describe( 'Random Interleaved CENTER intersections', () => runRandomTests( { strategy: CENTER, interleaved: true } ) );
-describe( 'Random Indirect Buffer CENTER intersections', () => runRandomTests( { strategy: CENTER, indirect: true } ) );
-describe( 'Random Instanced CENTER intersections', () => runRandomTests( { strategy: CENTER, instanced: true } ) );
+runTestMatrix( {
+	interleaved: [ true, false ],
+	near: [ undefined, 6 ],
+	far: [ undefined, 7 ],
+	batched: [ true, false ],
+	onlyOneGeo: [ true, false ],
+}, ( desc, options ) => {
 
-describe( 'Random AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE } ) );
-describe( 'Random Interleaved AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, interleaved: true } ) );
-describe( 'Random Indirect Buffer AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, indirect: true } ) );
-describe( 'Random Instanced AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, instanced: true } ) );
+	// Batched logic can only work in 166 onward
+	// TODO: remove condition in future release
+	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+	if ( ! options.batched || IS_REVISION_166 ) {
 
-describe( 'Random SAH intersections', () => runRandomTests( { strategy: SAH } ) );
-describe( 'Random Interleaved SAH intersections', () => runRandomTests( { strategy: SAH, interleaved: true } ) );
-describe( 'Random Indirect Buffer SAH intersections', () => runRandomTests( { strategy: SAH, indirect: true } ) );
-describe( 'Random Instanced SAH intersections', () => runRandomTests( { strategy: SAH, instanced: true } ) );
+		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
 
-describe( 'Random CENTER intersections with near', () => runRandomTests( { strategy: CENTER, near: 6 } ) );
-describe( 'Random CENTER intersections with far', () => runRandomTests( { strategy: CENTER, far: 7 } ) );
-describe( 'Random CENTER intersections with near and far', () => runRandomTests( { strategy: CENTER, near: 6, far: 7 } ) );
+	}
 
-// TODO: remove in future release
-const IS_REVISION_166 = parseInt( REVISION ) >= 166;
-if ( IS_REVISION_166 ) {
+} );
 
-	describe( 'Random Batched CENTER intersections', () => runRandomTests( { strategy: CENTER, batched: true } ) );
-	describe( 'Random Batched AVERAGE intersections', () => runRandomTests( { strategy: AVERAGE, batched: true } ) );
-	describe( 'Random Batched SAH intersections', () => runRandomTests( { strategy: SAH, batched: true } ) );
-	describe( 'Random Batched CENTER intersections only one geometry with boundTree', () => runRandomTests( { strategy: CENTER, batched: true, onlyOneGeo: true } ) );
-
-}
-
-function runRandomTests( options ) {
+function runSuiteWithOptions( options ) {
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {

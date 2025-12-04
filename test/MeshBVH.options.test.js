@@ -9,7 +9,7 @@ import {
 	getBVHExtremes,
 	acceleratedRaycast,
 	validateBounds,
-} from '../src/index.js';
+} from 'three-mesh-bvh';
 import { getMaxDepth } from './utils.js';
 
 describe( 'Options', () => {

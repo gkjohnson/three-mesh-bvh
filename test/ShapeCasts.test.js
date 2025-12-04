@@ -25,16 +25,22 @@ import {
 	CONTAINED,
 	INTERSECTED,
 	NOT_INTERSECTED,
-} from '../src/index.js';
+	CENTER,
+} from 'three-mesh-bvh';
+import { runTestMatrix } from './utils.js';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-runSuiteWithOptions( {} );
-runSuiteWithOptions( { indirect: true } );
+runTestMatrix( {
+	strategy: [ CENTER ],
+}, ( desc, options ) => {
 
-// TODO: clean this up
+	describe( `Running with Options: ${ desc }`, () => runSuiteWithOptions( options ) );
+
+} );
+
 function runSuiteWithOptions( defaultOptions ) {
 
 	const MeshBVH = class extends _MeshBVH {

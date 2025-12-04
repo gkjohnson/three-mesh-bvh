@@ -5,7 +5,7 @@ import {
 } from 'three';
 import {
 	MeshBVH,
-} from '../src/index.js';
+} from 'three-mesh-bvh';
 
 describe( 'Serialization', () => {
 

@@ -1,5 +1,5 @@
 import { SphereGeometry } from 'three';
-import { MeshBVH, MeshBVHUniformStruct, getBVHExtremes } from '../src';
+import { MeshBVH, MeshBVHUniformStruct, getBVHExtremes } from 'three-mesh-bvh';
 
 describe( 'MeshBVHUniformStruct', () => {
 

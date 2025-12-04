@@ -1,4 +1,4 @@
-import { getBVHExtremes } from '../src';
+import { AVERAGE, CENTER, getBVHExtremes, SAH } from 'three-mesh-bvh';
 import { Vector3, Quaternion, Euler } from 'three';
 
 // https://stackoverflow.com/questions/3062746/special-simple-random-number-generator
@@ -57,15 +57,32 @@ export function getRandomOrientation( matrix, range ) {
 
 }
 
-export function runOptionsMatrix( options, cb ) {
+export function runTestMatrix( optionsMatrix = {}, cb ) {
+
+	// Import strategy constants lazily to avoid circular dependencies
+	// These will be available when the test actually runs
+	const options = {
+		strategy: [ CENTER, SAH, AVERAGE ],
+		indirect: [ false, true ],
+		useSharedArrayBuffer: [ false ],
+		setBoundingBox: [ true ],
+		maxLeafTris: [ 10 ],
+		maxDepth: [ 40 ],
+		...optionsMatrix,
+	};
 
 	traverse( Object.keys( options ) );
 
 	function traverse( remainingKeys, state = {} ) {
 
+		const description = Object
+			.entries( state )
+			.map( ( [ key, value ] ) => `${ key }: ${ value }` )
+			.join( ', ' );
+
 		if ( remainingKeys.length === 0 ) {
 
-			cb( { ...state } );
+			cb( description, { ...state } );
 			return;
 
 		}
