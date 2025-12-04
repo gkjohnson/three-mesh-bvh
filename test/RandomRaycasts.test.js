@@ -42,13 +42,13 @@ runTestMatrix( {
 	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
 	if ( ! options.batched || IS_REVISION_166 ) {
 
-		describe( `Running with Options: { ${ desc } }`, () => runRandomTests( options ) );
+		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
 
 	}
 
 } );
 
-function runRandomTests( options ) {
+function runSuiteWithOptions( options ) {
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
