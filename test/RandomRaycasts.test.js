@@ -18,7 +18,7 @@ import {
 	disposeBoundsTree,
 	computeBatchedBoundsTree,
 	disposeBatchedBoundsTree,
-} from '../src/index.js';
+} from 'three-mesh-bvh';
 import { random, runTestMatrix, setSeed } from './utils.js';
 import { REVISION } from 'three';
 

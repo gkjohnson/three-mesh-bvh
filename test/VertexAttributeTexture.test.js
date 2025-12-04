@@ -2,7 +2,7 @@ import {
 	FloatVertexAttributeTexture,
 	UIntVertexAttributeTexture,
 	IntVertexAttributeTexture,
-} from '../src/index.js';
+} from 'three-mesh-bvh';
 import {
 	BufferAttribute,
 	RedFormat,

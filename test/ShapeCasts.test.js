@@ -25,7 +25,7 @@ import {
 	CONTAINED,
 	INTERSECTED,
 	NOT_INTERSECTED,
-} from '../src/index.js';
+} from 'three-mesh-bvh';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;

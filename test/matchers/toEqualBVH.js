@@ -1,5 +1,5 @@
 import { expect } from 'vitest';
-import { MeshBVH } from '../../src/index.js';
+import { MeshBVH } from 'three-mesh-bvh';
 
 expect.extend( {
 	toEqualBVH( received, expected ) {

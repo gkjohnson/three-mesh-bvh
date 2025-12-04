@@ -1,6 +1,6 @@
 import { SphereGeometry, BoxGeometry, BufferGeometry, BufferAttribute, Raycaster, Mesh, DoubleSide, REVISION } from 'three';
 import { getVertexCount, hasGroupGaps } from '../src/core/build/geometryUtils.js';
-import { MeshBVH } from '../src/index.js';
+import { MeshBVH } from 'three-mesh-bvh';
 
 describe( 'hasGroupGaps', () => {
 

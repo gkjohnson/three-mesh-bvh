@@ -13,7 +13,7 @@ import {
 	CENTER,
 	SAH,
 	AVERAGE,
-} from '../../src/index.js';
+} from 'three-mesh-bvh';
 import fs from 'fs';
 import path from 'path';
 
