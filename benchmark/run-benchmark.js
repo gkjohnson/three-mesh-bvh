@@ -14,9 +14,7 @@ import {
 	Sphere,
 	Matrix4,
 	Quaternion,
-	Line3,
 	PlaneGeometry,
-	Triangle,
 	Plane,
 } from 'three';
 import {
@@ -445,9 +443,9 @@ function runSuiteWithOptions( name, options ) {
 
 			} );
 
-	 	} );
-		 bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
-		 bench( 'Raycast First Hit Shapecast', () => {
+		} );
+		bench( 'Raycast First Hit', 		() => mesh.raycast( firstHitRaycaster, [] ) );
+		bench( 'Raycast First Hit Shapecast', () => {
 
 			const boxVec = new Vector3();
 			const target = new Vector3();
@@ -492,7 +490,7 @@ function runSuiteWithOptions( name, options ) {
 
 			} );
 
-	 	} );
+		} );
 
 		bench( 'Sphere Shapecast', 			() => bvh.shapecast( {
 

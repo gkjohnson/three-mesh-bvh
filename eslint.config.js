@@ -32,6 +32,7 @@ export default [
 		},
 		rules: {
 			...mdcs.rules,
+			'no-mixed-spaces-and-tabs': 'error',
 		},
 	},
 
