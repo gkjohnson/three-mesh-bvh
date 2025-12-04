@@ -191,7 +191,7 @@ export class MeshBVHHelper extends Group {
 	meshMaterial: MeshBasicMaterial;
 
 	constructor( meshOrBVH: Mesh, depth?: number );
-	constructor( mesh?: Mesh | null, bvh?: MeshBVH | null, depth?: Number );
+	constructor( mesh?: Mesh | null, bvh?: MeshBVH | null, depth?: number );
 
 	update(): void;
 
@@ -205,9 +205,9 @@ export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH;
 
 export function disposeBoundsTree(): void;
 
-export function computeBatchedBoundsTree( index?: Number, options?: MeshBVHOptions ): MeshBVH | MeshBVH[];
+export function computeBatchedBoundsTree( index?: number, options?: MeshBVHOptions ): MeshBVH | MeshBVH[];
 
-export function disposeBatchedBoundsTree( index?: Number ): void;
+export function disposeBatchedBoundsTree( index?: number ): void;
 
 export function acceleratedRaycast(
   raycaster: Raycaster,

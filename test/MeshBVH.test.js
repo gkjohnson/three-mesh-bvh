@@ -87,7 +87,7 @@ describe( 'Bounds Tree', () => {
 
 			new MeshBVH( geometry, { verbose: false } );
 
-		} catch ( e ) {
+		} catch {
 
 			indexErrorThrown = true;
 

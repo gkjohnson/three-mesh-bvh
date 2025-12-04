@@ -6,8 +6,8 @@ import {
 	MeshBVHHelper,
 	MeshBVH,
 } from 'three-mesh-bvh';
-import { LassoSelection, BoxSelection } from "./src/Selection.js";
-import { computeSelectedTriangles } from "./src/computeSelectedTriangles.js";
+import { LassoSelection, BoxSelection } from './src/Selection.js';
+import { computeSelectedTriangles } from './src/computeSelectedTriangles.js';
 
 const params = {
 
