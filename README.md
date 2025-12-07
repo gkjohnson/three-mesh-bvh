@@ -540,6 +540,55 @@ A generalized cast function that can be used to implement intersection logic for
 
 `intersectsTriangle` takes a triangle and the triangle index and returns whether or not the triangle has been intersected. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained (returned `CONTAINED`) in the `intersectsBoundsFunc` function.
 
+### .bvhcast
+
+```js
+bvhcast(
+	otherBvh : MeshBVH,
+	matrixToLocal : Matrix4,
+	callbacks : {
+
+		intersectsRanges : (
+			offset1 : Number,
+			count1 : Number,
+			offset2 : Number,
+			count2 : Number,
+			depth1 : Number,
+			nodeIndex1 : Number,
+			depth2 : Number,
+			nodeIndex2 : Number
+		) => Boolean = null,
+
+		intersectsTriangles : (
+			triangle1 : ExtendedTriangle,
+			triangle2 : ExtendedTriangle,
+			triangleIndex1 : Number,
+			triangleIndex2 : Number,
+			depth1 : Number,
+			nodeIndex1 : Number,
+			depth2 : Number,
+			nodeIndex2 : Number
+		) => Boolean = null
+
+	}
+
+) : Boolean
+```
+
+A generalized cast function that traverses two BVH structures simultaneously to perform intersection tests between them. This is used internally by [intersectsGeometry](#intersectsGeometry). The function returns `true` as soon as a triangle pair has been reported as intersected by the callbacks. Both BVH trees are traversed in depth-first order, alternating descent.
+
+`matrixToLocal` is a Matrix4 that transforms `otherBvh` into the local space of this BVH. The other BVH's triangles are transformed by this matrix before intersection tests.
+
+`intersectsRanges` is called when both trees have reached leaf nodes, providing triangle ranges from both BVHs. The `offset` and `count` parameters represent ranges in each BVH's triangle storage. If this function returns `true`, traversal stops immediately. If not provided, traversal continues to `intersectsTriangles`.
+
+`intersectsTriangles` is called for each pair of triangles from the two BVHs when leaf nodes are reached. Both triangles are provided as `ExtendedTriangle` objects, with `triangle2` already transformed into the local space of the first BVH. If this callback returns `true`, traversal stops immediately and the function returns `true`. If multiple triangle pairs need to be collected, return `false` and push results onto an array.
+
+The `triangleIndex1` and `triangleIndex2` parameters specify the indices of the triangles in their respective geometries. These indices are automatically resolved if either BVH was built with the `indirect` option, so they always represent the actual triangle indices in the geometry (not BVH storage indices).
+
+The `offset1`, `count1`, `offset2`, and `count2` parameters in `intersectsRanges` represent triangle ranges in the BVH storage buffers. If a BVH was built with the `indirect` option, these offsets refer to the indirect buffer indices and must be resolved using `resolveTriangleIndex` if you need the actual geometry triangle indices.
+
+*NOTE: Triangle indices provided to `intersectsTriangles` are already resolved to geometry indices, but range offsets provided to `intersectsRanges` are BVH storage indices and require manual resolution if needed.*
+
 ### .refit
 
 ```js
