@@ -536,7 +536,8 @@ A generalized cast function that can be used to implement intersection logic for
 
 `intersectsRange` takes a triangle offset and count representing the number of triangles to be iterated over. 1 triangle from this range represents 3 values in the geometry's index buffer. If this function returns true then traversal is stopped and `intersectsTriangle` is not called if provided.
 
-*NOTE The triangle range provided in `intersectsRange` is for the indirect bvh storage buffer if the option has been set so it is necessary to transform to geometry triangle indices using `resolveTriangleIndex`.*
+> [!NOTE]
+> The triangle range provided in `intersectsRange` is for the indirect bvh storage buffer if the option has been set so it is necessary to transform to geometry triangle indices using `resolveTriangleIndex`.
 
 `intersectsTriangle` takes a triangle and the triangle index and returns whether or not the triangle has been intersected. If the triangle is reported to be intersected the traversal ends and the `shapecast` function completes. If multiple triangles need to be collected or intersected return false here and push results onto an array. `contained` is set to `true` if one of the parent bounds was marked as entirely contained (returned `CONTAINED`) in the `intersectsBoundsFunc` function.
 
@@ -587,7 +588,8 @@ The `triangleIndex1` and `triangleIndex2` parameters specify the indices of the 
 
 The `offset1`, `count1`, `offset2`, and `count2` parameters in `intersectsRanges` represent triangle ranges in the BVH storage buffers. If a BVH was built with the `indirect` option, these offsets refer to the indirect buffer indices and must be resolved using `resolveTriangleIndex` if you need the actual geometry triangle indices.
 
-*NOTE: Triangle indices provided to `intersectsTriangles` are already resolved to geometry indices, but range offsets provided to `intersectsRanges` are BVH storage indices and require manual resolution if needed.*
+> [!NOTE]
+> Triangle indices provided to `intersectsTriangles` are already resolved to geometry indices, but range offsets provided to `intersectsRanges` are BVH storage indices and require manual resolution if needed.
 
 ### .refit
 
