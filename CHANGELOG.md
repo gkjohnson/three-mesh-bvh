@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.9.4] - Unreleased
 ### Added
 - Docs for bvhcast function
+- More usage of "PURE" annotations
 
 ## [0.9.3] - 2025-12-01
 ### Fixed
