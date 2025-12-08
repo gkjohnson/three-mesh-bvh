@@ -91,7 +91,7 @@ export class MeshBVH {
 		if ( ! data.version ) {
 
 			console.warn(
-				'MeshBVH: Serialization format has been changed and will be fixed up. ' +
+				'MeshBVH.deserialize: Serialization format has been changed and will be fixed up. ' +
 				'It is recommended to regenerate any stored serialized data.'
 			);
 			fixupVersion0( roots );
@@ -130,7 +130,7 @@ export class MeshBVH {
 				const uint32Array = new Uint32Array( root );
 				const uint16Array = new Uint16Array( root );
 
-				// traverse nodes and convert right child offsets
+				// iterate over nodes and convert right child offsets
 				for ( let node = 0, l = root.byteLength / BYTES_PER_NODE; node < l; node ++ ) {
 
 					const node32Index = UINT32_PER_NODE * node;

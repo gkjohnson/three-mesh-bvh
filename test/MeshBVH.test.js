@@ -291,14 +291,14 @@ describe( 'Bounds Tree', () => {
 
 		it( 'should correctly traverse the tree hierarchy when refitting after scaling', () => {
 
-			const geom = new SphereGeometry( 1, 16, 16 );
-			const bvh = new MeshBVH( geom, { maxLeafTris: 1 } );
+			const geometry = new SphereGeometry( 1, 16, 16 );
+			const bvh = new MeshBVH( geometry, { maxLeafTris: 1 } );
 
 			// get the initial bounds
 			const initialBounds = bvh.getBoundingBox( new Box3() );
 
-			// scale the
-			geom.scale( 2, 2, 2 );
+			// scale the geometry
+			geometry.scale( 2, 2, 2 );
 
 			// refit the bounds
 			bvh.refit();
