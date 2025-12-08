@@ -64,7 +64,7 @@ function init() {
 	camera.updateProjectionMatrix();
 
 	transformControls = new TransformControls( camera, renderer.domElement );
-	scene.add( transformControls );
+	scene.add( transformControls.getHelper() );
 
 	orbitControls = new OrbitControls( camera, renderer.domElement );
 
