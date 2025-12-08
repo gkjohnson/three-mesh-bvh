@@ -1,11 +1,9 @@
 import { Box3 } from 'three';
-import { CONTAINED, BYTES_PER_NODE } from '../Constants.js';
+import { CONTAINED, UINT32_PER_NODE } from '../Constants.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../../utils/PrimitivePool.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
-
-const STRIDE_32 = BYTES_PER_NODE / 4;
 
 let _box1, _box2;
 const boxStack = /* @__PURE__ */ [];
@@ -59,7 +57,7 @@ function shapecastTraverse(
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 		arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, _box1 );
-		return intersectsRangeFunc( offset, count, false, depth, nodeIndexOffset + nodeIndex32 / STRIDE_32, _box1 );
+		return intersectsRangeFunc( offset, count, false, depth, nodeIndexOffset + nodeIndex32 / UINT32_PER_NODE, _box1 );
 
 	} else {
 
@@ -107,7 +105,7 @@ function shapecastTraverse(
 		}
 
 		const isC1Leaf = IS_LEAF( c1 * 2, uint16Array );
-		const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexOffset + c1 / STRIDE_32 );
+		const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexOffset + c1 / UINT32_PER_NODE );
 
 		let c1StopTraversal;
 		if ( c1Intersection === CONTAINED ) {
@@ -116,7 +114,7 @@ function shapecastTraverse(
 			const end = getRightEndOffset( c1 );
 			const count = end - offset;
 
-			c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c1 / STRIDE_32, box1 );
+			c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c1 / UINT32_PER_NODE, box1 );
 
 		} else {
 
@@ -142,7 +140,7 @@ function shapecastTraverse(
 		arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
 		const isC2Leaf = IS_LEAF( c2 * 2, uint16Array );
-		const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexOffset + c2 / STRIDE_32 );
+		const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexOffset + c2 / UINT32_PER_NODE );
 
 		let c2StopTraversal;
 		if ( c2Intersection === CONTAINED ) {
@@ -151,7 +149,7 @@ function shapecastTraverse(
 			const end = getRightEndOffset( c2 );
 			const count = end - offset;
 
-			c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c2 / STRIDE_32, box2 );
+			c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c2 / UINT32_PER_NODE, box2 );
 
 		} else {
 

@@ -1,5 +1,5 @@
 import { BufferAttribute, Box3, FrontSide } from 'three';
-import { CENTER, IS_LEAFNODE_FLAG, SKIP_GENERATION, BYTES_PER_NODE } from './Constants.js';
+import { CENTER, IS_LEAFNODE_FLAG, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
@@ -124,28 +124,22 @@ export class MeshBVH {
 		// convert version 0 serialized data (uint32 indices) to version 1 (node indices)
 		function fixupVersion0( roots ) {
 
-			const STRIDE_32 = BYTES_PER_NODE / 4;
 			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
 
 				const root = roots[ rootIndex ];
 				const uint32Array = new Uint32Array( root );
 				const uint16Array = new Uint16Array( root );
 
-				// Traverse tree and convert right child offsets
-				for ( let offset = 0; offset < root.byteLength; offset += BYTES_PER_NODE ) {
+				// traverse nodes and convert right child offsets
+				for ( let node = 0, l = root.byteLength / BYTES_PER_NODE; node < l; node ++ ) {
 
-					const node32Index = offset / 4;
-					const node16Index = node32Index * 2;
+					const node32Index = UINT32_PER_NODE * node;
+					const node16Index = 2 * node32Index;
 					const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
-
 					if ( ! isLeaf ) {
 
-						// Old format: uint32Array[n32 + 6] = byteOffset / 4 (uint32 index)
-						// New format: uint32Array[n32 + 6] = byteOffset / BYTES_PER_NODE (node index)
-						// Conversion: nodeIndex = uint32Index / STRIDE_32
-						const oldRightUint32Index = uint32Array[ node32Index + 6 ];
-						const newRightNodeIndex = oldRightUint32Index / STRIDE_32;
-						uint32Array[ node32Index + 6 ] = newRightNodeIndex;
+						// uint32 index -> node index
+						uint32Array[ node32Index + 6 ] /= UINT32_PER_NODE;
 
 					}
 

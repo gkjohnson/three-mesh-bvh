@@ -18,6 +18,7 @@ export const TRAVERSAL_COST = 1;
 
 // Build constants
 export const BYTES_PER_NODE = 6 * 4 + 4 + 4;
+export const UINT32_PER_NODE = BYTES_PER_NODE / 4;
 export const IS_LEAFNODE_FLAG = 0xFFFF;
 
 // EPSILON for computing floating point error during build

@@ -183,20 +183,18 @@ describe( 'Serialization', () => {
 				const uint32Array = new Uint32Array( clonedRoot );
 				const uint16Array = new Uint16Array( clonedRoot );
 				const BYTES_PER_NODE = 32;
-				const STRIDE_32 = BYTES_PER_NODE / 4;
+				const UINT32_PER_NODE = BYTES_PER_NODE / 4;
 				const IS_LEAFNODE_FLAG = 0xFFFF;
 
 				// revert the node indices to uint32 offsets rather than node indices
 				for ( let node = 0, l = root.byteLength / BYTES_PER_NODE; node < l; node ++ ) {
 
-					const node32Index = STRIDE_32 * node;
+					const node32Index = UINT32_PER_NODE * node;
 					const node16Index = 2 * node32Index;
 					const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
 					if ( ! isLeaf ) {
 
-						const nodeIndex = uint32Array[ node32Index + 6 ];
-						const uint32Index = nodeIndex * STRIDE_32;
-						uint32Array[ node32Index + 6 ] = uint32Index;
+						uint32Array[ node32Index + 6 ] *= UINT32_PER_NODE;
 
 					}
 

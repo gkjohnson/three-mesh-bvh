@@ -3,9 +3,7 @@ import { BufferStack } from '../utils/BufferStack.js';
 import { BOUNDING_DATA_INDEX, COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../../utils/PrimitivePool.js';
-import { BYTES_PER_NODE } from '../Constants.js';
-
-const STRIDE_32 = BYTES_PER_NODE / 4;
+import { BYTES_PER_NODE, UINT32_PER_NODE } from '../Constants.js';
 
 const _bufferStack1 = /* @__PURE__ */ new BufferStack.constructor();
 const _bufferStack2 = /* @__PURE__ */ new BufferStack.constructor();
@@ -144,8 +142,8 @@ function _traverse(
 			result = intersectsRangesFunc(
 				OFFSET( node2Index32, uint32Array2 ), COUNT( node2Index32 * 2, uint16Array2 ),
 				OFFSET( node1Index32, uint32Array1 ), COUNT( node1Index32 * 2, uint16Array1 ),
-				depth2, node2IndexOffset + node2Index32 / STRIDE_32,
-				depth1, node1IndexOffset + node1Index32 / STRIDE_32,
+				depth2, node2IndexOffset + node2Index32 / UINT32_PER_NODE,
+				depth1, node1IndexOffset + node1Index32 / UINT32_PER_NODE,
 			);
 
 		} else {
@@ -153,8 +151,8 @@ function _traverse(
 			result = intersectsRangesFunc(
 				OFFSET( node1Index32, uint32Array1 ), COUNT( node1Index32 * 2, uint16Array1 ),
 				OFFSET( node2Index32, uint32Array2 ), COUNT( node2Index32 * 2, uint16Array2 ),
-				depth1, node1IndexOffset + node1Index32 / STRIDE_32,
-				depth2, node2IndexOffset + node2Index32 / STRIDE_32,
+				depth1, node1IndexOffset + node1Index32 / UINT32_PER_NODE,
+				depth2, node2IndexOffset + node2Index32 / UINT32_PER_NODE,
 			);
 
 		}
