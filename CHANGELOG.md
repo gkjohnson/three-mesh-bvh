@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.9.4] - Unreleased
 ### Added
-- Docs for bvhcast function
-- More usage of "PURE" annotations
+- Docs for bvhcast function.
+- More usage of "PURE" annotations.
+- Added "version" field to serialized data.
+
+### Changed
+- Changed the internal storage of child indices from uint32 offsets to node indices. Old serialized data will continue to work via a "fixup" step.
 
 ## [0.9.3] - 2025-12-01
 ### Fixed
