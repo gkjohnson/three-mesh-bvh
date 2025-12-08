@@ -1,11 +1,12 @@
 import { BufferAttribute, Box3, FrontSide } from 'three';
-import { CENTER, BYTES_PER_NODE, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
+import { CENTER, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
+import { LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -191,10 +192,9 @@ export class MeshBVH {
 
 			} else {
 
-				// TODO: use node functions here
-				const left = node32Index + BYTES_PER_NODE / 4;
-				const right = uint32Array[ node32Index + 6 ];
-				const splitAxis = uint32Array[ node32Index + 7 ];
+				const left = LEFT_NODE( node32Index );
+				const right = RIGHT_NODE( node32Index, uint32Array );
+				const splitAxis = SPLIT_AXIS( node32Index, uint32Array );
 				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
 
 				if ( ! stopTraversal ) {

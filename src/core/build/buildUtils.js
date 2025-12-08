@@ -57,8 +57,7 @@ function _populateBuffer( byteOffset, node ) {
 				const offset2 = offset / 2;
 				if ( ! IS_LEAF( offset2, uint16Array ) ) {
 
-					uint32Array[ ( offset / 4 ) + 6 ] += stride4Offset;
-
+					uint32Array[ ( offset / 4 ) + 6 ] += stride4Offset / ( BYTES_PER_NODE / 4 );
 
 				}
 
@@ -86,13 +85,13 @@ function _populateBuffer( byteOffset, node ) {
 		let nextUnusedPointer;
 		nextUnusedPointer = _populateBuffer( byteOffset + BYTES_PER_NODE, left );
 
-		if ( ( nextUnusedPointer / 4 ) > MAX_POINTER ) {
+		if ( ( nextUnusedPointer / BYTES_PER_NODE ) > MAX_POINTER ) {
 
-			throw new Error( 'MeshBVH: Cannot store child pointer greater than 32 bits.' );
+			throw new Error( 'MeshBVH: Cannot store child node index greater than 32 bits.' );
 
 		}
 
-		uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
+		uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / BYTES_PER_NODE;
 		nextUnusedPointer = _populateBuffer( nextUnusedPointer, right );
 
 		uint32Array[ stride4Offset + 7 ] = splitAxis;
