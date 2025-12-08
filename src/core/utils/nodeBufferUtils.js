@@ -1,8 +1,8 @@
-import { UINT32_PER_NODE } from '../Constants.js';
+import { IS_LEAFNODE_FLAG, UINT32_PER_NODE } from '../Constants.js';
 
 export function IS_LEAF( n16, uint16Array ) {
 
-	return uint16Array[ n16 + 15 ] === 0xFFFF;
+	return uint16Array[ n16 + 15 ] === IS_LEAFNODE_FLAG;
 
 }
 

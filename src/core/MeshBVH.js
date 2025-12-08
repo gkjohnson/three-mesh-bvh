@@ -1,12 +1,12 @@
 import { BufferAttribute, Box3, FrontSide } from 'three';
-import { CENTER, IS_LEAFNODE_FLAG, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
+import { CENTER, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -135,8 +135,7 @@ export class MeshBVH {
 
 					const node32Index = UINT32_PER_NODE * node;
 					const node16Index = 2 * node32Index;
-					const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
-					if ( ! isLeaf ) {
+					if ( ! IS_LEAF( node16Index, uint16Array ) ) {
 
 						// uint32 index -> node index
 						uint32Array[ node32Index + 6 ] /= UINT32_PER_NODE;
@@ -225,7 +224,7 @@ export class MeshBVH {
 		function _traverse( node32Index, depth = 0 ) {
 
 			const node16Index = node32Index * 2;
-			const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
+			const isLeaf = IS_LEAF( node16Index, uint16Array );
 			if ( isLeaf ) {
 
 				const offset = uint32Array[ node32Index + 6 ];
