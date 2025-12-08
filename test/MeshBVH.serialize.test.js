@@ -161,4 +161,60 @@ describe( 'Serialization', () => {
 
 	} );
 
+	describe( 'backwards compatibility', () => {
+
+		it( 'should deserialize version 0 data (old byte offset format) correctly', () => {
+
+			// create a serialized version of the file
+			const geometry = new SphereGeometry( 1, 16, 16 );
+			const bvh = new MeshBVH( geometry, { maxLeafTris: 5 } );
+			const serialized = MeshBVH.serialize( bvh );
+
+			// construct an old version of the json
+			const oldSerialized = { ...serialized };
+
+			// 1. remove the version field
+			delete oldSerialized.version;
+
+			// 2. Converting node indices back to uint32 indices
+			oldSerialized.roots = serialized.roots.map( root => {
+
+				const clonedRoot = root.slice();
+				const uint32Array = new Uint32Array( clonedRoot );
+				const uint16Array = new Uint16Array( clonedRoot );
+				const BYTES_PER_NODE = 32;
+				const STRIDE_32 = BYTES_PER_NODE / 4;
+				const IS_LEAFNODE_FLAG = 0xFFFF;
+
+				// revert the node indices to uint32 offsets rather than node indices
+				for ( let node = 0, l = root.byteLength / BYTES_PER_NODE; node < l; node ++ ) {
+
+					const node32Index = STRIDE_32 * node;
+					const node16Index = 2 * node32Index;
+					const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
+					if ( ! isLeaf ) {
+
+						const nodeIndex = uint32Array[ node32Index + 6 ];
+						const uint32Index = nodeIndex * STRIDE_32;
+						uint32Array[ node32Index + 6 ] = uint32Index;
+
+					}
+
+				}
+
+				return clonedRoot;
+
+			} );
+
+			// deserialize the old data to compare the structure
+			const deserializedBVH = MeshBVH.deserialize( oldSerialized, geometry.clone() );
+			expect( deserializedBVH ).toEqualBVH( bvh );
+
+			// compare the serialized variants
+			expect( MeshBVH.serialize( deserializedBVH ) ).toEqual( serialized );
+
+		} );
+
+	} );
+
 } );

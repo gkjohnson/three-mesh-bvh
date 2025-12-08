@@ -52,22 +52,23 @@ export class MeshBVH {
 		const rootData = bvh._roots;
 		const indirectBuffer = bvh._indirectBuffer;
 		const indexAttribute = geometry.getIndex();
-		let result;
+		const result = {
+			version: 1,
+			roots: null,
+			index: null,
+			indirectBuffer: null,
+		};
 		if ( options.cloneBuffers ) {
 
-			result = {
-				roots: rootData.map( root => root.slice() ),
-				index: indexAttribute ? indexAttribute.array.slice() : null,
-				indirectBuffer: indirectBuffer ? indirectBuffer.slice() : null,
-			};
+			result.roots = rootData.map( root => root.slice() );
+			result.index = indexAttribute ? indexAttribute.array.slice() : null;
+			result.indirectBuffer = indirectBuffer ? indirectBuffer.slice() : null;
 
 		} else {
 
-			result = {
-				roots: rootData,
-				index: indexAttribute ? indexAttribute.array : null,
-				indirectBuffer: indirectBuffer,
-			};
+			result.roots = rootData;
+			result.index = indexAttribute ? indexAttribute.array : null;
+			result.indirectBuffer = indirectBuffer;
 
 		}
 
@@ -84,6 +85,19 @@ export class MeshBVH {
 		};
 
 		const { index, roots, indirectBuffer } = data;
+
+		// handle backwards compatibility by fixing up the buffer roots
+		// see issue gkjohnson/three-mesh-bvh#759
+		if ( ! data.version ) {
+
+			console.warn(
+				'MeshBVH: Serialization format has been changed and will be fixed up. ' +
+				'It is recommended to regenerate any stored serialized data.'
+			);
+			fixupVersion0( roots );
+
+		}
+
 		const bvh = new MeshBVH( geometry, { ...options, [ SKIP_GENERATION ]: true } );
 		bvh._roots = roots;
 		bvh._indirectBuffer = indirectBuffer || null;
@@ -106,6 +120,40 @@ export class MeshBVH {
 		}
 
 		return bvh;
+
+		// convert version 0 serialized data (uint32 indices) to version 1 (node indices)
+		function fixupVersion0( roots ) {
+
+			const STRIDE_32 = BYTES_PER_NODE / 4;
+			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
+
+				const root = roots[ rootIndex ];
+				const uint32Array = new Uint32Array( root );
+				const uint16Array = new Uint16Array( root );
+
+				// Traverse tree and convert right child offsets
+				for ( let offset = 0; offset < root.byteLength; offset += BYTES_PER_NODE ) {
+
+					const node32Index = offset / 4;
+					const node16Index = node32Index * 2;
+					const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
+
+					if ( ! isLeaf ) {
+
+						// Old format: uint32Array[n32 + 6] = byteOffset / 4 (uint32 index)
+						// New format: uint32Array[n32 + 6] = byteOffset / BYTES_PER_NODE (node index)
+						// Conversion: nodeIndex = uint32Index / STRIDE_32
+						const oldRightUint32Index = uint32Array[ node32Index + 6 ];
+						const newRightNodeIndex = oldRightUint32Index / STRIDE_32;
+						uint32Array[ node32Index + 6 ] = newRightNodeIndex;
+
+					}
+
+				}
+
+			}
+
+		}
 
 	}
 
