@@ -1,4 +1,4 @@
-import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
+import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, UINT32_PER_NODE } from '../Constants.js';
 import { IS_LEAF } from '../utils/nodeBufferUtils.js';
 
 let float32Array, uint32Array, uint16Array, uint8Array;
@@ -35,13 +35,13 @@ export function populateBuffer( byteOffset, node, buffer ) {
 // splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
 function _populateBuffer( byteOffset, node ) {
 
-	const stride4Offset = byteOffset / 4;
-	const stride2Offset = byteOffset / 2;
+	const node32Index = byteOffset / 4;
+	const node16Index = byteOffset / 2;
 	const isLeaf = 'count' in node;
 	const boundingData = node.boundingData;
 	for ( let i = 0; i < 6; i ++ ) {
 
-		float32Array[ stride4Offset + i ] = boundingData[ i ];
+		float32Array[ node32Index + i ] = boundingData[ i ];
 
 	}
 
@@ -49,16 +49,21 @@ function _populateBuffer( byteOffset, node ) {
 
 		if ( node.buffer ) {
 
+			// code path for workers that generate subtrees separately
 			const buffer = node.buffer;
+
+			// copy all data over to the compose buffer
 			uint8Array.set( new Uint8Array( buffer ), byteOffset );
 
-			for ( let offset = byteOffset, l = byteOffset + buffer.byteLength; offset < l; offset += BYTES_PER_NODE ) {
+			// iterate over all nodes and fix-up the offsets
+			const nodeCount = buffer.byteLength / BYTES_PER_NODE;
+			for ( let i = 0; i < nodeCount; i ++ ) {
 
-				const offset2 = offset / 2;
-				if ( ! IS_LEAF( offset2, uint16Array ) ) {
+				const childNode32Index = node32Index + i * UINT32_PER_NODE;
+				const childNode16Index = childNode32Index * 2;
+				if ( ! IS_LEAF( childNode16Index, uint16Array ) ) {
 
-					uint32Array[ ( offset / 4 ) + 6 ] += stride4Offset;
-
+					uint32Array[ childNode32Index + 6 ] += node32Index / UINT32_PER_NODE;
 
 				}
 
@@ -68,35 +73,35 @@ function _populateBuffer( byteOffset, node ) {
 
 		} else {
 
-			const offset = node.offset;
-			const count = node.count;
-			uint32Array[ stride4Offset + 6 ] = offset;
-			uint16Array[ stride2Offset + 14 ] = count;
-			uint16Array[ stride2Offset + 15 ] = IS_LEAFNODE_FLAG;
+			uint32Array[ node32Index + 6 ] = node.offset;
+			uint16Array[ node16Index + 14 ] = node.count;
+			uint16Array[ node16Index + 15 ] = IS_LEAFNODE_FLAG;
 			return byteOffset + BYTES_PER_NODE;
 
 		}
 
 	} else {
 
-		const left = node.left;
-		const right = node.right;
-		const splitAxis = node.splitAxis;
+		const { left, right, splitAxis } = node;
 
-		let nextUnusedPointer;
-		nextUnusedPointer = _populateBuffer( byteOffset + BYTES_PER_NODE, left );
+		// fill in the left node contents
+		const leftByteOffset = byteOffset + BYTES_PER_NODE;
+		let rightByteOffset = _populateBuffer( leftByteOffset, left );
 
-		if ( ( nextUnusedPointer / 4 ) > MAX_POINTER ) {
+		// check if the right node value is too high
+		const rightNodeIndex = rightByteOffset / BYTES_PER_NODE;
+		if ( rightNodeIndex > MAX_POINTER ) {
 
-			throw new Error( 'MeshBVH: Cannot store child pointer greater than 32 bits.' );
+			throw new Error( 'MeshBVH: Cannot store child node index greater than 32 bits.' );
 
 		}
 
-		uint32Array[ stride4Offset + 6 ] = nextUnusedPointer / 4;
-		nextUnusedPointer = _populateBuffer( nextUnusedPointer, right );
+		// fill in the right node contents
+		uint32Array[ node32Index + 6 ] = rightNodeIndex;
+		uint32Array[ node32Index + 7 ] = splitAxis;
 
-		uint32Array[ stride4Offset + 7 ] = splitAxis;
-		return nextUnusedPointer;
+		// return the next available buffer pointer
+		return _populateBuffer( rightByteOffset, right );
 
 	}
 

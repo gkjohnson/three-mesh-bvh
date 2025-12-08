@@ -16,7 +16,6 @@ import {
 	BOUNDING_DATA_INDEX,
 	COUNT,
 	IS_LEAF,
-	RIGHT_NODE,
 	OFFSET,
 	SPLIT_AXIS,
 } from '../core/utils/nodeBufferUtils.js';
@@ -154,11 +153,11 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 
 		} else {
 
-			const rightIndex = 4 * RIGHT_NODE( nodeIndex32, uint32Array ) / BYTES_PER_NODE;
+			const rightNodeIndex = uint32Array[ nodeIndex32 + 6 ];
 			const splitAxis = SPLIT_AXIS( nodeIndex32, uint32Array );
 
 			contentsArray[ i * 2 + 0 ] = splitAxis;
-			contentsArray[ i * 2 + 1 ] = rightIndex;
+			contentsArray[ i * 2 + 1 ] = rightNodeIndex;
 
 		}
 

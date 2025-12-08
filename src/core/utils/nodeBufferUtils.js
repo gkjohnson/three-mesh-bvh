@@ -1,6 +1,8 @@
+import { IS_LEAFNODE_FLAG, UINT32_PER_NODE } from '../Constants.js';
+
 export function IS_LEAF( n16, uint16Array ) {
 
-	return uint16Array[ n16 + 15 ] === 0xFFFF;
+	return uint16Array[ n16 + 15 ] === IS_LEAFNODE_FLAG;
 
 }
 
@@ -16,15 +18,18 @@ export function COUNT( n16, uint16Array ) {
 
 }
 
+// Returns the uint32-aligned offset of the left child node for performance
 export function LEFT_NODE( n32 ) {
 
-	return n32 + 8;
+	return n32 + UINT32_PER_NODE;
 
 }
 
+// Returns the uint32-aligned offset of the right child node for performance
 export function RIGHT_NODE( n32, uint32Array ) {
 
-	return uint32Array[ n32 + 6 ];
+	// stored value is node index, convert to uint32 index
+	return uint32Array[ n32 + 6 ] * UINT32_PER_NODE;
 
 }
 

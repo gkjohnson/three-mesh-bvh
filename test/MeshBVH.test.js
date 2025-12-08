@@ -289,6 +289,37 @@ describe( 'Bounds Tree', () => {
 
 		} );
 
+		it( 'should correctly traverse the tree hierarchy when refitting after scaling', () => {
+
+			const geometry = new SphereGeometry( 1, 16, 16 );
+			const bvh = new MeshBVH( geometry, { maxLeafTris: 1 } );
+
+			// get the initial bounds
+			const initialBounds = bvh.getBoundingBox( new Box3() );
+
+			// scale the geometry
+			geometry.scale( 2, 2, 2 );
+
+			// refit the bounds
+			bvh.refit();
+
+			// ensure the sizes match
+			const refitBounds = bvh.getBoundingBox( new Box3() );
+			const expectedMin = initialBounds.min.clone().multiplyScalar( 2 );
+			const expectedMax = initialBounds.max.clone().multiplyScalar( 2 );
+
+			expect( refitBounds.min.x ).toBeCloseTo( expectedMin.x );
+			expect( refitBounds.min.y ).toBeCloseTo( expectedMin.y );
+			expect( refitBounds.min.z ).toBeCloseTo( expectedMin.z );
+
+			expect( refitBounds.max.x ).toBeCloseTo( expectedMax.x );
+			expect( refitBounds.max.y ).toBeCloseTo( expectedMax.y );
+			expect( refitBounds.max.z ).toBeCloseTo( expectedMax.z );
+
+			expect( validateBounds( bvh ) ).toBe( true );
+
+		} );
+
 	} );
 
 } );

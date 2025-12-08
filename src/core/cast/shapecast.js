@@ -1,5 +1,5 @@
 import { Box3 } from 'three';
-import { CONTAINED } from '../Constants.js';
+import { CONTAINED, UINT32_PER_NODE } from '../Constants.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
 import { PrimitivePool } from '../../utils/PrimitivePool.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
@@ -9,7 +9,7 @@ let _box1, _box2;
 const boxStack = /* @__PURE__ */ [];
 const boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
 
-export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset ) {
+export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset ) {
 
 	// setup
 	_box1 = boxPool.getPrimitive();
@@ -17,7 +17,7 @@ export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsT
 	boxStack.push( _box1, _box2 );
 	BufferStack.setBuffer( bvh._roots[ root ] );
 
-	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
+	const result = shapecastTraverse( 0, bvh.geometry, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
 
 	// cleanup
 	BufferStack.clearBuffer();
@@ -44,7 +44,7 @@ function shapecastTraverse(
 	intersectsBoundsFunc,
 	intersectsRangeFunc,
 	nodeScoreFunc = null,
-	nodeIndexByteOffset = 0, // offset for unique node identifier
+	nodeIndexOffset = 0, // offset for unique node identifier
 	depth = 0
 ) {
 
@@ -57,7 +57,7 @@ function shapecastTraverse(
 		const offset = OFFSET( nodeIndex32, uint32Array );
 		const count = COUNT( nodeIndex16, uint16Array );
 		arrayToBox( BOUNDING_DATA_INDEX( nodeIndex32 ), float32Array, _box1 );
-		return intersectsRangeFunc( offset, count, false, depth, nodeIndexByteOffset + nodeIndex32, _box1 );
+		return intersectsRangeFunc( offset, count, false, depth, nodeIndexOffset + nodeIndex32 / UINT32_PER_NODE, _box1 );
 
 	} else {
 
@@ -105,7 +105,7 @@ function shapecastTraverse(
 		}
 
 		const isC1Leaf = IS_LEAF( c1 * 2, uint16Array );
-		const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexByteOffset + c1 );
+		const c1Intersection = intersectsBoundsFunc( box1, isC1Leaf, score1, depth + 1, nodeIndexOffset + c1 / UINT32_PER_NODE );
 
 		let c1StopTraversal;
 		if ( c1Intersection === CONTAINED ) {
@@ -114,7 +114,7 @@ function shapecastTraverse(
 			const end = getRightEndOffset( c1 );
 			const count = end - offset;
 
-			c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c1, box1 );
+			c1StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c1 / UINT32_PER_NODE, box1 );
 
 		} else {
 
@@ -126,7 +126,7 @@ function shapecastTraverse(
 					intersectsBoundsFunc,
 					intersectsRangeFunc,
 					nodeScoreFunc,
-					nodeIndexByteOffset,
+					nodeIndexOffset,
 					depth + 1
 				);
 
@@ -140,7 +140,7 @@ function shapecastTraverse(
 		arrayToBox( BOUNDING_DATA_INDEX( c2 ), float32Array, box2 );
 
 		const isC2Leaf = IS_LEAF( c2 * 2, uint16Array );
-		const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexByteOffset + c2 );
+		const c2Intersection = intersectsBoundsFunc( box2, isC2Leaf, score2, depth + 1, nodeIndexOffset + c2 / UINT32_PER_NODE );
 
 		let c2StopTraversal;
 		if ( c2Intersection === CONTAINED ) {
@@ -149,7 +149,7 @@ function shapecastTraverse(
 			const end = getRightEndOffset( c2 );
 			const count = end - offset;
 
-			c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexByteOffset + c2, box2 );
+			c2StopTraversal = intersectsRangeFunc( offset, count, true, depth + 1, nodeIndexOffset + c2 / UINT32_PER_NODE, box2 );
 
 		} else {
 
@@ -161,7 +161,7 @@ function shapecastTraverse(
 					intersectsBoundsFunc,
 					intersectsRangeFunc,
 					nodeScoreFunc,
-					nodeIndexByteOffset,
+					nodeIndexOffset,
 					depth + 1
 				);
 
