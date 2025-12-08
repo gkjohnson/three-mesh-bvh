@@ -6,7 +6,7 @@ import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -205,6 +205,31 @@ export class MeshBVH {
 		}
 
 		this.resolveTriangleIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
+
+	}
+
+	applyTriangleIndexOffset( offset ) {
+
+		const roots = this._roots;
+		for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
+
+			const root = roots[ rootIndex ];
+			const uint32Array = new Uint32Array( root );
+			const uint16Array = new Uint16Array( root );
+			const totalNodes = root.byteLength / BYTES_PER_NODE;
+			for ( let node = 0; node < totalNodes; node ++ ) {
+
+				const node32Index = UINT32_PER_NODE * node;
+				const node16Index = 2 * node32Index;
+				if ( IS_LEAF( node16Index, uint16Array ) ) {
+
+					uint32Array[ node32Index + 6 ] += offset;
+
+				}
+
+			}
+
+		}
 
 	}
 
