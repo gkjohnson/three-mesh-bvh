@@ -1,4 +1,5 @@
 import { IS_LEAFNODE_FLAG } from '../Constants.js';
+import { LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 
 export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
@@ -121,8 +122,8 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 		} else {
 
-			const left = node32Index + 8;
-			const right = uint32Array[ node32Index + 6 ];
+			const left = LEFT_NODE( node32Index );
+			const right = RIGHT_NODE( node32Index, uint32Array );
 
 			// the identifying node indices provided by the shapecast function include offsets of all
 			// root buffers to guarantee they're unique between roots so offset left and right indices here.

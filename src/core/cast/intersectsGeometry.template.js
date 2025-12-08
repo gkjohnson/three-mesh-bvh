@@ -4,7 +4,7 @@ import { OrientedBox } from '../../math/OrientedBox.js';
 import { ExtendedTriangle } from '../../math/ExtendedTriangle.js';
 import { setTriangle } from '../../utils/TriangleUtilities.js';
 import { arrayToBox } from '../../utils/ArrayBoxUtilities.js';
-import { COUNT, OFFSET, IS_LEAF, BOUNDING_DATA_INDEX } from '../utils/nodeBufferUtils.js';
+import { COUNT, OFFSET, IS_LEAF, BOUNDING_DATA_INDEX, LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 import { getTriCount } from '../build/geometryUtils.js';
 
@@ -175,8 +175,8 @@ function _intersectsGeometry( nodeIndex32, bvh, otherGeometry, geometryToBvh, ca
 
 	} else {
 
-		const left = nodeIndex32 + 8;
-		const right = uint32Array[ nodeIndex32 + 6 ];
+		const left = LEFT_NODE( nodeIndex32 );
+		const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 		arrayToBox( BOUNDING_DATA_INDEX( left ), float32Array, boundingBox );
 		const leftIntersection =
