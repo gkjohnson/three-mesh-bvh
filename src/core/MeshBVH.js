@@ -1,5 +1,5 @@
 import { BufferAttribute, Box3, FrontSide } from 'three';
-import { CENTER, IS_LEAFNODE_FLAG, SKIP_GENERATION } from './Constants.js';
+import { CENTER, IS_LEAFNODE_FLAG, SKIP_GENERATION, BYTES_PER_NODE } from './Constants.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
@@ -319,12 +319,12 @@ export class MeshBVH {
 
 		// run shapecast
 		let result = false;
-		let byteOffset = 0;
+		let nodeOffset = 0;
 		const roots = this._roots;
 		for ( let i = 0, l = roots.length; i < l; i ++ ) {
 
 			const root = roots[ i ];
-			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, byteOffset );
+			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
 
 			if ( result ) {
 
@@ -332,7 +332,7 @@ export class MeshBVH {
 
 			}
 
-			byteOffset += root.byteLength;
+			nodeOffset += root.byteLength / BYTES_PER_NODE;
 
 		}
 
