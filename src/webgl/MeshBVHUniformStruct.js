@@ -16,7 +16,6 @@ import {
 	BOUNDING_DATA_INDEX,
 	COUNT,
 	IS_LEAF,
-	RIGHT_NODE,
 	OFFSET,
 	SPLIT_AXIS,
 } from '../core/utils/nodeBufferUtils.js';
