@@ -1,5 +1,4 @@
-import { IS_LEAFNODE_FLAG } from '../Constants.js';
-import { LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 
 export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
@@ -31,8 +30,7 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 	function _traverse( node32Index, byteOffset, force = false ) {
 
 		const node16Index = node32Index * 2;
-		const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
-		if ( isLeaf ) {
+		if ( IS_LEAF( node16Index, uint16Array ) ) {
 
 			const offset = uint32Array[ node32Index + 6 ];
 			const count = uint16Array[ node16Index + 14 ];
