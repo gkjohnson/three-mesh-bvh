@@ -183,6 +183,26 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should handle geometry groups with count set to Infinity', () => {
+
+		const geo = new TorusGeometry( 5, 5, 400, 100 );
+		geo.addGroup( 0, Infinity, 0 );
+
+		const bvh = new MeshBVH( geo );
+		expect( validateBounds( bvh ) ).toBe( true );
+
+	} );
+
+	it( 'should handle geometry groups with count set to Infinity in indirect mode', () => {
+
+		const geo = new TorusGeometry( 5, 5, 400, 100 );
+		geo.addGroup( 0, Infinity, 0 );
+
+		const bvh = new MeshBVH( geo, { indirect: true } );
+		expect( validateBounds( bvh ) ).toBe( true );
+
+	} );
+
 	it( 'should create a correctly sized and typed index if one does not exist', () => {
 
 		const geom = new BufferGeometry();

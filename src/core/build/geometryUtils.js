@@ -89,11 +89,15 @@ export function getRootIndexRanges( geo, range ) {
 	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
 
 	// Create events for group boundaries
+	const triCount = getTriCount( geo );
 	const events = [];
 	for ( const group of geo.groups ) {
 
-		const groupStart = group.start / 3;
-		const groupEnd = ( group.start + group.count ) / 3;
+		// Account for cases where group size is set to Infinity
+		const { start, count } = group;
+		const groupStart = start / 3;
+		const groupCount = isFinite( count ) ? count : ( triCount * 3 - start );
+		const groupEnd = ( start + groupCount ) / 3;
 
 		// Only add events if the group intersects with the draw range
 		if ( groupStart < drawRangeEnd && groupEnd > drawRangeStart ) {
