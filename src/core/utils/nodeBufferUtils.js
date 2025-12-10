@@ -28,8 +28,9 @@ export function LEFT_NODE( n32 ) {
 // Returns the uint32-aligned offset of the right child node for performance
 export function RIGHT_NODE( n32, uint32Array ) {
 
-	// stored value is node index, convert to uint32 index
-	return uint32Array[ n32 + 6 ] * UINT32_PER_NODE;
+	// stored value is relative offset from parent, convert to absolute uint32 index
+	const relativeOffset = uint32Array[ n32 + 6 ];
+	return n32 + relativeOffset * UINT32_PER_NODE;
 
 }
 

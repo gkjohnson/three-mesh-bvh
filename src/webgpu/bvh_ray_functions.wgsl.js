@@ -152,7 +152,7 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 				let leftIndex = currNodeIndex + 1u;
 				let splitAxis = boundsInfox & 0x0000ffffu;
-				let rightIndex = boundsInfoy;
+				let rightIndex = currNodeIndex + boundsInfoy;
 
 				let leftToRight = ray.direction[splitAxis] >= 0.0;
 				let c1 = select( rightIndex, leftIndex, leftToRight );

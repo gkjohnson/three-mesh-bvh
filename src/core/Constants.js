@@ -21,6 +21,9 @@ export const BYTES_PER_NODE = 6 * 4 + 4 + 4;
 export const UINT32_PER_NODE = BYTES_PER_NODE / 4;
 export const IS_LEAFNODE_FLAG = 0xFFFF;
 
+// Bit masks for 32 bit node data
+export const LEAFNODE_MASK_32 = IS_LEAFNODE_FLAG << 16;
+
 // EPSILON for computing floating point error during build
 // https://en.wikipedia.org/wiki/Machine_epsilon#Values_for_standard_hardware_floating_point_arithmetics
 export const FLOAT32_EPSILON = Math.pow( 2, - 24 );
