@@ -136,10 +136,10 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 				// then we assume that all children need to be updated.
 				if ( ! forceChildren ) {
 
-					const offsetLeft = left / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
-					const offsetRight = right / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
-					includesLeft = nodeIndices.has( offsetLeft );
-					includesRight = nodeIndices.has( offsetRight );
+					const leftNodeId = left / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					const rightNodeId = right / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					includesLeft = nodeIndices.has( leftNodeId );
+					includesRight = nodeIndices.has( rightNodeId );
 					forceChildren = ! includesLeft && ! includesRight;
 
 				}
@@ -173,12 +173,12 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 				for ( let i = 0; i < 3; i ++ ) {
 
-					const lefti = left + i;
-					const righti = right + i;
-					const minLeftValue = float32Array[ lefti ];
-					const maxLeftValue = float32Array[ lefti + 3 ];
-					const minRightValue = float32Array[ righti ];
-					const maxRightValue = float32Array[ righti + 3 ];
+					const left_i = left + i;
+					const right_i = right + i;
+					const minLeftValue = float32Array[ left_i ];
+					const maxLeftValue = float32Array[ left_i + 3 ];
+					const minRightValue = float32Array[ right_i ];
+					const maxRightValue = float32Array[ right_i + 3 ];
 
 					float32Array[ nodeIndex32 + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
 					float32Array[ nodeIndex32 + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
