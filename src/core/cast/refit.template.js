@@ -1,3 +1,4 @@
+import { BYTES_PER_NODE, UINT32_PER_NODE } from '../Constants.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 
 export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
@@ -125,8 +126,6 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 			// the identifying node indices provided by the shapecast function include offsets of all
 			// root buffers to guarantee they're unique between roots so offset left and right indices here.
-			const offsetLeft = left + byteOffset;
-			const offsetRight = right + byteOffset;
 			let forceChildren = force;
 			let includesLeft = false;
 			let includesRight = false;
@@ -137,6 +136,8 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 				// then we assume that all children need to be updated.
 				if ( ! forceChildren ) {
 
+					const offsetLeft = left / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					const offsetRight = right / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
 					includesLeft = nodeIndices.has( offsetLeft );
 					includesRight = nodeIndices.has( offsetRight );
 					forceChildren = ! includesLeft && ! includesRight;
