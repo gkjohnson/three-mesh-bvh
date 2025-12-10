@@ -39,14 +39,24 @@ describe( 'Workers', () => {
 
 			} catch ( e ) {
 
-				error = e.message;
+				return {
+					error: e.message,
+					bvh: null,
+					workerBvh: null,
+				};
 
 			}
 
+			const serializedBvh = MeshBVH.serialize( bvh );
+			const serializedWorkerBvh = MeshBVH.serialize( workerBvh );
+
+			serializedBvh.roots = serializedBvh.roots.map( ab => new Uint8Array( ab ) );
+			serializedWorkerBvh.roots = serializedWorkerBvh.roots.map( ab => new Uint8Array( ab ) );
+
 			return {
 				error,
-				bvh: bvh && MeshBVH.serialize( bvh ),
-				workerBvh: workerBvh && MeshBVH.serialize( workerBvh ),
+				bvh: serializedBvh,
+				workerBvh: serializedWorkerBvh,
 			};
 
 		}, options );

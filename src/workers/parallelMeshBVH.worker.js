@@ -185,6 +185,7 @@ self.onmessage = async ( { data } ) => {
 		self.postMessage( {
 			error: null,
 			serialized: {
+				version: 1,
 				roots: packedRoots,
 				index: index,
 				indirectBuffer: indirectBuffer,
