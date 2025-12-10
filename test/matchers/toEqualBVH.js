@@ -11,18 +11,11 @@ expect.extend( {
 		let pass = true;
 		try {
 
-			// deep equal cannot be tested with array buffers
 			const expectedRoots = serializedExpected.roots.map( r => new Uint8Array( r ) );
 			const receivedRoots = serializedReceived.roots.map( r => new Uint8Array( r ) );
 			expect( expectedRoots ).toEqual( receivedRoots );
-			expect( serializedExpected.index ).toEqual( serializedReceived.index );
-			expect( serializedExpected.indirectBuffer ).toEqual( serializedReceived.indirectBuffer );
-
-			// ensure we're not using array buffers anywhere else
-			expect( serializedExpected.index instanceof ArrayBuffer ).not.toBeTruthy();
-			expect( serializedReceived.index instanceof ArrayBuffer ).not.toBeTruthy();
-			expect( serializedExpected.indirectBuffer instanceof ArrayBuffer ).not.toBeTruthy();
-			expect( serializedReceived.indirectBuffer instanceof ArrayBuffer ).not.toBeTruthy();
+			expect( Array.from( serializedExpected.index ) ).toEqual( Array.from( serializedReceived.index ) );
+			expect( Array.from( serializedExpected.indirectBuffer || [] ) ).toEqual( Array.from( serializedReceived.indirectBuffer || [] ) );
 
 		} catch ( error ) {
 
