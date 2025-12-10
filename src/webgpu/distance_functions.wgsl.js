@@ -175,11 +175,11 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 			let boundsInfox = node.splitAxisOrTriangleCount;
 			let boundsInfoy = node.rightChildOrTriangleOffset;
 
-			let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
+			let isLeaf = ( boundsInfox & LEAFNODE_MASK ) != 0u;
 
 			if ( isLeaf ) {
 
-				let count = boundsInfox & 0x0000ffffu;
+				let count = boundsInfox & COUNT_MASK;
 				let offset = boundsInfoy;
 				distanceToTriangles(
 					bvh_index, bvh_position,

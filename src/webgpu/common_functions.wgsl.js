@@ -5,6 +5,8 @@ export const constants = wgsl( /* wgsl */`
 	const BVH_STACK_DEPTH = 60u;
 	const INFINITY = 1e20;
 	const TRI_INTERSECT_EPSILON = 1e-5;
+	const LEAFNODE_MASK = 0x80000000u;
+	const COUNT_MASK = 0x0000ffffu;
 
 ` );
 
