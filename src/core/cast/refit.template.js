@@ -28,13 +28,13 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 	}
 
-	function _traverse( node32Index, byteOffset, force = false ) {
+	function _traverse( nodeIndex32, byteOffset, force = false ) {
 
-		const node16Index = node32Index * 2;
-		if ( IS_LEAF( node16Index, uint16Array ) ) {
+		const nodeIndex16 = nodeIndex32 * 2;
+		if ( IS_LEAF( nodeIndex16, uint16Array ) ) {
 
-			const offset = uint32Array[ node32Index + 6 ];
-			const count = uint16Array[ node16Index + 14 ];
+			const offset = uint32Array[ nodeIndex32 + 6 ];
+			const count = uint16Array[ nodeIndex16 + 14 ];
 
 			let minx = Infinity;
 			let miny = Infinity;
@@ -94,22 +94,22 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 			/* @endif */
 
 			if (
-				float32Array[ node32Index + 0 ] !== minx ||
-				float32Array[ node32Index + 1 ] !== miny ||
-				float32Array[ node32Index + 2 ] !== minz ||
+				float32Array[ nodeIndex32 + 0 ] !== minx ||
+				float32Array[ nodeIndex32 + 1 ] !== miny ||
+				float32Array[ nodeIndex32 + 2 ] !== minz ||
 
-				float32Array[ node32Index + 3 ] !== maxx ||
-				float32Array[ node32Index + 4 ] !== maxy ||
-				float32Array[ node32Index + 5 ] !== maxz
+				float32Array[ nodeIndex32 + 3 ] !== maxx ||
+				float32Array[ nodeIndex32 + 4 ] !== maxy ||
+				float32Array[ nodeIndex32 + 5 ] !== maxz
 			) {
 
-				float32Array[ node32Index + 0 ] = minx;
-				float32Array[ node32Index + 1 ] = miny;
-				float32Array[ node32Index + 2 ] = minz;
+				float32Array[ nodeIndex32 + 0 ] = minx;
+				float32Array[ nodeIndex32 + 1 ] = miny;
+				float32Array[ nodeIndex32 + 2 ] = minz;
 
-				float32Array[ node32Index + 3 ] = maxx;
-				float32Array[ node32Index + 4 ] = maxy;
-				float32Array[ node32Index + 5 ] = maxz;
+				float32Array[ nodeIndex32 + 3 ] = maxx;
+				float32Array[ nodeIndex32 + 4 ] = maxy;
+				float32Array[ nodeIndex32 + 5 ] = maxz;
 
 				return true;
 
@@ -121,8 +121,8 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 		} else {
 
-			const left = LEFT_NODE( node32Index );
-			const right = RIGHT_NODE( node32Index, uint32Array );
+			const left = LEFT_NODE( nodeIndex32 );
+			const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 			// the identifying node indices provided by the shapecast function include offsets of all
 			// root buffers to guarantee they're unique between roots so offset left and right indices here.
@@ -180,8 +180,8 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 					const minRightValue = float32Array[ righti ];
 					const maxRightValue = float32Array[ righti + 3 ];
 
-					float32Array[ node32Index + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
-					float32Array[ node32Index + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
+					float32Array[ nodeIndex32 + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
+					float32Array[ nodeIndex32 + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
 
 				}
 
