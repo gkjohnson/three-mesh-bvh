@@ -49,27 +49,8 @@ function _populateBuffer( byteOffset, node ) {
 
 		if ( node.buffer ) {
 
-			// code path for workers that generate subtrees separately
-			const buffer = node.buffer;
-
-			// copy all data over to the compose buffer
-			uint8Array.set( new Uint8Array( buffer ), byteOffset );
-
-			// iterate over all nodes and fix-up the offsets
-			const nodeCount = buffer.byteLength / BYTES_PER_NODE;
-			for ( let i = 0; i < nodeCount; i ++ ) {
-
-				const childNode32Index = node32Index + i * UINT32_PER_NODE;
-				const childNode16Index = childNode32Index * 2;
-				if ( ! IS_LEAF( childNode16Index, uint16Array ) ) {
-
-					uint32Array[ childNode32Index + 6 ] += node32Index / UINT32_PER_NODE;
-
-				}
-
-			}
-
-			return byteOffset + buffer.byteLength;
+			uint8Array.set( new Uint8Array( node.buffer ), byteOffset );
+			return byteOffset + node.buffer.byteLength;
 
 		} else {
 
