@@ -88,16 +88,20 @@ function _populateBuffer( byteOffset, node ) {
 		const leftByteOffset = byteOffset + BYTES_PER_NODE;
 		let rightByteOffset = _populateBuffer( leftByteOffset, left );
 
-		// check if the right node value is too high
+		// calculate relative offset from parent to right child
+		const currentNodeIndex = byteOffset / BYTES_PER_NODE;
 		const rightNodeIndex = rightByteOffset / BYTES_PER_NODE;
-		if ( rightNodeIndex > MAX_POINTER ) {
+		const relativeRightIndex = rightNodeIndex - currentNodeIndex;
 
-			throw new Error( 'MeshBVH: Cannot store child node index greater than 32 bits.' );
+		// check if the relative offset is too high
+		if ( relativeRightIndex > MAX_POINTER ) {
+
+			throw new Error( 'MeshBVH: Cannot store relative child node offset greater than 32 bits.' );
 
 		}
 
-		// fill in the right node contents
-		uint32Array[ node32Index + 6 ] = rightNodeIndex;
+		// fill in the right node contents (store as relative offset)
+		uint32Array[ node32Index + 6 ] = relativeRightIndex;
 		uint32Array[ node32Index + 7 ] = splitAxis;
 
 		// return the next available buffer pointer

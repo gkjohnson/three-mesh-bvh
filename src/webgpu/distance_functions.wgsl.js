@@ -191,7 +191,7 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 
 				let leftIndex = currNodeIndex + 1u;
 				let splitAxis = boundsInfox & 0x0000ffffu;
-				let rightIndex = boundsInfoy;
+				let rightIndex = currNodeIndex + boundsInfoy;
 
 				let leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );
 				let c1 = select( rightIndex, leftIndex, leftToRight );
