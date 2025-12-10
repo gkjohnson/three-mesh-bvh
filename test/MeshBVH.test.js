@@ -342,6 +342,34 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should accept node IDs from shapecast for selective refitting', () => {
+
+		const geometry = new SphereGeometry( 1, 16, 16 );
+		const bvh = new MeshBVH( geometry, { maxLeafTris: 5 } );
+		const allNodeIds = new Set();
+		bvh.shapecast( {
+			intersectsBounds: ( box, isLeaf, score, depth, nodeId ) => {
+
+				allNodeIds.add( nodeId );
+				return true;
+
+			},
+			intersectsRange: () => {
+
+				return false;
+
+			},
+		} );
+
+		// modify a single vertex
+		geometry.scale( 2, 2, 2 );
+		bvh.refit( allNodeIds );
+
+		// verify bounds are correct
+		expect( validateBounds( bvh ) ).toBe( true );
+
+	} );
+
 } );
 
 describe( 'BoundsTree API', () => {
