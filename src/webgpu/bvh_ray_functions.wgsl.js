@@ -130,11 +130,11 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 			let boundsInfox = node.splitAxisOrTriangleCount;
 			let boundsInfoy = node.rightChildOrTriangleOffset;
 
-			let isLeaf = ( boundsInfox & LEAFNODE_MASK ) != 0u;
+			let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
 
 			if ( isLeaf ) {
 
-				let count = boundsInfox & COUNT_MASK;
+				let count = boundsInfox & 0x0000ffffu;
 				let offset = boundsInfoy;
 
 				let localHit = intersectTriangles(

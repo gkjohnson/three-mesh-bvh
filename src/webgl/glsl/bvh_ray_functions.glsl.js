@@ -4,14 +4,6 @@ export const bvh_ray_functions = /* glsl */`
 #define TRI_INTERSECT_EPSILON 1e-5
 #endif
 
-#ifndef LEAFNODE_MASK
-#define LEAFNODE_MASK 0x80000000u
-#endif
-
-#ifndef COUNT_MASK
-#define COUNT_MASK 0x0000ffffu
-#endif
-
 // Raycasting
 bool intersectsBounds( vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax, out float dist ) {
 
@@ -179,11 +171,11 @@ bool _bvhIntersectFirstHit(
 		}
 
 		uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, currNodeIndex ).xy;
-		bool isLeaf = bool( boundsInfo.x & LEAFNODE_MASK );
+		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 
 		if ( isLeaf ) {
 
-			uint count = boundsInfo.x & COUNT_MASK;
+			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 
 			found = intersectTriangles(

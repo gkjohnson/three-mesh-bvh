@@ -1,14 +1,6 @@
 // Distance to Point
 export const bvh_distance_functions = /* glsl */`
 
-#ifndef LEAFNODE_MASK
-#define LEAFNODE_MASK 0x80000000u
-#endif
-
-#ifndef COUNT_MASK
-#define COUNT_MASK 0x0000ffffu
-#endif
-
 float dot2( vec3 v ) {
 
 	return dot( v, v );
@@ -164,10 +156,10 @@ float _bvhClosestPointToPoint(
 		}
 
 		uvec2 boundsInfo = uTexelFetch1D( bvh_bvhContents, currNodeIndex ).xy;
-		bool isLeaf = bool( boundsInfo.x & LEAFNODE_MASK );
+		bool isLeaf = bool( boundsInfo.x & 0xffff0000u );
 		if ( isLeaf ) {
 
-			uint count = boundsInfo.x & COUNT_MASK;
+			uint count = boundsInfo.x & 0x0000ffffu;
 			uint offset = boundsInfo.y;
 			closestDistanceSquared = distanceToTriangles(
 				bvh_position, bvh_index, offset, count, point, closestDistanceSquared,
