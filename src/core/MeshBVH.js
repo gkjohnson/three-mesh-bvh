@@ -137,8 +137,8 @@ export class MeshBVH {
 					const node16Index = 2 * node32Index;
 					if ( ! IS_LEAF( node16Index, uint16Array ) ) {
 
-						// uint32 index -> node index
-						uint32Array[ node32Index + 6 ] /= UINT32_PER_NODE;
+						// convert absolute right child offset to relative offset
+						uint32Array[ node32Index + 6 ] = uint32Array[ node32Index + 6 ] / UINT32_PER_NODE - node;
 
 					}
 

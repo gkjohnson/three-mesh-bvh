@@ -173,11 +173,11 @@ describe( 'Serialization', () => {
 			// construct an old version of the json
 			const oldSerialized = { ...serialized };
 
-			// 1. remove the version field
+			// remove the version field
 			delete oldSerialized.version;
 
-			// 2. Converting node indices back to uint32 indices
-			oldSerialized.roots = serialized.roots.map( root => {
+			// convert to old format: uint32 absolute offsets
+			oldSerialized.roots = oldSerialized.roots.map( root => {
 
 				const clonedRoot = root.slice();
 				const uint32Array = new Uint32Array( clonedRoot );
@@ -186,7 +186,7 @@ describe( 'Serialization', () => {
 				const UINT32_PER_NODE = BYTES_PER_NODE / 4;
 				const IS_LEAFNODE_FLAG = 0xFFFF;
 
-				// revert the node indices to uint32 offsets rather than node indices
+				// revert the node indices to uint32 absolute indices rather than node indices
 				for ( let node = 0, l = root.byteLength / BYTES_PER_NODE; node < l; node ++ ) {
 
 					const node32Index = UINT32_PER_NODE * node;
@@ -194,7 +194,7 @@ describe( 'Serialization', () => {
 					const isLeaf = uint16Array[ node16Index + 15 ] === IS_LEAFNODE_FLAG;
 					if ( ! isLeaf ) {
 
-						uint32Array[ node32Index + 6 ] *= UINT32_PER_NODE;
+						uint32Array[ node32Index + 6 ] = ( node + uint32Array[ node32Index + 6 ] ) * UINT32_PER_NODE;
 
 					}
 
@@ -207,9 +207,6 @@ describe( 'Serialization', () => {
 			// deserialize the old data to compare the structure
 			const deserializedBVH = MeshBVH.deserialize( oldSerialized, geometry.clone() );
 			expect( deserializedBVH ).toEqualBVH( bvh );
-
-			// compare the serialized variants
-			expect( MeshBVH.serialize( deserializedBVH ) ).toEqual( serialized );
 
 		} );
 

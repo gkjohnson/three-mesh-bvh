@@ -1,5 +1,4 @@
-import { BYTES_PER_NODE, IS_LEAFNODE_FLAG, UINT32_PER_NODE } from '../Constants.js';
-import { IS_LEAF } from '../utils/nodeBufferUtils.js';
+import { BYTES_PER_NODE, IS_LEAFNODE_FLAG } from '../Constants.js';
 
 let float32Array, uint32Array, uint16Array, uint8Array;
 const MAX_POINTER = Math.pow( 2, 32 );
@@ -49,27 +48,8 @@ function _populateBuffer( byteOffset, node ) {
 
 		if ( node.buffer ) {
 
-			// code path for workers that generate subtrees separately
-			const buffer = node.buffer;
-
-			// copy all data over to the compose buffer
-			uint8Array.set( new Uint8Array( buffer ), byteOffset );
-
-			// iterate over all nodes and fix-up the offsets
-			const nodeCount = buffer.byteLength / BYTES_PER_NODE;
-			for ( let i = 0; i < nodeCount; i ++ ) {
-
-				const childNode32Index = node32Index + i * UINT32_PER_NODE;
-				const childNode16Index = childNode32Index * 2;
-				if ( ! IS_LEAF( childNode16Index, uint16Array ) ) {
-
-					uint32Array[ childNode32Index + 6 ] += node32Index / UINT32_PER_NODE;
-
-				}
-
-			}
-
-			return byteOffset + buffer.byteLength;
+			uint8Array.set( new Uint8Array( node.buffer ), byteOffset );
+			return byteOffset + node.buffer.byteLength;
 
 		} else {
 
@@ -88,16 +68,20 @@ function _populateBuffer( byteOffset, node ) {
 		const leftByteOffset = byteOffset + BYTES_PER_NODE;
 		let rightByteOffset = _populateBuffer( leftByteOffset, left );
 
-		// check if the right node value is too high
+		// calculate relative offset from parent to right child
+		const currentNodeIndex = byteOffset / BYTES_PER_NODE;
 		const rightNodeIndex = rightByteOffset / BYTES_PER_NODE;
-		if ( rightNodeIndex > MAX_POINTER ) {
+		const relativeRightIndex = rightNodeIndex - currentNodeIndex;
 
-			throw new Error( 'MeshBVH: Cannot store child node index greater than 32 bits.' );
+		// check if the relative offset is too high
+		if ( relativeRightIndex > MAX_POINTER ) {
+
+			throw new Error( 'MeshBVH: Cannot store relative child node offset greater than 32 bits.' );
 
 		}
 
-		// fill in the right node contents
-		uint32Array[ node32Index + 6 ] = rightNodeIndex;
+		// fill in the right node contents (store as relative offset)
+		uint32Array[ node32Index + 6 ] = relativeRightIndex;
 		uint32Array[ node32Index + 7 ] = splitAxis;
 
 		// return the next available buffer pointer

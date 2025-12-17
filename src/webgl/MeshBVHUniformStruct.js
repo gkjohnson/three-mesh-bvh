@@ -11,7 +11,7 @@ import {
 	FloatVertexAttributeTexture,
 	UIntVertexAttributeTexture,
 } from './VertexAttributeTexture.js';
-import { BYTES_PER_NODE } from '../core/Constants.js';
+import { BYTES_PER_NODE, LEAFNODE_MASK_32 } from '../core/Constants.js';
 import {
 	BOUNDING_DATA_INDEX,
 	COUNT,
@@ -147,7 +147,7 @@ function bvhToTextures( bvh, boundsTexture, contentsTexture ) {
 			const count = COUNT( nodeIndex16, uint16Array );
 			const offset = OFFSET( nodeIndex32, uint32Array );
 
-			const mergedLeafCount = 0xffff0000 | count;
+			const mergedLeafCount = LEAFNODE_MASK_32 | count;
 			contentsArray[ i * 2 + 0 ] = mergedLeafCount;
 			contentsArray[ i * 2 + 1 ] = offset;
 

@@ -172,7 +172,7 @@ float _bvhClosestPointToPoint(
 
 			uint leftIndex = currNodeIndex + 1u;
 			uint splitAxis = boundsInfo.x & 0x0000ffffu;
-			uint rightIndex = boundsInfo.y;
+			uint rightIndex = currNodeIndex + boundsInfo.y;
 			bool leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, rightIndex );//rayDirection[ splitAxis ] >= 0.0;
 			uint c1 = leftToRight ? leftIndex : rightIndex;
 			uint c2 = leftToRight ? rightIndex : leftIndex;

@@ -1,3 +1,4 @@
+import { BYTES_PER_NODE, UINT32_PER_NODE } from '../Constants.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 
 export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
@@ -27,13 +28,13 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 	}
 
-	function _traverse( node32Index, byteOffset, force = false ) {
+	function _traverse( nodeIndex32, byteOffset, force = false ) {
 
-		const node16Index = node32Index * 2;
-		if ( IS_LEAF( node16Index, uint16Array ) ) {
+		const nodeIndex16 = nodeIndex32 * 2;
+		if ( IS_LEAF( nodeIndex16, uint16Array ) ) {
 
-			const offset = uint32Array[ node32Index + 6 ];
-			const count = uint16Array[ node16Index + 14 ];
+			const offset = uint32Array[ nodeIndex32 + 6 ];
+			const count = uint16Array[ nodeIndex16 + 14 ];
 
 			let minx = Infinity;
 			let miny = Infinity;
@@ -93,22 +94,22 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 			/* @endif */
 
 			if (
-				float32Array[ node32Index + 0 ] !== minx ||
-				float32Array[ node32Index + 1 ] !== miny ||
-				float32Array[ node32Index + 2 ] !== minz ||
+				float32Array[ nodeIndex32 + 0 ] !== minx ||
+				float32Array[ nodeIndex32 + 1 ] !== miny ||
+				float32Array[ nodeIndex32 + 2 ] !== minz ||
 
-				float32Array[ node32Index + 3 ] !== maxx ||
-				float32Array[ node32Index + 4 ] !== maxy ||
-				float32Array[ node32Index + 5 ] !== maxz
+				float32Array[ nodeIndex32 + 3 ] !== maxx ||
+				float32Array[ nodeIndex32 + 4 ] !== maxy ||
+				float32Array[ nodeIndex32 + 5 ] !== maxz
 			) {
 
-				float32Array[ node32Index + 0 ] = minx;
-				float32Array[ node32Index + 1 ] = miny;
-				float32Array[ node32Index + 2 ] = minz;
+				float32Array[ nodeIndex32 + 0 ] = minx;
+				float32Array[ nodeIndex32 + 1 ] = miny;
+				float32Array[ nodeIndex32 + 2 ] = minz;
 
-				float32Array[ node32Index + 3 ] = maxx;
-				float32Array[ node32Index + 4 ] = maxy;
-				float32Array[ node32Index + 5 ] = maxz;
+				float32Array[ nodeIndex32 + 3 ] = maxx;
+				float32Array[ nodeIndex32 + 4 ] = maxy;
+				float32Array[ nodeIndex32 + 5 ] = maxz;
 
 				return true;
 
@@ -120,13 +121,11 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 		} else {
 
-			const left = LEFT_NODE( node32Index );
-			const right = RIGHT_NODE( node32Index, uint32Array );
+			const left = LEFT_NODE( nodeIndex32 );
+			const right = RIGHT_NODE( nodeIndex32, uint32Array );
 
 			// the identifying node indices provided by the shapecast function include offsets of all
 			// root buffers to guarantee they're unique between roots so offset left and right indices here.
-			const offsetLeft = left + byteOffset;
-			const offsetRight = right + byteOffset;
 			let forceChildren = force;
 			let includesLeft = false;
 			let includesRight = false;
@@ -137,8 +136,10 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 				// then we assume that all children need to be updated.
 				if ( ! forceChildren ) {
 
-					includesLeft = nodeIndices.has( offsetLeft );
-					includesRight = nodeIndices.has( offsetRight );
+					const leftNodeId = left / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					const rightNodeId = right / UINT32_PER_NODE + byteOffset / BYTES_PER_NODE;
+					includesLeft = nodeIndices.has( leftNodeId );
+					includesRight = nodeIndices.has( rightNodeId );
 					forceChildren = ! includesLeft && ! includesRight;
 
 				}
@@ -172,15 +173,15 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
 				for ( let i = 0; i < 3; i ++ ) {
 
-					const lefti = left + i;
-					const righti = right + i;
-					const minLeftValue = float32Array[ lefti ];
-					const maxLeftValue = float32Array[ lefti + 3 ];
-					const minRightValue = float32Array[ righti ];
-					const maxRightValue = float32Array[ righti + 3 ];
+					const left_i = left + i;
+					const right_i = right + i;
+					const minLeftValue = float32Array[ left_i ];
+					const maxLeftValue = float32Array[ left_i + 3 ];
+					const minRightValue = float32Array[ right_i ];
+					const maxRightValue = float32Array[ right_i + 3 ];
 
-					float32Array[ node32Index + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
-					float32Array[ node32Index + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
+					float32Array[ nodeIndex32 + i ] = minLeftValue < minRightValue ? minLeftValue : minRightValue;
+					float32Array[ nodeIndex32 + i + 3 ] = maxLeftValue > maxRightValue ? maxLeftValue : maxRightValue;
 
 				}
 
