@@ -207,7 +207,7 @@ export class MeshBVH {
 
 	}
 
-	offsetTriangleIndices( offset ) {
+	shiftTriangleOffsets( offset ) {
 
 		const indirectBuffer = this._indirectBuffer;
 		if ( indirectBuffer ) {
