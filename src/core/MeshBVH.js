@@ -212,8 +212,7 @@ export class MeshBVH {
 		const indirectBuffer = this._indirectBuffer;
 		if ( indirectBuffer ) {
 
-			// with indirect=true the leaf nodes reference the indirect buffer, so we only
-			// need to update the indirect buffer values which point to the geometry
+			// the offsets are embedded in the indirect buffer
 			for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
 
 				indirectBuffer[ i ] += offset;
@@ -222,8 +221,7 @@ export class MeshBVH {
 
 		} else {
 
-			// with indirect=false the leaf nodes reference the geometry directly, so we need
-			// to update the triangle offset stored in each leaf node
+			// offsets are embedded in the leaf nodes
 			const roots = this._roots;
 			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
 
@@ -237,6 +235,7 @@ export class MeshBVH {
 					const node16Index = 2 * node32Index;
 					if ( IS_LEAF( node16Index, uint16Array ) ) {
 
+						// offset value
 						uint32Array[ node32Index + 6 ] += offset;
 
 					}
