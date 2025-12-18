@@ -1,5 +1,5 @@
 import {
-	BoxGeometry,
+	SphereGeometry,
 	Vector3,
 } from 'three';
 import {
@@ -9,23 +9,24 @@ import {
 
 describe( 'shiftTriangleOffsets', () => {
 
-	function shiftIndices( geometry, triangleOffset ) {
+	function shiftIndices( geometry, offset ) {
 
 		const index = geometry.index;
 		const position = geometry.attributes.position;
+		const offset3 = 3 * offset;
 
 		if ( geometry.index ) {
 
 			for ( let i = 0; i < index.count; i ++ ) {
 
 				let i2 = i;
-				if ( triangleOffset > 0 ) {
+				if ( offset > 0 ) {
 
 					i2 = index.count - i - 1;
 
 				}
 
-				index.setX( i2, index.getX( i2 - triangleOffset * 3 ) );
+				index.setX( i2, index.getX( i2 - offset3 ) );
 
 			}
 
@@ -35,13 +36,13 @@ describe( 'shiftTriangleOffsets', () => {
 			for ( let i = 0; i < position.count; i ++ ) {
 
 				let i2 = i;
-				if ( triangleOffset > 0 ) {
+				if ( offset > 0 ) {
 
 					i2 = position.count - i - 1;
 
 				}
 
-				vec.fromBufferAttribute( position, i2 - triangleOffset * 3 );
+				vec.fromBufferAttribute( position, i2 - offset3 );
 				position.setXYZ( i2, ...vec );
 
 			}
@@ -54,8 +55,8 @@ describe( 'shiftTriangleOffsets', () => {
 
 		it( 'should handle zero offset as no-op', () => {
 
-			const geometry = new BoxGeometry( 1, 1, 1 );
-			const bvh = new MeshBVH( geometry, { range: { start: 15, count: 90 } } );
+			const geometry = new SphereGeometry();
+			const bvh = new MeshBVH( geometry, { range: { start: 90, count: 90 } } );
 
 			expect( validateBounds( bvh ) ).toBe( true );
 			bvh.shiftTriangleOffsets( 0 );
@@ -66,8 +67,8 @@ describe( 'shiftTriangleOffsets', () => {
 
 		it( 'should handle positive offset', () => {
 
-			const geometry = new BoxGeometry( 1, 1, 1 );
-			const bvh = new MeshBVH( geometry, { range: { start: 15, count: 90 } } );
+			const geometry = new SphereGeometry();
+			const bvh = new MeshBVH( geometry, { range: { start: 90, count: 90 } } );
 
 			expect( validateBounds( bvh ) ).toBe( true );
 
@@ -81,15 +82,15 @@ describe( 'shiftTriangleOffsets', () => {
 
 		it( 'should handle negative offset', () => {
 
-			const geometry = new BoxGeometry( 1, 1, 1 );
-			const bvh = new MeshBVH( geometry, { range: { start: 15, count: 90 } } );
+			const geometry = new SphereGeometry();
+			const bvh = new MeshBVH( geometry, { range: { start: 90, count: 90 } } );
 
 			expect( validateBounds( bvh ) ).toBe( true );
 
-			shiftIndices( geometry, - 2 );
+			shiftIndices( geometry, - 5 );
 			expect( validateBounds( bvh ) ).toBe( false );
 
-			bvh.shiftTriangleOffsets( - 2 );
+			bvh.shiftTriangleOffsets( - 5 );
 			expect( validateBounds( bvh ) ).toBe( true );
 
 		} );
@@ -100,8 +101,8 @@ describe( 'shiftTriangleOffsets', () => {
 
 		it( 'should handle zero offset as no-op', () => {
 
-			const geometry = new BoxGeometry( 1, 1, 1 );
-			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 15, count: 90 } } );
+			const geometry = new SphereGeometry();
+			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 90, count: 90 } } );
 
 			expect( bvh.indirect ).toBe( true );
 			expect( validateBounds( bvh ) ).toBe( true );
@@ -114,30 +115,46 @@ describe( 'shiftTriangleOffsets', () => {
 
 		it( 'should handle positive offset', () => {
 
-			const geometry = new BoxGeometry( 1, 1, 1 );
-			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 15, count: 90 } } );
+			const geometry = new SphereGeometry();
+			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 90, count: 90 } } );
 
 			expect( validateBounds( bvh ) ).toBe( true );
 
-			shiftIndices( geometry, 3 );
+			shiftIndices( geometry, 5 );
 			expect( validateBounds( bvh ) ).toBe( false );
 
-			bvh.shiftTriangleOffsets( 3 );
+			bvh.shiftTriangleOffsets( 5 );
 			expect( validateBounds( bvh ) ).toBe( true );
 
 		} );
 
 		it( 'should handle negative offset', () => {
 
-			const geometry = new BoxGeometry( 1, 1, 1 );
-			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 15, count: 90 } } );
+			const geometry = new SphereGeometry();
+			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 90, count: 90 } } );
 
 			expect( validateBounds( bvh ) ).toBe( true );
 
-			shiftIndices( geometry, - 1 );
+			shiftIndices( geometry, - 5 );
 			expect( validateBounds( bvh ) ).toBe( false );
 
-			bvh.shiftTriangleOffsets( - 1 );
+			bvh.shiftTriangleOffsets( - 5 );
+			expect( validateBounds( bvh ) ).toBe( true );
+
+		} );
+
+		it( 'should work when there is no index buffer.', () => {
+
+			const geometry = new SphereGeometry().toNonIndexed();
+			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 90, count: 90 } } );
+
+			expect( geometry.index ).toBe( null );
+			expect( validateBounds( bvh ) ).toBe( true );
+
+			shiftIndices( geometry, 5 );
+			expect( validateBounds( bvh ) ).toBe( false );
+
+			bvh.shiftTriangleOffsets( 5 );
 			expect( validateBounds( bvh ) ).toBe( true );
 
 		} );
