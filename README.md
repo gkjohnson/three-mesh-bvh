@@ -646,13 +646,9 @@ bvh.refit( nodeIndices );
 shiftTriangleOffsets( offset : Number ) : void
 ```
 
-Adjusts all triangle offsets stored in the BVH by the given offset. This is useful when geometry data has been compacted or shifted (e.g. in `BatchedMesh` when geometries are compacted using the "optimize" function or constructing a "merged" BVH).
+Adjusts all triangle offsets stored in the BVH by the given offset. This is useful when the triangle data has been compacted or shifted in the geometry buffers (e.g. in `BatchedMesh` when geometries are compacted using the "optimize" function or constructing a "merged" BVH).
 
-This function adjusts the BVH to point to different triangles in the geometry. The geometry's index buffer and/or position attributes must be updated separately to match.
-
-When **indirect=true**, this updates the indirect buffer values.
-
-When **indirect=false**, this updates the triangle offset stored in each leaf node of the BVH.
+This function only adjusts the BVH to point to different triangles in the geometry. The geometry's index buffer and/or position attributes must be updated separately to match.
 
 **Example use case with merged geometry:**
 
@@ -660,14 +656,14 @@ When **indirect=false**, this updates the triangle offset stored in each leaf no
 const boxGeometry = new BoxGeometry();
 const sphereGeometry = new SphereGeometry();
 
+// construct the BVH
 const sphereBvh = new MeshBVH( sphereGeometry );
 
 // ...
 
-const mergedGeometry = mergeGeometries( [ boxGeometry, sphereGeometry ] );
-
 // adjust the bvh so it points to the new geometry and adjust the BVH triangle offsets
 // by the amount in the box geometry
+const mergedGeometry = mergeGeometries( [ boxGeometry, sphereGeometry ] );
 sphereBvh.geometry = mergedGeometry;
 sphereBvh.shiftTriangleOffsets( boxGeometry.index.count / 3 );
 ```
