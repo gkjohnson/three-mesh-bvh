@@ -640,6 +640,34 @@ bvh.shapecast(
 bvh.refit( nodeIndices );
 ```
 
+### .shiftTriangleOffsets
+
+```js
+shiftTriangleOffsets( offset : Number ) : void
+```
+
+Adjusts all triangle offsets stored in the BVH by the given offset. This is useful when the triangle data has been compacted or shifted in the geometry buffers (e.g. in `BatchedMesh` when geometries are compacted using the "optimize" function or constructing a "merged" BVH).
+
+This function only adjusts the BVH to point to different triangles in the geometry. The geometry's index buffer and/or position attributes must be updated separately to match.
+
+**Example use case with merged geometry:**
+
+```js
+const boxGeometry = new BoxGeometry();
+const sphereGeometry = new SphereGeometry();
+
+// construct the BVH
+const sphereBvh = new MeshBVH( sphereGeometry );
+
+// ...
+
+// adjust the bvh so it points to the new geometry and adjust the BVH triangle offsets
+// by the amount in the box geometry
+const mergedGeometry = mergeGeometries( [ boxGeometry, sphereGeometry ] );
+sphereBvh.geometry = mergedGeometry;
+sphereBvh.shiftTriangleOffsets( boxGeometry.index.count / 3 );
+```
+
 ### .getBoundingBox
 
 ```js
