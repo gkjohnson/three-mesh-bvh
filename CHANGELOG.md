@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Docs for bvhcast function.
 - More usage of "PURE" annotations.
 - Added "version" field to serialized data.
+- Add support for "shiftTriangleOffsets" function.
 
 ### Changed
 - Changed the internal storage of child indices from uint32 offsets to node indices. Old serialized data will continue to work via a "fixup" step while logging a warning.
