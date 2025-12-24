@@ -28,13 +28,17 @@ class Selection {
 	}
 
 	/** Convert absolute screen coordinates `x` and `y` to relative coordinates in range [-1; 1]. */
-	static normalizePoint( x, y ) {
+	static normalizePoint( element, x, y ) {
+		const rectangle = element?.getBoundingClientRect() ?? {
+			left: 0,
+			top: 0,
+			height: window.innerHeight,
+			width: window.innerWidth,
+		};
+		const correctedX = (x - rectangle.left) / rectangle.width;
+		const correctedY = (y - rectangle.top) / rectangle.height;
 
-		return [
-			( x / window.innerWidth ) * 2 - 1,
-			- ( ( y / window.innerHeight ) * 2 - 1 ),
-		];
-
+		return [correctedX * 2 - 1, 1 - correctedY * 2];
 	}
 
 }
@@ -63,11 +67,11 @@ export class LassoSelection extends Selection {
 
 	}
 
-	handlePointerMove( e ) {
+	handlePointerMove( e, element ) {
 
 		const ex = e.clientX;
 		const ey = e.clientY;
-		const [ nx, ny ] = Selection.normalizePoint( ex, ey );
+		const [ nx, ny ] = Selection.normalizePoint( element, ex, ey );
 
 		// If the mouse hasn't moved a lot since the last point
 		if ( Math.abs( ex - this.prevX ) >= 3 || Math.abs( ey - this.prevY ) >= 3 ) {
@@ -136,24 +140,24 @@ export class BoxSelection extends Selection {
 
 	}
 
-	handlePointerDown( e ) {
+	handlePointerDown( e, element ) {
 
 		super.handlePointerDown();
 		this.prevX = e.clientX;
 		this.prevY = e.clientY;
-		const [ nx, ny ] = Selection.normalizePoint( e.clientX, e.clientY );
+		const [ nx, ny ] = Selection.normalizePoint( element, e.clientX, e.clientY );
 		this.startX = nx;
 		this.startY = ny;
 		this.lassoPoints = [];
 
 	}
 
-	handlePointerMove( e ) {
+	handlePointerMove( e, element ) {
 
 		const ex = e.clientX;
 		const ey = e.clientY;
 
-		const [ nx, ny ] = Selection.normalizePoint( e.clientX, e.clientY );
+		const [ nx, ny ] = Selection.normalizePoint( element, e.clientX, e.clientY );
 		this.currentX = nx;
 		this.currentY = ny;
 
