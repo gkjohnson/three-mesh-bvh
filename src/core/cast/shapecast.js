@@ -6,7 +6,7 @@ import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, BOUNDING_DATA_INDEX } fr
 import { BufferStack } from '../utils/BufferStack.js';
 
 let _box1, _box2;
-const boxStack = /* @__PURE__ */ [];
+const boxStack = [];
 const boxPool = /* @__PURE__ */ new PrimitivePool( () => new Box3() );
 
 export function shapecast( bvh, root, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset ) {
