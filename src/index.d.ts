@@ -159,7 +159,7 @@ export class MeshBVH {
     callback: (
       depth: number,
       isLeaf: boolean,
-      boundingData: ArrayBuffer,
+      boundingData: Float32Array,
       offsetOrSplit: number,
       count: number
     ) => void,
