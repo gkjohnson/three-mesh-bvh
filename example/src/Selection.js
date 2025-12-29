@@ -67,11 +67,11 @@ export class LassoSelection extends Selection {
 
 	}
 
-	handlePointerMove( e, element ) {
+	handlePointerMove( e ) {
 
 		const ex = e.clientX;
 		const ey = e.clientY;
-		const [ nx, ny ] = Selection.normalizePoint( element, ex, ey );
+		const [ nx, ny ] = Selection.normalizePoint( e.currentTarget, ex, ey );
 
 		// If the mouse hasn't moved a lot since the last point
 		if ( Math.abs( ex - this.prevX ) >= 3 || Math.abs( ey - this.prevY ) >= 3 ) {
@@ -140,24 +140,24 @@ export class BoxSelection extends Selection {
 
 	}
 
-	handlePointerDown( e, element ) {
+	handlePointerDown( e ) {
 
 		super.handlePointerDown();
 		this.prevX = e.clientX;
 		this.prevY = e.clientY;
-		const [ nx, ny ] = Selection.normalizePoint( element, e.clientX, e.clientY );
+		const [ nx, ny ] = Selection.normalizePoint( e.currentTarget, e.clientX, e.clientY );
 		this.startX = nx;
 		this.startY = ny;
 		this.lassoPoints = [];
 
 	}
 
-	handlePointerMove( e, element ) {
+	handlePointerMove( e ) {
 
 		const ex = e.clientX;
 		const ey = e.clientY;
 
-		const [ nx, ny ] = Selection.normalizePoint( element, e.clientX, e.clientY );
+		const [ nx, ny ] = Selection.normalizePoint( e.currentTarget, e.clientX, e.clientY );
 		this.currentX = nx;
 		this.currentY = ny;
 

@@ -197,7 +197,7 @@ function init() {
 
 	renderer.domElement.addEventListener( 'pointerdown', ( e ) => {
 
-		tool.handlePointerDown( e, renderer.domElement );
+		tool.handlePointerDown( e );
 
 	} );
 
@@ -222,7 +222,7 @@ function init() {
 
 		}
 
-		const { changed } = tool.handlePointerMove( e, renderer.domElement );
+		const { changed } = tool.handlePointerMove( e );
 
 		if ( changed ) {
 
