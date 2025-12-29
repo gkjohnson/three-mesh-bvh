@@ -30,14 +30,9 @@ class Selection {
 	/** Convert absolute screen coordinates `x` and `y` to relative coordinates in range [-1; 1]. */
 	static normalizePoint( element, x, y ) {
 
-		const rectangle = element?.getBoundingClientRect() ?? {
-			left: 0,
-			top: 0,
-			height: window.innerHeight,
-			width: window.innerWidth,
-		};
-		const correctedX = ( x - rectangle.left ) / rectangle.width;
-		const correctedY = ( y - rectangle.top ) / rectangle.height;
+		const clientRect = element.getBoundingClientRect();
+		const correctedX = ( x - clientRect.left ) / clientRect.width;
+		const correctedY = ( y - clientRect.top ) / clientRect.height;
 
 		return [ correctedX * 2 - 1, 1 - correctedY * 2 ];
 
