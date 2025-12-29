@@ -29,16 +29,18 @@ class Selection {
 
 	/** Convert absolute screen coordinates `x` and `y` to relative coordinates in range [-1; 1]. */
 	static normalizePoint( element, x, y ) {
+
 		const rectangle = element?.getBoundingClientRect() ?? {
 			left: 0,
 			top: 0,
 			height: window.innerHeight,
 			width: window.innerWidth,
 		};
-		const correctedX = (x - rectangle.left) / rectangle.width;
-		const correctedY = (y - rectangle.top) / rectangle.height;
+		const correctedX = ( x - rectangle.left ) / rectangle.width;
+		const correctedY = ( y - rectangle.top ) / rectangle.height;
 
-		return [correctedX * 2 - 1, 1 - correctedY * 2];
+		return [ correctedX * 2 - 1, 1 - correctedY * 2 ];
+
 	}
 
 }
