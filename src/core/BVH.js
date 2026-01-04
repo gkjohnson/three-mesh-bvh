@@ -44,6 +44,25 @@ export class BVH {
 
 	}
 
+	// Abstract methods to be implemented by subclasses
+	getPrimitiveCount() {
+
+		throw new Error( 'BVH: getPrimitiveCount() must be implemented by subclass' );
+
+	}
+
+	computePrimitiveBounds( /* offset, count */ ) {
+
+		throw new Error( 'BVH: computePrimitiveBounds() must be implemented by subclass' );
+
+	}
+
+	getBuildRanges( /* options */ ) {
+
+		throw new Error( 'BVH: getBuildRanges() must be implemented by subclass' );
+
+	}
+
 	shiftTriangleOffsets( offset ) {
 
 		const indirectBuffer = this._indirectBuffer;

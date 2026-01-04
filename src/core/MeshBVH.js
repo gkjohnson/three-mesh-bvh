@@ -6,6 +6,8 @@ import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { IS_LEAF } from './utils/nodeBufferUtils.js';
+import { getTriCount, getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
+import { computeTriangleBounds } from './build/computeBoundsUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -178,6 +180,38 @@ export class MeshBVH extends BVH {
 
 	}
 
+	// implement abstract methods from BVH base class
+	getPrimitiveCount() {
+
+		return getTriCount( this.geometry );
+
+	}
+
+	computePrimitiveBounds( offset, count ) {
+
+		const indirectBuffer = this._indirectBuffer;
+		return computeTriangleBounds( this.geometry, offset, count, indirectBuffer );
+
+	}
+
+	getBuildRanges( options ) {
+
+		if ( options.indirect ) {
+
+			// For indirect mode, return ranges for generating the indirect buffer
+			return getRootIndexRanges( this.geometry, options.range );
+
+		} else {
+
+			// For direct mode, ensure index exists and return geometry ranges
+			ensureIndex( this.geometry, options );
+			return getRootIndexRanges( this.geometry, options.range );
+
+		}
+
+	}
+
+	// TODO: move to base class?
 	refit( nodeIndices = null ) {
 
 		const refitFunc = this.indirect ? refit_indirect : refit;
