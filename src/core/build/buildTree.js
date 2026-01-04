@@ -11,8 +11,8 @@ import { countNodes, populateBuffer } from './buildUtils.js';
 // construct a new buffer that points to the set of triangles represented by the given ranges
 export function generateIndirectBuffer( geometry, useSharedArrayBuffer, ranges ) {
 
-	const triCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
-	const useUint32 = triCount > 2 ** 16;
+	const primCount = ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+	const useUint32 = primCount > 2 ** 16;
 
 	// use getRootIndexRanges which excludes gaps
 	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
@@ -39,7 +39,7 @@ export function generateIndirectBuffer( geometry, useSharedArrayBuffer, ranges )
 
 }
 
-export function buildTree( bvh, triangleBounds, offset, count, options ) {
+export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 
 	// expand variables
 	const {
@@ -56,20 +56,20 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 	const partionFunc = indirect ? partition_indirect : partition;
 
 	// generate intermediate variables
-	const totalTriangles = getTriCount( geometry );
+	const totalPrimitives = getTriCount( geometry );
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	let reachedMaxDepth = false;
 
 	const root = new MeshBVHNode();
-	getBounds( triangleBounds, offset, count, root.boundingData, cacheCentroidBoundingData );
+	getBounds( primitiveBounds, offset, count, root.boundingData, cacheCentroidBoundingData );
 	splitNode( root, offset, count, cacheCentroidBoundingData );
 	return root;
 
-	function triggerProgress( trianglesProcessed ) {
+	function triggerProgress( primitivesProcessed ) {
 
 		if ( onProgress ) {
 
-			onProgress( trianglesProcessed / totalTriangles );
+			onProgress( primitivesProcessed / totalPrimitives );
 
 		}
 
@@ -102,7 +102,7 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 		}
 
 		// Find where to split the volume
-		const split = getOptimalSplit( node.boundingData, centroidBoundingData, triangleBounds, offset, count, strategy );
+		const split = getOptimalSplit( node.boundingData, centroidBoundingData, primitiveBounds, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
 			triggerProgress( offset + count );
@@ -112,7 +112,7 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 
 		}
 
-		const splitOffset = partionFunc( indirectBuffer, indexArray, triangleBounds, offset, count, split );
+		const splitOffset = partionFunc( indirectBuffer, indexArray, primitiveBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
@@ -131,7 +131,7 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 			const lcount = splitOffset - offset;
 			node.left = left;
 
-			getBounds( triangleBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
+			getBounds( primitiveBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
 			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
 
 			// repeat for right
@@ -140,7 +140,7 @@ export function buildTree( bvh, triangleBounds, offset, count, options ) {
 			const rcount = count - lcount;
 			node.right = right;
 
-			getBounds( triangleBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
+			getBounds( primitiveBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
 			splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
 
 		}
@@ -155,14 +155,14 @@ export function buildPackedTree( bvh, options ) {
 
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 	const geometry = bvh.geometry;
-	let triangleBounds, geometryRanges;
+	let primitiveBounds, geometryRanges;
 	if ( options.indirect ) {
 
 		// construct an buffer that is indirectly sorts the triangles used for the BVH
 		const ranges = getRootIndexRanges( geometry, options.range );
 		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
 		bvh._indirectBuffer = indirectBuffer;
-		triangleBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
+		primitiveBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
 		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 	} else {
@@ -170,7 +170,7 @@ export function buildPackedTree( bvh, options ) {
 		ensureIndex( geometry, options );
 
 		const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
-		triangleBounds = computeTriangleBounds( geometry, fullRange.offset, fullRange.count );
+		primitiveBounds = computeTriangleBounds( geometry, fullRange.offset, fullRange.count );
 		geometryRanges = getRootIndexRanges( geometry, options.range );
 
 	}
@@ -178,7 +178,7 @@ export function buildPackedTree( bvh, options ) {
 	// Build BVH roots
 	bvh._roots = geometryRanges.map( range => {
 
-		const root = buildTree( bvh, triangleBounds, range.offset, range.count, options );
+		const root = buildTree( bvh, primitiveBounds, range.offset, range.count, options );
 		const nodeCount = countNodes( root );
 		const buffer = new BufferConstructor( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );

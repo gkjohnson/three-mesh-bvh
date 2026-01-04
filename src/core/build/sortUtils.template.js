@@ -1,25 +1,25 @@
 // reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
 // will be on the left and elements on the right side of the split will be on the right. returns the index
 // of the first element on the right side, or offset + count if there are no elements on the right side.
-export function partition/* @echo INDIRECT_STRING */( indirectBuffer, index, triangleBounds, offset, count, split ) {
+export function partition/* @echo INDIRECT_STRING */( indirectBuffer, index, primitiveBounds, offset, count, split ) {
 
 	let left = offset;
 	let right = offset + count - 1;
 	const pos = split.pos;
 	const axisOffset = split.axis * 2;
-	const boundsOffset = triangleBounds.offset || 0;
+	const boundsOffset = primitiveBounds.offset || 0;
 
 	// hoare partitioning, see e.g. https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
 	while ( true ) {
 
-		while ( left <= right && triangleBounds[ ( left - boundsOffset ) * 6 + axisOffset ] < pos ) {
+		while ( left <= right && primitiveBounds[ ( left - boundsOffset ) * 6 + axisOffset ] < pos ) {
 
 			left ++;
 
 		}
 
 		// if a triangle center lies on the partition plane it is considered to be on the right side
-		while ( left <= right && triangleBounds[ ( right - boundsOffset ) * 6 + axisOffset ] >= pos ) {
+		while ( left <= right && primitiveBounds[ ( right - boundsOffset ) * 6 + axisOffset ] >= pos ) {
 
 			right --;
 
@@ -53,9 +53,9 @@ export function partition/* @echo INDIRECT_STRING */( indirectBuffer, index, tri
 
 				const l = left - boundsOffset;
 				const r = right - boundsOffset;
-				const tb = triangleBounds[ l * 6 + i ];
-				triangleBounds[ l * 6 + i ] = triangleBounds[ r * 6 + i ];
-				triangleBounds[ r * 6 + i ] = tb;
+				const tb = primitiveBounds[ l * 6 + i ];
+				primitiveBounds[ l * 6 + i ] = primitiveBounds[ r * 6 + i ];
+				primitiveBounds[ r * 6 + i ] = tb;
 
 			}
 

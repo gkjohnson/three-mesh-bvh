@@ -18,7 +18,7 @@ const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
 } );
 const leftBounds = /* @__PURE__ */ new Float32Array( 6 );
 
-export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangleBounds, offset, count, strategy ) {
+export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count, strategy ) {
 
 	let axis = - 1;
 	let pos = 0;
@@ -38,7 +38,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 		axis = getLongestEdgeIndex( nodeBoundingData );
 		if ( axis !== - 1 ) {
 
-			pos = getAverage( triangleBounds, offset, count, axis );
+			pos = getAverage( primitiveBounds, offset, count, axis );
 
 		}
 
@@ -48,7 +48,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 		let bestCost = TRIANGLE_INTERSECT_COST * count;
 
 		// iterate over all axes
-		const boundsOffset = triangleBounds.offset || 0;
+		const boundsOffset = primitiveBounds.offset || 0;
 		const cStart = ( offset - boundsOffset ) * 6;
 		const cEnd = ( offset + count - boundsOffset ) * 6;
 		for ( let a = 0; a < 3; a ++ ) {
@@ -71,7 +71,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 				for ( let c = cStart; c < cEnd; c += 6, b ++ ) {
 
 					const bin = truncatedBins[ b ];
-					bin.candidate = triangleBounds[ c + 2 * a ];
+					bin.candidate = primitiveBounds[ c + 2 * a ];
 					bin.count = 0;
 
 					const {
@@ -92,7 +92,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 
 					}
 
-					expandByTriangleBounds( c, triangleBounds, bounds );
+					expandByTriangleBounds( c, primitiveBounds, bounds );
 
 				}
 
@@ -115,17 +115,17 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 				// find the appropriate bin for each triangle and expand the bounds.
 				for ( let c = cStart; c < cEnd; c += 6 ) {
 
-					const center = triangleBounds[ c + 2 * a ];
+					const center = primitiveBounds[ c + 2 * a ];
 					for ( let bi = 0; bi < splitCount; bi ++ ) {
 
 						const bin = truncatedBins[ bi ];
 						if ( center >= bin.candidate ) {
 
-							expandByTriangleBounds( c, triangleBounds, bin.rightCacheBounds );
+							expandByTriangleBounds( c, primitiveBounds, bin.rightCacheBounds );
 
 						} else {
 
-							expandByTriangleBounds( c, triangleBounds, bin.leftCacheBounds );
+							expandByTriangleBounds( c, primitiveBounds, bin.leftCacheBounds );
 							bin.count ++;
 
 						}
@@ -195,7 +195,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 				// iterate over all center positions
 				for ( let c = cStart; c < cEnd; c += 6 ) {
 
-					const triCenter = triangleBounds[ c + 2 * a ];
+					const triCenter = primitiveBounds[ c + 2 * a ];
 					const relativeCenter = triCenter - axisLeft;
 
 					// in the partition function if the centroid lies on the split plane then it is
@@ -206,7 +206,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 					const bin = sahBins[ binIndex ];
 					bin.count ++;
 
-					expandByTriangleBounds( c, triangleBounds, bin.bounds );
+					expandByTriangleBounds( c, primitiveBounds, bin.bounds );
 
 				}
 
@@ -294,13 +294,13 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, triangl
 }
 
 // returns the average coordinate on the specified axis of the all the provided triangles
-function getAverage( triangleBounds, offset, count, axis ) {
+function getAverage( primitiveBounds, offset, count, axis ) {
 
 	let avg = 0;
-	const boundsOffset = triangleBounds.offset;
+	const boundsOffset = primitiveBounds.offset;
 	for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-		avg += triangleBounds[ ( i - boundsOffset ) * 6 + axis * 2 ];
+		avg += primitiveBounds[ ( i - boundsOffset ) * 6 + axis * 2 ];
 
 	}
 
