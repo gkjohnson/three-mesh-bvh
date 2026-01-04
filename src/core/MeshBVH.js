@@ -1,12 +1,11 @@
-import { BufferAttribute, Box3, FrontSide } from 'three';
+import { BufferAttribute, FrontSide } from 'three';
 import { CENTER, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
-import { buildPackedTree } from './build/buildTree.js';
+import { BVH } from './BVH.js';
 import { OrientedBox } from '../math/OrientedBox.js';
-import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { IS_LEAF } from './utils/nodeBufferUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -21,12 +20,10 @@ import { raycast_indirect } from './cast/raycast_indirect.generated.js';
 import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js';
 import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
 import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
-import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { bvhcast } from './cast/bvhcast.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
-const tempBox = /* @__PURE__ */ new Box3();
 export const DEFAULT_OPTIONS = {
 	strategy: CENTER,
 	maxDepth: 40,
@@ -39,7 +36,7 @@ export const DEFAULT_OPTIONS = {
 	range: null
 };
 
-export class MeshBVH {
+export class MeshBVH extends BVH {
 
 	static serialize( bvh, options = {} ) {
 
@@ -150,12 +147,6 @@ export class MeshBVH {
 
 	}
 
-	get indirect() {
-
-		return ! ! this._indirectBuffer;
-
-	}
-
 	constructor( geometry, options = {} ) {
 
 		if ( ! geometry.isBufferGeometry ) {
@@ -180,71 +171,10 @@ export class MeshBVH {
 
 		}, options );
 
-		if ( options.useSharedArrayBuffer && ! isSharedArrayBufferSupported() ) {
-
-			throw new Error( 'MeshBVH: SharedArrayBuffer is not available.' );
-
-		}
-
-		// retain references to the geometry so we can use them it without having to
-		// take a geometry reference in every function.
-		this.geometry = geometry;
-		this._roots = null;
-		this._indirectBuffer = null;
-		if ( ! options[ SKIP_GENERATION ] ) {
-
-			buildPackedTree( this, options );
-
-			if ( ! geometry.boundingBox && options.setBoundingBox ) {
-
-				geometry.boundingBox = this.getBoundingBox( new Box3() );
-
-			}
-
-		}
+		// call parent constructor which handles tree building and bounding box
+		super( geometry, options );
 
 		this.resolveTriangleIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
-
-	}
-
-	shiftTriangleOffsets( offset ) {
-
-		const indirectBuffer = this._indirectBuffer;
-		if ( indirectBuffer ) {
-
-			// the offsets are embedded in the indirect buffer
-			for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
-
-				indirectBuffer[ i ] += offset;
-
-			}
-
-		} else {
-
-			// offsets are embedded in the leaf nodes
-			const roots = this._roots;
-			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
-
-				const root = roots[ rootIndex ];
-				const uint32Array = new Uint32Array( root );
-				const uint16Array = new Uint16Array( root );
-				const totalNodes = root.byteLength / BYTES_PER_NODE;
-				for ( let node = 0; node < totalNodes; node ++ ) {
-
-					const node32Index = UINT32_PER_NODE * node;
-					const node16Index = 2 * node32Index;
-					if ( IS_LEAF( node16Index, uint16Array ) ) {
-
-						// offset value
-						uint32Array[ node32Index + 6 ] += offset;
-
-					}
-
-				}
-
-			}
-
-		}
 
 	}
 
@@ -252,43 +182,6 @@ export class MeshBVH {
 
 		const refitFunc = this.indirect ? refit_indirect : refit;
 		return refitFunc( this, nodeIndices );
-
-	}
-
-	traverse( callback, rootIndex = 0 ) {
-
-		const buffer = this._roots[ rootIndex ];
-		const uint32Array = new Uint32Array( buffer );
-		const uint16Array = new Uint16Array( buffer );
-		_traverse( 0 );
-
-		function _traverse( node32Index, depth = 0 ) {
-
-			const node16Index = node32Index * 2;
-			const isLeaf = IS_LEAF( node16Index, uint16Array );
-			if ( isLeaf ) {
-
-				const offset = uint32Array[ node32Index + 6 ];
-				const count = uint16Array[ node16Index + 14 ];
-				callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), offset, count );
-
-			} else {
-
-				const left = LEFT_NODE( node32Index );
-				const right = RIGHT_NODE( node32Index, uint32Array );
-				const splitAxis = SPLIT_AXIS( node32Index, uint32Array );
-				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
-
-				if ( ! stopTraversal ) {
-
-					_traverse( left, depth + 1 );
-					_traverse( right, depth + 1 );
-
-				}
-
-			}
-
-		}
 
 	}
 
@@ -576,22 +469,6 @@ export class MeshBVH {
 			minThreshold,
 			maxThreshold,
 		);
-
-	}
-
-	getBoundingBox( target ) {
-
-		target.makeEmpty();
-
-		const roots = this._roots;
-		roots.forEach( buffer => {
-
-			arrayToBox( 0, new Float32Array( buffer ), tempBox );
-			target.union( tempBox );
-
-		} );
-
-		return target;
 
 	}
 
