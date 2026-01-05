@@ -1,4 +1,5 @@
 export { MeshBVH } from './core/MeshBVH.js';
+export { PointsBVH } from './core/PointsBVH.js';
 export { MeshBVHHelper } from './objects/MeshBVHHelper.js';
 export { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED } from './core/Constants.js';
 export { getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds } from './debug/Debug.js';

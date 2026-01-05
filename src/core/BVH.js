@@ -51,6 +51,12 @@ export class BVH {
 
 	}
 
+	getPrimitiveStride() {
+
+		throw new Error( 'BVH: getPrimitiveStride() must be implemented by subclass' );
+
+	}
+
 	computePrimitiveBounds( /* offset, count */ ) {
 
 		throw new Error( 'BVH: computePrimitiveBounds() must be implemented by subclass' );

@@ -187,6 +187,12 @@ export class MeshBVH extends BVH {
 
 	}
 
+	getPrimitiveStride() {
+
+		return 3;
+
+	}
+
 	computePrimitiveBounds( offset, count ) {
 
 		const indirectBuffer = this._indirectBuffer;
@@ -199,13 +205,13 @@ export class MeshBVH extends BVH {
 		if ( options.indirect ) {
 
 			// For indirect mode, return ranges for generating the indirect buffer
-			return getRootIndexRanges( this.geometry, options.range );
+			return getRootIndexRanges( this.geometry, options.range, 3 );
 
 		} else {
 
 			// For direct mode, ensure index exists and return geometry ranges
 			ensureIndex( this.geometry, options );
-			return getRootIndexRanges( this.geometry, options.range );
+			return getRootIndexRanges( this.geometry, options.range, 3 );
 
 		}
 

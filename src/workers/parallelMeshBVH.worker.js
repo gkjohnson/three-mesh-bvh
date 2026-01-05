@@ -325,6 +325,11 @@ function createProxyBVH( geometry, indirectBuffer, triangleBounds ) {
 			return ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
 
 		},
+		getPrimitiveStride() {
+
+			return 3;
+
+		},
 		computePrimitiveBounds( offset, count ) {
 
 			return computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
@@ -334,12 +339,12 @@ function createProxyBVH( geometry, indirectBuffer, triangleBounds ) {
 
 			if ( options.indirect ) {
 
-				return getRootIndexRanges( geometry, options.range );
+				return getRootIndexRanges( geometry, options.range, 3 );
 
 			} else {
 
 				ensureIndex( geometry, options );
-				return getRootIndexRanges( geometry, options.range );
+				return getRootIndexRanges( geometry, options.range, 3 );
 
 			}
 

@@ -167,7 +167,8 @@ export function buildPackedTree( bvh, options ) {
 
 	} else {
 
-		const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
+		const stride = bvh.getPrimitiveStride();
+		const fullRange = getFullGeometryRange( geometry, options.range, stride )[ 0 ];
 		primitiveBounds = bvh.computePrimitiveBounds( fullRange.offset, fullRange.count );
 		geometryRanges = bvh.getBuildRanges( options );
 
