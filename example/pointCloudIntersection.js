@@ -136,21 +136,21 @@ function init() {
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();
 
-	window.addEventListener( 'resize', onResize, false );
+	window.addEventListener( 'resize', onResize );
+	window.addEventListener( 'pointermove', updateRaycaster );
 	onResize();
 
 }
 
-window.addEventListener( 'pointermove', ( event ) => {
+function updateRaycaster( e ) {
 
-	if ( ! pointsBVH ) {
+	mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 
-		return;
+}
 
-	}
+function updateRaycast() {
 
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 	raycaster.setFromCamera( mouse, camera );
 
 	const startTime = window.performance.now();
@@ -230,7 +230,7 @@ window.addEventListener( 'pointermove', ( event ) => {
 	const delta = window.performance.now() - startTime;
 	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
-}, false );
+}
 
 function onResize() {
 
@@ -252,6 +252,8 @@ function render() {
 		helper.visible = params.displayHelper;
 		raycaster.params.Points.threshold = params.raycastThreshold;
 
+		updateRaycast();
+
 	}
 
 	stats.begin();
@@ -260,7 +262,6 @@ function render() {
 	stats.end();
 
 }
-
 
 init();
 render();
