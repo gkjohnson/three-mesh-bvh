@@ -1,13 +1,23 @@
 import { Vector3 } from 'three';
 import { BVH } from './BVH.js';
 import { computePointBounds } from './build/computePointBounds.js';
-import { shapecast } from './cast/shapecast.js';
-import { BYTES_PER_NODE } from './Constants.js';
 import { getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
 import { iterateOverPoints } from './utils/pointIterationUtils.js';
 import { iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
 
 export class PointsBVH extends BVH {
+
+	get primitiveStride() {
+
+		return 3;
+
+	}
+
+	get resolvePointIndex() {
+
+		return this.resolvePrimitiveIndex;
+
+	}
 
 	constructor( geometry, options = {} ) {
 
@@ -26,20 +36,12 @@ export class PointsBVH extends BVH {
 		// call parent constructor which handles tree building and bounding box
 		super( geometry, options );
 
-		this.resolvePointIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
-
 	}
 
 	// Implement abstract methods from BVH base class
 	getPrimitiveCount() {
 
 		return this.geometry.attributes.position.count;
-
-	}
-
-	getPrimitiveStride() {
-
-		return 1;
 
 	}
 
@@ -69,73 +71,18 @@ export class PointsBVH extends BVH {
 
 	shapecast( callbacks ) {
 
+		// TODO: use pool for primitive
+		// TODO: avoid unnecessary "iterate over points" function
 		const point = new Vector3();
-		const iterateFunc = this.indirect ? iterateOverPoints_indirect : iterateOverPoints;
-		let {
-			boundsTraverseOrder,
-			intersectsBounds,
-			intersectsRange,
-			intersectsPoint,
-		} = callbacks;
-
-		// wrap the intersectsRange function
-		if ( intersectsRange && intersectsPoint ) {
-
-			const originalIntersectsRange = intersectsRange;
-			intersectsRange = ( offset, count, contained, depth, nodeIndex ) => {
-
-				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
-
-					return iterateFunc( offset, count, this, intersectsPoint, contained, depth, point );
-
-				}
-
-				return true;
-
-			};
-
-		} else if ( ! intersectsRange ) {
-
-			if ( intersectsPoint ) {
-
-				intersectsRange = ( offset, count, contained, depth ) => {
-
-					return iterateFunc( offset, count, this, intersectsPoint, contained, depth, point );
-
-				};
-
-			} else {
-
-				intersectsRange = ( offset, count, contained ) => {
-
-					return contained;
-
-				};
-
-			}
-
-		}
-
-		// run shapecast
-		let result = false;
-		let nodeOffset = 0;
-		const roots = this._roots;
-		for ( let i = 0, l = roots.length; i < l; i ++ ) {
-
-			const root = roots[ i ];
-			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
-
-			if ( result ) {
-
-				break;
-
-			}
-
-			nodeOffset += root.byteLength / BYTES_PER_NODE;
-
-		}
-
-		return result;
+		return this._shapecast(
+			iterateOverPoints,
+			iterateOverPoints_indirect,
+			point,
+			{
+				...callbacks,
+				intersectsPrimitive: callbacks.intersectsPoint,
+			},
+		);
 
 	}
 

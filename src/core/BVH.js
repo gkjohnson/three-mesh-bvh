@@ -4,6 +4,7 @@ import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
+import { shapecast as shapecastFunc } from './cast/shapecast.js';
 
 const tempBox = /* @__PURE__ */ new Box3();
 
@@ -12,6 +13,12 @@ export class BVH {
 	get indirect() {
 
 		return ! ! this._indirectBuffer;
+
+	}
+
+	get primitiveStride() {
+
+		return null;
 
 	}
 
@@ -26,6 +33,7 @@ export class BVH {
 		// retain references to the geometry so we can use them it without having to
 		// take a geometry reference in every function.
 		this.geometry = geometry;
+		this.resolvePrimitiveIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
 		this._roots = null;
 		this._indirectBuffer = null;
 
@@ -51,21 +59,24 @@ export class BVH {
 
 	}
 
-	getPrimitiveStride() {
-
-		throw new Error( 'BVH: getPrimitiveStride() must be implemented by subclass' );
-
-	}
-
 	computePrimitiveBounds( /* offset, count */ ) {
 
-		throw new Error( 'BVH: computePrimitiveBounds() must be implemented by subclass' );
+		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );
 
 	}
 
 	getBuildRanges( /* options */ ) {
 
-		throw new Error( 'BVH: getBuildRanges() must be implemented by subclass' );
+		throw new Error( 'BVH: getBuildRanges() not implemented' );
+
+	}
+
+	writePrimitiveBounds( /* primitiveIndex, targetIndex, boundsArray */ ) {
+
+		throw new Error( 'BVH: writePrimitiveBounds() not implemented' );
+
+		// TODO: add a "writeBounds" function that writes the bounds of a given primitive to an array
+		// at a given index. Then use it in "refit" and "buildTree"
 
 	}
 
@@ -160,6 +171,84 @@ export class BVH {
 		} );
 
 		return target;
+
+	}
+
+	// Base shapecast implementation that can be used by subclasses
+	// Parameters:
+	// - iterateFunc: function to iterate over primitives (direct mode)
+	// - iterateFuncIndirect: function to iterate over primitives (indirect mode)
+	// - intersectsPrimitiveCallbackName: name of the callback property (e.g., 'intersectsTriangle', 'intersectsPoint')
+	// - primitiveObject: the primitive object to pass to the iterate function (e.g., a Triangle or Vector3)
+	// - callbacks: the callbacks object passed by the user
+	_shapecast( iterateFunc, iterateFuncIndirect, primitiveObject, callbacks ) {
+
+		const selectedIterateFunc = this.indirect ? iterateFuncIndirect : iterateFunc;
+		let {
+			boundsTraverseOrder,
+			intersectsBounds,
+			intersectsRange,
+			intersectsPrimitive,
+		} = callbacks;
+
+		// wrap the intersectsRange function
+		if ( intersectsRange && intersectsPrimitive ) {
+
+			const originalIntersectsRange = intersectsRange;
+			intersectsRange = ( offset, count, contained, depth, nodeIndex ) => {
+
+				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
+
+					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, primitiveObject );
+
+				}
+
+				return true;
+
+			};
+
+		} else if ( ! intersectsRange ) {
+
+			if ( intersectsPrimitive ) {
+
+				intersectsRange = ( offset, count, contained, depth ) => {
+
+					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, primitiveObject );
+
+				};
+
+			} else {
+
+				intersectsRange = ( offset, count, contained ) => {
+
+					return contained;
+
+				};
+
+			}
+
+		}
+
+		// run shapecast
+		let result = false;
+		let nodeOffset = 0;
+		const roots = this._roots;
+		for ( let i = 0, l = roots.length; i < l; i ++ ) {
+
+			const root = roots[ i ];
+			result = shapecastFunc( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
+
+			if ( result ) {
+
+				break;
+
+			}
+
+			nodeOffset += root.byteLength / BYTES_PER_NODE;
+
+		}
+
+		return result;
 
 	}
 

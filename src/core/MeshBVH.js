@@ -3,7 +3,6 @@ import { CENTER, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Cons
 import { BVH } from './BVH.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
-import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { IS_LEAF } from './utils/nodeBufferUtils.js';
 import { getTriCount, getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
@@ -149,6 +148,18 @@ export class MeshBVH extends BVH {
 
 	}
 
+	get primitiveStride() {
+
+		return 3;
+
+	}
+
+	get resolveTriangleIndex() {
+
+		return this.resolvePrimitiveIndex;
+
+	}
+
 	constructor( geometry, options = {} ) {
 
 		if ( ! geometry.isBufferGeometry ) {
@@ -176,20 +187,12 @@ export class MeshBVH extends BVH {
 		// call parent constructor which handles tree building and bounding box
 		super( geometry, options );
 
-		this.resolveTriangleIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
-
 	}
 
 	// implement abstract methods from BVH base class
 	getPrimitiveCount() {
 
 		return getTriCount( this.geometry );
-
-	}
-
-	getPrimitiveStride() {
-
-		return 3;
 
 	}
 
@@ -286,71 +289,15 @@ export class MeshBVH extends BVH {
 	shapecast( callbacks ) {
 
 		const triangle = ExtendedTrianglePool.getPrimitive();
-		const iterateFunc = this.indirect ? iterateOverTriangles_indirect : iterateOverTriangles;
-		let {
-			boundsTraverseOrder,
-			intersectsBounds,
-			intersectsRange,
-			intersectsTriangle,
-		} = callbacks;
-
-		// wrap the intersectsRange function
-		if ( intersectsRange && intersectsTriangle ) {
-
-			const originalIntersectsRange = intersectsRange;
-			intersectsRange = ( offset, count, contained, depth, nodeIndex ) => {
-
-				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
-
-					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
-
-				}
-
-				return true;
-
-			};
-
-		} else if ( ! intersectsRange ) {
-
-			if ( intersectsTriangle ) {
-
-				intersectsRange = ( offset, count, contained, depth ) => {
-
-					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
-
-				};
-
-			} else {
-
-				intersectsRange = ( offset, count, contained ) => {
-
-					return contained;
-
-				};
-
+		const result = this._shapecast(
+			iterateOverTriangles,
+			iterateOverTriangles_indirect,
+			triangle,
+			{
+				...callbacks,
+				intersectsPrimitive: callbacks.intersectsTriangle,
 			}
-
-		}
-
-		// run shapecast
-		let result = false;
-		let nodeOffset = 0;
-		const roots = this._roots;
-		for ( let i = 0, l = roots.length; i < l; i ++ ) {
-
-			const root = roots[ i ];
-			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
-
-			if ( result ) {
-
-				break;
-
-			}
-
-			nodeOffset += root.byteLength / BYTES_PER_NODE;
-
-		}
-
+		);
 		ExtendedTrianglePool.releasePrimitive( triangle );
 
 		return result;

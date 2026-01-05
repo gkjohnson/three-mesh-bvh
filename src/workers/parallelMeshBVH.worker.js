@@ -320,14 +320,10 @@ function createProxyBVH( geometry, indirectBuffer, triangleBounds ) {
 	return {
 		_indirectBuffer: indirectBuffer,
 		geometry: geometry,
+		primitiveStride: 3,
 		getPrimitiveCount() {
 
 			return ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
-
-		},
-		getPrimitiveStride() {
-
-			return 3;
 
 		},
 		computePrimitiveBounds( offset, count ) {

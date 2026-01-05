@@ -147,3 +147,18 @@ export function getRootIndexRanges( geo, range, stride = 3 ) {
 	return ranges;
 
 }
+
+export function hasGroupGaps( geometry, range ) {
+
+	const vertexCount = getTriCount( geometry );
+	const groups = getRootIndexRanges( geometry, range )
+		.sort( ( a, b ) => a.offset - b.offset );
+
+	const finalGroup = groups[ groups.length - 1 ];
+	finalGroup.count = Math.min( vertexCount - finalGroup.offset, finalGroup.count );
+
+	let total = 0;
+	groups.forEach( ( { count } ) => total += count );
+	return vertexCount !== total;
+
+}
