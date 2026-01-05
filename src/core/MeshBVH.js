@@ -292,10 +292,10 @@ export class MeshBVH extends BVH {
 		const result = this._shapecast(
 			iterateOverTriangles,
 			iterateOverTriangles_indirect,
-			triangle,
 			{
 				...callbacks,
 				intersectsPrimitive: callbacks.intersectsTriangle,
+				scratchPrimitive: triangle,
 			}
 		);
 		ExtendedTrianglePool.releasePrimitive( triangle );

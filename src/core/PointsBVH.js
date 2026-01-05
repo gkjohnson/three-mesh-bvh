@@ -3,7 +3,7 @@ import { BVH } from './BVH.js';
 import { getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
 import { iterateOverPoints } from './utils/pointIterationUtils.js';
 import { iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
-import { FLOAT32_EPSILON } from '../Constants.js';
+import { FLOAT32_EPSILON } from './Constants.js';
 
 export class PointsBVH extends BVH {
 
@@ -128,10 +128,10 @@ export class PointsBVH extends BVH {
 		return this._shapecast(
 			iterateOverPoints,
 			iterateOverPoints_indirect,
-			point,
 			{
 				...callbacks,
 				intersectsPrimitive: callbacks.intersectsPoint,
+				scratchPrimitive: point,
 			},
 		);
 

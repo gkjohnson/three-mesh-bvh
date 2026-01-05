@@ -71,15 +71,6 @@ export class BVH {
 
 	}
 
-	writePrimitiveBounds( /* primitiveIndex, targetIndex, boundsArray */ ) {
-
-		throw new Error( 'BVH: writePrimitiveBounds() not implemented' );
-
-		// TODO: add a "writeBounds" function that writes the bounds of a given primitive to an array
-		// at a given index. Then use it in "refit" and "buildTree"
-
-	}
-
 	shiftTriangleOffsets( offset ) {
 
 		const indirectBuffer = this._indirectBuffer;
@@ -175,13 +166,9 @@ export class BVH {
 	}
 
 	// Base shapecast implementation that can be used by subclasses
-	// Parameters:
-	// - iterateFunc: function to iterate over primitives (direct mode)
-	// - iterateFuncIndirect: function to iterate over primitives (indirect mode)
-	// - intersectsPrimitiveCallbackName: name of the callback property (e.g., 'intersectsTriangle', 'intersectsPoint')
-	// - primitiveObject: the primitive object to pass to the iterate function (e.g., a Triangle or Vector3)
-	// - callbacks: the callbacks object passed by the user
-	_shapecast( iterateFunc, iterateFuncIndirect, primitiveObject, callbacks ) {
+	// TODO: see if we can get rid of "iterateFunc" here as well as the primitive so the function
+	// API aligns with the "shapecast" implementation
+	_shapecast( iterateFunc, iterateFuncIndirect, callbacks ) {
 
 		const selectedIterateFunc = this.indirect ? iterateFuncIndirect : iterateFunc;
 		let {
@@ -189,6 +176,7 @@ export class BVH {
 			intersectsBounds,
 			intersectsRange,
 			intersectsPrimitive,
+			scratchPrimitive,
 		} = callbacks;
 
 		// wrap the intersectsRange function
@@ -199,7 +187,7 @@ export class BVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, primitiveObject );
+					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
 
 				}
 
@@ -213,7 +201,7 @@ export class BVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, primitiveObject );
+					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
 
 				};
 
