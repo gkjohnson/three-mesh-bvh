@@ -4,7 +4,7 @@ import { BYTES_PER_NODE } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
-import { getFullGeometryRange, getRootIndexRanges } from '../core/build/geometryUtils.js';
+import { getFullGeometryRange, getRootIndexRanges, ensureIndex } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
 
 let isRunning = false;
@@ -83,10 +83,7 @@ self.onmessage = async ( { data } ) => {
 		await Promise.all( boundsPromises );
 
 		// create a proxy bvh structure
-		const proxyBvh = {
-			_indirectBuffer: indirectBuffer,
-			geometry: geometry,
-		};
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer, triangleBounds );
 
 		let totalProgress = 0;
 
@@ -209,10 +206,8 @@ self.onmessage = async ( { data } ) => {
 			options,
 		} = data;
 
-		const proxyBvh = {
-			_indirectBuffer: indirectBuffer,
-			geometry: getGeometry( index, position ),
-		};
+		const geometry = getGeometry( index, position );
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer, triangleBounds );
 
 		const localOptions = {
 			...DEFAULT_OPTIONS,
@@ -317,6 +312,39 @@ function getGeometry( index, position, groups = null ) {
 	}
 
 	return geometry;
+
+}
+
+function createProxyBVH( geometry, indirectBuffer, triangleBounds ) {
+
+	return {
+		_indirectBuffer: indirectBuffer,
+		geometry: geometry,
+		getPrimitiveCount() {
+
+			return ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
+
+		},
+		computePrimitiveBounds( offset, count ) {
+
+			return computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
+
+		},
+		getBuildRanges( options ) {
+
+			if ( options.indirect ) {
+
+				return getRootIndexRanges( geometry, options.range );
+
+			} else {
+
+				ensureIndex( geometry, options );
+				return getRootIndexRanges( geometry, options.range );
+
+			}
+
+		},
+	};
 
 }
 

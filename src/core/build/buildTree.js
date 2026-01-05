@@ -1,5 +1,5 @@
-import { ensureIndex, getFullGeometryRange, getRootIndexRanges, getTriCount } from './geometryUtils.js';
-import { getBounds, computeTriangleBounds } from './computeBoundsUtils.js';
+import { getFullGeometryRange } from './geometryUtils.js';
+import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
 import { BYTES_PER_NODE } from '../Constants.js';
@@ -56,7 +56,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	const partionFunc = indirect ? partition_indirect : partition;
 
 	// generate intermediate variables
-	const totalPrimitives = getTriCount( geometry );
+	const totalPrimitives = bvh.getPrimitiveCount();
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	let reachedMaxDepth = false;
 
@@ -159,19 +159,17 @@ export function buildPackedTree( bvh, options ) {
 	if ( options.indirect ) {
 
 		// construct an buffer that is indirectly sorts the triangles used for the BVH
-		const ranges = getRootIndexRanges( geometry, options.range );
+		const ranges = bvh.getBuildRanges( options );
 		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
 		bvh._indirectBuffer = indirectBuffer;
-		primitiveBounds = computeTriangleBounds( geometry, 0, indirectBuffer.length, indirectBuffer );
+		primitiveBounds = bvh.computePrimitiveBounds( 0, indirectBuffer.length );
 		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 	} else {
 
-		ensureIndex( geometry, options );
-
 		const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
-		primitiveBounds = computeTriangleBounds( geometry, fullRange.offset, fullRange.count );
-		geometryRanges = getRootIndexRanges( geometry, options.range );
+		primitiveBounds = bvh.computePrimitiveBounds( fullRange.offset, fullRange.count );
+		geometryRanges = bvh.getBuildRanges( options );
 
 	}
 
