@@ -1,11 +1,11 @@
 import { MathUtils, BufferGeometry, BufferAttribute } from 'three';
 import { WorkerPool } from './utils/WorkerPool.js';
-import { BYTES_PER_NODE } from '../core/Constants.js';
+import { BYTES_PER_NODE, SKIP_GENERATION } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
 import { getFullGeometryRange, getRootIndexRanges, ensureIndex } from '../core/build/geometryUtils.js';
-import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
+import { DEFAULT_OPTIONS, MeshBVH } from '../core/MeshBVH.js';
 
 let isRunning = false;
 let prevTime = 0;
@@ -83,7 +83,7 @@ self.onmessage = async ( { data } ) => {
 		await Promise.all( boundsPromises );
 
 		// create a proxy bvh structure
-		const proxyBvh = createProxyBVH( geometry, indirectBuffer, triangleBounds );
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		let totalProgress = 0;
 
@@ -207,7 +207,7 @@ self.onmessage = async ( { data } ) => {
 		} = data;
 
 		const geometry = getGeometry( index, position );
-		const proxyBvh = createProxyBVH( geometry, indirectBuffer, triangleBounds );
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		const localOptions = {
 			...DEFAULT_OPTIONS,
@@ -315,37 +315,11 @@ function getGeometry( index, position, groups = null ) {
 
 }
 
-function createProxyBVH( geometry, indirectBuffer, triangleBounds ) {
+function createProxyBVH( geometry, indirectBuffer ) {
 
-	return {
-		_indirectBuffer: indirectBuffer,
-		geometry: geometry,
-		primitiveStride: 3,
-		getPrimitiveCount() {
-
-			return ( geometry.index ? geometry.index.count : geometry.attributes.position.count ) / 3;
-
-		},
-		computePrimitiveBounds( offset, count ) {
-
-			return computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
-
-		},
-		getBuildRanges( options ) {
-
-			if ( options.indirect ) {
-
-				return getRootIndexRanges( geometry, options.range, 3 );
-
-			} else {
-
-				ensureIndex( geometry, options );
-				return getRootIndexRanges( geometry, options.range, 3 );
-
-			}
-
-		},
-	};
+	const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+	bvh._indirectBuffer = indirectBuffer;
+	return bvh;
 
 }
 
