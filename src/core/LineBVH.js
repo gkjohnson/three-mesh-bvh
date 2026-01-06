@@ -32,7 +32,7 @@ export class LineSegmentsBVH extends BVH {
 
 		} else {
 
-			return geometry.position.count / 2;
+			return geometry.attributes.position.count / 2;
 
 		}
 
@@ -219,7 +219,7 @@ export class LineBVH extends LineSegmentsBVH {
 
 		} else {
 
-			return geometry.position.count - 1;
+			return geometry.attributes.position.count - 1;
 
 		}
 

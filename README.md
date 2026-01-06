@@ -20,6 +20,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
+[Line segments intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
 [Geometry edge intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/edgeIntersect.html)
@@ -160,7 +162,7 @@ geometry.computeBoundsTree( { type: PointsBVH } );
 geometry.boundsTree = new PointsBVH( geometry );
 ```
 
-Each BVH type implements a core API including shapecast & raycastObject3D for its specific primitive type. See the [point cloud intersection example](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html) for a working demonstration. Some features like webworker-generation and serialization are not supported at the moment.
+Each BVH type implements a core API including shapecast & raycastObject3D for its specific primitive type. See the [point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html) & [line intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/lineIntersection.html) examples for a working demonstration. Some features like webworker-generation and serialization are not supported at the moment.
 
 ## Querying the BVH Directly
 

@@ -3,11 +3,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, LineSegmentsBVH, MeshBVHHelper,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, LineBVH, MeshBVHHelper,
 	SAH, CENTER, AVERAGE,
 } from 'three-mesh-bvh';
 
-THREE.LineSegments.prototype.raycast = acceleratedRaycast;
+THREE.Line.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
@@ -17,13 +17,12 @@ const params = {
 	displayParents: false,
 
 	useBVH: true,
-	complexity: 500000,
 	strategy: 0,
 	indirect: false,
 };
 
 let renderer, camera, scene, controls, stats, outputContainer;
-let lineSegments, helper;
+let line, helper;
 let raycaster, mouse;
 let sphereCollision;
 
@@ -46,7 +45,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 1.5, 1.5, 1.5 );
+	camera.position.set( 2, 1, 2 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -60,7 +59,7 @@ function init() {
 
 	// collision sphere
 	sphereCollision = new THREE.Mesh(
-		new THREE.SphereGeometry( 0.025, 16, 16 ),
+		new THREE.SphereGeometry( 0.01, 16, 16 ),
 		new THREE.MeshBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0.75 } )
 	);
 	sphereCollision.visible = false;
@@ -71,7 +70,16 @@ function init() {
 	document.body.appendChild( stats.dom );
 
 	// generate initial geometry
-	regenerateGeometry();
+	line = new THREE.Line( generateGeometry(), new THREE.LineBasicMaterial( {
+		vertexColors: true,
+		linewidth: 2,
+	} ) );
+
+	helper = new MeshBVHHelper( line, params.helperDepth );
+
+	scene.add( line, helper );
+
+	updateBVH();
 
 	// GUI
 	const gui = new GUI();
@@ -103,10 +111,9 @@ function init() {
 
 }
 
-function generateComplexCurve( segments ) {
+function generateCurve( segments ) {
 
 	const points = [];
-	const up = new THREE.Vector3( 0, 1, 0 );
 	const norm = new THREE.Vector3();
 	const tangent = new THREE.Vector3();
 	const v0 = new THREE.Vector3();
@@ -114,11 +121,21 @@ function generateComplexCurve( segments ) {
 
 	const getSurfacePoint = ( t, target ) => {
 
-		let x = Math.sin( t * Math.PI );
-		let y = Math.cos( t * Math.PI );
-		let z = 0;
+		// Torus knot parameters
+		const p = 3; // number of times the knot winds around the torus longitudinally
+		const q = 10; // number of times the knot winds around the torus meridionally
+		const R = 1.0; // major radius
+		const r = 0.4; // minor radius (tube radius)
 
-		target.set( x, y, z ).applyAxisAngle( up, 20 * t * 2 * Math.PI );
+		const theta = t * Math.PI * 2;
+		const phi = p * theta;
+		const psi = q * theta;
+
+		const x = ( R + r * Math.cos( psi ) ) * Math.cos( phi );
+		const y = ( R + r * Math.cos( psi ) ) * Math.sin( phi );
+		const z = r * Math.sin( psi );
+
+		target.set( x, y, z );
 
 	};
 
@@ -133,11 +150,11 @@ function generateComplexCurve( segments ) {
 		norm.copy( v0 ).normalize();
 		tangent.subVectors( v1, v0 ).normalize();
 
-		norm.applyAxisAngle( tangent, 2000 * t0 * 2 * Math.PI );
+		norm.applyAxisAngle( tangent, 1000 * t0 * 2 * Math.PI );
 
 		v0
 			// .multiplyScalar( Math.sin( t0 * Math.PI ) )
-			.addScaledVector( norm, 0.03 * ( Math.sin( 100 * t0 * Math.PI ) + 2 ) * Math.sin( t0 * Math.PI ) );
+			.addScaledVector( norm, 0.05 * ( Math.sin( 50 * t0 * Math.PI ) + 2 ) );
 		points.push( v0.clone() );
 
 	}
@@ -146,59 +163,34 @@ function generateComplexCurve( segments ) {
 
 }
 
-function regenerateGeometry() {
-
-	if ( lineSegments ) {
-
-		scene.remove( lineSegments );
-		lineSegments.geometry.dispose();
-		lineSegments.material.dispose();
-
-	}
-
-	if ( helper ) {
-
-		scene.remove( helper );
-
-	}
+function generateGeometry() {
 
 	const positions = [];
 	const colors = [];
 
-	// Generate single complex curve
-	const points = generateComplexCurve( params.complexity );
-
-	// Convert points to line segments with color gradient
+	const points = generateCurve( 1e6 );
 	for ( let i = 0; i < points.length - 1; i ++ ) {
 
 		const p1 = points[ i ];
 		const p2 = points[ i + 1 ];
 
-		// Create rainbow gradient along the curve
 		const t = i / ( points.length - 1 );
-		const color = new THREE.Color().setHSL( t, 1.0, 0.6 );
+		const color = new THREE.Color().setHSL( t * 3, 1.0, 0.6 );
 
 		positions.push( p1.x, p1.y, p1.z );
-		positions.push( p2.x, p2.y, p2.z );
+		// positions.push( p2.x, p2.y, p2.z );
 
 		colors.push( color.r, color.g, color.b );
-		colors.push( color.r, color.g, color.b );
+		// colors.push( color.r, color.g, color.b );
 
 	}
+
 
 	const geometry = new THREE.BufferGeometry();
 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
 	geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
 
-	const material = new THREE.LineBasicMaterial( {
-		vertexColors: true,
-		linewidth: 2,
-	} );
-
-	lineSegments = new THREE.LineSegments( geometry, material );
-	scene.add( lineSegments );
-
-	updateBVH();
+	return geometry;
 
 }
 
@@ -206,34 +198,22 @@ function updateBVH() {
 
 	if ( params.useBVH ) {
 
-		console.time( 'LineSegmentsBVH' );
-		lineSegments.geometry.computeBoundsTree( {
+		console.time( 'LineBVH' );
+		line.geometry.computeBoundsTree( {
 			strategy: parseInt( params.strategy ),
 			indirect: params.indirect,
-			type: LineSegmentsBVH,
+			type: LineBVH,
+			maxLeafTris: 1,
 		} );
-		console.timeEnd( 'LineSegmentsBVH' );
+		console.timeEnd( 'LineBVH' );
 
 	} else {
 
-		lineSegments.geometry.disposeBoundsTree();
+		line.geometry.disposeBoundsTree();
 
 	}
 
-	if ( helper ) {
-
-		scene.remove( helper );
-
-	}
-
-	if ( lineSegments.geometry.boundsTree ) {
-
-		helper = new MeshBVHHelper( lineSegments, params.helperDepth );
-		helper.displayParents = params.displayParents;
-		helper.visible = params.displayHelper;
-		scene.add( helper );
-
-	}
+	helper.update();
 
 }
 
@@ -243,7 +223,7 @@ function updateRaycast() {
 	raycaster.firstHitOnly = true;
 
 	const startTime = window.performance.now();
-	const intersects = raycaster.intersectObject( lineSegments );
+	const intersects = raycaster.intersectObject( line );
 	const delta = window.performance.now() - startTime;
 
 	const hit = intersects[ 0 ];
@@ -258,8 +238,7 @@ function updateRaycast() {
 
 	}
 
-	const totalSegments = lineSegments.geometry.attributes.position.count / 2;
-	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms | ${ totalSegments.toLocaleString() } line segments`;
+	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
 }
 
@@ -289,7 +268,7 @@ function render() {
 
 	}
 
-	lineSegments.rotation.y = performance.now() * 1e-4;
+	line.rotation.y = performance.now() * 1e-4;
 
 	updateRaycast();
 
