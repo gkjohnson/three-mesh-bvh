@@ -111,8 +111,8 @@ function init() {
 
 	const pointsFolder = gui.addFolder( 'points' );
 	pointsFolder.add( params, 'useBVH' ).onChange( updateBVH );
-	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( updateBVH );
 	pointsFolder.add( params, 'indirect' ).onChange( updateBVH );
+	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( updateBVH );
 	pointsFolder.add( params, 'pointSize', 0.001, 0.01, 0.001 );
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();
@@ -155,6 +155,7 @@ function updateRaycaster( e ) {
 function updateRaycast() {
 
 	raycaster.setFromCamera( mouse, camera );
+	raycaster.firstHitOnly = true;
 
 	const startTime = window.performance.now();
 	const intersects = raycaster.intersectObject( pointCloud );

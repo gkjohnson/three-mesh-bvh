@@ -20,24 +20,6 @@ export class PointsBVH extends BVH {
 
 	}
 
-	constructor( geometry, options = {} ) {
-
-		if ( ! geometry.index ) {
-
-			// use "indirect = true" by default since using an index attribute seems to have
-			// a performance impact
-			options = {
-				indirect: true,
-				...options,
-			};
-
-		}
-
-		// call parent constructor which handles tree building and bounding box
-		super( geometry, options );
-
-	}
-
 	// Implement abstract methods from BVH base class
 	getPrimitiveCount() {
 
