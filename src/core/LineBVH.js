@@ -92,6 +92,16 @@ export class LineBVH extends BVH {
 
 	shapecast( callbacks ) {
 
+		const line = _linePool.getPrimitive();
+		super.shapecast( {
+			...callbacks,
+			intersectsPrimitive: callbacks.intersectsLine,
+			scratchPrimitive: line,
+			iterateDirect: iterateOverLines,
+			iterateIndirect: iterateOverLines,
+		} );
+		_linePool.releasePrimitive( line );
+
 	}
 
 	raycastObject3D( object, raycaster, intersects = [] ) {
@@ -123,5 +133,47 @@ export class LineSegmentsBVH extends LineBVH {
 		return ( super.getPrimitiveCount() + 1 ) / 2;
 
 	}
+
+}
+
+function iterateOverLines(
+	offset,
+	count,
+	bvh,
+	intersectsPointFunc,
+	contained,
+	depth,
+	line
+) {
+
+	const { geometry, primitiveStride } = bvh;
+	const { index } = geometry;
+	const pos = geometry.attributes.position;
+	const primCount = bvh.getPrimitive();
+
+	for ( let i = offset, l = count + offset; i < l; i ++ ) {
+
+		const prim = bvh.resolvePointIndex( i );
+		let i0 = prim * primitiveStride;
+		let i1 = ( i0 + 1 ) % primCount;
+		if ( index ) {
+
+			i0 = index.getX( i0 );
+			i1 = index.getX( i1 );
+
+		}
+
+		line.start.fromBufferAttribute( pos, i0 );
+		line.end.fromBufferAttribute( pos, i1 );
+
+		if ( intersectsPointFunc( line, i, contained, depth ) ) {
+
+			return true;
+
+		}
+
+	}
+
+	return false;
 
 }

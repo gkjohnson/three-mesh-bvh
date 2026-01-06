@@ -308,6 +308,9 @@ export class MeshBVH extends BVH {
 				...callbacks,
 				intersectsPrimitive: callbacks.intersectsTriangle,
 				scratchPrimitive: triangle,
+
+				// TODO: is the performance significant enough for the added complexity here?
+				// can we just use one function?
 				iterateDirect: iterateOverTriangles,
 				iterateIndirect: iterateOverTriangles_indirect,
 			}

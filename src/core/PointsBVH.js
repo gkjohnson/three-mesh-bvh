@@ -1,7 +1,6 @@
 import { Vector3, Matrix4 } from 'three';
 import { BVH } from './BVH.js';
 import { getRootIndexRanges } from './build/geometryUtils.js';
-import { iterateOverPoints, iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 
@@ -106,7 +105,7 @@ export class PointsBVH extends BVH {
 				intersectsPrimitive: callbacks.intersectsPoint,
 				scratchPrimitive: point,
 				iterateDirect: iterateOverPoints,
-				iterateIndirect: iterateOverPoints_indirect,
+				iterateIndirect: iterateOverPoints,
 			},
 		);
 
@@ -172,6 +171,8 @@ export class PointsBVH extends BVH {
 
 						localClosestDistance = localDistanceToPoint;
 
+						index = this.resolvePointIndex( index );
+
 						closestHit = {
 							distance,
 							// TODO: this doesn't seem right?
@@ -206,5 +207,37 @@ export class PointsBVH extends BVH {
 		return intersects;
 
 	}
+
+}
+
+function iterateOverPoints(
+	offset,
+	count,
+	bvh,
+	intersectsPointFunc,
+	contained,
+	depth,
+	point
+) {
+
+	const { geometry } = bvh;
+	const { index } = geometry;
+	const pos = geometry.attributes.position;
+
+	for ( let i = offset, l = count + offset; i < l; i ++ ) {
+
+		const prim = bvh.resolvePointIndex( i );
+		const vertexIndex = index ? index.array[ prim ] : prim;
+		point.fromBufferAttribute( pos, vertexIndex );
+
+		if ( intersectsPointFunc( point, i, contained, depth ) ) {
+
+			return true;
+
+		}
+
+	}
+
+	return false;
 
 }
