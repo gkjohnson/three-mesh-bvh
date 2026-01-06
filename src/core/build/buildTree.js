@@ -4,8 +4,7 @@ import { getOptimalSplit } from './splitUtils.js';
 import { BVHNode } from '../BVHNode.js';
 import { BYTES_PER_NODE } from '../Constants.js';
 
-import { partition } from './sortUtils.generated.js';
-import { partition_indirect } from './sortUtils_indirect.generated.js';
+import { partition } from './sortUtils.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
 // construct a new buffer that points to the set of triangles represented by the given ranges
@@ -51,8 +50,9 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	} = options;
 	const indirectBuffer = bvh._indirectBuffer;
 	const geometry = bvh.geometry;
-	const indexArray = geometry.index ? geometry.index.array : null;
-	const partionFunc = indirect ? partition_indirect : partition;
+
+	const partitionBuffer = indirect ? indirectBuffer : geometry.index.array;
+	const partitionStride = indirect ? 1 : bvh.primitiveStride;
 
 	// generate intermediate variables
 	const totalPrimitives = bvh.getPrimitiveCount();
@@ -110,7 +110,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 
 		}
 
-		const splitOffset = partionFunc( indirectBuffer, indexArray, primitiveBounds, offset, count, split );
+		const splitOffset = partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
 
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
