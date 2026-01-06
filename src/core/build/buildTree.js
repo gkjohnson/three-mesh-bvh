@@ -154,11 +154,11 @@ export function buildPackedTree( bvh, options ) {
 
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
 	const geometry = bvh.geometry;
-	let primitiveBounds, geometryRanges;
+	let primitiveBounds, rootRanges;
 	if ( options.indirect ) {
 
 		// construct an buffer that is indirectly sorts the triangles used for the BVH
-		const ranges = bvh.getBuildRanges( options );
+		const ranges = bvh.getRootRanges( options );
 		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
 		bvh._indirectBuffer = indirectBuffer;
 
@@ -168,25 +168,30 @@ export function buildPackedTree( bvh, options ) {
 		primitiveBounds.offset = 0;
 		bvh.computePrimitiveBounds( 0, indirectBuffer.length, primitiveBounds );
 
-		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
+		rootRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 	} else {
 
 		ensureIndex( geometry, options );
 
-		const stride = bvh.primitiveStride;
-		const fullRange = getFullGeometryRange( geometry, options.range, stride )[ 0 ];
+		rootRanges = bvh.getRootRanges( options );
+
+		const firstRange = rootRanges[ 0 ];
+		const lastRange = rootRanges[ rootRanges.length - 1 ];
+		const fullRange = {
+			offset: firstRange.offset,
+			count: lastRange.offset + lastRange.count - firstRange.offset,
+		};
 
 		primitiveBounds = new Float32Array( 6 * fullRange.count );
 		primitiveBounds.offset = fullRange.offset;
 		bvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
-		geometryRanges = bvh.getBuildRanges( options );
 
 	}
 
 	// Build BVH roots
-	bvh._roots = geometryRanges.map( range => {
+	bvh._roots = rootRanges.map( range => {
 
 		const root = buildTree( bvh, primitiveBounds, range.offset, range.count, options );
 		const nodeCount = countNodes( root );

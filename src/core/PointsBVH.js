@@ -27,8 +27,8 @@ export class PointsBVH extends BVH {
 			// use "indirect = true" by default since using an index attribute seems to have
 			// a performance impact
 			options = {
-				...options,
 				indirect: true,
+				...options,
 			};
 
 		}

@@ -5,7 +5,7 @@ import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUt
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
-import { getRootIndexRanges } from './build/geometryUtils.js';
+import { ensureIndex, getRootIndexRanges } from './build/geometryUtils.js';
 
 const tempBox = /* @__PURE__ */ new Box3();
 
@@ -81,7 +81,7 @@ export class BVH {
 
 	}
 
-	getBuildRanges( options ) {
+	getRootRanges( options ) {
 
 		// TODO: can we avoid passing options in here
 		return getRootIndexRanges( this.geometry, options.range, this.primitiveStride );
