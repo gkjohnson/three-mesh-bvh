@@ -1,7 +1,7 @@
 import { ensureIndex, getFullGeometryRange } from './geometryUtils.js';
 import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
-import { MeshBVHNode } from '../MeshBVHNode.js';
+import { BVHNode } from '../BVHNode.js';
 import { BYTES_PER_NODE } from '../Constants.js';
 
 import { partition } from './sortUtils.generated.js';
@@ -60,7 +60,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	let reachedMaxDepth = false;
 
-	const root = new MeshBVHNode();
+	const root = new BVHNode();
 	getBounds( primitiveBounds, offset, count, root.boundingData, cacheCentroidBoundingData );
 	splitNode( root, offset, count, cacheCentroidBoundingData );
 	return root;
@@ -84,8 +84,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 			reachedMaxDepth = true;
 			if ( verbose ) {
 
-				console.warn( `MeshBVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
-				console.warn( geometry );
+				console.warn( `BVH: Max depth of ${ maxDepth } reached when generating BVH. Consider increasing maxDepth.` );
 
 			}
 
@@ -126,7 +125,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 			node.splitAxis = split.axis;
 
 			// create the left child and compute its bounding box
-			const left = new MeshBVHNode();
+			const left = new BVHNode();
 			const lstart = offset;
 			const lcount = splitOffset - offset;
 			node.left = left;
@@ -135,7 +134,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
 
 			// repeat for right
-			const right = new MeshBVHNode();
+			const right = new BVHNode();
 			const rstart = splitOffset;
 			const rcount = count - lcount;
 			node.right = right;
