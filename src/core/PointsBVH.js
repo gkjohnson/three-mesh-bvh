@@ -9,7 +9,7 @@ export class PointsBVH extends BVH {
 
 	get primitiveStride() {
 
-		return 3;
+		return 1;
 
 	}
 
