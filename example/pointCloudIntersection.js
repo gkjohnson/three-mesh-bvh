@@ -4,11 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper, PointsBVH, INTERSECTED, NOT_INTERSECTED,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper, PointsBVH,
 	SAH, CENTER, AVERAGE,
 } from 'three-mesh-bvh';
 
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.Points.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
@@ -113,25 +113,9 @@ function init() {
 	helperFolder.open();
 
 	const pointsFolder = gui.addFolder( 'points' );
-	pointsFolder.add( params, 'useBVH' );
-	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( v => {
-
-		console.time( 'PointsBVH' );
-		pointsBVH = new PointsBVH( pointCloud.geometry, { strategy: parseInt( v ), indirect: params.indirect } );
-		pointCloud.geometry.boundsTree = pointsBVH;
-		console.timeEnd( 'PointsBVH' );
-		helper.update();
-
-	} );
-	pointsFolder.add( params, 'indirect' ).onChange( v => {
-
-		console.time( 'PointsBVH' );
-		pointsBVH = new PointsBVH( pointCloud.geometry, { strategy: params.strategy, indirect: v } );
-		pointCloud.geometry.boundsTree = pointsBVH;
-		console.timeEnd( 'PointsBVH' );
-		helper.update();
-
-	} );
+	pointsFolder.add( params, 'useBVH' ).onChange( updateBVH );
+	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( updateBVH );
+	pointsFolder.add( params, 'indirect' ).onChange( updateBVH );
 	pointsFolder.add( params, 'pointSize', 0.001, 0.01, 0.001 );
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();
@@ -139,6 +123,19 @@ function init() {
 	window.addEventListener( 'resize', onResize );
 	window.addEventListener( 'pointermove', updateRaycaster );
 	onResize();
+
+}
+
+function updateBVH() {
+
+	console.time( 'PointsBVH' );
+	pointCloud.geometry.computeBoundsTree( {
+		strategy: parseInt( params.strategy ),
+		indirect: params.indirect,
+		type: PointsBVH,
+	} );
+	console.timeEnd( 'PointsBVH' );
+	helper.update();
 
 }
 
@@ -154,35 +151,16 @@ function updateRaycast() {
 	raycaster.setFromCamera( mouse, camera );
 
 	const startTime = window.performance.now();
-	if ( params.useBVH ) {
+	const intersects = raycaster.intersectObject( pointCloud );
+	const hit = intersects[ 0 ];
+	if ( hit ) {
 
-		sphereCollision.visible = false;
-
-		const intersects = pointsBVH.raycastObject3D( raycaster, pointCloud );
-		intersects.sort( ( a, b ) => a.distance - b.distance );
-
-		const hit = intersects[ 0 ];
-		if ( hit ) {
-
-			sphereCollision.position.set( hit.point.x, hit.point.y, hit.point.z );
-			sphereCollision.visible = true;
-
-		}
+		sphereCollision.position.copy( hit.point );
+		sphereCollision.visible = true;
 
 	} else {
 
-		const intersects = raycaster.intersectObject( pointCloud, true );
-		const hit = intersects[ 0 ];
-		if ( hit ) {
-
-			sphereCollision.position.copy( hit.point );
-			sphereCollision.visible = true;
-
-		} else {
-
-			sphereCollision.visible = false;
-
-		}
+		sphereCollision.visible = false;
 
 	}
 

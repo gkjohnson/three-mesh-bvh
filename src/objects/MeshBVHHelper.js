@@ -5,6 +5,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 const boundingBox = /* @__PURE__ */ new Box3();
 const matrix = /* @__PURE__ */ new Matrix4();
 
+// TODO: rename to "BVHHelper"
 class MeshBVHRootHelper extends Object3D {
 
 	get isMesh() {

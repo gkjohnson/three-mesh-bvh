@@ -40,7 +40,7 @@ export class PointsBVH extends BVH {
 
 	}
 
-	computePrimitiveBounds( offset, count, targetBuffer = null ) {
+	computePrimitiveBounds( offset, count, targetBuffer ) {
 
 		const indirectBuffer = this._indirectBuffer;
 		const { geometry } = this;
@@ -104,7 +104,6 @@ export class PointsBVH extends BVH {
 
 	raycastObject3D( object, raycaster, intersects = [] ) {
 
-		// TODO: handle firstHitOnly here correctly
 		_inverseMatrix.copy( object.matrixWorld ).invert();
 
 		const threshold = raycaster.params.Points.threshold;
@@ -114,6 +113,7 @@ export class PointsBVH extends BVH {
 		const { geometry } = this;
 		const { firstHitOnly } = raycaster;
 		const ray = raycaster.ray.clone().applyMatrix4( _inverseMatrix );
+		let closestHit = null;
 		let localClosestDistance = Infinity;
 		this.shapecast( {
 			boundsTraverseOrder: box => {
@@ -159,7 +159,7 @@ export class PointsBVH extends BVH {
 
 						localClosestDistance = localDistanceToPoint;
 
-						intersects.push( {
+						closestHit = {
 							distance,
 							// TODO: this doesn't seem right?
 							distanceToRay: Math.sqrt( rayPointDistanceSq ),
@@ -169,7 +169,13 @@ export class PointsBVH extends BVH {
 							faceIndex: null,
 							barycoord: null,
 							object,
-						} );
+						};
+
+						if ( ! raycaster.firstHitOnly ) {
+
+							intersects.push( closestHit );
+
+						}
 
 					}
 
@@ -177,6 +183,12 @@ export class PointsBVH extends BVH {
 
 			},
 		} );
+
+		if ( raycaster.firstHitOnly ) {
+
+			intersects.push( closestHit );
+
+		}
 
 		return intersects;
 
