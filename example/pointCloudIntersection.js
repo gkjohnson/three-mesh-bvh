@@ -66,26 +66,22 @@ function init() {
 	loader
 		.load( plyPath, geometry => {
 
-			geometry.center();
-
-			const material = new THREE.PointsMaterial( {
+			// create point cloud
+			pointCloud = new THREE.Points( geometry, new THREE.PointsMaterial( {
 				size: params.pointSize,
 				vertexColors: true,
-			} );
-			pointCloud = new THREE.Points( geometry, material );
-			pointCloud.matrixAutoUpdate = false;
+			} ) );
 
-			scene.add( pointCloud );
+			// center
+			geometry.computeBoundingBox();
+			geometry.boundingBox.getCenter( pointCloud.position ).multiplyScalar( - 1 );
 
-			// Create PointsBVH
-			console.time( 'PointsBVH' );
-			pointsBVH = new PointsBVH( geometry, { strategy: params.strategy, indirect: params.indirect } );
-			console.timeEnd( 'PointsBVH' );
-
-			// Assign boundsTree to geometry and create helper
-			geometry.boundsTree = pointsBVH;
+			// create helper
 			helper = new MeshBVHHelper( pointCloud, params.depth );
-			scene.add( helper );
+
+			scene.add( pointCloud, helper );
+
+			updateBVH();
 
 		} );
 
@@ -128,13 +124,22 @@ function init() {
 
 function updateBVH() {
 
-	console.time( 'PointsBVH' );
-	pointCloud.geometry.computeBoundsTree( {
-		strategy: parseInt( params.strategy ),
-		indirect: params.indirect,
-		type: PointsBVH,
-	} );
-	console.timeEnd( 'PointsBVH' );
+	if ( params.useBVH ) {
+
+		console.time( 'PointsBVH' );
+		pointCloud.geometry.computeBoundsTree( {
+			strategy: parseInt( params.strategy ),
+			indirect: params.indirect,
+			type: PointsBVH,
+		} );
+		console.timeEnd( 'PointsBVH' );
+
+	} else {
+
+		pointCloud.geometry.disposeBoundsTree();
+
+	}
+
 	helper.update();
 
 }
