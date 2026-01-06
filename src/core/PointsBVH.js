@@ -104,6 +104,7 @@ export class PointsBVH extends BVH {
 
 	raycastObject3D( object, raycaster, intersects = [] ) {
 
+		// TODO: handle firstHitOnly here correctly
 		_inverseMatrix.copy( object.matrixWorld ).invert();
 
 		const threshold = raycaster.params.Points.threshold;

@@ -114,7 +114,8 @@ function acceleratedMeshRaycast( raycaster, intersects ) {
 
 export function computeBoundsTree( options = {} ) {
 
-	this.boundsTree = new MeshBVH( this, options );
+	const { type = MeshBVH } = options;
+	this.boundsTree = new type( this, options );
 	return this.boundsTree;
 
 }
