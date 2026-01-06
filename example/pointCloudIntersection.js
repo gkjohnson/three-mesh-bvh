@@ -158,57 +158,16 @@ function updateRaycast() {
 
 		sphereCollision.visible = false;
 
-		const inverseMatrix = new THREE.Matrix4();
-		inverseMatrix.copy( pointCloud.matrixWorld ).invert();
-		raycaster.ray.applyMatrix4( inverseMatrix );
+		const intersects = pointsBVH.raycastObject3D( raycaster, pointCloud );
+		intersects.sort( ( a, b ) => a.distance - b.distance );
 
-		const threshold = raycaster.params.Points.threshold;
-		const localThreshold = threshold / ( ( pointCloud.scale.x + pointCloud.scale.y + pointCloud.scale.z ) / 3 );
-		const localThresholdSq = localThreshold * localThreshold;
+		const hit = intersects[ 0 ];
+		if ( hit ) {
 
-		const { ray } = raycaster;
-		let closestDistance = Infinity;
-		pointsBVH.shapecast( {
-			boundsTraverseOrder: box => {
+			sphereCollision.position.set( hit.point.x, hit.point.y, hit.point.z );
+			sphereCollision.visible = true;
 
-				// traverse the closer bounds first.
-				return box.distanceToPoint( ray.origin );
-
-			},
-			intersectsBounds: ( box, isLeaf, score ) => {
-
-				// if we've already found a point that's closer then the full bounds then
-				// don't traverse further.
-				if ( score > closestDistance ) {
-
-					return NOT_INTERSECTED;
-
-				}
-
-				box.expandByScalar( localThreshold );
-				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
-
-			},
-			intersectsPoint: ( point ) => {
-
-				const distancesToRaySq = ray.distanceSqToPoint( point );
-				if ( distancesToRaySq < localThresholdSq ) {
-
-					// track the closest found point distance so we can early out traversal and only
-					// use the closest point along the ray.
-					const distanceToPoint = ray.origin.distanceTo( point );
-					if ( distanceToPoint < closestDistance ) {
-
-						closestDistance = distanceToPoint;
-						sphereCollision.position.set( point.x, point.y, point.z ).applyMatrix4( pointCloud.matrixWorld );
-						sphereCollision.visible = true;
-
-					}
-
-				}
-
-			},
-		} );
+		}
 
 	} else {
 

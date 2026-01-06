@@ -1,9 +1,9 @@
-import { Vector3 } from 'three';
+import { Vector3, Matrix4 } from 'three';
 import { BVH } from './BVH.js';
 import { getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
 import { iterateOverPoints } from './utils/pointIterationUtils.js';
 import { iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
-import { FLOAT32_EPSILON } from './Constants.js';
+import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 
 export class PointsBVH extends BVH {
 
@@ -20,18 +20,6 @@ export class PointsBVH extends BVH {
 	}
 
 	constructor( geometry, options = {} ) {
-
-		if ( ! geometry.isBufferGeometry ) {
-
-			throw new Error( 'PointsBVH: Only BufferGeometries are supported.' );
-
-		}
-
-		if ( ! geometry.attributes.position ) {
-
-			throw new Error( 'PointsBVH: Geometry must have a position attribute.' );
-
-		}
 
 		// call parent constructor which handles tree building and bounding box
 		super( geometry, {
@@ -134,6 +122,70 @@ export class PointsBVH extends BVH {
 				scratchPrimitive: point,
 			},
 		);
+
+	}
+
+	raycastObject3D( object, raycaster, intersects = [] ) {
+
+		// TODO: handle "firstHitOnly" correctly
+		// TODO: use scratch variables
+		const inverseMatrix = new Matrix4();
+		inverseMatrix.copy( object.matrixWorld ).invert();
+
+		const threshold = raycaster.params.Points.threshold;
+		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
+		const localThresholdSq = localThreshold * localThreshold;
+
+		const { firstHitOnly } = raycaster;
+		const ray = raycaster.ray.clone().applyMatrix4( inverseMatrix );
+		let closestDistance = Infinity;
+		this.shapecast( {
+			boundsTraverseOrder: box => {
+
+				// traverse the closer bounds first.
+				return box.distanceToPoint( ray.origin );
+
+			},
+			intersectsBounds: ( box, isLeaf, score ) => {
+
+				// if we've already found a point that's closer then the full bounds then
+				// don't traverse further.
+				if ( score > closestDistance && firstHitOnly ) {
+
+					return NOT_INTERSECTED;
+
+				}
+
+				box.expandByScalar( localThreshold );
+				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+
+			},
+			intersectsPoint: point => {
+
+				const distancesToRaySq = ray.distanceSqToPoint( point );
+				if ( distancesToRaySq < localThresholdSq ) {
+
+					// track the closest found point distance so we can early out traversal and only
+					// use the closest point along the ray.
+					const distanceToPoint = ray.origin.distanceTo( point );
+					if ( distanceToPoint < closestDistance || firstHitOnly ) {
+
+						closestDistance = distanceToPoint;
+
+						point.applyMatrix4( object.matrixWorld );
+						intersects.push( {
+							point: point.clone(),
+							distance: raycaster.ray.origin.distanceTo( point ),
+						} );
+
+					}
+
+				}
+
+			},
+		} );
+
+		return intersects;
 
 	}
 

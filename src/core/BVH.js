@@ -1,5 +1,5 @@
 import { Box3 } from 'three';
-import { BYTES_PER_NODE, UINT32_PER_NODE, SKIP_GENERATION } from './Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE, SKIP_GENERATION, CENTER } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
@@ -7,6 +7,20 @@ import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 
 const tempBox = /* @__PURE__ */ new Box3();
+
+export const DEFAULT_OPTIONS = {
+	strategy: CENTER,
+	maxDepth: 40,
+	maxLeafTris: 10,
+	useSharedArrayBuffer: false,
+	setBoundingBox: true,
+	onProgress: null,
+	indirect: false,
+	verbose: true,
+	range: null,
+	[ SKIP_GENERATION ]: false,
+};
+
 
 export class BVH {
 
@@ -24,6 +38,16 @@ export class BVH {
 
 	constructor( geometry, options = {} ) {
 
+		if ( ! geometry.isBufferGeometry ) {
+
+			throw new Error( 'BVH: Only BufferGeometries are supported.' );
+
+		} else if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
+
+			throw new Error( 'BVH: InterleavedBufferAttribute is not supported for the index attribute.' );
+
+		}
+
 		if ( options.useSharedArrayBuffer && ! isSharedArrayBufferSupported() ) {
 
 			throw new Error( 'BVH: SharedArrayBuffer is not available.' );
@@ -36,6 +60,11 @@ export class BVH {
 		this.resolvePrimitiveIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
 		this._roots = null;
 		this._indirectBuffer = null;
+
+		options = {
+			...DEFAULT_OPTIONS,
+			...options,
+		};
 
 		// build the BVH unless we're deserializing
 		if ( ! options[ SKIP_GENERATION ] ) {
@@ -68,6 +97,12 @@ export class BVH {
 	getBuildRanges( /* options */ ) {
 
 		throw new Error( 'BVH: getBuildRanges() not implemented' );
+
+	}
+
+	raycastObject3D( /* object, raycaster, intersects = [] */ ) {
+
+		throw new Error( 'BVH: raycastObject3D() not implemented' );
 
 	}
 

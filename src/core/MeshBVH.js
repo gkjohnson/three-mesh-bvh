@@ -160,35 +160,6 @@ export class MeshBVH extends BVH {
 
 	}
 
-	constructor( geometry, options = {} ) {
-
-		if ( ! geometry.isBufferGeometry ) {
-
-			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
-
-		} else if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
-
-			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the index attribute.' );
-
-		}
-
-		// default options
-		options = Object.assign( {
-
-			...DEFAULT_OPTIONS,
-
-			// undocumented options
-
-			// Whether to skip generating the tree. Used for deserialization.
-			[ SKIP_GENERATION ]: false,
-
-		}, options );
-
-		// call parent constructor which handles tree building and bounding box
-		super( geometry, options );
-
-	}
-
 	// implement abstract methods from BVH base class
 	getPrimitiveCount() {
 
@@ -198,6 +169,7 @@ export class MeshBVH extends BVH {
 
 	computePrimitiveBounds( offset, count, target = null ) {
 
+		// TODO: move the function here
 		const indirectBuffer = this._indirectBuffer;
 		return computeTriangleBounds( this.geometry, offset, count, indirectBuffer, target );
 
