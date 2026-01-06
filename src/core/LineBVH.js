@@ -1,4 +1,9 @@
+import { Matrix4, Line3 } from 'three';
 import { BVH } from './BVH.js';
+import { PrimitivePool } from '../utils/PrimitivePool.js';
+
+const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
 
 export class LineBVH extends BVH {
 

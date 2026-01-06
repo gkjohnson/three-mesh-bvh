@@ -189,16 +189,19 @@ export class BVH {
 	// Base shapecast implementation that can be used by subclasses
 	// TODO: see if we can get rid of "iterateFunc" here as well as the primitive so the function
 	// API aligns with the "shapecast" implementation
-	_shapecast( iterateFunc, iterateFuncIndirect, callbacks ) {
+	shapecast( callbacks ) {
 
-		const selectedIterateFunc = this.indirect ? iterateFuncIndirect : iterateFunc;
 		let {
 			boundsTraverseOrder,
 			intersectsBounds,
 			intersectsRange,
 			intersectsPrimitive,
 			scratchPrimitive,
+			iterateDirect,
+			iterateIndirect,
 		} = callbacks;
+
+		const selectedIterateFunc = this.indirect ? iterateIndirect : iterateDirect;
 
 		// wrap the intersectsRange function
 		if ( intersectsRange && intersectsPrimitive ) {

@@ -1,11 +1,12 @@
 import { Vector3, Matrix4 } from 'three';
 import { BVH } from './BVH.js';
 import { getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
-import { iterateOverPoints } from './utils/pointIterationUtils.js';
-import { iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
+import { iterateOverPoints, iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { PrimitivePool } from '../utils/PrimitivePool.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _pointPool = /* @__PURE__ */ new PrimitivePool( () => new Vector3() );
 
 export class PointsBVH extends BVH {
 
@@ -23,13 +24,19 @@ export class PointsBVH extends BVH {
 
 	constructor( geometry, options = {} ) {
 
-		// call parent constructor which handles tree building and bounding box
-		super( geometry, {
-			...options,
+		if ( ! geometry.index ) {
 
-			// TODO: remove any "indirect=false" logic from the class once behavior is decided
-			indirect: true,
-		} );
+			// use "indirect = true" by default since using an index attribute seems to have
+			// a performance impact
+			options = {
+				...options,
+				indirect: true,
+			};
+
+		}
+
+		// call parent constructor which handles tree building and bounding box
+		super( geometry, options );
 
 	}
 
@@ -87,18 +94,20 @@ export class PointsBVH extends BVH {
 
 	shapecast( callbacks ) {
 
-		// TODO: use pool for primitive
 		// TODO: avoid unnecessary "iterate over points" function
-		const point = new Vector3();
-		return this._shapecast(
-			iterateOverPoints,
-			iterateOverPoints_indirect,
+		const point = _pointPool.getPrimitive();
+		const result = super.shapecast(
 			{
 				...callbacks,
 				intersectsPrimitive: callbacks.intersectsPoint,
 				scratchPrimitive: point,
+				iterateDirect: iterateOverPoints,
+				iterateIndirect: iterateOverPoints_indirect,
 			},
 		);
+
+		_pointPool.releasePrimitive( point );
+		return result;
 
 	}
 
