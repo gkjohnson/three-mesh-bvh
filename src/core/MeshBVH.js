@@ -1,4 +1,4 @@
-import { BufferAttribute, FrontSide } from 'three';
+import { BufferAttribute, FrontSide, Ray, Vector3, Matrix4 } from 'three';
 import { CENTER, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
 import { BVH } from './BVH.js';
 import { OrientedBox } from '../math/OrientedBox.js';
@@ -23,8 +23,14 @@ import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.
 import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { bvhcast } from './cast/bvhcast.js';
+import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
 
 const obb = /* @__PURE__ */ new OrientedBox();
+const ray = /* @__PURE__ */ new Ray();
+const direction = /* @__PURE__ */ new Vector3();
+const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
+const _worldScale = /* @__PURE__ */ new Vector3();
+
 export const DEFAULT_OPTIONS = {
 	strategy: CENTER,
 	maxDepth: 40,
@@ -189,6 +195,55 @@ export class MeshBVH extends BVH {
 			return getRootIndexRanges( this.geometry, options.range, 3 );
 
 		}
+
+	}
+
+	raycastObject3D( object, raycaster, intersects = [] ) {
+
+		const { material } = object;
+		if ( material === undefined ) {
+
+			return;
+
+		}
+
+		tmpInverseMatrix.copy( object.matrixWorld ).invert();
+		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
+
+		_worldScale.setFromMatrixScale( object.matrixWorld );
+		direction.copy( ray.direction ).multiply( _worldScale );
+
+		const scaleFactor = direction.length();
+		const near = raycaster.near / scaleFactor;
+		const far = raycaster.far / scaleFactor;
+
+		if ( raycaster.firstHitOnly === true ) {
+
+			let hit = this.raycastFirst( ray, material, near, far );
+			hit = convertRaycastIntersect( hit, object, raycaster );
+			if ( hit ) {
+
+				intersects.push( hit );
+
+			}
+
+		} else {
+
+			const hits = this.raycast( ray, material, near, far );
+			for ( let i = 0, l = hits.length; i < l; i ++ ) {
+
+				const hit = convertRaycastIntersect( hits[ i ], object, raycaster );
+				if ( hit ) {
+
+					intersects.push( hit );
+
+				}
+
+			}
+
+		}
+
+		return intersects;
 
 	}
 
