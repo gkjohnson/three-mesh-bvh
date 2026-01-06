@@ -17,6 +17,12 @@ export class LineSegmentsBVH extends BVH {
 
 	}
 
+	get resolveLineIndex() {
+
+		return this.resolvePrimitiveIndex;
+
+	}
+
 	getPrimitiveCount() {
 
 		const { geometry } = this;
@@ -96,10 +102,9 @@ export class LineSegmentsBVH extends BVH {
 		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		const threshold = raycaster.params.Line.threshold;
-		const localThreshold = threshold / ( ( this.scale.x + this.scale.y + this.scale.z ) / 3 );
+		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
 		const localThresholdSq = localThreshold * localThreshold;
 
-		const { geometry } = this;
 		const { firstHitOnly } = raycaster;
 		let closestHit = null;
 		let localClosestDistance = Infinity;
@@ -152,7 +157,7 @@ export class LineSegmentsBVH extends BVH {
 
 				localClosestDistance = localDistanceToPoint;
 
-				index = this.resolvePointIndex( index );
+				index = this.resolveLineIndex( index );
 
 				closestHit = {
 					distance,
@@ -246,11 +251,11 @@ function iterateOverLines(
 	const { geometry, primitiveStride } = bvh;
 	const { index } = geometry;
 	const pos = geometry.attributes.position;
-	const primCount = bvh.getPrimitive();
+	const primCount = bvh.getPrimitiveCount();
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		const prim = bvh.resolvePointIndex( i );
+		const prim = bvh.resolveLineIndex( i );
 		let i0 = prim * primitiveStride;
 		let i1 = ( i0 + 1 ) % primCount;
 		if ( index ) {
