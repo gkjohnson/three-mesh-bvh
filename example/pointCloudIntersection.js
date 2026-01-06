@@ -13,7 +13,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let stats;
-let scene, camera, renderer, pointsBVH, helper, pointCloud, outputContainer;
+let scene, camera, renderer, helper, pointCloud, outputContainer;
 let mouse = new THREE.Vector2();
 let sphereCollision;
 
@@ -51,7 +51,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 3, 3, 3 );
+	camera.position.set( 0, 2, 4 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -75,6 +75,7 @@ function init() {
 			// center
 			geometry.computeBoundingBox();
 			geometry.boundingBox.getCenter( pointCloud.position ).multiplyScalar( - 1 );
+			pointCloud.position.y += 1;
 
 			// create helper
 			helper = new MeshBVHHelper( pointCloud, params.depth );
