@@ -1,9 +1,18 @@
-import { Mesh, Sphere, BatchedMesh, REVISION } from 'three';
+import { Mesh, Points, Line, LineLoop, LineSegments, Sphere, BatchedMesh, REVISION } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const IS_REVISION_166 = parseInt( REVISION ) >= 166;
-const origMeshRaycastFunc = Mesh.prototype.raycast;
-const origBatchedRaycastFunc = BatchedMesh.prototype.raycast;
+
+// TODO: how can we expand these raycast functions?
+const _raycastFunctions = {
+	'Mesh': Mesh.prototype.raycast,
+	'Line': Line.prototype.raycast,
+	'LineSegments': LineSegments.prototype.raycast,
+	'LineLoop': LineLoop.prototype.raycast,
+	'Points': Points.prototype.raycast,
+	'BatchedMesh': BatchedMesh.prototype.raycast,
+};
+
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
 
@@ -15,7 +24,16 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 	} else {
 
-		acceleratedMeshRaycast.call( this, raycaster, intersects );
+		const { geometry } = this;
+		if ( geometry.boundsTree ) {
+
+			geometry.boundsTree.raycastObject3D( this, raycaster, intersects );
+
+		} else {
+
+			_raycastFunctions[ this.type ].call( this, raycaster, intersects );
+
+		}
 
 	}
 
@@ -91,22 +109,7 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 	} else {
 
-		origBatchedRaycastFunc.call( this, raycaster, intersects );
-
-	}
-
-}
-
-function acceleratedMeshRaycast( raycaster, intersects ) {
-
-	const { geometry } = this;
-	if ( geometry.boundsTree ) {
-
-		geometry.boundsTree.raycastObject3D( this, raycaster, intersects );
-
-	} else {
-
-		origMeshRaycastFunc.call( this, raycaster, intersects );
+		_raycastFunctions.BatchedMesh.call( this, raycaster, intersects );
 
 	}
 
