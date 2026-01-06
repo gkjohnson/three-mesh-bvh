@@ -22,7 +22,7 @@ const raycaster = new THREE.Raycaster();
 const params = {
 
 	displayHelper: false,
-	helperDepth: 10,
+	helperDepth: 15,
 	displayParents: false,
 
 	strategy: CENTER,
@@ -78,7 +78,7 @@ function init() {
 			pointCloud.position.y += 1;
 
 			// create helper
-			helper = new MeshBVHHelper( pointCloud, params.depth );
+			helper = new MeshBVHHelper( pointCloud, params.helperDepth );
 
 			scene.add( pointCloud, helper );
 
@@ -101,7 +101,7 @@ function init() {
 		helper.update();
 
 	} );
-	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).name( 'depth' ).onChange( v => {
+	helperFolder.add( params, 'helperDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
 
 		helper.depth = parseInt( v );
 		helper.update();
