@@ -1,5 +1,5 @@
 import { BufferAttribute, FrontSide, Ray, Vector3, Matrix4 } from 'three';
-import { CENTER, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
+import { SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
 import { BVH } from './BVH.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
@@ -30,18 +30,6 @@ const ray = /* @__PURE__ */ new Ray();
 const direction = /* @__PURE__ */ new Vector3();
 const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
-
-export const DEFAULT_OPTIONS = {
-	strategy: CENTER,
-	maxDepth: 40,
-	maxLeafTris: 10,
-	useSharedArrayBuffer: false,
-	setBoundingBox: true,
-	onProgress: null,
-	indirect: false,
-	verbose: true,
-	range: null
-};
 
 export class MeshBVH extends BVH {
 

@@ -1,5 +1,5 @@
 import { Box3 } from 'three';
-import { BYTES_PER_NODE, UINT32_PER_NODE, SKIP_GENERATION, CENTER } from './Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE, SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
@@ -7,20 +7,6 @@ import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 
 const tempBox = /* @__PURE__ */ new Box3();
-
-export const DEFAULT_OPTIONS = {
-	strategy: CENTER,
-	maxDepth: 40,
-	maxLeafTris: 10,
-	useSharedArrayBuffer: false,
-	setBoundingBox: true,
-	onProgress: null,
-	indirect: false,
-	verbose: true,
-	range: null,
-	[ SKIP_GENERATION ]: false,
-};
-
 
 export class BVH {
 

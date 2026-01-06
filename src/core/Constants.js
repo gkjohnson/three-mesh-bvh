@@ -29,3 +29,17 @@ export const LEAFNODE_MASK_32 = IS_LEAFNODE_FLAG << 16;
 export const FLOAT32_EPSILON = Math.pow( 2, - 24 );
 
 export const SKIP_GENERATION = Symbol( 'SKIP_GENERATION' );
+
+export const DEFAULT_OPTIONS = {
+	strategy: CENTER,
+	maxDepth: 40,
+	maxLeafTris: 10,
+	useSharedArrayBuffer: false,
+	setBoundingBox: true,
+	onProgress: null,
+	indirect: false,
+	verbose: true,
+	range: null,
+	[ SKIP_GENERATION ]: false,
+};
+

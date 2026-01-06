@@ -5,6 +5,8 @@ import { iterateOverPoints } from './utils/pointIterationUtils.js';
 import { iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 
+const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+
 export class PointsBVH extends BVH {
 
 	get primitiveStride() {
@@ -102,18 +104,16 @@ export class PointsBVH extends BVH {
 
 	raycastObject3D( object, raycaster, intersects = [] ) {
 
-		// TODO: handle "firstHitOnly" correctly
-		// TODO: use scratch variables
-		const inverseMatrix = new Matrix4();
-		inverseMatrix.copy( object.matrixWorld ).invert();
+		_inverseMatrix.copy( object.matrixWorld ).invert();
 
 		const threshold = raycaster.params.Points.threshold;
 		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
 		const localThresholdSq = localThreshold * localThreshold;
 
+		const { geometry } = this;
 		const { firstHitOnly } = raycaster;
-		const ray = raycaster.ray.clone().applyMatrix4( inverseMatrix );
-		let closestDistance = Infinity;
+		const ray = raycaster.ray.clone().applyMatrix4( _inverseMatrix );
+		let localClosestDistance = Infinity;
 		this.shapecast( {
 			boundsTraverseOrder: box => {
 
@@ -125,7 +125,7 @@ export class PointsBVH extends BVH {
 
 				// if we've already found a point that's closer then the full bounds then
 				// don't traverse further.
-				if ( score > closestDistance && firstHitOnly ) {
+				if ( score > localClosestDistance && firstHitOnly ) {
 
 					return NOT_INTERSECTED;
 
@@ -135,22 +135,39 @@ export class PointsBVH extends BVH {
 				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
 
 			},
-			intersectsPoint: point => {
+			intersectsPoint: ( point, index ) => {
 
-				const distancesToRaySq = ray.distanceSqToPoint( point );
-				if ( distancesToRaySq < localThresholdSq ) {
+				const rayPointDistanceSq = ray.distanceSqToPoint( point );
+				if ( rayPointDistanceSq < localThresholdSq ) {
 
 					// track the closest found point distance so we can early out traversal and only
 					// use the closest point along the ray.
-					const distanceToPoint = ray.origin.distanceTo( point );
-					if ( distanceToPoint < closestDistance || firstHitOnly ) {
+					const localDistanceToPoint = ray.origin.distanceTo( point );
+					if ( localDistanceToPoint < localClosestDistance || ! firstHitOnly ) {
 
-						closestDistance = distanceToPoint;
+						const intersectPoint = new Vector3();
+						ray.closestPointToPoint( point, intersectPoint );
+						intersectPoint.applyMatrix4( object.matrixWorld );
 
-						point.applyMatrix4( object.matrixWorld );
+						const distance = raycaster.ray.origin.distanceTo( intersectPoint );
+						if ( distance < raycaster.near || distance > raycaster.far ) {
+
+							return;
+
+						}
+
+						localClosestDistance = localDistanceToPoint;
+
 						intersects.push( {
-							point: point.clone(),
-							distance: raycaster.ray.origin.distanceTo( point ),
+							distance,
+							// TODO: this doesn't seem right?
+							distanceToRay: Math.sqrt( rayPointDistanceSq ),
+							point: intersectPoint,
+							index: geometry.index ? geometry.index.getX( index ) : index,
+							face: null,
+							faceIndex: null,
+							barycoord: null,
+							object,
 						} );
 
 					}
