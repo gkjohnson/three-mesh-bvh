@@ -1,6 +1,6 @@
 import { Vector3, Matrix4 } from 'three';
 import { BVH } from './BVH.js';
-import { getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
+import { getRootIndexRanges } from './build/geometryUtils.js';
 import { iterateOverPoints, iterateOverPoints_indirect } from './utils/pointIterationUtils.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
@@ -56,9 +56,14 @@ export class PointsBVH extends BVH {
 		const boundsOffset = targetBuffer.offset || 0;
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			const pointIndex = indirectBuffer ? indirectBuffer[ i ] : i;
-			const baseIndex = ( i - boundsOffset ) * 6;
+			let pointIndex = indirectBuffer ? indirectBuffer[ i ] : i;
+			if ( geometry.index ) {
 
+				pointIndex = geometry.index.getX( pointIndex );
+
+			}
+
+			const baseIndex = ( i - boundsOffset ) * 6;
 			const px = posAttr.getX( pointIndex );
 			const py = posAttr.getY( pointIndex );
 			const pz = posAttr.getZ( pointIndex );
@@ -85,7 +90,6 @@ export class PointsBVH extends BVH {
 		} else {
 
 			// For direct mode, ensure index exists (needed for BVH partitioning) and return ranges
-			ensureIndex( this.geometry, options );
 			return getRootIndexRanges( this.geometry, options.range, 1 );
 
 		}

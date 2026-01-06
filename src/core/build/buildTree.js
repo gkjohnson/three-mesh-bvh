@@ -1,4 +1,4 @@
-import { getFullGeometryRange } from './geometryUtils.js';
+import { ensureIndex, getFullGeometryRange } from './geometryUtils.js';
 import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { MeshBVHNode } from '../MeshBVHNode.js';
@@ -172,6 +172,8 @@ export function buildPackedTree( bvh, options ) {
 		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 	} else {
+
+		ensureIndex( geometry, options );
 
 		const stride = bvh.primitiveStride;
 		const fullRange = getFullGeometryRange( geometry, options.range, stride )[ 0 ];

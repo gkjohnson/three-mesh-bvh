@@ -5,7 +5,7 @@ import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { IS_LEAF } from './utils/nodeBufferUtils.js';
-import { getTriCount, getRootIndexRanges, ensureIndex } from './build/geometryUtils.js';
+import { getTriCount, getRootIndexRanges } from './build/geometryUtils.js';
 import { computeTriangleBounds } from './build/computeBoundsUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
@@ -179,7 +179,6 @@ export class MeshBVH extends BVH {
 		} else {
 
 			// For direct mode, ensure index exists and return geometry ranges
-			ensureIndex( this.geometry, options );
 			return getRootIndexRanges( this.geometry, options.range, 3 );
 
 		}
