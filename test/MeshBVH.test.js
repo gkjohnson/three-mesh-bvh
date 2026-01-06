@@ -9,7 +9,6 @@ import {
 	MeshBasicMaterial,
 	TorusGeometry,
 	BufferAttribute,
-	Vector3,
 	Box3,
 } from 'three';
 import {
