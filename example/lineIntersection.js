@@ -5,7 +5,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, LineSegmentsBVH, MeshBVHHelper,
 	SAH, CENTER, AVERAGE,
-} from '..';
+} from 'three-mesh-bvh';
 
 THREE.LineSegments.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -17,7 +17,7 @@ const params = {
 	displayParents: false,
 
 	useBVH: true,
-	complexity: 50000,
+	complexity: 500000,
 	strategy: 0,
 	indirect: false,
 };
@@ -46,7 +46,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 3, 3, 3 );
+	camera.position.set( 1.5, 1.5, 1.5 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -55,12 +55,12 @@ function init() {
 
 	// raycaster
 	raycaster = new THREE.Raycaster();
-	raycaster.params.Line.threshold = 0.1;
+	raycaster.params.Line.threshold = 0.01;
 	mouse = new THREE.Vector2();
 
 	// collision sphere
 	sphereCollision = new THREE.Mesh(
-		new THREE.SphereGeometry( 0.05, 16, 16 ),
+		new THREE.SphereGeometry( 0.025, 16, 16 ),
 		new THREE.MeshBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0.75 } )
 	);
 	sphereCollision.visible = false;
@@ -106,37 +106,39 @@ function init() {
 function generateComplexCurve( segments ) {
 
 	const points = [];
-	const scale = 2.0;
+	const up = new THREE.Vector3( 0, 1, 0 );
+	const norm = new THREE.Vector3();
+	const tangent = new THREE.Vector3();
+	const v0 = new THREE.Vector3();
+	const v1 = new THREE.Vector3();
+
+	const getSurfacePoint = ( t, target ) => {
+
+		let x = Math.sin( t * Math.PI );
+		let y = Math.cos( t * Math.PI );
+		let z = 0;
+
+		target.set( x, y, z ).applyAxisAngle( up, 20 * t * 2 * Math.PI );
+
+	};
 
 	for ( let i = 0; i <= segments; i ++ ) {
 
-		const t = ( i / segments );
-		const theta = t * Math.PI * 2 * 15; // 15 rotations
+		const t0 = i / segments;
+		const t1 = t0 + 1e-4;
 
-		// Combine multiple parametric functions for visual interest
-		// Base torus knot (3,5)
-		const torusR = 1.0 + 0.3 * Math.cos( 5 * theta );
-		const torusX = torusR * Math.cos( 3 * theta );
-		const torusY = torusR * Math.sin( 3 * theta );
-		const torusZ = 0.3 * Math.sin( 5 * theta );
+		getSurfacePoint( t0, v0 );
+		getSurfacePoint( t1, v1 );
 
-		// Add spiral modulation
-		const spiralMod = 0.3 * Math.sin( theta * 2 );
+		norm.copy( v0 ).normalize();
+		tangent.subVectors( v1, v0 ).normalize();
 
-		// Add Lissajous-style wobble
-		const wobbleX = 0.15 * Math.sin( theta * 7 );
-		const wobbleY = 0.15 * Math.sin( theta * 11 );
-		const wobbleZ = 0.15 * Math.sin( theta * 13 );
+		norm.applyAxisAngle( tangent, 2000 * t0 * 2 * Math.PI );
 
-		// Radial expansion/contraction
-		const pulse = 1.0 + 0.2 * Math.sin( theta * 3 );
-
-		// Combine all components
-		const x = ( torusX + wobbleX + spiralMod * Math.cos( theta ) ) * pulse * scale;
-		const y = ( torusY + wobbleY + spiralMod * Math.sin( theta ) ) * pulse * scale;
-		const z = ( torusZ + wobbleZ ) * scale;
-
-		points.push( new THREE.Vector3( x, y, z ) );
+		v0
+			// .multiplyScalar( Math.sin( t0 * Math.PI ) )
+			.addScaledVector( norm, 0.03 * ( Math.sin( 100 * t0 * Math.PI ) + 2 ) * Math.sin( t0 * Math.PI ) );
+		points.push( v0.clone() );
 
 	}
 
@@ -238,6 +240,7 @@ function updateBVH() {
 function updateRaycast() {
 
 	raycaster.setFromCamera( mouse, camera );
+	raycaster.firstHitOnly = true;
 
 	const startTime = window.performance.now();
 	const intersects = raycaster.intersectObject( lineSegments );
@@ -285,6 +288,8 @@ function render() {
 		helper.visible = params.displayHelper;
 
 	}
+
+	lineSegments.rotation.y = performance.now() * 1e-4;
 
 	updateRaycast();
 

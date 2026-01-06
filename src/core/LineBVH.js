@@ -41,21 +41,20 @@ export class LineSegmentsBVH extends BVH {
 	computePrimitiveBounds( offset, count, targetBuffer ) {
 
 		const indirectBuffer = this._indirectBuffer;
-		const { geometry } = this;
+		const { geometry, primitiveStride } = this;
 
 		const posAttr = geometry.attributes.position;
 		const boundsOffset = targetBuffer.offset || 0;
-		const stride = this.primitiveStride;
 
 		// TODO: this may not be right for a LineLoop with a limited draw range / groups
-		const primCount = this.getPrimitiveCount();
+		const vertCount = this.getPrimitiveCount() * primitiveStride;
 		const getters = [ 'getX', 'getY', 'getZ' ];
 
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
 			const prim = indirectBuffer ? indirectBuffer[ i ] : i;
-			let i0 = prim * stride;
-			let i1 = ( i0 + 1 ) % primCount;
+			let i0 = prim * primitiveStride;
+			let i1 = ( i0 + 1 ) % vertCount;
 			if ( geometry.index ) {
 
 				i0 = geometry.index.getX( i0 );
@@ -251,13 +250,13 @@ function iterateOverLines(
 	const { geometry, primitiveStride } = bvh;
 	const { index } = geometry;
 	const pos = geometry.attributes.position;
-	const primCount = bvh.getPrimitiveCount();
+	const vertCount = bvh.getPrimitiveCount() * primitiveStride;
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
 		const prim = bvh.resolveLineIndex( i );
 		let i0 = prim * primitiveStride;
-		let i1 = ( i0 + 1 ) % primCount;
+		let i1 = ( i0 + 1 ) % vertCount;
 		if ( index ) {
 
 			i0 = index.getX( i0 );
