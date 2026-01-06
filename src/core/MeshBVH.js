@@ -173,11 +173,11 @@ export class MeshBVH extends BVH {
 
 	}
 
-	computePrimitiveBounds( offset, count, target = null ) {
+	computePrimitiveBounds( offset, count, targetBuffer = null ) {
 
 		// TODO: move the function here
 		const indirectBuffer = this._indirectBuffer;
-		return computeTriangleBounds( this.geometry, offset, count, indirectBuffer, target );
+		return computeTriangleBounds( this.geometry, offset, count, indirectBuffer, targetBuffer );
 
 	}
 

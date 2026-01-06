@@ -162,14 +162,24 @@ export function buildPackedTree( bvh, options ) {
 		const ranges = bvh.getBuildRanges( options );
 		const indirectBuffer = generateIndirectBuffer( geometry, options.useSharedArrayBuffer, ranges );
 		bvh._indirectBuffer = indirectBuffer;
-		primitiveBounds = bvh.computePrimitiveBounds( 0, indirectBuffer.length );
+
+		// store offset on the array for later use & allocate only for the
+		// range being computed
+		primitiveBounds = new Float32Array( 6 * indirectBuffer.length );
+		primitiveBounds.offset = 0;
+		bvh.computePrimitiveBounds( 0, indirectBuffer.length, primitiveBounds );
+
 		geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 	} else {
 
 		const stride = bvh.primitiveStride;
 		const fullRange = getFullGeometryRange( geometry, options.range, stride )[ 0 ];
-		primitiveBounds = bvh.computePrimitiveBounds( fullRange.offset, fullRange.count );
+
+		primitiveBounds = new Float32Array( 6 * fullRange.count );
+		primitiveBounds.offset = fullRange.offset;
+		bvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
+
 		geometryRanges = bvh.getBuildRanges( options );
 
 	}
