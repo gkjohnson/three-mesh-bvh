@@ -1,11 +1,11 @@
-import { Vector3, Matrix4 } from 'three';
+import { Vector3, Matrix4, Ray } from 'three';
 import { BVH } from './BVH.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _ray = /* @__PURE__ */ new Ray();
 const _pointPool = /* @__PURE__ */ new PrimitivePool( () => new Vector3() );
-
 export class PointsBVH extends BVH {
 
 	get primitiveStride() {
@@ -82,6 +82,7 @@ export class PointsBVH extends BVH {
 	raycastObject3D( object, raycaster, intersects = [] ) {
 
 		_inverseMatrix.copy( object.matrixWorld ).invert();
+		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		const threshold = raycaster.params.Points.threshold;
 		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
@@ -89,14 +90,14 @@ export class PointsBVH extends BVH {
 
 		const { geometry } = this;
 		const { firstHitOnly } = raycaster;
-		const ray = raycaster.ray.clone().applyMatrix4( _inverseMatrix );
+
 		let closestHit = null;
 		let localClosestDistance = Infinity;
 		this.shapecast( {
 			boundsTraverseOrder: box => {
 
 				// traverse the closer bounds first.
-				return box.distanceToPoint( ray.origin );
+				return box.distanceToPoint( _ray.origin );
 
 			},
 			intersectsBounds: ( box, isLeaf, score ) => {
@@ -110,53 +111,58 @@ export class PointsBVH extends BVH {
 				}
 
 				box.expandByScalar( localThreshold );
-				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+				return _ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
 
 			},
 			intersectsPoint: ( point, index ) => {
 
-				const rayPointDistanceSq = ray.distanceSqToPoint( point );
+				const rayPointDistanceSq = _ray.distanceSqToPoint( point );
 				if ( rayPointDistanceSq < localThresholdSq ) {
 
 					// track the closest found point distance so we can early out traversal and only
 					// use the closest point along the ray.
-					const localDistanceToPoint = ray.origin.distanceTo( point );
-					if ( localDistanceToPoint < localClosestDistance || ! firstHitOnly ) {
+					const localDistanceToPoint = _ray.origin.distanceTo( point );
+					if ( firstHitOnly && localDistanceToPoint > localClosestDistance ) {
 
-						const intersectPoint = new Vector3();
-						ray.closestPointToPoint( point, intersectPoint );
-						intersectPoint.applyMatrix4( object.matrixWorld );
-
-						const distance = raycaster.ray.origin.distanceTo( intersectPoint );
-						if ( distance < raycaster.near || distance > raycaster.far ) {
-
-							return;
-
-						}
-
-						localClosestDistance = localDistanceToPoint;
-
-						index = this.resolvePointIndex( index );
-
-						closestHit = {
-							distance,
-							// TODO: this doesn't seem right?
-							distanceToRay: Math.sqrt( rayPointDistanceSq ),
-							point: intersectPoint,
-							index: geometry.index ? geometry.index.getX( index ) : index,
-							face: null,
-							faceIndex: null,
-							barycoord: null,
-							object,
-						};
-
-						if ( ! raycaster.firstHitOnly ) {
-
-							intersects.push( closestHit );
-
-						}
+						return;
 
 					}
+
+					// get intersection point
+					const intersectPoint = new Vector3();
+					_ray.closestPointToPoint( point, intersectPoint );
+					intersectPoint.applyMatrix4( object.matrixWorld );
+
+					// check if it's within the raycast rnge
+					const distance = raycaster.ray.origin.distanceTo( intersectPoint );
+					if ( distance < raycaster.near || distance > raycaster.far ) {
+
+						return;
+
+					}
+
+					localClosestDistance = localDistanceToPoint;
+
+					index = this.resolvePointIndex( index );
+
+					closestHit = {
+						distance,
+						// TODO: this doesn't seem right?
+						distanceToRay: Math.sqrt( rayPointDistanceSq ),
+						point: intersectPoint,
+						index: geometry.index ? geometry.index.getX( index ) : index,
+						face: null,
+						faceIndex: null,
+						barycoord: null,
+						object,
+					};
+
+					if ( ! raycaster.firstHitOnly ) {
+
+						intersects.push( closestHit );
+
+					}
+
 
 				}
 

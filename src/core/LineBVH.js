@@ -1,16 +1,19 @@
-import { Matrix4, Line3 } from 'three';
+import { Matrix4, Line3, Vector3, Ray } from 'three';
 import { BVH } from './BVH.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
-import { FLOAT32_EPSILON } from './Constants.js';
+import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _ray = /* @__PURE__ */ new Ray();
 const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
+const _intersectPointOnRay = /*@__PURE__*/ new Vector3();
+const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
 
-export class LineBVH extends BVH {
+export class LineSegmentsBVH extends BVH {
 
 	get primitiveStride() {
 
-		return 1;
+		return 2;
 
 	}
 
@@ -19,11 +22,11 @@ export class LineBVH extends BVH {
 		const { geometry } = this;
 		if ( geometry.index ) {
 
-			return geometry.index.count - 1;
+			return geometry.index.count / 2;
 
 		} else {
 
-			return geometry.position.count - 1;
+			return geometry.position.count / 2;
 
 		}
 
@@ -89,6 +92,133 @@ export class LineBVH extends BVH {
 
 	raycastObject3D( object, raycaster, intersects = [] ) {
 
+		_inverseMatrix.copy( object.matrixWorld ).invert();
+		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
+
+		const threshold = raycaster.params.Line.threshold;
+		const localThreshold = threshold / ( ( this.scale.x + this.scale.y + this.scale.z ) / 3 );
+		const localThresholdSq = localThreshold * localThreshold;
+
+		const { geometry } = this;
+		const { firstHitOnly } = raycaster;
+		let closestHit = null;
+		let localClosestDistance = Infinity;
+		this.shapecast( {
+			boundsTraverseOrder: box => {
+
+				// traverse the closer bounds first.
+				return box.distanceToPoint( _ray.origin );
+
+			},
+			intersectsBounds: ( box, isLeaf, score ) => {
+
+				// if we've already found a point that's closer then the full bounds then
+				// don't traverse further.
+				if ( score > localClosestDistance && firstHitOnly ) {
+
+					return NOT_INTERSECTED;
+
+				}
+
+				box.expandByScalar( localThreshold );
+				return _ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+
+			},
+			intersectsLine: ( line, index ) => {
+
+				const distSq = _ray.distanceSqToSegment( line.start, line.end, _intersectPointOnRay, _intersectPointOnSegment );
+				if ( distSq > localThresholdSq ) {
+
+					return;
+
+				}
+
+				const localDistanceToPoint = Math.sqrt( distSq );
+				if ( firstHitOnly && localDistanceToPoint > localClosestDistance ) {
+
+					return;
+
+				}
+
+				_intersectPointOnRay.applyMatrix4( object.matrixWorld );
+
+				const distance = raycaster.ray.origin.distanceTo( _intersectPointOnRay );
+				if ( distance < raycaster.near || distance > raycaster.far ) {
+
+					return;
+
+				}
+
+
+				localClosestDistance = localDistanceToPoint;
+
+				index = this.resolvePointIndex( index );
+
+				closestHit = {
+					distance,
+					point: _intersectPointOnSegment.clone().applyMatrix4( object.matrixWorld ),
+					index,
+					face: null,
+					faceIndex: null,
+					barycoord: null,
+					object,
+				};
+
+				if ( ! raycaster.firstHitOnly ) {
+
+					intersects.push( closestHit );
+
+				}
+
+			},
+		} );
+
+		if ( raycaster.firstHitOnly ) {
+
+			intersects.push( closestHit );
+
+		}
+
+		return intersects;
+
+	}
+
+}
+
+export class LineBVH extends LineSegmentsBVH {
+
+	get primitiveStride() {
+
+		return 2;
+
+	}
+
+	constructor( geometry, options = {} ) {
+
+		// "Line" and "LineLoop" BVH must be indirect since we cannot rearrange the index
+		// buffer without breaking the lines
+		options = {
+			...options,
+			indirect: true,
+		};
+
+		super( geometry, options );
+
+	}
+
+	getPrimitiveCount() {
+
+		const { geometry } = this;
+		if ( geometry.index ) {
+
+			return geometry.index.count - 1;
+
+		} else {
+
+			return geometry.position.count - 1;
+
+		}
+
 	}
 
 }
@@ -98,22 +228,6 @@ export class LineLoopBVH extends LineBVH {
 	getPrimitiveCount() {
 
 		return super.getPrimitiveCount() + 1;
-
-	}
-
-}
-
-export class LineSegmentsBVH extends LineBVH {
-
-	get primitiveStride() {
-
-		return 2;
-
-	}
-
-	getPrimitiveCount() {
-
-		return ( super.getPrimitiveCount() + 1 ) / 2;
 
 	}
 
