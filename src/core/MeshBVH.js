@@ -5,7 +5,7 @@ import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { IS_LEAF } from './utils/nodeBufferUtils.js';
-import { getTriCount, getRootIndexRanges } from './build/geometryUtils.js';
+import { getTriCount } from './build/geometryUtils.js';
 import { computeTriangleBounds } from './build/computeBoundsUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
@@ -166,22 +166,6 @@ export class MeshBVH extends BVH {
 		// TODO: move the function here
 		const indirectBuffer = this._indirectBuffer;
 		return computeTriangleBounds( this.geometry, offset, count, indirectBuffer, targetBuffer );
-
-	}
-
-	getBuildRanges( options ) {
-
-		if ( options.indirect ) {
-
-			// For indirect mode, return ranges for generating the indirect buffer
-			return getRootIndexRanges( this.geometry, options.range, 3 );
-
-		} else {
-
-			// For direct mode, ensure index exists and return geometry ranges
-			return getRootIndexRanges( this.geometry, options.range, 3 );
-
-		}
 
 	}
 

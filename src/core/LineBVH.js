@@ -2,7 +2,6 @@ import { Matrix4, Line3 } from 'three';
 import { BVH } from './BVH.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { FLOAT32_EPSILON } from './Constants.js';
-import { getRootIndexRanges } from './build/geometryUtils.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
@@ -69,22 +68,6 @@ export class LineBVH extends BVH {
 				targetBuffer[ baseIndex + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 			}
-
-		}
-
-	}
-
-	getBuildRanges( options ) {
-
-		if ( options.indirect ) {
-
-			// For indirect mode, return ranges for generating the indirect buffer
-			return getRootIndexRanges( this.geometry, options.range, this.primitiveStride );
-
-		} else {
-
-			// For direct mode, ensure index exists (needed for BVH partitioning) and return ranges
-			return getRootIndexRanges( this.geometry, options.range, this.primitiveStride );
 
 		}
 

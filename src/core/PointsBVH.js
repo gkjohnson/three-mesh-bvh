@@ -1,6 +1,5 @@
 import { Vector3, Matrix4 } from 'three';
 import { BVH } from './BVH.js';
-import { getRootIndexRanges } from './build/geometryUtils.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 
@@ -76,22 +75,6 @@ export class PointsBVH extends BVH {
 		}
 
 		return targetBuffer;
-
-	}
-
-	getBuildRanges( options ) {
-
-		if ( options.indirect ) {
-
-			// For indirect mode, return ranges for generating the indirect buffer
-			return getRootIndexRanges( this.geometry, options.range, 1 );
-
-		} else {
-
-			// For direct mode, ensure index exists (needed for BVH partitioning) and return ranges
-			return getRootIndexRanges( this.geometry, options.range, 1 );
-
-		}
 
 	}
 
