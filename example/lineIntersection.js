@@ -169,19 +169,15 @@ function generateGeometry() {
 	const colors = [];
 
 	const points = generateCurve( 1e6 );
+	const color = new THREE.Color();
 	for ( let i = 0; i < points.length - 1; i ++ ) {
 
 		const p1 = points[ i ];
-		const p2 = points[ i + 1 ];
-
 		const t = i / ( points.length - 1 );
-		const color = new THREE.Color().setHSL( t * 3, 1.0, 0.6 );
+		color.setHSL( t * 3, 1.0, 0.6 );
 
 		positions.push( p1.x, p1.y, p1.z );
-		// positions.push( p2.x, p2.y, p2.z );
-
 		colors.push( color.r, color.g, color.b );
-		// colors.push( color.r, color.g, color.b );
 
 	}
 
