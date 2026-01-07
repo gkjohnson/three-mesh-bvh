@@ -199,7 +199,6 @@ function updateBVH() {
 			strategy: parseInt( params.strategy ),
 			indirect: params.indirect,
 			type: LineBVH,
-			maxLeafTris: 1,
 		} );
 		console.timeEnd( 'LineBVH' );
 
