@@ -13,14 +13,13 @@ export const NOT_INTERSECTED: ShapecastIntersection;
 export const INTERSECTED: ShapecastIntersection;
 export const CONTAINED: ShapecastIntersection;
 
-// MeshBVH
 export interface HitPointInfo {
   point: Vector3;
   distance: number;
   faceIndex: number;
 }
 
-export interface MeshBVHOptions {
+export interface BVHOptions {
   strategy?: SplitStrategy;
   maxDepth?: number;
   /** @deprecated Use maxLeafSize instead */
@@ -34,6 +33,13 @@ export interface MeshBVHOptions {
   range?: { start: number; count: number };
 }
 
+/** @deprecated Use BVHOptions instead */
+export interface MeshBVHOptions extends BVHOptions {} // eslint-disable-line
+
+export interface ComputeBVHOptions extends BVHOptions {
+	type?: typeof BVH;
+}
+
 export interface MeshBVHSerializeOptions {
   cloneBuffers?: boolean;
 }
@@ -42,10 +48,33 @@ export interface MeshBVHDeserializeOptions {
   setIndex?: boolean;
 }
 
-
-export class MeshBVH {
+export class BVH {
 
 	readonly geometry: BufferGeometry;
+
+	constructor( geometry: BufferGeometry, options?: BVHOptions );
+	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
+	shiftTriangleOffsets( offset: number ): void;
+
+	traverse(
+    callback: (
+      depth: number,
+      isLeaf: boolean,
+      boundingData: ArrayBuffer,
+      offsetOrSplit: number,
+      count: number
+    ) => void,
+    rootIndex?: number
+  ): void;
+
+	getBoundingBox( target: Box3 ): Box3;
+
+}
+
+// MeshBVH
+export class MeshBVH extends BVH {
+
+	readonly resolveTriangleIndex: ( i: number ) => number;
 
 	static serialize( bvh: MeshBVH, options?: MeshBVHSerializeOptions ): SerializedBVH;
 
@@ -157,22 +186,15 @@ export class MeshBVH {
     } )
   ): boolean;
 
-	traverse(
-    callback: (
-      depth: number,
-      isLeaf: boolean,
-      boundingData: ArrayBuffer,
-      offsetOrSplit: number,
-      count: number
-    ) => void,
-    rootIndex?: number
-  ): void;
-
 	refit( nodeIndices?: Array<number> | Set<number> ): void;
 
-	getBoundingBox( target: Box3 ): Box3;
-
 }
+
+// other BVHs
+export class PointsBVH extends BVH {}
+export class LineBVH extends BVH {}
+export class LineLoopBVH extends LineBVH {}
+export class LineSegmentsBVH extends LineBVH {}
 
 // SerializedBVH
 export class SerializedBVH {
@@ -192,8 +214,8 @@ export class MeshBVHHelper extends Group {
 	edgeMaterial: LineBasicMaterial;
 	meshMaterial: MeshBasicMaterial;
 
-	constructor( meshOrBVH: Mesh, depth?: number );
-	constructor( mesh?: Mesh | null, bvh?: MeshBVH | null, depth?: number );
+	constructor( meshOrBVH: Object3D | BVH, depth?: number );
+	constructor( mesh?: Object3D | null, bvh?: BVH | null, depth?: number );
 
 	update(): void;
 
@@ -203,11 +225,11 @@ export class MeshBVHHelper extends Group {
 
 // THREE.js Extensions
 
-export function computeBoundsTree( options?: MeshBVHOptions ): MeshBVH;
+export function computeBoundsTree( options?: ComputeBVHOptions ): BVH;
 
 export function disposeBoundsTree(): void;
 
-export function computeBatchedBoundsTree( index?: number, options?: MeshBVHOptions ): MeshBVH | MeshBVH[];
+export function computeBatchedBoundsTree( index?: number, options?: BVHOptions ): BVH | BVH[];
 
 export function disposeBatchedBoundsTree( index?: number ): void;
 
@@ -218,13 +240,13 @@ export function acceleratedRaycast(
 
 declare module 'three' {
   export interface BufferGeometry {
-    boundsTree?: MeshBVH;
+    boundsTree?: BVH;
     computeBoundsTree: typeof computeBoundsTree;
     disposeBoundsTree: typeof disposeBoundsTree;
   }
 
   export interface BatchedMesh {
-    boundsTrees?: Array<MeshBVH | null>;
+    boundsTrees?: Array<BVH | null>;
     computeBoundsTree: typeof computeBatchedBoundsTree;
     disposeBoundsTree: typeof disposeBatchedBoundsTree;
   }
