@@ -48,7 +48,7 @@ export class LineSegmentsBVH extends BVH {
 		const boundsOffset = targetBuffer.offset || 0;
 
 		// TODO: this may not be right for a LineLoop with a limited draw range / groups
-		const vertCount = this.getPrimitiveCount() * primitiveStride;
+		const vertCount = geometry.index ? geometry.index.count : geometry.attributes.position.count;
 		const getters = [ 'getX', 'getY', 'getZ' ];
 
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
@@ -79,6 +79,8 @@ export class LineSegmentsBVH extends BVH {
 			}
 
 		}
+
+		return targetBuffer;
 
 	}
 
@@ -171,7 +173,7 @@ export class LineSegmentsBVH extends BVH {
 
 }
 
-export class LineBVH extends LineSegmentsBVH {
+export class LineLoopBVH extends LineSegmentsBVH {
 
 	get primitiveStride() {
 
@@ -197,11 +199,11 @@ export class LineBVH extends LineSegmentsBVH {
 		const { geometry } = this;
 		if ( geometry.index ) {
 
-			return geometry.index.count - 1;
+			return geometry.index.count;
 
 		} else {
 
-			return geometry.attributes.position.count - 1;
+			return geometry.attributes.position.count;
 
 		}
 
@@ -209,11 +211,19 @@ export class LineBVH extends LineSegmentsBVH {
 
 }
 
-export class LineLoopBVH extends LineBVH {
+export class LineBVH extends LineLoopBVH {
+
+	getRootRanges( ...args ) {
+
+		const res = super.getRootRanges( ...args );
+		res.forEach( group => group.count -- );
+		return res;
+
+	}
 
 	getPrimitiveCount() {
 
-		return super.getPrimitiveCount() + 1;
+		return super.getPrimitiveCount() - 1;
 
 	}
 

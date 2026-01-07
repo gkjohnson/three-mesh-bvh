@@ -123,7 +123,7 @@ function runSuiteWithOptions( options ) {
 
 		} );
 
-		for ( let i = 0; i < 1; i ++ ) {
+		for ( let i = 0; i < 100; i ++ ) {
 
 			const raySeed = Math.floor( Math.random() * 1e10 );
 			it( `Cast ${ i } Seed : ${ raySeed }`, () => {
