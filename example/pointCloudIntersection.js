@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper, PointsBVH,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, BVHHelper, PointsBVH,
 	SAH, CENTER, AVERAGE,
 } from 'three-mesh-bvh';
 
@@ -78,7 +78,7 @@ function init() {
 			pointCloud.position.y += 1;
 
 			// create helper
-			helper = new MeshBVHHelper( pointCloud, params.helperDepth );
+			helper = new BVHHelper( pointCloud, params.helperDepth );
 
 			scene.add( pointCloud, helper );
 

@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, LineBVH, MeshBVHHelper,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, LineBVH, BVHHelper,
 	SAH, CENTER, AVERAGE,
 } from 'three-mesh-bvh';
 
@@ -75,7 +75,7 @@ function init() {
 		linewidth: 2,
 	} ) );
 
-	helper = new MeshBVHHelper( line, params.helperDepth );
+	helper = new BVHHelper( line, params.helperDepth );
 
 	scene.add( line, helper );
 
