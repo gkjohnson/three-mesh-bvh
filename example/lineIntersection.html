@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>three-mesh-bvh - Geometry point clouds</title>
+    <title>three-mesh-bvh - Line raycasting</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <style type="text/css">
@@ -43,14 +43,9 @@
 </head>
 <body>
     <div id="info">
-		Accelerated raycasting of 2 million points using PointsBVH
-
-		<br/>
-		<br/>
-
-		Model by <a href="https://sketchfab.com/3d-models/1982-porsche-911-sitescape-3d-scan-7e315942b6db428194314285183b5896">SiteScape on Sketchfab</a>.
+		Accelerated raycasting of 1 million lines using LineBVH
 	</div>
 	<div id="output"></div>
-    <script type="module" src="./pointCloudIntersection.js"></script>
+    <script type="module" src="./lineIntersection.js"></script>
 </body>
 </html>

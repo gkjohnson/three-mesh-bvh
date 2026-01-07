@@ -57,47 +57,57 @@ export function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-export function getFullGeometryRange( geo, range ) {
+function getFullPrimitiveRange( geo, range, stride ) {
 
-	const triCount = getTriCount( geo );
+	const primitiveCount = getVertexCount( geo ) / stride;
 	const drawRange = range ? range : geo.drawRange;
-	const start = drawRange.start / 3;
-	const end = ( drawRange.start + drawRange.count ) / 3;
+	const start = drawRange.start / stride;
+	const end = ( drawRange.start + drawRange.count ) / stride;
 
 	const offset = Math.max( 0, start );
-	const count = Math.min( triCount, end ) - offset;
-	return [ {
+	const count = Math.min( primitiveCount, end ) - offset;
+	return {
 		offset: Math.floor( offset ),
 		count: Math.floor( count ),
-	} ];
+	};
 
 }
 
-// Function that extracts a set of mutually exclusive ranges representing the triangles being
+function getPrimitiveGroupRanges( geo, stride ) {
+
+	return geo.groups.map( group => ( {
+		offset: group.start / stride,
+		count: group.count / stride,
+	} ));
+
+}
+
+// Function that extracts a set of mutually exclusive ranges representing the primitives being
 // drawn as determined by the geometry groups, draw range, and user specified range
-export function getRootIndexRanges( geo, range ) {
+export function getRootPrimitiveRanges( geo, range, stride ) {
 
-	if ( ! geo.groups || ! geo.groups.length ) {
+	const drawRange = getFullPrimitiveRange( geo, range, stride );
+	const primitiveRanges = getPrimitiveGroupRanges( geo, stride );
+	if ( ! primitiveRanges.length ) {
 
-		return getFullGeometryRange( geo, range );
+		return [ drawRange ];
 
 	}
 
 	const ranges = [];
-	const drawRange = range ? range : geo.drawRange;
-	const drawRangeStart = drawRange.start / 3;
-	const drawRangeEnd = ( drawRange.start + drawRange.count ) / 3;
+	const drawRangeStart = drawRange.offset;
+	const drawRangeEnd = drawRange.offset + drawRange.count;
 
 	// Create events for group boundaries
-	const triCount = getTriCount( geo );
+	const primitiveCount = getVertexCount( geo ) / stride;
 	const events = [];
-	for ( const group of geo.groups ) {
+	for ( const group of primitiveRanges ) {
 
 		// Account for cases where group size is set to Infinity
-		const { start, count } = group;
-		const groupStart = start / 3;
-		const groupCount = isFinite( count ) ? count : ( triCount * 3 - start );
-		const groupEnd = ( start + groupCount ) / 3;
+		const { offset, count } = group;
+		const groupStart = offset;
+		const groupCount = isFinite( count ) ? count : ( primitiveCount - offset );
+		const groupEnd = ( offset + groupCount );
 
 		// Only add events if the group intersects with the draw range
 		if ( groupStart < drawRangeEnd && groupEnd > drawRangeStart ) {
@@ -145,20 +155,5 @@ export function getRootIndexRanges( geo, range ) {
 	}
 
 	return ranges;
-
-}
-
-export function hasGroupGaps( geometry, range ) {
-
-	const vertexCount = getTriCount( geometry );
-	const groups = getRootIndexRanges( geometry, range )
-		.sort( ( a, b ) => a.offset - b.offset );
-
-	const finalGroup = groups[ groups.length - 1 ];
-	finalGroup.count = Math.min( vertexCount - finalGroup.offset, finalGroup.count );
-
-	let total = 0;
-	groups.forEach( ( { count } ) => total += count );
-	return vertexCount !== total;
 
 }

@@ -9,7 +9,6 @@ import {
 	MeshBasicMaterial,
 	TorusGeometry,
 	BufferAttribute,
-	Vector3,
 	Box3,
 } from 'three';
 import {
@@ -110,20 +109,17 @@ describe( 'Bounds Tree', () => {
 		let calledRaycastFirst = false;
 		geom.boundsTree = {
 
-			raycast: () => {
+			raycastObject3D: ( object, raycaster ) => {
 
-				calledRaycast = true;
-				return {
-					point: new Vector3(),
-				};
+				if ( raycaster.firstHitOnly ) {
 
-			},
-			raycastFirst: () => {
+					calledRaycastFirst = true;
 
-				calledRaycastFirst = true;
-				return {
-					point: new Vector3(),
-				};
+				} else {
+
+					calledRaycast = true;
+
+				}
 
 			},
 

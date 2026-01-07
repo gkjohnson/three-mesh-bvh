@@ -25,7 +25,7 @@ describe( 'Serialization', () => {
 		// use a custom object since anonymous functions cause the
 		// test function to fail
 		const testObj = { ...bvh };
-		delete testObj.resolveTriangleIndex;
+		delete testObj.resolvePrimitiveIndex;
 		expect( deserializedBVH ).toMatchObject( testObj );
 
 	} );
@@ -39,7 +39,7 @@ describe( 'Serialization', () => {
 		// use a custom object since anonymous functions cause the
 		// test function to fail
 		const testObj = { ...bvh };
-		delete testObj.resolveTriangleIndex;
+		delete testObj.resolvePrimitiveIndex;
 		expect( deserializedBVH ).toMatchObject( testObj );
 		expect( bvh.resolveTriangleIndex( 0 ) ).toEqual( deserializedBVH.resolveTriangleIndex( 0 ) );
 

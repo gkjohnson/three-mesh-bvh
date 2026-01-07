@@ -5,7 +5,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 const boundingBox = /* @__PURE__ */ new Box3();
 const matrix = /* @__PURE__ */ new Matrix4();
 
-class MeshBVHRootHelper extends Object3D {
+class BVHRootHelper extends Object3D {
 
 	get isMesh() {
 
@@ -38,7 +38,7 @@ class MeshBVHRootHelper extends Object3D {
 
 		this.material = material;
 		this.geometry = new BufferGeometry();
-		this.name = 'MeshBVHRootHelper';
+		this.name = 'BVHRootHelper';
 		this.depth = depth;
 		this.displayParents = false;
 		this.bvh = bvh;
@@ -208,7 +208,7 @@ class MeshBVHRootHelper extends Object3D {
 
 }
 
-class MeshBVHHelper extends Group {
+class BVHHelper extends Group {
 
 	get color() {
 
@@ -250,7 +250,7 @@ class MeshBVHHelper extends Group {
 
 		super();
 
-		this.name = 'MeshBVHHelper';
+		this.name = 'BVHHelper';
 		this.depth = depth;
 		this.mesh = mesh;
 		this.bvh = bvh;
@@ -314,7 +314,7 @@ class MeshBVHHelper extends Group {
 
 			if ( i >= this._roots.length ) {
 
-				const root = new MeshBVHRootHelper( bvh, edgeMaterial, depth, i );
+				const root = new BVHRootHelper( bvh, edgeMaterial, depth, i );
 				this.add( root );
 				this._roots.push( root );
 
@@ -407,16 +407,7 @@ class MeshBVHHelper extends Group {
 
 }
 
-export class MeshBVHVisualizer extends MeshBVHHelper {
-
-	constructor( ...args ) {
-
-		super( ...args );
-
-		console.warn( 'MeshBVHVisualizer: MeshBVHVisualizer has been deprecated. Use MeshBVHHelper, instead.' );
-
-	}
-
-}
-
-export { MeshBVHHelper };
+export {
+	BVHHelper,
+	BVHHelper as MeshBVHHelper,
+};

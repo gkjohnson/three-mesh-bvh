@@ -1,12 +1,10 @@
-import { BufferAttribute, Box3, FrontSide } from 'three';
-import { CENTER, SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE } from './Constants.js';
-import { buildPackedTree } from './build/buildTree.js';
+import { BufferAttribute, FrontSide, Ray, Vector3, Matrix4 } from 'three';
+import { SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE, FLOAT32_EPSILON } from './Constants.js';
+import { BVH } from './BVH.js';
 import { OrientedBox } from '../math/OrientedBox.js';
-import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
-import { shapecast } from './cast/shapecast.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { IS_LEAF } from './utils/nodeBufferUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -21,25 +19,17 @@ import { raycast_indirect } from './cast/raycast_indirect.generated.js';
 import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js';
 import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
 import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
-import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { bvhcast } from './cast/bvhcast.js';
+import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
 
-const obb = /* @__PURE__ */ new OrientedBox();
-const tempBox = /* @__PURE__ */ new Box3();
-export const DEFAULT_OPTIONS = {
-	strategy: CENTER,
-	maxDepth: 40,
-	maxLeafTris: 10,
-	useSharedArrayBuffer: false,
-	setBoundingBox: true,
-	onProgress: null,
-	indirect: false,
-	verbose: true,
-	range: null
-};
+const _obb = /* @__PURE__ */ new OrientedBox();
+const _ray = /* @__PURE__ */ new Ray();
+const _direction = /* @__PURE__ */ new Vector3();
+const _InverseMatrix = /* @__PURE__ */ new Matrix4();
+const _worldScale = /* @__PURE__ */ new Vector3();
 
-export class MeshBVH {
+export class MeshBVH extends BVH {
 
 	static serialize( bvh, options = {} ) {
 
@@ -150,101 +140,191 @@ export class MeshBVH {
 
 	}
 
-	get indirect() {
+	get primitiveStride() {
 
-		return ! ! this._indirectBuffer;
+		return 3;
+
+	}
+
+	get resolveTriangleIndex() {
+
+		return this.resolvePrimitiveIndex;
 
 	}
 
 	constructor( geometry, options = {} ) {
 
-		if ( ! geometry.isBufferGeometry ) {
+		if ( options.maxLeafTris ) {
 
-			throw new Error( 'MeshBVH: Only BufferGeometries are supported.' );
-
-		} else if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
-
-			throw new Error( 'MeshBVH: InterleavedBufferAttribute is not supported for the index attribute.' );
-
-		}
-
-		// default options
-		options = Object.assign( {
-
-			...DEFAULT_OPTIONS,
-
-			// undocumented options
-
-			// Whether to skip generating the tree. Used for deserialization.
-			[ SKIP_GENERATION ]: false,
-
-		}, options );
-
-		if ( options.useSharedArrayBuffer && ! isSharedArrayBufferSupported() ) {
-
-			throw new Error( 'MeshBVH: SharedArrayBuffer is not available.' );
+			options = {
+				...options,
+				maxLeafSize: options.maxLeafTris,
+			};
 
 		}
 
-		// retain references to the geometry so we can use them it without having to
-		// take a geometry reference in every function.
-		this.geometry = geometry;
-		this._roots = null;
-		this._indirectBuffer = null;
-		if ( ! options[ SKIP_GENERATION ] ) {
+		super( geometry, options );
 
-			buildPackedTree( this, options );
+	}
 
-			if ( ! geometry.boundingBox && options.setBoundingBox ) {
+	// implement abstract methods from BVH base class
+	shiftTriangleOffsets( offset ) {
 
-				geometry.boundingBox = this.getBoundingBox( new Box3() );
+		return super.shiftPrimitiveOffsets( offset );
+
+	}
+
+	// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
+	// result is an array of size count * 6 where triangle i maps to a
+	// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
+	// representing the center and half-extent in each dimension of triangle i
+	computePrimitiveBounds( offset, count, targetBuffer ) {
+
+		const geometry = this.geometry;
+		const indirectBuffer = this._indirectBuffer;
+		const posAttr = geometry.attributes.position;
+		const index = geometry.index ? geometry.index.array : null;
+		const normalized = posAttr.normalized;
+
+		if ( offset < 0 || count + offset - targetBuffer.offset > targetBuffer.length / 6 ) {
+
+			throw new Error( 'MeshBVH: compute triangle bounds range is invalid.' );
+
+		}
+
+		// used for non-normalized positions
+		const posArr = posAttr.array;
+
+		// support for an interleaved position buffer
+		const bufferOffset = posAttr.offset || 0;
+		let stride = 3;
+		if ( posAttr.isInterleavedBufferAttribute ) {
+
+			stride = posAttr.data.stride;
+
+		}
+
+		// used for normalized positions
+		const getters = [ 'getX', 'getY', 'getZ' ];
+		const writeOffset = targetBuffer.offset;
+
+		// iterate over the triangle range
+		for ( let i = offset, l = offset + count; i < l; i ++ ) {
+
+			const tri = indirectBuffer ? indirectBuffer[ i ] : i;
+			const tri3 = tri * 3;
+			const boundsIndexOffset = ( i - writeOffset ) * 6;
+
+			let ai = tri3 + 0;
+			let bi = tri3 + 1;
+			let ci = tri3 + 2;
+
+			if ( index ) {
+
+				ai = index[ ai ];
+				bi = index[ bi ];
+				ci = index[ ci ];
+
+			}
+
+			// we add the stride and offset here since we access the array directly
+			// below for the sake of performance
+			if ( ! normalized ) {
+
+				ai = ai * stride + bufferOffset;
+				bi = bi * stride + bufferOffset;
+				ci = ci * stride + bufferOffset;
+
+			}
+
+			for ( let el = 0; el < 3; el ++ ) {
+
+				let a, b, c;
+
+				if ( normalized ) {
+
+					a = posAttr[ getters[ el ] ]( ai );
+					b = posAttr[ getters[ el ] ]( bi );
+					c = posAttr[ getters[ el ] ]( ci );
+
+				} else {
+
+					a = posArr[ ai + el ];
+					b = posArr[ bi + el ];
+					c = posArr[ ci + el ];
+
+				}
+
+				let min = a;
+				if ( b < min ) min = b;
+				if ( c < min ) min = c;
+
+				let max = a;
+				if ( b > max ) max = b;
+				if ( c > max ) max = c;
+
+				// Increase the bounds size by float32 epsilon to avoid precision errors when
+				// converting to 32 bit float. Scale the epsilon by the size of the numbers being
+				// worked with.
+				const halfExtents = ( max - min ) / 2;
+				const el2 = el * 2;
+				targetBuffer[ boundsIndexOffset + el2 + 0 ] = min + halfExtents;
+				targetBuffer[ boundsIndexOffset + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 			}
 
 		}
 
-		this.resolveTriangleIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
+		return targetBuffer;
 
 	}
 
-	shiftTriangleOffsets( offset ) {
+	raycastObject3D( object, raycaster, intersects = [] ) {
 
-		const indirectBuffer = this._indirectBuffer;
-		if ( indirectBuffer ) {
+		const { material } = object;
+		if ( material === undefined ) {
 
-			// the offsets are embedded in the indirect buffer
-			for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
+			return;
 
-				indirectBuffer[ i ] += offset;
+		}
+
+		_InverseMatrix.copy( object.matrixWorld ).invert();
+		_ray.copy( raycaster.ray ).applyMatrix4( _InverseMatrix );
+
+		_worldScale.setFromMatrixScale( object.matrixWorld );
+		_direction.copy( _ray.direction ).multiply( _worldScale );
+
+		const scaleFactor = _direction.length();
+		const near = raycaster.near / scaleFactor;
+		const far = raycaster.far / scaleFactor;
+
+		if ( raycaster.firstHitOnly === true ) {
+
+			let hit = this.raycastFirst( _ray, material, near, far );
+			hit = convertRaycastIntersect( hit, object, raycaster );
+			if ( hit ) {
+
+				intersects.push( hit );
 
 			}
 
 		} else {
 
-			// offsets are embedded in the leaf nodes
-			const roots = this._roots;
-			for ( let rootIndex = 0; rootIndex < roots.length; rootIndex ++ ) {
+			const hits = this.raycast( _ray, material, near, far );
+			for ( let i = 0, l = hits.length; i < l; i ++ ) {
 
-				const root = roots[ rootIndex ];
-				const uint32Array = new Uint32Array( root );
-				const uint16Array = new Uint16Array( root );
-				const totalNodes = root.byteLength / BYTES_PER_NODE;
-				for ( let node = 0; node < totalNodes; node ++ ) {
+				const hit = convertRaycastIntersect( hits[ i ], object, raycaster );
+				if ( hit ) {
 
-					const node32Index = UINT32_PER_NODE * node;
-					const node16Index = 2 * node32Index;
-					if ( IS_LEAF( node16Index, uint16Array ) ) {
-
-						// offset value
-						uint32Array[ node32Index + 6 ] += offset;
-
-					}
+					intersects.push( hit );
 
 				}
 
 			}
 
 		}
+
+		return intersects;
 
 	}
 
@@ -252,43 +332,6 @@ export class MeshBVH {
 
 		const refitFunc = this.indirect ? refit_indirect : refit;
 		return refitFunc( this, nodeIndices );
-
-	}
-
-	traverse( callback, rootIndex = 0 ) {
-
-		const buffer = this._roots[ rootIndex ];
-		const uint32Array = new Uint32Array( buffer );
-		const uint16Array = new Uint16Array( buffer );
-		_traverse( 0 );
-
-		function _traverse( node32Index, depth = 0 ) {
-
-			const node16Index = node32Index * 2;
-			const isLeaf = IS_LEAF( node16Index, uint16Array );
-			if ( isLeaf ) {
-
-				const offset = uint32Array[ node32Index + 6 ];
-				const count = uint16Array[ node16Index + 14 ];
-				callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), offset, count );
-
-			} else {
-
-				const left = LEFT_NODE( node32Index );
-				const right = RIGHT_NODE( node32Index, uint32Array );
-				const splitAxis = SPLIT_AXIS( node32Index, uint32Array );
-				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
-
-				if ( ! stopTraversal ) {
-
-					_traverse( left, depth + 1 );
-					_traverse( right, depth + 1 );
-
-				}
-
-			}
-
-		}
 
 	}
 
@@ -353,71 +396,18 @@ export class MeshBVH {
 	shapecast( callbacks ) {
 
 		const triangle = ExtendedTrianglePool.getPrimitive();
-		const iterateFunc = this.indirect ? iterateOverTriangles_indirect : iterateOverTriangles;
-		let {
-			boundsTraverseOrder,
-			intersectsBounds,
-			intersectsRange,
-			intersectsTriangle,
-		} = callbacks;
+		const result = super.shapecast(
+			{
+				...callbacks,
+				intersectsPrimitive: callbacks.intersectsTriangle,
+				scratchPrimitive: triangle,
 
-		// wrap the intersectsRange function
-		if ( intersectsRange && intersectsTriangle ) {
-
-			const originalIntersectsRange = intersectsRange;
-			intersectsRange = ( offset, count, contained, depth, nodeIndex ) => {
-
-				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
-
-					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
-
-				}
-
-				return true;
-
-			};
-
-		} else if ( ! intersectsRange ) {
-
-			if ( intersectsTriangle ) {
-
-				intersectsRange = ( offset, count, contained, depth ) => {
-
-					return iterateFunc( offset, count, this, intersectsTriangle, contained, depth, triangle );
-
-				};
-
-			} else {
-
-				intersectsRange = ( offset, count, contained ) => {
-
-					return contained;
-
-				};
-
+				// TODO: is the performance significant enough for the added complexity here?
+				// can we just use one function?
+				iterateDirect: iterateOverTriangles,
+				iterateIndirect: iterateOverTriangles_indirect,
 			}
-
-		}
-
-		// run shapecast
-		let result = false;
-		let nodeOffset = 0;
-		const roots = this._roots;
-		for ( let i = 0, l = roots.length; i < l; i ++ ) {
-
-			const root = roots[ i ];
-			result = shapecast( this, i, intersectsBounds, intersectsRange, boundsTraverseOrder, nodeOffset );
-
-			if ( result ) {
-
-				break;
-
-			}
-
-			nodeOffset += root.byteLength / BYTES_PER_NODE;
-
-		}
-
+		);
 		ExtendedTrianglePool.releasePrimitive( triangle );
 
 		return result;
@@ -529,13 +519,13 @@ export class MeshBVH {
 	/* Derived Cast Functions */
 	intersectsBox( box, boxToMesh ) {
 
-		obb.set( box.min, box.max, boxToMesh );
-		obb.needsUpdate = true;
+		_obb.set( box.min, box.max, boxToMesh );
+		_obb.needsUpdate = true;
 
 		return this.shapecast(
 			{
-				intersectsBounds: box => obb.intersectsBox( box ),
-				intersectsTriangle: tri => obb.intersectsTriangle( tri )
+				intersectsBounds: box => _obb.intersectsBox( box ),
+				intersectsTriangle: tri => _obb.intersectsTriangle( tri )
 			}
 		);
 
@@ -576,22 +566,6 @@ export class MeshBVH {
 			minThreshold,
 			maxThreshold,
 		);
-
-	}
-
-	getBoundingBox( target ) {
-
-		target.makeEmpty();
-
-		const roots = this._roots;
-		roots.forEach( buffer => {
-
-			arrayToBox( 0, new Float32Array( buffer ), tempBox );
-			target.union( tempBox );
-
-		} );
-
-		return target;
 
 	}
 

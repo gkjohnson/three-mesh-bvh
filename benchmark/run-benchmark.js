@@ -317,7 +317,7 @@ function logExtremes( bvh ) {
 		memory: `${ bvhSize / 1000 } kb`,
 		serialized: `${ serializedSize / 1000 } kb`,
 		'total nodes': `${ extremes.nodeCount }`,
-		triangles: `${extremes.tris.min}, ${extremes.tris.max}`,
+		triangles: `${extremes.primitives.min}, ${extremes.primitives.max}`,
 		depth: `${extremes.depth.min}, ${extremes.depth.max}`,
 		splits: `${extremes.splits[ 0 ]}, ${extremes.splits[ 1 ]}, ${extremes.splits[ 2 ]}`,
 		'surface area score': `${extremes.surfaceAreaScore.toFixed( 6 )}`,

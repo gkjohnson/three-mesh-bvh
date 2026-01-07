@@ -4,16 +4,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper, INTERSECTED, NOT_INTERSECTED,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, BVHHelper, PointsBVH,
 	SAH, CENTER, AVERAGE,
 } from 'three-mesh-bvh';
 
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
+THREE.Points.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 let stats;
-let scene, camera, renderer, bvhMesh, helper, pointCloud, outputContainer;
+let scene, camera, renderer, helper, pointCloud, outputContainer;
 let mouse = new THREE.Vector2();
 let sphereCollision;
 
@@ -22,10 +22,11 @@ const raycaster = new THREE.Raycaster();
 const params = {
 
 	displayHelper: false,
-	helperDepth: 10,
+	helperDepth: 15,
 	displayParents: false,
 
 	strategy: CENTER,
+	indirect: true,
 	pointSize: 0.005,
 	raycastThreshold: 0.005,
 	useBVH: true,
@@ -50,7 +51,7 @@ function init() {
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 3, 3, 3 );
+	camera.position.set( 0, 2, 4 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
 
@@ -60,52 +61,32 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-
-	window.addEventListener( 'resize', function () {
-
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-
-		renderer.setSize( window.innerWidth, window.innerHeight );
-
-	}, false );
-
 	// Load point cloud
 	const loader = new PLYLoader();
 	loader
 		.load( plyPath, geometry => {
 
-			geometry.center();
-			const material = new THREE.PointsMaterial( { size: params.pointSize, vertexColors: true } );
-			pointCloud = new THREE.Points( geometry, material );
-			pointCloud.matrixAutoUpdate = false;
+			// create point cloud
+			pointCloud = new THREE.Points( geometry, new THREE.PointsMaterial( {
+				size: params.pointSize,
+				vertexColors: true,
+			} ) );
 
-			scene.add( pointCloud );
+			// center
+			geometry.computeBoundingBox();
+			geometry.boundingBox.getCenter( pointCloud.position ).multiplyScalar( - 1 );
+			pointCloud.position.y += 1;
 
-			// BVH Mesh creation
-			const indices = [];
-			const bvhGeometry = geometry.clone();
-			let verticesLength = bvhGeometry.attributes.position.count;
-			for ( let i = 0, l = verticesLength; i < l; i ++ ) {
+			// create helper
+			helper = new BVHHelper( pointCloud, params.helperDepth );
 
-				indices.push( i, i, i );
+			scene.add( pointCloud, helper );
 
-			}
-
-			bvhGeometry.setIndex( indices );
-			const bvhMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-			bvhMesh = new THREE.Mesh( bvhGeometry, bvhMaterial );
-
-			console.time( 'computeBoundsTree' );
-			bvhMesh.geometry.computeBoundsTree( { mode: params.mode } );
-			console.timeEnd( 'computeBoundsTree' );
-
-			helper = new MeshBVHHelper( bvhMesh, params.depth );
-			scene.add( helper );
+			updateBVH();
 
 		} );
 
-	const geometry = new THREE.SphereGeometry( 0.01, 32, 32 );
+	const geometry = new THREE.SphereGeometry( 0.025, 32, 32 );
 	const material = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.9, transparent: true } );
 	sphereCollision = new THREE.Mesh( geometry, material );
 	sphereCollision.visible = false;
@@ -120,7 +101,7 @@ function init() {
 		helper.update();
 
 	} );
-	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).name( 'depth' ).onChange( v => {
+	helperFolder.add( params, 'helperDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
 
 		helper.depth = parseInt( v );
 		helper.update();
@@ -129,111 +110,81 @@ function init() {
 	helperFolder.open();
 
 	const pointsFolder = gui.addFolder( 'points' );
-	pointsFolder.add( params, 'useBVH' );
-	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( v => {
-
-		console.time( 'computeBoundsTree' );
-		bvhMesh.geometry.computeBoundsTree( { strategy: parseInt( v ) } );
-		console.timeEnd( 'computeBoundsTree' );
-		helper.update();
-
-	} );
+	pointsFolder.add( params, 'useBVH' ).onChange( updateBVH );
+	pointsFolder.add( params, 'indirect' ).onChange( updateBVH );
+	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( updateBVH );
 	pointsFolder.add( params, 'pointSize', 0.001, 0.01, 0.001 );
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();
 
+	window.addEventListener( 'resize', onResize );
+	window.addEventListener( 'pointermove', updateRaycaster );
+	onResize();
+
 }
 
-window.addEventListener( 'pointermove', ( event ) => {
+function updateBVH() {
 
-	if ( ! bvhMesh ) {
-
-		return;
-
-	}
-
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-	raycaster.setFromCamera( mouse, camera );
-
-	const startTime = window.performance.now();
 	if ( params.useBVH ) {
 
-		sphereCollision.visible = false;
-
-		const inverseMatrix = new THREE.Matrix4();
-		inverseMatrix.copy( bvhMesh.matrixWorld ).invert();
-		raycaster.ray.applyMatrix4( inverseMatrix );
-
-		const threshold = raycaster.params.Points.threshold;
-		const localThreshold = threshold / ( ( bvhMesh.scale.x + bvhMesh.scale.y + bvhMesh.scale.z ) / 3 );
-		const localThresholdSq = localThreshold * localThreshold;
-
-		const { ray } = raycaster;
-		let closestDistance = Infinity;
-		bvhMesh.geometry.boundsTree.shapecast( {
-			boundsTraverseOrder: box => {
-
-				// traverse the closer bounds first.
-				return box.distanceToPoint( ray.origin );
-
-			},
-			intersectsBounds: ( box, isLeaf, score ) => {
-
-				// if we've already found a point that's closer then the full bounds then
-				// don't traverse further.
-				if ( score > closestDistance ) {
-
-					return NOT_INTERSECTED;
-
-				}
-
-				box.expandByScalar( localThreshold );
-				return ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
-
-			},
-			intersectsTriangle: triangle => {
-
-				const distancesToRaySq = ray.distanceSqToPoint( triangle.a );
-				if ( distancesToRaySq < localThresholdSq ) {
-
-					// track the closest found point distance so we can early out traversal and only
-					// use the closest point along the ray.
-					const distanceToPoint = ray.origin.distanceTo( triangle.a );
-					if ( distanceToPoint < closestDistance ) {
-
-						closestDistance = distanceToPoint;
-						sphereCollision.position.copy( triangle.a ).applyMatrix4( bvhMesh.matrixWorld );
-						sphereCollision.visible = true;
-
-					}
-
-				}
-
-			},
+		console.time( 'PointsBVH' );
+		pointCloud.geometry.computeBoundsTree( {
+			strategy: parseInt( params.strategy ),
+			indirect: params.indirect,
+			type: PointsBVH,
 		} );
+		console.timeEnd( 'PointsBVH' );
 
 	} else {
 
-		const intersects = raycaster.intersectObject( pointCloud, true );
-		const hit = intersects[ 0 ];
-		if ( hit ) {
+		pointCloud.geometry.disposeBoundsTree();
 
-			sphereCollision.position.copy( hit.point );
-			sphereCollision.visible = true;
+	}
 
-		} else {
+	helper.update();
 
-			sphereCollision.visible = false;
+}
 
-		}
+function updateRaycaster( e ) {
+
+	mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+
+}
+
+function updateRaycast() {
+
+	raycaster.setFromCamera( mouse, camera );
+	raycaster.firstHitOnly = true;
+
+	const startTime = window.performance.now();
+	const intersects = raycaster.intersectObject( pointCloud );
+	const hit = intersects[ 0 ];
+	if ( hit ) {
+
+		sphereCollision.position.copy( hit.point );
+		sphereCollision.visible = true;
+
+	} else {
+
+		sphereCollision.visible = false;
 
 	}
 
 	const delta = window.performance.now() - startTime;
 	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
-}, false );
+}
+
+function onResize() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setPixelRatio( window.devicePixelRatio );
+
+}
 
 function render() {
 
@@ -245,6 +196,8 @@ function render() {
 		helper.visible = params.displayHelper;
 		raycaster.params.Points.threshold = params.raycastThreshold;
 
+		updateRaycast();
+
 	}
 
 	stats.begin();
@@ -253,7 +206,6 @@ function render() {
 	stats.end();
 
 }
-
 
 init();
 render();

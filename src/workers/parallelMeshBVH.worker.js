@@ -1,11 +1,9 @@
 import { MathUtils, BufferGeometry, BufferAttribute } from 'three';
 import { WorkerPool } from './utils/WorkerPool.js';
-import { BYTES_PER_NODE } from '../core/Constants.js';
+import { BYTES_PER_NODE, DEFAULT_OPTIONS, SKIP_GENERATION } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
-import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
-import { getFullGeometryRange, getRootIndexRanges } from '../core/build/geometryUtils.js';
-import { DEFAULT_OPTIONS } from '../core/MeshBVH.js';
+import { MeshBVH } from '../core/MeshBVH.js';
 
 let isRunning = false;
 let prevTime = 0;
@@ -36,28 +34,40 @@ self.onmessage = async ( { data } ) => {
 
 		// generate necessary buffers and objects - based on the "buildTree" implementation
 		const geometry = getGeometry( index, position, options.groups );
+		let proxyBvh = createProxyBVH( geometry, null );
+
 		let indirectBuffer = null;
-		let triangleBounds, geometryRanges;
+		let primitiveBounds, rootRanges;
 		if ( options.indirect ) {
 
-			const ranges = getRootIndexRanges( geometry, options.range );
-			indirectBuffer = generateIndirectBuffer( geometry, true, ranges );
-			triangleBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
-			triangleBounds.offset = 0;
-			geometryRanges = [ { offset: 0, count: indirectBuffer.length } ];
+			const ranges = proxyBvh.getRootRanges( options.range );
+			indirectBuffer = generateIndirectBuffer( ranges, true );
+			proxyBvh._indirectBuffer = indirectBuffer;
+
+			primitiveBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
+			primitiveBounds.offset = 0;
+
+			rootRanges = [ { offset: 0, count: indirectBuffer.length } ];
 
 		} else {
 
-			const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
-			triangleBounds = new Float32Array( new SharedArrayBuffer( fullRange.count * 6 * 4 ) );
-			triangleBounds.offset = fullRange.offset;
-			geometryRanges = getRootIndexRanges( geometry, options.range );
+			rootRanges = proxyBvh.getRootRanges( options.range );
+
+			const firstRange = rootRanges[ 0 ];
+			const lastRange = rootRanges[ rootRanges.length - 1 ];
+			const fullRange = {
+				offset: firstRange.offset,
+				count: lastRange.offset + lastRange.count - firstRange.offset,
+			};
+
+			primitiveBounds = new Float32Array( new SharedArrayBuffer( fullRange.count * 6 * 4 ) );
+			primitiveBounds.offset = fullRange.offset;
 
 		}
 
 		// generate portions of the triangle bounds buffer over multiple frames
 		const boundsPromises = [];
-		const triCount = triangleBounds.length / 6;
+		const triCount = primitiveBounds.length / 6;
 		for ( let i = 0, l = workerPool.workerCount; i < l; i ++ ) {
 
 			const countPerWorker = Math.ceil( triCount / l );
@@ -72,8 +82,8 @@ self.onmessage = async ( { data } ) => {
 					count,
 					index,
 					position,
-					triangleBounds,
-					triangleBoundsOffset: triangleBounds.offset,
+					triangleBounds: primitiveBounds,
+					triangleBoundsOffset: primitiveBounds.offset,
 					indirectBuffer,
 				}
 			) );
@@ -83,10 +93,7 @@ self.onmessage = async ( { data } ) => {
 		await Promise.all( boundsPromises );
 
 		// create a proxy bvh structure
-		const proxyBvh = {
-			_indirectBuffer: indirectBuffer,
-			geometry: geometry,
-		};
+		proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		let totalProgress = 0;
 
@@ -107,12 +114,12 @@ self.onmessage = async ( { data } ) => {
 
 		// generate the ranges for all roots asynchronously
 		const packedRoots = [];
-		for ( let i = 0, l = geometryRanges.length; i < l; i ++ ) {
+		for ( let i = 0, l = rootRanges.length; i < l; i ++ ) {
 
 			// build the tree down to the necessary depth
 			const promises = [];
-			const range = geometryRanges[ i ];
-			const root = buildTree( proxyBvh, triangleBounds, range.offset, range.count, localOptions );
+			const range = rootRanges[ i ];
+			const root = buildTree( proxyBvh, primitiveBounds, range.offset, range.count, localOptions );
 			const flatNodes = flattenNodes( root );
 			let bufferLengths = 0;
 			let remainingNodes = 0;
@@ -142,8 +149,8 @@ self.onmessage = async ( { data } ) => {
 							indirectBuffer,
 							index,
 							position,
-							triangleBounds,
-							triangleBoundsOffset: triangleBounds.offset,
+							triangleBounds: primitiveBounds,
+							triangleBoundsOffset: primitiveBounds.offset,
 							options: workerOptions,
 						},
 						getOnProgressDeltaCallback( delta => {
@@ -209,10 +216,8 @@ self.onmessage = async ( { data } ) => {
 			options,
 		} = data;
 
-		const proxyBvh = {
-			_indirectBuffer: indirectBuffer,
-			geometry: getGeometry( index, position ),
-		};
+		const geometry = getGeometry( index, position );
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		const localOptions = {
 			...DEFAULT_OPTIONS,
@@ -245,7 +250,9 @@ self.onmessage = async ( { data } ) => {
 		triangleBounds.offset = triangleBoundsOffset;
 
 		const geometry = getGeometry( index, position );
-		computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
+		proxyBvh.computePrimitiveBounds( offset, count, triangleBounds );
+
 		self.postMessage( { type: 'result' } );
 
 	} else if ( operation === 'REFIT' ) {
@@ -317,6 +324,14 @@ function getGeometry( index, position, groups = null ) {
 	}
 
 	return geometry;
+
+}
+
+function createProxyBVH( geometry, indirectBuffer ) {
+
+	const bvh = new MeshBVH( geometry, { [ SKIP_GENERATION ]: true } );
+	bvh._indirectBuffer = indirectBuffer;
+	return bvh;
 
 }
 

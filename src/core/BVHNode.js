@@ -1,4 +1,4 @@
-export class MeshBVHNode {
+export class BVHNode {
 
 	constructor() {
 

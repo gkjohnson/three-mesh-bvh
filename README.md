@@ -20,6 +20,8 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
+[Line segments intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
 [Geometry edge intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/edgeIntersect.html)
@@ -135,6 +137,32 @@ const raycaster = new THREE.Raycaster();
 raycaster.firstHitOnly = true;
 raycaster.intersectObjects( [ mesh ] );
 ```
+
+## Other BVH Types
+
+In addition to `MeshBVH` for triangle meshes, the library provides specialized BVH implementations for other primitive types:
+
+- **PointsBVH** - For `THREE.Points` geometries
+- **LineBVH** - For `THREE.Line` geometries
+- **LineLoopBVH** - For `THREE.LineLoop` geometries
+- **LineSegmentsBVH** - For `THREE.LineSegments` geometries
+
+These can be used with the extension functions by passing a `type` option into "computeBoundsTree" or constructing them explicitly:
+
+```js
+import { PointsBVH } from 'three-mesh-bvh';
+
+// For point clouds
+THREE.Points.prototype.raycast = acceleratedRaycast;
+
+const points = new THREE.Points( geometry, material );
+geometry.computeBoundsTree( { type: PointsBVH } );
+
+// Or create directly
+geometry.boundsTree = new PointsBVH( geometry );
+```
+
+Each BVH type implements a core API including shapecast & raycastObject3D for its specific primitive type. See the [point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html) & [line intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/lineIntersection.html) examples for a working demonstration. Some features like webworker-generation and serialization are not supported at the moment.
 
 ## Querying the BVH Directly
 
@@ -408,6 +436,14 @@ raycastFirst( ray : Ray, material : Array<Material> | Material, near : Number = 
 ```
 
 Returns the first raycast hit in the model. This is typically much faster than returning all hits. See [raycast](#raycast) for information on the side and material options as well as the frame of the returned intersections.
+
+### .raycastObject3D
+
+```js
+raycastObject3D( mesh: Mesh, raycaster: Raycaster, intersects = []: Array<RaycastHit> ): Array<RaycastHit>
+```
+
+A convenience function for performing a raycast based on a mesh. Results are formed like three.js raycast results in world frame.
 
 ### .intersectsSphere
 
