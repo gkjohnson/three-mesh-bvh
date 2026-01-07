@@ -41,7 +41,7 @@ function getRootExtremes( bvh, group ) {
 		depth: {
 			min: Infinity, max: - Infinity
 		},
-		tris: {
+		primitives: {
 			min: Infinity, max: - Infinity
 		},
 		splits: [ 0, 0, 0 ],
@@ -64,8 +64,8 @@ function getRootExtremes( bvh, group ) {
 			result.depth.min = Math.min( depth, result.depth.min );
 			result.depth.max = Math.max( depth, result.depth.max );
 
-			result.tris.min = Math.min( count, result.tris.min );
-			result.tris.max = Math.max( count, result.tris.max );
+			result.primitives.min = Math.min( count, result.primitives.min );
+			result.primitives.max = Math.max( count, result.primitives.max );
 
 			result.surfaceAreaScore += surfaceArea * TRIANGLE_INTERSECT_COST * count;
 
@@ -80,10 +80,10 @@ function getRootExtremes( bvh, group ) {
 	}, group );
 
 	// If there are no leaf nodes because the tree hasn't finished generating yet.
-	if ( result.tris.min === Infinity ) {
+	if ( result.primitives.min === Infinity ) {
 
-		result.tris.min = 0;
-		result.tris.max = 0;
+		result.primitives.min = 0;
+		result.primitives.max = 0;
 
 	}
 
