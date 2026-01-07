@@ -3,7 +3,6 @@ import { WorkerPool } from './utils/WorkerPool.js';
 import { BYTES_PER_NODE, DEFAULT_OPTIONS, SKIP_GENERATION } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
-import { computeTriangleBounds } from '../core/build/computeBoundsUtils.js';
 import { getFullGeometryRange, getRootIndexRanges } from '../core/build/geometryUtils.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
@@ -240,7 +239,9 @@ self.onmessage = async ( { data } ) => {
 		triangleBounds.offset = triangleBoundsOffset;
 
 		const geometry = getGeometry( index, position );
-		computeTriangleBounds( geometry, offset, count, indirectBuffer, triangleBounds );
+		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
+		proxyBvh.computePrimitiveBounds( offset, count, triangleBounds );
+
 		self.postMessage( { type: 'result' } );
 
 	} else if ( operation === 'REFIT' ) {
