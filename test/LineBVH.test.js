@@ -7,6 +7,7 @@ import {
 	Raycaster,
 	Float32BufferAttribute,
 	Uint16BufferAttribute,
+	REVISION,
 } from 'three';
 import {
 	acceleratedRaycast,
@@ -35,6 +36,13 @@ runTestMatrix( {
 } );
 
 function runSuiteWithOptions( options ) {
+
+	// The structure of the Line raycast results has changed in previous versions
+	if ( REVISION < 175 ) {
+
+		return;
+
+	}
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
