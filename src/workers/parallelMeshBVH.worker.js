@@ -3,7 +3,7 @@ import { WorkerPool } from './utils/WorkerPool.js';
 import { BYTES_PER_NODE, DEFAULT_OPTIONS, SKIP_GENERATION } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
-import { getFullGeometryRange, getRootIndexRanges } from '../core/build/geometryUtils.js';
+import { getFullGeometryRange, getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 let isRunning = false;
@@ -39,7 +39,7 @@ self.onmessage = async ( { data } ) => {
 		let triangleBounds, geometryRanges;
 		if ( options.indirect ) {
 
-			const ranges = getRootIndexRanges( geometry, options.range );
+			const ranges = getRootPrimitiveRanges( geometry, options.range );
 			indirectBuffer = generateIndirectBuffer( geometry, true, ranges );
 			triangleBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
 			triangleBounds.offset = 0;
@@ -50,7 +50,7 @@ self.onmessage = async ( { data } ) => {
 			const fullRange = getFullGeometryRange( geometry, options.range )[ 0 ];
 			triangleBounds = new Float32Array( new SharedArrayBuffer( fullRange.count * 6 * 4 ) );
 			triangleBounds.offset = fullRange.offset;
-			geometryRanges = getRootIndexRanges( geometry, options.range );
+			geometryRanges = getRootPrimitiveRanges( geometry, options.range );
 
 		}
 
