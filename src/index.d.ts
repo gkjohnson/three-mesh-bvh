@@ -54,7 +54,7 @@ export class BVH {
 
 	constructor( geometry: BufferGeometry, options?: BVHOptions );
 	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
-	shiftTriangleOffsets( offset: number ): void;
+	shiftPrimitiveOffsets( offset: number ): void;
 
 	traverse(
     callback: (
@@ -85,6 +85,8 @@ export class MeshBVH extends BVH {
   ): MeshBVH;
 
 	constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
+
+	shiftTriangleOffsets( offset: number ): void;
 
 	raycast( ray: Ray, materialOrSide?: Side | Array<Material> | Material, near?: number, far?: number ): Array<Intersection>
 
