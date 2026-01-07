@@ -1,4 +1,4 @@
-import { Matrix4, Line3, Vector3, Ray } from 'three';
+import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
 import { BVH } from './BVH.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
@@ -8,6 +8,7 @@ const _ray = /* @__PURE__ */ new Ray();
 const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
 const _intersectPointOnRay = /*@__PURE__*/ new Vector3();
 const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
+const _box = /* @__PURE__ */ new Box3();
 
 export class LineSegmentsBVH extends BVH {
 
@@ -97,78 +98,59 @@ export class LineSegmentsBVH extends BVH {
 
 	raycastObject3D( object, raycaster, intersects = [] ) {
 
-		_inverseMatrix.copy( object.matrixWorld ).invert();
+		const { matrixWorld } = object;
+		const { firstHitOnly } = raycaster;
+
+		_inverseMatrix.copy( matrixWorld ).invert();
 		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		const threshold = raycaster.params.Line.threshold;
 		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
 		const localThresholdSq = localThreshold * localThreshold;
 
-		const { firstHitOnly } = raycaster;
 		let closestHit = null;
-		let localClosestDistance = Infinity;
+		let closestDistance = Infinity;
 		this.shapecast( {
 			boundsTraverseOrder: box => {
 
-				// traverse the closer bounds first.
 				return box.distanceToPoint( _ray.origin );
 
 			},
-			intersectsBounds: ( box, isLeaf, score ) => {
+			intersectsBounds: box => {
 
-				// if we've already found a point that's closer then the full bounds then
-				// don't traverse further.
-				if ( score > localClosestDistance && firstHitOnly ) {
-
-					return NOT_INTERSECTED;
-
-				}
-
-				box.expandByScalar( localThreshold );
-				return _ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+				// TODO: for some reason trying to early-out here is causing firstHitOnly tests to fail
+				_box.copy( box ).expandByScalar( Math.abs( localThreshold ) );
+				return _ray.intersectsBox( _box ) ? INTERSECTED : NOT_INTERSECTED;
 
 			},
 			intersectsLine: ( line, index ) => {
 
 				const distSq = _ray.distanceSqToSegment( line.start, line.end, _intersectPointOnRay, _intersectPointOnSegment );
-				if ( distSq > localThresholdSq ) {
 
-					return;
-
-				}
-
-				const localDistanceToPoint = Math.sqrt( distSq );
-				if ( firstHitOnly && localDistanceToPoint > localClosestDistance ) {
-
-					return;
-
-				}
+				if ( distSq > localThresholdSq ) return;
 
 				_intersectPointOnRay.applyMatrix4( object.matrixWorld );
 
 				const distance = raycaster.ray.origin.distanceTo( _intersectPointOnRay );
-				if ( distance < raycaster.near || distance > raycaster.far ) {
 
-					return;
+				if ( distance < raycaster.near || distance > raycaster.far ) return;
 
-				}
-
-
-				localClosestDistance = localDistanceToPoint;
+				if ( firstHitOnly && distance >= closestDistance ) return;
+				closestDistance = distance;
 
 				index = this.resolveLineIndex( index );
 
 				closestHit = {
 					distance,
-					point: _intersectPointOnSegment.clone().applyMatrix4( object.matrixWorld ),
-					index,
+					point: _intersectPointOnSegment.clone().applyMatrix4( matrixWorld ),
+					index: index * this.primitiveStride,
 					face: null,
 					faceIndex: null,
 					barycoord: null,
 					object,
 				};
 
-				if ( ! raycaster.firstHitOnly ) {
+				if ( ! firstHitOnly ) {
 
 					intersects.push( closestHit );
 
@@ -177,7 +159,7 @@ export class LineSegmentsBVH extends BVH {
 			},
 		} );
 
-		if ( raycaster.firstHitOnly ) {
+		if ( firstHitOnly && closestHit ) {
 
 			intersects.push( closestHit );
 
@@ -193,7 +175,7 @@ export class LineBVH extends LineSegmentsBVH {
 
 	get primitiveStride() {
 
-		return 2;
+		return 1;
 
 	}
 

@@ -77,7 +77,17 @@ export function runTestMatrix( optionsMatrix = {}, cb ) {
 
 		const description = Object
 			.entries( state )
-			.map( ( [ key, value ] ) => `${ key }: ${ value }` )
+			.map( ( [ key, value ] ) => {
+
+				if ( value.name ) {
+
+					value = value.name;
+
+				}
+
+				return `${ key }: ${ value }`;
+
+			} )
 			.join( ', ' );
 
 		if ( remainingKeys.length === 0 ) {

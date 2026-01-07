@@ -6,7 +6,6 @@ import { PrimitivePool } from '../utils/PrimitivePool.js';
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _ray = /* @__PURE__ */ new Ray();
 const _pointPool = /* @__PURE__ */ new PrimitivePool( () => new Vector3() );
-const _vec = /* @__PURE__ */ new Vector3();
 const _box = /* @__PURE__ */ new Box3();
 
 export class PointsBVH extends BVH {
@@ -100,13 +99,12 @@ export class PointsBVH extends BVH {
 		this.shapecast( {
 			boundsTraverseOrder: box => {
 
-				_box.copy( box ).expandByScalar( Math.abs( localThreshold ) );
-				return _box.copy( box ).distanceToPoint( _ray.origin );
+				return box.distanceToPoint( _ray.origin );
 
 			},
-			intersectsBounds: ( box ) => {
+			intersectsBounds: box => {
 
-				// NOTE: for some reason trying to early-out here is causing firstHitOnly tests to fail
+				// TODO: for some reason trying to early-out here is causing firstHitOnly tests to fail
 				_box.copy( box ).expandByScalar( Math.abs( localThreshold ) );
 				return _ray.intersectsBox( _box ) ? INTERSECTED : NOT_INTERSECTED;
 

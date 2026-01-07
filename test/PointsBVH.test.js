@@ -49,7 +49,7 @@ function runSuiteWithOptions( options ) {
 
 				const theta = random() * Math.PI * 2;
 				const phi = Math.acos( 2 * random() - 1 );
-				const r = Math.cbrt( random() ) * 5; // cube root for uniform distribution
+				const r = Math.cbrt( random() ) * 5;
 
 				positions[ i * 3 + 0 ] = r * Math.sin( phi ) * Math.cos( theta );
 				positions[ i * 3 + 1 ] = r * Math.sin( phi ) * Math.sin( theta );
@@ -72,7 +72,7 @@ function runSuiteWithOptions( options ) {
 
 			}
 
-			geometry.computeBoundsTree( { type: PointsBVH } );
+			geometry.computeBoundsTree( { ...options, type: PointsBVH } );
 
 			bvh = geometry.boundsTree;
 
@@ -85,7 +85,7 @@ function runSuiteWithOptions( options ) {
 			raycaster.params.Points.threshold = options.raycastThreshold;
 
 			setSeed( transformSeed );
-			random(); // call random() to seed with a larger value
+			random();
 
 			randomizeObjectTransform( pointCloud );
 
