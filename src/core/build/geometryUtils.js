@@ -57,7 +57,7 @@ export function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-function getFullPrimitiveRange( geo, range, stride = 3 ) {
+function getFullPrimitiveRange( geo, range, stride ) {
 
 	const primitiveCount = getVertexCount( geo ) / stride;
 	const drawRange = range ? range : geo.drawRange;
@@ -73,7 +73,7 @@ function getFullPrimitiveRange( geo, range, stride = 3 ) {
 
 }
 
-function getPrimitiveGroupRanges( geo, stride = 3 ) {
+function getPrimitiveGroupRanges( geo, stride ) {
 
 	return geo.groups.map( group => ( {
 		offset: group.start / stride,
@@ -84,7 +84,7 @@ function getPrimitiveGroupRanges( geo, stride = 3 ) {
 
 // Function that extracts a set of mutually exclusive ranges representing the primitives being
 // drawn as determined by the geometry groups, draw range, and user specified range
-export function getRootPrimitiveRanges( geo, range, stride = 3 ) {
+export function getRootPrimitiveRanges( geo, range, stride ) {
 
 	const drawRange = getFullPrimitiveRange( geo, range, stride );
 	const primitiveRanges = getPrimitiveGroupRanges( geo, stride );
