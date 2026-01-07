@@ -16,12 +16,6 @@ export class PointsBVH extends BVH {
 
 	}
 
-	get resolvePointIndex() {
-
-		return this.resolvePrimitiveIndex;
-
-	}
-
 	// Implement abstract methods from BVH base class
 	getPrimitiveCount() {
 
@@ -126,7 +120,7 @@ export class PointsBVH extends BVH {
 					if ( firstHitOnly && distance >= closestDistance ) return;
 					closestDistance = distance;
 
-					index = this.resolvePointIndex( index );
+					index = this.resolvePrimitiveIndex( index );
 
 					closestHit = {
 						distance,
@@ -179,7 +173,7 @@ function iterateOverPoints(
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		const prim = bvh.resolvePointIndex( i );
+		const prim = bvh.resolvePrimitiveIndex( i );
 		const vertexIndex = index ? index.array[ prim ] : prim;
 		point.fromBufferAttribute( pos, vertexIndex );
 

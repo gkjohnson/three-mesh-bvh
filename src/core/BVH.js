@@ -94,7 +94,7 @@ export class BVH {
 
 	}
 
-	shiftTriangleOffsets( offset ) {
+	shiftPrimitiveOffsets( offset ) {
 
 		const indirectBuffer = this._indirectBuffer;
 		if ( indirectBuffer ) {

@@ -175,6 +175,12 @@ export class MeshBVH extends BVH {
 
 	}
 
+	shiftTriangleOffsets( offset ) {
+
+		return super.shiftPrimitiveOffsets( offset );
+
+	}
+
 	// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
 	// result is an array of size count * 6 where triangle i maps to a
 	// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,

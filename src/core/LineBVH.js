@@ -18,12 +18,6 @@ export class LineSegmentsBVH extends BVH {
 
 	}
 
-	get resolveLineIndex() {
-
-		return this.resolvePrimitiveIndex;
-
-	}
-
 	getPrimitiveCount() {
 
 		const { geometry } = this;
@@ -140,7 +134,7 @@ export class LineSegmentsBVH extends BVH {
 				if ( firstHitOnly && distance >= closestDistance ) return;
 				closestDistance = distance;
 
-				index = this.resolveLineIndex( index );
+				index = this.resolvePrimitiveIndex( index );
 
 				closestHit = {
 					distance,
@@ -246,7 +240,7 @@ function iterateOverLines(
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		const prim = bvh.resolveLineIndex( i );
+		const prim = bvh.resolvePrimitiveIndex( i );
 		let i0 = prim * primitiveStride;
 		let i1 = ( i0 + 1 ) % vertCount;
 		if ( index ) {
