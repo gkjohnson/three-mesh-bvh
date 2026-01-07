@@ -231,8 +231,8 @@ function iterateOverLines(
 
 	const { geometry, primitiveStride } = bvh;
 	const { index } = geometry;
-	const pos = geometry.attributes.position;
-	const vertCount = bvh.getPrimitiveCount() * primitiveStride;
+	const posAttr = geometry.attributes.position;
+	const vertCount = index ? index.count : posAttr.count;
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
@@ -246,8 +246,8 @@ function iterateOverLines(
 
 		}
 
-		line.start.fromBufferAttribute( pos, i0 );
-		line.end.fromBufferAttribute( pos, i1 );
+		line.start.fromBufferAttribute( posAttr, i0 );
+		line.end.fromBufferAttribute( posAttr, i1 );
 
 		if ( intersectsPointFunc( line, i, contained, depth ) ) {
 

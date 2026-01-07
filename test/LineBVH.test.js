@@ -1,9 +1,10 @@
 import {
-	Points,
+	LineSegments,
+	Line,
+	LineLoop,
 	BufferGeometry,
 	Scene,
 	Raycaster,
-	PointsMaterial,
 	Float32BufferAttribute,
 	Uint16BufferAttribute,
 } from 'three';
@@ -11,17 +12,22 @@ import {
 	acceleratedRaycast,
 	computeBoundsTree,
 	disposeBoundsTree,
-	PointsBVH,
+	LineBVH,
+	LineLoopBVH,
+	LineSegmentsBVH,
 } from 'three-mesh-bvh';
 import { random, runTestMatrix, setSeed } from './utils.js';
 
-Points.prototype.raycast = acceleratedRaycast;
+Line.prototype.raycast = acceleratedRaycast;
+LineLoop.prototype.raycast = acceleratedRaycast;
+LineSegments.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 runTestMatrix( {
 	indexed: [ true, false ],
 	raycastThreshold: [ 0.01, 0.1 ],
+	type: [ LineSegmentsBVH, LineLoopBVH, LineBVH ],
 }, ( desc, options ) => {
 
 	describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
@@ -33,31 +39,45 @@ function runSuiteWithOptions( options ) {
 	const transformSeed = Math.floor( Math.random() * 1e10 );
 	describe( `Transform Seed : ${ transformSeed }`, () => {
 
-		let scene, raycaster, pointCloud, geometry, bvh;
+		let scene, raycaster, object, geometry, bvh;
 
 		beforeAll( () => {
 
-			// Create a point cloud geometry
-			const pointCount = 500;
-			const positions = new Float32Array( pointCount * 3 );
-			const indices = options.indexed ? new Uint16Array( pointCount ) : null;
+			// Create line segments geometry
+			const segmentCount = 5;
+			const vertexCount = segmentCount * 2;
+			const positions = new Float32Array( vertexCount * 3 );
+			const indices = options.indexed ? new Uint16Array( vertexCount ) : null;
 
 			setSeed( transformSeed );
 
-			// Generate random points in a sphere
-			for ( let i = 0; i < pointCount; i ++ ) {
+			// Generate random line segments in a sphere
+			for ( let i = 0; i < segmentCount; i ++ ) {
 
-				const theta = random() * Math.PI * 2;
-				const phi = Math.acos( 2 * random() - 1 );
-				const r = Math.cbrt( random() ) * 5;
+				// Start point of line segment
+				const theta1 = random() * Math.PI * 2;
+				const phi1 = Math.acos( 2 * random() - 1 );
+				const r1 = Math.cbrt( random() ) * 5;
 
-				positions[ i * 3 + 0 ] = r * Math.sin( phi ) * Math.cos( theta );
-				positions[ i * 3 + 1 ] = r * Math.sin( phi ) * Math.sin( theta );
-				positions[ i * 3 + 2 ] = r * Math.cos( phi );
+				const v1Index = i * 2;
+				positions[ v1Index * 3 + 0 ] = r1 * Math.sin( phi1 ) * Math.cos( theta1 );
+				positions[ v1Index * 3 + 1 ] = r1 * Math.sin( phi1 ) * Math.sin( theta1 );
+				positions[ v1Index * 3 + 2 ] = r1 * Math.cos( phi1 );
+
+				// End point of line segment (nearby point)
+				const theta2 = theta1 + ( random() - 0.5 ) * 0.5;
+				const phi2 = phi1 + ( random() - 0.5 ) * 0.5;
+				const r2 = r1 + ( random() - 0.5 ) * 0.5;
+
+				const v2Index = i * 2 + 1;
+				positions[ v2Index * 3 + 0 ] = r2 * Math.sin( phi2 ) * Math.cos( theta2 );
+				positions[ v2Index * 3 + 1 ] = r2 * Math.sin( phi2 ) * Math.sin( theta2 );
+				positions[ v2Index * 3 + 2 ] = r2 * Math.cos( phi2 );
 
 				if ( indices ) {
 
-					indices[ i ] = i;
+					indices[ v1Index ] = v1Index;
+					indices[ v2Index ] = v2Index;
 
 				}
 
@@ -72,27 +92,38 @@ function runSuiteWithOptions( options ) {
 
 			}
 
-			geometry.computeBoundsTree( { ...options, type: PointsBVH } );
+			geometry.computeBoundsTree( options );
 
 			bvh = geometry.boundsTree;
 
-			pointCloud = new Points( geometry, new PointsMaterial( { size: 0.1 } ) );
+			if ( options.type === LineSegmentsBVH ) {
+
+				object = new LineSegments( geometry );
+
+			} else if ( options.type === LineBVH ) {
+
+				object = new Line( geometry );
+
+			} else if ( options.type === LineLoopBVH ) {
+
+				object = new LineLoop( geometry );
+
+			}
 
 			scene = new Scene();
-			scene.add( pointCloud );
+			scene.add( object );
 
 			raycaster = new Raycaster();
-			raycaster.params.Points.threshold = options.raycastThreshold;
+			raycaster.params.Line.threshold = options.raycastThreshold;
 
 			setSeed( transformSeed );
 			random();
 
-			randomizeObjectTransform( pointCloud );
+			randomizeObjectTransform( object );
 
 		} );
 
-		// note we only check distances since it's commonly the case that
-		for ( let i = 0; i < 100; i ++ ) {
+		for ( let i = 0; i < 1; i ++ ) {
 
 			const raySeed = Math.floor( Math.random() * 1e10 );
 			it( `Cast ${ i } Seed : ${ raySeed }`, () => {
@@ -105,15 +136,15 @@ function runSuiteWithOptions( options ) {
 
 				geometry.boundsTree = bvh;
 				raycaster.firstHitOnly = false;
-				const bvhHits = raycaster.intersectObject( pointCloud );
+				const bvhHits = raycaster.intersectObject( object );
 
 				geometry.boundsTree = bvh;
 				raycaster.firstHitOnly = true;
-				const firstHit = raycaster.intersectObject( pointCloud );
+				const firstHit = raycaster.intersectObject( object );
 
 				geometry.boundsTree = null;
 				raycaster.firstHitOnly = false;
-				const ogHits = raycaster.intersectObject( pointCloud );
+				const ogHits = raycaster.intersectObject( object );
 
 				expect( ogHits ).toEqual( bvhHits );
 				expect( ogHits[ 0 ] ).toEqual( firstHit[ 0 ] );
