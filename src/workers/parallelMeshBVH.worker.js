@@ -3,7 +3,6 @@ import { WorkerPool } from './utils/WorkerPool.js';
 import { BYTES_PER_NODE, DEFAULT_OPTIONS, SKIP_GENERATION } from '../core/Constants.js';
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
-import { getFullGeometryRange, getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 let isRunning = false;
