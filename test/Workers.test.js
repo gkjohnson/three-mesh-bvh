@@ -112,28 +112,32 @@ describe( 'Workers', () => {
 
 		it( 'should generate a matching bvh', async () => {
 
-			const { workerBvh, bvh } = await generate();
+			const { workerBvh, bvh, error } = await generate();
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
 
 		it( 'should generate a matching indirect bvh', async () => {
 
-			const { workerBvh, bvh } = await generate( { indirect: true } );
+			const { workerBvh, bvh, error } = await generate( { indirect: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
 
 		it( 'should generate a matching bvh with groups', async () => {
 
-			const { workerBvh, bvh } = await generate( { groups: true } );
+			const { workerBvh, bvh, error } = await generate( { groups: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
 
 		it( 'should generate a matching indirect bvh with groups', async () => {
 
-			const { workerBvh, bvh } = await generate( { indirect: true, groups: true } );
+			const { workerBvh, bvh, error } = await generate( { indirect: true, groups: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
@@ -144,28 +148,32 @@ describe( 'Workers', () => {
 
 		it( 'should generate a matching bvh', async () => {
 
-			const { workerBvh, bvh } = await generate( { parallel: true } );
+			const { workerBvh, bvh, error } = await generate( { parallel: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
 
 		it( 'should generate a matching indirect bvh', async () => {
 
-			const { workerBvh, bvh } = await generate( { indirect: true, parallel: true } );
+			const { workerBvh, bvh, error } = await generate( { indirect: true, parallel: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
 
 		it( 'should generate a matching bvh with groups', async () => {
 
-			const { workerBvh, bvh } = await generate( { groups: true, parallel: true } );
+			const { workerBvh, bvh, error } = await generate( { groups: true, parallel: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
 
 		it( 'should generate a matching indirect bvh with groups', async () => {
 
-			const { workerBvh, bvh } = await generate( { indirect: true, groups: true, parallel: true } );
+			const { workerBvh, bvh, error } = await generate( { indirect: true, groups: true, parallel: true } );
+			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 
 		} );
