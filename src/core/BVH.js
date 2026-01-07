@@ -69,12 +69,6 @@ export class BVH {
 	}
 
 	// Abstract methods to be implemented by subclasses
-	getPrimitiveCount() {
-
-		throw new Error( 'BVH: getPrimitiveCount() must be implemented by subclass' );
-
-	}
-
 	computePrimitiveBounds( /* offset, count */ ) {
 
 		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );

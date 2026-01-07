@@ -18,21 +18,6 @@ export class LineSegmentsBVH extends BVH {
 
 	}
 
-	getPrimitiveCount() {
-
-		const { geometry } = this;
-		if ( geometry.index ) {
-
-			return geometry.index.count / 2;
-
-		} else {
-
-			return geometry.attributes.position.count / 2;
-
-		}
-
-	}
-
 	computePrimitiveBounds( offset, count, targetBuffer ) {
 
 		const indirectBuffer = this._indirectBuffer;
@@ -188,21 +173,6 @@ export class LineLoopBVH extends LineSegmentsBVH {
 
 	}
 
-	getPrimitiveCount() {
-
-		const { geometry } = this;
-		if ( geometry.index ) {
-
-			return geometry.index.count;
-
-		} else {
-
-			return geometry.attributes.position.count;
-
-		}
-
-	}
-
 }
 
 export class LineBVH extends LineLoopBVH {
@@ -212,12 +182,6 @@ export class LineBVH extends LineLoopBVH {
 		const res = super.getRootRanges( ...args );
 		res.forEach( group => group.count -- );
 		return res;
-
-	}
-
-	getPrimitiveCount() {
-
-		return super.getPrimitiveCount() - 1;
 
 	}
 

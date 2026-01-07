@@ -17,12 +17,6 @@ export class PointsBVH extends BVH {
 	}
 
 	// Implement abstract methods from BVH base class
-	getPrimitiveCount() {
-
-		return this.geometry.attributes.position.count;
-
-	}
-
 	computePrimitiveBounds( offset, count, targetBuffer ) {
 
 		const indirectBuffer = this._indirectBuffer;

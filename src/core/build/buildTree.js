@@ -8,9 +8,10 @@ import { partition } from './sortUtils.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
 // construct a new buffer that points to the set of triangles represented by the given ranges
-export function generateIndirectBuffer( primCount, useSharedArrayBuffer, ranges ) {
+export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
 
-	const useUint32 = primCount > 2 ** 16;
+	const lastRange = ranges[ ranges.length - 1 ];
+	const useUint32 = lastRange.offset + lastRange.count > 2 ** 16;
 
 	// use getRootIndexRanges which excludes gaps
 	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
@@ -55,7 +56,6 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	const partitionStride = indirect ? 1 : bvh.primitiveStride;
 
 	// generate intermediate variables
-	const totalPrimitives = bvh.getPrimitiveCount();
 	const cacheCentroidBoundingData = new Float32Array( 6 );
 	let reachedMaxDepth = false;
 
@@ -68,7 +68,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 
 		if ( onProgress ) {
 
-			onProgress( primitivesProcessed / totalPrimitives );
+			onProgress( primitivesProcessed / count );
 
 		}
 
@@ -158,7 +158,7 @@ export function buildPackedTree( bvh, options ) {
 
 		// construct an buffer that is indirectly sorts the triangles used for the BVH
 		const ranges = bvh.getRootRanges( options.range );
-		const indirectBuffer = generateIndirectBuffer( bvh.getPrimitiveCount(), options.useSharedArrayBuffer, ranges );
+		const indirectBuffer = generateIndirectBuffer( ranges, options.useSharedArrayBuffer );
 		bvh._indirectBuffer = indirectBuffer;
 
 		// store offset on the array for later use & allocate only for the

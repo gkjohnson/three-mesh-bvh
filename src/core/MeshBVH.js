@@ -169,12 +169,6 @@ export class MeshBVH extends BVH {
 	}
 
 	// implement abstract methods from BVH base class
-	getPrimitiveCount() {
-
-		return getTriCount( this.geometry );
-
-	}
-
 	shiftTriangleOffsets( offset ) {
 
 		return super.shiftPrimitiveOffsets( offset );

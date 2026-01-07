@@ -41,7 +41,7 @@ self.onmessage = async ( { data } ) => {
 		if ( options.indirect ) {
 
 			const ranges = proxyBvh.getRootRanges( options.range );
-			indirectBuffer = generateIndirectBuffer( proxyBvh.getPrimitiveCount(), true, ranges );
+			indirectBuffer = generateIndirectBuffer( ranges, true );
 			proxyBvh._indirectBuffer = indirectBuffer;
 
 			primitiveBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
