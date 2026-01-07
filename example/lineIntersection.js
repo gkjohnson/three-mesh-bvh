@@ -37,7 +37,7 @@ function init() {
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.setClearColor( 0x263238 );
+	renderer.setClearColor( 0x131619 );
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup

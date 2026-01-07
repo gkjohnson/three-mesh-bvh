@@ -6,6 +6,7 @@ import {
 	PointsMaterial,
 	Float32BufferAttribute,
 	Uint16BufferAttribute,
+	REVISION,
 } from 'three';
 import {
 	acceleratedRaycast,
@@ -24,7 +25,12 @@ runTestMatrix( {
 	raycastThreshold: [ 0.01, 0.1 ],
 }, ( desc, options ) => {
 
-	describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
+	// The structure of the Line raycast results has changed in previous versions
+	if ( REVISION >= 175 ) {
+
+		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
+
+	}
 
 } );
 
