@@ -36,6 +36,10 @@ runTestMatrix( {
 
 		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
 
+	} else {
+
+		describe.skip( 'Skipping tests due to three.js revision' );
+
 	}
 
 } );
