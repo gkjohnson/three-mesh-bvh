@@ -79,7 +79,7 @@ export function runTestMatrix( optionsMatrix = {}, cb ) {
 			.entries( state )
 			.map( ( [ key, value ] ) => {
 
-				if ( value.name ) {
+				if ( value?.name ) {
 
 					value = value.name;
 
