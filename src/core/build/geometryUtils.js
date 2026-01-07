@@ -66,17 +66,17 @@ function getFullPrimitiveRange( geo, range, stride = 3 ) {
 
 	const offset = Math.max( 0, start );
 	const count = Math.min( primitiveCount, end ) - offset;
-	return [ {
+	return {
 		offset: Math.floor( offset ),
 		count: Math.floor( count ),
-	} ];
+	};
 
 }
 
 function getPrimitiveGroupRanges( geo, stride = 3 ) {
 
 	return geo.groups.map( group => ( {
-		start: group.start / stride,
+		offset: group.start / stride,
 		count: group.count / stride,
 	} ));
 
@@ -90,13 +90,13 @@ export function getRootPrimitiveRanges( geo, range, stride = 3 ) {
 	const primitiveRanges = getPrimitiveGroupRanges( geo, stride );
 	if ( ! primitiveRanges.length ) {
 
-		return drawRange;
+		return [ drawRange ];
 
 	}
 
 	const ranges = [];
-	const drawRangeStart = drawRange.start;
-	const drawRangeEnd = drawRange.start + drawRange.count;
+	const drawRangeStart = drawRange.offset;
+	const drawRangeEnd = drawRange.offset + drawRange.count;
 
 	// Create events for group boundaries
 	const primitiveCount = getVertexCount( geo ) / stride;
@@ -104,10 +104,10 @@ export function getRootPrimitiveRanges( geo, range, stride = 3 ) {
 	for ( const group of primitiveRanges ) {
 
 		// Account for cases where group size is set to Infinity
-		const { start, count } = group;
-		const groupStart = start;
-		const groupCount = isFinite( count ) ? count : ( primitiveCount - start );
-		const groupEnd = ( start + groupCount );
+		const { offset, count } = group;
+		const groupStart = offset;
+		const groupCount = isFinite( count ) ? count : ( primitiveCount - offset );
+		const groupEnd = ( offset + groupCount );
 
 		// Only add events if the group intersects with the draw range
 		if ( groupStart < drawRangeEnd && groupEnd > drawRangeStart ) {
