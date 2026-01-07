@@ -5,7 +5,6 @@ import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
 import { IS_LEAF } from './utils/nodeBufferUtils.js';
-import { getTriCount } from './build/geometryUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
