@@ -23,10 +23,10 @@ import { setTriangle } from '../utils/TriangleUtilities.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
 
-const obb = /* @__PURE__ */ new OrientedBox();
-const ray = /* @__PURE__ */ new Ray();
-const direction = /* @__PURE__ */ new Vector3();
-const tmpInverseMatrix = /* @__PURE__ */ new Matrix4();
+const _obb = /* @__PURE__ */ new OrientedBox();
+const _ray = /* @__PURE__ */ new Ray();
+const _direction = /* @__PURE__ */ new Vector3();
+const _InverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
 
 export class MeshBVH extends BVH {
@@ -288,19 +288,19 @@ export class MeshBVH extends BVH {
 
 		}
 
-		tmpInverseMatrix.copy( object.matrixWorld ).invert();
-		ray.copy( raycaster.ray ).applyMatrix4( tmpInverseMatrix );
+		_InverseMatrix.copy( object.matrixWorld ).invert();
+		_ray.copy( raycaster.ray ).applyMatrix4( _InverseMatrix );
 
 		_worldScale.setFromMatrixScale( object.matrixWorld );
-		direction.copy( ray.direction ).multiply( _worldScale );
+		_direction.copy( _ray.direction ).multiply( _worldScale );
 
-		const scaleFactor = direction.length();
+		const scaleFactor = _direction.length();
 		const near = raycaster.near / scaleFactor;
 		const far = raycaster.far / scaleFactor;
 
 		if ( raycaster.firstHitOnly === true ) {
 
-			let hit = this.raycastFirst( ray, material, near, far );
+			let hit = this.raycastFirst( _ray, material, near, far );
 			hit = convertRaycastIntersect( hit, object, raycaster );
 			if ( hit ) {
 
@@ -310,7 +310,7 @@ export class MeshBVH extends BVH {
 
 		} else {
 
-			const hits = this.raycast( ray, material, near, far );
+			const hits = this.raycast( _ray, material, near, far );
 			for ( let i = 0, l = hits.length; i < l; i ++ ) {
 
 				const hit = convertRaycastIntersect( hits[ i ], object, raycaster );
@@ -519,13 +519,13 @@ export class MeshBVH extends BVH {
 	/* Derived Cast Functions */
 	intersectsBox( box, boxToMesh ) {
 
-		obb.set( box.min, box.max, boxToMesh );
-		obb.needsUpdate = true;
+		_obb.set( box.min, box.max, boxToMesh );
+		_obb.needsUpdate = true;
 
 		return this.shapecast(
 			{
-				intersectsBounds: box => obb.intersectsBox( box ),
-				intersectsTriangle: tri => obb.intersectsTriangle( tri )
+				intersectsBounds: box => _obb.intersectsBox( box ),
+				intersectsTriangle: tri => _obb.intersectsTriangle( tri )
 			}
 		);
 
