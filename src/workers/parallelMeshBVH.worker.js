@@ -40,7 +40,7 @@ self.onmessage = async ( { data } ) => {
 		let primitiveBounds, rootRanges;
 		if ( options.indirect ) {
 
-			const ranges = proxyBvh.getRootRanges( options );
+			const ranges = proxyBvh.getRootRanges( options.range );
 			indirectBuffer = generateIndirectBuffer( proxyBvh.getPrimitiveCount(), true, ranges );
 			proxyBvh._indirectBuffer = indirectBuffer;
 
@@ -51,7 +51,7 @@ self.onmessage = async ( { data } ) => {
 
 		} else {
 
-			rootRanges = proxyBvh.getRootRanges( options );
+			rootRanges = proxyBvh.getRootRanges( options.range );
 
 			const firstRange = rootRanges[ 0 ];
 			const lastRange = rootRanges[ rootRanges.length - 1 ];

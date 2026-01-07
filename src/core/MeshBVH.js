@@ -329,7 +329,6 @@ export class MeshBVH extends BVH {
 
 	}
 
-	// TODO: move to base class?
 	refit( nodeIndices = null ) {
 
 		const refitFunc = this.indirect ? refit_indirect : refit;

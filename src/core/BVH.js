@@ -81,10 +81,10 @@ export class BVH {
 
 	}
 
-	getRootRanges( options ) {
+	getRootRanges( range ) {
 
 		// TODO: can we avoid passing options in here
-		return getRootPrimitiveRanges( this.geometry, options.range, this.primitiveStride );
+		return getRootPrimitiveRanges( this.geometry, range, this.primitiveStride );
 
 	}
 

@@ -157,7 +157,7 @@ export function buildPackedTree( bvh, options ) {
 	if ( options.indirect ) {
 
 		// construct an buffer that is indirectly sorts the triangles used for the BVH
-		const ranges = bvh.getRootRanges( options );
+		const ranges = bvh.getRootRanges( options.range );
 		const indirectBuffer = generateIndirectBuffer( bvh.getPrimitiveCount(), options.useSharedArrayBuffer, ranges );
 		bvh._indirectBuffer = indirectBuffer;
 
@@ -173,7 +173,7 @@ export function buildPackedTree( bvh, options ) {
 
 		ensureIndex( geometry, options );
 
-		rootRanges = bvh.getRootRanges( options );
+		rootRanges = bvh.getRootRanges( options.range );
 
 		const firstRange = rootRanges[ 0 ];
 		const lastRange = rootRanges[ rootRanges.length - 1 ];
