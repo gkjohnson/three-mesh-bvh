@@ -23,7 +23,9 @@ export interface HitPointInfo {
 export interface MeshBVHOptions {
   strategy?: SplitStrategy;
   maxDepth?: number;
+  /** @deprecated Use maxLeafSize instead */
   maxLeafTris?: number;
+  maxLeafSize?: number;
   setBoundingBox?: boolean;
   useSharedArrayBuffer?: boolean;
   indirect?: boolean;

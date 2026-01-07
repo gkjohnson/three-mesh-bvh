@@ -43,7 +43,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	const {
 		maxDepth,
 		verbose,
-		maxLeafTris,
+		maxLeafSize,
 		strategy,
 		onProgress,
 		indirect,
@@ -90,7 +90,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 		}
 
 		// early out if we've met our capacity
-		if ( count <= maxLeafTris || depth >= maxDepth ) {
+		if ( count <= maxLeafSize || depth >= maxDepth ) {
 
 			triggerProgress( offset + count );
 			node.offset = offset;

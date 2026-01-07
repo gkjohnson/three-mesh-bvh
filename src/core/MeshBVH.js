@@ -154,6 +154,21 @@ export class MeshBVH extends BVH {
 
 	}
 
+	constructor( geometry, options = {} ) {
+
+		if ( options.maxLeafTris ) {
+
+			options = {
+				...options,
+				maxLeafSize: options.maxLeafTris,
+			};
+
+		}
+
+		super( geometry, options );
+
+	}
+
 	// implement abstract methods from BVH base class
 	getPrimitiveCount() {
 
