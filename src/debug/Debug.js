@@ -1,5 +1,5 @@
 import { Box3, Vector3 } from 'three';
-import { TRAVERSAL_COST, TRIANGLE_INTERSECT_COST } from '../core/Constants.js';
+import { PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 
@@ -67,7 +67,7 @@ function getRootExtremes( bvh, group ) {
 			result.primitives.min = Math.min( count, result.primitives.min );
 			result.primitives.max = Math.max( count, result.primitives.max );
 
-			result.surfaceAreaScore += surfaceArea * TRIANGLE_INTERSECT_COST * count;
+			result.surfaceAreaScore += surfaceArea * PRIMITIVE_INTERSECT_COST * count;
 
 		} else {
 
