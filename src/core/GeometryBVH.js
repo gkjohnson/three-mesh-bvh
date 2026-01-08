@@ -85,12 +85,10 @@ export class GeometryBVH extends BVH {
 			const ranges = getRootPrimitiveRanges( geometry, options.range, primitiveStride );
 			const indirectBuffer = generateIndirectBuffer( ranges, options.useSharedArrayBuffer );
 			this._indirectBuffer = indirectBuffer;
-			this.primitiveBufferStride = 1;
 
 		} else {
 
 			ensureIndex( geometry, options );
-			this.primitiveBufferStride = primitiveStride;
 
 		}
 

@@ -4,6 +4,7 @@ import { BYTES_PER_NODE, DEFAULT_OPTIONS, SKIP_GENERATION } from '../core/Consta
 import { buildTree, generateIndirectBuffer } from '../core/build/buildTree.js';
 import { countNodes, populateBuffer } from '../core/build/buildUtils.js';
 import { MeshBVH } from '../core/MeshBVH.js';
+import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 
 let isRunning = false;
 let prevTime = 0;
@@ -37,33 +38,27 @@ self.onmessage = async ( { data } ) => {
 		let proxyBvh = createProxyBVH( geometry, null );
 
 		let indirectBuffer = null;
-		let primitiveBounds, rootRanges;
 		if ( options.indirect ) {
 
-			const ranges = proxyBvh.getRootRanges( options.range );
+			const ranges = getRootPrimitiveRanges( geometry, options.range, proxyBvh.primitiveStride );
 			indirectBuffer = generateIndirectBuffer( ranges, true );
 			proxyBvh._indirectBuffer = indirectBuffer;
 
-			primitiveBounds = new Float32Array( new SharedArrayBuffer( indirectBuffer.length * 6 * 4 ) );
-			primitiveBounds.offset = 0;
-
-			rootRanges = [ { offset: 0, count: indirectBuffer.length } ];
-
-		} else {
-
-			rootRanges = proxyBvh.getRootRanges( options.range );
-
-			const firstRange = rootRanges[ 0 ];
-			const lastRange = rootRanges[ rootRanges.length - 1 ];
-			const fullRange = {
-				offset: firstRange.offset,
-				count: lastRange.offset + lastRange.count - firstRange.offset,
-			};
-
-			primitiveBounds = new Float32Array( new SharedArrayBuffer( fullRange.count * 6 * 4 ) );
-			primitiveBounds.offset = fullRange.offset;
-
 		}
+
+		// get the range of buffer data to construct / arrange as done in "buildTree"
+		const rootRanges = proxyBvh.getRootRanges( options.range );
+		const firstRange = rootRanges[ 0 ];
+		const lastRange = rootRanges[ rootRanges.length - 1 ];
+		const fullRange = {
+			offset: firstRange.offset,
+			count: lastRange.offset + lastRange.count - firstRange.offset,
+		};
+
+		// construct the primitive bounds for sorting
+		const primitiveBounds = new Float32Array( 6 * fullRange.count );
+		primitiveBounds.offset = fullRange.offset;
+		proxyBvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
 		// generate portions of the triangle bounds buffer over multiple frames
 		const boundsPromises = [];
@@ -91,9 +86,6 @@ self.onmessage = async ( { data } ) => {
 		}
 
 		await Promise.all( boundsPromises );
-
-		// create a proxy bvh structure
-		proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		let totalProgress = 0;
 
