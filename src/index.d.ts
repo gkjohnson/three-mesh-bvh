@@ -37,7 +37,7 @@ export interface BVHOptions {
 export interface MeshBVHOptions extends BVHOptions {} // eslint-disable-line
 
 export interface ComputeBVHOptions extends BVHOptions {
-	type?: typeof BVH;
+	type?: typeof GeometryBVH;
 }
 
 export interface MeshBVHSerializeOptions {
@@ -50,10 +50,6 @@ export interface MeshBVHDeserializeOptions {
 
 export class BVH {
 
-	readonly geometry: BufferGeometry;
-
-	constructor( geometry: BufferGeometry, options?: BVHOptions );
-	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
 	shiftPrimitiveOffsets( offset: number ): void;
 
 	traverse(
@@ -71,8 +67,17 @@ export class BVH {
 
 }
 
+export class GeometryBVH {
+
+	readonly geometry: BufferGeometry;
+
+	constructor( geometry: BufferGeometry, options?: BVHOptions );
+	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
+
+}
+
 // MeshBVH
-export class MeshBVH extends BVH {
+export class MeshBVH extends GeometryBVH {
 
 	readonly resolveTriangleIndex: ( i: number ) => number;
 
@@ -193,8 +198,8 @@ export class MeshBVH extends BVH {
 }
 
 // other BVHs
-export class PointsBVH extends BVH {}
-export class LineBVH extends BVH {}
+export class PointsBVH extends GeometryBVH {}
+export class LineBVH extends GeometryBVH {}
 export class LineLoopBVH extends LineBVH {}
 export class LineSegmentsBVH extends LineBVH {}
 
@@ -216,8 +221,8 @@ export class MeshBVHHelper extends Group {
 	edgeMaterial: LineBasicMaterial;
 	meshMaterial: MeshBasicMaterial;
 
-	constructor( meshOrBVH: Object3D | BVH, depth?: number );
-	constructor( mesh?: Object3D | null, bvh?: BVH | null, depth?: number );
+	constructor( meshOrBVH: Object3D | GeometryBVH, depth?: number );
+	constructor( mesh?: Object3D | null, bvh?: GeometryBVH | null, depth?: number );
 
 	update(): void;
 
@@ -227,11 +232,11 @@ export class MeshBVHHelper extends Group {
 
 // THREE.js Extensions
 
-export function computeBoundsTree( options?: ComputeBVHOptions ): BVH;
+export function computeBoundsTree( options?: ComputeBVHOptions ): GeometryBVH;
 
 export function disposeBoundsTree(): void;
 
-export function computeBatchedBoundsTree( index?: number, options?: BVHOptions ): BVH | BVH[];
+export function computeBatchedBoundsTree( index?: number, options?: BVHOptions ): GeometryBVH | GeometryBVH[];
 
 export function disposeBatchedBoundsTree( index?: number ): void;
 
@@ -242,13 +247,13 @@ export function acceleratedRaycast(
 
 declare module 'three' {
   export interface BufferGeometry {
-    boundsTree?: BVH;
+    boundsTree?: GeometryBVH;
     computeBoundsTree: typeof computeBoundsTree;
     disposeBoundsTree: typeof disposeBoundsTree;
   }
 
   export interface BatchedMesh {
-    boundsTrees?: Array<BVH | null>;
+    boundsTrees?: Array<GeometryBVH | null>;
     computeBoundsTree: typeof computeBatchedBoundsTree;
     disposeBoundsTree: typeof disposeBatchedBoundsTree;
   }
