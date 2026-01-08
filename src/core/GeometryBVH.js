@@ -3,7 +3,37 @@ import { SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { ensureIndex, getRootPrimitiveRanges } from './build/geometryUtils.js';
 import { BVH } from './BVH.js';
-import { generateIndirectBuffer } from './build/buildTree.js';
+
+// construct a new buffer that points to the set of triangles represented by the given ranges
+export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
+
+	const lastRange = ranges[ ranges.length - 1 ];
+	const useUint32 = lastRange.offset + lastRange.count > 2 ** 16;
+
+	// use getRootIndexRanges which excludes gaps
+	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
+	const byteCount = useUint32 ? 4 : 2;
+	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
+	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
+
+	// construct a compact form of the triangles in these ranges
+	let index = 0;
+	for ( let r = 0; r < ranges.length; r ++ ) {
+
+		const { offset, count } = ranges[ r ];
+		for ( let i = 0; i < count; i ++ ) {
+
+			indirectBuffer[ index + i ] = offset + i;
+
+		}
+
+		index += count;
+
+	}
+
+	return indirectBuffer;
+
+}
 
 export class GeometryBVH extends BVH {
 
