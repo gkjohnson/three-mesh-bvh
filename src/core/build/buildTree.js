@@ -1,4 +1,3 @@
-import { ensureIndex } from './geometryUtils.js';
 import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { BVHNode } from '../BVHNode.js';
