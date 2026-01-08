@@ -1,7 +1,6 @@
 import { Box3 } from 'three';
 import { SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
-import { buildPackedTree } from './build/buildTree.js';
 import { getRootPrimitiveRanges } from './build/geometryUtils.js';
 import { BVH } from './BVH.js';
 
@@ -37,7 +36,7 @@ export class GeometryBVH extends BVH {
 
 		}
 
-		super( options );
+		super();
 
 		// retain references to the geometry so we can use them it without having to
 		// take a geometry reference in every function.
@@ -53,13 +52,21 @@ export class GeometryBVH extends BVH {
 		// build the BVH unless we're deserializing
 		if ( ! options[ SKIP_GENERATION ] ) {
 
-			buildPackedTree( this, options );
+			this.init( options );
 
-			if ( ! geometry.boundingBox && options.setBoundingBox ) {
+		}
 
-				geometry.boundingBox = this.getBoundingBox( new Box3() );
+	}
 
-			}
+	init( options ) {
+
+		const { geometry } = this;
+
+		super.init( options );
+
+		if ( ! geometry.boundingBox && options.setBoundingBox ) {
+
+			geometry.boundingBox = this.getBoundingBox( new Box3() );
 
 		}
 
@@ -82,6 +89,22 @@ export class GeometryBVH extends BVH {
 	raycastObject3D( /* object, raycaster, intersects = [] */ ) {
 
 		throw new Error( 'BVH: raycastObject3D() not implemented' );
+
+	}
+
+	shapecast( callbacks ) {
+
+		let {
+			iterateDirect,
+			iterateIndirect,
+			...rest
+		} = callbacks;
+
+		const selectedIterateFunc = this.indirect ? iterateIndirect : iterateDirect;
+		return super.shapecast( {
+			...rest,
+			iterate: selectedIterateFunc,
+		} );
 
 	}
 

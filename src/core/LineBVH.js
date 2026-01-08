@@ -1,7 +1,7 @@
 import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
-import { BVH } from './BVH.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { GeometryBVH } from './GeometryBVH.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _ray = /* @__PURE__ */ new Ray();
@@ -10,7 +10,7 @@ const _intersectPointOnRay = /*@__PURE__*/ new Vector3();
 const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
 const _box = /* @__PURE__ */ new Box3();
 
-export class LineSegmentsBVH extends BVH {
+export class LineSegmentsBVH extends GeometryBVH {
 
 	get primitiveStride() {
 
@@ -66,7 +66,7 @@ export class LineSegmentsBVH extends BVH {
 	shapecast( callbacks ) {
 
 		const line = _linePool.getPrimitive();
-		super.shapecast( {
+		const result = super.shapecast( {
 			...callbacks,
 			intersectsPrimitive: callbacks.intersectsLine,
 			scratchPrimitive: line,
@@ -74,6 +74,8 @@ export class LineSegmentsBVH extends BVH {
 			iterateIndirect: iterateOverLines,
 		} );
 		_linePool.releasePrimitive( line );
+
+		return result;
 
 	}
 

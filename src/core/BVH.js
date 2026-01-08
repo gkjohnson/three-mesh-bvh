@@ -1,8 +1,7 @@
 import { Box3 } from 'three';
-import { BYTES_PER_NODE, UINT32_PER_NODE, SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
-import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 import { getRootPrimitiveRanges } from './build/geometryUtils.js';
@@ -11,21 +10,20 @@ const tempBox = /* @__PURE__ */ new Box3();
 
 export class BVH {
 
-	constructor( options = {} ) {
+	constructor() {
+
+		this._roots = null;
+
+	}
+
+	init( options ) {
 
 		options = {
 			...DEFAULT_OPTIONS,
 			...options,
 		};
 
-		this._roots = null;
-
-		// build the BVH unless we're deserializing
-		if ( ! options[ SKIP_GENERATION ] ) {
-
-			buildPackedTree( this, options );
-
-		}
+		buildPackedTree( this, options );
 
 	}
 
@@ -147,11 +145,8 @@ export class BVH {
 			intersectsRange,
 			intersectsPrimitive,
 			scratchPrimitive,
-			iterateDirect,
-			iterateIndirect,
+			iterate,
 		} = callbacks;
-
-		const selectedIterateFunc = this.indirect ? iterateIndirect : iterateDirect;
 
 		// wrap the intersectsRange function
 		if ( intersectsRange && intersectsPrimitive ) {
@@ -161,7 +156,7 @@ export class BVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
+					return iterate( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
 
 				}
 
@@ -175,7 +170,7 @@ export class BVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
+					return iterate( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
 
 				};
 
