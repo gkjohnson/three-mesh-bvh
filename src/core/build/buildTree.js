@@ -186,7 +186,6 @@ export function buildPackedTree( bvh, options ) {
 		primitiveBounds.offset = fullRange.offset;
 		bvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
-
 	}
 
 	// Build BVH roots

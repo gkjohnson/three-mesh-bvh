@@ -140,12 +140,6 @@ export class MeshBVH extends GeometryBVH {
 
 	}
 
-	get primitiveStride() {
-
-		return 3;
-
-	}
-
 	get resolveTriangleIndex() {
 
 		return this.resolvePrimitiveIndex;
@@ -164,6 +158,7 @@ export class MeshBVH extends GeometryBVH {
 		}
 
 		super( geometry, options );
+		this.primitiveStride = 3;
 
 	}
 

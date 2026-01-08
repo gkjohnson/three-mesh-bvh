@@ -12,12 +12,6 @@ export class GeometryBVH extends BVH {
 
 	}
 
-	get primitiveStride() {
-
-		return null;
-
-	}
-
 	constructor( geometry, options = {} ) {
 
 		if ( ! geometry.isBufferGeometry ) {
@@ -42,6 +36,7 @@ export class GeometryBVH extends BVH {
 		// take a geometry reference in every function.
 		this.geometry = geometry;
 		this.resolvePrimitiveIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
+		this.primitiveStride = null;
 		this._indirectBuffer = null;
 
 		options = {
