@@ -41,7 +41,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	}
 
 	// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
-	// recording the offset and count of its triangles and writing them into the reordered geometry index.
+	// recording the offset and count of its primitives and writing them into the reordered geometry index.
 	function splitNode( node, offset, count, centroidBoundingData = null, depth = 0 ) {
 
 		if ( ! reachedMaxDepth && depth >= maxDepth ) {

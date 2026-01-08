@@ -1,5 +1,5 @@
-import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
 import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByPrimitiveBounds } from '../../utils/ArrayBoxUtilities.js';
+import { CENTER, AVERAGE, SAH, PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
 
 const BIN_COUNT = 32;
 const binsSort = ( a, b ) => a.candidate - b.candidate;
@@ -45,7 +45,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 	} else if ( strategy === SAH ) {
 
 		const rootSurfaceArea = computeSurfaceArea( nodeBoundingData );
-		let bestCost = TRIANGLE_INTERSECT_COST * count;
+		let bestCost = PRIMITIVE_INTERSECT_COST * count;
 
 		// iterate over all axes
 		const boundsOffset = primitiveBounds.offset || 0;
@@ -159,7 +159,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 					}
 
-					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+					const cost = TRAVERSAL_COST + PRIMITIVE_INTERSECT_COST * (
 						leftProb * leftCount + rightProb * rightCount
 					);
 
@@ -265,7 +265,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 					}
 
-					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+					const cost = TRAVERSAL_COST + PRIMITIVE_INTERSECT_COST * (
 						leftProb * leftCount + rightProb * rightCount
 					);
 
