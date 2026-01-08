@@ -67,7 +67,7 @@ export class BVH {
 
 }
 
-export class GeometryBVH {
+export class GeometryBVH extends BVH {
 
 	readonly geometry: BufferGeometry;
 
@@ -282,7 +282,7 @@ export interface ExtremeInfo {
   leafNodeCount: number;
   surfaceAreaScore: number;
   depth: {min: number, max: number};
-  tris: {min: number, max: number};
+  primitives: {min: number, max: number};
   splits: [number, number, number];
 }
 
