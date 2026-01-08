@@ -69,13 +69,13 @@ export function unionBounds( a, b, target ) {
 
 }
 
-// expands the given bounds by the provided triangle bounds
-export function expandByTriangleBounds( startIndex, triangleBounds, bounds ) {
+// expands the given bounds by the provided primitive bounds
+export function expandByPrimitiveBounds( startIndex, primitiveBounds, bounds ) {
 
 	for ( let d = 0; d < 3; d ++ ) {
 
-		const tCenter = triangleBounds[ startIndex + 2 * d ];
-		const tHalf = triangleBounds[ startIndex + 2 * d + 1 ];
+		const tCenter = primitiveBounds[ startIndex + 2 * d ];
+		const tHalf = primitiveBounds[ startIndex + 2 * d + 1 ];
 
 		const tMin = tCenter - tHalf;
 		const tMax = tCenter + tHalf;

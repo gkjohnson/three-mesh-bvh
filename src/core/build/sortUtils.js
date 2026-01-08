@@ -1,4 +1,4 @@
-// reorders `tris` such that for `count` elements after `offset`, elements on the left side of the split
+// reorders the partition buffer such that for `count` elements after `offset`, elements on the left side of the split
 // will be on the left and elements on the right side of the split will be on the right. returns the index
 // of the first element on the right side, or offset + count if there are no elements on the right side.
 export function partition( buffer, stride, primitiveBounds, offset, count, split ) {
@@ -18,7 +18,7 @@ export function partition( buffer, stride, primitiveBounds, offset, count, split
 
 		}
 
-		// if a triangle center lies on the partition plane it is considered to be on the right side
+		// if a primitive center lies on the partition plane it is considered to be on the right side
 		while ( left <= right && primitiveBounds[ ( right - boundsOffset ) * 6 + axisOffset ] >= pos ) {
 
 			right --;
@@ -27,9 +27,8 @@ export function partition( buffer, stride, primitiveBounds, offset, count, split
 
 		if ( left < right ) {
 
-			// we need to swap all of the information associated with the triangles at index
-			// left and right; that's the verts in the geometry index, the bounds,
-			// and perhaps the SAH planes
+			// we need to swap all of the information associated with the primitives at index
+			// left and right; that's the elements in the partition buffer and the bounds
 			for ( let i = 0; i < stride; i ++ ) {
 
 				let t0 = buffer[ left * stride + i ];
