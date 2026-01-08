@@ -20,7 +20,7 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
 
-[Line segments intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+[Line intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/lineIntersection.html)
 
 [Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
 
