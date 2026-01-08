@@ -48,6 +48,29 @@ export interface MeshBVHDeserializeOptions {
   setIndex?: boolean;
 }
 
+export interface ShapecastCallbacks {
+  intersectsBounds: (
+    box: Box3,
+    isLeaf: boolean,
+    score: number | undefined,
+    depth: number,
+    nodeIndex: number
+  ) => ShapecastIntersection|boolean;
+
+  boundsTraverseOrder?: (
+    box: Box3
+  ) => number;
+
+  intersectsRange?: (
+    offset: number,
+    count: number,
+    contained: boolean,
+    depth: number,
+    nodeIndex: number,
+    box: Box3
+  ) => boolean;
+}
+
 export class BVH {
 
 	shiftPrimitiveOffsets( offset: number ): void;
@@ -64,6 +87,8 @@ export class BVH {
   ): void;
 
 	getBoundingBox( target: Box3 ): Box3;
+
+	shapecast( callbacks: ShapecastCallbacks ): boolean;
 
 }
 
@@ -119,44 +144,15 @@ export class MeshBVH extends GeometryBVH {
     maxThreshold?: number
   ): HitPointInfo | null;
 
-	// union types to enable at least one of two functions:
-	// https://stackoverflow.com/a/60617060/9838891
 	shapecast(
-    callbacks: {
-
-      intersectsBounds: (
-        box: Box3,
-        isLeaf: boolean,
-        score: number | undefined,
-        depth: number,
-        nodeIndex: number
-      ) => ShapecastIntersection|boolean,
-
-      boundsTraverseOrder?: (
-        box: Box3
-      ) => number,
-
-    } & ( {
-
-      intersectsRange: (
-        triangleOffset: number,
-        triangleCount: number,
-        contained: boolean,
-        depth: number,
-        nodeIndex: number,
-        box: Box3
-      ) => boolean,
-
-    } | {
-
-      intersectsTriangle: (
+    callbacks: ShapecastCallbacks & {
+      intersectsTriangle?: (
         triangle: ExtendedTriangle,
         triangleIndex: number,
         contained: boolean,
         depth: number
       ) => boolean|void
-
-    } )
+    }
   ): boolean;
 
 	// union types to enable at least one of two functions:
@@ -198,10 +194,36 @@ export class MeshBVH extends GeometryBVH {
 }
 
 // other BVHs
-export class PointsBVH extends GeometryBVH {}
-export class LineBVH extends GeometryBVH {}
-export class LineLoopBVH extends LineBVH {}
-export class LineSegmentsBVH extends LineBVH {}
+export class PointsBVH extends GeometryBVH {
+
+	shapecast(
+    callbacks: ShapecastCallbacks & {
+      intersectsPoint?: (
+        pointIndex: number,
+        contained: boolean,
+        depth: number
+      ) => boolean|void
+    }
+  ): boolean;
+
+}
+
+export class LineSegmentsBVH extends GeometryBVH {
+
+	shapecast(
+    callbacks: ShapecastCallbacks & {
+      intersectsLine?: (
+        lineIndex: number,
+        contained: boolean,
+        depth: number
+      ) => boolean|void
+    }
+  ): boolean;
+
+}
+
+export class LineLoopBVH extends LineSegmentsBVH {}
+export class LineBVH extends LineLoopBVH {}
 
 // SerializedBVH
 export class SerializedBVH {
