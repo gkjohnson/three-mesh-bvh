@@ -133,12 +133,6 @@ export class GeometryBVH extends BVH {
 	}
 
 	// Abstract methods to be implemented by subclasses
-	computePrimitiveBounds( /* offset, count */ ) {
-
-		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );
-
-	}
-
 	getRootRanges( range ) {
 
 		// TODO: can we avoid passing options in here

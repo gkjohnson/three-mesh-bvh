@@ -4,7 +4,6 @@ import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
-import { getRootPrimitiveRanges } from './build/geometryUtils.js';
 
 const tempBox = /* @__PURE__ */ new Box3();
 
@@ -29,16 +28,16 @@ export class BVH {
 
 	}
 
-	getRootRanges( range ) {
+	getRootRanges( /* range */ ) {
 
 		// TODO: can we avoid passing options in here
-		return getRootPrimitiveRanges( this.geometry, range, this.primitiveStride );
+		throw new Error( 'BVH: getRootRanges() not implemented' );
 
 	}
 
-	raycastObject3D( /* object, raycaster, intersects = [] */ ) {
+	computePrimitiveBounds( /* offset, count, targetBuffer */ ) {
 
-		throw new Error( 'BVH: raycastObject3D() not implemented' );
+		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );
 
 	}
 
