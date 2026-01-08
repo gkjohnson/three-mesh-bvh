@@ -1,8 +1,9 @@
 import { Box3 } from 'three';
 import { SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
-import { getRootPrimitiveRanges } from './build/geometryUtils.js';
+import { ensureIndex, getRootPrimitiveRanges } from './build/geometryUtils.js';
 import { BVH } from './BVH.js';
+import { generateIndirectBuffer } from './build/buildTree.js';
 
 export class GeometryBVH extends BVH {
 
@@ -11,6 +12,26 @@ export class GeometryBVH extends BVH {
 		return ! ! this._indirectBuffer;
 
 	}
+
+	get primitiveStride() {
+
+		return null;
+
+	}
+
+	get primitiveBufferStride() {
+
+		return this.indirect ? 1 : this.primitiveStride;
+
+	}
+	set primitiveBufferStride( v ) {}
+
+	get primitiveBuffer() {
+
+		return this.indirect ? this._indirectBuffer : this.geometry.index.array;
+
+	}
+	set primitiveBuffer( v ) {}
 
 	constructor( geometry, options = {} ) {
 
@@ -36,7 +57,8 @@ export class GeometryBVH extends BVH {
 		// take a geometry reference in every function.
 		this.geometry = geometry;
 		this.resolvePrimitiveIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
-		this.primitiveStride = null;
+		this.primitiveBuffer = null;
+		this.primitiveBufferStride = null;
 		this._indirectBuffer = null;
 
 		options = {
@@ -55,7 +77,22 @@ export class GeometryBVH extends BVH {
 
 	init( options ) {
 
-		const { geometry } = this;
+		const { geometry, primitiveStride } = this;
+
+		if ( options.indirect ) {
+
+			// construct an buffer that is indirectly sorts the triangles used for the BVH
+			const ranges = getRootPrimitiveRanges( geometry, options.range, primitiveStride );
+			const indirectBuffer = generateIndirectBuffer( ranges, options.useSharedArrayBuffer );
+			this._indirectBuffer = indirectBuffer;
+			this.primitiveBufferStride = 1;
+
+		} else {
+
+			ensureIndex( geometry, options );
+			this.primitiveBufferStride = primitiveStride;
+
+		}
 
 		super.init( options );
 
@@ -77,7 +114,16 @@ export class GeometryBVH extends BVH {
 	getRootRanges( range ) {
 
 		// TODO: can we avoid passing options in here
-		return getRootPrimitiveRanges( this.geometry, range, this.primitiveStride );
+		if ( this.indirect ) {
+
+			return [ { offset: 0, count: this._indirectBuffer.length } ];
+
+
+		} else {
+
+			return getRootPrimitiveRanges( this.geometry, range, this.primitiveStride );
+
+		}
 
 	}
 

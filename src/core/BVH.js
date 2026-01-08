@@ -13,6 +13,8 @@ export class BVH {
 	constructor() {
 
 		this._roots = null;
+		this.primitiveBuffer = null;
+		this.primitiveBufferStride = null;
 
 	}
 

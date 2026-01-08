@@ -10,10 +10,9 @@ const _box = /* @__PURE__ */ new Box3();
 
 export class PointsBVH extends GeometryBVH {
 
-	constructor( ...args ) {
+	get primitiveStride() {
 
-		super( ...args );
-		this.primitiveStride = 1;
+		return 1;
 
 	}
 

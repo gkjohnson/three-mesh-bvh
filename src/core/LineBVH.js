@@ -12,10 +12,9 @@ const _box = /* @__PURE__ */ new Box3();
 
 export class LineSegmentsBVH extends GeometryBVH {
 
-	constructor( ...args ) {
+	get primitiveStride() {
 
-		super( ...args );
-		this.primitiveStride = 2;
+		return 2;
 
 	}
 
@@ -157,6 +156,12 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 export class LineLoopBVH extends LineSegmentsBVH {
 
+	get primitiveStride() {
+
+		return 1;
+
+	}
+
 	constructor( geometry, options = {} ) {
 
 		// "Line" and "LineLoop" BVH must be indirect since we cannot rearrange the index
@@ -167,7 +172,6 @@ export class LineLoopBVH extends LineSegmentsBVH {
 		};
 
 		super( geometry, options );
-		this.primitiveStride = 1;
 
 	}
 
