@@ -14,75 +14,105 @@ export const INTERSECTED: ShapecastIntersection;
 export const CONTAINED: ShapecastIntersection;
 
 export interface HitPointInfo {
-  point: Vector3;
-  distance: number;
-  faceIndex: number;
+	point: Vector3;
+	distance: number;
+	faceIndex: number;
 }
 
 export interface BVHOptions {
-  strategy?: SplitStrategy;
-  maxDepth?: number;
-  /** @deprecated Use maxLeafSize instead */
-  maxLeafTris?: number;
-  maxLeafSize?: number;
-  setBoundingBox?: boolean;
-  useSharedArrayBuffer?: boolean;
-  indirect?: boolean;
-  verbose?: boolean;
-  onProgress?: ( progress: number ) => void;
-  range?: { start: number; count: number };
+	strategy?: SplitStrategy;
+	maxDepth?: number;
+	/** @deprecated Use maxLeafSize instead */
+	maxLeafTris?: number;
+	maxLeafSize?: number;
+	setBoundingBox?: boolean;
+	useSharedArrayBuffer?: boolean;
+	indirect?: boolean;
+	verbose?: boolean;
+	onProgress?: ( progress: number ) => void;
+	range?: { start: number; count: number };
 }
 
 /** @deprecated Use BVHOptions instead */
 export interface MeshBVHOptions extends BVHOptions {} // eslint-disable-line
 
 export interface ComputeBVHOptions extends BVHOptions {
-	type?: typeof BVH;
+	type?: typeof GeometryBVH;
 }
 
 export interface MeshBVHSerializeOptions {
-  cloneBuffers?: boolean;
+	cloneBuffers?: boolean;
 }
 
 export interface MeshBVHDeserializeOptions {
-  setIndex?: boolean;
+	setIndex?: boolean;
+}
+
+export interface ShapecastCallbacks {
+	intersectsBounds: (
+		box: Box3,
+		isLeaf: boolean,
+		score: number | undefined,
+		depth: number,
+		nodeIndex: number
+	) => ShapecastIntersection|boolean;
+
+	boundsTraverseOrder?: (
+		box: Box3
+	) => number;
+
+	intersectsRange?: (
+		offset: number,
+		count: number,
+		contained: boolean,
+		depth: number,
+		nodeIndex: number,
+		box: Box3
+	) => boolean;
 }
 
 export class BVH {
+
+	shiftPrimitiveOffsets( offset: number ): void;
+
+	traverse(
+		callback: (
+			depth: number,
+			isLeaf: boolean,
+			boundingData: ArrayBuffer,
+			offsetOrSplit: number,
+			count: number
+		) => void,
+		rootIndex?: number
+	): void;
+
+	getBoundingBox( target: Box3 ): Box3;
+
+	shapecast( callbacks: ShapecastCallbacks ): boolean;
+
+}
+
+export class GeometryBVH extends BVH {
 
 	readonly geometry: BufferGeometry;
 
 	constructor( geometry: BufferGeometry, options?: BVHOptions );
 	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
-	shiftPrimitiveOffsets( offset: number ): void;
-
-	traverse(
-    callback: (
-      depth: number,
-      isLeaf: boolean,
-      boundingData: ArrayBuffer,
-      offsetOrSplit: number,
-      count: number
-    ) => void,
-    rootIndex?: number
-  ): void;
-
-	getBoundingBox( target: Box3 ): Box3;
 
 }
 
 // MeshBVH
-export class MeshBVH extends BVH {
+export class MeshBVH extends GeometryBVH {
 
 	readonly resolveTriangleIndex: ( i: number ) => number;
 
 	static serialize( bvh: MeshBVH, options?: MeshBVHSerializeOptions ): SerializedBVH;
 
 	static deserialize(
-    data: SerializedBVH,
-    geometry: BufferGeometry,
-    options?: MeshBVHDeserializeOptions
-  ): MeshBVH;
+		data: SerializedBVH,
+		geometry: BufferGeometry,
+		options?: MeshBVHDeserializeOptions
+	): MeshBVH;
 
 	constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
 
@@ -99,104 +129,101 @@ export class MeshBVH extends BVH {
 	intersectsGeometry( geometry: BufferGeometry, geometryToBvh: Matrix4 ): boolean;
 
 	closestPointToPoint(
-    point: Vector3,
-    target?: HitPointInfo,
-    minThreshold?: number,
-    maxThreshold?: number
-  ): HitPointInfo | null;
+		point: Vector3,
+		target?: HitPointInfo,
+		minThreshold?: number,
+		maxThreshold?: number
+	): HitPointInfo | null;
 
 	closestPointToGeometry(
-    geometry: BufferGeometry,
-    geometryToBvh: Matrix4,
-    target1?: HitPointInfo,
-    target2?: HitPointInfo,
-    minThreshold?: number,
-    maxThreshold?: number
-  ): HitPointInfo | null;
+		geometry: BufferGeometry,
+		geometryToBvh: Matrix4,
+		target1?: HitPointInfo,
+		target2?: HitPointInfo,
+		minThreshold?: number,
+		maxThreshold?: number
+	): HitPointInfo | null;
 
-	// union types to enable at least one of two functions:
-	// https://stackoverflow.com/a/60617060/9838891
 	shapecast(
-    callbacks: {
-
-      intersectsBounds: (
-        box: Box3,
-        isLeaf: boolean,
-        score: number | undefined,
-        depth: number,
-        nodeIndex: number
-      ) => ShapecastIntersection|boolean,
-
-      boundsTraverseOrder?: (
-        box: Box3
-      ) => number,
-
-    } & ( {
-
-      intersectsRange: (
-        triangleOffset: number,
-        triangleCount: number,
-        contained: boolean,
-        depth: number,
-        nodeIndex: number,
-        box: Box3
-      ) => boolean,
-
-    } | {
-
-      intersectsTriangle: (
-        triangle: ExtendedTriangle,
-        triangleIndex: number,
-        contained: boolean,
-        depth: number
-      ) => boolean|void
-
-    } )
-  ): boolean;
+		callbacks: ShapecastCallbacks & {
+			intersectsTriangle?: (
+				triangle: ExtendedTriangle,
+				triangleIndex: number,
+				contained: boolean,
+				depth: number
+			) => boolean|void
+		}
+	): boolean;
 
 	// union types to enable at least one of two functions:
 	// https://stackoverflow.com/a/60617060/9838891
 	bvhcast(
-    otherBVH: MeshBVH,
-    matrixToLocal: Matrix4,
-    callbacks: ( {
+		otherBVH: MeshBVH,
+		matrixToLocal: Matrix4,
+		callbacks: ( {
 
-      intersectsRanges: (
-        offset1: number,
-        count1: number,
-        offset2: number,
-        count2: number,
-        depth1: number,
-        index1: number,
-        depth2: number,
-        index2: number
-      ) => boolean
+			intersectsRanges: (
+				offset1: number,
+				count1: number,
+				offset2: number,
+				count2: number,
+				depth1: number,
+				index1: number,
+				depth2: number,
+				index2: number
+			) => boolean
 
-    } | {
+		} | {
 
-      intersectsTriangles: (
-        triangle1: ExtendedTriangle,
-        triangle2: ExtendedTriangle,
-        i1: number,
-        i2: number,
-        depth1: number,
-        index1: number,
-        depth2: number,
-        index2: number,
-      ) => boolean,
+			intersectsTriangles: (
+				triangle1: ExtendedTriangle,
+				triangle2: ExtendedTriangle,
+				i1: number,
+				i2: number,
+				depth1: number,
+				index1: number,
+				depth2: number,
+				index2: number,
+			) => boolean,
 
-    } )
-  ): boolean;
+		} )
+	): boolean;
 
 	refit( nodeIndices?: Array<number> | Set<number> ): void;
 
 }
 
 // other BVHs
-export class PointsBVH extends BVH {}
-export class LineBVH extends BVH {}
-export class LineLoopBVH extends LineBVH {}
-export class LineSegmentsBVH extends LineBVH {}
+export class PointsBVH extends GeometryBVH {
+
+	shapecast(
+		callbacks: ShapecastCallbacks & {
+			intersectsPoint?: (
+				pointIndex: number,
+				contained: boolean,
+				depth: number
+			) => boolean|void
+		}
+	): boolean;
+
+}
+
+export class LineSegmentsBVH extends GeometryBVH {
+
+	shapecast(
+		callbacks: ShapecastCallbacks & {
+			intersectsLine?: (
+				lineIndex: number,
+				contained: boolean,
+				depth: number
+			) => boolean|void
+		}
+	): boolean;
+
+}
+
+export class LineLoopBVH extends LineSegmentsBVH {}
+export class LineBVH extends LineLoopBVH {}
 
 // SerializedBVH
 export class SerializedBVH {
@@ -216,8 +243,8 @@ export class MeshBVHHelper extends Group {
 	edgeMaterial: LineBasicMaterial;
 	meshMaterial: MeshBasicMaterial;
 
-	constructor( meshOrBVH: Object3D | BVH, depth?: number );
-	constructor( mesh?: Object3D | null, bvh?: BVH | null, depth?: number );
+	constructor( meshOrBVH: Object3D | GeometryBVH, depth?: number );
+	constructor( mesh?: Object3D | null, bvh?: GeometryBVH | null, depth?: number );
 
 	update(): void;
 
@@ -227,45 +254,45 @@ export class MeshBVHHelper extends Group {
 
 // THREE.js Extensions
 
-export function computeBoundsTree( options?: ComputeBVHOptions ): BVH;
+export function computeBoundsTree( options?: ComputeBVHOptions ): GeometryBVH;
 
 export function disposeBoundsTree(): void;
 
-export function computeBatchedBoundsTree( index?: number, options?: BVHOptions ): BVH | BVH[];
+export function computeBatchedBoundsTree( index?: number, options?: BVHOptions ): GeometryBVH | GeometryBVH[];
 
 export function disposeBatchedBoundsTree( index?: number ): void;
 
 export function acceleratedRaycast(
-  raycaster: Raycaster,
-  intersects: Array<Intersection>
+	raycaster: Raycaster,
+	intersects: Array<Intersection>
 ): void;
 
 declare module 'three' {
-  export interface BufferGeometry {
-    boundsTree?: BVH;
-    computeBoundsTree: typeof computeBoundsTree;
-    disposeBoundsTree: typeof disposeBoundsTree;
-  }
+	export interface BufferGeometry {
+		boundsTree?: GeometryBVH;
+		computeBoundsTree: typeof computeBoundsTree;
+		disposeBoundsTree: typeof disposeBoundsTree;
+	}
 
-  export interface BatchedMesh {
-    boundsTrees?: Array<BVH | null>;
-    computeBoundsTree: typeof computeBatchedBoundsTree;
-    disposeBoundsTree: typeof disposeBatchedBoundsTree;
-  }
+	export interface BatchedMesh {
+		boundsTrees?: Array<GeometryBVH | null>;
+		computeBoundsTree: typeof computeBatchedBoundsTree;
+		disposeBoundsTree: typeof disposeBatchedBoundsTree;
+	}
 
-  export interface Raycaster {
-    firstHitOnly?: boolean;
-  }
+	export interface Raycaster {
+		firstHitOnly?: boolean;
+	}
 }
 
 // GenerateMeshBVHWorker
 // export class GenerateMeshBVHWorker {
 
-//   running: boolean;
+//	 running: boolean;
 
-//   generate( geometry: BufferGeometry, options?: MeshBVHOptions ): Promise<MeshBVH>;
+//	 generate( geometry: BufferGeometry, options?: MeshBVHOptions ): Promise<MeshBVH>;
 
-//   terminate(): boolean;
+//	 terminate(): boolean;
 
 // }
 
@@ -273,12 +300,12 @@ declare module 'three' {
 export function estimateMemoryInBytes( bvh: MeshBVH ): number;
 
 export interface ExtremeInfo {
-  nodeCount: number;
-  leafNodeCount: number;
-  surfaceAreaScore: number;
-  depth: {min: number, max: number};
-  tris: {min: number, max: number};
-  splits: [number, number, number];
+	nodeCount: number;
+	leafNodeCount: number;
+	surfaceAreaScore: number;
+	depth: {min: number, max: number};
+	primitives: {min: number, max: number};
+	splits: [number, number, number];
 }
 
 export function getBVHExtremes( bvh :MeshBVH ): Array<ExtremeInfo>;
@@ -286,32 +313,32 @@ export function getBVHExtremes( bvh :MeshBVH ): Array<ExtremeInfo>;
 export function validateBounds( bvh: MeshBVH ): boolean;
 
 export interface TreeNode {
-  bounds: Box3;
-  count: number;
-  offset: number;
-  left?: TreeNode;
-  right?: TreeNode;
+	bounds: Box3;
+	count: number;
+	offset: number;
+	left?: TreeNode;
+	right?: TreeNode;
 }
 
 export function getJSONStructure( bvh: MeshBVH ): TreeNode;
 
 // Triangle Utilities
 export interface HitTriangleInfo {
-  face: {
-    a: number,
-    b: number,
-    c: number,
-    materialIndex: number,
-    normal: Vector3
-  },
-  uv: Vector2
+	face: {
+		a: number,
+		b: number,
+		c: number,
+		materialIndex: number,
+		normal: Vector3
+	},
+	uv: Vector2
 }
 
 export function getTriangleHitPointInfo(
-  point: Vector3,
-  geometry : BufferGeometry,
-  triangleIndex: number,
-  target?: HitTriangleInfo
+	point: Vector3,
+	geometry : BufferGeometry,
+	triangleIndex: number,
+	target?: HitTriangleInfo
 ): HitTriangleInfo
 
 // Shader Utilities

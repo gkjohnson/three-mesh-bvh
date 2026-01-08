@@ -1,4 +1,3 @@
-import { ensureIndex } from './geometryUtils.js';
 import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { BVHNode } from '../BVHNode.js';
@@ -6,37 +5,6 @@ import { BYTES_PER_NODE } from '../Constants.js';
 
 import { partition } from './sortUtils.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
-
-// construct a new buffer that points to the set of triangles represented by the given ranges
-export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
-
-	const lastRange = ranges[ ranges.length - 1 ];
-	const useUint32 = lastRange.offset + lastRange.count > 2 ** 16;
-
-	// use getRootIndexRanges which excludes gaps
-	const length = ranges.reduce( ( acc, val ) => acc + val.count, 0 );
-	const byteCount = useUint32 ? 4 : 2;
-	const buffer = useSharedArrayBuffer ? new SharedArrayBuffer( length * byteCount ) : new ArrayBuffer( length * byteCount );
-	const indirectBuffer = useUint32 ? new Uint32Array( buffer ) : new Uint16Array( buffer );
-
-	// construct a compact form of the triangles in these ranges
-	let index = 0;
-	for ( let r = 0; r < ranges.length; r ++ ) {
-
-		const { offset, count } = ranges[ r ];
-		for ( let i = 0; i < count; i ++ ) {
-
-			indirectBuffer[ index + i ] = offset + i;
-
-		}
-
-		index += count;
-
-	}
-
-	return indirectBuffer;
-
-}
 
 export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 
@@ -47,13 +15,10 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 		maxLeafSize,
 		strategy,
 		onProgress,
-		indirect,
 	} = options;
-	const indirectBuffer = bvh._indirectBuffer;
-	const geometry = bvh.geometry;
 
-	const partitionBuffer = indirect ? indirectBuffer : geometry.index.array;
-	const partitionStride = indirect ? 1 : bvh.primitiveStride;
+	const partitionBuffer = bvh.primitiveBuffer;
+	const partitionStride = bvh.primitiveBufferStride;
 
 	// generate intermediate variables
 	const cacheCentroidBoundingData = new Float32Array( 6 );
@@ -75,7 +40,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 	}
 
 	// either recursively splits the given node, creating left and right subtrees for it, or makes it a leaf node,
-	// recording the offset and count of its triangles and writing them into the reordered geometry index.
+	// recording the offset and count of its primitives and writing them into the reordered geometry index.
 	function splitNode( node, offset, count, centroidBoundingData = null, depth = 0 ) {
 
 		if ( ! reachedMaxDepth && depth >= maxDepth ) {
@@ -152,42 +117,20 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 export function buildPackedTree( bvh, options ) {
 
 	const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-	const geometry = bvh.geometry;
-	let primitiveBounds, rootRanges;
-	if ( options.indirect ) {
 
-		// construct an buffer that is indirectly sorts the triangles used for the BVH
-		const ranges = bvh.getRootRanges( options.range );
-		const indirectBuffer = generateIndirectBuffer( ranges, options.useSharedArrayBuffer );
-		bvh._indirectBuffer = indirectBuffer;
+	// get the range of buffer data to construct / arrange
+	const rootRanges = bvh.getRootRanges( options.range );
+	const firstRange = rootRanges[ 0 ];
+	const lastRange = rootRanges[ rootRanges.length - 1 ];
+	const fullRange = {
+		offset: firstRange.offset,
+		count: lastRange.offset + lastRange.count - firstRange.offset,
+	};
 
-		// store offset on the array for later use & allocate only for the
-		// range being computed
-		primitiveBounds = new Float32Array( 6 * indirectBuffer.length );
-		primitiveBounds.offset = 0;
-		bvh.computePrimitiveBounds( 0, indirectBuffer.length, primitiveBounds );
-
-		rootRanges = [ { offset: 0, count: indirectBuffer.length } ];
-
-	} else {
-
-		ensureIndex( geometry, options );
-
-		rootRanges = bvh.getRootRanges( options.range );
-
-		const firstRange = rootRanges[ 0 ];
-		const lastRange = rootRanges[ rootRanges.length - 1 ];
-		const fullRange = {
-			offset: firstRange.offset,
-			count: lastRange.offset + lastRange.count - firstRange.offset,
-		};
-
-		primitiveBounds = new Float32Array( 6 * fullRange.count );
-		primitiveBounds.offset = fullRange.offset;
-		bvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
-
-
-	}
+	// construct the primitive bounds for sorting
+	const primitiveBounds = new Float32Array( 6 * fullRange.count );
+	primitiveBounds.offset = fullRange.offset;
+	bvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
 	// Build BVH roots
 	bvh._roots = rootRanges.map( range => {

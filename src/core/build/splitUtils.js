@@ -1,5 +1,5 @@
-import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByTriangleBounds } from '../../utils/ArrayBoxUtilities.js';
-import { CENTER, AVERAGE, SAH, TRIANGLE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
+import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByPrimitiveBounds } from '../../utils/ArrayBoxUtilities.js';
+import { CENTER, AVERAGE, SAH, PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
 
 const BIN_COUNT = 32;
 const binsSort = ( a, b ) => a.candidate - b.candidate;
@@ -45,7 +45,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 	} else if ( strategy === SAH ) {
 
 		const rootSurfaceArea = computeSurfaceArea( nodeBoundingData );
-		let bestCost = TRIANGLE_INTERSECT_COST * count;
+		let bestCost = PRIMITIVE_INTERSECT_COST * count;
 
 		// iterate over all axes
 		const boundsOffset = primitiveBounds.offset || 0;
@@ -58,8 +58,8 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 			const axisLength = axisRight - axisLeft;
 			const binWidth = axisLength / BIN_COUNT;
 
-			// If we have fewer triangles than we're planning to split then just check all
-			// the triangle positions because it will be faster.
+			// If we have fewer primitives than we're planning to split then just check all
+			// the primitive positions because it will be faster.
 			if ( count < BIN_COUNT / 4 ) {
 
 				// initialize the bin candidates
@@ -92,7 +92,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 					}
 
-					expandByTriangleBounds( c, primitiveBounds, bounds );
+					expandByPrimitiveBounds( c, primitiveBounds, bounds );
 
 				}
 
@@ -112,7 +112,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 				}
 
-				// find the appropriate bin for each triangle and expand the bounds.
+				// find the appropriate bin for each primitive and expand the bounds.
 				for ( let c = cStart; c < cEnd; c += 6 ) {
 
 					const center = primitiveBounds[ c + 2 * a ];
@@ -121,11 +121,11 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 						const bin = truncatedBins[ bi ];
 						if ( center >= bin.candidate ) {
 
-							expandByTriangleBounds( c, primitiveBounds, bin.rightCacheBounds );
+							expandByPrimitiveBounds( c, primitiveBounds, bin.rightCacheBounds );
 
 						} else {
 
-							expandByTriangleBounds( c, primitiveBounds, bin.leftCacheBounds );
+							expandByPrimitiveBounds( c, primitiveBounds, bin.leftCacheBounds );
 							bin.count ++;
 
 						}
@@ -159,7 +159,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 					}
 
-					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+					const cost = TRAVERSAL_COST + PRIMITIVE_INTERSECT_COST * (
 						leftProb * leftCount + rightProb * rightCount
 					);
 
@@ -206,7 +206,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 					const bin = sahBins[ binIndex ];
 					bin.count ++;
 
-					expandByTriangleBounds( c, primitiveBounds, bin.bounds );
+					expandByPrimitiveBounds( c, primitiveBounds, bin.bounds );
 
 				}
 
@@ -231,7 +231,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 					const nextBin = sahBins[ i + 1 ];
 					const rightBounds = nextBin.rightCacheBounds;
 
-					// don't do anything with the bounds if the new bounds have no triangles
+					// don't do anything with the bounds if the new bounds have no primitives
 					if ( binCount !== 0 ) {
 
 						if ( leftCount === 0 ) {
@@ -265,7 +265,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 					}
 
-					const cost = TRAVERSAL_COST + TRIANGLE_INTERSECT_COST * (
+					const cost = TRAVERSAL_COST + PRIMITIVE_INTERSECT_COST * (
 						leftProb * leftCount + rightProb * rightCount
 					);
 
@@ -285,7 +285,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 	} else {
 
-		console.warn( `MeshBVH: Invalid build strategy value ${ strategy } used.` );
+		console.warn( `BVH: Invalid build strategy value ${ strategy } used.` );
 
 	}
 
@@ -293,7 +293,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 }
 
-// returns the average coordinate on the specified axis of the all the provided triangles
+// returns the average coordinate on the specified axis of all the provided primitives
 function getAverage( primitiveBounds, offset, count, axis ) {
 
 	let avg = 0;

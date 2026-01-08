@@ -1,14 +1,14 @@
 import { Vector3, Matrix4, Ray, Box3 } from 'three';
-import { BVH } from './BVH.js';
 import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
+import { GeometryBVH } from './GeometryBVH.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _ray = /* @__PURE__ */ new Ray();
 const _pointPool = /* @__PURE__ */ new PrimitivePool( () => new Vector3() );
 const _box = /* @__PURE__ */ new Box3();
 
-export class PointsBVH extends BVH {
+export class PointsBVH extends GeometryBVH {
 
 	get primitiveStride() {
 

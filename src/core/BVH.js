@@ -1,8 +1,7 @@
 import { Box3 } from 'three';
-import { BYTES_PER_NODE, UINT32_PER_NODE, SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
-import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 import { getRootPrimitiveRanges } from './build/geometryUtils.js';
@@ -11,67 +10,22 @@ const tempBox = /* @__PURE__ */ new Box3();
 
 export class BVH {
 
-	get indirect() {
+	constructor() {
 
-		return ! ! this._indirectBuffer;
-
-	}
-
-	get primitiveStride() {
-
-		return null;
-
-	}
-
-	constructor( geometry, options = {} ) {
-
-		if ( ! geometry.isBufferGeometry ) {
-
-			throw new Error( 'BVH: Only BufferGeometries are supported.' );
-
-		} else if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
-
-			throw new Error( 'BVH: InterleavedBufferAttribute is not supported for the index attribute.' );
-
-		}
-
-		if ( options.useSharedArrayBuffer && ! isSharedArrayBufferSupported() ) {
-
-			throw new Error( 'BVH: SharedArrayBuffer is not available.' );
-
-		}
-
-		// retain references to the geometry so we can use them it without having to
-		// take a geometry reference in every function.
-		this.geometry = geometry;
-		this.resolvePrimitiveIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
 		this._roots = null;
-		this._indirectBuffer = null;
+		this.primitiveBuffer = null;
+		this.primitiveBufferStride = null;
+
+	}
+
+	init( options ) {
 
 		options = {
 			...DEFAULT_OPTIONS,
 			...options,
 		};
 
-		// build the BVH unless we're deserializing
-		if ( ! options[ SKIP_GENERATION ] ) {
-
-			buildPackedTree( this, options );
-
-			if ( ! geometry.boundingBox && options.setBoundingBox ) {
-
-				geometry.boundingBox = this.getBoundingBox( new Box3() );
-
-			}
-
-		}
-
-	}
-
-	// Abstract methods to be implemented by subclasses
-	computePrimitiveBounds( /* offset, count */ ) {
-
-		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );
+		buildPackedTree( this, options );
 
 	}
 
@@ -193,11 +147,8 @@ export class BVH {
 			intersectsRange,
 			intersectsPrimitive,
 			scratchPrimitive,
-			iterateDirect,
-			iterateIndirect,
+			iterate,
 		} = callbacks;
-
-		const selectedIterateFunc = this.indirect ? iterateIndirect : iterateDirect;
 
 		// wrap the intersectsRange function
 		if ( intersectsRange && intersectsPrimitive ) {
@@ -207,7 +158,7 @@ export class BVH {
 
 				if ( ! originalIntersectsRange( offset, count, contained, depth, nodeIndex ) ) {
 
-					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
+					return iterate( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
 
 				}
 
@@ -221,7 +172,7 @@ export class BVH {
 
 				intersectsRange = ( offset, count, contained, depth ) => {
 
-					return selectedIterateFunc( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
+					return iterate( offset, count, this, intersectsPrimitive, contained, depth, scratchPrimitive );
 
 				};
 

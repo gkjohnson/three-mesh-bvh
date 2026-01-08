@@ -1,6 +1,5 @@
 import { BufferAttribute, FrontSide, Ray, Vector3, Matrix4 } from 'three';
 import { SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE, FLOAT32_EPSILON } from './Constants.js';
-import { BVH } from './BVH.js';
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
@@ -22,6 +21,7 @@ import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_i
 import { setTriangle } from '../utils/TriangleUtilities.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
+import { GeometryBVH } from './GeometryBVH.js';
 
 const _obb = /* @__PURE__ */ new OrientedBox();
 const _ray = /* @__PURE__ */ new Ray();
@@ -29,7 +29,7 @@ const _direction = /* @__PURE__ */ new Vector3();
 const _InverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
 
-export class MeshBVH extends BVH {
+export class MeshBVH extends GeometryBVH {
 
 	static serialize( bvh, options = {} ) {
 
