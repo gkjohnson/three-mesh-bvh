@@ -387,7 +387,7 @@ class BVHHelper extends Group {
 
 	clone() {
 
-		return new MeshBVHHelper( this.mesh, this.bvh, this.depth );
+		return new BVHHelper().copy( this );
 
 	}
 
