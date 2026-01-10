@@ -31,7 +31,34 @@ export function acceleratedRaycast( raycaster, intersects ) {
 
 		} else {
 
-			_raycastFunctions[ this.type ].call( this, raycaster, intersects );
+			let raycastFunction;
+			if ( this instanceof Mesh ) {
+
+				raycastFunction = _raycastFunctions.Mesh;
+
+			} else if ( this instanceof LineSegments ) {
+
+				raycastFunction = _raycastFunctions.LineSegments;
+
+			} else if ( this instanceof LineLoop ) {
+
+				raycastFunction = _raycastFunctions.LineLoop;
+
+			} else if ( this instanceof Line ) {
+
+				raycastFunction = _raycastFunctions.Line;
+
+			} else if ( this instanceof Points ) {
+
+				raycastFunction = _raycastFunctions.Points;
+
+			} else {
+
+				throw new Error( 'BVH: Fallback raycast function not found.' );
+
+			}
+
+			raycastFunction.call( this, raycaster, intersects );
 
 		}
 
