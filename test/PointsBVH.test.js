@@ -148,13 +148,13 @@ function randomizeObjectTransform( target, uniformScale = false ) {
 
 	if ( uniformScale ) {
 
-		target.scale.setScalar( random() * 2 - 1 );
+		target.scale.setScalar( random() );
 
 	} else {
 
-		target.scale.x = random() * 2 - 1;
-		target.scale.y = random() * 2 - 1;
-		target.scale.z = random() * 2 - 1;
+		target.scale.x = random();
+		target.scale.y = random();
+		target.scale.z = random();
 
 	}
 
