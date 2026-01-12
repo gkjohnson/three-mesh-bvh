@@ -8,7 +8,7 @@ const _box2 = /* @__PURE__ */ new Box3();
 const _vec = /* @__PURE__ */ new Vector3();
 
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
-function getPrimitiveSize( el ) {
+function getElementSize( el ) {
 
 	switch ( typeof el ) {
 
@@ -129,7 +129,7 @@ function estimateMemoryInBytes( obj ) {
 
 			}
 
-			bytes += getPrimitiveSize( key );
+			bytes += getElementSize( key );
 
 			const value = curr[ key ];
 			if ( value && ( typeof value === 'object' || typeof value === 'function' ) ) {
@@ -154,7 +154,7 @@ function estimateMemoryInBytes( obj ) {
 
 			} else {
 
-				bytes += getPrimitiveSize( value );
+				bytes += getElementSize( value );
 
 			}
 

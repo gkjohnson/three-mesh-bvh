@@ -114,7 +114,7 @@ export class MeshBVH extends GeometryBVH {
 		options?: MeshBVHDeserializeOptions
 	): MeshBVH;
 
-	constructor( geometry: BufferGeometry, options?: MeshBVHOptions );
+	constructor( geometry: BufferGeometry, options?: BVHOptions );
 
 	shiftTriangleOffsets( offset: number ): void;
 
@@ -233,8 +233,8 @@ export class SerializedBVH {
 
 }
 
-// MeshBVHHelper
-export class MeshBVHHelper extends Group {
+// BVHHelper
+export class BVHHelper extends Group {
 
 	opacity: number;
 	depth: number;
@@ -251,6 +251,8 @@ export class MeshBVHHelper extends Group {
 	get color(): Color;
 
 }
+
+export class MeshBVHHelper extends BVHHelper {}
 
 // THREE.js Extensions
 
@@ -297,7 +299,7 @@ declare module 'three' {
 // }
 
 // Debug functions
-export function estimateMemoryInBytes( bvh: MeshBVH ): number;
+export function estimateMemoryInBytes( bvh: BVH ): number;
 
 export interface ExtremeInfo {
 	nodeCount: number;
@@ -308,7 +310,7 @@ export interface ExtremeInfo {
 	splits: [number, number, number];
 }
 
-export function getBVHExtremes( bvh :MeshBVH ): Array<ExtremeInfo>;
+export function getBVHExtremes( bvh: BVH ): Array<ExtremeInfo>;
 
 export function validateBounds( bvh: MeshBVH ): boolean;
 
@@ -320,7 +322,7 @@ export interface TreeNode {
 	right?: TreeNode;
 }
 
-export function getJSONStructure( bvh: MeshBVH ): TreeNode;
+export function getJSONStructure( bvh: BVH ): TreeNode;
 
 // Triangle Utilities
 export interface HitTriangleInfo {
