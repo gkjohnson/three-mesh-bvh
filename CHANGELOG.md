@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - BVHHelper: Fix "clone" function cloning all fields.
 - acceleratedRaycast: Fix case where raycasting will fail if "type" is modified.
-
+- Update types
 
 ## [0.9.5] - 2026-01-08
 ### Added
