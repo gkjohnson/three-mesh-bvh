@@ -1,6 +1,6 @@
 import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
-import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { GeometryBVH } from './GeometryBVH.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
@@ -40,8 +40,6 @@ export class LineSegmentsBVH extends GeometryBVH {
 		}
 
 		const getters = [ 'getX', 'getY', 'getZ' ];
-		const mins = new Array( 3 );
-		const maxs = new Array( 3 );
 
 		for ( let el = 0; el < 3; el ++ ) {
 
@@ -50,21 +48,11 @@ export class LineSegmentsBVH extends GeometryBVH {
 			const min = v0 < v1 ? v0 : v1;
 			const max = v0 > v1 ? v0 : v1;
 
-			const halfExtents = ( max - min ) / 2;
-			const epsilonPadding = ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
-
-			mins[ el ] = min - epsilonPadding;
-			maxs[ el ] = max + epsilonPadding;
+			// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
+			targetBuffer[ baseIndex + el ] = min;
+			targetBuffer[ baseIndex + el + 3 ] = max;
 
 		}
-
-		// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
-		targetBuffer[ baseIndex + 0 ] = mins[ 0 ];
-		targetBuffer[ baseIndex + 1 ] = mins[ 1 ];
-		targetBuffer[ baseIndex + 2 ] = mins[ 2 ];
-		targetBuffer[ baseIndex + 3 ] = maxs[ 0 ];
-		targetBuffer[ baseIndex + 4 ] = maxs[ 1 ];
-		targetBuffer[ baseIndex + 5 ] = maxs[ 2 ];
 
 		return targetBuffer;
 

@@ -1,5 +1,5 @@
 import { Vector3, Matrix4, Ray, Box3 } from 'three';
-import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { GeometryBVH } from './GeometryBVH.js';
 
@@ -33,18 +33,14 @@ export class PointsBVH extends GeometryBVH {
 		const py = posAttr.getY( pointIndex );
 		const pz = posAttr.getZ( pointIndex );
 
-		// For a point, create a small epsilon-sized bounding box
-		const epsilonX = Math.abs( px ) * FLOAT32_EPSILON;
-		const epsilonY = Math.abs( py ) * FLOAT32_EPSILON;
-		const epsilonZ = Math.abs( pz ) * FLOAT32_EPSILON;
-
 		// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
-		targetBuffer[ baseIndex + 0 ] = px - epsilonX;
-		targetBuffer[ baseIndex + 1 ] = py - epsilonY;
-		targetBuffer[ baseIndex + 2 ] = pz - epsilonZ;
-		targetBuffer[ baseIndex + 3 ] = px + epsilonX;
-		targetBuffer[ baseIndex + 4 ] = py + epsilonY;
-		targetBuffer[ baseIndex + 5 ] = pz + epsilonZ;
+		// For points, min equals max (epsilon padding is applied in computePrimitiveBounds)
+		targetBuffer[ baseIndex + 0 ] = px;
+		targetBuffer[ baseIndex + 1 ] = py;
+		targetBuffer[ baseIndex + 2 ] = pz;
+		targetBuffer[ baseIndex + 3 ] = px;
+		targetBuffer[ baseIndex + 4 ] = py;
+		targetBuffer[ baseIndex + 5 ] = pz;
 
 		return targetBuffer;
 
