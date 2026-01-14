@@ -2,27 +2,21 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { computeBoundsTree, MeshBVHHelper, getBVHExtremes, StaticGeometryGenerator } from 'three-mesh-bvh';
+import { BVHHelper, getBVHExtremes } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
-THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+import { SkinnedMeshBVH } from './src/SkinnedMeshBVH.js';
 
 const params = {
-	display: true,
-	displayOriginal: true,
-	material: 'wireframe',
-	updatePositionOnly: false,
-
 	skeletonHelper: false,
 	bvhHelper: true,
 	bvhHelperDepth: 10,
 
 	autoUpdate: true,
-	updateRate: 2.5,
+	updateRate: 0.5,
 	pause: false,
 	regenerate: () => {
 
-		regenerateMesh();
+		refitBVH();
 
 	}
 };
@@ -30,15 +24,13 @@ const params = {
 let renderer, camera, scene, clock, gui, stats;
 let outputContainer;
 let controls, mixer, animationAction, model;
-let bvhHelper, skeletonHelper, meshHelper, staticGeometryGenerator;
+let skeletonHelper;
 let timeSinceUpdate = 0;
-let initialExtremes = null;
-let wireframeMaterial, normalMaterials, originalMaterials;
+let initialScore = 0;
+let bvhs = [], helpers = [];
 
 init();
 render();
-
-// TODO: afford use of materials on the final model to validate
 
 function init() {
 
@@ -52,8 +44,7 @@ function init() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
-	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.outputEncoding = THREE.sRGBEncoding;
+	renderer.shadowMap.type = THREE.PCFShadowMap;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -100,6 +91,13 @@ function init() {
 					object.receiveShadow = true;
 					object.frustumCulled = false;
 
+					const bvh = new SkinnedMeshBVH( object );
+					const helper = new BVHHelper( object, bvh, params.bvhHelperDepth );
+					helper.update();
+					scene.add( helper );
+					bvhs.push( bvh );
+					helpers.push( helper );
+
 				}
 
 			} );
@@ -129,33 +127,7 @@ function init() {
 			camera.position.z = 3.5;
 			controls.update();
 
-			// prep the geometry
-			staticGeometryGenerator = new StaticGeometryGenerator( model );
-			originalMaterials = staticGeometryGenerator.getMaterials();
-
-			normalMaterials = originalMaterials.map( m => {
-
-				return new THREE.MeshNormalMaterial( {
-					normalMap: m.normalMap
-				} );
-
-			} );
-
-			wireframeMaterial = new THREE.MeshBasicMaterial( {
-				wireframe: true,
-				transparent: true,
-				opacity: 0.05,
-				depthWrite: false,
-			} );
-			meshHelper = new THREE.Mesh( new THREE.BufferGeometry(), wireframeMaterial );
-			meshHelper.receiveShadow = true;
-
-			scene.add( meshHelper );
-
-			bvhHelper = new MeshBVHHelper( meshHelper, 10 );
-			scene.add( bvhHelper );
-
-			regenerateMesh();
+			initialScore = calculateScore( bvhs );
 
 		} );
 
@@ -167,66 +139,24 @@ function init() {
 	scene.add( plane );
 
 	gui = new GUI();
-	const staticFolder = gui.addFolder( 'static mesh' );
-	staticFolder.add( params, 'display' );
-	staticFolder.add( params, 'displayOriginal' );
-	staticFolder.add( params, 'material', [ 'wireframe', 'normal', 'original' ] ).onChange( v => {
-
-		if ( ! meshHelper ) {
-
-			return;
-
-		}
-
-		switch ( v ) {
-
-			case 'wireframe':
-				meshHelper.material = wireframeMaterial;
-				meshHelper.castShadow = false;
-				break;
-			case 'normal':
-				meshHelper.material = normalMaterials;
-				meshHelper.castShadow = true;
-				break;
-			case 'original':
-				meshHelper.material = originalMaterials;
-				meshHelper.castShadow = true;
-				break;
-
-		}
-
-	} );
-	staticFolder.add( params, 'updatePositionOnly' ).onChange( v => {
-
-		staticGeometryGenerator.attributes = v ? [ 'position' ] : [ 'position', 'normal', 'tangent', 'uv', 'uv2' ];
-
-		// TODO: if we don't dispose and create a new geometry then it seems like the performance gets slower with the
-		// original meshes??
-		const geometry = meshHelper.geometry;
-		geometry.dispose();
-		for ( const key in geometry.attributes ) {
-
-			geometry.deleteAttribute( key );
-
-		}
-
-	} );
-	staticFolder.open();
-
 	const helperFolder = gui.addFolder( 'helpers' );
 	helperFolder.add( params, 'skeletonHelper' );
 	helperFolder.add( params, 'bvhHelper' );
 	helperFolder.add( params, 'bvhHelperDepth', 1, 20, 1 ).onChange( v => {
 
-		bvhHelper.depth = parseInt( v );
-		bvhHelper.update();
+		helpers.forEach( helper => {
+
+			helper.depth = parseInt( v );
+			helper.update();
+
+		} );
 
 	} );
 	helperFolder.open();
 
 	const bvhFolder = gui.addFolder( 'bvh animation' );
 	bvhFolder.add( params, 'autoUpdate' );
-	bvhFolder.add( params, 'updateRate', 0, 5, 0.001 );
+	bvhFolder.add( params, 'updateRate', 0, 2, 0.001 );
 	bvhFolder.add( params, 'pause' ).onChange( v => {
 
 		if ( animationAction ) {
@@ -252,60 +182,50 @@ function init() {
 
 }
 
-// regenerate the mesh and bvh
-function regenerateMesh() {
+// refit the BVH to match the current skeleton pose
+function refitBVH() {
 
-	if ( meshHelper ) {
+	let refitTime;
+	const start = performance.now();
+	bvhs.forEach( bvh => {
 
-		let generateTime, refitTime, startTime;
+		bvh.refit();
 
-		// time the geometry generation
-		startTime = window.performance.now();
-		staticGeometryGenerator.generate( meshHelper.geometry );
-		generateTime = window.performance.now() - startTime;
+	} );
 
-		// time the bvh refitting
-		startTime = window.performance.now();
-		if ( ! meshHelper.geometry.boundsTree ) {
+	refitTime = performance.now() - start;
 
-			meshHelper.geometry.computeBoundsTree();
-			refitTime = '-';
+	helpers.forEach( helper => {
 
-		} else {
+		helper.update();
 
-			meshHelper.geometry.boundsTree.refit();
-			refitTime = ( window.performance.now() - startTime ).toFixed( 2 );
+	} );
 
-		}
+	timeSinceUpdate = 0;
 
-		bvhHelper.update();
-		timeSinceUpdate = 0;
+	const score = calculateScore( bvhs );
+	const degradation = ( score / initialScore ) - 1.0;
+	outputContainer.innerHTML =
+		`refit time: ${ refitTime.toFixed( 2 ) } ms\n` +
+		`bvh degradation: ${ ( 100 * degradation ).toFixed( 2 ) }%`;
 
-		const extremes = getBVHExtremes( meshHelper.geometry.boundsTree );
-		if ( initialExtremes === null ) {
+}
 
-			initialExtremes = extremes;
+function calculateScore( bvhs ) {
 
-		}
+	let score = 0;
+	bvhs.forEach( bvh => {
 
-		let score = 0;
-		let initialScore = 0;
+		const extremes = getBVHExtremes( bvh );
 		for ( const i in extremes ) {
 
 			score += extremes[ i ].surfaceAreaScore;
-			initialScore += initialExtremes[ i ].surfaceAreaScore;
 
 		}
 
-		const degradation = ( score / initialScore ) - 1.0;
+	} );
 
-		// update time display
-		outputContainer.innerHTML =
-			`mesh generation time: ${ generateTime.toFixed( 2 ) } ms\n` +
-			`refit time: ${ refitTime } ms\n` +
-			`bvh degradation: ${ ( 100 * degradation ).toFixed( 2 ) }%`;
-
-	}
+	return score;
 
 }
 
@@ -321,9 +241,11 @@ function render() {
 
 		mixer.update( delta );
 		skeletonHelper.visible = params.skeletonHelper;
-		meshHelper.visible = params.display;
-		bvhHelper.visible = params.bvhHelper;
-		model.visible = params.displayOriginal;
+		helpers.forEach( helper => {
+
+			helper.visible = params.bvhHelper;
+
+		} );
 
 	}
 
@@ -334,7 +256,7 @@ function render() {
 
 		if ( timeSinceUpdate > params.updateRate ) {
 
-			regenerateMesh();
+			refitBVH();
 
 		}
 

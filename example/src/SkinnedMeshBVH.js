@@ -1,11 +1,18 @@
 import { Vector3 } from 'three';
-import { GeometryBVH, ExtendedTriangle, FLOAT32_EPSILON } from 'three-mesh-bvh';
+import { GeometryBVH, ExtendedTriangle } from 'three-mesh-bvh';
+import { SKIP_GENERATION } from '../../src/core/Constants';
 
 const _v0 = /* @__PURE__ */ new Vector3();
 const _v1 = /* @__PURE__ */ new Vector3();
 const _v2 = /* @__PURE__ */ new Vector3();
 
 export class SkinnedMeshBVH extends GeometryBVH {
+
+	get primitiveStride() {
+
+		return 3;
+
+	}
 
 	constructor( mesh, options = {} ) {
 
@@ -15,8 +22,11 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 		}
 
-		super( mesh.geometry, options );
+		// TODO: clean up
+		super( mesh.geometry, { [ SKIP_GENERATION ]: true, ...options } );
 		this.mesh = mesh;
+
+		this.init( options );
 
 	}
 
@@ -65,12 +75,8 @@ export class SkinnedMeshBVH extends GeometryBVH {
 			if ( b > max ) max = b;
 			if ( c > max ) max = c;
 
-			// Apply epsilon padding
-			const halfExtents = ( max - min ) / 2;
-			const epsilonPadding = ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
-
-			mins[ el ] = min - epsilonPadding;
-			maxs[ el ] = max + epsilonPadding;
+			mins[ el ] = min;
+			maxs[ el ] = max;
 
 		}
 
