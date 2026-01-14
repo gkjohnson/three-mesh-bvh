@@ -12,20 +12,14 @@ const params = {
 	bvhHelperDepth: 10,
 
 	autoUpdate: true,
-	updateRate: 0.5,
 	pause: false,
-	regenerate: () => {
-
-		refitBVH();
-
-	}
+	refit: () => refitBVH(),
 };
 
 let renderer, camera, scene, clock, gui, stats;
 let outputContainer;
 let controls, mixer, animationAction, model;
 let skeletonHelper;
-let timeSinceUpdate = 0;
 let initialScore = 0;
 let bvhs = [], helpers = [];
 
@@ -139,6 +133,16 @@ function init() {
 	scene.add( plane );
 
 	gui = new GUI();
+	gui.add( params, 'pause' ).onChange( v => {
+
+		if ( animationAction ) {
+
+			animationAction.paused = v;
+
+		}
+
+	} );
+
 	const helperFolder = gui.addFolder( 'helpers' );
 	helperFolder.add( params, 'skeletonHelper' );
 	helperFolder.add( params, 'bvhHelper' );
@@ -154,19 +158,9 @@ function init() {
 	} );
 	helperFolder.open();
 
-	const bvhFolder = gui.addFolder( 'bvh animation' );
+	const bvhFolder = gui.addFolder( 'bvh refit' );
 	bvhFolder.add( params, 'autoUpdate' );
-	bvhFolder.add( params, 'updateRate', 0, 2, 0.001 );
-	bvhFolder.add( params, 'pause' ).onChange( v => {
-
-		if ( animationAction ) {
-
-			animationAction.paused = v;
-
-		}
-
-	} );
-	bvhFolder.add( params, 'regenerate' );
+	bvhFolder.add( params, 'refit' );
 	bvhFolder.open();
 
 	gui.open();
@@ -200,8 +194,6 @@ function refitBVH() {
 		helper.update();
 
 	} );
-
-	timeSinceUpdate = 0;
 
 	const score = calculateScore( bvhs );
 	const degradation = ( score / initialScore ) - 1.0;
@@ -254,17 +246,7 @@ function render() {
 	// refit on a cycle
 	if ( params.autoUpdate && ! params.pause ) {
 
-		if ( timeSinceUpdate > params.updateRate ) {
-
-			refitBVH();
-
-		}
-
-		timeSinceUpdate += delta;
-
-	} else {
-
-		timeSinceUpdate = 0;
+		refitBVH();
 
 	}
 
