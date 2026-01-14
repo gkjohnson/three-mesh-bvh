@@ -1,6 +1,5 @@
 import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle } from 'three';
-import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED } from 'three-mesh-bvh';
-import { SKIP_GENERATION } from '../../src/core/Constants.js';
+import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED, SKIP_GENERATION } from 'three-mesh-bvh';
 
 const _v0 = /* @__PURE__ */ new Vector3();
 const _v1 = /* @__PURE__ */ new Vector3();
@@ -26,10 +25,20 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 		}
 
-		super( mesh.geometry, { [ SKIP_GENERATION ]: true, ...options } );
+		// skip generation initially so we can add our local fields
+		// TODO: is there a more clean way to handle this? Update all subclasses to be
+		// responsible for calling "init" themselves?
+		super( mesh.geometry, {
+			...options,
+			[ SKIP_GENERATION ]: true,
+		} );
 		this.mesh = mesh;
 
-		this.init( options );
+		if ( ! options[ SKIP_GENERATION ] ) {
+
+			this.init( options );
+
+		}
 
 	}
 
