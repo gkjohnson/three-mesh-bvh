@@ -187,6 +187,85 @@ export class BVH {
 
 	}
 
+	refit( nodeIndices = null ) {
+
+		// TODO: add support for "nodeIndices"
+		if ( nodeIndices && Array.isArray( nodeIndices ) ) {
+
+			nodeIndices = new Set( nodeIndices );
+
+		}
+
+		const roots = this._roots;
+		for ( let rootIndex = 0, rootCount = roots.length; rootIndex < rootCount; rootIndex ++ ) {
+
+			const buffer = roots[ rootIndex ];
+			const uint32Array = new Uint32Array( buffer );
+			const uint16Array = new Uint16Array( buffer );
+			const float32Array = new Float32Array( buffer );
+
+			const totalNodes = buffer.byteLength / BYTES_PER_NODE;
+
+			// Traverse nodes from right to left (end to beginning) so children are updated before parents
+			for ( let nodeIndex = totalNodes - 1; nodeIndex >= 0; nodeIndex -- ) {
+
+				const nodeIndex32 = nodeIndex * UINT32_PER_NODE;
+				const nodeIndex16 = nodeIndex32 * 2;
+
+				const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
+
+				if ( isLeaf ) {
+
+					// Leaf node: recompute bounds from primitives
+					const offset = uint32Array[ nodeIndex32 + 6 ];
+					const count = uint16Array[ nodeIndex16 + 14 ];
+
+					// Use writePrimitiveRangeBounds to compute union of primitive bounds
+					// This returns center/half-extent format in _tempBuffer
+					this.writePrimitiveRangeBounds( offset, count, _tempBuffer, 0 );
+
+					// Convert from center/half-extent to min/max format
+					const cx = _tempBuffer[ 0 ];
+					const hx = _tempBuffer[ 1 ];
+					const cy = _tempBuffer[ 2 ];
+					const hy = _tempBuffer[ 3 ];
+					const cz = _tempBuffer[ 4 ];
+					const hz = _tempBuffer[ 5 ];
+
+					float32Array[ nodeIndex32 + 0 ] = cx - hx; // minx
+					float32Array[ nodeIndex32 + 1 ] = cy - hy; // miny
+					float32Array[ nodeIndex32 + 2 ] = cz - hz; // minz
+					float32Array[ nodeIndex32 + 3 ] = cx + hx; // maxx
+					float32Array[ nodeIndex32 + 4 ] = cy + hy; // maxy
+					float32Array[ nodeIndex32 + 5 ] = cz + hz; // maxz
+
+				} else {
+
+					// Internal node: union child bounds
+					const left = LEFT_NODE( nodeIndex32 );
+					const right = RIGHT_NODE( nodeIndex32, uint32Array );
+
+					// Union the bounds of left and right children
+					for ( let i = 0; i < 3; i ++ ) {
+
+						const leftMin = float32Array[ left + i ];
+						const leftMax = float32Array[ left + i + 3 ];
+						const rightMin = float32Array[ right + i ];
+						const rightMax = float32Array[ right + i + 3 ];
+
+						float32Array[ nodeIndex32 + i ] = leftMin < rightMin ? leftMin : rightMin;
+						float32Array[ nodeIndex32 + i + 3 ] = leftMax > rightMax ? leftMax : rightMax;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
 	getBoundingBox( target ) {
 
 		target.makeEmpty();
