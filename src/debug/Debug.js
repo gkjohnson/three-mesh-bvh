@@ -1,11 +1,10 @@
-import { Box3, Vector3 } from 'three';
+import { Box3 } from 'three';
 import { PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 
 const _box1 = /* @__PURE__ */ new Box3();
 const _box2 = /* @__PURE__ */ new Box3();
-const _vec = /* @__PURE__ */ new Vector3();
 
 // https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object
 function getElementSize( el ) {
@@ -169,10 +168,8 @@ function estimateMemoryInBytes( obj ) {
 
 function validateBounds( bvh ) {
 
-	const geometry = bvh.geometry;
 	const depthStack = [];
-	const index = geometry.index;
-	const position = geometry.getAttribute( 'position' );
+	const tempBuffer = new Float32Array( 6 );
 	let passes = true;
 
 	bvh.traverse( ( depth, isLeaf, boundingData, offset, count ) => {
@@ -191,44 +188,24 @@ function validateBounds( bvh ) {
 
 		if ( isLeaf ) {
 
-			// check triangles
-			for ( let i = offset, l = offset + count; i < l; i ++ ) {
+			// Compute the actual bounds of the primitives in this leaf
+			bvh.writePrimitiveRangeBounds( offset, count, tempBuffer, 0 );
 
-				const triIndex = bvh.resolveTriangleIndex( i );
-				let i0 = 3 * triIndex;
-				let i1 = 3 * triIndex + 1;
-				let i2 = 3 * triIndex + 2;
+			// tempBuffer is in min/max format [minx, miny, minz, maxx, maxy, maxz]
+			_box2.min.set( tempBuffer[ 0 ], tempBuffer[ 1 ], tempBuffer[ 2 ] );
+			_box2.max.set( tempBuffer[ 3 ], tempBuffer[ 4 ], tempBuffer[ 5 ] );
 
-				if ( index ) {
-
-					i0 = index.getX( i0 );
-					i1 = index.getX( i1 );
-					i2 = index.getX( i2 );
-
-				}
-
-				let isContained;
-
-				_vec.fromBufferAttribute( position, i0 );
-				isContained = _box1.containsPoint( _vec );
-
-				_vec.fromBufferAttribute( position, i1 );
-				isContained = isContained && _box1.containsPoint( _vec );
-
-				_vec.fromBufferAttribute( position, i2 );
-				isContained = isContained && _box1.containsPoint( _vec );
-
-				console.assert( isContained, 'Leaf bounds does not fully contain triangle.' );
-				passes = passes && isContained;
-
-			}
+			// Check if the stored bounds contain the actual primitive bounds
+			const isContained = _box1.containsBox( _box2 );
+			console.assert( isContained, 'Leaf bounds does not fully contain primitives.' );
+			passes = passes && isContained;
 
 		}
 
 		if ( parent ) {
 
 			// check if my bounds fit in my parents
-			arrayToBox( 0, boundingData, _box2 );
+			arrayToBox( 0, parent.boundingData, _box2 );
 
 			const isContained = _box2.containsBox( _box1 );
 			console.assert( isContained, 'Parent bounds does not fully contain child.' );

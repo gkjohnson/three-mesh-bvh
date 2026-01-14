@@ -174,6 +174,63 @@ export class MeshBVH extends GeometryBVH {
 
 	}
 
+	writePrimitiveBounds( i, targetBuffer, baseIndex ) {
+
+		const geometry = this.geometry;
+		const indirectBuffer = this._indirectBuffer;
+		const posAttr = geometry.attributes.position;
+		const index = geometry.index ? geometry.index.array : null;
+
+		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
+		const tri3 = tri * 3;
+
+		let ai = tri3 + 0;
+		let bi = tri3 + 1;
+		let ci = tri3 + 2;
+
+		if ( index ) {
+
+			ai = index[ ai ];
+			bi = index[ bi ];
+			ci = index[ ci ];
+
+		}
+
+		const getters = [ 'getX', 'getY', 'getZ' ];
+		const mins = new Array( 3 );
+		const maxs = new Array( 3 );
+
+		for ( let el = 0; el < 3; el ++ ) {
+
+			const a = posAttr[ getters[ el ] ]( ai );
+			const b = posAttr[ getters[ el ] ]( bi );
+			const c = posAttr[ getters[ el ] ]( ci );
+
+			let min = a;
+			if ( b < min ) min = b;
+			if ( c < min ) min = c;
+
+			let max = a;
+			if ( b > max ) max = b;
+			if ( c > max ) max = c;
+
+			mins[ el ] = min;
+			maxs[ el ] = max;
+
+		}
+
+		// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
+		targetBuffer[ baseIndex + 0 ] = mins[ 0 ];
+		targetBuffer[ baseIndex + 1 ] = mins[ 1 ];
+		targetBuffer[ baseIndex + 2 ] = mins[ 2 ];
+		targetBuffer[ baseIndex + 3 ] = maxs[ 0 ];
+		targetBuffer[ baseIndex + 4 ] = maxs[ 1 ];
+		targetBuffer[ baseIndex + 5 ] = maxs[ 2 ];
+
+		return targetBuffer;
+
+	}
+
 	// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
 	// result is an array of size count * 6 where triangle i maps to a
 	// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
