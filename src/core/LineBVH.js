@@ -18,44 +18,39 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 	}
 
-	computePrimitiveBounds( offset, count, targetBuffer ) {
+	writePrimitiveBounds( i, targetBuffer, baseIndex ) {
 
 		const indirectBuffer = this._indirectBuffer;
 		const { geometry, primitiveStride } = this;
 
 		const posAttr = geometry.attributes.position;
-		const boundsOffset = targetBuffer.offset || 0;
+		const indexAttr = geometry.index;
 
 		// TODO: this may not be right for a LineLoop with a limited draw range / groups
-		const vertCount = geometry.index ? geometry.index.count : geometry.attributes.position.count;
+		const vertCount = indexAttr ? indexAttr.count : posAttr.count;
+
+		const prim = indirectBuffer ? indirectBuffer[ i ] : i;
+		let i0 = prim * primitiveStride;
+		let i1 = ( i0 + 1 ) % vertCount;
+		if ( indexAttr ) {
+
+			i0 = indexAttr.getX( i0 );
+			i1 = indexAttr.getX( i1 );
+
+		}
+
 		const getters = [ 'getX', 'getY', 'getZ' ];
+		for ( let el = 0; el < 3; el ++ ) {
 
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+			const v0 = posAttr[ getters[ el ] ]( i0 );
+			const v1 = posAttr[ getters[ el ] ]( i1 );
+			const min = v0 < v1 ? v0 : v1;
+			const max = v0 > v1 ? v0 : v1;
 
-			const prim = indirectBuffer ? indirectBuffer[ i ] : i;
-			let i0 = prim * primitiveStride;
-			let i1 = ( i0 + 1 ) % vertCount;
-			if ( geometry.index ) {
-
-				i0 = geometry.index.getX( i0 );
-				i1 = geometry.index.getX( i1 );
-
-			}
-
-			const baseIndex = ( i - boundsOffset ) * 6;
-			for ( let el = 0; el < 3; el ++ ) {
-
-				const v0 = posAttr[ getters[ el ] ]( i0 );
-				const v1 = posAttr[ getters[ el ] ]( i1 );
-				const min = v0 < v1 ? v0 : v1;
-				const max = v0 > v1 ? v0 : v1;
-
-				const halfExtents = ( max - min ) / 2;
-				const el2 = el * 2;
-				targetBuffer[ baseIndex + el2 + 0 ] = min + halfExtents;
-				targetBuffer[ baseIndex + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
-
-			}
+			const halfExtents = ( max - min ) / 2;
+			const el2 = el * 2;
+			targetBuffer[ baseIndex + el2 + 0 ] = min + halfExtents;
+			targetBuffer[ baseIndex + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
 
 		}
 

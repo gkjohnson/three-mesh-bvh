@@ -5,7 +5,8 @@ import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUt
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 
-const tempBox = /* @__PURE__ */ new Box3();
+const _tempBox = /* @__PURE__ */ new Box3();
+const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
 
 export class BVH {
 
@@ -35,9 +36,76 @@ export class BVH {
 
 	}
 
-	computePrimitiveBounds( /* offset, count, targetBuffer */ ) {
+	writePrimitiveBounds( /* i, buffer, writeOffset */ ) {
 
-		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );
+		throw new Error( 'BVH: writePrimitiveBounds() not implemented' );
+
+	}
+
+	writePrimitiveRangeBounds( offset, count, targetBuffer, baseIndex ) {
+
+		// Initialize bounds
+		let minx = Infinity;
+		let miny = Infinity;
+		let minz = Infinity;
+		let maxx = - Infinity;
+		let maxy = - Infinity;
+		let maxz = - Infinity;
+
+		// Compute union of all bounds
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			// Write primitive bounds to temp buffer
+			this.writePrimitiveBounds( i, _tempBuffer, 0 );
+
+			// Read center/half-extent and convert to min/max
+			const cx = _tempBuffer[ 0 ];
+			const hx = _tempBuffer[ 1 ];
+			const cy = _tempBuffer[ 2 ];
+			const hy = _tempBuffer[ 3 ];
+			const cz = _tempBuffer[ 4 ];
+			const hz = _tempBuffer[ 5 ];
+
+			const pminx = cx - hx;
+			const pmaxx = cx + hx;
+			const pminy = cy - hy;
+			const pmaxy = cy + hy;
+			const pminz = cz - hz;
+			const pmaxz = cz + hz;
+
+			// Expand bounds
+			if ( pminx < minx ) minx = pminx;
+			if ( pmaxx > maxx ) maxx = pmaxx;
+			if ( pminy < miny ) miny = pminy;
+			if ( pmaxy > maxy ) maxy = pmaxy;
+			if ( pminz < minz ) minz = pminz;
+			if ( pmaxz > maxz ) maxz = pmaxz;
+
+		}
+
+		// Convert back to center/half-extent format and write to target
+		targetBuffer[ baseIndex + 0 ] = ( minx + maxx ) / 2;
+		targetBuffer[ baseIndex + 1 ] = ( maxx - minx ) / 2;
+		targetBuffer[ baseIndex + 2 ] = ( miny + maxy ) / 2;
+		targetBuffer[ baseIndex + 3 ] = ( maxy - miny ) / 2;
+		targetBuffer[ baseIndex + 4 ] = ( minz + maxz ) / 2;
+		targetBuffer[ baseIndex + 5 ] = ( maxz - minz ) / 2;
+
+		return targetBuffer;
+
+	}
+
+	computePrimitiveBounds( offset, count, targetBuffer ) {
+
+		const boundsOffset = targetBuffer.offset || 0;
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			const baseIndex = ( i - boundsOffset ) * 6;
+			this.writePrimitiveBounds( i, targetBuffer, baseIndex );
+
+		}
+
+		return targetBuffer;
 
 	}
 
@@ -126,8 +194,8 @@ export class BVH {
 		const roots = this._roots;
 		roots.forEach( buffer => {
 
-			arrayToBox( 0, new Float32Array( buffer ), tempBox );
-			target.union( tempBox );
+			arrayToBox( 0, new Float32Array( buffer ), _tempBox );
+			target.union( _tempBox );
 
 		} );
 
