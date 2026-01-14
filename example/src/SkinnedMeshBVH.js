@@ -131,6 +131,7 @@ export class SkinnedMeshBVH extends GeometryBVH {
 			},
 			intersectsTriangle: ( tri, triIndex ) => {
 
+				// get the intersection
 				let point = null;
 				if ( material.side === FrontSide ) {
 
@@ -152,12 +153,21 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 				}
 
+				// transform it into world space
 				point = point.clone().applyMatrix4( matrixWorld );
 
+				// check distance to ray
 				const dist = raycaster.ray.origin.distanceTo( point );
 				if ( dist >= raycaster.near && dist <= raycaster.far ) {
 
-					// Get the actual vertex indices for this triangle
+					if ( firstHitOnly && dist >= closestDistance ) {
+
+						return;
+
+					}
+
+
+					// get the vertex indices
 					const { geometry } = this;
 					const { index } = geometry;
 					const actualTri = this.resolvePrimitiveIndex( triIndex );
@@ -175,11 +185,11 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 					}
 
-					// Calculate barycentric coordinates
+					// calculate barycentric coordinates
 					const barycoord = new Vector3();
 					Triangle.getBarycoord( _localPoint, tri.a, tri.b, tri.c, barycoord );
 
-					// Build intersection result (point is in local space)
+					// build the intersection result
 					const hit = {
 						distance: dist,
 						point: point.clone(),
@@ -192,17 +202,16 @@ export class SkinnedMeshBVH extends GeometryBVH {
 							a: ai,
 							b: bi,
 							c: ci,
-							normal: new Vector3(),
+							normal: Triangle.getNormal( tri.a, tri.b, tri.c, new Vector3() ),
 							materialIndex: 0
 						},
 						faceIndex: ai,
 					};
 
-					Triangle.getNormal( tri.a, tri.b, tri.c, hit.face.normal );
-
-					// Add UV coordinates if available
+					// add attribute fields if available
 					const uv = geometry.attributes.uv;
 					const uv1 = geometry.attributes.uv1;
+					const normal = geometry.attributes.normal;
 
 					if ( uv ) {
 
@@ -216,8 +225,6 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 					}
 
-					// Add interpolated normal if available
-					const normal = geometry.attributes.normal;
 					if ( normal ) {
 
 						hit.normal = Triangle.getInterpolatedAttribute( normal, ai, bi, ci, barycoord, new Vector3() );
@@ -230,10 +237,7 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 					}
 
-					// Filter by near/far in world space
-					if ( hit.distance < raycaster.near || hit.distance > raycaster.far ) return;
-
-					if ( firstHitOnly && hit.distance >= closestDistance ) return;
+					// first hit only settings
 					closestDistance = hit.distance;
 					closestHit = hit;
 
