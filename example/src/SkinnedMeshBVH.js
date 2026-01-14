@@ -5,6 +5,7 @@ import { SKIP_GENERATION } from '../../src/core/Constants';
 const _v0 = /* @__PURE__ */ new Vector3();
 const _v1 = /* @__PURE__ */ new Vector3();
 const _v2 = /* @__PURE__ */ new Vector3();
+const _axes = [ 'x', 'y', 'z' ];
 
 export class SkinnedMeshBVH extends GeometryBVH {
 
@@ -59,7 +60,7 @@ export class SkinnedMeshBVH extends GeometryBVH {
 		// Compute bounds for each axis
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const axis = el === 0 ? 'x' : ( el === 1 ? 'y' : 'z' );
+			const axis = _axes[ el ];
 			const a = _v0[ axis ];
 			const b = _v1[ axis ];
 			const c = _v2[ axis ];

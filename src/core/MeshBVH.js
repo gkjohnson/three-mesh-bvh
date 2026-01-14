@@ -28,6 +28,7 @@ const _ray = /* @__PURE__ */ new Ray();
 const _direction = /* @__PURE__ */ new Vector3();
 const _InverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
+const _getters = [ 'getX', 'getY', 'getZ' ];
 
 export class MeshBVH extends GeometryBVH {
 
@@ -196,13 +197,11 @@ export class MeshBVH extends GeometryBVH {
 
 		}
 
-		const getters = [ 'getX', 'getY', 'getZ' ];
-
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const a = posAttr[ getters[ el ] ]( ai );
-			const b = posAttr[ getters[ el ] ]( bi );
-			const c = posAttr[ getters[ el ] ]( ci );
+			const a = posAttr[ _getters[ el ] ]( ai );
+			const b = posAttr[ _getters[ el ] ]( bi );
+			const c = posAttr[ _getters[ el ] ]( ci );
 
 			let min = a;
 			if ( b < min ) min = b;

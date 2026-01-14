@@ -9,6 +9,7 @@ const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
 const _intersectPointOnRay = /*@__PURE__*/ new Vector3();
 const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
 const _box = /* @__PURE__ */ new Box3();
+const _getters = [ 'getX', 'getY', 'getZ' ];
 
 export class LineSegmentsBVH extends GeometryBVH {
 
@@ -39,12 +40,10 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 		}
 
-		const getters = [ 'getX', 'getY', 'getZ' ];
-
 		for ( let el = 0; el < 3; el ++ ) {
 
-			const v0 = posAttr[ getters[ el ] ]( i0 );
-			const v1 = posAttr[ getters[ el ] ]( i1 );
+			const v0 = posAttr[ _getters[ el ] ]( i0 );
+			const v1 = posAttr[ _getters[ el ] ]( i1 );
 			const min = v0 < v1 ? v0 : v1;
 			const max = v0 > v1 ? v0 : v1;
 
