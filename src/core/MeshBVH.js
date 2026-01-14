@@ -26,7 +26,7 @@ import { GeometryBVH } from './GeometryBVH.js';
 const _obb = /* @__PURE__ */ new OrientedBox();
 const _ray = /* @__PURE__ */ new Ray();
 const _direction = /* @__PURE__ */ new Vector3();
-const _InverseMatrix = /* @__PURE__ */ new Matrix4();
+const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
 const _getters = [ 'getX', 'getY', 'getZ' ];
 
@@ -335,8 +335,8 @@ export class MeshBVH extends GeometryBVH {
 
 		}
 
-		_InverseMatrix.copy( object.matrixWorld ).invert();
-		_ray.copy( raycaster.ray ).applyMatrix4( _InverseMatrix );
+		_inverseMatrix.copy( object.matrixWorld ).invert();
+		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		_worldScale.setFromMatrixScale( object.matrixWorld );
 		_direction.copy( _ray.direction ).multiply( _worldScale );
