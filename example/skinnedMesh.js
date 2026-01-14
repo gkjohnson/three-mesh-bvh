@@ -6,6 +6,22 @@ import { BVHHelper, getBVHExtremes } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SkinnedMeshBVH } from './src/SkinnedMeshBVH.js';
 
+// override SkinnedMesh.prototype.raycast to use BVH if available
+const ogSkinnedMeshRaycast = THREE.SkinnedMesh.prototype.raycast;
+THREE.SkinnedMesh.prototype.raycast = function ( raycaster, intersects ) {
+
+	if ( this.boundsTree && params.bvhRaycast ) {
+
+		this.boundsTree.raycastObject3D( this, raycaster, intersects );
+
+	} else {
+
+		ogSkinnedMeshRaycast.call( this, raycaster, intersects );
+
+	}
+
+};
+
 const params = {
 	skeletonHelper: false,
 	bvhHelper: true,
@@ -14,6 +30,7 @@ const params = {
 	autoUpdate: true,
 	pause: false,
 	refit: () => refitBVH(),
+	bvhRaycast: true,
 };
 
 let renderer, camera, scene, clock, gui, stats;
@@ -22,6 +39,7 @@ let controls, mixer, animationAction, model;
 let skeletonHelper;
 let initialScore = 0;
 let bvhs = [], helpers = [];
+let raycaster, mouse, sphereCollision;
 
 init();
 render();
@@ -71,6 +89,18 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	// raycaster setup
+	raycaster = new THREE.Raycaster();
+	raycaster.firstHitOnly = true;
+	mouse = new THREE.Vector2();
+
+	// collision sphere
+	const sphereGeometry = new THREE.SphereGeometry( 0.05, 32, 32 );
+	const sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.5, transparent: true } );
+	sphereCollision = new THREE.Mesh( sphereGeometry, sphereMaterial );
+	sphereCollision.visible = false;
+	scene.add( sphereCollision );
+
 	// load the model
 	new GLTFLoader()
 		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/trex/scene.gltf', gltf => {
@@ -91,6 +121,8 @@ function init() {
 					scene.add( helper );
 					bvhs.push( bvh );
 					helpers.push( helper );
+
+					object.boundsTree = bvh;
 
 				}
 
@@ -158,11 +190,11 @@ function init() {
 	} );
 	helperFolder.open();
 
-	const bvhFolder = gui.addFolder( 'bvh refit' );
+	const bvhFolder = gui.addFolder( 'bvh' );
+	bvhFolder.add( params, 'bvhRaycast' );
 	bvhFolder.add( params, 'autoUpdate' );
 	bvhFolder.add( params, 'refit' );
 	bvhFolder.open();
-
 	gui.open();
 
 	window.addEventListener( 'resize', function () {
@@ -171,6 +203,13 @@ function init() {
 		camera.updateProjectionMatrix();
 
 		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
+
+	window.addEventListener( 'pointermove', function ( e ) {
+
+		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 
 	}, false );
 
@@ -221,6 +260,49 @@ function calculateScore( bvhs ) {
 
 }
 
+function updateRaycast() {
+
+	if ( ! model ) {
+
+		return;
+
+	}
+
+	raycaster.setFromCamera( mouse, camera );
+
+	const startTime = window.performance.now();
+	const intersects = raycaster.intersectObject( model, true );
+	const hit = intersects[ 0 ];
+
+	if ( hit ) {
+
+		sphereCollision.position.copy( hit.point );
+		sphereCollision.visible = true;
+
+	} else {
+
+		sphereCollision.visible = false;
+
+	}
+
+	const delta = window.performance.now() - startTime;
+	const refitInfo = outputContainer.innerHTML;
+	const lines = refitInfo.split( '\n' );
+	if ( lines.length > 1 ) {
+
+		outputContainer.innerHTML =
+			lines[ 0 ] + '\n' +
+			lines[ 1 ] + '\n' +
+			`raycast time: ${ delta.toFixed( 2 ) } ms`;
+
+	} else {
+
+		outputContainer.innerHTML = `raycast time: ${ delta.toFixed( 2 ) } ms`;
+
+	}
+
+}
+
 function render() {
 
 	stats.update();
@@ -249,6 +331,9 @@ function render() {
 		refitBVH();
 
 	}
+
+	// update raycast
+	updateRaycast();
 
 	renderer.render( scene, camera );
 
