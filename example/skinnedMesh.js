@@ -148,9 +148,12 @@ function init() {
 			const box = new THREE.Box3();
 			box.setFromObject( model );
 			box.getCenter( controls.target );
-			box.getCenter( camera.position );
-			camera.position.x = 7.5;
-			camera.position.z = 3.5;
+			controls.target.z += 3;
+
+			camera.position.copy( controls.target );
+			camera.position.x += 6.5;
+			camera.position.y += 2.5;
+			camera.position.z += 6.5;
 			controls.update();
 
 			initialScore = calculateScore( bvhs );
