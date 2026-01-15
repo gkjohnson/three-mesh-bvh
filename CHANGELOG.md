@@ -6,9 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.9.6] - Unreleased
 ### Fixed
-- BVHHelper: Fix "clone" function cloning all fields.
+- BVHHelper: Fix "clone" function not cloning all fields.
 - acceleratedRaycast: Fix case where raycasting will fail if "type" is modified.
-- Update types
+- Update types.
+- WGSL: Fix use of keyword as a variable.
+
+### Added
+- PointsBVH, LineBVH, LineLoopBVH, LineSegmentsBVH: Added support for "refit" function.
+- SkinnedMeshBVH for skinned meshes or morph target meshes to the examples directory.
 
 ## [0.9.5] - 2026-01-08
 ### Added
