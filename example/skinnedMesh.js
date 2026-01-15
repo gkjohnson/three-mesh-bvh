@@ -2,43 +2,47 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { computeBoundsTree, MeshBVHHelper, getBVHExtremes, StaticGeometryGenerator } from 'three-mesh-bvh';
+import { BVHHelper, getBVHExtremes } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { SkinnedMeshBVH } from './src/SkinnedMeshBVH.js';
 
-THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+// override SkinnedMesh.prototype.raycast to use BVH if available
+const ogSkinnedMeshRaycast = THREE.SkinnedMesh.prototype.raycast;
+THREE.SkinnedMesh.prototype.raycast = function ( raycaster, intersects ) {
+
+	if ( this.boundsTree && params.bvhRaycast ) {
+
+		this.boundsTree.raycastObject3D( this, raycaster, intersects );
+
+	} else {
+
+		ogSkinnedMeshRaycast.call( this, raycaster, intersects );
+
+	}
+
+};
 
 const params = {
-	display: true,
-	displayOriginal: true,
-	material: 'wireframe',
-	updatePositionOnly: false,
-
 	skeletonHelper: false,
 	bvhHelper: true,
 	bvhHelperDepth: 10,
 
 	autoUpdate: true,
-	updateRate: 2.5,
 	pause: false,
-	regenerate: () => {
-
-		regenerateMesh();
-
-	}
+	refit: () => refitBVH(),
+	bvhRaycast: true,
 };
 
 let renderer, camera, scene, clock, gui, stats;
 let outputContainer;
 let controls, mixer, animationAction, model;
-let bvhHelper, skeletonHelper, meshHelper, staticGeometryGenerator;
-let timeSinceUpdate = 0;
-let initialExtremes = null;
-let wireframeMaterial, normalMaterials, originalMaterials;
+let skeletonHelper;
+let initialScore = 0;
+let bvhs = [], helpers = [];
+let raycaster, mouse, sphereCollision;
 
 init();
 render();
-
-// TODO: afford use of materials on the final model to validate
 
 function init() {
 
@@ -52,8 +56,7 @@ function init() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
 	renderer.shadowMap.enabled = true;
-	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.outputEncoding = THREE.sRGBEncoding;
+	renderer.shadowMap.type = THREE.PCFShadowMap;
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -86,6 +89,18 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	// raycaster setup
+	raycaster = new THREE.Raycaster();
+	raycaster.firstHitOnly = true;
+	mouse = new THREE.Vector2();
+
+	// collision sphere
+	const sphereGeometry = new THREE.SphereGeometry( 0.05, 32, 32 );
+	const sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.5, transparent: true } );
+	sphereCollision = new THREE.Mesh( sphereGeometry, sphereMaterial );
+	sphereCollision.visible = false;
+	scene.add( sphereCollision );
+
 	// load the model
 	new GLTFLoader()
 		.load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/trex/scene.gltf', gltf => {
@@ -99,6 +114,15 @@ function init() {
 					object.castShadow = true;
 					object.receiveShadow = true;
 					object.frustumCulled = false;
+
+					const bvh = new SkinnedMeshBVH( object );
+					const helper = new BVHHelper( object, bvh, params.bvhHelperDepth );
+					helper.update();
+					scene.add( helper );
+					bvhs.push( bvh );
+					helpers.push( helper );
+
+					object.boundsTree = bvh;
 
 				}
 
@@ -124,38 +148,15 @@ function init() {
 			const box = new THREE.Box3();
 			box.setFromObject( model );
 			box.getCenter( controls.target );
-			box.getCenter( camera.position );
-			camera.position.x = 7.5;
-			camera.position.z = 3.5;
+			controls.target.z += 3;
+
+			camera.position.copy( controls.target );
+			camera.position.x += 6.5;
+			camera.position.y += 2.5;
+			camera.position.z += 6.5;
 			controls.update();
 
-			// prep the geometry
-			staticGeometryGenerator = new StaticGeometryGenerator( model );
-			originalMaterials = staticGeometryGenerator.getMaterials();
-
-			normalMaterials = originalMaterials.map( m => {
-
-				return new THREE.MeshNormalMaterial( {
-					normalMap: m.normalMap
-				} );
-
-			} );
-
-			wireframeMaterial = new THREE.MeshBasicMaterial( {
-				wireframe: true,
-				transparent: true,
-				opacity: 0.05,
-				depthWrite: false,
-			} );
-			meshHelper = new THREE.Mesh( new THREE.BufferGeometry(), wireframeMaterial );
-			meshHelper.receiveShadow = true;
-
-			scene.add( meshHelper );
-
-			bvhHelper = new MeshBVHHelper( meshHelper, 10 );
-			scene.add( bvhHelper );
-
-			regenerateMesh();
+			initialScore = calculateScore( bvhs );
 
 		} );
 
@@ -167,67 +168,7 @@ function init() {
 	scene.add( plane );
 
 	gui = new GUI();
-	const staticFolder = gui.addFolder( 'static mesh' );
-	staticFolder.add( params, 'display' );
-	staticFolder.add( params, 'displayOriginal' );
-	staticFolder.add( params, 'material', [ 'wireframe', 'normal', 'original' ] ).onChange( v => {
-
-		if ( ! meshHelper ) {
-
-			return;
-
-		}
-
-		switch ( v ) {
-
-			case 'wireframe':
-				meshHelper.material = wireframeMaterial;
-				meshHelper.castShadow = false;
-				break;
-			case 'normal':
-				meshHelper.material = normalMaterials;
-				meshHelper.castShadow = true;
-				break;
-			case 'original':
-				meshHelper.material = originalMaterials;
-				meshHelper.castShadow = true;
-				break;
-
-		}
-
-	} );
-	staticFolder.add( params, 'updatePositionOnly' ).onChange( v => {
-
-		staticGeometryGenerator.attributes = v ? [ 'position' ] : [ 'position', 'normal', 'tangent', 'uv', 'uv2' ];
-
-		// TODO: if we don't dispose and create a new geometry then it seems like the performance gets slower with the
-		// original meshes??
-		const geometry = meshHelper.geometry;
-		geometry.dispose();
-		for ( const key in geometry.attributes ) {
-
-			geometry.deleteAttribute( key );
-
-		}
-
-	} );
-	staticFolder.open();
-
-	const helperFolder = gui.addFolder( 'helpers' );
-	helperFolder.add( params, 'skeletonHelper' );
-	helperFolder.add( params, 'bvhHelper' );
-	helperFolder.add( params, 'bvhHelperDepth', 1, 20, 1 ).onChange( v => {
-
-		bvhHelper.depth = parseInt( v );
-		bvhHelper.update();
-
-	} );
-	helperFolder.open();
-
-	const bvhFolder = gui.addFolder( 'bvh animation' );
-	bvhFolder.add( params, 'autoUpdate' );
-	bvhFolder.add( params, 'updateRate', 0, 5, 0.001 );
-	bvhFolder.add( params, 'pause' ).onChange( v => {
+	gui.add( params, 'pause' ).onChange( v => {
 
 		if ( animationAction ) {
 
@@ -236,9 +177,27 @@ function init() {
 		}
 
 	} );
-	bvhFolder.add( params, 'regenerate' );
-	bvhFolder.open();
 
+	const helperFolder = gui.addFolder( 'helpers' );
+	helperFolder.add( params, 'skeletonHelper' );
+	helperFolder.add( params, 'bvhHelper' );
+	helperFolder.add( params, 'bvhHelperDepth', 1, 20, 1 ).onChange( v => {
+
+		helpers.forEach( helper => {
+
+			helper.depth = parseInt( v );
+			helper.update();
+
+		} );
+
+	} );
+	helperFolder.open();
+
+	const bvhFolder = gui.addFolder( 'bvh' );
+	bvhFolder.add( params, 'bvhRaycast' );
+	bvhFolder.add( params, 'autoUpdate' );
+	bvhFolder.add( params, 'refit' );
+	bvhFolder.open();
 	gui.open();
 
 	window.addEventListener( 'resize', function () {
@@ -250,60 +209,98 @@ function init() {
 
 	}, false );
 
+	window.addEventListener( 'pointermove', function ( e ) {
+
+		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+
+	}, false );
+
 }
 
-// regenerate the mesh and bvh
-function regenerateMesh() {
+// refit the BVH to match the current skeleton pose
+function refitBVH() {
 
-	if ( meshHelper ) {
+	let refitTime;
+	const start = performance.now();
+	bvhs.forEach( bvh => {
 
-		let generateTime, refitTime, startTime;
+		bvh.refit();
 
-		// time the geometry generation
-		startTime = window.performance.now();
-		staticGeometryGenerator.generate( meshHelper.geometry );
-		generateTime = window.performance.now() - startTime;
+	} );
 
-		// time the bvh refitting
-		startTime = window.performance.now();
-		if ( ! meshHelper.geometry.boundsTree ) {
+	refitTime = performance.now() - start;
 
-			meshHelper.geometry.computeBoundsTree();
-			refitTime = '-';
+	helpers.forEach( helper => {
 
-		} else {
+		helper.update();
 
-			meshHelper.geometry.boundsTree.refit();
-			refitTime = ( window.performance.now() - startTime ).toFixed( 2 );
+	} );
 
-		}
+	const score = calculateScore( bvhs );
+	const degradation = ( score / initialScore ) - 1.0;
+	outputContainer.innerHTML =
+		`refit time: ${ refitTime.toFixed( 2 ) } ms\n` +
+		`bvh degradation: ${ ( 100 * degradation ).toFixed( 2 ) }%`;
 
-		bvhHelper.update();
-		timeSinceUpdate = 0;
+}
 
-		const extremes = getBVHExtremes( meshHelper.geometry.boundsTree );
-		if ( initialExtremes === null ) {
+function calculateScore( bvhs ) {
 
-			initialExtremes = extremes;
+	let score = 0;
+	bvhs.forEach( bvh => {
 
-		}
-
-		let score = 0;
-		let initialScore = 0;
+		const extremes = getBVHExtremes( bvh );
 		for ( const i in extremes ) {
 
 			score += extremes[ i ].surfaceAreaScore;
-			initialScore += initialExtremes[ i ].surfaceAreaScore;
 
 		}
 
-		const degradation = ( score / initialScore ) - 1.0;
+	} );
 
-		// update time display
+	return score;
+
+}
+
+function updateRaycast() {
+
+	if ( ! model ) {
+
+		return;
+
+	}
+
+	raycaster.setFromCamera( mouse, camera );
+
+	const startTime = window.performance.now();
+	const intersects = raycaster.intersectObject( model, true );
+	const hit = intersects[ 0 ];
+
+	if ( hit ) {
+
+		sphereCollision.position.copy( hit.point );
+		sphereCollision.visible = true;
+
+	} else {
+
+		sphereCollision.visible = false;
+
+	}
+
+	const delta = window.performance.now() - startTime;
+	const refitInfo = outputContainer.innerHTML;
+	const lines = refitInfo.split( '\n' );
+	if ( lines.length > 1 ) {
+
 		outputContainer.innerHTML =
-			`mesh generation time: ${ generateTime.toFixed( 2 ) } ms\n` +
-			`refit time: ${ refitTime } ms\n` +
-			`bvh degradation: ${ ( 100 * degradation ).toFixed( 2 ) }%`;
+			lines[ 0 ] + '\n' +
+			lines[ 1 ] + '\n' +
+			`raycast time: ${ delta.toFixed( 2 ) } ms`;
+
+	} else {
+
+		outputContainer.innerHTML = `raycast time: ${ delta.toFixed( 2 ) } ms`;
 
 	}
 
@@ -321,9 +318,11 @@ function render() {
 
 		mixer.update( delta );
 		skeletonHelper.visible = params.skeletonHelper;
-		meshHelper.visible = params.display;
-		bvhHelper.visible = params.bvhHelper;
-		model.visible = params.displayOriginal;
+		helpers.forEach( helper => {
+
+			helper.visible = params.bvhHelper;
+
+		} );
 
 	}
 
@@ -332,19 +331,12 @@ function render() {
 	// refit on a cycle
 	if ( params.autoUpdate && ! params.pause ) {
 
-		if ( timeSinceUpdate > params.updateRate ) {
-
-			regenerateMesh();
-
-		}
-
-		timeSinceUpdate += delta;
-
-	} else {
-
-		timeSinceUpdate = 0;
+		refitBVH();
 
 	}
+
+	// update raycast
+	updateRaycast();
 
 	renderer.render( scene, camera );
 

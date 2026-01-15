@@ -13,6 +13,7 @@ import {
 	computeBoundsTree,
 	disposeBoundsTree,
 	PointsBVH,
+	validateBounds,
 } from 'three-mesh-bvh';
 import { random, runTestMatrix, setSeed } from './utils.js';
 
@@ -125,6 +126,7 @@ function runSuiteWithOptions( options ) {
 				raycaster.firstHitOnly = false;
 				const ogHits = raycaster.intersectObject( pointCloud );
 
+				expect( validateBounds( bvh ) ).toBeTruthy();
 				expect( ogHits ).toEqual( bvhHits );
 				expect( ogHits[ 0 ] ).toEqual( firstHit[ 0 ] );
 

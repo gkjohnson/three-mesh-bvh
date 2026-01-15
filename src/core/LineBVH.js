@@ -1,6 +1,6 @@
 import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
-import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { GeometryBVH } from './GeometryBVH.js';
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
@@ -9,6 +9,7 @@ const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
 const _intersectPointOnRay = /*@__PURE__*/ new Vector3();
 const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
 const _box = /* @__PURE__ */ new Box3();
+const _getters = [ 'getX', 'getY', 'getZ' ];
 
 export class LineSegmentsBVH extends GeometryBVH {
 
@@ -18,44 +19,37 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 	}
 
-	computePrimitiveBounds( offset, count, targetBuffer ) {
+	writePrimitiveBounds( i, targetBuffer, baseIndex ) {
 
 		const indirectBuffer = this._indirectBuffer;
 		const { geometry, primitiveStride } = this;
 
 		const posAttr = geometry.attributes.position;
-		const boundsOffset = targetBuffer.offset || 0;
+		const indexAttr = geometry.index;
 
 		// TODO: this may not be right for a LineLoop with a limited draw range / groups
-		const vertCount = geometry.index ? geometry.index.count : geometry.attributes.position.count;
-		const getters = [ 'getX', 'getY', 'getZ' ];
+		const vertCount = indexAttr ? indexAttr.count : posAttr.count;
 
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+		const prim = indirectBuffer ? indirectBuffer[ i ] : i;
+		let i0 = prim * primitiveStride;
+		let i1 = ( i0 + 1 ) % vertCount;
+		if ( indexAttr ) {
 
-			const prim = indirectBuffer ? indirectBuffer[ i ] : i;
-			let i0 = prim * primitiveStride;
-			let i1 = ( i0 + 1 ) % vertCount;
-			if ( geometry.index ) {
+			i0 = indexAttr.getX( i0 );
+			i1 = indexAttr.getX( i1 );
 
-				i0 = geometry.index.getX( i0 );
-				i1 = geometry.index.getX( i1 );
+		}
 
-			}
+		for ( let el = 0; el < 3; el ++ ) {
 
-			const baseIndex = ( i - boundsOffset ) * 6;
-			for ( let el = 0; el < 3; el ++ ) {
+			const v0 = posAttr[ _getters[ el ] ]( i0 );
+			const v1 = posAttr[ _getters[ el ] ]( i1 );
+			const min = v0 < v1 ? v0 : v1;
+			const max = v0 > v1 ? v0 : v1;
 
-				const v0 = posAttr[ getters[ el ] ]( i0 );
-				const v1 = posAttr[ getters[ el ] ]( i1 );
-				const min = v0 < v1 ? v0 : v1;
-				const max = v0 > v1 ? v0 : v1;
-
-				const halfExtents = ( max - min ) / 2;
-				const el2 = el * 2;
-				targetBuffer[ baseIndex + el2 + 0 ] = min + halfExtents;
-				targetBuffer[ baseIndex + el2 + 1 ] = halfExtents + ( Math.abs( min ) + halfExtents ) * FLOAT32_EPSILON;
-
-			}
+			// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
+			targetBuffer[ baseIndex + el ] = min;
+			targetBuffer[ baseIndex + el + 3 ] = max;
 
 		}
 

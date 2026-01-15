@@ -1,5 +1,5 @@
 import { Vector3, Matrix4, Ray, Box3 } from 'three';
-import { FLOAT32_EPSILON, INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { GeometryBVH } from './GeometryBVH.js';
 
@@ -16,35 +16,31 @@ export class PointsBVH extends GeometryBVH {
 
 	}
 
-	// Implement abstract methods from BVH base class
-	computePrimitiveBounds( offset, count, targetBuffer ) {
+	writePrimitiveBounds( i, targetBuffer, baseIndex ) {
 
 		const indirectBuffer = this._indirectBuffer;
 		const { geometry } = this;
-
 		const posAttr = geometry.attributes.position;
-		const boundsOffset = targetBuffer.offset || 0;
-		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+		const indexAttr = geometry.index;
+		let pointIndex = indirectBuffer ? indirectBuffer[ i ] : i;
+		if ( indexAttr ) {
 
-			let pointIndex = indirectBuffer ? indirectBuffer[ i ] : i;
-			if ( geometry.index ) {
-
-				pointIndex = geometry.index.getX( pointIndex );
-
-			}
-
-			const baseIndex = ( i - boundsOffset ) * 6;
-			const px = posAttr.getX( pointIndex );
-			const py = posAttr.getY( pointIndex );
-			const pz = posAttr.getZ( pointIndex );
-			targetBuffer[ baseIndex + 0 ] = px;
-			targetBuffer[ baseIndex + 1 ] = Math.abs( px ) * FLOAT32_EPSILON;
-			targetBuffer[ baseIndex + 2 ] = py;
-			targetBuffer[ baseIndex + 3 ] = Math.abs( py ) * FLOAT32_EPSILON;
-			targetBuffer[ baseIndex + 4 ] = pz;
-			targetBuffer[ baseIndex + 5 ] = Math.abs( pz ) * FLOAT32_EPSILON;
+			pointIndex = indexAttr.getX( pointIndex );
 
 		}
+
+		const px = posAttr.getX( pointIndex );
+		const py = posAttr.getY( pointIndex );
+		const pz = posAttr.getZ( pointIndex );
+
+		// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
+		// For points, min equals max (epsilon padding is applied in computePrimitiveBounds)
+		targetBuffer[ baseIndex + 0 ] = px;
+		targetBuffer[ baseIndex + 1 ] = py;
+		targetBuffer[ baseIndex + 2 ] = pz;
+		targetBuffer[ baseIndex + 3 ] = px;
+		targetBuffer[ baseIndex + 4 ] = py;
+		targetBuffer[ baseIndex + 5 ] = pz;
 
 		return targetBuffer;
 

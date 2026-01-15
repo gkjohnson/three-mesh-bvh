@@ -26,8 +26,9 @@ import { GeometryBVH } from './GeometryBVH.js';
 const _obb = /* @__PURE__ */ new OrientedBox();
 const _ray = /* @__PURE__ */ new Ray();
 const _direction = /* @__PURE__ */ new Vector3();
-const _InverseMatrix = /* @__PURE__ */ new Matrix4();
+const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
+const _getters = [ 'getX', 'getY', 'getZ' ];
 
 export class MeshBVH extends GeometryBVH {
 
@@ -174,6 +175,53 @@ export class MeshBVH extends GeometryBVH {
 
 	}
 
+	// write primitive bounds to the buffer - used only for validateBounds at the moment
+	writePrimitiveBounds( i, targetBuffer, baseIndex ) {
+
+		const geometry = this.geometry;
+		const indirectBuffer = this._indirectBuffer;
+		const posAttr = geometry.attributes.position;
+		const index = geometry.index ? geometry.index.array : null;
+
+		const tri = indirectBuffer ? indirectBuffer[ i ] : i;
+		const tri3 = tri * 3;
+
+		let ai = tri3 + 0;
+		let bi = tri3 + 1;
+		let ci = tri3 + 2;
+
+		if ( index ) {
+
+			ai = index[ ai ];
+			bi = index[ bi ];
+			ci = index[ ci ];
+
+		}
+
+		for ( let el = 0; el < 3; el ++ ) {
+
+			const a = posAttr[ _getters[ el ] ]( ai );
+			const b = posAttr[ _getters[ el ] ]( bi );
+			const c = posAttr[ _getters[ el ] ]( ci );
+
+			let min = a;
+			if ( b < min ) min = b;
+			if ( c < min ) min = c;
+
+			let max = a;
+			if ( b > max ) max = b;
+			if ( c > max ) max = c;
+
+			// Write in min/max format [minx, miny, minz, maxx, maxy, maxz]
+			targetBuffer[ baseIndex + el ] = min;
+			targetBuffer[ baseIndex + el + 3 ] = max;
+
+		}
+
+		return targetBuffer;
+
+	}
+
 	// precomputes the bounding box for each triangle; required for quickly calculating tree splits.
 	// result is an array of size count * 6 where triangle i maps to a
 	// [x_center, x_delta, y_center, y_delta, z_center, z_delta] tuple starting at index (i - offset) * 6,
@@ -288,8 +336,8 @@ export class MeshBVH extends GeometryBVH {
 
 		}
 
-		_InverseMatrix.copy( object.matrixWorld ).invert();
-		_ray.copy( raycaster.ray ).applyMatrix4( _InverseMatrix );
+		_inverseMatrix.copy( object.matrixWorld ).invert();
+		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		_worldScale.setFromMatrixScale( object.matrixWorld );
 		_direction.copy( _ray.direction ).multiply( _worldScale );

@@ -1,11 +1,12 @@
 import { Box3 } from 'three';
-import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS } from './Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS, FLOAT32_EPSILON } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS, COUNT, OFFSET } from './utils/nodeBufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 
-const tempBox = /* @__PURE__ */ new Box3();
+const _tempBox = /* @__PURE__ */ new Box3();
+const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
 
 export class BVH {
 
@@ -30,14 +31,88 @@ export class BVH {
 
 	getRootRanges( /* range */ ) {
 
-		// TODO: can we avoid passing options in here
+		// TODO: can we avoid passing range in here?
 		throw new Error( 'BVH: getRootRanges() not implemented' );
 
 	}
 
-	computePrimitiveBounds( /* offset, count, targetBuffer */ ) {
+	// write the i-th primitive bounds in a 6-value min / max format to the buffer
+	// starting at the given "writeOffset"
+	writePrimitiveBounds( /* i, buffer, writeOffset */ ) {
 
-		throw new Error( 'BVH: computePrimitiveBounds() not implemented' );
+		throw new Error( 'BVH: writePrimitiveBounds() not implemented' );
+
+	}
+
+	// writes the union bounds of all primitives in the given range in a min / max format
+	// to the buffer
+	writePrimitiveRangeBounds( offset, count, targetBuffer, baseIndex ) {
+
+		// Initialize bounds
+		let minX = Infinity;
+		let minY = Infinity;
+		let minZ = Infinity;
+		let maxX = - Infinity;
+		let maxY = - Infinity;
+		let maxZ = - Infinity;
+
+		// compute union of all bounds
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			this.writePrimitiveBounds( i, _tempBuffer, 0 );
+
+			// compute union
+			const [ lx, ly, lz, rx, ry, rz ] = _tempBuffer;
+			if ( lx < minX ) minX = lx;
+			if ( rx > maxX ) maxX = rx;
+			if ( ly < minY ) minY = ly;
+			if ( ry > maxY ) maxY = ry;
+			if ( lz < minZ ) minZ = lz;
+			if ( rz > maxZ ) maxZ = rz;
+
+		}
+
+		// write bounds
+		targetBuffer[ baseIndex + 0 ] = minX;
+		targetBuffer[ baseIndex + 1 ] = minY;
+		targetBuffer[ baseIndex + 2 ] = minZ;
+		targetBuffer[ baseIndex + 3 ] = maxX;
+		targetBuffer[ baseIndex + 4 ] = maxY;
+		targetBuffer[ baseIndex + 5 ] = maxZ;
+
+		return targetBuffer;
+
+	}
+
+	computePrimitiveBounds( offset, count, targetBuffer ) {
+
+		const boundsOffset = targetBuffer.offset || 0;
+		for ( let i = offset, end = offset + count; i < end; i ++ ) {
+
+			this.writePrimitiveBounds( i, _tempBuffer, 0 );
+
+			// construction primitive bounds requires a center + half extents format
+			const [ lx, ly, lz, rx, ry, rz ] = _tempBuffer;
+
+			const cx = ( lx + rx ) / 2;
+			const cy = ( ly + ry ) / 2;
+			const cz = ( lz + rz ) / 2;
+
+			const hx = ( rx - lx ) / 2;
+			const hy = ( ry - ly ) / 2;
+			const hz = ( rz - lz ) / 2;
+
+			const baseIndex = ( i - boundsOffset ) * 6;
+			targetBuffer[ baseIndex + 0 ] = cx;
+			targetBuffer[ baseIndex + 1 ] = hx + ( Math.abs( cx ) + hx ) * FLOAT32_EPSILON;
+			targetBuffer[ baseIndex + 2 ] = cy;
+			targetBuffer[ baseIndex + 3 ] = hy + ( Math.abs( cy ) + hy ) * FLOAT32_EPSILON;
+			targetBuffer[ baseIndex + 4 ] = cz;
+			targetBuffer[ baseIndex + 5 ] = hz + ( Math.abs( cz ) + hz ) * FLOAT32_EPSILON;
+
+		}
+
+		return targetBuffer;
 
 	}
 
@@ -119,6 +194,67 @@ export class BVH {
 
 	}
 
+	refit( /* nodeIndices = null */ ) {
+
+		// TODO: add support for "nodeIndices"
+		// if ( nodeIndices && Array.isArray( nodeIndices ) ) {
+
+		// 	nodeIndices = new Set( nodeIndices );
+
+		// }
+
+		const roots = this._roots;
+		for ( let rootIndex = 0, rootCount = roots.length; rootIndex < rootCount; rootIndex ++ ) {
+
+			const buffer = roots[ rootIndex ];
+			const uint32Array = new Uint32Array( buffer );
+			const uint16Array = new Uint16Array( buffer );
+			const float32Array = new Float32Array( buffer );
+			const totalNodes = buffer.byteLength / BYTES_PER_NODE;
+
+			// Traverse nodes from right to left so children are updated before parents
+			for ( let nodeIndex = totalNodes - 1; nodeIndex >= 0; nodeIndex -- ) {
+
+				const nodeIndex32 = nodeIndex * UINT32_PER_NODE;
+				const nodeIndex16 = nodeIndex32 * 2;
+				const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
+
+				if ( isLeaf ) {
+
+					// get the bounds
+					const offset = OFFSET( nodeIndex32, uint32Array );
+					const count = COUNT( nodeIndex16, uint16Array );
+					this.writePrimitiveRangeBounds( offset, count, _tempBuffer, 0 );
+
+					// write directly to node bounds (already in min/max format)
+					float32Array.set( _tempBuffer, nodeIndex32 );
+
+				} else {
+
+					const left = LEFT_NODE( nodeIndex32 );
+					const right = RIGHT_NODE( nodeIndex32, uint32Array );
+
+					// Union the bounds of left and right children
+					for ( let i = 0; i < 3; i ++ ) {
+
+						const leftMin = float32Array[ left + i ];
+						const leftMax = float32Array[ left + i + 3 ];
+						const rightMin = float32Array[ right + i ];
+						const rightMax = float32Array[ right + i + 3 ];
+
+						float32Array[ nodeIndex32 + i ] = leftMin < rightMin ? leftMin : rightMin;
+						float32Array[ nodeIndex32 + i + 3 ] = leftMax > rightMax ? leftMax : rightMax;
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
 	getBoundingBox( target ) {
 
 		target.makeEmpty();
@@ -126,8 +262,8 @@ export class BVH {
 		const roots = this._roots;
 		roots.forEach( buffer => {
 
-			arrayToBox( 0, new Float32Array( buffer ), tempBox );
-			target.union( tempBox );
+			arrayToBox( 0, new Float32Array( buffer ), _tempBox );
+			target.union( _tempBox );
 
 		} );
 
