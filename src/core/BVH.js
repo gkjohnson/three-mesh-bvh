@@ -1,7 +1,7 @@
 import { Box3 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS, FLOAT32_EPSILON } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS, COUNT, OFFSET } from './utils/nodeBufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 
@@ -31,57 +31,54 @@ export class BVH {
 
 	getRootRanges( /* range */ ) {
 
-		// TODO: can we avoid passing options in here
+		// TODO: can we avoid passing range in here?
 		throw new Error( 'BVH: getRootRanges() not implemented' );
 
 	}
 
+	// write the i-th primitive bounds in a 6-value min / max format to the buffer
+	// starting at the given "writeOffset"
 	writePrimitiveBounds( /* i, buffer, writeOffset */ ) {
 
 		throw new Error( 'BVH: writePrimitiveBounds() not implemented' );
 
 	}
 
+	// writes the union bounds of all primitives in the given range in a min / max format
+	// to the buffer
 	writePrimitiveRangeBounds( offset, count, targetBuffer, baseIndex ) {
 
 		// Initialize bounds
-		let minx = Infinity;
-		let miny = Infinity;
-		let minz = Infinity;
-		let maxx = - Infinity;
-		let maxy = - Infinity;
-		let maxz = - Infinity;
+		let minX = Infinity;
+		let minY = Infinity;
+		let minZ = Infinity;
+		let maxX = - Infinity;
+		let maxY = - Infinity;
+		let maxZ = - Infinity;
 
-		// Compute union of all bounds (matching getBounds behavior in tree construction)
+		// compute union of all bounds
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			// Write primitive bounds to temp buffer (in min/max format)
 			this.writePrimitiveBounds( i, _tempBuffer, 0 );
 
-			// Read min/max format [minx, miny, minz, maxx, maxy, maxz] and compute union
-			const lx = _tempBuffer[ 0 ];
-			const ly = _tempBuffer[ 1 ];
-			const lz = _tempBuffer[ 2 ];
-			const rx = _tempBuffer[ 3 ];
-			const ry = _tempBuffer[ 4 ];
-			const rz = _tempBuffer[ 5 ];
-
-			if ( lx < minx ) minx = lx;
-			if ( rx > maxx ) maxx = rx;
-			if ( ly < miny ) miny = ly;
-			if ( ry > maxy ) maxy = ry;
-			if ( lz < minz ) minz = lz;
-			if ( rz > maxz ) maxz = rz;
+			// compute union
+			const [ lx, ly, lz, rx, ry, rz ] = _tempBuffer;
+			if ( lx < minX ) minX = lx;
+			if ( rx > maxX ) maxX = rx;
+			if ( ly < minY ) minY = ly;
+			if ( ry > maxY ) maxY = ry;
+			if ( lz < minZ ) minZ = lz;
+			if ( rz > maxZ ) maxZ = rz;
 
 		}
 
-		// Write bounds in min/max format (matching tree node format)
-		targetBuffer[ baseIndex + 0 ] = minx;
-		targetBuffer[ baseIndex + 1 ] = miny;
-		targetBuffer[ baseIndex + 2 ] = minz;
-		targetBuffer[ baseIndex + 3 ] = maxx;
-		targetBuffer[ baseIndex + 4 ] = maxy;
-		targetBuffer[ baseIndex + 5 ] = maxz;
+		// write bounds
+		targetBuffer[ baseIndex + 0 ] = minX;
+		targetBuffer[ baseIndex + 1 ] = minY;
+		targetBuffer[ baseIndex + 2 ] = minZ;
+		targetBuffer[ baseIndex + 3 ] = maxX;
+		targetBuffer[ baseIndex + 4 ] = maxY;
+		targetBuffer[ baseIndex + 5 ] = maxZ;
 
 		return targetBuffer;
 
@@ -92,27 +89,20 @@ export class BVH {
 		const boundsOffset = targetBuffer.offset || 0;
 		for ( let i = offset, end = offset + count; i < end; i ++ ) {
 
-			const baseIndex = ( i - boundsOffset ) * 6;
-			// writePrimitiveBounds outputs min/max format, but we need center/half-extent
-			// for the intermediate primitive bounds array used during tree construction
 			this.writePrimitiveBounds( i, _tempBuffer, 0 );
 
-			// Convert from min/max [minx, miny, minz, maxx, maxy, maxz] to center/half-extent
-			const minx = _tempBuffer[ 0 ];
-			const miny = _tempBuffer[ 1 ];
-			const minz = _tempBuffer[ 2 ];
-			const maxx = _tempBuffer[ 3 ];
-			const maxy = _tempBuffer[ 4 ];
-			const maxz = _tempBuffer[ 5 ];
+			// construction primitive bounds requires a center + half extents format
+			const [ lx, ly, lz, rx, ry, rz ] = _tempBuffer;
 
-			const cx = ( minx + maxx ) / 2;
-			const cy = ( miny + maxy ) / 2;
-			const cz = ( minz + maxz ) / 2;
+			const cx = ( lx + rx ) / 2;
+			const cy = ( ly + ry ) / 2;
+			const cz = ( lz + rz ) / 2;
 
-			const hx = ( maxx - minx ) / 2;
-			const hy = ( maxy - miny ) / 2;
-			const hz = ( maxz - minz ) / 2;
+			const hx = ( rx - lx ) / 2;
+			const hy = ( ry - ly ) / 2;
+			const hz = ( rz - lz ) / 2;
 
+			const baseIndex = ( i - boundsOffset ) * 6;
 			targetBuffer[ baseIndex + 0 ] = cx;
 			targetBuffer[ baseIndex + 1 ] = hx + ( Math.abs( cx ) + hx ) * FLOAT32_EPSILON;
 			targetBuffer[ baseIndex + 2 ] = cy;
@@ -204,14 +194,14 @@ export class BVH {
 
 	}
 
-	refit( nodeIndices = null ) {
+	refit( /* nodeIndices = null */ ) {
 
 		// TODO: add support for "nodeIndices"
-		if ( nodeIndices && Array.isArray( nodeIndices ) ) {
+		// if ( nodeIndices && Array.isArray( nodeIndices ) ) {
 
-			nodeIndices = new Set( nodeIndices );
+		// 	nodeIndices = new Set( nodeIndices );
 
-		}
+		// }
 
 		const roots = this._roots;
 		for ( let rootIndex = 0, rootCount = roots.length; rootIndex < rootCount; rootIndex ++ ) {
@@ -220,38 +210,27 @@ export class BVH {
 			const uint32Array = new Uint32Array( buffer );
 			const uint16Array = new Uint16Array( buffer );
 			const float32Array = new Float32Array( buffer );
-
 			const totalNodes = buffer.byteLength / BYTES_PER_NODE;
 
-			// Traverse nodes from right to left (end to beginning) so children are updated before parents
+			// Traverse nodes from right to left so children are updated before parents
 			for ( let nodeIndex = totalNodes - 1; nodeIndex >= 0; nodeIndex -- ) {
 
 				const nodeIndex32 = nodeIndex * UINT32_PER_NODE;
 				const nodeIndex16 = nodeIndex32 * 2;
-
 				const isLeaf = IS_LEAF( nodeIndex16, uint16Array );
 
 				if ( isLeaf ) {
 
-					// Leaf node: recompute bounds from primitives
-					const offset = uint32Array[ nodeIndex32 + 6 ];
-					const count = uint16Array[ nodeIndex16 + 14 ];
-
-					// Use writePrimitiveRangeBounds to compute union of primitive bounds
-					// This returns min/max format in _tempBuffer
+					// get the bounds
+					const offset = OFFSET( nodeIndex32, uint32Array );
+					const count = COUNT( nodeIndex16, uint16Array );
 					this.writePrimitiveRangeBounds( offset, count, _tempBuffer, 0 );
 
-					// Write directly to node bounds (already in min/max format)
-					float32Array[ nodeIndex32 + 0 ] = _tempBuffer[ 0 ]; // minx
-					float32Array[ nodeIndex32 + 1 ] = _tempBuffer[ 1 ]; // miny
-					float32Array[ nodeIndex32 + 2 ] = _tempBuffer[ 2 ]; // minz
-					float32Array[ nodeIndex32 + 3 ] = _tempBuffer[ 3 ]; // maxx
-					float32Array[ nodeIndex32 + 4 ] = _tempBuffer[ 4 ]; // maxy
-					float32Array[ nodeIndex32 + 5 ] = _tempBuffer[ 5 ]; // maxz
+					// write directly to node bounds (already in min/max format)
+					float32Array.set( _tempBuffer, nodeIndex32 );
 
 				} else {
 
-					// Internal node: union child bounds
 					const left = LEFT_NODE( nodeIndex32 );
 					const right = RIGHT_NODE( nodeIndex32, uint32Array );
 

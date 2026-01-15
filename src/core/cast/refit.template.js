@@ -1,5 +1,5 @@
 import { BYTES_PER_NODE, UINT32_PER_NODE } from '../Constants.js';
-import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
+import { COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE } from '../utils/nodeBufferUtils.js';
 
 export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 
@@ -33,8 +33,8 @@ export function refit/* @echo INDIRECT_STRING */( bvh, nodeIndices = null ) {
 		const nodeIndex16 = nodeIndex32 * 2;
 		if ( IS_LEAF( nodeIndex16, uint16Array ) ) {
 
-			const offset = uint32Array[ nodeIndex32 + 6 ];
-			const count = uint16Array[ nodeIndex16 + 14 ];
+			const offset = OFFSET( nodeIndex32, uint32Array );
+			const count = COUNT( nodeIndex16, uint16Array );
 
 			let minx = Infinity;
 			let miny = Infinity;
