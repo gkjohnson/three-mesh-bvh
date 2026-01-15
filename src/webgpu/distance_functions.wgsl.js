@@ -151,18 +151,18 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 
 		// stack needs to be twice as long as the deepest tree we expect because
 		// we push both the left and right child onto the stack every traversal
-		var ptr = 0;
+		var pointer = 0;
 		var stack: array<u32, BVH_STACK_DEPTH>;
 		stack[ 0 ] = 0u;
 
 		var res: ClosestPointToPointResult;
 		res.distanceSq = maxDistance * maxDistance;
 
-		while ptr > - 1 && ptr < BVH_STACK_DEPTH {
+		while pointer > - 1 && pointer < BVH_STACK_DEPTH {
 
-			let currNodeIndex = stack[ ptr ];
+			let currNodeIndex = stack[ pointer ];
 			let node = bvh[ currNodeIndex ];
-			ptr = ptr - 1;
+			pointer = pointer - 1;
 
 			// check if we intersect the current bounds
 			let boundsDistance = distanceSqToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
@@ -197,11 +197,11 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 				let c1 = select( rightIndex, leftIndex, leftToRight );
 				let c2 = select( leftIndex, rightIndex, leftToRight );
 
-				ptr = ptr + 1;
-				stack[ ptr ] = c2;
+				pointer = pointer + 1;
+				stack[ pointer ] = c2;
 
-				ptr = ptr + 1;
-				stack[ ptr ] = c1;
+				pointer = pointer + 1;
+				stack[ pointer ] = c1;
 
 			}
 

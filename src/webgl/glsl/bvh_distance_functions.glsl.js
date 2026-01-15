@@ -136,16 +136,16 @@ float _bvhClosestPointToPoint(
 
 	// stack needs to be twice as long as the deepest tree we expect because
 	// we push both the left and right child onto the stack every traversal
-	int ptr = 0;
+	int pointer = 0;
 	uint stack[ BVH_STACK_DEPTH ];
 	stack[ 0 ] = 0u;
 
 	float closestDistanceSquared = maxDistance * maxDistance;
 	bool found = false;
-	while ( ptr > - 1 && ptr < BVH_STACK_DEPTH ) {
+	while ( pointer > - 1 && pointer < BVH_STACK_DEPTH ) {
 
-		uint currNodeIndex = stack[ ptr ];
-		ptr --;
+		uint currNodeIndex = stack[ pointer ];
+		pointer --;
 
 		// check if we intersect the current bounds
 		float boundsHitDistance = distanceSqToBVHNodeBoundsPoint( point, bvh_bvhBounds, currNodeIndex );
@@ -180,10 +180,10 @@ float _bvhClosestPointToPoint(
 			// set c2 in the stack so we traverse it later. We need to keep track of a pointer in
 			// the stack while we traverse. The second pointer added is the one that will be
 			// traversed first
-			ptr ++;
-			stack[ ptr ] = c2;
-			ptr ++;
-			stack[ ptr ] = c1;
+			pointer ++;
+			stack[ pointer ] = c2;
+			pointer ++;
+			stack[ pointer ] = c1;
 
 		}
 

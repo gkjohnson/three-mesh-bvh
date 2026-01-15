@@ -97,7 +97,7 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 		ray: Ray,
 	) -> IntersectionResult {
 
-		var ptr = 0;
+		var pointer = 0;
 		var stack: array<u32, BVH_STACK_DEPTH>;
 		stack[ 0 ] = 0u;
 
@@ -108,16 +108,16 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 
 		loop {
 
-			if ( ptr < 0 || ptr >= i32( BVH_STACK_DEPTH ) ) {
+			if ( pointer < 0 || pointer >= i32( BVH_STACK_DEPTH ) ) {
 
 				break;
 
 			}
 
-			let currNodeIndex = stack[ ptr ];
+			let currNodeIndex = stack[ pointer ];
 			let node = bvh[ currNodeIndex ];
 
-			ptr = ptr - 1;
+			pointer = pointer - 1;
 
 			var boundsHitDistance: f32 = 0.0;
 
@@ -158,11 +158,11 @@ export const bvhIntersectFirstHit = wgslFn( /* wgsl */ `
 				let c1 = select( rightIndex, leftIndex, leftToRight );
 				let c2 = select( leftIndex, rightIndex, leftToRight );
 
-				ptr = ptr + 1;
-				stack[ ptr ] = c2;
+				pointer = pointer + 1;
+				stack[ pointer ] = c2;
 
-				ptr = ptr + 1;
-				stack[ ptr ] = c1;
+				pointer = pointer + 1;
+				stack[ pointer ] = c1;
 
 			}
 
