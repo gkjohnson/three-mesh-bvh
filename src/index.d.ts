@@ -75,6 +75,8 @@ export class BVH {
 
 	shiftPrimitiveOffsets( offset: number ): void;
 
+	refit( nodeIndices?: Array<number> | Set<number> ): void;
+
 	traverse(
 		callback: (
 			depth: number,
@@ -188,8 +190,6 @@ export class MeshBVH extends GeometryBVH {
 
 		} )
 	): boolean;
-
-	refit( nodeIndices?: Array<number> | Set<number> ): void;
 
 }
 
