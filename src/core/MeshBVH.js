@@ -175,6 +175,7 @@ export class MeshBVH extends GeometryBVH {
 
 	}
 
+	// write primitive bounds to the buffer - used only for validateBounds at the moment
 	writePrimitiveBounds( i, targetBuffer, baseIndex ) {
 
 		const geometry = this.geometry;

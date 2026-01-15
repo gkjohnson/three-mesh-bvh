@@ -175,7 +175,6 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 					}
 
-
 					// get the vertex indices
 					const { geometry } = this;
 					const { index } = geometry;
@@ -284,7 +283,7 @@ function iterateOverTriangles(
 ) {
 
 	const { mesh, geometry } = bvh;
-	const { index } = geometry;
+	const index = geometry.index ? geometry.index.array : null;
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
@@ -296,9 +295,9 @@ function iterateOverTriangles(
 
 		if ( index ) {
 
-			i0 = index.array[ i0 ];
-			i1 = index.array[ i1 ];
-			i2 = index.array[ i2 ];
+			i0 = index[ i0 ];
+			i1 = index[ i1 ];
+			i2 = index[ i2 ];
 
 		}
 
