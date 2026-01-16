@@ -6,9 +6,6 @@ const boundingBox = /* @__PURE__ */ new Box3();
 const matrix = /* @__PURE__ */ new Matrix4();
 const vec = /* @__PURE__ */ new Vector3();
 
-
-
-
 class BVHRootHelper extends Object3D {
 
 	get isMesh() {
@@ -55,124 +52,135 @@ class BVHRootHelper extends Object3D {
 
 	update() {
 
-		const group = this._group;
-		const geometry = this.geometry;
 		const boundsTree = this.bvh;
-		geometry.dispose();
+		this.geometry.dispose();
 		this.visible = false;
 		if ( boundsTree ) {
 
-			// fill in the position buffer with the bounds corners
-			let positionArray = null;
-			if ( group !== - 1 ) {
-
-				positionArray = this.getBVHBoundPositions( boundsTree, group );
-
-			} else {
-
-				const positionArrays = boundsTree._roots.map( ( r, i ) => this.getBVHBoundPositions( boundsTree, i ) );
-				const total = positionArrays.reduce( ( v, arr ) => v + arr.length, 0 );
-				positionArray = new Float32Array( total );
-
-				let offset = 0;
-				positionArrays.forEach( arr => {
-
-					positionArray.set( arr, offset );
-					offset += arr.length;
-
-				} );
-
-			}
-
-			const boundsCount = positionArray.length / ( 8 * 3 );
-			let indexArray;
-			let indices;
-			if ( this.displayEdges ) {
-
-				// fill in the index buffer to point to the corner points
-				indices = new Uint8Array( [
-					// x axis
-					0, 4,
-					1, 5,
-					2, 6,
-					3, 7,
-
-					// y axis
-					0, 2,
-					1, 3,
-					4, 6,
-					5, 7,
-
-					// z axis
-					0, 1,
-					2, 3,
-					4, 5,
-					6, 7,
-				] );
-
-			} else {
-
-				indices = new Uint8Array( [
-
-					// X-, X+
-					0, 1, 2,
-					2, 1, 3,
-
-					4, 6, 5,
-					6, 7, 5,
-
-					// Y-, Y+
-					1, 4, 5,
-					0, 4, 1,
-
-					2, 3, 6,
-					3, 7, 6,
-
-					// Z-, Z+
-					0, 2, 4,
-					2, 6, 4,
-
-					1, 5, 3,
-					3, 5, 7,
-
-				] );
-
-			}
-
-			if ( positionArray.length > 65535 ) {
-
-				indexArray = new Uint32Array( indices.length * boundsCount );
-
-			} else {
-
-				indexArray = new Uint16Array( indices.length * boundsCount );
-
-			}
-
-			const indexLength = indices.length;
-			for ( let i = 0; i < boundsCount; i ++ ) {
-
-				const posOffset = i * 8;
-				const indexOffset = i * indexLength;
-				for ( let j = 0; j < indexLength; j ++ ) {
-
-					indexArray[ indexOffset + j ] = posOffset + indices[ j ];
-
-				}
-
-			}
-
-			// update the geometry
-			geometry.setIndex(
-				new BufferAttribute( indexArray, 1, false ),
-			);
-			geometry.setAttribute(
-				'position',
-				new BufferAttribute( positionArray, 3, false ),
-			);
+			this.geometry = this.getGeometry( boundsTree );
 			this.visible = true;
 
 		}
+
+	}
+
+	getGeometry( boundsTree ) {
+
+		const group = this._group;
+
+		// fill in the position buffer with the bounds corners
+		let positionArray = null;
+		if ( group !== - 1 ) {
+
+			positionArray = this.getBVHBoundPositions( boundsTree, group );
+
+		} else {
+
+			const positionArrays = boundsTree._roots.map( ( r, i ) => this.getBVHBoundPositions( boundsTree, i ) );
+			const total = positionArrays.reduce( ( v, arr ) => v + arr.length, 0 );
+			positionArray = new Float32Array( total );
+
+			let offset = 0;
+			positionArrays.forEach( arr => {
+
+				positionArray.set( arr, offset );
+				offset += arr.length;
+
+			} );
+
+		}
+
+		const indexArray = this.getBVHBoundIndices( positionArray );
+
+		// update the geometry
+		const geometry = new BufferGeometry();
+		geometry.setIndex( new BufferAttribute( indexArray, 1, false ) );
+		geometry.setAttribute( 'position', new BufferAttribute( positionArray, 3, false ) );
+		return geometry;
+
+	}
+
+	getBVHBoundIndices( positionArray ) {
+
+		const boundsCount = positionArray.length / ( 8 * 3 );
+		let indexArray;
+		let indices;
+		if ( this.displayEdges ) {
+
+			// fill in the index buffer to point to the corner points
+			indices = new Uint8Array( [
+				// x axis
+				0, 4,
+				1, 5,
+				2, 6,
+				3, 7,
+
+				// y axis
+				0, 2,
+				1, 3,
+				4, 6,
+				5, 7,
+
+				// z axis
+				0, 1,
+				2, 3,
+				4, 5,
+				6, 7,
+			] );
+
+		} else {
+
+			indices = new Uint8Array( [
+
+				// X-, X+
+				0, 1, 2,
+				2, 1, 3,
+
+				4, 6, 5,
+				6, 7, 5,
+
+				// Y-, Y+
+				1, 4, 5,
+				0, 4, 1,
+
+				2, 3, 6,
+				3, 7, 6,
+
+				// Z-, Z+
+				0, 2, 4,
+				2, 6, 4,
+
+				1, 5, 3,
+				3, 5, 7,
+
+			] );
+
+		}
+
+		if ( positionArray.length > 65535 ) {
+
+			indexArray = new Uint32Array( indices.length * boundsCount );
+
+		} else {
+
+			indexArray = new Uint16Array( indices.length * boundsCount );
+
+		}
+
+		const indexLength = indices.length;
+		for ( let i = 0; i < boundsCount; i ++ ) {
+
+			const posOffset = i * 8;
+			const indexOffset = i * indexLength;
+			for ( let j = 0; j < indexLength; j ++ ) {
+
+				indexArray[ indexOffset + j ] = posOffset + indices[ j ];
+
+			}
+
+		}
+
+		return indexArray;
 
 	}
 
@@ -322,8 +330,9 @@ class BVHHelper extends Group {
 	update() {
 
 		const mesh = this.mesh;
+		const objectIndex = this.objectIndex;
 		let bvh = this.bvh || mesh.geometry.boundsTree || null;
-		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh ) {
+		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh && objectIndex >= 0 ) {
 
 			// get the bvh from a batchedMesh if not provided
 			// TODO: we should have an official way to get the geometry index cleanly
@@ -373,6 +382,7 @@ class BVHHelper extends Group {
 
 		const mesh = this.mesh;
 		const parent = this.parent;
+		const objectIndex = this.objectIndex;
 
 		if ( mesh !== null ) {
 
@@ -393,7 +403,7 @@ class BVHHelper extends Group {
 			}
 
 			// handle batched and instanced mesh bvhs
-			if ( mesh.isInstancedMesh || mesh.isBatchedMesh ) {
+			if ( ( mesh.isInstancedMesh || mesh.isBatchedMesh ) && objectIndex >= 0 ) {
 
 				mesh.getMatrixAt( this.objectIndex, matrix );
 				this.matrix.multiply( matrix );
