@@ -71,6 +71,19 @@ export interface ShapecastCallbacks {
 	) => boolean;
 }
 
+export interface BVHCastCallbacks {
+	intersectsRanges: (
+		offset1: number,
+		count1: number,
+		offset2: number,
+		count2: number,
+		depth1: number,
+		index1: number,
+		depth2: number,
+		index2: number
+	) => boolean
+}
+
 export class BVH {
 
 	shiftPrimitiveOffsets( offset: number ): void;
@@ -91,6 +104,8 @@ export class BVH {
 	getBoundingBox( target: Box3 ): Box3;
 
 	shapecast( callbacks: ShapecastCallbacks ): boolean;
+
+	bvhcast( otherBVH: MeshBVH, matrixToLocal: Matrix4, callbacks: BVHCastCallbacks ): boolean;
 
 }
 
@@ -162,21 +177,7 @@ export class MeshBVH extends GeometryBVH {
 	bvhcast(
 		otherBVH: MeshBVH,
 		matrixToLocal: Matrix4,
-		callbacks: ( {
-
-			intersectsRanges: (
-				offset1: number,
-				count1: number,
-				offset2: number,
-				count2: number,
-				depth1: number,
-				index1: number,
-				depth2: number,
-				index2: number
-			) => boolean
-
-		} | {
-
+		callbacks: ( BVHCastCallbacks | {
 			intersectsTriangles: (
 				triangle1: ExtendedTriangle,
 				triangle2: ExtendedTriangle,
@@ -187,7 +188,6 @@ export class MeshBVH extends GeometryBVH {
 				depth2: number,
 				index2: number,
 			) => boolean,
-
 		} )
 	): boolean;
 

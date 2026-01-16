@@ -4,6 +4,7 @@ import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS, COUNT, OFFSET } from './utils/nodeBufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
+import { bvhcast } from './cast/bvhcast.js';
 
 const _tempBox = /* @__PURE__ */ new Box3();
 const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
@@ -343,6 +344,14 @@ export class BVH {
 		}
 
 		return result;
+
+	}
+
+	bvhcast( otherBvh, matrixToLocal, callbacks ) {
+
+		let { intersectsRanges } = callbacks;
+		return bvhcast( this, otherBvh, matrixToLocal, intersectsRanges );
+
 
 	}
 
