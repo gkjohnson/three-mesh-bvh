@@ -452,8 +452,7 @@ export class MeshBVH extends GeometryBVH {
 
 				// TODO: is the performance significant enough for the added complexity here?
 				// can we just use one function?
-				iterateDirect: iterateOverTriangles,
-				iterateIndirect: iterateOverTriangles_indirect,
+				iterate: this.indirect ? iterateOverTriangles_indirect : iterateOverTriangles,
 			}
 		);
 		ExtendedTrianglePool.releasePrimitive( triangle );

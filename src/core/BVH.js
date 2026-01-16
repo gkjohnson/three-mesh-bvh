@@ -277,6 +277,7 @@ export class BVH {
 	// API aligns with the "shapecast" implementation
 	shapecast( callbacks ) {
 
+		// TODO: can we get rid of "scratchPrimitive" and / or "iterate"? Or merge them somehow
 		let {
 			boundsTraverseOrder,
 			intersectsBounds,

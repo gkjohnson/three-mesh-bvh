@@ -55,8 +55,7 @@ export class PointsBVH extends GeometryBVH {
 				...callbacks,
 				intersectsPrimitive: callbacks.intersectsPoint,
 				scratchPrimitive: point,
-				iterateDirect: iterateOverPoints,
-				iterateIndirect: iterateOverPoints,
+				iterate: iterateOverPoints,
 			},
 		);
 

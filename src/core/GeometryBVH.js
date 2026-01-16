@@ -155,20 +155,4 @@ export class GeometryBVH extends BVH {
 
 	}
 
-	shapecast( callbacks ) {
-
-		let {
-			iterateDirect,
-			iterateIndirect,
-			...rest
-		} = callbacks;
-
-		const selectedIterateFunc = this.indirect ? iterateIndirect : iterateDirect;
-		return super.shapecast( {
-			...rest,
-			iterate: selectedIterateFunc,
-		} );
-
-	}
-
 }

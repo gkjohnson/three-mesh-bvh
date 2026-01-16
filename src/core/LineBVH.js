@@ -64,8 +64,7 @@ export class LineSegmentsBVH extends GeometryBVH {
 			...callbacks,
 			intersectsPrimitive: callbacks.intersectsLine,
 			scratchPrimitive: line,
-			iterateDirect: iterateOverLines,
-			iterateIndirect: iterateOverLines,
+			iterate: iterateOverLines,
 		} );
 		_linePool.releasePrimitive( line );
 
