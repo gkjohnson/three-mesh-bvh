@@ -238,6 +238,7 @@ export class BVHHelper extends Group {
 
 	opacity: number;
 	depth: number;
+	instanceId: number;
 	displayParents: boolean;
 	displayEdges: boolean;
 	edgeMaterial: LineBasicMaterial;
