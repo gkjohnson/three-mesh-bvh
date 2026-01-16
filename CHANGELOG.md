@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.7] - Unreleased
+### Added
+- BVH: Added support for "bvhcast" callback
+
+### Fixed
+- BVHHelper: Rename "objectIndex" to "instanceId"
+- BVHHelper: Enable "instanceId" to be set to - 1 to ignore the instance transform.
+
 ## [0.9.6] - 2026-01-15
 ### Fixed
 - BVHHelper: Fix "clone" function not cloning all fields.
