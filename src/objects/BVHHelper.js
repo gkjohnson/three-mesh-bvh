@@ -274,6 +274,20 @@ class BVHHelper extends Group {
 
 	}
 
+	get objectIndex() {
+
+		console.warn( 'BVHHelper: "objectIndex" has been renamed "instanceId".' );
+		return this.instanceId;
+
+	}
+
+	set objectIndex( v ) {
+
+		console.warn( 'BVHHelper: "objectIndex" has been renamed "instanceId".' );
+		this.instanceId = v;
+
+	}
+
 	constructor( mesh = null, bvh = null, depth = 10 ) {
 
 		// handle bvh, depth signature
@@ -301,7 +315,7 @@ class BVHHelper extends Group {
 		this.bvh = bvh;
 		this.displayParents = false;
 		this.displayEdges = true;
-		this.objectIndex = 0;
+		this.instanceId = 0;
 		this._roots = [];
 
 		const edgeMaterial = new LineBasicMaterial( {
@@ -330,13 +344,13 @@ class BVHHelper extends Group {
 	update() {
 
 		const mesh = this.mesh;
-		const objectIndex = this.objectIndex;
+		const instanceId = this.instanceId;
 		let bvh = this.bvh || mesh.geometry.boundsTree || null;
-		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh && objectIndex >= 0 ) {
+		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh && instanceId >= 0 ) {
 
 			// get the bvh from a batchedMesh if not provided
 			// TODO: we should have an official way to get the geometry index cleanly
-			const drawInfo = mesh._drawInfo[ this.objectIndex ];
+			const drawInfo = mesh._drawInfo[ instanceId ];
 			if ( drawInfo ) {
 
 				bvh = mesh.boundsTrees[ drawInfo.geometryIndex ] || bvh;
@@ -382,7 +396,7 @@ class BVHHelper extends Group {
 
 		const mesh = this.mesh;
 		const parent = this.parent;
-		const objectIndex = this.objectIndex;
+		const instanceId = this.instanceId;
 
 		if ( mesh !== null ) {
 
@@ -403,9 +417,9 @@ class BVHHelper extends Group {
 			}
 
 			// handle batched and instanced mesh bvhs
-			if ( ( mesh.isInstancedMesh || mesh.isBatchedMesh ) && objectIndex >= 0 ) {
+			if ( ( mesh.isInstancedMesh || mesh.isBatchedMesh ) && instanceId >= 0 ) {
 
-				mesh.getMatrixAt( this.objectIndex, matrix );
+				mesh.getMatrixAt( instanceId, matrix );
 				this.matrix.multiply( matrix );
 
 			}
