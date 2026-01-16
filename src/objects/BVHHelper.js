@@ -1,9 +1,13 @@
-import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh, Matrix4 } from 'three';
+import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh, Matrix4, Vector3 } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
 const matrix = /* @__PURE__ */ new Matrix4();
+const vec = /* @__PURE__ */ new Vector3();
+
+
+
 
 class BVHRootHelper extends Object3D {
 
@@ -51,70 +55,36 @@ class BVHRootHelper extends Object3D {
 
 	update() {
 
+		const group = this._group;
 		const geometry = this.geometry;
 		const boundsTree = this.bvh;
-		const group = this._group;
 		geometry.dispose();
 		this.visible = false;
 		if ( boundsTree ) {
 
-			// count the number of bounds required
-			const targetDepth = this.depth - 1;
-			const displayParents = this.displayParents;
-			let boundsCount = 0;
-			boundsTree.traverse( ( depth, isLeaf ) => {
-
-				if ( depth >= targetDepth || isLeaf ) {
-
-					boundsCount ++;
-					return true;
-
-				} else if ( displayParents ) {
-
-					boundsCount ++;
-
-				}
-
-			}, group );
-
 			// fill in the position buffer with the bounds corners
-			let posIndex = 0;
-			const positionArray = new Float32Array( 8 * 3 * boundsCount );
-			boundsTree.traverse( ( depth, isLeaf, boundingData ) => {
+			let positionArray = null;
+			if ( group !== - 1 ) {
 
-				const terminate = depth >= targetDepth || isLeaf;
-				if ( terminate || displayParents ) {
+				positionArray = this.getBVHBoundPositions( boundsTree, group );
 
-					arrayToBox( 0, boundingData, boundingBox );
+			} else {
 
-					const { min, max } = boundingBox;
-					for ( let x = - 1; x <= 1; x += 2 ) {
+				const positionArrays = boundsTree._roots.map( ( r, i ) => this.getBVHBoundPositions( boundsTree, i ) );
+				const total = positionArrays.reduce( ( v, arr ) => v + arr.length, 0 );
+				positionArray = new Float32Array( total );
 
-						const xVal = x < 0 ? min.x : max.x;
-						for ( let y = - 1; y <= 1; y += 2 ) {
+				let offset = 0;
+				positionArrays.forEach( arr => {
 
-							const yVal = y < 0 ? min.y : max.y;
-							for ( let z = - 1; z <= 1; z += 2 ) {
+					positionArray.set( arr, offset );
+					offset += arr.length;
 
-								const zVal = z < 0 ? min.z : max.z;
-								positionArray[ posIndex + 0 ] = xVal;
-								positionArray[ posIndex + 1 ] = yVal;
-								positionArray[ posIndex + 2 ] = zVal;
+				} );
 
-								posIndex += 3;
+			}
 
-							}
-
-						}
-
-					}
-
-					return terminate;
-
-				}
-
-			}, group );
-
+			const boundsCount = positionArray.length / ( 8 * 3 );
 			let indexArray;
 			let indices;
 			if ( this.displayEdges ) {
@@ -203,6 +173,73 @@ class BVHRootHelper extends Object3D {
 			this.visible = true;
 
 		}
+
+	}
+
+	getBVHBoundPositions( bvh, group = 0, matrix = null ) {
+
+		// count the number of bounds required
+		const targetDepth = this.depth - 1;
+		const displayParents = this.displayParents;
+		let boundsCount = 0;
+		bvh.traverse( ( depth, isLeaf ) => {
+
+			if ( depth >= targetDepth || isLeaf ) {
+
+				boundsCount ++;
+				return true;
+
+			} else if ( displayParents ) {
+
+				boundsCount ++;
+
+			}
+
+		}, group );
+
+		// fill in the position buffer with the bounds corners
+		let posIndex = 0;
+		const positionArray = new Float32Array( 8 * 3 * boundsCount );
+		bvh.traverse( ( depth, isLeaf, boundingData ) => {
+
+			const terminate = depth >= targetDepth || isLeaf;
+			if ( terminate || displayParents ) {
+
+				arrayToBox( 0, boundingData, boundingBox );
+
+				const { min, max } = boundingBox;
+				for ( let x = - 1; x <= 1; x += 2 ) {
+
+					const xVal = x < 0 ? min.x : max.x;
+					for ( let y = - 1; y <= 1; y += 2 ) {
+
+						const yVal = y < 0 ? min.y : max.y;
+						for ( let z = - 1; z <= 1; z += 2 ) {
+
+							const zVal = z < 0 ? min.z : max.z;
+							vec.set( xVal, yVal, zVal );
+							if ( matrix ) {
+
+								vec.applyMatrix4( matrix );
+
+							}
+
+							vec.toArray( positionArray, posIndex );
+							posIndex += 3;
+
+						}
+
+					}
+
+				}
+
+				return terminate;
+
+			}
+
+		}, group );
+
+		return positionArray;
 
 	}
 
