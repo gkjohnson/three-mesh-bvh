@@ -19,7 +19,6 @@ import { raycastFirst_indirect } from './cast/raycastFirst_indirect.generated.js
 import { intersectsGeometry_indirect } from './cast/intersectsGeometry_indirect.generated.js';
 import { closestPointToGeometry_indirect } from './cast/closestPointToGeometry_indirect.generated.js';
 import { setTriangle } from '../utils/TriangleUtilities.js';
-import { bvhcast } from './cast/bvhcast.js';
 import { convertRaycastIntersect } from '../utils/GeometryRayIntersectUtilities.js';
 import { GeometryBVH } from './GeometryBVH.js';
 
@@ -505,6 +504,12 @@ export class MeshBVH extends GeometryBVH {
 		// generate triangle callback if needed
 		if ( intersectsTriangles ) {
 
+			if ( ! ( otherBvh instanceof MeshBVH ) ) {
+
+				throw new Error( 'MeshBVH: "intersectsTriangles" callback can only be used with another MeshBVH.' );
+
+			}
+
 			const iterateOverDoubleTriangles = ( offset1, count1, offset2, count2, depth1, nodeIndex1, depth2, nodeIndex2 ) => {
 
 				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
@@ -559,7 +564,7 @@ export class MeshBVH extends GeometryBVH {
 
 		}
 
-		return bvhcast( this, otherBvh, matrixToLocal, intersectsRanges );
+		return super.bvhcast( otherBvh, matrixToLocal, { intersectsRanges } );
 
 	}
 
