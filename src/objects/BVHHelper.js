@@ -253,7 +253,7 @@ class BVHRootHelper extends Object3D {
 
 }
 
-class BVHHelper extends Group {
+export class BVHHelper extends Group {
 
 	get color() {
 
@@ -468,7 +468,13 @@ class BVHHelper extends Group {
 
 }
 
-export {
-	BVHHelper,
-	BVHHelper as MeshBVHHelper,
-};
+export class MeshBVHHelper extends BVHHelper {
+
+	constructor( ...args ) {
+
+		console.warn( 'MeshBVHHelper: Class has been deprecated. Use BVHHelper instead.' );
+		super( ...args );
+
+	}
+
+}

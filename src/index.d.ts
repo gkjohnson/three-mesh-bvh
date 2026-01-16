@@ -253,6 +253,7 @@ export class BVHHelper extends Group {
 
 }
 
+/** @deprecated Use BVHHelper instead */
 export class MeshBVHHelper extends BVHHelper {}
 
 // THREE.js Extensions
