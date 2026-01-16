@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHHelper: Rename "objectIndex" to "instanceId"
 - BVHHelper: Enable "instanceId" to be set to - 1 to ignore the instance transform.
 
+### Changed
+- MeshBVH: deprecated "maxLeafTris" option in favor of "maxLeafSize".
+- MeshBVHHelper: deprecated class in favor of "BVHHelper".
+- BVH: Changed internal shapecast callbacks
+
 ## [0.9.6] - 2026-01-15
 ### Fixed
 - BVHHelper: Fix "clone" function not cloning all fields.
