@@ -5,7 +5,7 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {
-	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper,
+	acceleratedRaycast, computeBoundsTree, disposeBoundsTree, BVHHelper,
 	SAH, CENTER, AVERAGE, getBVHExtremes, estimateMemoryInBytes,
 } from 'three-mesh-bvh';
 
@@ -228,7 +228,7 @@ function init() {
 			mesh.position.set( 0, 0, 0 );
 			scene.add( mesh );
 
-			helper = new MeshBVHHelper( mesh, 40 );
+			helper = new BVHHelper( mesh, 40 );
 			helper.displayEdges = false;
 			helper.displayParents = true;
 			helper.color.set( 0xffffff );

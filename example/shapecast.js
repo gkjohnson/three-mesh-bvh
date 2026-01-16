@@ -3,7 +3,7 @@ import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, MeshBVHHelper } from 'three-mesh-bvh';
+import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, BVHHelper } from 'three-mesh-bvh';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -212,7 +212,7 @@ function updateFromOptions() {
 
 	if ( ! boundsViz && params.visualizeBounds ) {
 
-		boundsViz = new MeshBVHHelper( targetMesh );
+		boundsViz = new BVHHelper( targetMesh );
 		scene.add( boundsViz );
 
 	}

@@ -102,8 +102,7 @@ export class SkinnedMeshBVH extends GeometryBVH {
 				...callbacks,
 				intersectsPrimitive: callbacks.intersectsTriangle,
 				scratchPrimitive: triangle,
-				iterateDirect: iterateOverTriangles,
-				iterateIndirect: iterateOverTriangles,
+				iterate: iterateOverTriangles,
 			},
 		);
 

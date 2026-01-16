@@ -156,6 +156,7 @@ export class MeshBVH extends GeometryBVH {
 
 		if ( options.maxLeafTris ) {
 
+			console.warn( 'MeshBVH: "maxLeafTris" option has been deprecated. Use maxLeafSize, instead.' );
 			options = {
 				...options,
 				maxLeafSize: options.maxLeafTris,
@@ -451,8 +452,7 @@ export class MeshBVH extends GeometryBVH {
 
 				// TODO: is the performance significant enough for the added complexity here?
 				// can we just use one function?
-				iterateDirect: iterateOverTriangles,
-				iterateIndirect: iterateOverTriangles_indirect,
+				iterate: this.indirect ? iterateOverTriangles_indirect : iterateOverTriangles,
 			}
 		);
 		ExtendedTrianglePool.releasePrimitive( triangle );

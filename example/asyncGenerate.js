@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { ParallelMeshBVHWorker } from 'three-mesh-bvh/worker';
-import { AVERAGE, CENTER, MeshBVH, MeshBVHHelper, SAH } from 'three-mesh-bvh';
+import { AVERAGE, CENTER, MeshBVH, BVHHelper, SAH } from 'three-mesh-bvh';
 
 // Parallel BVH generation is only supported with SharedArrayBuffer
 const sharedArrayBufferSupported = typeof SharedArrayBuffer !== 'undefined';
@@ -245,7 +245,7 @@ function regenerateKnot() {
 			const deltaTime = window.performance.now() - startTime;
 			generating = false;
 
-			helper = new MeshBVHHelper( knot, 0 );
+			helper = new BVHHelper( knot, 0 );
 			helper.depth = params.helperDepth;
 
 			if ( params.displayHelper ) {
@@ -276,7 +276,7 @@ function regenerateKnot() {
 		const deltaTime = window.performance.now() - startTime;
 		generating = false;
 
-		helper = new MeshBVHHelper( knot );
+		helper = new BVHHelper( knot );
 		helper.depth = params.helperDepth;
 		helper.update();
 		group.add( helper );

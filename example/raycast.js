@@ -3,7 +3,7 @@ import * as dat from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import * as THREE from 'three';
 import {
 	acceleratedRaycast, computeBoundsTree, disposeBoundsTree,
-	CENTER, SAH, AVERAGE, MeshBVHHelper,
+	CENTER, SAH, AVERAGE, BVHHelper,
 } from 'three-mesh-bvh';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -298,7 +298,7 @@ function updateFromOptions() {
 
 	if ( ! boundsViz && shouldDisplayBounds ) {
 
-		boundsViz = new MeshBVHHelper( knots[ 0 ] );
+		boundsViz = new BVHHelper( knots[ 0 ] );
 		containerObj.add( boundsViz );
 
 	}
