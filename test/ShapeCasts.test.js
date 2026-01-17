@@ -307,8 +307,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			it( 'should compare triangles that intersect', () => {
 
-				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
-				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
+				const bvhA = new MeshBVH( cubeA, { maxLeafSize: 1 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafSize: 1 } );
 
 				matrix.makeRotationX( Math.PI * 0.01 );
 				let nbTriangleTests = 0;
@@ -327,8 +327,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			it( 'should compare triangles that intersect after translation', () => {
 
-				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
-				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
+				const bvhA = new MeshBVH( cubeA, { maxLeafSize: 1 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafSize: 1 } );
 
 				matrix.makeTranslation( 1, 1, 1 );
 				let nbTriangleTests = 0;
@@ -347,8 +347,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			it( 'should compare all triangles in bounds that intersect', () => {
 
-				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 10 } );
-				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 10 } );
+				const bvhA = new MeshBVH( cubeA, { maxLeafSize: 10 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafSize: 10 } );
 
 				matrix.makeRotationX( Math.PI * 0.01 );
 				let nbTriangleTests = 0;
@@ -368,8 +368,8 @@ function runSuiteWithOptions( defaultOptions ) {
 
 			it( 'should stop iterating triangles', () => {
 
-				const bvhA = new MeshBVH( cubeA, { maxLeafTris: 10 } );
-				const bvhB = new MeshBVH( cubeB, { maxLeafTris: 10 } );
+				const bvhA = new MeshBVH( cubeA, { maxLeafSize: 10 } );
+				const bvhB = new MeshBVH( cubeB, { maxLeafSize: 10 } );
 
 				matrix.makeTranslation( 1, 1, 1 );
 				let nbTriangleTests = 0;
@@ -395,9 +395,9 @@ function runSuiteWithOptions( defaultOptions ) {
 			beforeAll( () => {
 
 				const cubeA = new BoxGeometry( 2, 2, 2, 2, 2, 2 );
-				bvhA = new MeshBVH( cubeA, { maxLeafTris: 1 } );
+				bvhA = new MeshBVH( cubeA, { maxLeafSize: 1 } );
 				const cubeB = new BoxGeometry( 2, 2, 2, 2, 2, 2 );
-				bvhB = new MeshBVH( cubeB, { maxLeafTris: 1 } );
+				bvhB = new MeshBVH( cubeB, { maxLeafSize: 1 } );
 				matrix = new Matrix4();
 
 			} );
@@ -418,7 +418,7 @@ function runSuiteWithOptions( defaultOptions ) {
 				// Each cube is composed of 2*2*2*6 = 48 triangles.
 				// Only 1/4 geometry is intersected on 1 axis, so 24 triangles.
 				// Worst case scenario is to compare 24 triangles to the 24 others (i.e. 576)
-				// Since maxLeafTris === 1, triangle bounds have a size of (1,1,1) and
+				// Since maxLeafSize === 1, triangle bounds have a size of (1,1,1) and
 				// cube size is (2,2,2), each triangle should be compared to a *maximum*
 				// of 16 others (8 on sides, 8 on front), i.e. 24x16 = 384.
 

@@ -167,7 +167,7 @@ describe( 'Serialization', () => {
 
 			// create a serialized version of the file
 			const geometry = new SphereGeometry( 1, 16, 16 );
-			const bvh = new MeshBVH( geometry, { maxLeafTris: 5 } );
+			const bvh = new MeshBVH( geometry, { maxLeafSize: 5 } );
 			const serialized = MeshBVH.serialize( bvh );
 
 			// construct an old version of the json

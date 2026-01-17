@@ -66,7 +66,7 @@ function init() {
 
 	// geometry init
 	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.3, 300, 50 );
-	const bvh = new MeshBVH( knotGeometry, { maxLeafTris: 1, strategy: SAH } );
+	const bvh = new MeshBVH( knotGeometry, { maxLeafSize: 1, strategy: SAH } );
 	mesh = new THREE.Mesh( knotGeometry, new THREE.MeshStandardMaterial() );
 	scene.add( mesh );
 

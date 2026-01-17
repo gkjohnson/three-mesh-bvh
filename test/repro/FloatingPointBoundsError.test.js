@@ -59,7 +59,7 @@ describe( 'AVERAGE Points Raycast', () => {
 		geometry.boundsTree = new MeshBVH( geometry, {
 			strategy: CENTER,
 			maxDepth: 64,
-			maxLeafTris: 16
+			maxLeafSize: 16
 		} );
 
 		const res1 = raycaster.intersectObject( mesh );
@@ -76,7 +76,7 @@ describe( 'AVERAGE Points Raycast', () => {
 		geometry.boundsTree = new MeshBVH( geometry, {
 			strategy: SAH,
 			maxDepth: 64,
-			maxLeafTris: 16
+			maxLeafSize: 16
 		} );
 
 		const res1 = raycaster.intersectObject( mesh );
@@ -93,7 +93,7 @@ describe( 'AVERAGE Points Raycast', () => {
 		geometry.boundsTree = new MeshBVH( geometry, {
 			strategy: AVERAGE,
 			maxDepth: 64,
-			maxLeafTris: 16
+			maxLeafSize: 16
 		} );
 
 		const res1 = raycaster.intersectObject( mesh );

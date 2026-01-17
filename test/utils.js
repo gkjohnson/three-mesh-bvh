@@ -66,7 +66,7 @@ export function runTestMatrix( optionsMatrix = {}, cb ) {
 		indirect: [ false, true ],
 		useSharedArrayBuffer: [ false ],
 		setBoundingBox: [ true ],
-		maxLeafTris: [ 10 ],
+		maxLeafSize: [ 10 ],
 		maxDepth: [ 40 ],
 		...optionsMatrix,
 	};

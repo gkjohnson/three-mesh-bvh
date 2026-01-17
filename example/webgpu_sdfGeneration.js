@@ -94,7 +94,7 @@ async function init() {
 
 	geometry = staticGen.generate().center();
 
-	bvh = await bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
+	bvh = await bvhGenerationWorker.generate( geometry, { maxLeafSize: 1 } );
 
 	mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 	scene.add( mesh );

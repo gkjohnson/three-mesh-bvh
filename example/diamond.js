@@ -247,7 +247,7 @@ async function init() {
 	const diamondGeo = gltf.scene.children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].children[ 0 ].geometry;
 	diamondGeo.scale( 10, 10, 10 );
 
-	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafTris: 1 } );
+	const bvh = new MeshBVH( diamondGeo, { strategy: SAH, maxLeafSize: 1 } );
 	diamondMaterial.uniforms.bvh.value.updateFrom( bvh );
 	diamond = new THREE.Mesh( diamondGeo, diamondMaterial );
 	scene.add( diamond );

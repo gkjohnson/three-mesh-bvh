@@ -179,7 +179,7 @@ function init() {
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		scene.add( merged );
 
-		geometry.computeBoundsTree( { strategy: SAH, maxLeafTris: 1 } );
+		geometry.computeBoundsTree( { strategy: SAH, maxLeafSize: 1 } );
 		models[ 'Sphere' ] = { mesh: merged, materials, floorHeight: - 1 };
 
 	}
@@ -258,7 +258,7 @@ function init() {
 		const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 		scene.add( merged );
 
-		geometry.computeBoundsTree( { strategy: SAH, maxLeafTris: 1 } );
+		geometry.computeBoundsTree( { strategy: SAH, maxLeafSize: 1 } );
 		models[ 'Cornell Box' ] = { mesh: merged, materials, floorHeight: - 2 };
 
 	}
@@ -289,7 +289,7 @@ function init() {
 			const merged = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 			const generator = new GenerateMeshBVHWorker();
 			generator
-				.generate( geometry, { maxLeafTris: 1, strategy: SAH } )
+				.generate( geometry, { maxLeafSize: 1, strategy: SAH } )
 				.then( bvh => {
 
 					models[ 'Dragon' ] = { mesh: merged, materials, floorHeight: mesh.geometry.boundingBox.min.y };
@@ -339,7 +339,7 @@ function init() {
 			const mesh = new THREE.Mesh( newGeometry, new THREE.MeshStandardMaterial() );
 			const generator = new GenerateMeshBVHWorker();
 			generator
-				.generate( newGeometry, { maxLeafTris: 1, strategy: CENTER } )
+				.generate( newGeometry, { maxLeafSize: 1, strategy: CENTER } )
 				.then( bvh => {
 
 					models[ 'Engine' ] = {

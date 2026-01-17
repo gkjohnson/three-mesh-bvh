@@ -243,7 +243,7 @@ function init() {
 			} );
 
 			// create the collider and preview mesh
-			colliderBvh = new MeshBVH( mergedGeometry, { maxLeafTris: 3 } );
+			colliderBvh = new MeshBVH( mergedGeometry, { maxLeafSize: 3 } );
 			mergedGeometry.boundsTree = colliderBvh;
 
 			colliderMesh = new THREE.Mesh( mergedGeometry, new THREE.MeshBasicMaterial( {

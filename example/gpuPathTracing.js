@@ -215,7 +215,7 @@ function init() {
 			mesh = new THREE.Mesh( merged, new THREE.MeshStandardMaterial() );
 			scene.add( mesh );
 
-			const bvh = new MeshBVH( mesh.geometry, { maxLeafTris: 1, strategy: SAH } );
+			const bvh = new MeshBVH( mesh.geometry, { maxLeafSize: 1, strategy: SAH } );
 			rtMaterial.uniforms.bvh.value.updateFrom( bvh );
 			rtMaterial.uniforms.normalAttribute.value.updateFrom( mesh.geometry.attributes.normal );
 

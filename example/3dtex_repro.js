@@ -336,7 +336,7 @@ function init() {
 
 	const geometry = new THREE.TorusKnotGeometry( 1, 0.4, 1000, 500 );
 	// const geometry = new THREE.TorusKnotGeometry( 1, 0.4, 100, 10 );
-	bvh = new MeshBVH( geometry, { maxLeafTris: 1 } );
+	bvh = new MeshBVH( geometry, { maxLeafSize: 1 } );
 
 	updateSDF();
 
