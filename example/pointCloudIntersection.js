@@ -12,87 +12,85 @@ THREE.Points.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
-let stats;
-let scene, camera, renderer, helper, pointCloud, outputContainer;
-let mouse = new THREE.Vector2();
-let sphereCollision;
-
 const plyPath = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
-const raycaster = new THREE.Raycaster();
-const params = {
 
+const params = {
 	displayHelper: false,
 	helperDepth: 15,
 	displayParents: false,
-
 	strategy: CENTER,
 	indirect: true,
 	pointSize: 0.005,
 	raycastThreshold: 0.005,
 	useBVH: true,
-
 };
+
+let stats, scene, camera, renderer, helper, pointCloud, outputContainer;
+const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+raycaster.firstHitOnly = true;
+let sphereCollision;
+
+init();
+renderer.setAnimationLoop( render );
 
 function init() {
 
-	const bgColor = 0x263238 / 2;
+	const bgColor = 0x131619;
 
 	outputContainer = document.getElementById( 'output' );
 
-	// renderer setup
+	// Renderer
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
 	document.body.appendChild( renderer.domElement );
 
-	// scene setup
+	// Scene
 	scene = new THREE.Scene();
 
-	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	// Camera
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 100 );
 	camera.position.set( 0, 2, 4 );
-	camera.far = 100;
-	camera.updateProjectionMatrix();
 
 	new OrbitControls( camera, renderer.domElement );
 
-	// stats setup
+	// Stats
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// Load point cloud
-	const loader = new PLYLoader();
-	loader
-		.load( plyPath, geometry => {
-
-			// create point cloud
-			pointCloud = new THREE.Points( geometry, new THREE.PointsMaterial( {
-				size: params.pointSize,
-				vertexColors: true,
-			} ) );
-
-			// center
-			geometry.computeBoundingBox();
-			geometry.boundingBox.getCenter( pointCloud.position ).multiplyScalar( - 1 );
-			pointCloud.position.y += 1;
-
-			// create helper
-			helper = new BVHHelper( pointCloud, params.helperDepth );
-
-			scene.add( pointCloud, helper );
-
-			updateBVH();
-
-		} );
-
-	const geometry = new THREE.SphereGeometry( 0.025, 32, 32 );
-	const material = new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.9, transparent: true } );
-	sphereCollision = new THREE.Mesh( geometry, material );
+	// Collision sphere
+	sphereCollision = new THREE.Mesh(
+		new THREE.SphereGeometry( 0.025, 32, 32 ),
+		new THREE.MeshBasicMaterial( { color: 0xffff00, opacity: 0.9, transparent: true } )
+	);
 	sphereCollision.visible = false;
 	scene.add( sphereCollision );
 
+	// Load point cloud
+	new PLYLoader().load( plyPath, geometry => {
+
+		pointCloud = new THREE.Points( geometry, new THREE.PointsMaterial( {
+			size: params.pointSize,
+			vertexColors: true,
+		} ) );
+
+		// Center the point cloud
+		geometry.computeBoundingBox();
+		geometry.boundingBox.getCenter( pointCloud.position ).multiplyScalar( - 1 );
+		pointCloud.position.y += 1;
+
+		helper = new BVHHelper( pointCloud, params.helperDepth );
+
+		scene.add( pointCloud, helper );
+		updateBVH();
+
+	} );
+
+	// GUI
 	const gui = new GUI();
+
 	const helperFolder = gui.addFolder( 'helper' );
 	helperFolder.add( params, 'displayHelper' );
 	helperFolder.add( params, 'displayParents' ).onChange( v => {
@@ -103,7 +101,7 @@ function init() {
 	} );
 	helperFolder.add( params, 'helperDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
 
-		helper.depth = parseInt( v );
+		helper.depth = v;
 		helper.update();
 
 	} );
@@ -117,9 +115,21 @@ function init() {
 	pointsFolder.add( params, 'raycastThreshold', 0.001, 0.01, 0.001 );
 	pointsFolder.open();
 
-	window.addEventListener( 'resize', onResize );
-	window.addEventListener( 'pointermove', updateRaycaster );
-	onResize();
+	window.addEventListener( 'resize', () => {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.setPixelRatio( window.devicePixelRatio );
+
+	} );
+
+	window.addEventListener( 'pointermove', e => {
+
+		mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+
+	} );
 
 }
 
@@ -145,67 +155,41 @@ function updateBVH() {
 
 }
 
-function updateRaycaster( e ) {
-
-	mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-
-}
-
-function updateRaycast() {
-
-	raycaster.setFromCamera( mouse, camera );
-	raycaster.firstHitOnly = true;
-
-	const startTime = window.performance.now();
-	const intersects = raycaster.intersectObject( pointCloud );
-	const hit = intersects[ 0 ];
-	if ( hit ) {
-
-		sphereCollision.position.copy( hit.point );
-		sphereCollision.visible = true;
-
-	} else {
-
-		sphereCollision.visible = false;
-
-	}
-
-	const delta = window.performance.now() - startTime;
-	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
-
-}
-
-function onResize() {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.setPixelRatio( window.devicePixelRatio );
-
-}
-
 function render() {
 
-	requestAnimationFrame( render );
+	stats.begin();
 
 	if ( pointCloud ) {
 
+		// Update GUI settings
 		pointCloud.material.size = params.pointSize;
-		helper.visible = params.displayHelper;
 		raycaster.params.Points.threshold = params.raycastThreshold;
+		helper.visible = params.displayHelper;
 
-		updateRaycast();
+		// Perform raycast
+		raycaster.setFromCamera( mouse, camera );
+
+		const startTime = window.performance.now();
+		const intersects = raycaster.intersectObject( pointCloud );
+		const hit = intersects[ 0 ];
+
+		if ( hit ) {
+
+			sphereCollision.position.copy( hit.point );
+			sphereCollision.visible = true;
+
+		} else {
+
+			sphereCollision.visible = false;
+
+		}
+
+		const delta = window.performance.now() - startTime;
+		outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
 
 	}
-
-	stats.begin();
 
 	renderer.render( scene, camera );
 	stats.end();
 
 }
-
-init();
-render();
