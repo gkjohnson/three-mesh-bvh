@@ -174,6 +174,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( 0, 1 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	// render target
@@ -421,8 +422,6 @@ function resetBenchmark() {
 
 function render() {
 
-	requestAnimationFrame( render );
-
 	// read the buffer from the last frame of rendering so we don't block
 	// waiting for this frame to finish.
 	const pixelRatio = renderer.getPixelRatio();
@@ -481,4 +480,3 @@ function render() {
 
 
 init();
-render();

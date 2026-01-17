@@ -12,8 +12,8 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
-	displayHelper: false,
-	helperDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 	displayParents: false,
 
 	useBVH: true,
@@ -27,7 +27,6 @@ let raycaster, mouse;
 let sphereCollision;
 
 init();
-render();
 
 function init() {
 
@@ -38,6 +37,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( 0x131619 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -75,7 +75,7 @@ function init() {
 		linewidth: 2,
 	} ) );
 
-	helper = new BVHHelper( line, params.helperDepth );
+	helper = new BVHHelper( line, params.displayDepth );
 
 	scene.add( line, helper );
 
@@ -85,14 +85,14 @@ function init() {
 	const gui = new GUI();
 
 	const helperFolder = gui.addFolder( 'helper' );
-	helperFolder.add( params, 'displayHelper' );
+	helperFolder.add( params, 'displayBVH' );
 	helperFolder.add( params, 'displayParents' ).onChange( v => {
 
 		helper.displayParents = v;
 		helper.update();
 
 	} );
-	helperFolder.add( params, 'helperDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
+	helperFolder.add( params, 'displayDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
 
 		helper.depth = parseInt( v );
 		helper.update();
@@ -255,11 +255,9 @@ function onWindowResize() {
 
 function render() {
 
-	requestAnimationFrame( render );
-
 	if ( helper ) {
 
-		helper.visible = params.displayHelper;
+		helper.visible = params.displayBVH;
 
 	}
 

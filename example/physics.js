@@ -67,7 +67,6 @@ const tempVec = new THREE.Vector3();
 const forwardVector = new THREE.Vector3( 0, 0, 1 );
 
 init();
-renderer.setAnimationLoop( render );
 
 function init() {
 
@@ -78,6 +77,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	renderer.outputEncoding = THREE.sRGBEncoding;

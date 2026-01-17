@@ -13,8 +13,8 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
 
-	visualizeBounds: false,
-	visualBoundsDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 
 	volume: {
 		display: 1,
@@ -30,7 +30,7 @@ const params = {
 };
 
 let stats;
-let scene, camera, renderer, controls, boundsViz;
+let scene, camera, renderer, controls, bvhHelper;
 let terrain, targetContainer, targetMesh, transformControls;
 let marchingCubes, marchingCubesContainer;
 let sphere1, sphere2, line;
@@ -45,6 +45,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	document.body.appendChild( renderer.domElement );
@@ -179,8 +180,8 @@ function init() {
 	scene.updateMatrixWorld( true );
 
 	const gui = new dat.GUI( { width: 300 } );
-	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
+	gui.add( params, 'displayBVH' ).onChange( () => updateFromOptions() );
+	gui.add( params, 'displayDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
 
 	const mcFolder = gui.addFolder( 'distanceVisualization' );
 	mcFolder.add( params.volume, 'display', { 'hide': 0, 'distance to terrain': 1, 'distance to mesh': 2 } ).onChange( () => {
@@ -198,12 +199,12 @@ function init() {
 
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
 
-	const posFolder = gui.addFolder( 'position' );
+	const posFolder = gui.addFolder( 'Position' );
 	posFolder.add( targetContainer.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 	posFolder.add( targetContainer.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 	posFolder.add( targetContainer.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 ).listen();
 
-	const rotFolder = gui.addFolder( 'rotation' );
+	const rotFolder = gui.addFolder( 'Rotation' );
 	rotFolder.add( targetContainer.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.add( targetContainer.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
 	rotFolder.add( targetContainer.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 ).listen();
@@ -243,23 +244,24 @@ function init() {
 function updateFromOptions() {
 
 	// Update bounds viz
-	if ( boundsViz && ! params.visualizeBounds ) {
+	if ( bvhHelper && ! params.displayBVH ) {
 
-		scene.remove( boundsViz );
-		boundsViz = null;
-
-	}
-
-	if ( ! boundsViz && params.visualizeBounds ) {
-
-		boundsViz = new BVHHelper( terrain );
-		scene.add( boundsViz );
+		scene.remove( bvhHelper );
+		bvhHelper = null;
 
 	}
 
-	if ( boundsViz ) {
+	if ( ! bvhHelper && params.displayBVH ) {
 
-		boundsViz.depth = params.visualBoundsDepth;
+		bvhHelper = new BVHHelper( terrain );
+		scene.add( bvhHelper );
+
+	}
+
+	if ( bvhHelper ) {
+
+		bvhHelper.depth = params.displayDepth;
+		bvhHelper.update();
 
 	}
 
@@ -429,12 +431,6 @@ function render() {
 
 	}
 
-	if ( boundsViz ) {
-
-		boundsViz.update();
-
-	}
-
 	// start regenerating the marching cubes mesh if needed
 	if ( regenerate ) {
 
@@ -483,10 +479,7 @@ function render() {
 	renderer.render( scene, camera );
 	stats.end();
 
-	requestAnimationFrame( render );
-
 }
 
 init();
 updateFromOptions();
-render();

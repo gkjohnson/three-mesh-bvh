@@ -24,7 +24,6 @@ let depth1, depth2, group1, group2;
 let lastTime = window.performance.now();
 
 init();
-render();
 
 function init() {
 
@@ -35,6 +34,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -145,8 +145,6 @@ function init() {
 }
 
 function render() {
-
-	requestAnimationFrame( render );
 
 	const delta = window.performance.now() - lastTime;
 	lastTime = window.performance.now();
