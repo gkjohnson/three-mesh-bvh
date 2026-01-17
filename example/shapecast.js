@@ -10,7 +10,6 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
-
 	speed: 1,
 	visualizeBounds: false,
 	visualBoundsDepth: 10,
@@ -20,126 +19,106 @@ const params = {
 	scale: new THREE.Vector3( 1, 1, 1 ),
 };
 
-let stats;
-let scene, camera, renderer, orbitControls, boundsViz, transformControls;
-let targetMesh;
-let shapes = {};
+let stats, scene, camera, renderer, orbitControls, boundsViz, transformControls;
+let targetMesh, shapes;
+let lastTime = window.performance.now();
+
+init();
+updateFromOptions();
+renderer.setAnimationLoop( render );
 
 function init() {
 
-	const bgColor = 0x263238 / 2;
+	const bgColor = 0x131619;
 
-	// renderer setup
+	// Renderer
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
 	document.body.appendChild( renderer.domElement );
 
-	// scene setup
+	// Scene
 	scene = new THREE.Scene();
-	scene.fog = new THREE.Fog( 0x263238 / 2, 20, 60 );
+	scene.fog = new THREE.Fog( bgColor, 20, 60 );
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1.5 );
-	light.position.set( 1, 1, 1 );
-	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xffffff, 1.2 ) );
+	// Lights
+	scene.add(
+		new THREE.DirectionalLight( 0xffffff, 1.5 ).position.set( 1, 1, 1 ).parent,
+		new THREE.AmbientLight( 0xffffff, 1.2 )
+	);
 
-	// geometry setup
-	const radius = 1;
-	const tube = 0.4;
-	const tubularSegments = 400;
-	const radialSegments = 100;
-
-	const knotGeometry = new THREE.TorusKnotGeometry( radius, tube, tubularSegments, radialSegments );
+	// Target mesh
+	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.4, 400, 100 );
 	const material = new THREE.MeshPhongMaterial( { color: 0xffffff, side: THREE.DoubleSide } );
 	targetMesh = new THREE.Mesh( knotGeometry, material );
 	targetMesh.geometry.computeBoundsTree();
 	scene.add( targetMesh );
 
-	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	// Camera
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 100 );
 	camera.position.set( 3, 3, 3 );
-	camera.far = 100;
-	camera.updateProjectionMatrix();
 
+	// Controls
 	transformControls = new TransformControls( camera, renderer.domElement );
 	scene.add( transformControls.getHelper() );
 
 	orbitControls = new OrbitControls( camera, renderer.domElement );
 
-	// stats setup
+	// Stats
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
+	// Intersection shapes
 	const shapeMaterial = new THREE.MeshStandardMaterial( {
 		metalness: 0.1,
 		transparent: true,
 		opacity: 0.75,
 		premultipliedAlpha: true
 	} );
-	shapes.sphere = new THREE.Mesh( new THREE.SphereGeometry( 1, 50, 50 ), shapeMaterial );
-	scene.add( shapes.sphere );
 
-	shapes.box = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), shapeMaterial );
-	scene.add( shapes.box );
+	shapes = {
+		sphere: new THREE.Mesh( new THREE.SphereGeometry( 1, 50, 50 ), shapeMaterial ),
+		box: new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), shapeMaterial ),
+		geometry: new THREE.Mesh( new THREE.TorusKnotGeometry( 0.5, 0.2, 200, 50 ), shapeMaterial ),
+	};
 
-	shapes.geometry = new THREE.Mesh( new THREE.TorusKnotGeometry( .5, .2, 200, 50 ), shapeMaterial );
 	shapes.geometry.geometry.computeBoundsTree();
-	scene.add( shapes.geometry );
+	Object.values( shapes ).forEach( shape => scene.add( shape ) );
 
-	// Code for debugging triangle intersection
-	// const t1 = new THREE.Triangle();
-	// const t2 = new THREE.Triangle();
-
-	// t1.a.set( - 1, - 1, 0 );
-	// t1.b.set( 1, - 1, 0 );
-	// t1.c.set( 0, 1, 0 );
-
-	// t2.a.set( - 1, 0, - 0.5 );
-	// t2.b.set( 0, 0, 1 );
-	// t2.c.set( - 2, 0, 1 );
-
-	// const res = triangleIntersectsTriangle( t1, t2 );
-	// console.log( 'intersects ', res );
-
-	// var lineMat = new THREE.LineBasicMaterial({ color: 0x0000ff });
-
-	// var geometry = new THREE.Geometry();
-	// geometry.vertices.push( t1.a, t1.b, t1.c, t1.a );
-	// var line = new THREE.Line( geometry, lineMat );
-	// scene.add( line );
-
-	// var geometry = new THREE.Geometry();
-	// geometry.vertices.push( t2.a, t2.b, t2.c, t2.a );
-	// var line = new THREE.Line( geometry, lineMat );
-	// scene.add( line );
-
-	// 	targetMesh.visible = false;
-
+	// GUI
 	const gui = new dat.GUI();
-	gui.add( params, 'speed' ).min( 0 ).max( 10 );
-	gui.add( params, 'visualizeBounds' ).onChange( () => updateFromOptions() );
-	gui.add( params, 'visualBoundsDepth' ).min( 1 ).max( 40 ).step( 1 ).onChange( () => updateFromOptions() );
-	gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
+	gui.add( params, 'speed', 0, 10 );
+	gui.add( params, 'visualizeBounds' ).onChange( updateFromOptions );
+	gui.add( params, 'visualBoundsDepth', 1, 40, 1 ).onChange( v => {
 
+		if ( boundsViz ) {
+
+			boundsViz.depth = v;
+			boundsViz.update();
+
+		}
+
+	} );
+	gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
 
 	const posFolder = gui.addFolder( 'position' );
-	posFolder.add( params.position, 'x' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.add( params.position, 'y' ).min( - 5 ).max( 5 ).step( 0.001 );
-	posFolder.add( params.position, 'z' ).min( - 5 ).max( 5 ).step( 0.001 );
+	posFolder.add( params.position, 'x', - 5, 5, 0.001 );
+	posFolder.add( params.position, 'y', - 5, 5, 0.001 );
+	posFolder.add( params.position, 'z', - 5, 5, 0.001 );
 	posFolder.open();
 
 	const rotFolder = gui.addFolder( 'rotation' );
-	rotFolder.add( params.rotation, 'x' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.add( params.rotation, 'y' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
-	rotFolder.add( params.rotation, 'z' ).min( - Math.PI ).max( Math.PI ).step( 0.001 );
+	rotFolder.add( params.rotation, 'x', - Math.PI, Math.PI, 0.001 );
+	rotFolder.add( params.rotation, 'y', - Math.PI, Math.PI, 0.001 );
+	rotFolder.add( params.rotation, 'z', - Math.PI, Math.PI, 0.001 );
 	rotFolder.open();
 
 	gui.open();
 
-	transformControls.addEventListener( 'change', function () {
+	// Transform controls sync with GUI
+	transformControls.addEventListener( 'change', () => {
 
 		params.position.copy( shapes[ params.shape ].position );
 		params.rotation.copy( shapes[ params.shape ].rotation );
@@ -148,53 +127,26 @@ function init() {
 
 	} );
 
-	transformControls.addEventListener( 'mouseDown', function () {
+	// Disable orbit controls when using transform controls
+	transformControls.addEventListener( 'mouseDown', () => orbitControls.enabled = false );
+	transformControls.addEventListener( 'mouseUp', () => orbitControls.enabled = true );
+	orbitControls.addEventListener( 'start', () => transformControls.enabled = false );
+	orbitControls.addEventListener( 'end', () => transformControls.enabled = true );
 
-		orbitControls.enabled = false;
+	// Keyboard shortcuts
+	window.addEventListener( 'keydown', e => {
 
-	} );
-
-	transformControls.addEventListener( 'mouseUp', function () {
-
-		orbitControls.enabled = true;
-
-	} );
-
-	orbitControls.addEventListener( 'start', function () {
-
-		transformControls.enabled = false;
+		if ( e.key === 'w' ) transformControls.mode = 'translate';
+		if ( e.key === 'e' ) transformControls.mode = 'rotate';
+		gui.controllersRecursive().forEach( c => c.updateDisplay() );
 
 	} );
 
-	orbitControls.addEventListener( 'end', function () {
-
-		transformControls.enabled = true;
-
-	} );
-
-	window.addEventListener( 'resize', function () {
+	window.addEventListener( 'resize', () => {
 
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
-
 		renderer.setSize( window.innerWidth, window.innerHeight );
-
-	}, false );
-
-	window.addEventListener( 'keydown', function ( e ) {
-
-		switch ( e.key ) {
-
-			case 'w':
-				transformControls.mode = 'translate';
-				break;
-			case 'e':
-				transformControls.mode = 'rotate';
-				break;
-
-		}
-
-		gui.controllersRecursive().forEach( c => c.updateDisplay() );
 
 	} );
 
@@ -202,7 +154,7 @@ function init() {
 
 function updateFromOptions() {
 
-	// Update bounds viz
+	// Update bounds visualization
 	if ( boundsViz && ! params.visualizeBounds ) {
 
 		scene.remove( boundsViz );
@@ -217,15 +169,8 @@ function updateFromOptions() {
 
 	}
 
-	if ( boundsViz ) {
-
-		boundsViz.depth = params.visualBoundsDepth;
-
-	}
-
 }
 
-let lastTime = window.performance.now();
 function render() {
 
 	const delta = window.performance.now() - lastTime;
@@ -236,64 +181,51 @@ function render() {
 
 	stats.begin();
 
-	if ( boundsViz ) boundsViz.update();
+	if ( boundsViz ) boundsViz.visible = params.visualizeBounds;
 
-	renderer.render( scene, camera );
-	stats.end();
+	// Hide all shapes, then show and update the selected one
+	Object.values( shapes ).forEach( shape => shape.visible = false );
 
-	// casts
-	for ( const shape in shapes ) shapes[ shape ].visible = false;
-
-	const s = params.shape;
-	const shape = shapes[ s ];
+	const shape = shapes[ params.shape ];
 	shape.visible = true;
 	shape.position.copy( params.position );
 	shape.rotation.copy( params.rotation );
 	shape.scale.copy( params.scale );
 
-	const transformMatrix =
-		new THREE.Matrix4()
-			.copy( targetMesh.matrixWorld ).invert()
-			.multiply( shape.matrixWorld );
+	const transformMatrix = new THREE.Matrix4()
+		.copy( targetMesh.matrixWorld )
+		.invert()
+		.multiply( shape.matrixWorld );
 
-	if ( s === 'sphere' ) {
+	// Perform intersection test
+	let hit = false;
+	if ( params.shape === 'sphere' ) {
 
 		const sphere = new THREE.Sphere( undefined, 1 );
 		sphere.applyMatrix4( transformMatrix );
+		hit = targetMesh.geometry.boundsTree.intersectsSphere( sphere );
 
-		const hit = targetMesh.geometry.boundsTree.intersectsSphere( sphere );
-		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
-
-	} else if ( s === 'box' ) {
+	} else if ( params.shape === 'box' ) {
 
 		const box = new THREE.Box3();
 		box.min.set( - 0.5, - 0.5, - 0.5 );
 		box.max.set( 0.5, 0.5, 0.5 );
+		hit = targetMesh.geometry.boundsTree.intersectsBox( box, transformMatrix );
 
-		const hit = targetMesh.geometry.boundsTree.intersectsBox( box, transformMatrix );
-		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
+	} else if ( params.shape === 'geometry' ) {
 
-	} else if ( s === 'geometry' ) {
-
-		const hit = targetMesh.geometry.boundsTree.intersectsGeometry( shape.geometry, transformMatrix );
-		shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
-		shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
+		hit = targetMesh.geometry.boundsTree.intersectsGeometry( shape.geometry, transformMatrix );
 
 	}
 
-	if ( transformControls.object !== shape ) {
+	// Update material based on intersection
+	shape.material.color.set( hit ? 0xE91E63 : 0x666666 );
+	shape.material.emissive.set( 0xE91E63 ).multiplyScalar( hit ? 0.25 : 0 );
 
-		transformControls.attach( shape );
+	// Attach transform controls to active shape
+	if ( transformControls.object !== shape ) transformControls.attach( shape );
 
-	}
-
-	requestAnimationFrame( render );
+	renderer.render( scene, camera );
+	stats.end();
 
 }
-
-
-init();
-updateFromOptions();
-render();
