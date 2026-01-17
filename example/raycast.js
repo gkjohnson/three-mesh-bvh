@@ -45,7 +45,6 @@ let lastFrameTime = null;
 
 init();
 updateFromOptions();
-renderer.setAnimationLoop( render );
 
 function init() {
 
@@ -54,6 +53,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	// Scene

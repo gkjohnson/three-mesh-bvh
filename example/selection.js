@@ -25,7 +25,6 @@ let selectionNeedsUpdate = false;
 let tool = new LassoSelection();
 
 init();
-renderer.setAnimationLoop( render );
 
 function init() {
 
@@ -38,6 +37,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.shadowMap.enabled = true;
 	document.body.appendChild( renderer.domElement );
 

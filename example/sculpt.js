@@ -39,13 +39,12 @@ const params = {
 	flatShading: false,
 
 	depth: 10,
-	displayHelper: false,
+	displayBVH: false,
 };
 
 const matcaps = {};
 
 init();
-render();
 
 // reset the sculpt mesh
 function reset() {
@@ -79,7 +78,7 @@ function reset() {
 	if ( ! bvhHelper ) {
 
 		bvhHelper = new BVHHelper( targetMesh, params.depth );
-		if ( params.displayHelper ) {
+		if ( params.displayBVH ) {
 
 			scene.add( bvhHelper );
 
@@ -101,6 +100,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 	renderer.domElement.style.touchAction = 'none';
@@ -193,7 +193,7 @@ function init() {
 		bvhHelper.update();
 
 	} );
-	helperFolder.add( params, 'displayHelper' ).onChange( display => {
+	helperFolder.add( params, 'displayBVH' ).onChange( display => {
 
 		if ( display ) {
 
@@ -584,8 +584,6 @@ function updateNormals( triangles, indices ) {
 }
 
 function render() {
-
-	requestAnimationFrame( render );
 
 	stats.begin();
 

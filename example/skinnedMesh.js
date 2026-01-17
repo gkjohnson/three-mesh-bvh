@@ -42,7 +42,6 @@ let bvhs = [], helpers = [];
 let raycaster, mouse, sphereCollision;
 
 init();
-render();
 
 function init() {
 
@@ -55,6 +54,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFShadowMap;
 	document.body.appendChild( renderer.domElement );
@@ -309,7 +309,6 @@ function updateRaycast() {
 function render() {
 
 	stats.update();
-	requestAnimationFrame( render );
 
 	const delta = Math.min( clock.getDelta(), 30 * 0.001 );
 

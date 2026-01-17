@@ -27,7 +27,6 @@ const params = {
 const models = {};
 
 init();
-render();
 
 function init() {
 
@@ -40,6 +39,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
@@ -312,7 +312,6 @@ function* rebuildVoxels() {
 function render() {
 
 	stats.update();
-	requestAnimationFrame( render );
 
 	scene.updateMatrixWorld( true );
 
