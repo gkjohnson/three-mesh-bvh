@@ -29,6 +29,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 	renderer.domElement.style.touchAction = 'none';
 
@@ -187,8 +188,6 @@ function init() {
 
 function render() {
 
-	requestAnimationFrame( render );
-
 	stats.begin();
 
 	const geometry = targetMesh.geometry;
@@ -328,4 +327,3 @@ function render() {
 
 
 init();
-render();

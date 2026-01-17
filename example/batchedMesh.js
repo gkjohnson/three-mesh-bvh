@@ -48,7 +48,6 @@ const params = {
 
 init();
 updateFromOptions();
-render();
 
 function init() {
 
@@ -57,6 +56,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -324,7 +324,5 @@ function render() {
 	renderer.render( scene, camera );
 
 	stats.end();
-
-	requestAnimationFrame( render );
 
 }

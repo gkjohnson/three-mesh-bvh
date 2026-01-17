@@ -13,7 +13,7 @@ const params = {
 
 	displayCollider: false,
 	displayBVH: false,
-	visualizeDepth: 10,
+	displayDepth: 10,
 	gravity: - 30,
 	playerSpeed: 10,
 	physicsSteps: 5,
@@ -23,7 +23,7 @@ const params = {
 };
 
 let renderer, camera, scene, clock, gui, stats;
-let environment, collider, visualizer, player, controls;
+let environment, collider, bvhHelper, player, controls;
 let playerIsOnGround = false;
 let fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
 let playerVelocity = new THREE.Vector3();
@@ -35,7 +35,6 @@ let tempMat = new THREE.Matrix4();
 let tempSegment = new THREE.Line3();
 
 init();
-render();
 
 function init() {
 
@@ -46,6 +45,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	document.body.appendChild( renderer.domElement );
@@ -123,10 +123,10 @@ function init() {
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayCollider' );
 	visFolder.add( params, 'displayBVH' );
-	visFolder.add( params, 'visualizeDepth', 1, 20, 1 ).onChange( v => {
+	visFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		visualizer.depth = v;
-		visualizer.update();
+		bvhHelper.depth = v;
+		bvhHelper.update();
 
 	} );
 	visFolder.open();
@@ -282,8 +282,8 @@ function loadColliderEnvironment() {
 			collider.material.opacity = 0.5;
 			collider.material.transparent = true;
 
-			visualizer = new BVHHelper( collider, params.visualizeDepth );
-			scene.add( visualizer );
+			bvhHelper = new BVHHelper( collider, params.displayDepth );
+			scene.add( bvhHelper );
 			scene.add( collider );
 			scene.add( environment );
 
@@ -438,7 +438,6 @@ function updatePlayer( delta ) {
 function render() {
 
 	stats.update();
-	requestAnimationFrame( render );
 
 	const delta = Math.min( clock.getDelta(), 0.1 );
 	if ( params.firstPerson ) {
@@ -458,7 +457,7 @@ function render() {
 	if ( collider ) {
 
 		collider.visible = params.displayCollider;
-		visualizer.visible = params.displayBVH;
+		bvhHelper.visible = params.displayBVH;
 
 		const physicsSteps = params.physicsSteps;
 

@@ -1,32 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>three-mesh-bvh - Async BVH Generation</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<title>three-mesh-bvh - Async Generation</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 	<!--
 		Load a service worker to append two necessary headers for taking
 		advantage of SharedArrayBuffers.
 	-->
 	<script src="./coi-serviceworker.js"></script>
-    <style type="text/css">
-        html, body {
-            padding: 0;
-            margin: 0;
-            overflow: hidden;
-			font-family: monospace;
-        }
+	<link rel="stylesheet" href="./styles.css">
 
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
-
+	<style type="text/css">
 		#output {
 			color: #956b00;
-			position: absolute;
-			left: 10px;
-			bottom: 10px;
 			white-space: pre;
 		}
 
@@ -47,8 +34,7 @@
 			background: #956b00;
 			width: 50%;
 		}
-
-    </style>
+	</style>
 </head>
 <body>
 	<div id="output"></div>

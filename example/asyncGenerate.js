@@ -22,8 +22,8 @@ const params = {
 	p: 3,
 	q: 5,
 
-	displayHelper: false,
-	helperDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 
 };
 
@@ -33,7 +33,6 @@ let bvhGenerationWorker;
 let generating = false;
 
 init();
-render();
 
 function init() {
 
@@ -49,6 +48,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	// scene setup
@@ -96,7 +96,7 @@ function init() {
 
 	gui = new GUI();
 	const helperFolder = gui.addFolder( 'helper' );
-	helperFolder.add( params, 'displayHelper' ).name( 'enabled' ).onChange( v => {
+	helperFolder.add( params, 'displayBVH' ).name( 'enabled' ).onChange( v => {
 
 		if ( v && helper ) {
 
@@ -105,7 +105,7 @@ function init() {
 		}
 
 	} );
-	helperFolder.add( params, 'helperDepth', 1, 50, 1 ).onChange( v => {
+	helperFolder.add( params, 'displayDepth', 1, 50, 1 ).onChange( v => {
 
 		if ( helper ) {
 
@@ -246,9 +246,9 @@ function regenerateKnot() {
 			generating = false;
 
 			helper = new BVHHelper( knot, 0 );
-			helper.depth = params.helperDepth;
+			helper.depth = params.displayDepth;
 
-			if ( params.displayHelper ) {
+			if ( params.displayBVH ) {
 
 				helper.update();
 
@@ -277,7 +277,7 @@ function regenerateKnot() {
 		generating = false;
 
 		helper = new BVHHelper( knot );
-		helper.depth = params.helperDepth;
+		helper.depth = params.displayDepth;
 		helper.update();
 		group.add( helper );
 
@@ -293,7 +293,6 @@ function regenerateKnot() {
 function render() {
 
 	stats.update();
-	requestAnimationFrame( render );
 
 	let delta = clock.getDelta();
 	group.rotation.x += 0.4 * delta;
@@ -301,7 +300,7 @@ function render() {
 
 	if ( helper ) {
 
-		helper.visible = params.displayHelper;
+		helper.visible = params.displayBVH;
 
 	}
 

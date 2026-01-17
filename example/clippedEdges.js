@@ -10,8 +10,8 @@ import { MeshBVH, BVHHelper, CONTAINED } from 'three-mesh-bvh';
 const params = {
 	useBVH: true,
 
-	helperDisplay: false,
-	helperDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 
 	wireframeDisplay: false,
 	displayModel: true,
@@ -39,7 +39,6 @@ const inverseMatrix = new THREE.Matrix4();
 const localPlane = new THREE.Plane();
 
 init();
-render();
 
 function init() {
 
@@ -52,6 +51,7 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( bgColor, 1 );
+	renderer.setAnimationLoop( render );
 	renderer.shadowMap.enabled = true;
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	renderer.localClippingEnabled = true;
@@ -257,8 +257,8 @@ function init() {
 			colliderMesh.rotation.copy( model.rotation );
 			colliderMesh.scale.copy( model.scale );
 
-			bvhHelper = new BVHHelper( colliderMesh, parseInt( params.helperDepth ) );
-			bvhHelper.depth = parseInt( params.helperDepth );
+			bvhHelper = new BVHHelper( colliderMesh, parseInt( params.displayDepth ) );
+			bvhHelper.depth = parseInt( params.displayDepth );
 			bvhHelper.update();
 
 			// create group of meshes and offset it so they're centered
@@ -288,8 +288,8 @@ function init() {
 
 	const helperFolder = gui.addFolder( 'helper' );
 	helperFolder.add( params, 'wireframeDisplay' );
-	helperFolder.add( params, 'helperDisplay' );
-	helperFolder.add( params, 'helperDepth', 1, 20, 1 ).onChange( v => {
+	helperFolder.add( params, 'displayBVH' );
+	helperFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
 		if ( bvhHelper ) {
 
@@ -323,7 +323,7 @@ function render() {
 
 	if ( bvhHelper ) {
 
-		bvhHelper.visible = params.helperDisplay;
+		bvhHelper.visible = params.displayBVH;
 		colliderMesh.visible = params.wireframeDisplay;
 
 		frontSideModel.visible = params.displayModel;
@@ -474,8 +474,6 @@ function render() {
 	}
 
 	stats.update();
-	requestAnimationFrame( render );
-
 	controls.update();
 
 	renderer.render( scene, camera );

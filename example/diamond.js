@@ -40,6 +40,7 @@ async function init() {
 	renderer = new THREE.WebGLRenderer( { antialias: false } );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
+	renderer.setAnimationLoop( render );
 	document.body.appendChild( renderer.domElement );
 
 	controls = new OrbitControls( camera, renderer.domElement );
@@ -284,7 +285,6 @@ async function init() {
 	stats = new Stats();
 	stats.showPanel( 0 );
 	document.body.appendChild( stats.dom );
-	render();
 
 	window.addEventListener( 'resize', function () {
 
@@ -299,6 +299,12 @@ async function init() {
 
 function render() {
 
+	if ( ! diamond ) {
+
+		return;
+
+	}
+
 	if ( params.animate ) {
 
 		diamond.rotation.y += clock.getDelta() * 0.25;
@@ -308,6 +314,5 @@ function render() {
 	stats.update();
 	controls.update();
 	renderer.render( scene, camera );
-	requestAnimationFrame( render );
 
 }
