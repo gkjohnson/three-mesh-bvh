@@ -11,15 +11,15 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const params = {
 	speed: 1,
-	visualizeBounds: false,
-	visualBoundsDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 	shape: 'sphere',
 	position: new THREE.Vector3(),
 	rotation: new THREE.Euler(),
 	scale: new THREE.Vector3( 1, 1, 1 ),
 };
 
-let stats, scene, camera, renderer, orbitControls, boundsViz, transformControls;
+let stats, scene, camera, renderer, orbitControls, bvhHelper, transformControls;
 let targetMesh, shapes;
 let lastTime = window.performance.now();
 
@@ -43,10 +43,9 @@ function init() {
 	scene.fog = new THREE.Fog( bgColor, 20, 60 );
 
 	// Lights
-	scene.add(
-		new THREE.DirectionalLight( 0xffffff, 1.5 ).position.set( 1, 1, 1 ).parent,
-		new THREE.AmbientLight( 0xffffff, 1.2 )
-	);
+	const light = new THREE.DirectionalLight( 0xffffff, 1.5 );
+	light.position.set( 1, 1, 1 );
+	scene.add( light, new THREE.AmbientLight( 0xffffff, 1.2 ) );
 
 	// Target mesh
 	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.4, 400, 100 );
@@ -89,13 +88,13 @@ function init() {
 	// GUI
 	const gui = new dat.GUI();
 	gui.add( params, 'speed', 0, 10 );
-	gui.add( params, 'visualizeBounds' ).onChange( updateFromOptions );
-	gui.add( params, 'visualBoundsDepth', 1, 40, 1 ).onChange( v => {
+	gui.add( params, 'displayBVH' ).onChange( updateFromOptions );
+	gui.add( params, 'displayDepth', 1, 40, 1 ).onChange( v => {
 
-		if ( boundsViz ) {
+		if ( bvhHelper ) {
 
-			boundsViz.depth = v;
-			boundsViz.update();
+			bvhHelper.depth = v;
+			bvhHelper.update();
 
 		}
 
@@ -103,13 +102,13 @@ function init() {
 	gui.add( params, 'shape', [ 'sphere', 'box', 'geometry' ] );
 	gui.add( transformControls, 'mode', [ 'translate', 'rotate' ] );
 
-	const posFolder = gui.addFolder( 'position' );
+	const posFolder = gui.addFolder( 'Position' );
 	posFolder.add( params.position, 'x', - 5, 5, 0.001 );
 	posFolder.add( params.position, 'y', - 5, 5, 0.001 );
 	posFolder.add( params.position, 'z', - 5, 5, 0.001 );
 	posFolder.open();
 
-	const rotFolder = gui.addFolder( 'rotation' );
+	const rotFolder = gui.addFolder( 'Rotation' );
 	rotFolder.add( params.rotation, 'x', - Math.PI, Math.PI, 0.001 );
 	rotFolder.add( params.rotation, 'y', - Math.PI, Math.PI, 0.001 );
 	rotFolder.add( params.rotation, 'z', - Math.PI, Math.PI, 0.001 );
@@ -155,17 +154,17 @@ function init() {
 function updateFromOptions() {
 
 	// Update bounds visualization
-	if ( boundsViz && ! params.visualizeBounds ) {
+	if ( bvhHelper && ! params.displayBVH ) {
 
-		scene.remove( boundsViz );
-		boundsViz = null;
+		scene.remove( bvhHelper );
+		bvhHelper = null;
 
 	}
 
-	if ( ! boundsViz && params.visualizeBounds ) {
+	if ( ! bvhHelper && params.displayBVH ) {
 
-		boundsViz = new BVHHelper( targetMesh );
-		scene.add( boundsViz );
+		bvhHelper = new BVHHelper( targetMesh );
+		scene.add( bvhHelper );
 
 	}
 
@@ -181,7 +180,7 @@ function render() {
 
 	stats.begin();
 
-	if ( boundsViz ) boundsViz.visible = params.visualizeBounds;
+	if ( bvhHelper ) bvhHelper.visible = params.displayBVH;
 
 	// Hide all shapes, then show and update the selected one
 	Object.values( shapes ).forEach( shape => shape.visible = false );

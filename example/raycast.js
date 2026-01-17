@@ -25,13 +25,13 @@ const params = {
 	meshCount: 1,
 	meshSpeed: 1,
 	useBoundsTree: true,
-	visualizeBounds: false,
-	visualBoundsDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 	displayParents: false,
 };
 
 let renderer, scene, stats, camera;
-let geometry, material, boundsViz, containerObj;
+let geometry, material, bvhHelper, containerObj;
 const knots = [];
 const rayCasterObjects = [];
 
@@ -102,23 +102,23 @@ function init() {
 	meshFolder.add( params, 'splitStrategy', { CENTER, SAH, AVERAGE } ).onChange( updateFromOptions );
 	meshFolder.add( params, 'meshCount', 1, 300, 1 ).onChange( updateFromOptions );
 	meshFolder.add( params, 'meshSpeed', 0, 20 );
-	meshFolder.add( params, 'visualizeBounds' ).onChange( updateFromOptions );
+	meshFolder.add( params, 'displayBVH' ).onChange( updateFromOptions );
 	meshFolder.add( params, 'displayParents' ).onChange( v => {
 
-		if ( boundsViz ) {
+		if ( bvhHelper ) {
 
-			boundsViz.displayParents = v;
-			boundsViz.update();
+			bvhHelper.displayParents = v;
+			bvhHelper.update();
 
 		}
 
 	} );
-	meshFolder.add( params, 'visualBoundsDepth', 1, 20, 1 ).onChange( v => {
+	meshFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		if ( boundsViz ) {
+		if ( bvhHelper ) {
 
-			boundsViz.depth = v;
-			boundsViz.update();
+			bvhHelper.depth = v;
+			bvhHelper.update();
 
 		}
 
@@ -243,7 +243,7 @@ function updateFromOptions() {
 		geometry.boundsTree.splitStrategy = params.splitStrategy;
 		console.timeEnd( 'computing bounds tree' );
 
-		if ( boundsViz ) boundsViz.update();
+		if ( bvhHelper ) bvhHelper.update();
 
 	}
 
@@ -284,18 +284,18 @@ function updateFromOptions() {
 	}
 
 	// Update bounds visualization
-	const shouldDisplayBounds = params.visualizeBounds && geometry.boundsTree;
-	if ( boundsViz && ! shouldDisplayBounds ) {
+	const shouldDisplayBounds = params.displayBVH && geometry.boundsTree;
+	if ( bvhHelper && ! shouldDisplayBounds ) {
 
-		containerObj.remove( boundsViz );
-		boundsViz = null;
+		containerObj.remove( bvhHelper );
+		bvhHelper = null;
 
 	}
 
-	if ( ! boundsViz && shouldDisplayBounds ) {
+	if ( ! bvhHelper && shouldDisplayBounds ) {
 
-		boundsViz = new BVHHelper( knots[ 0 ] );
-		containerObj.add( boundsViz );
+		bvhHelper = new BVHHelper( knots[ 0 ] );
+		containerObj.add( bvhHelper );
 
 	}
 
@@ -310,7 +310,7 @@ function render() {
 	const deltaTime = currTime - lastFrameTime;
 
 	// Update GUI settings
-	if ( boundsViz ) boundsViz.visible = params.visualizeBounds;
+	if ( bvhHelper ) bvhHelper.visible = params.displayBVH;
 
 	containerObj.rotation.x += 0.0001 * params.meshSpeed * deltaTime;
 	containerObj.rotation.y += 0.0001 * params.meshSpeed * deltaTime;

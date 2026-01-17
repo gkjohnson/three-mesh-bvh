@@ -9,7 +9,7 @@ const params = {
 	displayCollider: false,
 	displayBVH: false,
 	displayParents: false,
-	visualizeDepth: 10,
+	displayDepth: 10,
 	gravity: - 9.8,
 	physicsSteps: 5,
 	simulationSpeed: 1,
@@ -58,7 +58,7 @@ const params = {
 };
 
 let renderer, camera, scene, clock, stats;
-let environment, collider, visualizer;
+let environment, collider, bvhHelper;
 const spheres = [];
 const hits = [];
 const tempSphere = new THREE.Sphere();
@@ -122,14 +122,14 @@ function init() {
 	visFolder.add( params, 'displayBVH' );
 	visFolder.add( params, 'displayParents' ).onChange( v => {
 
-		visualizer.displayParents = v;
-		visualizer.update();
+		bvhHelper.displayParents = v;
+		bvhHelper.update();
 
 	} );
-	visFolder.add( params, 'visualizeDepth', 1, 20, 1 ).onChange( v => {
+	visFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		visualizer.depth = v;
-		visualizer.update();
+		bvhHelper.depth = v;
+		bvhHelper.update();
 
 	} );
 	visFolder.open();
@@ -226,9 +226,9 @@ function loadColliderEnvironment() {
 			collider.material.opacity = 0.5;
 			collider.material.transparent = true;
 
-			visualizer = new BVHHelper( collider, params.visualizeDepth );
+			bvhHelper = new BVHHelper( collider, params.displayDepth );
 
-			scene.add( visualizer, collider, environment );
+			scene.add( bvhHelper, collider, environment );
 
 			environment.traverse( c => {
 
@@ -491,7 +491,7 @@ function render() {
 	if ( collider ) {
 
 		collider.visible = params.displayCollider;
-		visualizer.visible = params.displayBVH;
+		bvhHelper.visible = params.displayBVH;
 
 		if ( ! params.pause ) update( params.simulationSpeed * delta );
 

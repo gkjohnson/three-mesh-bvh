@@ -13,12 +13,12 @@ const params = {
 	selectWholeModel: false,
 	wireframe: false,
 	useBoundsTree: true,
-	displayHelper: false,
-	helperDepth: 10,
+	displayBVH: false,
+	displayDepth: 10,
 	rotate: true,
 };
 
-let renderer, camera, scene, stats, controls, selectionShape, mesh, helper;
+let renderer, camera, scene, stats, controls, selectionShape, mesh, bvhHelper;
 let highlightMesh, highlightWireframeMesh, outputContainer, group;
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
@@ -88,8 +88,8 @@ function init() {
 	mesh.castShadow = mesh.receiveShadow = true;
 	group.add( mesh );
 
-	helper = new BVHHelper( mesh, 10 );
-	group.add( helper );
+	bvhHelper = new BVHHelper( mesh, 10 );
+	group.add( bvhHelper );
 
 	// Selection highlight meshes
 	highlightMesh = new THREE.Mesh();
@@ -149,7 +149,7 @@ function init() {
 
 	// GUI
 	const gui = new GUI();
-	const selectionFolder = gui.addFolder( 'selection' );
+	const selectionFolder = gui.addFolder( 'Selection' );
 	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] ).onChange( v => {
 
 		tool = v === 'box' ? new BoxSelection() : new LassoSelection();
@@ -161,14 +161,14 @@ function init() {
 	selectionFolder.add( params, 'useBoundsTree' );
 	selectionFolder.open();
 
-	const displayFolder = gui.addFolder( 'display' );
+	const displayFolder = gui.addFolder( 'Display' );
 	displayFolder.add( params, 'wireframe' );
 	displayFolder.add( params, 'rotate' );
-	displayFolder.add( params, 'displayHelper' );
-	displayFolder.add( params, 'helperDepth', 1, 30, 1 ).onChange( v => {
+	displayFolder.add( params, 'displayBVH' );
+	displayFolder.add( params, 'displayDepth', 1, 30, 1 ).onChange( v => {
 
-		helper.depth = v;
-		helper.update();
+		bvhHelper.depth = v;
+		bvhHelper.update();
 
 	} );
 	displayFolder.open();
@@ -221,7 +221,7 @@ function render() {
 	stats.update();
 
 	mesh.material.wireframe = params.wireframe;
-	helper.visible = params.displayHelper;
+	bvhHelper.visible = params.displayBVH;
 
 	const selectionPoints = tool.points;
 

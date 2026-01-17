@@ -15,8 +15,8 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 const plyPath = 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/point-cloud-porsche/scene.ply';
 
 const params = {
-	displayHelper: false,
-	helperDepth: 15,
+	displayBVH: false,
+	displayDepth: 15,
 	displayParents: false,
 	strategy: CENTER,
 	indirect: true,
@@ -25,7 +25,7 @@ const params = {
 	useBVH: true,
 };
 
-let stats, scene, camera, renderer, helper, pointCloud, outputContainer;
+let stats, scene, camera, renderer, bvhHelper, pointCloud, outputContainer;
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 raycaster.firstHitOnly = true;
@@ -81,9 +81,9 @@ function init() {
 		geometry.boundingBox.getCenter( pointCloud.position ).multiplyScalar( - 1 );
 		pointCloud.position.y += 1;
 
-		helper = new BVHHelper( pointCloud, params.helperDepth );
+		bvhHelper = new BVHHelper( pointCloud, params.displayDepth );
 
-		scene.add( pointCloud, helper );
+		scene.add( pointCloud, bvhHelper );
 		updateBVH();
 
 	} );
@@ -91,23 +91,23 @@ function init() {
 	// GUI
 	const gui = new GUI();
 
-	const helperFolder = gui.addFolder( 'helper' );
-	helperFolder.add( params, 'displayHelper' );
-	helperFolder.add( params, 'displayParents' ).onChange( v => {
+	const bvhFolder = gui.addFolder( 'BVH' );
+	bvhFolder.add( params, 'displayBVH' );
+	bvhFolder.add( params, 'displayParents' ).onChange( v => {
 
-		helper.displayParents = v;
-		helper.update();
-
-	} );
-	helperFolder.add( params, 'helperDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
-
-		helper.depth = v;
-		helper.update();
+		bvhHelper.displayParents = v;
+		bvhHelper.update();
 
 	} );
-	helperFolder.open();
+	bvhFolder.add( params, 'displayDepth', 1, 25, 1 ).name( 'depth' ).onChange( v => {
 
-	const pointsFolder = gui.addFolder( 'points' );
+		bvhHelper.depth = v;
+		bvhHelper.update();
+
+	} );
+	bvhFolder.open();
+
+	const pointsFolder = gui.addFolder( 'Points' );
 	pointsFolder.add( params, 'useBVH' ).onChange( updateBVH );
 	pointsFolder.add( params, 'indirect' ).onChange( updateBVH );
 	pointsFolder.add( params, 'strategy', { CENTER, AVERAGE, SAH } ).onChange( updateBVH );
@@ -151,7 +151,7 @@ function updateBVH() {
 
 	}
 
-	helper.update();
+	bvhHelper.update();
 
 }
 
@@ -164,7 +164,7 @@ function render() {
 		// Update GUI settings
 		pointCloud.material.size = params.pointSize;
 		raycaster.params.Points.threshold = params.raycastThreshold;
-		helper.visible = params.displayHelper;
+		bvhHelper.visible = params.displayBVH;
 
 		// Perform raycast
 		raycaster.setFromCamera( mouse, camera );
