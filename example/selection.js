@@ -2,52 +2,38 @@ import * as THREE from 'three';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import {
-	BVHHelper,
-	MeshBVH,
-} from 'three-mesh-bvh';
+import { BVHHelper, MeshBVH } from 'three-mesh-bvh';
 import { LassoSelection, BoxSelection } from './src/Selection.js';
 import { computeSelectedTriangles } from './src/computeSelectedTriangles.js';
 
 const params = {
-
-	/** Selection tool: 'lasso' or 'box'. */
 	toolMode: 'lasso',
-	/**
-	 * How triangles are marked for selection:
-	 * - 'intersection': if any part of the triangle is within the selection shape.
-	 * - 'centroid': if the center of the triangle is within the selection shape.
-	 * - 'centroid-visible': if the center of the triangle is within the selection shape and the triangle is visible.
-	 */
 	selectionMode: 'intersection',
 	liveUpdate: false,
 	selectWholeModel: false,
 	wireframe: false,
 	useBoundsTree: true,
-
 	displayHelper: false,
 	helperDepth: 10,
 	rotate: true,
-
 };
 
-let renderer, camera, scene, gui, stats, controls, selectionShape, mesh, helper;
+let renderer, camera, scene, stats, controls, selectionShape, mesh, helper;
 let highlightMesh, highlightWireframeMesh, outputContainer, group;
 let selectionShapeNeedsUpdate = false;
 let selectionNeedsUpdate = false;
 let tool = new LassoSelection();
 
 init();
-render();
+renderer.setAnimationLoop( render );
 
-/** Set up the scene, controls GUI, and event listeners. */
 function init() {
+
+	const bgColor = 0x263238;
 
 	outputContainer = document.getElementById( 'output' );
 
-	const bgColor = new THREE.Color( 0x263238 );
-
-	// renderer setup
+	// Renderer
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -55,37 +41,39 @@ function init() {
 	renderer.shadowMap.enabled = true;
 	document.body.appendChild( renderer.domElement );
 
-	// scene setup
+	// Scene
 	scene = new THREE.Scene();
 
+	// Lights
 	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.castShadow = true;
 	light.shadow.mapSize.set( 2048, 2048 );
 	light.position.set( 10, 10, 10 );
-	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xb0bec5, 2.5 ) );
 
-	// camera setup
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
+	scene.add(
+		light,
+		new THREE.AmbientLight( 0xb0bec5, 2.5 )
+	);
+
+	// Camera
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 100 );
 	camera.position.set( 2, 4, 6 );
-	camera.far = 100;
-	camera.updateProjectionMatrix();
 	scene.add( camera );
 
-	// selection shape
+	// Selection shape
 	selectionShape = new THREE.Line();
 	selectionShape.material.color.set( 0xff9800 );
 	selectionShape.renderOrder = 1;
-	selectionShape.position.z = - .2;
+	selectionShape.position.z = - 0.2;
 	selectionShape.depthTest = false;
 	selectionShape.scale.setScalar( 1 );
 	camera.add( selectionShape );
 
-	// group for rotation
+	// Group for rotation
 	group = new THREE.Group();
 	scene.add( group );
 
-	// base mesh
+	// Base mesh
 	mesh = new THREE.Mesh(
 		new THREE.TorusKnotGeometry( 1.5, 0.5, 500, 60 ).toNonIndexed(),
 		new THREE.MeshStandardMaterial( {
@@ -97,14 +85,13 @@ function init() {
 	mesh.geometry.setAttribute( 'color', new THREE.Uint8BufferAttribute(
 		new Array( mesh.geometry.index.count * 3 ).fill( 255 ), 3, true
 	) );
-	mesh.castShadow = true;
-	mesh.receiveShadow = true;
+	mesh.castShadow = mesh.receiveShadow = true;
 	group.add( mesh );
 
 	helper = new BVHHelper( mesh, 10 );
 	group.add( helper );
 
-	// meshes for selection highlights
+	// Selection highlight meshes
 	highlightMesh = new THREE.Mesh();
 	highlightMesh.geometry = mesh.geometry.clone();
 	highlightMesh.geometry.drawRange.count = 0;
@@ -112,8 +99,8 @@ function init() {
 		opacity: 0.05,
 		transparent: true,
 		depthWrite: false,
+		color: 0xff9800,
 	} );
-	highlightMesh.material.color.set( 0xff9800 );
 	highlightMesh.renderOrder = 1;
 	group.add( highlightMesh );
 
@@ -124,12 +111,12 @@ function init() {
 		transparent: true,
 		wireframe: true,
 		depthWrite: false,
+		color: 0xff9800,
 	} );
-	highlightWireframeMesh.material.color.copy( highlightMesh.material.color );
 	highlightWireframeMesh.renderOrder = 2;
 	group.add( highlightWireframeMesh );
 
-	// add floor
+	// Floor
 	const gridHelper = new THREE.GridHelper( 10, 10, 0xffffff, 0xffffff );
 	gridHelper.material.opacity = 0.2;
 	gridHelper.material.transparent = true;
@@ -147,11 +134,11 @@ function init() {
 	shadowPlane.receiveShadow = true;
 	scene.add( shadowPlane );
 
-	// stats setup
+	// Stats
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// controls
+	// Controls
 	controls = new OrbitControls( camera, renderer.domElement );
 	controls.minDistance = 3;
 	controls.touches.ONE = THREE.TOUCH.PAN;
@@ -160,20 +147,12 @@ function init() {
 	controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
 	controls.enablePan = false;
 
-	// gui
-	gui = new GUI();
+	// GUI
+	const gui = new GUI();
 	const selectionFolder = gui.addFolder( 'selection' );
-	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] ).onChange( ( v ) => {
+	selectionFolder.add( params, 'toolMode', [ 'lasso', 'box' ] ).onChange( v => {
 
-		if ( v === 'box' ) {
-
-			tool = new BoxSelection();
-
-		} else {
-
-			tool = new LassoSelection();
-
-		}
+		tool = v === 'box' ? new BoxSelection() : new LassoSelection();
 
 	} );
 	selectionFolder.add( params, 'selectionMode', [ 'centroid', 'centroid-visible', 'intersection' ] );
@@ -195,7 +174,8 @@ function init() {
 	displayFolder.open();
 	gui.open();
 
-	renderer.domElement.addEventListener( 'pointerdown', ( e ) => {
+	// Event listeners
+	renderer.domElement.addEventListener( 'pointerdown', e => {
 
 		tool.handlePointerDown( e );
 
@@ -205,22 +185,14 @@ function init() {
 
 		tool.handlePointerUp();
 		selectionShape.visible = false;
-		if ( tool.points.length ) {
-
-			selectionNeedsUpdate = true;
-
-		}
+		if ( tool.points.length ) selectionNeedsUpdate = true;
 
 	} );
 
 	renderer.domElement.addEventListener( 'pointermove', e => {
 
 		// If the left mouse button is not pressed
-		if ( ( 1 & e.buttons ) === 0 ) {
-
-			return;
-
-		}
+		if ( ( 1 & e.buttons ) === 0 ) return;
 
 		const { changed } = tool.handlePointerMove( e );
 
@@ -228,34 +200,29 @@ function init() {
 
 			selectionShapeNeedsUpdate = true;
 			selectionShape.visible = true;
-			if ( params.liveUpdate ) {
-
-				selectionNeedsUpdate = true;
-
-			}
+			if ( params.liveUpdate ) selectionNeedsUpdate = true;
 
 		}
 
 	} );
 
-	window.addEventListener( 'resize', function () {
+	window.addEventListener( 'resize', () => {
 
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
-
 		renderer.setSize( window.innerWidth, window.innerHeight );
 
-	}, false );
+	} );
 
 }
 
 function render() {
 
 	stats.update();
-	requestAnimationFrame( render );
 
 	mesh.material.wireframe = params.wireframe;
 	helper.visible = params.displayHelper;
+
 	const selectionPoints = tool.points;
 
 	// Update the selection lasso lines
@@ -279,11 +246,7 @@ function render() {
 
 		selectionNeedsUpdate = false;
 
-		if ( selectionPoints.length > 0 ) {
-
-			updateSelection();
-
-		}
+		if ( selectionPoints.length > 0 ) updateSelection();
 
 	}
 
@@ -295,24 +258,12 @@ function render() {
 	if ( params.rotate ) {
 
 		group.rotation.y += 0.01;
-		if ( params.liveUpdate && tool.dragging ) {
-
-			selectionNeedsUpdate = true;
-
-		}
+		if ( params.liveUpdate && tool.dragging ) selectionNeedsUpdate = true;
 
 	}
 
 }
 
-/**
- * Compute selected triangles:
- *
- * 1. Construct a list of screen space line segments that represent the lasso shape drawn by the user.
- * 2. For every triangle in the geometry check if any part is within the lasso. If it is then consider the triangle selected.
- *
- * @see https://github.com/gkjohnson/three-mesh-bvh/issues/166#issuecomment-752194034
- */
 function updateSelection() {
 
 	const startTime = window.performance.now();
@@ -323,9 +274,10 @@ function updateSelection() {
 
 	const indexAttr = mesh.geometry.index;
 	const newIndexAttr = highlightMesh.geometry.index;
+
 	if ( indices.length && params.selectWholeModel ) {
 
-		// if we found indices and we want to select the whole model
+		// Select the whole model
 		for ( let i = 0, l = indexAttr.count; i < l; i ++ ) {
 
 			const i2 = indexAttr.getX( i );
@@ -338,7 +290,7 @@ function updateSelection() {
 
 	} else {
 
-		// update the highlight mesh
+		// Update highlight mesh with selected triangles
 		for ( let i = 0, l = indices.length; i < l; i ++ ) {
 
 			const i2 = indexAttr.getX( indices[ i ] );

@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 
 /** Abstract class representing a selection using a pointer. */
 class Selection {
