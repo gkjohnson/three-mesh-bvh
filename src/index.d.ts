@@ -96,6 +96,15 @@ export interface LineSegmentsBVHShapecastCallbacks {
 	) => boolean | void;
 }
 
+export interface GeometryBVHShapecastCallbacks extends ShapecastCallbacks {
+	/** Only invoked for MeshBVH. Ignored when called on PointsBVH or LineSegmentsBVH. */
+	intersectsTriangle?: MeshBVHShapecastCallbacks['intersectsTriangle'];
+	/** Only invoked for PointsBVH. Ignored when called on MeshBVH or LineSegmentsBVH. */
+	intersectsPoint?: PointsBVHShapecastCallbacks['intersectsPoint'];
+	/** Only invoked for LineSegmentsBVH/LineLoopBVH/LineBVH. Ignored when called on MeshBVH or PointsBVH. */
+	intersectsLine?: LineSegmentsBVHShapecastCallbacks['intersectsLine'];
+}
+
 export interface BVHCastCallbacks {
 	intersectsRanges: (
 		offset1: number,
@@ -141,12 +150,7 @@ export class GeometryBVH extends BVH {
 	constructor( geometry: BufferGeometry, options?: BVHOptions );
 	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
 
-	shapecast(
-		callbacks: ShapecastCallbacks
-			& MeshBVHShapecastCallbacks
-			& PointsBVHShapecastCallbacks
-			& LineSegmentsBVHShapecastCallbacks
-	): boolean;
+	shapecast( callbacks: GeometryBVHShapecastCallbacks ): boolean;
 
 }
 
