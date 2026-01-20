@@ -71,6 +71,31 @@ export interface ShapecastCallbacks {
 	) => boolean;
 }
 
+export interface MeshBVHShapecastCallbacks {
+	intersectsTriangle?: (
+		triangle: ExtendedTriangle,
+		triangleIndex: number,
+		contained: boolean,
+		depth: number
+	) => boolean | void;
+}
+
+export interface PointsBVHShapecastCallbacks {
+	intersectsPoint?: (
+		pointIndex: number,
+		contained: boolean,
+		depth: number
+	) => boolean | void;
+}
+
+export interface LineSegmentsBVHShapecastCallbacks {
+	intersectsLine?: (
+		lineIndex: number,
+		contained: boolean,
+		depth: number
+	) => boolean | void;
+}
+
 export interface BVHCastCallbacks {
 	intersectsRanges: (
 		offset1: number,
@@ -115,6 +140,13 @@ export class GeometryBVH extends BVH {
 
 	constructor( geometry: BufferGeometry, options?: BVHOptions );
 	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
+
+	shapecast(
+		callbacks: ShapecastCallbacks
+			& MeshBVHShapecastCallbacks
+			& PointsBVHShapecastCallbacks
+			& LineSegmentsBVHShapecastCallbacks
+	): boolean;
 
 }
 
@@ -161,16 +193,7 @@ export class MeshBVH extends GeometryBVH {
 		maxThreshold?: number
 	): HitPointInfo | null;
 
-	shapecast(
-		callbacks: ShapecastCallbacks & {
-			intersectsTriangle?: (
-				triangle: ExtendedTriangle,
-				triangleIndex: number,
-				contained: boolean,
-				depth: number
-			) => boolean|void
-		}
-	): boolean;
+	shapecast( callbacks: ShapecastCallbacks & MeshBVHShapecastCallbacks ): boolean;
 
 	// union types to enable at least one of two functions:
 	// https://stackoverflow.com/a/60617060/9838891
@@ -196,29 +219,13 @@ export class MeshBVH extends GeometryBVH {
 // other BVHs
 export class PointsBVH extends GeometryBVH {
 
-	shapecast(
-		callbacks: ShapecastCallbacks & {
-			intersectsPoint?: (
-				pointIndex: number,
-				contained: boolean,
-				depth: number
-			) => boolean|void
-		}
-	): boolean;
+	shapecast( callbacks: ShapecastCallbacks & PointsBVHShapecastCallbacks ): boolean;
 
 }
 
 export class LineSegmentsBVH extends GeometryBVH {
 
-	shapecast(
-		callbacks: ShapecastCallbacks & {
-			intersectsLine?: (
-				lineIndex: number,
-				contained: boolean,
-				depth: number
-			) => boolean|void
-		}
-	): boolean;
+	shapecast( callbacks: ShapecastCallbacks & LineSegmentsBVHShapecastCallbacks ): boolean;
 
 }
 

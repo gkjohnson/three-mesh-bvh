@@ -21,3 +21,8 @@ const raycaster = new Raycaster();
 raycaster.firstHitOnly = true;
 
 mesh.raycast( raycaster, [] );
+
+mesh.geometry.boundsTree!.shapecast( {
+	intersectsBounds: () => true,
+	intersectsTriangle: () => false,
+} );
