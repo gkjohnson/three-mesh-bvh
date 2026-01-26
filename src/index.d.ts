@@ -69,6 +69,14 @@ export interface ShapecastCallbacks {
 		nodeIndex: number,
 		box: Box3
 	) => boolean;
+
+	/** @deprecated geometry.boundsTree must be cast to "MeshBVH" in order to use "intersectsTriangle" callback. */
+	intersectsTriangle?: (
+		triangle: ExtendedTriangle,
+		triangleIndex: number,
+		contained: boolean,
+		depth: number
+	) => boolean|void
 }
 
 export interface BVHCastCallbacks {
