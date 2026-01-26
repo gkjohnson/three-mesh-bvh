@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.9.7] - 2025-01-17
+## [0.9.8] - Unreleased
+### Changed
+- Added deprecation warning when using "intersectsTriangle" without casting boundsTree.
+
+## [0.9.7] - 2026-01-17
 ### Added
 - BVH: Added support for "bvhcast" callback
 
