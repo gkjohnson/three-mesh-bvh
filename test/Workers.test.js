@@ -20,9 +20,10 @@ describe( 'Workers', () => {
 			let bvh = null;
 			let workerBvh = null;
 			let error = null;
+			let progress = null;
 			try {
 
-				const geometry = new TorusGeometry( 5, 5, 40, 10 );
+				const geometry = new TorusGeometry( 5, 5, 50, 100 );
 				if ( options.groups ) {
 
 					const chunks = geometry.index.count / 3;
@@ -30,6 +31,17 @@ describe( 'Workers', () => {
 					geometry.addGroup( 0, chunks, 0 );
 					geometry.addGroup( chunks, chunks, 0 );
 					geometry.addGroup( chunks * 2, chunks, 0 );
+
+				}
+
+				if ( options.progress ) {
+
+					progress = [];
+					options.onProgress = v => {
+
+						progress.push( v );
+
+					};
 
 				}
 
@@ -43,6 +55,7 @@ describe( 'Workers', () => {
 					error: e.message,
 					bvh: null,
 					workerBvh: null,
+					progress,
 				};
 
 			}
@@ -57,6 +70,7 @@ describe( 'Workers', () => {
 				error,
 				bvh: serializedBvh,
 				workerBvh: serializedWorkerBvh,
+				progress,
 			};
 
 		}, options );
@@ -110,6 +124,34 @@ describe( 'Workers', () => {
 
 	describe( 'GenerateMeshBVHWorker', () => {
 
+		it( 'should log onProgress correctly', async () => {
+
+			const { workerBvh, bvh, error, progress } = await generate( { progress: true } );
+			const minProgress = Math.min( ...progress );
+			const maxProgress = Math.max( ...progress );
+
+			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( maxProgress ).toBe( 1 );
+
+			expect( error ).toBe( null );
+			expect( workerBvh ).toEqual( bvh );
+
+		} );
+
+		it( 'should log onProgress correctly with groups', async () => {
+
+			const { workerBvh, bvh, error, progress } = await generate( { progress: true, groups: true } );
+			const minProgress = Math.min( ...progress );
+			const maxProgress = Math.max( ...progress );
+
+			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( maxProgress ).toBe( 1 );
+
+			expect( error ).toBe( null );
+			expect( workerBvh ).toEqual( bvh );
+
+		} );
+
 		it( 'should generate a matching bvh', async () => {
 
 			const { workerBvh, bvh, error } = await generate();
@@ -145,6 +187,34 @@ describe( 'Workers', () => {
 	} );
 
 	describe( 'ParallelMeshBVHWorker', () => {
+
+		it( 'should log onProgress correctly', async () => {
+
+			const { workerBvh, bvh, error, progress } = await generate( { progress: true } );
+			const minProgress = Math.min( ...progress );
+			const maxProgress = Math.max( ...progress );
+
+			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( maxProgress ).toBe( 1 );
+
+			expect( error ).toBe( null );
+			expect( workerBvh ).toEqual( bvh );
+
+		} );
+
+		it( 'should log onProgress correctly with groups', async () => {
+
+			const { workerBvh, bvh, error, progress } = await generate( { progress: true, groups: true } );
+			const minProgress = Math.min( ...progress );
+			const maxProgress = Math.max( ...progress );
+
+			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( maxProgress ).toBe( 1 );
+
+			expect( error ).toBe( null );
+			expect( workerBvh ).toEqual( bvh );
+
+		} );
 
 		it( 'should generate a matching bvh', async () => {
 

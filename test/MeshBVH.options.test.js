@@ -50,16 +50,14 @@ describe( 'Options', () => {
 
 		} );
 
-
 		it( 'should provide a progress update in the [0, 1] range for every leaf node with groups.', () => {
 
 			let minProgress = Infinity;
 			let maxProgress = - Infinity;
 			let count = 0;
 
-			mesh.geometry.addGroup( 0, 300, 0 );
-			mesh.geometry.addGroup( 300, 600, 0 );
-
+			mesh.geometry.addGroup( 0, 120000, 0 );
+			mesh.geometry.addGroup( 120000, 120000, 0 );
 			const bvh = new MeshBVH( mesh.geometry, {
 
 				onProgress( progress ) {
@@ -72,7 +70,7 @@ describe( 'Options', () => {
 
 			} );
 
-			const leafNodeCount = getBVHExtremes( bvh )[ 0 ].leafNodeCount;
+			const leafNodeCount = getBVHExtremes( bvh ).reduce( ( v, info ) => v + info.leafNodeCount, 0 );
 			expect( maxProgress ).toEqual( 1.0 );
 			expect( minProgress ).toBeLessThan( 0.001 );
 			expect( count ).toBe( leafNodeCount );
