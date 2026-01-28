@@ -1,0 +1,2 @@
+import{M as r,bm as a,i,ad as t}from"./ExtendedTriangle-hsPasuNU.js";const o=new a(-1,1,1,-1,0,1);class m extends i{constructor(){super(),this.setAttribute("position",new t([-1,3,0,-1,-1,0,3,-1,0],3)),this.setAttribute("uv",new t([0,2,0,0,2,0],2))}}const n=new m;class u{constructor(e){this._mesh=new r(n,e)}dispose(){this._mesh.geometry.dispose()}render(e){e.render(this._mesh,o)}get material(){return this._mesh.material}set material(e){this._mesh.material=e}}export{u as F};
+//# sourceMappingURL=Pass-BOKrxmL7.js.map
