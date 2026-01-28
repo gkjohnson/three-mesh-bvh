@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Added deprecation warning when using "intersectsTriangle" without casting boundsTree.
 
+### Fixed
+- "onProgress" function not broadcasting percentages correctly.
+
+### Added
+- "ObjectBVH" to examples.
+
 ## [0.9.7] - 2026-01-17
 ### Added
 - BVH: Added support for "bvhcast" callback
