@@ -206,22 +206,6 @@ sphere.applyMatrix4( invMat );
 const intersects = bvh.intersectsSphere( sphere );
 ```
 
-## With Skinned and Morph Target Meshes
-
-```js
-import { StaticGeometryGenerator } from 'three-mesh-bvh';
-
-const generator = new StaticGeometryGenerator( [ ...skinnedMeshes ] );
-const geometry = generator.generate();
-geometry.computeBoundsTree();
-
-// ...
-
-// update the geometry in place
-generator.generate( geometry );
-geometry.boundsTree.refit();
-```
-
 ## Serialization and Deserialization
 
 ```js
