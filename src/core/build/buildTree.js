@@ -6,7 +6,7 @@ import { BYTES_PER_NODE } from '../Constants.js';
 import { partition } from './sortUtils.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
 
-export function buildTree( bvh, primitiveBounds, offset, count, options ) {
+export function buildTree( bvh, primitiveBounds, offset, count, options, loadRange ) {
 
 	// expand variables
 	const {
@@ -33,7 +33,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options ) {
 
 		if ( onProgress ) {
 
-			onProgress( primitivesProcessed / count );
+			onProgress( ( primitivesProcessed - loadRange.offset ) / loadRange.count );
 
 		}
 
@@ -135,7 +135,7 @@ export function buildPackedTree( bvh, options ) {
 	// Build BVH roots
 	bvh._roots = rootRanges.map( range => {
 
-		const root = buildTree( bvh, primitiveBounds, range.offset, range.count, options );
+		const root = buildTree( bvh, primitiveBounds, range.offset, range.count, options, fullRange );
 		const nodeCount = countNodes( root );
 		const buffer = new BufferConstructor( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );

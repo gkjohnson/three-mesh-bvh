@@ -50,6 +50,33 @@ describe( 'Options', () => {
 
 		} );
 
+		it( 'should provide a progress update in the [0, 1] range for every leaf node with groups.', () => {
+
+			let minProgress = Infinity;
+			let maxProgress = - Infinity;
+			let count = 0;
+
+			mesh.geometry.addGroup( 0, 120000, 0 );
+			mesh.geometry.addGroup( 120000, 120000, 0 );
+			const bvh = new MeshBVH( mesh.geometry, {
+
+				onProgress( progress ) {
+
+					minProgress = Math.min( minProgress, progress );
+					maxProgress = Math.max( maxProgress, progress );
+					count ++;
+
+				}
+
+			} );
+
+			const leafNodeCount = getBVHExtremes( bvh ).reduce( ( v, info ) => v + info.leafNodeCount, 0 );
+			expect( maxProgress ).toEqual( 1.0 );
+			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( count ).toBe( leafNodeCount );
+
+		} );
+
 	} );
 
 	describe( 'setBoundingBox', () => {
