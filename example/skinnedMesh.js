@@ -4,23 +4,7 @@ import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { BVHHelper, getBVHExtremes } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SkinnedMeshBVH } from './src/bvh/SkinnedMeshBVH.js';
-
-// override SkinnedMesh.prototype.raycast to use BVH if available
-const ogSkinnedMeshRaycast = THREE.SkinnedMesh.prototype.raycast;
-THREE.SkinnedMesh.prototype.raycast = function ( raycaster, intersects ) {
-
-	if ( this.boundsTree && params.bvhRaycast ) {
-
-		this.boundsTree.raycastObject3D( this, raycaster, intersects );
-
-	} else {
-
-		ogSkinnedMeshRaycast.call( this, raycaster, intersects );
-
-	}
-
-};
+import { SkinnedMeshBVH, skinnedMeshAcceleratedRaycast } from './src/bvh/SkinnedMeshBVH.js';
 
 const params = {
 	skeletonHelper: false,
@@ -273,6 +257,22 @@ function updateRaycast() {
 
 	raycaster.setFromCamera( mouse, camera );
 
+	// override SkinnedMesh.prototype.raycast to use BVH if available based on the settings
+	const raycastFunc = params.bvhRaycast ?
+		skinnedMeshAcceleratedRaycast :
+		THREE.SkinnedMesh.prototype.raycast;
+
+	model.traverse( c => {
+
+		if ( c.isSkinnedMesh ) {
+
+			c.raycast = raycastFunc;
+
+		}
+
+	} );
+
+	// run the raycasting
 	const startTime = window.performance.now();
 	const intersects = raycaster.intersectObject( model, true );
 	const hit = intersects[ 0 ];
