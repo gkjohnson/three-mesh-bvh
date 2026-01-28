@@ -64,6 +64,17 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 [Gem Refraction Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/diamond.html)
 
+**Object Hierarchy BVH**
+
+[Accelerated Scene Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_sceneRaycast.html)
+
+[Skinned Meshes](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_skinnedMeshes.html)
+
+[Frustum Culling](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_frustumCulling.html)
+
+<!-- [Character Movement](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_characterMovement.html) -->
+
+
 <!--
 **WebGPU Compute Shaders**
 
