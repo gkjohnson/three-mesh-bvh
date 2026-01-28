@@ -4,7 +4,7 @@ import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { BVHHelper, getBVHExtremes } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SkinnedMeshBVH } from './src/SkinnedMeshBVH.js';
+import { SkinnedMeshBVH } from './src/bvh/SkinnedMeshBVH.js';
 
 // override SkinnedMesh.prototype.raycast to use BVH if available
 const ogSkinnedMeshRaycast = THREE.SkinnedMesh.prototype.raycast;
