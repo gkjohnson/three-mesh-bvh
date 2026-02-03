@@ -241,14 +241,14 @@ function rebuildBVH() {
 
 	}
 
-	container.objectBoundsTree = null;
+	container.boundsTree = null;
 
 	// Build BVH
 	if ( params.useBVH ) {
 
 		console.time( 'BVH Build' );
 		container.updateMatrixWorld();
-		container.objectBoundsTree = new ObjectBVH( container, {
+		container.boundsTree = new ObjectBVH( container, {
 			strategy: params.strategy,
 			precise: params.precise,
 			includeInstances: params.includeInstances,

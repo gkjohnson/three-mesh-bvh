@@ -14,9 +14,9 @@ const _geometryRange = {};
 // TODO: account for a "custom" object? Not necessary here? Create a more abstract foundation for this case?
 export function objectAcceleratedRaycast( raycaster, intersects ) {
 
-	if ( this.objectBoundsTree ) {
+	if ( this.boundsTree ) {
 
-		this.objectBoundsTree.raycast( raycaster, intersects );
+		this.boundsTree.raycast( raycaster, intersects );
 		return false;
 
 	}
