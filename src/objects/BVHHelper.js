@@ -345,7 +345,7 @@ export class BVHHelper extends Group {
 
 		const mesh = this.mesh;
 		const instanceId = this.instanceId;
-		let bvh = this.bvh ?? mesh.geometry?.boundsTree ?? null;
+		let bvh = this.bvh || mesh.boundsTree || mesh.geometry && mesh.geometry.boundsTree || null;
 		if ( mesh && mesh.isBatchedMesh && mesh.boundsTrees && ! bvh && instanceId >= 0 ) {
 
 			// get the bvh from a batchedMesh if not provided
