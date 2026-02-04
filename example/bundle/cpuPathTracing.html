@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - CPU Path Tracing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #info {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            color: #778;
+            font-family: monospace;
+            text-align: center;
+            padding: 5px 0;
+		}
+
+        a {
+            color: #778;
+        }
+
+        #output {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            padding: 5px;
+            color: white;
+            opacity: 0.75;
+            background-color: rgba( 0, 0, 0, 0.35 );
+            font-family: monospace;
+            pointer-events: none;
+            white-space: pre;
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/cpuPathTracing-BY8gx54g.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-hsPasuNU.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-DEZHvbFX.js">
+  <link rel="modulepreload" crossorigin href="./assets/BufferGeometryUtils-BuPYlHUL.js">
+  <link rel="modulepreload" crossorigin href="./assets/GLTFLoader-Be-eETKy.js">
+  <link rel="modulepreload" crossorigin href="./assets/Pass-BOKrxmL7.js">
+  <link rel="modulepreload" crossorigin href="./assets/meshopt_decoder.module-j6OW_3Rk.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-BH_YJbPT.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-DQV6PBDm.js">
+  <link rel="modulepreload" crossorigin href="./assets/GenerateMeshBVHWorker-vOgOjCfJ.js">
+  <link rel="modulepreload" crossorigin href="./assets/ExtensionUtilities-BlnM4xb7.js">
+</head>
+<body>
+    <div id="info">
+		CPU Path Tracer demo based on a smattering of online resources. Engine by <a href="https://sketchfab.com/3d-models/internal-combustion-engine-0be463c1041743d88f0c35b1c2f50f2f">T-FLEX CAD on Sketchfab</a>.
+		<br/><br/>
+		Checkout the <a href="https://raytracing.github.io/">Raytracing in One Weekend</a> series and <a href="http://pbr-book.org/">PBR Book</a> for some great introductions to path tracing!
+	</div>
+	<div id="output">
+	</div>
+</body>
+</html>
