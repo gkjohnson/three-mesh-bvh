@@ -30,6 +30,44 @@ export const bvhNodeStruct = wgsl( /* wgsl */`
 	};
 `, [ bvhNodeBoundsStruct ] );
 
+// BVH2 node struct - direct format from H-PLOC GPU builder
+// Uses absolute child indices instead of relative offsets
+export const bvh2NodeStruct = wgsl( /* wgsl */`
+	struct BVH2Node {
+		boundsMin: vec3f,
+		leftChild: u32,
+		boundsMax: vec3f,
+		rightChild: u32,
+	};
+` );
+
+export const intersectsBoundsBVH2 = wgslFn( /* wgsl */`
+
+	fn intersectsBoundsBVH2(
+		ray: Ray,
+		boundsMin: vec3f,
+		boundsMax: vec3f,
+		dist: ptr<function, f32>
+	) -> bool {
+
+		let invDir = 1.0 / ray.direction;
+		let tMinPlane = ( boundsMin - ray.origin ) * invDir;
+		let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
+
+		let tMinHit = min( tMinPlane, tMaxPlane );
+		let tMaxHit = max( tMinPlane, tMaxPlane );
+
+		let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
+		let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
+
+		( *dist ) = max( t0, 0.0 );
+
+		return t1 >= ( *dist );
+
+	}
+
+`, [ rayStruct ] );
+
 export const intersectionResultStruct = wgsl( /* wgsl */`
 	struct IntersectionResult {
 		didHit: bool,
@@ -40,6 +78,27 @@ export const intersectionResultStruct = wgsl( /* wgsl */`
 		dist: f32,
 	};
 ` );
+
+// Traversal statistics for BVH quality comparison
+export const traversalStatsStruct = wgsl( /* wgsl */`
+	struct TraversalStats {
+		nodesVisited: u32,
+		trianglesTested: u32,
+	};
+` );
+
+// Intersection result with traversal statistics
+export const intersectionResultWithStatsStruct = wgsl( /* wgsl */`
+	struct IntersectionResultWithStats {
+		didHit: bool,
+		indices: vec4u,
+		normal: vec3f,
+		barycoord: vec3f,
+		side: f32,
+		dist: f32,
+		stats: TraversalStats,
+	};
+`, [ traversalStatsStruct ] );
 
 export const getVertexAttribute = wgslFn( /* wgsl */`
 
@@ -117,3 +176,82 @@ export const intersectsBounds = wgslFn( /* wgsl */`
 	}
 
 `, [ rayStruct, bvhNodeBoundsStruct ] );
+
+// Instance struct for TLAS/BLAS traversal
+export const instanceStruct = wgsl( /* wgsl */`
+	struct Instance {
+		transform: mat4x4f,
+		inverseTransform: mat4x4f,
+		blasOffset: u32,       // Offset into unified BLAS buffer
+		indexOffset: u32,      // Offset into index buffer for this geometry
+		positionOffset: u32,   // Offset into position buffer for this geometry
+		materialIndex: u32,    // Index into material array
+		blasRootIndex: u32,    // Root node index in BLAS
+		_padding1: u32,
+		_padding2: u32,
+		_padding3: u32,
+	};
+` );
+
+// Material struct for path tracing
+export const materialStruct = wgsl( /* wgsl */`
+	struct Material {
+		color: vec3f,
+		metalness: f32,
+		roughness: f32,
+		transmission: f32,
+		ior: f32,
+		emissive: f32,
+	};
+` );
+
+// TLAS hit result including instance information
+export const tlasHitResultStruct = wgsl( /* wgsl */`
+	struct TLASHitResult {
+		didHit: bool,
+		indices: vec4u,
+		normal: vec3f,
+		barycoord: vec3f,
+		side: f32,
+		dist: f32,
+		instanceIndex: u32,
+		materialIndex: u32,
+	};
+` );
+
+// Transform ray from world space to object space
+export const transformRay = wgslFn( /* wgsl */`
+
+	fn transformRay( ray: Ray, inverseTransform: mat4x4f ) -> Ray {
+
+		var localRay: Ray;
+
+		// Transform origin (point)
+		let origin4 = inverseTransform * vec4f( ray.origin, 1.0 );
+		localRay.origin = origin4.xyz;
+
+		// Transform direction (vector, no translation)
+		let dir4 = inverseTransform * vec4f( ray.direction, 0.0 );
+		localRay.direction = dir4.xyz;
+
+		return localRay;
+
+	}
+
+`, [ rayStruct ] );
+
+// Transform normal from object space to world space
+export const transformNormal = wgslFn( /* wgsl */`
+
+	fn transformNormal( normal: vec3f, inverseTransform: mat4x4f ) -> vec3f {
+
+		// For normal transformation, use transpose of inverse (which is transpose of inverseTransform)
+		// Since we have inverseTransform, we need transpose(inverseTransform) = transpose(inverse(M))
+		// But normal transforms with inverse transpose, so: transpose(inverse(M)) * n
+		// We already have inverse(M), so we compute transpose(inverse(M)) * n
+		let n4 = transpose( inverseTransform ) * vec4f( normal, 0.0 );
+		return normalize( n4.xyz );
+
+	}
+
+`, [] );
