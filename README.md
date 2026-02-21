@@ -75,11 +75,15 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 <!-- [Character Movement](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_characterMovement.html) -->
 
 
-<!--
 **WebGPU Compute Shaders**
 
 [Simple Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_gpuPathTracingSimple.html)
--->
+
+[Simple Path Tracing (GPU BVH Build)](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_gpuPathTracingSimple_gpuBuild.html)
+
+[Skinned Mesh (GPU BVH Rebuild)](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_skinnedMesh.html)
+
+[Exploding Mesh (GPU BVH Rebuild / Refit)](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_explodingMesh.html)
 
 **External Projects**
 
@@ -1193,6 +1197,72 @@ target : {
 - `uv`: UV coordinates.
 
 This function can be used after a call to [closestPointPoint](#closestPointToPoint) or [closestPointToGeometry](#closestPointToGeometry) to retrieve more detailed result information.
+
+# WebGPU GPU BVH Build API (Experimental)
+
+`src/gpu` contains an experimental WebGPU-first BVH2 builder and validator.
+
+```js
+import { GPUMeshBVH, GPUMeshBVHValidator } from 'three-mesh-bvh/src/gpu/index.js';
+import { bvh2IntersectFirstHit, getVertexAttribute } from 'three-mesh-bvh/webgpu';
+```
+
+`GPUMeshBVH` supports three build paths:
+
+- `build( geometry, options )` uploads a `BufferGeometry`, builds, and reads back `nodeCount` and `rootIndex`.
+- `buildAsync( geometry, options )` uploads geometry and submits build work without CPU readback.
+- `buildAsyncFromGPUBuffers( options )` builds directly from existing GPU position/index buffers (no GPU -> CPU -> GPU round-trip).
+
+Sorter selection defaults to `ONESWEEP` when WebGPU subgroups are available, and falls back to `BUILTIN` otherwise.
+Use `sorterType` in `options` only if you need to explicitly override that default.
+
+Key runtime methods:
+
+- `refit( options )` and `refitAsync( options )` update bounds for the current topology after position changes.
+- `dispose()` frees GPU resources.
+
+Key outputs:
+
+- `bvh2Buffer` is the BVH2 nodes buffer (H-PLOC format).
+- `clusterIdxBuffer` contains the root index at element `0` after build.
+- `maxNodeCount` is the buffer sizing upper bound (`2 * primCount`) when avoiding readback.
+- `passTimings` and `cpuPrepTimings` provide timing breakdowns in debug modes.
+
+Example usage with geometry upload:
+
+```js
+const gpuBVH = new GPUMeshBVH( device );
+await gpuBVH.build( geometry, { debugTiming: true } );
+console.log( gpuBVH.nodeCount, gpuBVH.rootIndex );
+```
+
+Example usage with GPU-resident geometry:
+
+```js
+await gpuBVH.buildAsyncFromGPUBuffers( {
+	positionBuffer,
+	indexBuffer,
+	primCount,
+	positionStride: 4,
+} );
+
+// Use directly in shaders (no CPU readback required)
+const bvh2Nodes = gpuBVH.bvh2Buffer;
+const rootIndexBuffer = gpuBVH.clusterIdxBuffer;
+```
+
+`GPUMeshBVHValidator` provides debug validation helpers:
+
+```js
+const validator = new GPUMeshBVHValidator( gpuBVH );
+const results = await validator.validateAll(); // { sort, bvh }
+```
+
+See these examples for the complete integration:
+
+- `example/webgpu_skinnedMesh.js`
+- `example/webgpu_explodingMesh.js`
+- `example/webgpu_gpuPathTracingSimple_gpuBuild.js`
 
 # Shader and Texture Packing API
 
