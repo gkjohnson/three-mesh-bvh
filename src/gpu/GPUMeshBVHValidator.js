@@ -1029,119 +1029,101 @@ export class GPUMeshBVHValidator {
 
 		const passResults = [];
 
-		// Run 4 passes, validating after each
-		for ( let pass = 0; pass < 4; pass ++ ) {
+		// OneSweep performs all 4 radix passes internally, so this validation path
+		// executes one full sort and inspects the final output.
+		const commandEncoder = device.createCommandEncoder();
 
-			const shift = pass * 8;
-			console.log( `\n--- Pass ${pass} (bits ${shift}-${shift + 7}) ---` );
+		sorter.sort( {
+			commandEncoder,
+			keysIn: keysBuffer,
+			keysOut: keysBuffer,
+			valsIn: valsBuffer,
+			valsOut: valsBuffer,
+			count: primCount,
+		} );
 
-			// Run single pass using sorter's internal method
-			// We need to manually run one pass of the sort
-			const commandEncoder = device.createCommandEncoder();
+		device.queue.submit( [ commandEncoder.finish() ] );
+		await device.queue.onSubmittedWorkDone();
 
-			// Call the full sort but we'll analyze after
-			// Note: OneSweep does 4 passes internally, so we can't easily do single-pass
-			// Instead, let's just run the full sort and analyze the result
+		// Read final result
+		const sortedKeys = await this._readBuffer( keysBuffer, primCount * 4, Uint32Array );
+		const sortedVals = await this._readBuffer( valsBuffer, primCount * 4, Uint32Array );
 
-			if ( pass === 0 ) {
+		// Find where watch elements ended up
+		console.log( `\nFinal positions of watch elements:` );
+		for ( const origIdx of watchIndices ) {
 
-				// On first pass, run full sort
-				sorter.sort( {
-					commandEncoder,
-					keysIn: keysBuffer,
-					keysOut: keysBuffer,
-					valsIn: valsBuffer,
-					valsOut: valsBuffer,
-					count: primCount,
-				} );
+			let foundAt = - 1;
+			let count = 0;
+			for ( let i = 0; i < primCount; i ++ ) {
 
-				device.queue.submit( [ commandEncoder.finish() ] );
-				await device.queue.onSubmittedWorkDone();
+				if ( sortedVals[ i ] === origIdx ) {
 
-				// Read final result
-				const sortedKeys = await this._readBuffer( keysBuffer, primCount * 4, Uint32Array );
-				const sortedVals = await this._readBuffer( valsBuffer, primCount * 4, Uint32Array );
-
-				// Find where watch elements ended up
-				console.log( `\nFinal positions of watch elements:` );
-				for ( const origIdx of watchIndices ) {
-
-					let foundAt = - 1;
-					let count = 0;
-					for ( let i = 0; i < primCount; i ++ ) {
-
-						if ( sortedVals[ i ] === origIdx ) {
-
-							if ( foundAt === - 1 ) foundAt = i;
-							count ++;
-
-						}
-
-					}
-
-					if ( foundAt >= 0 ) {
-
-						console.log( `  origIdx ${origIdx} (key 0x${origKeys[ origIdx ].toString( 16 ).padStart( 8, '0' )}) ` +
-							`-> position ${foundAt}${count > 1 ? ` (DUPLICATED ${count}x!)` : ''}` );
-
-					} else {
-
-						console.log( `  origIdx ${origIdx} (key 0x${origKeys[ origIdx ].toString( 16 ).padStart( 8, '0' )}) ` +
-							`-> MISSING!` );
-
-					}
+					if ( foundAt === - 1 ) foundAt = i;
+					count ++;
 
 				}
 
-				// Check what's at the error positions
-				console.log( `\nValues at error positions:` );
-				for ( const pos of [ 2492, 2557, 629828 ] ) {
+			}
 
-					if ( pos < primCount ) {
+			if ( foundAt >= 0 ) {
 
-						const key = sortedKeys[ pos ];
-						const val = sortedVals[ pos ];
-						console.log( `  position ${pos}: key=0x${key.toString( 16 ).padStart( 8, '0' )}, payload=${val} ` +
-							`(orig key was 0x${origKeys[ val ].toString( 16 ).padStart( 8, '0' )})` );
+				console.log( `  origIdx ${origIdx} (key 0x${origKeys[ origIdx ].toString( 16 ).padStart( 8, '0' )}) ` +
+					`-> position ${foundAt}${count > 1 ? ` (DUPLICATED ${count}x!)` : ''}` );
 
-					}
+			} else {
 
-				}
-
-				// Count duplicates and missing
-				const seen = new Map();
-				let duplicates = 0;
-				for ( let i = 0; i < primCount; i ++ ) {
-
-					const val = sortedVals[ i ];
-					if ( seen.has( val ) ) {
-
-						duplicates ++;
-						if ( duplicates <= 3 ) {
-
-							console.log( `  DUPLICATE: payload ${val} at positions ${seen.get( val )} and ${i}` );
-
-						}
-
-					} else {
-
-						seen.set( val, i );
-
-					}
-
-				}
-
-				passResults.push( {
-					pass: 'all',
-					keysOutOfOrder: this._countOutOfOrder( sortedKeys ),
-					duplicates,
-					missing: primCount - seen.size,
-				} );
-				break;
+				console.log( `  origIdx ${origIdx} (key 0x${origKeys[ origIdx ].toString( 16 ).padStart( 8, '0' )}) ` +
+					`-> MISSING!` );
 
 			}
 
 		}
+
+		// Check what's at the error positions
+		console.log( `\nValues at error positions:` );
+		for ( const pos of [ 2492, 2557, 629828 ] ) {
+
+			if ( pos < primCount ) {
+
+				const key = sortedKeys[ pos ];
+				const val = sortedVals[ pos ];
+				console.log( `  position ${pos}: key=0x${key.toString( 16 ).padStart( 8, '0' )}, payload=${val} ` +
+					`(orig key was 0x${origKeys[ val ].toString( 16 ).padStart( 8, '0' )})` );
+
+			}
+
+		}
+
+		// Count duplicates and missing
+		const seen = new Map();
+		let duplicates = 0;
+		for ( let i = 0; i < primCount; i ++ ) {
+
+			const val = sortedVals[ i ];
+			if ( seen.has( val ) ) {
+
+				duplicates ++;
+				if ( duplicates <= 3 ) {
+
+					console.log( `  DUPLICATE: payload ${val} at positions ${seen.get( val )} and ${i}` );
+
+				}
+
+			} else {
+
+				seen.set( val, i );
+
+			}
+
+		}
+
+		passResults.push( {
+			pass: 'all',
+			keysOutOfOrder: this._countOutOfOrder( sortedKeys ),
+			duplicates,
+			missing: primCount - seen.size,
+		} );
 
 		// Cleanup
 		keysBuffer.destroy();

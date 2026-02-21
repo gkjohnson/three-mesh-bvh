@@ -52,9 +52,10 @@ export class GPUMeshBVH {
 	constructor( device, options = {} ) {
 
 		this.device = device;
+		const features = device.features;
 
 		// Sorter configuration: prefer OneSweep when subgroups available (much faster)
-		const hasSubgroups = device.features && device.features.has( 'subgroups' );
+		const hasSubgroups = features ? features.has( 'subgroups' ) : false;
 		if ( options.sorterType === SorterType.BUILTIN || options.sorterType === SorterType.ONESWEEP ) {
 
 			this._sorterType = options.sorterType;
@@ -100,12 +101,12 @@ export class GPUMeshBVH {
 		this._rootIndex = 0;
 
 		// Timestamp query support (for accurate timing without multi-submit overhead)
-		this._hasTimestampQuery = device.features.has( 'timestamp-query' );
+		this._hasTimestampQuery = features ? features.has( 'timestamp-query' ) : false;
 		this._timestampBuffers = null;
 
 		// Subgroups support - enables 1-subgroup-per-workgroup design for H-PLOC
 		// This eliminates wasted workgroupBarrier() synchronization overhead
-		this._hasSubgroups = device.features && device.features.has( 'subgroups' );
+		this._hasSubgroups = hasSubgroups;
 		this._subgroupSize = 0; // Detected at runtime (32 for Apple/NVIDIA, 64 for AMD)
 		this._hplocShaderVariant = 'fallback'; // 'wave32', 'wave64', or 'fallback'
 		// Default to 64 (fallback workgroup size), updated after subgroup detection
@@ -670,7 +671,6 @@ export class GPUMeshBVH {
 		const initialWorkgroupCount = useIndirectDispatch ? Math.ceil( primCount / this._hplocWorkgroupSize ) : 0;
 		offsets.initCounters = offset;
 		new Uint32Array( uniformData, offset, 4 ).set( [ primCount, initialWorkgroupCount, 0, 0 ] );
-		offset += ALIGN;
 
 		device.queue.writeBuffer( this._buildBuffers.uniforms, 0, uniformData );
 
@@ -1171,7 +1171,6 @@ export class GPUMeshBVH {
 		const initialWorkgroupCount = useIndirectDispatch ? Math.ceil( primCount / this._hplocWorkgroupSize ) : 0;
 		offsets.initCounters = offset;
 		new Uint32Array( uniformData, offset, 4 ).set( [ primCount, initialWorkgroupCount, 0, 0 ] );
-		offset += ALIGN;
 
 		// Upload all uniforms at once
 		device.queue.writeBuffer( this._buildBuffers.uniforms, 0, uniformData );
@@ -1265,7 +1264,6 @@ export class GPUMeshBVH {
 		// Add uniforms for initIndirectCounters shader
 		offsets.initCounters = offset;
 		new Uint32Array( uniformData, offset, 4 ).set( [ primCount, initialWorkgroupCount, 0, 0 ] );
-		offset += ALIGN;
 
 		device.queue.writeBuffer( this._buildBuffers.uniforms, 0, uniformData );
 		// Note: No await needed - WebGPU guarantees ordering between writeBuffer and command submission
@@ -2384,7 +2382,7 @@ export class GPUMeshBVH {
 		// H-PLOC indirect dispatch pipelines - select variant matching direct shader
 		// Wave32/Wave64 indirect variants enable single-pass indirect dispatch
 		let hplocIndirectCode = hplocShaderIndirect; // Fallback
-		let updateDispatchCode = hplocUpdateDispatchShaderWave64; // Default
+		let updateDispatchCode = hplocUpdateDispatchShaderWave64; // Wave64 + fallback
 
 		if ( hplocVariant === 'wave32' ) {
 
@@ -2394,7 +2392,6 @@ export class GPUMeshBVH {
 		} else if ( hplocVariant === 'wave64' ) {
 
 			hplocIndirectCode = hplocShaderWave64Indirect;
-			updateDispatchCode = hplocUpdateDispatchShaderWave64;
 
 		}
 
