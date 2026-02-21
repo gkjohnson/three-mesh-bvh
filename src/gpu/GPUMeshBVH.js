@@ -2052,8 +2052,8 @@ export class GPUMeshBVH {
 			} ),
 
 			// Indirect dispatch buffers for H-PLOC optimization
-			// Double-buffered active lists for ping-pong during indirect dispatch
-			// Note: These are initialized via GPU compute pass (initIndirectCounters + initActiveList)
+			// Double-buffered active lists for ping-pong during indirect dispatch.
+			// Main build path seeds activeList0 in computeBounds; initActiveList is kept for debug replays.
 			activeList0: device.createBuffer( {
 				size: Math.max( 16, newCapacity * 4 ),
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
