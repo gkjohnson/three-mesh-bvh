@@ -8,7 +8,7 @@ import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { generateIndirectBuffer } from '../core/GeometryBVH.js';
 
 let isRunning = false;
-let prevTime = 0;
+let prevTime = - 1;
 const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
 
 self.onmessage = async ( { data } ) => {

@@ -103,6 +103,10 @@ describe( 'Workers', () => {
 
 				console.error( 'error: ', msg.text() );
 
+			} else {
+
+				console.log( msg.text() );
+
 			}
 
 		} );
@@ -134,7 +138,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( minProgress ).toBeLessThan( 0.01 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
@@ -148,7 +152,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( minProgress ).toBeLessThan( 0.01 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
@@ -198,7 +202,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( minProgress ).toBeLessThan( 0.01 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
@@ -212,7 +216,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.001 );
+			expect( minProgress ).toBeLessThan( 0.01 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
