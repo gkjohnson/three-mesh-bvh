@@ -13,8 +13,7 @@ import {
 	Matrix4,
 	REVISION,
 } from 'three';
-import { validateBounds } from 'three-mesh-bvh';
-import { ObjectBVH } from '../example/src/bvh/ObjectBVH.js';
+import { ObjectBVH, validateBounds } from 'three-mesh-bvh';
 import { random, randomizeObjectTransform, runTestMatrix, setSeed } from './utils.js';
 
 const _euler = /* @__PURE__ */ new Euler();

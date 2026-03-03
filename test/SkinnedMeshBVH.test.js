@@ -1,7 +1,7 @@
 import { SkinnedMesh, AnimationMixer, Raycaster, MeshBasicMaterial } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { validateBounds } from 'three-mesh-bvh';
-import { SkinnedMeshBVH, skinnedMeshAcceleratedRaycast } from '../example/src/bvh/SkinnedMeshBVH.js';
+import { validateBounds, SkinnedMeshBVH } from 'three-mesh-bvh';
+import { skinnedMeshAcceleratedRaycast } from '../example/src/BVHRaycastUtils.js';
 import { random, runTestMatrix, setSeed } from './utils.js';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
