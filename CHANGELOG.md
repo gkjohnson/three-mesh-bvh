@@ -5,11 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.9.9] - Unreleased
+### Added
+- Add tests for ObjectBVH, SkinnedMeshBVH
+- ObjectBVH: Add "getObjectFromId", "getInstanceFromId" functions
+
 ### Changed
 - BVHHelper: Handled case where the a root object does not have geometry.
 
 ### Fixed
 - ParallelMeshBVHWorker: Fix failure when reporting progress.
+- ObjectBVH, SkinnedMeshBVH: Fix raycasting bugs for both classes
+- ObjectBVH: Fix case where the first BatchedMesh instance would be skipped
 
 ## [0.9.8] - 2026-01-28
 ### Changed
