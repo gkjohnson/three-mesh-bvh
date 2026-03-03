@@ -6,7 +6,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 
 self.onmessage = ( { data } ) => {
 
-	let prevTime = performance.now();
+	let prevTime = - 1;
 	function onProgressCallback( progress ) {
 
 		// account for error
