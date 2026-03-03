@@ -1,6 +1,7 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
 	Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
-	LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D } from 'three';
+	LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D,
+	SkinnedMesh} from 'three';
 
 // Contants
 export enum SplitStrategy {}
@@ -201,6 +202,22 @@ export class MeshBVH extends GeometryBVH {
 
 }
 
+export class SkinnedMeshBVH extends GeometryBVH {
+
+	constructor( mesh: SkinnedMesh, options?: BVHOptions );
+	shapecast(
+		callbacks: ShapecastCallbacks & {
+			intersectsTriangle?: (
+				triangle: ExtendedTriangle,
+				triangleIndex: number,
+				contained: boolean,
+				depth: number
+			) => boolean|void
+		}
+	): boolean;
+
+}
+
 // other BVHs
 export class PointsBVH extends GeometryBVH {
 
@@ -232,6 +249,25 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 export class LineLoopBVH extends LineSegmentsBVH {}
 export class LineBVH extends LineLoopBVH {}
+
+export class ObjectBVH extends BVH {
+
+	constructor( root: Array<Object3D> | Object3D, options?: BVHOptions );
+	getObjectFromId( compositeId: number ): Object3D;
+	getInstanceFromId( compositeId: number ): number;
+	shapecast(
+		callbacks: ShapecastCallbacks & {
+			intersectsObject?: (
+				object: Object3D,
+				instanceId: number,
+				contained: boolean,
+				depth: number
+			) => boolean|void
+		}
+	): boolean;
+	raycast( raycaster: Raycaster, intersects?: Array<Intersection> ): Array<Intersection>;
+
+}
 
 // SerializedBVH
 export class SerializedBVH {

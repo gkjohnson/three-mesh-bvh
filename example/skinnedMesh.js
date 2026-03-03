@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { BVHHelper, getBVHExtremes } from 'three-mesh-bvh';
+import { BVHHelper, getBVHExtremes, SkinnedMeshBVH } from 'three-mesh-bvh';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SkinnedMeshBVH, skinnedMeshAcceleratedRaycast } from './src/bvh/SkinnedMeshBVH.js';
+import { skinnedMeshAcceleratedRaycast } from './src/BVHRaycastUtils.js';
 
 const params = {
 	skeletonHelper: false,

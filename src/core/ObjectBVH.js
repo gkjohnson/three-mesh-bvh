@@ -11,18 +11,6 @@ const _ray = /* @__PURE__ */ new Ray();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _geometryRange = {};
 
-// TODO: account for a "custom" object? Not necessary here? Create a more abstract foundation for this case?
-export function objectAcceleratedRaycast( raycaster, intersects ) {
-
-	if ( this.boundsTree ) {
-
-		this.boundsTree.raycast( raycaster, intersects );
-		return false;
-
-	}
-
-}
-
 export class ObjectBVH extends BVH {
 
 	constructor( root, options = {} ) {
@@ -124,6 +112,7 @@ export class ObjectBVH extends BVH {
 	}
 
 	// TODO: this is out of sync with the MeshBVH raycast signature.
+	// Change this to "raycastObject3D"? Or add an equivalent?
 	raycast( raycaster, intersects = [] ) {
 
 		const { matrixWorld, includeInstances } = this;

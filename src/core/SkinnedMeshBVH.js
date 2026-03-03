@@ -19,21 +19,6 @@ const _normalA = /* @__PURE__ */ new Vector3();
 const _normalB = /* @__PURE__ */ new Vector3();
 const _normalC = /* @__PURE__ */ new Vector3();
 
-const _raycast = SkinnedMesh.prototype.raycast;
-export const skinnedMeshAcceleratedRaycast = function ( raycaster, intersects ) {
-
-	if ( this.boundsTree ) {
-
-		this.boundsTree.raycastObject3D( this, raycaster, intersects );
-
-	} else {
-
-		_raycast.call( this, raycaster, intersects );
-
-	}
-
-};
-
 export class SkinnedMeshBVH extends GeometryBVH {
 
 	get primitiveStride() {

@@ -3,6 +3,8 @@ export * from './core/GeometryBVH.js';
 export * from './core/MeshBVH.js';
 export * from './core/LineBVH.js';
 export * from './core/PointsBVH.js';
+export * from './core/ObjectBVH.js';
+export * from './core/SkinnedMeshBVH.js';
 export * from './objects/BVHHelper.js';
 export { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED, SKIP_GENERATION } from './core/Constants.js';
 export { getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds } from './debug/Debug.js';
