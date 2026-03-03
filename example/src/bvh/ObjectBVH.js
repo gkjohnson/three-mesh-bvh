@@ -192,7 +192,7 @@ export class ObjectBVH extends BVH {
 					const geometryRange = object.getGeometryRangeAt( geometryId, _geometryRange );
 
 					_geometry.index = object.geometry.index;
-					_geometry.attributes.position = object.geometry.attributes.position;
+					_geometry.attributes = object.geometry.attributes;
 					_geometry.setDrawRange( geometryRange.start, geometryRange.count );
 
 					_mesh.geometry = _geometry;
@@ -213,7 +213,7 @@ export class ObjectBVH extends BVH {
 
 					_mesh.material = null;
 					_geometry.index = null;
-					_geometry.attributes.position = null;
+					_geometry.attributes = null;
 					_geometry.setDrawRange( 0, Infinity );
 
 				} else {
@@ -314,7 +314,7 @@ export class ObjectBVH extends BVH {
 				const geometryRange = object.getGeometryRangeAt( geometryId, _geometryRange );
 
 				_geometry.index = object.geometry.index;
-				_geometry.attributes.position = object.geometry.attributes.position;
+				_geometry.attributes = object.geometry.attributes;
 				_geometry.setDrawRange( geometryRange.start, geometryRange.count );
 
 				object
@@ -325,6 +325,8 @@ export class ObjectBVH extends BVH {
 					.premultiply( inverseMatrixWorld );
 
 				getPreciseBounds( _geometry, _matrix, target );
+
+				_geometry.attributes = null;
 
 			} else {
 
