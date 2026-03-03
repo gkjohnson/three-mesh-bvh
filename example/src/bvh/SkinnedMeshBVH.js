@@ -1,4 +1,4 @@
-import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, SkinnedMesh } from 'three';
+import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, SkinnedMesh, REVISION } from 'three';
 import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED, SKIP_GENERATION } from 'three-mesh-bvh';
 
 const _v0 = /* @__PURE__ */ new Vector3();
@@ -8,6 +8,16 @@ const _ray = /* @__PURE__ */ new Ray();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _localPoint = /* @__PURE__ */ new Vector3();
 const _axes = [ 'x', 'y', 'z' ];
+
+const IS_GT_REVISION_169 = parseInt( REVISION ) >= 169;
+const IS_LT_REVISION_161 = parseInt( REVISION ) <= 161;
+
+const _uvA = /* @__PURE__ */ new Vector2();
+const _uvB = /* @__PURE__ */ new Vector2();
+const _uvC = /* @__PURE__ */ new Vector2();
+const _normalA = /* @__PURE__ */ new Vector3();
+const _normalB = /* @__PURE__ */ new Vector3();
+const _normalC = /* @__PURE__ */ new Vector3();
 
 const _raycast = SkinnedMesh.prototype.raycast;
 export const skinnedMeshAcceleratedRaycast = function ( raycaster, intersects ) {
@@ -207,16 +217,11 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 					}
 
-					// calculate barycentric coordinates
-					const barycoord = new Vector3();
-					Triangle.getBarycoord( _localPoint, tri.a, tri.b, tri.c, barycoord );
-
 					// build the intersection result
 					const hit = {
 						distance: dist,
 						point: point.clone(),
 						object,
-						barycoord,
 						uv: null,
 						uv1: null,
 						normal: null,
@@ -230,6 +235,14 @@ export class SkinnedMeshBVH extends GeometryBVH {
 						faceIndex: actualTri,
 					};
 
+					if ( IS_GT_REVISION_169 ) {
+
+						const barycoord = new Vector3();
+						Triangle.getBarycoord( _localPoint, tri.a, tri.b, tri.c, barycoord );
+						hit.barycoord = barycoord;
+
+					}
+
 					// add attribute fields if available
 					const uv = geometry.attributes.uv;
 					const uv1 = geometry.attributes.uv1;
@@ -237,25 +250,44 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 					if ( uv ) {
 
-						hit.uv = Triangle.getInterpolatedAttribute( uv, ai, bi, ci, barycoord, new Vector2() );
+						_uvA.fromBufferAttribute( uv, ai );
+						_uvB.fromBufferAttribute( uv, bi );
+						_uvC.fromBufferAttribute( uv, ci );
+
+						hit.uv = new Vector2();
+						const resUv = Triangle.getInterpolation( _localPoint, tri.a, tri.b, tri.c, _uvA, _uvB, _uvC, hit.uv );
+						if ( ! IS_GT_REVISION_169 ) hit.uv = resUv;
 
 					}
 
 					if ( uv1 ) {
 
-						hit.uv1 = Triangle.getInterpolatedAttribute( uv1, ai, bi, ci, barycoord, new Vector2() );
+						_uvA.fromBufferAttribute( uv1, ai );
+						_uvB.fromBufferAttribute( uv1, bi );
+						_uvC.fromBufferAttribute( uv1, ci );
+
+						hit.uv1 = new Vector2();
+						const resUv1 = Triangle.getInterpolation( _localPoint, tri.a, tri.b, tri.c, _uvA, _uvB, _uvC, hit.uv1 );
+						if ( ! IS_GT_REVISION_169 ) hit.uv1 = resUv1;
+						if ( IS_LT_REVISION_161 ) hit.uv2 = hit.uv1;
 
 					}
 
 					if ( normal ) {
 
-						hit.normal = Triangle.getInterpolatedAttribute( normal, ai, bi, ci, barycoord, new Vector3() );
+						_normalA.fromBufferAttribute( normal, ai );
+						_normalB.fromBufferAttribute( normal, bi );
+						_normalC.fromBufferAttribute( normal, ci );
 
+						hit.normal = new Vector3();
+						const resNormal = Triangle.getInterpolation( _localPoint, tri.a, tri.b, tri.c, _normalA, _normalB, _normalC, hit.normal );
 						if ( hit.normal.dot( _ray.direction ) > 0 ) {
 
 							hit.normal.multiplyScalar( - 1 );
 
 						}
+
+						if ( ! IS_GT_REVISION_169 ) hit.normal = resNormal;
 
 					}
 
