@@ -32,8 +32,9 @@ runTestMatrix( {
 	maxLeafSize: [ 1 ],
 }, ( desc, options ) => {
 
-	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
-	if ( IS_REVISION_166 ) {
+	// ObjectBVH requires "getGeometryRangeAt" from r169
+	const IS_REVISION_169 = parseInt( REVISION ) >= 169;
+	if ( IS_REVISION_169 ) {
 
 		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
 
