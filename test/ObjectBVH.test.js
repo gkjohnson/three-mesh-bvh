@@ -65,7 +65,7 @@ function runSuiteWithOptions( options ) {
 
 			// InstancedMesh — 3 instances
 			const instancedMesh = new InstancedMesh( new BoxGeometry( 0.7, 0.7, 0.7 ), new MeshBasicMaterial(), 3 );
-			for ( let i = 0; i < 3; i ++ ) {
+			for ( let i = 0; i < 5; i ++ ) {
 
 				randomizeMatrix( _matrix );
 				instancedMesh.setMatrixAt( i, _matrix );
@@ -81,14 +81,14 @@ function runSuiteWithOptions( options ) {
 			const sphereGeomId = batchedMesh.addGeometry( new SphereGeometry( 0.4, 6, 6 ) );
 			const boxGeomId = batchedMesh.addGeometry( new BoxGeometry( 0.6, 0.6, 0.6 ) );
 
-			for ( let i = 0; i < 2; i ++ ) {
+			for ( let i = 0; i < 5; i ++ ) {
 
 				randomizeMatrix( _matrix );
 				batchedMesh.setMatrixAt( batchedMesh.addInstance( sphereGeomId ), _matrix );
 
 			}
 
-			for ( let i = 0; i < 2; i ++ ) {
+			for ( let i = 0; i < 5; i ++ ) {
 
 				randomizeMatrix( _matrix );
 				batchedMesh.setMatrixAt( batchedMesh.addInstance( boxGeomId ), _matrix );

@@ -18,7 +18,7 @@ import {
 	LineSegmentsBVH,
 	validateBounds,
 } from 'three-mesh-bvh';
-import { random, runTestMatrix, setSeed } from './utils.js';
+import { random, randomizeObjectTransform, runTestMatrix, setSeed } from './utils.js';
 
 Line.prototype.raycast = acceleratedRaycast;
 LineLoop.prototype.raycast = acceleratedRaycast;
@@ -169,29 +169,3 @@ function runSuiteWithOptions( options ) {
 
 }
 
-function randomizeObjectTransform( target, uniformScale = false ) {
-
-	target.rotation.x = random() * 10;
-	target.rotation.y = random() * 10;
-	target.rotation.z = random() * 10;
-
-	target.position.x = random();
-	target.position.y = random();
-	target.position.z = random();
-
-	// NOTE: negative scales are not used because Line raycasting seems to not handle it correctly
-	if ( uniformScale ) {
-
-		target.scale.setScalar( random() );
-
-	} else {
-
-		target.scale.x = random();
-		target.scale.y = random();
-		target.scale.z = random();
-
-	}
-
-	target.updateMatrixWorld( true );
-
-}

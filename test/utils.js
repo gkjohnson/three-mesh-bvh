@@ -57,6 +57,32 @@ export function getRandomOrientation( matrix, range ) {
 
 }
 
+export function randomizeObjectTransform( target, uniformScale = false ) {
+
+	target.rotation.x = random() * 10;
+	target.rotation.y = random() * 10;
+	target.rotation.z = random() * 10;
+
+	target.position.x = random();
+	target.position.y = random();
+	target.position.z = random();
+
+	if ( uniformScale ) {
+
+		target.scale.setScalar( random() );
+
+	} else {
+
+		target.scale.x = random();
+		target.scale.y = random();
+		target.scale.z = random();
+
+	}
+
+	target.updateMatrixWorld( true );
+
+}
+
 export function runTestMatrix( optionsMatrix = {}, cb ) {
 
 	// Import strategy constants lazily to avoid circular dependencies
