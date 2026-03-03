@@ -434,6 +434,12 @@ export class ObjectBVH extends BVH {
 
 			} else if ( object.isBatchedMesh && includeInstances ) {
 
+				if ( ! ( 'instanceCount' in object ) ) {
+
+					throw new Error( 'ObjectBVH: Three.js revision >= r169 is required to use BatchedMesh.' );
+
+				}
+
 				total += object.instanceCount;
 
 			} else {
