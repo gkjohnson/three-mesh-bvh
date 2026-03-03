@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - BVHHelper: Handled case where the a root object does not have geometry.
 
+### Fixed
+- ParallelMeshBVHWorker: Fix failure when reporting progress.
+
 ## [0.9.8] - 2026-01-28
 ### Changed
 - Added deprecation warning when using "intersectsTriangle" without casting boundsTree.
