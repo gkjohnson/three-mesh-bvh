@@ -8,7 +8,7 @@ import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { generateIndirectBuffer } from '../core/GeometryBVH.js';
 
 let isRunning = false;
-let prevTime = 0;
+let prevTime = - 1;
 const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
 
 self.onmessage = async ( { data } ) => {
@@ -23,6 +23,8 @@ self.onmessage = async ( { data } ) => {
 	if ( operation === 'BUILD_BVH' ) {
 
 		isRunning = true;
+
+		triggerOnProgress( 0 );
 
 		const {
 			maxWorkerCount,
@@ -112,7 +114,7 @@ self.onmessage = async ( { data } ) => {
 			// build the tree down to the necessary depth
 			const promises = [];
 			const range = rootRanges[ i ];
-			const root = buildTree( proxyBvh, primitiveBounds, range.offset, range.count, localOptions );
+			const root = buildTree( proxyBvh, primitiveBounds, range.offset, range.count, localOptions, fullRange );
 			const flatNodes = flattenNodes( root );
 			let bufferLengths = 0;
 			let remainingNodes = 0;
@@ -221,7 +223,7 @@ self.onmessage = async ( { data } ) => {
 		// reconstruct the triangle bounds structure before use
 		triangleBounds.offset = triangleBoundsOffset;
 
-		const root = buildTree( proxyBvh, triangleBounds, offset, count, localOptions );
+		const root = buildTree( proxyBvh, triangleBounds, offset, count, localOptions, { offset, count } );
 		const nodeCount = countNodes( root );
 		const buffer = new ArrayBuffer( BYTES_PER_NODE * nodeCount );
 		populateBuffer( 0, root, buffer );

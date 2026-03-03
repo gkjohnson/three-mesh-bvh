@@ -45,7 +45,11 @@ describe( 'Workers', () => {
 
 				}
 
-				bvh = new MeshBVH( geometry.clone(), options );
+				bvh = new MeshBVH( geometry.clone(), {
+					...options,
+					onProgress: null,
+				} );
+
 				workerBvh = await worker.generate( geometry.clone(), options );
 				worker.dispose();
 
@@ -98,6 +102,10 @@ describe( 'Workers', () => {
 			if ( type === 'error' ) {
 
 				console.error( 'error: ', msg.text() );
+
+			} else {
+
+				console.log( msg.text() );
 
 			}
 
@@ -190,7 +198,7 @@ describe( 'Workers', () => {
 
 		it( 'should log onProgress correctly', async () => {
 
-			const { workerBvh, bvh, error, progress } = await generate( { progress: true } );
+			const { workerBvh, bvh, error, progress } = await generate( { parallel: true, progress: true } );
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
@@ -204,7 +212,7 @@ describe( 'Workers', () => {
 
 		it( 'should log onProgress correctly with groups', async () => {
 
-			const { workerBvh, bvh, error, progress } = await generate( { progress: true, groups: true } );
+			const { workerBvh, bvh, error, progress } = await generate( { parallel: true, progress: true, groups: true } );
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 

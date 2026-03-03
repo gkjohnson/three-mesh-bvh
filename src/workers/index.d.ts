@@ -7,7 +7,7 @@ export class GenerateMeshBVHWorker {
 
 }
 
-export class ParallelBVHWorker extends GenerateMeshBVHWorker {
+export class ParallelMeshBVHWorker extends GenerateMeshBVHWorker {
 
 	maxWorkerCount: number;
 
