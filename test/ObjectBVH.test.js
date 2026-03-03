@@ -11,6 +11,7 @@ import {
 	Quaternion,
 	Vector3,
 	Matrix4,
+	REVISION,
 } from 'three';
 import { validateBounds } from 'three-mesh-bvh';
 import { ObjectBVH } from '../example/src/bvh/ObjectBVH.js';
@@ -31,7 +32,15 @@ runTestMatrix( {
 	maxLeafSize: [ 1 ],
 }, ( desc, options ) => {
 
-	describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
+	if ( REVISION >= 165 ) {
+
+		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
+
+	} else {
+
+		describe.skip( 'Skipping tests due to three.js revision' );
+
+	}
 
 } );
 
