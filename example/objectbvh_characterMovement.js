@@ -4,8 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, BVHHelper } from 'three-mesh-bvh';
-import { ObjectBVH } from './src/bvh/ObjectBVH.js';
+import { MeshBVH, ObjectBVH, BVHHelper } from 'three-mesh-bvh';
 
 const params = {
 	firstPerson: false,
@@ -202,7 +201,7 @@ function init() {
 
 function loadColliderEnvironment() {
 
-	new GLTFLoader().load( new URL( './models/grandmas_house_compressed.glb', import.meta.url ).toString(), res => {
+	new GLTFLoader().load( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/grandmas-house/grandmas_house.glb', res => {
 
 		const gltfScene = res.scene;
 		gltfScene.scale.setScalar( 1.75 );

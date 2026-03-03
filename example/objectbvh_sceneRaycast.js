@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
-import { AVERAGE, CENTER, BVHHelper, SAH } from 'three-mesh-bvh';
-import { ObjectBVH, objectAcceleratedRaycast } from './src/bvh/ObjectBVH.js';
+import { AVERAGE, CENTER, BVHHelper, SAH, ObjectBVH } from 'three-mesh-bvh';
+import { objectAcceleratedRaycast } from './src/BVHRaycastUtils.js';
 
 const params = {
 	// Scene

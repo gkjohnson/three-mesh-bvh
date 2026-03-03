@@ -4,8 +4,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ObjectBVH } from './src/bvh/ObjectBVH.js';
-import { BVHHelper } from 'three-mesh-bvh';
+import { BVHHelper, ObjectBVH } from 'three-mesh-bvh';
 
 const CHARACTER_COUNT = 50;
 

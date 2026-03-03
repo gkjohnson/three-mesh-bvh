@@ -2,10 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
-import { BVHHelper, CONTAINED, INTERSECTED } from 'three-mesh-bvh';
+import { BVHHelper, ObjectBVH, CONTAINED, INTERSECTED } from 'three-mesh-bvh';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { ObjectBVH } from './src/bvh/ObjectBVH.js';
 
 const params = {
 	animate: true,

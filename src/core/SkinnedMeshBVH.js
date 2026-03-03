@@ -1,4 +1,4 @@
-import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, SkinnedMesh, REVISION } from 'three';
+import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, REVISION } from 'three';
 import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED, SKIP_GENERATION } from 'three-mesh-bvh';
 
 const _v0 = /* @__PURE__ */ new Vector3();
@@ -18,21 +18,6 @@ const _uvC = /* @__PURE__ */ new Vector2();
 const _normalA = /* @__PURE__ */ new Vector3();
 const _normalB = /* @__PURE__ */ new Vector3();
 const _normalC = /* @__PURE__ */ new Vector3();
-
-const _raycast = SkinnedMesh.prototype.raycast;
-export const skinnedMeshAcceleratedRaycast = function ( raycaster, intersects ) {
-
-	if ( this.boundsTree ) {
-
-		this.boundsTree.raycastObject3D( this, raycaster, intersects );
-
-	} else {
-
-		_raycast.call( this, raycaster, intersects );
-
-	}
-
-};
 
 export class SkinnedMeshBVH extends GeometryBVH {
 
