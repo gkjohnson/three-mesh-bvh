@@ -14,7 +14,7 @@ import {
 } from 'three';
 import { validateBounds } from 'three-mesh-bvh';
 import { ObjectBVH } from '../example/src/bvh/ObjectBVH.js';
-import { random, runTestMatrix, setSeed } from './utils.js';
+import { random, randomizeObjectTransform, runTestMatrix, setSeed } from './utils.js';
 
 const _euler = /* @__PURE__ */ new Euler();
 const _quaternion = /* @__PURE__ */ new Quaternion();
@@ -50,22 +50,24 @@ function runSuiteWithOptions( options ) {
 			objects = [];
 
 			// Regular meshes
-			for ( const geometry of [
+			const meshGeometries = [
 				new SphereGeometry( 0.5, 8, 8 ),
 				new BoxGeometry( 0.8, 0.8, 0.8 ),
 				new SphereGeometry( 0.3, 6, 6 ),
-			] ) {
+				new BoxGeometry( 0.6, 0.6, 0.6 ),
+			];
+			for ( let i = 0; i < 20; i ++ ) {
 
-				const mesh = new Mesh( geometry, new MeshBasicMaterial() );
+				const mesh = new Mesh( meshGeometries[ i % meshGeometries.length ], new MeshBasicMaterial() );
 				randomizeObjectTransform( mesh );
 				scene.add( mesh );
 				objects.push( mesh );
 
 			}
 
-			// InstancedMesh — 3 instances
-			const instancedMesh = new InstancedMesh( new BoxGeometry( 0.7, 0.7, 0.7 ), new MeshBasicMaterial(), 3 );
-			for ( let i = 0; i < 5; i ++ ) {
+			// InstancedMesh — 20 instances
+			const instancedMesh = new InstancedMesh( new BoxGeometry( 0.7, 0.7, 0.7 ), new MeshBasicMaterial(), 20 );
+			for ( let i = 0; i < 20; i ++ ) {
 
 				randomizeMatrix( _matrix );
 				instancedMesh.setMatrixAt( i, _matrix );
@@ -76,19 +78,19 @@ function runSuiteWithOptions( options ) {
 			scene.add( instancedMesh );
 			objects.push( instancedMesh );
 
-			// BatchedMesh — 2 geometry types, 4 instances total
-			const batchedMesh = new BatchedMesh( 4, 2000, 2000, new MeshBasicMaterial() );
+			// BatchedMesh — 2 geometry types, 20 instances total
+			const batchedMesh = new BatchedMesh( 20, 2000, 2000, new MeshBasicMaterial() );
 			const sphereGeomId = batchedMesh.addGeometry( new SphereGeometry( 0.4, 6, 6 ) );
 			const boxGeomId = batchedMesh.addGeometry( new BoxGeometry( 0.6, 0.6, 0.6 ) );
 
-			for ( let i = 0; i < 5; i ++ ) {
+			for ( let i = 0; i < 10; i ++ ) {
 
 				randomizeMatrix( _matrix );
 				batchedMesh.setMatrixAt( batchedMesh.addInstance( sphereGeomId ), _matrix );
 
 			}
 
-			for ( let i = 0; i < 5; i ++ ) {
+			for ( let i = 0; i < 10; i ++ ) {
 
 				randomizeMatrix( _matrix );
 				batchedMesh.setMatrixAt( batchedMesh.addInstance( boxGeomId ), _matrix );
@@ -139,24 +141,6 @@ function runSuiteWithOptions( options ) {
 		}
 
 	} );
-
-}
-
-function randomizeObjectTransform( target ) {
-
-	target.position.x = ( random() - 0.5 ) * 4;
-	target.position.y = ( random() - 0.5 ) * 4;
-	target.position.z = ( random() - 0.5 ) * 4;
-
-	target.rotation.x = random() * Math.PI * 2;
-	target.rotation.y = random() * Math.PI * 2;
-	target.rotation.z = random() * Math.PI * 2;
-
-	target.scale.x = random() * 1.5 + 0.5;
-	target.scale.y = random() * 1.5 + 0.5;
-	target.scale.z = random() * 1.5 + 0.5;
-
-	target.updateMatrixWorld( true );
 
 }
 
