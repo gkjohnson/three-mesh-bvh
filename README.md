@@ -149,9 +149,9 @@ raycaster.firstHitOnly = true;
 raycaster.intersectObjects( [ mesh ] );
 ```
 
-## Other BVH Types
+## Additional Geometry BVHs
 
-In addition to `MeshBVH` for triangle meshes, the library provides specialized BVH implementations for other primitive types:
+In addition to `MeshBVH` for triangle meshes, the library provides specialized BVH implementations for other geometry types:
 
 - **PointsBVH** - For `THREE.Points` geometries
 - **LineBVH** - For `THREE.Line` geometries
@@ -174,6 +174,10 @@ geometry.boundsTree = new PointsBVH( geometry );
 ```
 
 Each BVH type implements a core API including shapecast & raycastObject3D for its specific primitive type. See the [point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html) & [line intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/lineIntersection.html) examples for a working demonstration. Some features like webworker-generation and serialization are not supported at the moment.
+
+## Additional BVHs
+
+A `SkinnedMeshBVH` for SkinnedMeshes and `ObjectBVH` for constructing scene-wide BVH to query a hierarchy of objects. These are recently added so the APIs may change over time.
 
 ## Querying the BVH Directly
 
