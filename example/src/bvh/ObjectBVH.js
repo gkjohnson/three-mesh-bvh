@@ -62,6 +62,21 @@ export class ObjectBVH extends BVH {
 
 	}
 
+	getObjectFromId( compositeId ) {
+
+		const { idMask, objects } = this;
+		const id = getObjectId( compositeId, idMask );
+		return objects[ id ];
+
+	}
+
+	getInstanceFromId( compositeId ) {
+
+		const { idMask, idBits } = this;
+		return getInstanceId( compositeId, idBits, idMask );
+
+	}
+
 	init( options ) {
 
 		const { objects, idBits } = this;

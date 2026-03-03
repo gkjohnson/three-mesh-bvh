@@ -1,4 +1,4 @@
-import { SkinnedMesh, AnimationMixer, LoadingManager, Raycaster, MeshBasicMaterial } from 'three';
+import { SkinnedMesh, AnimationMixer, Raycaster, MeshBasicMaterial } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { validateBounds } from 'three-mesh-bvh';
 import { SkinnedMeshBVH, skinnedMeshAcceleratedRaycast } from '../example/src/bvh/SkinnedMeshBVH.js';
