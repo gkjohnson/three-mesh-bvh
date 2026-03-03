@@ -24,6 +24,8 @@ self.onmessage = async ( { data } ) => {
 
 		isRunning = true;
 
+		triggerOnProgress( 0 );
+
 		const {
 			maxWorkerCount,
 			index,

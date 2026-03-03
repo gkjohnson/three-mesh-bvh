@@ -138,7 +138,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.01 );
+			expect( minProgress ).toBeLessThan( 0.001 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
@@ -152,7 +152,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.01 );
+			expect( minProgress ).toBeLessThan( 0.001 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
@@ -202,7 +202,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.01 );
+			expect( minProgress ).toBeLessThan( 0.001 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
@@ -216,7 +216,7 @@ describe( 'Workers', () => {
 			const minProgress = Math.min( ...progress );
 			const maxProgress = Math.max( ...progress );
 
-			expect( minProgress ).toBeLessThan( 0.01 );
+			expect( minProgress ).toBeLessThan( 0.001 );
 			expect( maxProgress ).toBe( 1 );
 
 			expect( error ).toBe( null );
