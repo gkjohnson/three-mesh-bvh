@@ -62,6 +62,21 @@ export class ObjectBVH extends BVH {
 
 	}
 
+	getObjectFromId( compositeId ) {
+
+		const { idMask, objects } = this;
+		const id = getObjectId( compositeId, idMask );
+		return objects[ id ];
+
+	}
+
+	getInstanceFromId( compositeId ) {
+
+		const { idMask, idBits } = this;
+		return getInstanceId( compositeId, idBits, idMask );
+
+	}
+
 	init( options ) {
 
 		const { objects, idBits } = this;
@@ -158,6 +173,8 @@ export class ObjectBVH extends BVH {
 
 				}
 
+				localIntersects.length = 0;
+
 				if ( object.isInstancedMesh && includeInstances ) {
 
 					// raycast the instance
@@ -190,7 +207,7 @@ export class ObjectBVH extends BVH {
 					const geometryRange = object.getGeometryRangeAt( geometryId, _geometryRange );
 
 					_geometry.index = object.geometry.index;
-					_geometry.attributes.position = object.geometry.attributes.position;
+					_geometry.attributes = object.geometry.attributes;
 					_geometry.setDrawRange( geometryRange.start, geometryRange.count );
 
 					_mesh.geometry = _geometry;
@@ -211,7 +228,7 @@ export class ObjectBVH extends BVH {
 
 					_mesh.material = null;
 					_geometry.index = null;
-					_geometry.attributes.position = null;
+					_geometry.attributes = null;
 					_geometry.setDrawRange( 0, Infinity );
 
 				} else {
@@ -312,7 +329,7 @@ export class ObjectBVH extends BVH {
 				const geometryRange = object.getGeometryRangeAt( geometryId, _geometryRange );
 
 				_geometry.index = object.geometry.index;
-				_geometry.attributes.position = object.geometry.attributes.position;
+				_geometry.attributes = object.geometry.attributes;
 				_geometry.setDrawRange( geometryRange.start, geometryRange.count );
 
 				object
@@ -323,6 +340,8 @@ export class ObjectBVH extends BVH {
 					.premultiply( inverseMatrixWorld );
 
 				getPreciseBounds( _geometry, _matrix, target );
+
+				_geometry.attributes = null;
 
 			} else {
 
@@ -415,6 +434,12 @@ export class ObjectBVH extends BVH {
 
 			} else if ( object.isBatchedMesh && includeInstances ) {
 
+				if ( ! ( 'instanceCount' in object ) ) {
+
+					throw new Error( 'ObjectBVH: Three.js revision >= r169 is required to use BatchedMesh.' );
+
+				}
+
 				total += object.instanceCount;
 
 			} else {
@@ -453,8 +478,6 @@ export class ObjectBVH extends BVH {
 
 				while ( foundInstances < instanceCount && iter < maxInstanceCount ) {
 
-					iter ++;
-
 					// TODO: it would be better to have a consistent way of querying whether an
 					// instance were active
 					try {
@@ -470,6 +493,8 @@ export class ObjectBVH extends BVH {
 						//
 
 					}
+
+					iter ++;
 
 				}
 
