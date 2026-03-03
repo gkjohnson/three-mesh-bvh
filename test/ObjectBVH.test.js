@@ -32,7 +32,8 @@ runTestMatrix( {
 	maxLeafSize: [ 1 ],
 }, ( desc, options ) => {
 
-	if ( REVISION >= 165 ) {
+	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
+	if ( REVISION >= IS_REVISION_166 ) {
 
 		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
 
