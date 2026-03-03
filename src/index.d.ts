@@ -1,7 +1,8 @@
 import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
 	Intersection, Box3, Triangle, Vector2, Raycaster, MeshBasicMaterial, Group,
 	LineBasicMaterial, Mesh, DataTexture, BufferAttribute, Line3, Object3D,
-	SkinnedMesh} from 'three';
+	SkinnedMesh,
+} from 'three';
 
 // Contants
 export enum SplitStrategy {}
