@@ -1,4 +1,4 @@
-import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, SkinnedMesh, REVISION } from 'three';
+import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, REVISION } from 'three';
 import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED, SKIP_GENERATION } from 'three-mesh-bvh';
 
 const _v0 = /* @__PURE__ */ new Vector3();
