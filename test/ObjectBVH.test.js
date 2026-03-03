@@ -33,7 +33,7 @@ runTestMatrix( {
 }, ( desc, options ) => {
 
 	const IS_REVISION_166 = parseInt( REVISION ) >= 166;
-	if ( REVISION >= IS_REVISION_166 ) {
+	if ( IS_REVISION_166 ) {
 
 		describe( `Running with Options: { ${ desc } }`, () => runSuiteWithOptions( options ) );
 
