@@ -227,7 +227,7 @@ export class SkinnedMeshBVH extends GeometryBVH {
 							normal: Triangle.getNormal( tri.a, tri.b, tri.c, new Vector3() ),
 							materialIndex: 0
 						},
-						faceIndex: ai,
+						faceIndex: actualTri,
 					};
 
 					// add attribute fields if available

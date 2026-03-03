@@ -158,6 +158,8 @@ export class ObjectBVH extends BVH {
 
 				}
 
+				localIntersects.length = 0;
+
 				if ( object.isInstancedMesh && includeInstances ) {
 
 					// raycast the instance
@@ -453,8 +455,6 @@ export class ObjectBVH extends BVH {
 
 				while ( foundInstances < instanceCount && iter < maxInstanceCount ) {
 
-					iter ++;
-
 					// TODO: it would be better to have a consistent way of querying whether an
 					// instance were active
 					try {
@@ -470,6 +470,8 @@ export class ObjectBVH extends BVH {
 						//
 
 					}
+
+					iter ++;
 
 				}
 
