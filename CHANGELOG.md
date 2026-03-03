@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add tests for ObjectBVH, SkinnedMeshBVH
 - ObjectBVH: Add "getObjectFromId", "getInstanceFromId" functions
+- Moved "ObjectBVH" and "SkinnedMeshBVH" to core. These classes are still in development and APIs may change.
 
 ### Changed
 - BVHHelper: Handled case where the a root object does not have geometry.
