@@ -23,6 +23,7 @@ const _getters = [ 'getX', 'getY', 'getZ' ];
 /**
  * BVH for `THREE.LineSegments` geometries. Each BVH primitive represents one line segment
  * (two consecutive vertices).
+ * @extends GeometryBVH
  */
 export class LineSegmentsBVH extends GeometryBVH {
 
@@ -174,6 +175,7 @@ export class LineSegmentsBVH extends GeometryBVH {
 /**
  * BVH for `THREE.LineLoop` geometries. Forces indirect mode since the loop structure
  * requires that the index buffer remain unmodified.
+ * @extends LineSegmentsBVH
  */
 export class LineLoopBVH extends LineSegmentsBVH {
 
@@ -201,6 +203,7 @@ export class LineLoopBVH extends LineSegmentsBVH {
 /**
  * BVH for `THREE.Line` geometries. Like `LineLoopBVH` but excludes the final closing
  * segment so the open line is accurately represented.
+ * @extends LineLoopBVH
  */
 export class LineBVH extends LineLoopBVH {
 

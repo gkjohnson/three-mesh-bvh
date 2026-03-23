@@ -29,6 +29,7 @@ const _geometryRange = {};
  * @param {Object} [options] - Accepts all standard BVH options plus:
  * @param {boolean} [options.precise=false] - Use vertex-level bounds instead of cached bounding boxes.
  * @param {boolean} [options.includeInstances=true] - Treat each instance of InstancedMesh/BatchedMesh as a separate primitive.
+ * @extends BVH
  */
 export class ObjectBVH extends BVH {
 

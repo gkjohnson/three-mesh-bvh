@@ -52,6 +52,7 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
  * @param {boolean} [options.verbose=true] - Log build progress to the console.
  * @param {Function|null} [options.onProgress=null] - Called with a progress value in [0, 1] during build.
  * @param {Object|null} [options.range=null] - Restrict the BVH to a specific geometry group range.
+ * @extends BVH
  */
 export class GeometryBVH extends BVH {
 

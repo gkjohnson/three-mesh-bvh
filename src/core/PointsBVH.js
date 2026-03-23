@@ -19,6 +19,7 @@ const _box = /* @__PURE__ */ new Box3();
 
 /**
  * BVH for `THREE.Points` geometries. Each BVH primitive represents a single point.
+ * @extends GeometryBVH
  */
 export class PointsBVH extends GeometryBVH {
 

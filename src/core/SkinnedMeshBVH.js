@@ -35,6 +35,7 @@ const _normalC = /* @__PURE__ */ new Vector3();
  *
  * @param {THREE.SkinnedMesh} mesh
  * @param {Object} [options] - Same options as {@link GeometryBVH}.
+ * @extends GeometryBVH
  */
 export class SkinnedMeshBVH extends GeometryBVH {
 
