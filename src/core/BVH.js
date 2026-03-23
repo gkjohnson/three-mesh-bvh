@@ -9,6 +9,51 @@ import { bvhcast } from './cast/bvhcast.js';
 const _tempBox = /* @__PURE__ */ new Box3();
 const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
 
+/**
+ * @callback BoundsTraverseOrderCallback
+ * @param {Box3} box
+ * @returns {number}
+ */
+
+/**
+ * @callback IntersectsBoundsCallback
+ * @param {Box3} box
+ * @param {boolean} isLeaf
+ * @param {number|undefined} score
+ * @param {number} depth
+ * @param {number} nodeIndex
+ * @returns {number}
+ */
+
+/**
+ * @callback IntersectsRangeCallback
+ * @param {number} offset
+ * @param {number} count
+ * @param {boolean} contained
+ * @param {number} depth
+ * @param {number} nodeIndex
+ * @param {Box3} box
+ * @returns {boolean}
+ */
+
+/**
+ * @callback IntersectsRangesCallback
+ * @param {number} offset1
+ * @param {number} count1
+ * @param {number} offset2
+ * @param {number} count2
+ * @param {number} depth1
+ * @param {number} nodeIndex1
+ * @param {number} depth2
+ * @param {number} nodeIndex2
+ * @returns {boolean}
+ */
+
+/**
+ * Abstract base class for BVH implementations. Provides core tree traversal and spatial query
+ * methods. Subclasses implement primitive-specific logic by overriding `writePrimitiveBounds`
+ * and related internal methods.
+ */
 export class BVH {
 
 	constructor() {
@@ -117,6 +162,11 @@ export class BVH {
 
 	}
 
+	/**
+	 * Adjusts all primitive offsets stored in the BVH leaf nodes by the given value. Useful when
+	 * geometry buffers have been shifted or compacted (e.g. when merging geometries).
+	 * @param {number} offset
+	 */
 	shiftPrimitiveOffsets( offset ) {
 
 		const indirectBuffer = this._indirectBuffer;
@@ -158,6 +208,16 @@ export class BVH {
 
 	}
 
+	/**
+	 * Traverses all nodes of the BVH, invoking a callback for each node.
+	 *
+	 * For leaf nodes the callback receives `( depth, isLeaf, boundingData, offset, count )`.
+	 * For internal nodes it receives `( depth, isLeaf, boundingData, splitAxis )` and may
+	 * return `true` to stop descending into that node's children.
+	 *
+	 * @param {Function} callback
+	 * @param {number} [rootIndex=0]
+	 */
 	traverse( callback, rootIndex = 0 ) {
 
 		const buffer = this._roots[ rootIndex ];
@@ -195,6 +255,10 @@ export class BVH {
 
 	}
 
+	/**
+	 * Refits all BVH node bounds to reflect the current primitive positions. Faster than
+	 * rebuilding the BVH but produces a less optimal tree after large vertex deformations.
+	 */
 	refit( /* nodeIndices = null */ ) {
 
 		// TODO: add support for "nodeIndices"
@@ -256,6 +320,11 @@ export class BVH {
 
 	}
 
+	/**
+	 * Computes the axis-aligned bounding box of all primitives in the BVH.
+	 * @param {Box3} target - Target box to write the result into.
+	 * @returns {Box3}
+	 */
 	getBoundingBox( target ) {
 
 		target.makeEmpty();
@@ -272,6 +341,19 @@ export class BVH {
 
 	}
 
+	/**
+	 * A generalized traversal function for performing spatial queries against the BVH. Returns
+	 * `true` as soon as a primitive has been reported as intersected. The tree is traversed
+	 * depth-first; `boundsTraverseOrder` controls which child is visited first. Returning
+	 * `CONTAINED` from `intersectsBounds` skips further child traversal and intersects all
+	 * primitives in that subtree immediately.
+	 *
+	 * @param {Object} callbacks
+	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
+	 * @param {IntersectsRangeCallback} [callbacks.intersectsRange]
+	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
+	 * @returns {boolean}
+	 */
 	// Base shapecast implementation that can be used by subclasses
 	// TODO: see if we can get rid of "iterateFunc" here as well as the primitive so the function
 	// API aligns with the "shapecast" implementation
@@ -348,6 +430,17 @@ export class BVH {
 
 	}
 
+	/**
+	 * Simultaneously traverses two BVH structures to find intersecting primitive pairs. Returns
+	 * `true` as soon as any intersection is reported. Both trees are traversed depth-first with
+	 * alternating descent. `matrixToLocal` transforms `otherBvh` into the local space of this BVH.
+	 *
+	 * @param {BVH} otherBvh
+	 * @param {Matrix4} matrixToLocal
+	 * @param {Object} callbacks
+	 * @param {IntersectsRangesCallback} callbacks.intersectsRanges
+	 * @returns {boolean}
+	 */
 	bvhcast( otherBvh, matrixToLocal, callbacks ) {
 
 		let { intersectsRanges } = callbacks;
