@@ -1,3 +1,4 @@
+/** @import { Matrix4 } from 'three' */
 import { Box3 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS, FLOAT32_EPSILON } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';

@@ -10,7 +10,7 @@ const _box = /* @__PURE__ */ new Box3();
 
 /**
  * @callback IntersectsPointCallback
- * @param {THREE.Vector3} point - The point primitive in local space.
+ * @param {Vector3} point - The point primitive in local space.
  * @param {number} index - The primitive index within the BVH buffer.
  * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
  * @param {number} depth - The depth of the node in the tree.

@@ -1,3 +1,4 @@
+/** @import { SkinnedMesh } from 'three' */
 import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, REVISION } from 'three';
 import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED, SKIP_GENERATION } from 'three-mesh-bvh';
 
@@ -29,11 +30,11 @@ const _normalC = /* @__PURE__ */ new Vector3();
  */
 
 /**
- * BVH for `THREE.SkinnedMesh` objects. Computes primitive bounds using
+ * BVH for `SkinnedMesh` objects. Computes primitive bounds using
  * `SkinnedMesh.getVertexPosition` so the tree reflects the current posed state
  * of the mesh. Call `refit()` after updating the skeleton to keep bounds accurate.
  *
- * @param {THREE.SkinnedMesh} mesh
+ * @param {SkinnedMesh} mesh
  * @param {Object} [options] - Same options as {@link GeometryBVH}.
  * @extends GeometryBVH
  */

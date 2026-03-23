@@ -1,9 +1,11 @@
+/** @import { Line3 } from 'three' */
+
 /**
  * Check if two line segments intersect.
  *
  * Source: https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
- * @param {THREE.Line3} l1
- * @param {THREE.Line3} l2
+ * @param {Line3} l1
+ * @param {Line3} l2
  * @returns {boolean}
  */
 export function lineCrossesLine( l1, l2 ) {

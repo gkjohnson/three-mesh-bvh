@@ -1,3 +1,4 @@
+/** @import { BufferGeometry } from 'three' */
 import { Box3 } from 'three';
 import { SKIP_GENERATION, DEFAULT_OPTIONS } from './Constants.js';
 import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
@@ -41,7 +42,7 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
  * primitive-specific bounds computation and raycasting via `writePrimitiveBounds`
  * and `raycastObject3D`.
  *
- * @param {THREE.BufferGeometry} geometry
+ * @param {BufferGeometry} geometry
  * @param {Object} [options]
  * @param {number} [options.strategy=CENTER] - Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
  * @param {number} [options.maxDepth=40] - Maximum tree depth.
@@ -112,7 +113,7 @@ export class GeometryBVH extends BVH {
 
 		/**
 		 * The geometry this BVH was built from.
-		 * @type {THREE.BufferGeometry}
+		 * @type {BufferGeometry}
 		 * @readonly
 		 */
 		this.geometry = geometry;

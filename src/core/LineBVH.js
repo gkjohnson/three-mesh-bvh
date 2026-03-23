@@ -13,7 +13,7 @@ const _getters = [ 'getX', 'getY', 'getZ' ];
 
 /**
  * @callback IntersectsLineCallback
- * @param {THREE.Line3} line - The line segment primitive in local space.
+ * @param {Line3} line - The line segment primitive in local space.
  * @param {number} index - The primitive index within the BVH buffer.
  * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
  * @param {number} depth - The depth of the node in the tree.

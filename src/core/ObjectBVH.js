@@ -1,3 +1,4 @@
+/** @import { Object3D } from 'three' */
 import { Box3, BufferGeometry, Matrix4, Mesh, Vector3, Ray, Sphere } from 'three';
 import { BVH, INTERSECTED, NOT_INTERSECTED } from 'three-mesh-bvh';
 
@@ -13,7 +14,7 @@ const _geometryRange = {};
 
 /**
  * @callback IntersectsObjectCallback
- * @param {THREE.Object3D} object - The scene object whose bounds were intersected.
+ * @param {Object3D} object - The scene object whose bounds were intersected.
  * @param {number} instanceId - Instance index for InstancedMesh/BatchedMesh, or 0 for regular objects.
  * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
  * @param {number} depth - The depth of the node in the tree.
@@ -25,7 +26,7 @@ const _geometryRange = {};
  * one Object3D (or one instance of an InstancedMesh/BatchedMesh), enabling
  * accelerated raycasting and spatial queries across many objects at once.
  *
- * @param {THREE.Object3D | Array<THREE.Object3D>} root - Root object or array of objects.
+ * @param {Object3D | Array<Object3D>} root - Root object or array of objects.
  * @param {Object} [options] - Accepts all standard BVH options plus:
  * @param {boolean} [options.precise=false] - Use vertex-level bounds instead of cached bounding boxes.
  * @param {boolean} [options.includeInstances=true] - Treat each instance of InstancedMesh/BatchedMesh as a separate primitive.
@@ -73,7 +74,7 @@ export class ObjectBVH extends BVH {
 	/**
 	 * Returns the `Object3D` associated with a composite id as provided to `intersectsObject`.
 	 * @param {number} compositeId
-	 * @returns {THREE.Object3D}
+	 * @returns {Object3D}
 	 */
 	getObjectFromId( compositeId ) {
 

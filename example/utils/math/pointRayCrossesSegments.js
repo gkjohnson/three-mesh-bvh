@@ -1,7 +1,9 @@
+/** @import { Vector3, Line3 } from 'three' */
+
 /**
  * Check if the given point is inside the given polygon.
- * @param {THREE.Vector3} point
- * @param {Array<THREE.Line3>} polygon
+ * @param {Vector3} point
+ * @param {Array<Line3>} polygon
  * @returns {boolean}
  * @see https://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
  */
@@ -13,8 +15,8 @@ export function isPointInsidePolygon( point, polygon ) {
 
 /**
  * Count how many times a ray cast from the given point crosses the segments.
- * @param {THREE.Vector3} point
- * @param {Array<THREE.Line3>} segments
+ * @param {Vector3} point
+ * @param {Array<Line3>} segments
  * @returns {number}
  */
 function pointRayCrossesSegments( point, segments ) {
@@ -45,8 +47,8 @@ function pointRayCrossesSegments( point, segments ) {
 /**
  * Check if a ray cast from `point` to the right intersects the line segment.
  *
- * @param {THREE.Vector3} point
- * @param {THREE.Line3} line
+ * @param {Vector3} point
+ * @param {Line3} line
  * @param {boolean} prevSegmentGoesDown
  * @param {boolean} thisSegmentGoesDown
  */
