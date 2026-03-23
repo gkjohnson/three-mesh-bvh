@@ -11,6 +11,25 @@ const _ray = /* @__PURE__ */ new Ray();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _geometryRange = {};
 
+/**
+ * @callback IntersectsObjectCallback
+ * @param {THREE.Object3D} object - The scene object whose bounds were intersected.
+ * @param {number} instanceId - Instance index for InstancedMesh/BatchedMesh, or 0 for regular objects.
+ * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
+ * @param {number} depth - The depth of the node in the tree.
+ * @returns {boolean} Return `true` to stop traversal.
+ */
+
+/**
+ * BVH built from a scene hierarchy rather than a single geometry. Each leaf holds
+ * one Object3D (or one instance of an InstancedMesh/BatchedMesh), enabling
+ * accelerated raycasting and spatial queries across many objects at once.
+ *
+ * @param {THREE.Object3D | Array<THREE.Object3D>} root - Root object or array of objects.
+ * @param {Object} [options] - Accepts all standard BVH options plus:
+ * @param {boolean} [options.precise=false] - Use vertex-level bounds instead of cached bounding boxes.
+ * @param {boolean} [options.includeInstances=true] - Treat each instance of InstancedMesh/BatchedMesh as a separate primitive.
+ */
 export class ObjectBVH extends BVH {
 
 	constructor( root, options = {} ) {
@@ -50,6 +69,11 @@ export class ObjectBVH extends BVH {
 
 	}
 
+	/**
+	 * Returns the `Object3D` associated with a composite id as provided to `intersectsObject`.
+	 * @param {number} compositeId
+	 * @returns {THREE.Object3D}
+	 */
 	getObjectFromId( compositeId ) {
 
 		const { idMask, objects } = this;
@@ -58,6 +82,11 @@ export class ObjectBVH extends BVH {
 
 	}
 
+	/**
+	 * Returns the instance index associated with a composite id as provided to `intersectsObject`.
+	 * @param {number} compositeId
+	 * @returns {number}
+	 */
 	getInstanceFromId( compositeId ) {
 
 		const { idMask, idBits } = this;
@@ -99,6 +128,17 @@ export class ObjectBVH extends BVH {
 
 	}
 
+	/**
+	 * Performs a spatial query against the BVH. Extends the base `shapecast` with an
+	 * `intersectsObject` callback that is called once per object primitive in leaf nodes.
+	 *
+	 * @param {Object} callbacks
+	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
+	 * @param {IntersectsObjectCallback} [callbacks.intersectsObject]
+	 * @param {IntersectsRangeCallback} [callbacks.intersectsRange]
+	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
+	 * @returns {boolean}
+	 */
 	shapecast( callbacks ) {
 
 		return super.shapecast( {

@@ -108,6 +108,12 @@ export class GeometryBVH extends BVH {
 
 		// retain references to the geometry so we can use them it without having to
 		// take a geometry reference in every function.
+
+		/**
+		 * The geometry this BVH was built from.
+		 * @type {THREE.BufferGeometry}
+		 * @readonly
+		 */
 		this.geometry = geometry;
 		this.resolvePrimitiveIndex = options.indirect ? i => this._indirectBuffer[ i ] : i => i;
 		this.primitiveBuffer = null;
