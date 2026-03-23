@@ -18,7 +18,7 @@ function renderAlertTags( doc ) {
 
 		if ( tag.title === 'warn' || tag.title === 'note' ) {
 
-			const type = tag.title === 'warn' ? 'WARN' : 'NOTE';
+			const type = tag.title === 'warn' ? 'WARNING' : 'NOTE';
 			lines.push( `> [!${ type }]` );
 			for ( const line of tag.value.split( '\n' ) ) {
 
