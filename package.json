@@ -73,8 +73,10 @@
     "concurrently": "^8.2.1",
     "eslint": "^9.0.0",
     "eslint-config-mdcs": "^5.0.0",
+    "eslint-plugin-jsdoc": "^50.8.0",
     "glob": "^10.3.3",
     "globals": "^16.5.0",
+    "jsdoc": "^4.0.5",
     "jsdom": "^26.0.0",
     "jsdom-worker": "^0.3.0",
     "preprocess": "^3.2.0",
@@ -88,7 +90,6 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.48.1",
     "vite": "^6.2.2",
-    "vitest": "^4.0.14",
-    "jsdoc": "^4.0.5"
+    "vitest": "^4.0.14"
   }
 }

@@ -12,7 +12,7 @@ import {
  * 1. Construct a list of screen space line segments that represent the shape drawn by the user.
  * 2. For every triangle in the geometry check if any part is within the shape. If it is then consider the triangle selected.
  *
- * @returns Array of triplets representing indices of vertices of selected triangles
+ * @returns {Array} Array of triplets representing indices of vertices of selected triangles
  *
  * @see https://github.com/gkjohnson/three-mesh-bvh/issues/166#issuecomment-752194034
  */

@@ -273,7 +273,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 	 * Calculates intersection segment of a triangle with intersection line.
 	 * Intersection line is snapped to its biggest component.
 	 * And triangle points are passed as a projection on that component.
-	 * @returns whether this is a coplanar case or not
+	 * @returns {boolean} whether this is a coplanar case or not
 	 */
 	function findIntersectionLineBounds( self, aProj, bProj, cProj, abDist, acDist, aDist, bDist, cDist, bounds, edge ) {
 
