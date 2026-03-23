@@ -1,4 +1,5 @@
 /** @import { Object3D } from 'three' */
+/** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Box3, BufferGeometry, Matrix4, Mesh, Vector3, Ray, Sphere } from 'three';
 import { BVH, INTERSECTED, NOT_INTERSECTED } from 'three-mesh-bvh';
 

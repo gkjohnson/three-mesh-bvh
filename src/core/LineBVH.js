@@ -1,3 +1,4 @@
+/** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
