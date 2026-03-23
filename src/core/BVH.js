@@ -354,7 +354,6 @@ export class BVH {
 	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
 	 * @returns {boolean}
 	 */
-	// Base shapecast implementation that can be used by subclasses
 	// TODO: see if we can get rid of "iterateFunc" here as well as the primitive so the function
 	// API aligns with the "shapecast" implementation
 	shapecast( callbacks ) {

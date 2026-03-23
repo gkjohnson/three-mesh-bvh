@@ -11,6 +11,19 @@ const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
 const _box = /* @__PURE__ */ new Box3();
 const _getters = [ 'getX', 'getY', 'getZ' ];
 
+/**
+ * @callback IntersectsLineCallback
+ * @param {THREE.Line3} line - The line segment primitive in local space.
+ * @param {number} index - The primitive index within the BVH buffer.
+ * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
+ * @param {number} depth - The depth of the node in the tree.
+ * @returns {boolean} Return `true` to stop traversal.
+ */
+
+/**
+ * BVH for `THREE.LineSegments` geometries. Each BVH primitive represents one line segment
+ * (two consecutive vertices).
+ */
 export class LineSegmentsBVH extends GeometryBVH {
 
 	get primitiveStride() {
@@ -57,6 +70,17 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 	}
 
+	/**
+	 * Performs a spatial query against the BVH. Extends the base `shapecast` with an
+	 * `intersectsLine` callback that is called once per line segment primitive in leaf nodes.
+	 *
+	 * @param {Object} callbacks
+	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
+	 * @param {IntersectsLineCallback} [callbacks.intersectsLine]
+	 * @param {IntersectsRangeCallback} [callbacks.intersectsRange]
+	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
+	 * @returns {boolean}
+	 */
 	shapecast( callbacks ) {
 
 		const line = _linePool.getPrimitive();
@@ -147,6 +171,10 @@ export class LineSegmentsBVH extends GeometryBVH {
 
 }
 
+/**
+ * BVH for `THREE.LineLoop` geometries. Forces indirect mode since the loop structure
+ * requires that the index buffer remain unmodified.
+ */
 export class LineLoopBVH extends LineSegmentsBVH {
 
 	get primitiveStride() {
@@ -170,6 +198,10 @@ export class LineLoopBVH extends LineSegmentsBVH {
 
 }
 
+/**
+ * BVH for `THREE.Line` geometries. Like `LineLoopBVH` but excludes the final closing
+ * segment so the open line is accurately represented.
+ */
 export class LineBVH extends LineLoopBVH {
 
 	getRootRanges( ...args ) {

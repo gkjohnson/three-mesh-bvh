@@ -1,11 +1,43 @@
 // Split strategy constants
+
+/**
+ * Splits each BVH node at the center of its longest axis. Fastest to build and
+ * yields good performance for most geometry.
+ */
 export const CENTER = 0;
+
+/**
+ * Splits each BVH node at the average centroid position along the longest axis.
+ * May produce better results than `CENTER` for irregular geometry.
+ */
 export const AVERAGE = 1;
+
+/**
+ * Uses a Surface Area Heuristic to find the lowest-cost split across 32 candidate
+ * positions per axis. Slowest to build but yields the most optimal tree and lowest
+ * memory usage.
+ */
 export const SAH = 2;
 
 // Traversal constants
+
+/**
+ * Returned from `intersectsBounds` to indicate the query shape does not intersect
+ * the bounding box. Traversal does not descend into this node.
+ */
 export const NOT_INTERSECTED = 0;
+
+/**
+ * Returned from `intersectsBounds` to indicate the query shape intersects the
+ * bounding box. Traversal continues into child nodes.
+ */
 export const INTERSECTED = 1;
+
+/**
+ * Returned from `intersectsBounds` to indicate the query shape fully contains the
+ * bounding box. All primitives in the subtree are intersected immediately without
+ * further bounds testing.
+ */
 export const CONTAINED = 2;
 
 // SAH cost constants

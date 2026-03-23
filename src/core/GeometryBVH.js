@@ -35,8 +35,31 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
 
 }
 
+/**
+ * Abstract base class for geometry-backed BVH implementations. Handles geometry
+ * indexing, indirect mode, and bounding box initialization. Subclasses implement
+ * primitive-specific bounds computation and raycasting via `writePrimitiveBounds`
+ * and `raycastObject3D`.
+ *
+ * @param {THREE.BufferGeometry} geometry
+ * @param {Object} [options]
+ * @param {number} [options.strategy=CENTER] - Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
+ * @param {number} [options.maxDepth=40] - Maximum tree depth.
+ * @param {number} [options.maxLeafSize=10] - Maximum primitives per leaf node.
+ * @param {boolean} [options.setBoundingBox=true] - Set `geometry.boundingBox` if not already present.
+ * @param {boolean} [options.useSharedArrayBuffer=false] - Use `SharedArrayBuffer` for BVH root buffers.
+ * @param {boolean} [options.indirect=false] - Build using an indirect buffer, leaving the original index unmodified.
+ * @param {boolean} [options.verbose=true] - Log build progress to the console.
+ * @param {Function|null} [options.onProgress=null] - Called with a progress value in [0, 1] during build.
+ * @param {Object|null} [options.range=null] - Restrict the BVH to a specific geometry group range.
+ */
 export class GeometryBVH extends BVH {
 
+	/**
+	 * Whether the BVH was built in indirect mode.
+	 * @type {boolean}
+	 * @readonly
+	 */
 	get indirect() {
 
 		return ! ! this._indirectBuffer;
