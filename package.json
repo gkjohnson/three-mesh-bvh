@@ -24,7 +24,8 @@
     "test": "npm run build-silent && vitest run",
     "lint": "eslint . && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "docs:build": "node utils/docs/build.js"
   },
   "files": [
     "src/*",
@@ -87,6 +88,7 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.48.1",
     "vite": "^6.2.2",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.14",
+    "jsdoc": "^4.0.5"
   }
 }
