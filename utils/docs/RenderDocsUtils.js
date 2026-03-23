@@ -306,6 +306,89 @@ export function renderMethod( doc, callbackMap = {} ) {
 
 }
 
+export function renderFunction( doc, callbackMap = {} ) {
+
+	const lines = [];
+
+	lines.push( `### ${ doc.name }` );
+	lines.push( '' );
+	lines.push( '```js' );
+
+	const allParams = doc.params || [];
+	const topLevel = allParams.filter( p => ! p.name.includes( '.' ) );
+
+	const ret = ( doc.returns && doc.returns[ 0 ] )
+		? formatType( doc.returns[ 0 ].type, callbackMap )
+		: 'void';
+
+	const paramLines = renderParamLines( allParams, callbackMap );
+	if ( paramLines ) {
+
+		lines.push( `${ doc.name }(` );
+		lines.push( ...paramLines );
+		lines.push( `): ${ ret }` );
+
+	} else {
+
+		const params = topLevel.map( p => formatParam( p, callbackMap ) );
+		const singleLine = params.length
+			? `${ doc.name }( ${ params.join( ', ' ) } ): ${ ret }`
+			: `${ doc.name }(): ${ ret }`;
+
+		if ( singleLine.length > 80 ) {
+
+			lines.push( `${ doc.name }(` );
+			params.forEach( ( p, i ) => {
+
+				const comma = i < params.length - 1 ? ',' : '';
+				lines.push( `\t${ p }${ comma }` );
+
+			} );
+			lines.push( `): ${ ret }` );
+
+		} else {
+
+			lines.push( singleLine );
+
+		}
+
+	}
+
+	lines.push( '```' );
+	lines.push( '' );
+
+	if ( doc.description ) {
+
+		lines.push( doc.description );
+		lines.push( '' );
+
+	}
+
+	lines.push( renderAlertTags( doc ) );
+
+	return lines.join( '\n' );
+
+}
+
+export function renderFunctions( funcs, title = 'Functions', callbackMap = {} ) {
+
+	if ( funcs.length === 0 ) return '';
+
+	const lines = [];
+
+	lines.push( `## ${ title }` );
+	lines.push( '' );
+
+	for ( const fn of funcs ) {
+
+		lines.push( renderFunction( fn, callbackMap ) );
+
+	}
+
+	return lines.join( '\n' );
+
+}
+
 export function renderConstants( constants, callbackMap = {} ) {
 
 	if ( constants.length === 0 ) return '';

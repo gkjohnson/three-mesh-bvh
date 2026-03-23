@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { renderClass, renderTypedef, renderConstants, toAnchor, resolveLinks } from './RenderDocsUtils.js';
+import { renderClass, renderTypedef, renderConstants, renderFunctions, toAnchor, resolveLinks } from './RenderDocsUtils.js';
 import { findRootDir } from '../CommandUtils.js';
 
 const ROOT_DIR = findRootDir();
@@ -25,6 +25,7 @@ const isClass = d => d.kind === 'class';
 const isObjectTypedef = d => d.kind === 'typedef' && d.type.names[ 0 ] !== 'function';
 const isCallbackTypedef = d => d.kind === 'typedef' && d.type.names[ 0 ] === 'function';
 const isConstant = d => d.kind === 'constant' && ! d.memberof;
+const isFunction = d => d.kind === 'function' && ! d.memberof;
 
 // Only classes and non-callback typedefs get sections (and therefore anchors) in the output.
 const typeRegistry = {}; // name -> output path
@@ -114,6 +115,17 @@ for ( const { entry, jsdoc } of results ) {
 		.filter( d => isConstant( d ) )
 		.sort( ( a, b ) => a.meta.lineno - b.meta.lineno );
 
+	// group standalone functions by @group tag (or 'Functions' if untagged)
+	const funcsByGroup = {};
+	for ( const d of jsdoc.filter( isFunction ).sort( ( a, b ) => a.meta.lineno - b.meta.lineno ) ) {
+
+		const groupTag = d.tags && d.tags.find( t => t.title === 'group' );
+		const groupName = groupTag ? groupTag.value : 'Functions';
+		if ( ! funcsByGroup[ groupName ] ) funcsByGroup[ groupName ] = [];
+		funcsByGroup[ groupName ].push( d );
+
+	}
+
 	// cache all fields by associated class name
 	const classMembers = {};
 	for ( const doc of jsdoc ) {
@@ -146,6 +158,12 @@ for ( const { entry, jsdoc } of results ) {
 	for ( const typedef of typedefs ) {
 
 		sections.push( renderTypedef( typedef, callbackMap, resolveLink ) );
+
+	}
+
+	for ( const [ groupName, funcs ] of Object.entries( funcsByGroup ) ) {
+
+		sections.push( renderFunctions( funcs, groupName, callbackMap ) );
 
 	}
 

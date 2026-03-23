@@ -1,3 +1,4 @@
+/** @import { Sphere } from 'three' */
 import { Triangle, Vector3, Vector2, Line3, Plane } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { closestPointsSegmentToSegment, sphereIntersectTriangle } from './MathUtilities.js';
@@ -11,6 +12,13 @@ function isNearZero( value ) {
 
 }
 
+/**
+ * A `THREE.Triangle` subclass with additional spatial query methods. Caches
+ * SAT planes and bounds to accelerate intersection tests. Set `needsUpdate =
+ * true` after modifying vertex positions to invalidate the cache before the
+ * next query.
+ * @extends Triangle
+ */
 export class ExtendedTriangle extends Triangle {
 
 	constructor( ...args ) {
@@ -25,10 +33,21 @@ export class ExtendedTriangle extends Triangle {
 		this.isDegenerateIntoSegment = false;
 		this.isDegenerateIntoPoint = false;
 		this.degenerateSegment = new Line3();
+
+		/**
+		 * Set to `true` after modifying `a`, `b`, or `c` to trigger
+		 * recalculation of cached planes and SAT bounds before the next query.
+		 * @type {boolean}
+		 */
 		this.needsUpdate = true;
 
 	}
 
+	/**
+	 * Returns `true` if this triangle intersects the given sphere.
+	 * @param {Sphere} sphere
+	 * @returns {boolean}
+	 */
 	intersectsSphere( sphere ) {
 
 		return sphereIntersectTriangle( sphere, this );
@@ -116,6 +135,16 @@ export class ExtendedTriangle extends Triangle {
 
 }
 
+/**
+ * Returns the closest distance between this triangle and the given line
+ * segment. `target1` and `target2` are set to the closest points on the
+ * triangle and segment respectively.
+ * @function
+ * @param {Line3} segment
+ * @param {Vector3} [target1]
+ * @param {Vector3} [target2]
+ * @returns {number}
+ */
 ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
 	const point1 = /* @__PURE__ */ new Vector3();
@@ -176,6 +205,16 @@ ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
 } )();
 
+/**
+ * Returns `true` if this triangle intersects `other`. If `target` is
+ * provided and the triangles are not coplanar, it is set to the line segment
+ * describing the intersection edge.
+ * @function
+ * @param {Triangle} other
+ * @param {Line3} [target]
+ * @param {boolean} [suppressLog=false]
+ * @returns {boolean}
+ */
 ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 	const saTri2 = /* @__PURE__ */ new ExtendedTriangle();
@@ -707,6 +746,12 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 } )();
 
 
+/**
+ * Returns the shortest distance from this triangle to the given point.
+ * @function
+ * @param {Vector3} point
+ * @returns {number}
+ */
 ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
 	const target = /* @__PURE__ */ new Vector3();
@@ -720,6 +765,15 @@ ExtendedTriangle.prototype.distanceToPoint = ( function () {
 } )();
 
 
+/**
+ * Returns the shortest distance between this triangle and `other`. `target1`
+ * and `target2` are set to the closest points on each triangle respectively.
+ * @function
+ * @param {Triangle} other
+ * @param {Vector3} [target1]
+ * @param {Vector3} [target2]
+ * @returns {number}
+ */
 ExtendedTriangle.prototype.distanceToTriangle = ( function () {
 
 	const point = /* @__PURE__ */ new Vector3();

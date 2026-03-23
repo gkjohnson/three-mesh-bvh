@@ -77,7 +77,7 @@ export default [
 			},
 		},
 		rules: {
-			'jsdoc/check-tag-names': [ 'error', { definedTags: [ 'warn', 'note' ] } ],
+			'jsdoc/check-tag-names': [ 'error', { definedTags: [ 'warn', 'note', 'group' ] } ],
 			'jsdoc/check-types': 'error',
 			'jsdoc/no-undefined-types': 'error',
 			'jsdoc/require-param-type': 'error',

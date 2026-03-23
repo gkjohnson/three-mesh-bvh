@@ -1,21 +1,43 @@
+/** @import { Box3, Triangle } from 'three' */
 import { Vector3, Matrix4, Line3 } from 'three';
 import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { ExtendedTriangle } from './ExtendedTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
+/**
+ * An oriented bounding box defined by axis-aligned `min`/`max` bounds in
+ * local space and a `matrix` that transforms them into world space. Caches
+ * SAT axes and corner points to accelerate intersection tests. Set
+ * `needsUpdate = true` after modifying `min`, `max`, or `matrix` directly.
+ *
+ * @param {Vector3} [min]
+ * @param {Vector3} [max]
+ * @param {Matrix4} [matrix]
+ */
 export class OrientedBox {
 
 	constructor( min, max, matrix ) {
 
 		this.isOrientedBox = true;
+
+		/** Local-space minimum corner. @type {Vector3} */
 		this.min = new Vector3();
+
+		/** Local-space maximum corner. @type {Vector3} */
 		this.max = new Vector3();
+
+		/** Transform from local box space into world space. @type {Matrix4} */
 		this.matrix = new Matrix4();
 		this.invMatrix = new Matrix4();
 		this.points = new Array( 8 ).fill().map( () => new Vector3() );
 		this.satAxes = new Array( 3 ).fill().map( () => new Vector3() );
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
+		/**
+		 * Set to `true` after modifying `min`, `max`, or `matrix` directly to
+		 * trigger recomputation of cached data before the next query.
+		 * @type {boolean}
+		 */
 		this.needsUpdate = false;
 
 		if ( min ) this.min.copy( min );
@@ -24,6 +46,12 @@ export class OrientedBox {
 
 	}
 
+	/**
+	 * Sets the box parameters and marks it as needing an update.
+	 * @param {Vector3} min
+	 * @param {Vector3} max
+	 * @param {Matrix4} matrix
+	 */
 	set( min, max, matrix ) {
 
 		this.min.copy( min );
@@ -100,6 +128,12 @@ OrientedBox.prototype.update = ( function () {
 
 } )();
 
+/**
+ * Returns `true` if this oriented box intersects the given axis-aligned box.
+ * @function
+ * @param {Box3} box
+ * @returns {boolean}
+ */
 OrientedBox.prototype.intersectsBox = ( function () {
 
 	const aabbBounds = /* @__PURE__ */ new SeparatingAxisBounds();
@@ -145,6 +179,12 @@ OrientedBox.prototype.intersectsBox = ( function () {
 
 } )();
 
+/**
+ * Returns `true` if this oriented box intersects the given triangle.
+ * @function
+ * @param {Triangle} triangle
+ * @returns {boolean}
+ */
 OrientedBox.prototype.intersectsTriangle = ( function () {
 
 	const saTri = /* @__PURE__ */ new ExtendedTriangle();
@@ -222,6 +262,14 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 
 } )();
 
+/**
+ * Sets `target` to the closest point on the surface of this box to `point`
+ * and returns it.
+ * @function
+ * @param {Vector3} point
+ * @param {Vector3} target
+ * @returns {Vector3}
+ */
 OrientedBox.prototype.closestPointToPoint = ( function () {
 
 	return function closestPointToPoint( point, target1 ) {
@@ -244,6 +292,12 @@ OrientedBox.prototype.closestPointToPoint = ( function () {
 
 } )();
 
+/**
+ * Returns the shortest distance from this oriented box to the given point.
+ * @function
+ * @param {Vector3} point
+ * @returns {number}
+ */
 OrientedBox.prototype.distanceToPoint = ( function () {
 
 	const target = new Vector3();
@@ -256,6 +310,18 @@ OrientedBox.prototype.distanceToPoint = ( function () {
 
 } )();
 
+/**
+ * Returns the shortest distance between this oriented box and the given
+ * axis-aligned box. Returns early if the distance falls below `threshold`.
+ * `target1` and `target2` are set to the closest points on this box and
+ * `box` respectively.
+ * @function
+ * @param {Box3} box
+ * @param {number} [threshold=0]
+ * @param {Vector3} [target1]
+ * @param {Vector3} [target2]
+ * @returns {number}
+ */
 OrientedBox.prototype.distanceToBox = ( function () {
 
 	const xyzFields = [ 'x', 'y', 'z' ];
