@@ -55,8 +55,8 @@ const _getters = [ 'getX', 'getY', 'getZ' ];
  */
 
 /**
- * Plain-object representation of a `MeshBVH` produced by {@link MeshBVH.serialize} and
- * consumed by {@link MeshBVH.deserialize}. Suitable for transfer across WebWorker boundaries
+ * Plain-object representation of a `MeshBVH` produced by `MeshBVH.serialize` and
+ * consumed by `MeshBVH.deserialize`. Suitable for transfer across WebWorker boundaries
  * or storage, with optional buffer sharing via `SharedArrayBuffer`.
  *
  * @typedef {Object} SerializedBVH

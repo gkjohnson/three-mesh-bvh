@@ -1411,8 +1411,8 @@ Barycentric coordinates of the hit point within the triangle.
 
 ## SerializedBVH
 
-Plain-object representation of a `MeshBVH` produced by [MeshBVH.serialize](MeshBVH.serialize) and
-consumed by [MeshBVH.deserialize](MeshBVH.deserialize). Suitable for transfer across WebWorker boundaries
+Plain-object representation of a `MeshBVH` produced by `MeshBVH.serialize` and
+consumed by `MeshBVH.deserialize`. Suitable for transfer across WebWorker boundaries
 or storage, with optional buffer sharing via `SharedArrayBuffer`.
 
 
