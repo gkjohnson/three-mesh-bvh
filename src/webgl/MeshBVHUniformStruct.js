@@ -28,7 +28,7 @@ import { getIndexArray, getVertexCount } from '../core/build/geometryUtils.js';
  * queried in a shader using the bvh intersection functions defined in shaderFunctions. This object
  * is intended to be used as a shader uniform and read in the shader as a `BVH` struct.
  *
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  */
 export class MeshBVHUniformStruct {
 

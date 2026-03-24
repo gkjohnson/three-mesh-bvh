@@ -69,7 +69,7 @@ function countToIntFormat( count ) {
  *
  * _extends THREE.DataTexture_
  *
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  */
 export class VertexAttributeTexture extends DataTexture {
 
@@ -306,7 +306,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 /**
  * A VertexAttributeTexture that forces the unsigned integer texture type.
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  */
 export class UIntVertexAttributeTexture extends VertexAttributeTexture {
 
@@ -321,7 +321,7 @@ export class UIntVertexAttributeTexture extends VertexAttributeTexture {
 
 /**
  * A VertexAttributeTexture that forces the signed integer texture type.
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  */
 export class IntVertexAttributeTexture extends VertexAttributeTexture {
 
@@ -337,7 +337,7 @@ export class IntVertexAttributeTexture extends VertexAttributeTexture {
 
 /**
  * A VertexAttributeTexture that forces the float texture type.
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  */
 export class FloatVertexAttributeTexture extends VertexAttributeTexture {
 

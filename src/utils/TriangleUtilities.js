@@ -54,7 +54,7 @@ const tempUV3 = /* @__PURE__ */ new Vector2();
  * Useful for retrieving detailed hit data after a call to `MeshBVH.closestPointToPoint` or
  * `MeshBVH.closestPointToGeometry`.
  *
- * @group Functions
+ * @section Functions
  * @param {Vector3} point - The point on the triangle surface (in the geometry's local space).
  * @param {BufferGeometry} geometry - The geometry containing the triangle.
  * @param {number} triangleIndex - The index of the triangle within the geometry.

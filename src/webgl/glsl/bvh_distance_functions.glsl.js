@@ -8,7 +8,7 @@
  *
  * Accessed as `BVHShaderGLSL.bvh_distance_functions`.
  *
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  * @type {string}
  */
 export const bvh_distance_functions = /* glsl */`

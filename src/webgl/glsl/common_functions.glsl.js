@@ -6,7 +6,7 @@
  *
  * Accessed as `BVHShaderGLSL.common_functions`.
  *
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  * @type {string}
  */
 export const common_functions = /* glsl */`

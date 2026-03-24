@@ -6,7 +6,7 @@
  *
  * Accessed as `BVHShaderGLSL.bvh_ray_functions`.
  *
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  * @type {string}
  */
 export const bvh_ray_functions = /* glsl */`

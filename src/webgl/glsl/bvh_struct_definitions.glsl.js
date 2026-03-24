@@ -9,7 +9,7 @@
  *
  * Accessed as `BVHShaderGLSL.bvh_struct_definitions`.
  *
- * @group Shader and Texture Packing API
+ * @section Shader and Texture Packing API
  * @type {string}
  */
 export const bvh_struct_definitions = /* glsl */`

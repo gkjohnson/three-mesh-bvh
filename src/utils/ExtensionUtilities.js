@@ -29,7 +29,7 @@ const _batchIntersects = [];
  * return only that intersection. This is typically several times faster than searching for all
  * intersections.
  *
- * @group Extension Utilities
+ * @section Extension Utilities
  * @param {Raycaster} raycaster
  * @param {Array<Intersection>} intersects
  * @returns {void}
@@ -169,7 +169,7 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
  * THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
  * ```
  *
- * @group Extension Utilities
+ * @section Extension Utilities
  * @param {Object} [options]
  * @returns {GeometryBVH}
  */
@@ -188,7 +188,7 @@ export function computeBoundsTree( options = {} ) {
  * THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
  * ```
  *
- * @group Extension Utilities
+ * @section Extension Utilities
  * @returns {void}
  */
 export function disposeBoundsTree() {
@@ -208,7 +208,7 @@ export function disposeBoundsTree() {
  * THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
  * ```
  *
- * @group Extension Utilities
+ * @section Extension Utilities
  * @param {number} [index=-1]
  * @param {Object} [options]
  * @returns {GeometryBVH | Array<GeometryBVH> | null}
@@ -276,7 +276,7 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
  * THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
  * ```
  *
- * @group Extension Utilities
+ * @section Extension Utilities
  * @param {number} [index=-1]
  * @returns {void}
  */

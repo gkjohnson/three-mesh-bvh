@@ -163,7 +163,7 @@ function groupByTag( docs, predicate, defaultGroup ) {
 	const groups = {};
 	for ( const d of docs.filter( predicate ).sort( ( a, b ) => a.meta.lineno - b.meta.lineno ) ) {
 
-		const groupTag = d.tags && d.tags.find( t => t.title === 'group' );
+		const groupTag = d.tags && d.tags.find( t => t.title === 'section' );
 		const groupName = groupTag ? groupTag.value : defaultGroup;
 		if ( ! groups[ groupName ] ) groups[ groupName ] = [];
 		groups[ groupName ].push( d );
