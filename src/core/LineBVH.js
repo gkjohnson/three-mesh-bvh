@@ -1,3 +1,4 @@
+/** @import { BufferGeometry } from 'three' */
 /** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
@@ -176,6 +177,8 @@ export class LineSegmentsBVH extends GeometryBVH {
 /**
  * BVH for `THREE.LineLoop` geometries. Forces indirect mode since the loop structure
  * requires that the index buffer remain unmodified.
+ * @param {BufferGeometry} geometry
+ * @param {Object} [options] - Same options as {@link GeometryBVH}. `indirect` is always forced to `true`.
  * @extends LineSegmentsBVH
  */
 export class LineLoopBVH extends LineSegmentsBVH {
@@ -204,6 +207,8 @@ export class LineLoopBVH extends LineSegmentsBVH {
 /**
  * BVH for `THREE.Line` geometries. Like `LineLoopBVH` but excludes the final closing
  * segment so the open line is accurately represented.
+ * @param {BufferGeometry} geometry
+ * @param {Object} [options] - Same options as {@link GeometryBVH}. `indirect` is always forced to `true`.
  * @extends LineLoopBVH
  */
 export class LineBVH extends LineLoopBVH {

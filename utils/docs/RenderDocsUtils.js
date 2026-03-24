@@ -245,8 +245,10 @@ export function renderMember( doc, callbackMap = {} ) {
 export function renderMethod( doc, callbackMap = {} ) {
 
 	const lines = [];
+	const isStatic = doc.scope === 'static';
+	const prefix = isStatic ? 'static ' : '';
 
-	lines.push( `### .${ doc.name }` );
+	lines.push( `### ${ isStatic ? 'static ' : '' }.${ doc.name }` );
 	lines.push( '' );
 	lines.push( '```js' );
 
@@ -260,7 +262,7 @@ export function renderMethod( doc, callbackMap = {} ) {
 	const paramLines = renderParamLines( allParams, callbackMap );
 	if ( paramLines ) {
 
-		lines.push( `${ doc.name }(` );
+		lines.push( `${ prefix }${ doc.name }(` );
 		lines.push( ...paramLines );
 		lines.push( `): ${ ret }` );
 
@@ -268,12 +270,12 @@ export function renderMethod( doc, callbackMap = {} ) {
 
 		const params = topLevel.map( p => formatParam( p, callbackMap ) );
 		const singleLine = params.length
-			? `${ doc.name }( ${ params.join( ', ' ) } ): ${ ret }`
-			: `${ doc.name }(): ${ ret }`;
+			? `${ prefix }${ doc.name }( ${ params.join( ', ' ) } ): ${ ret }`
+			: `${ prefix }${ doc.name }(): ${ ret }`;
 
 		if ( singleLine.length > 80 ) {
 
-			lines.push( `${ doc.name }(` );
+			lines.push( `${ prefix }${ doc.name }(` );
 			params.forEach( ( p, i ) => {
 
 				const comma = i < params.length - 1 ? ',' : '';
@@ -623,9 +625,11 @@ export function renderClass( classDoc, members, callbackMap = {}, resolveLink = 
 	const properties = visible
 		.filter( isProperty )
 		.sort( ( a, b ) => a.meta.lineno - b.meta.lineno );
-	const methods = visible
+	const allMethods = visible
 		.filter( m => m.kind === 'function' && ! m.type )
 		.sort( ( a, b ) => a.meta.lineno - b.meta.lineno );
+	const staticMethods = allMethods.filter( m => m.scope === 'static' );
+	const instanceMethods = allMethods.filter( m => m.scope !== 'static' );
 	const events = visible
 		.filter( m => m.kind === 'event' )
 		.sort( ( a, b ) => a.meta.lineno - b.meta.lineno );
@@ -636,20 +640,27 @@ export function renderClass( classDoc, members, callbackMap = {}, resolveLink = 
 
 	}
 
+	// Static methods appear first
+	for ( const method of staticMethods ) {
+
+		lines.push( renderMethod( method, callbackMap ) );
+
+	}
+
 	for ( const member of properties ) {
 
 		lines.push( renderMember( member, callbackMap ) );
 
 	}
 
-	// Constructor before other methods
+	// Constructor before instance methods
 	if ( classDoc.params && classDoc.params.length > 0 ) {
 
 		lines.push( renderConstructor( classDoc, callbackMap ) );
 
 	}
 
-	for ( const method of methods ) {
+	for ( const method of instanceMethods ) {
 
 		lines.push( renderMethod( method, callbackMap ) );
 
