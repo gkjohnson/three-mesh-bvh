@@ -370,10 +370,16 @@ export class BVHHelper extends Group {
 
 		meshMaterial.color = edgeMaterial.color;
 
-		/** Material used when rendering in wireframe edge mode. @type {LineBasicMaterial} */
+		/**
+		 * Material used when rendering in wireframe edge mode.
+		 * @type {LineBasicMaterial}
+		 */
 		this.edgeMaterial = edgeMaterial;
 
-		/** Material used when rendering in solid face mode. @type {MeshBasicMaterial} */
+		/**
+		 * Material used when rendering in solid face mode.
+		 * @type {MeshBasicMaterial}
+		 */
 		this.meshMaterial = meshMaterial;
 
 		this.update();

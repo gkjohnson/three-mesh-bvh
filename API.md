@@ -909,19 +909,19 @@ instanceId: number
 ### .edgeMaterial
 
 ```js
-edgeMaterial: 
+edgeMaterial: LineBasicMaterial
 ```
 
-Material used when rendering in wireframe edge mode. @type {LineBasicMaterial}
+Material used when rendering in wireframe edge mode.
 
 
 ### .meshMaterial
 
 ```js
-meshMaterial: 
+meshMaterial: MeshBasicMaterial
 ```
 
-Material used when rendering in solid face mode. @type {MeshBasicMaterial}
+Material used when rendering in solid face mode.
 
 
 ### .constructor
@@ -1183,10 +1183,10 @@ max: Vector3
 ### .matrix
 
 ```js
-matrix: 
+matrix: Matrix4
 ```
 
-Matrix transformation applied to the box. @type {Matrix4}
+Matrix transformation applied to the box.
 
 
 ### .needsUpdate
@@ -1441,35 +1441,6 @@ indirectBuffer: Uint32Array | Uint16Array | null
 Indirect primitive index buffer, or `null`
   if the BVH was not built in indirect mode.
 
-## Functions
-
-### intersectRay
-
-```js
-intersectRay(): void
-```
-
-This function performs intersection tests similar to Ray.intersectBox in three.js,
-with the difference that the box values are read from an array to improve performance.
-
-
-### getTriangleHitPointInfo
-
-```js
-getTriangleHitPointInfo(
-	point: Vector3,
-	geometry: BufferGeometry,
-	triangleIndex: number,
-	target: HitTriangleInfo
-): HitTriangleInfo
-```
-
-Computes hit-point information for a point on a triangle within a `BufferGeometry`. Returns
-the face vertex indices, face normal, material index, UV coordinates, and barycentric coordinates.
-Useful for retrieving detailed hit data after a call to `MeshBVH.closestPointToPoint` or
-`MeshBVH.closestPointToGeometry`.
-
-
 ## Extension Utilities
 
 ### acceleratedRaycast
@@ -1553,6 +1524,25 @@ disposed; otherwise only the BVH at that geometry index is disposed.
 ```js
 THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
 ```
+
+
+## Functions
+
+### getTriangleHitPointInfo
+
+```js
+getTriangleHitPointInfo(
+	point: Vector3,
+	geometry: BufferGeometry,
+	triangleIndex: number,
+	target: HitTriangleInfo
+): HitTriangleInfo
+```
+
+Computes hit-point information for a point on a triangle within a `BufferGeometry`. Returns
+the face vertex indices, face normal, material index, UV coordinates, and barycentric coordinates.
+Useful for retrieving detailed hit data after a call to `MeshBVH.closestPointToPoint` or
+`MeshBVH.closestPointToGeometry`.
 
 
 ## Debug Functions

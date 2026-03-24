@@ -1,4 +1,4 @@
-import { intersectRay } from '../utils/intersectUtils.js';
+import { intersectsNodeBounds } from '../utils/intersectUtils.js';
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
 import { intersectTris } from '../utils/iterationUtils.generated.js';
@@ -35,14 +35,14 @@ function _raycast( nodeIndex32, bvh, materialOrSide, ray, intersects, near, far 
 	} else {
 
 		const leftIndex = LEFT_NODE( nodeIndex32 );
-		if ( intersectRay( leftIndex, float32Array, ray, near, far ) ) {
+		if ( intersectsNodeBounds( leftIndex, float32Array, ray, near, far ) ) {
 
 			_raycast( leftIndex, bvh, materialOrSide, ray, intersects, near, far );
 
 		}
 
 		const rightIndex = RIGHT_NODE( nodeIndex32, uint32Array );
-		if ( intersectRay( rightIndex, float32Array, ray, near, far ) ) {
+		if ( intersectsNodeBounds( rightIndex, float32Array, ray, near, far ) ) {
 
 			_raycast( rightIndex, bvh, materialOrSide, ray, intersects, near, far );
 

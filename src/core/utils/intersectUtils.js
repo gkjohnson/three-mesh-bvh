@@ -1,8 +1,8 @@
-/**
- * This function performs intersection tests similar to Ray.intersectBox in three.js,
- * with the difference that the box values are read from an array to improve performance.
- */
-export function intersectRay( nodeIndex32, array, ray, near, far ) {
+
+export function intersectsNodeBounds( nodeIndex32, array, ray, near, far ) {
+
+	// This function performs intersection tests similar to Ray.intersectBox in three.js,
+	// with the difference that the box values are read from an array to improve performance.
 
 	let tmin, tmax, tymin, tymax, tzmin, tzmax;
 

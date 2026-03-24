@@ -25,7 +25,10 @@ export class OrientedBox {
 		/** @type {Vector3} */
 		this.max = new Vector3();
 
-		/** Matrix transformation applied to the box. @type {Matrix4} */
+		/**
+		 * Matrix transformation applied to the box.
+		 * @type {Matrix4}
+		 */
 		this.matrix = new Matrix4();
 		this.invMatrix = new Matrix4();
 		this.points = new Array( 8 ).fill().map( () => new Vector3() );

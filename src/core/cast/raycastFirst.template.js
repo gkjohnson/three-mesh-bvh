@@ -1,6 +1,6 @@
 import { COUNT, OFFSET, LEFT_NODE, RIGHT_NODE, IS_LEAF, SPLIT_AXIS } from '../utils/nodeBufferUtils.js';
 import { BufferStack } from '../utils/BufferStack.js';
-import { intersectRay } from '../utils/intersectUtils.js';
+import { intersectsNodeBounds } from '../utils/intersectUtils.js';
 import { intersectClosestTri } from '../utils/iterationUtils.generated.js';
 import { intersectClosestTri_indirect } from '../utils/iterationUtils_indirect.generated.js';
 
@@ -61,7 +61,7 @@ function _raycastFirst( nodeIndex32, bvh, materialOrSide, ray, near, far ) {
 
 		}
 
-		const c1Intersection = intersectRay( c1, float32Array, ray, near, far );
+		const c1Intersection = intersectsNodeBounds( c1, float32Array, ray, near, far );
 		const c1Result = c1Intersection ? _raycastFirst( c1, bvh, materialOrSide, ray, near, far ) : null;
 
 		// if we got an intersection in the first node and it's closer than the second node's bounding
@@ -85,7 +85,7 @@ function _raycastFirst( nodeIndex32, bvh, materialOrSide, ray, near, far ) {
 
 		// either there was no intersection in the first node, or there could still be a closer
 		// intersection in the second, so check the second node and then take the better of the two
-		const c2Intersection = intersectRay( c2, float32Array, ray, near, far );
+		const c2Intersection = intersectsNodeBounds( c2, float32Array, ray, near, far );
 		const c2Result = c2Intersection ? _raycastFirst( c2, bvh, materialOrSide, ray, near, far ) : null;
 
 		if ( c1Result && c2Result ) {
