@@ -101,27 +101,8 @@ for ( const { entry, jsdoc } of results ) {
 
 		} );
 
-	// group constants by @group tag (or 'Constants' if untagged), preserving source line order
-	const constsByGroup = {};
-	for ( const d of jsdoc.filter( isConstant ).sort( ( a, b ) => a.meta.lineno - b.meta.lineno ) ) {
-
-		const groupTag = d.tags && d.tags.find( t => t.title === 'group' );
-		const groupName = groupTag ? groupTag.value : 'Constants';
-		if ( ! constsByGroup[ groupName ] ) constsByGroup[ groupName ] = [];
-		constsByGroup[ groupName ].push( d );
-
-	}
-
-	// group standalone functions by @group tag (or 'Functions' if untagged)
-	const funcsByGroup = {};
-	for ( const d of jsdoc.filter( isFunction ).sort( ( a, b ) => a.meta.lineno - b.meta.lineno ) ) {
-
-		const groupTag = d.tags && d.tags.find( t => t.title === 'group' );
-		const groupName = groupTag ? groupTag.value : 'Functions';
-		if ( ! funcsByGroup[ groupName ] ) funcsByGroup[ groupName ] = [];
-		funcsByGroup[ groupName ].push( d );
-
-	}
+	const constsByGroup = groupByTag( jsdoc, isConstant, 'Constants' );
+	const funcsByGroup = groupByTag( jsdoc, isFunction, 'Functions' );
 
 	// cache all fields by associated class name
 	const classMembers = {};
@@ -176,6 +157,22 @@ for ( const { entry, jsdoc } of results ) {
 }
 
 //
+
+function groupByTag( docs, predicate, defaultGroup ) {
+
+	const groups = {};
+	for ( const d of docs.filter( predicate ).sort( ( a, b ) => a.meta.lineno - b.meta.lineno ) ) {
+
+		const groupTag = d.tags && d.tags.find( t => t.title === 'group' );
+		const groupName = groupTag ? groupTag.value : defaultGroup;
+		if ( ! groups[ groupName ] ) groups[ groupName ] = [];
+		groups[ groupName ].push( d );
+
+	}
+
+	return groups;
+
+}
 
 function runJsDoc( source ) {
 

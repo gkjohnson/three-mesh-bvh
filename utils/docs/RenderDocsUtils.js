@@ -242,13 +242,11 @@ export function renderMember( doc, callbackMap = {} ) {
 
 }
 
-export function renderMethod( doc, callbackMap = {} ) {
+function renderCallable( doc, heading, sigPrefix, callbackMap ) {
 
 	const lines = [];
-	const isStatic = doc.scope === 'static';
-	const prefix = isStatic ? 'static ' : '';
 
-	lines.push( `### ${ isStatic ? 'static ' : '' }.${ doc.name }` );
+	lines.push( heading );
 	lines.push( '' );
 	lines.push( '```js' );
 
@@ -262,7 +260,7 @@ export function renderMethod( doc, callbackMap = {} ) {
 	const paramLines = renderParamLines( allParams, callbackMap );
 	if ( paramLines ) {
 
-		lines.push( `${ prefix }${ doc.name }(` );
+		lines.push( `${ sigPrefix }${ doc.name }(` );
 		lines.push( ...paramLines );
 		lines.push( `): ${ ret }` );
 
@@ -270,12 +268,12 @@ export function renderMethod( doc, callbackMap = {} ) {
 
 		const params = topLevel.map( p => formatParam( p, callbackMap ) );
 		const singleLine = params.length
-			? `${ prefix }${ doc.name }( ${ params.join( ', ' ) } ): ${ ret }`
-			: `${ prefix }${ doc.name }(): ${ ret }`;
+			? `${ sigPrefix }${ doc.name }( ${ params.join( ', ' ) } ): ${ ret }`
+			: `${ sigPrefix }${ doc.name }(): ${ ret }`;
 
 		if ( singleLine.length > 80 ) {
 
-			lines.push( `${ prefix }${ doc.name }(` );
+			lines.push( `${ sigPrefix }${ doc.name }(` );
 			params.forEach( ( p, i ) => {
 
 				const comma = i < params.length - 1 ? ',' : '';
@@ -308,67 +306,17 @@ export function renderMethod( doc, callbackMap = {} ) {
 
 }
 
+export function renderMethod( doc, callbackMap = {} ) {
+
+	const isStatic = doc.scope === 'static';
+	const prefix = isStatic ? 'static ' : '';
+	return renderCallable( doc, `### ${ prefix }.${ doc.name }`, prefix, callbackMap );
+
+}
+
 export function renderFunction( doc, callbackMap = {} ) {
 
-	const lines = [];
-
-	lines.push( `### ${ doc.name }` );
-	lines.push( '' );
-	lines.push( '```js' );
-
-	const allParams = doc.params || [];
-	const topLevel = allParams.filter( p => ! p.name.includes( '.' ) );
-
-	const ret = ( doc.returns && doc.returns[ 0 ] )
-		? formatType( doc.returns[ 0 ].type, callbackMap )
-		: 'void';
-
-	const paramLines = renderParamLines( allParams, callbackMap );
-	if ( paramLines ) {
-
-		lines.push( `${ doc.name }(` );
-		lines.push( ...paramLines );
-		lines.push( `): ${ ret }` );
-
-	} else {
-
-		const params = topLevel.map( p => formatParam( p, callbackMap ) );
-		const singleLine = params.length
-			? `${ doc.name }( ${ params.join( ', ' ) } ): ${ ret }`
-			: `${ doc.name }(): ${ ret }`;
-
-		if ( singleLine.length > 80 ) {
-
-			lines.push( `${ doc.name }(` );
-			params.forEach( ( p, i ) => {
-
-				const comma = i < params.length - 1 ? ',' : '';
-				lines.push( `\t${ p }${ comma }` );
-
-			} );
-			lines.push( `): ${ ret }` );
-
-		} else {
-
-			lines.push( singleLine );
-
-		}
-
-	}
-
-	lines.push( '```' );
-	lines.push( '' );
-
-	if ( doc.description ) {
-
-		lines.push( doc.description );
-		lines.push( '' );
-
-	}
-
-	lines.push( renderAlertTags( doc ) );
-
-	return lines.join( '\n' );
+	return renderCallable( doc, `### ${ doc.name }`, '', callbackMap );
 
 }
 
