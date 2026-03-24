@@ -415,7 +415,45 @@ distanceToTriangle(
 Returns the distance to the provided triangle.
 
 
+## VertexAttributeTexture
+
+Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the
+efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a
+texture and when passing as a uniform to a shader they should be used as a `sampler2d`,
+`usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
+
+_extends THREE.DataTexture_
+
+
+### .overrideItemSize
+
+```js
+overrideItemSize: number
+```
+
+Treats `BufferAttribute.itemSize` as though it were set to this value when packing the
+buffer attribute texture. Throws an error if the value does not divide evenly into the
+length of the BufferAttribute buffer (`count * itemSize % overrideItemSize`).
+
+Specifically used to pack geometry indices into an RGB texture rather than an Red texture.
+
+
+### .updateFrom
+
+```js
+updateFrom( attribute: BufferAttribute ): void
+```
+
+Updates the texture to have the data contained in the passed BufferAttribute using the
+BufferAttribute `itemSize` field, `normalized` field, and TypedArray layout to determine
+the appropriate texture layout, format, and type. The texture dimensions will always be
+square. Because these are intended to be sampled as 1D arrays the width of the texture must
+be taken into account to derive a sampling uv. See `texelFetch1D` in shaderFunctions.
+
+
 ## FloatVertexAttributeTexture
+
+_extends [`VertexAttributeTexture`](#vertexattributetexture)_
 
 A VertexAttributeTexture that forces the float texture type.
 
@@ -515,6 +553,8 @@ constructor(
 ```
 
 ## IntVertexAttributeTexture
+
+_extends [`VertexAttributeTexture`](#vertexattributetexture)_
 
 A VertexAttributeTexture that forces the signed integer texture type.
 
@@ -1309,43 +1349,9 @@ called to update the BVH.
 
 ## UIntVertexAttributeTexture
 
+_extends [`VertexAttributeTexture`](#vertexattributetexture)_
+
 A VertexAttributeTexture that forces the unsigned integer texture type.
-
-
-## VertexAttributeTexture
-
-Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the
-efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a
-texture and when passing as a uniform to a shader they should be used as a `sampler2d`,
-`usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
-
-_extends THREE.DataTexture_
-
-
-### .overrideItemSize
-
-```js
-overrideItemSize: number
-```
-
-Treats `BufferAttribute.itemSize` as though it were set to this value when packing the
-buffer attribute texture. Throws an error if the value does not divide evenly into the
-length of the BufferAttribute buffer (`count * itemSize % overrideItemSize`).
-
-Specifically used to pack geometry indices into an RGB texture rather than an Red texture.
-
-
-### .updateFrom
-
-```js
-updateFrom( attribute: BufferAttribute ): void
-```
-
-Updates the texture to have the data contained in the passed BufferAttribute using the
-BufferAttribute `itemSize` field, `normalized` field, and TypedArray layout to determine
-the appropriate texture layout, format, and type. The texture dimensions will always be
-square. Because these are intended to be sampled as 1D arrays the width of the texture must
-be taken into account to derive a sampling uv. See `texelFetch1D` in shaderFunctions.
 
 
 ## HitPointInfo

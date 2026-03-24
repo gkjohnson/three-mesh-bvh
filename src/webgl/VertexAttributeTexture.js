@@ -306,6 +306,7 @@ export class VertexAttributeTexture extends DataTexture {
 
 /**
  * A VertexAttributeTexture that forces the unsigned integer texture type.
+ * @extends VertexAttributeTexture
  * @section Shader and Texture Packing API
  */
 export class UIntVertexAttributeTexture extends VertexAttributeTexture {
@@ -321,6 +322,7 @@ export class UIntVertexAttributeTexture extends VertexAttributeTexture {
 
 /**
  * A VertexAttributeTexture that forces the signed integer texture type.
+ * @extends VertexAttributeTexture
  * @section Shader and Texture Packing API
  */
 export class IntVertexAttributeTexture extends VertexAttributeTexture {
@@ -337,6 +339,7 @@ export class IntVertexAttributeTexture extends VertexAttributeTexture {
 
 /**
  * A VertexAttributeTexture that forces the float texture type.
+ * @extends VertexAttributeTexture
  * @section Shader and Texture Packing API
  */
 export class FloatVertexAttributeTexture extends VertexAttributeTexture {

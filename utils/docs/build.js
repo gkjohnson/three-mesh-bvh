@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { renderClass, renderTypedef, renderConstants, renderFunctions, toAnchor, resolveLinks } from './RenderDocsUtils.js';
+import { renderClass, renderComponent, renderTypedef, renderConstants, renderFunctions, toAnchor, resolveLinks } from './RenderDocsUtils.js';
 import { findRootDir } from '../CommandUtils.js';
 
 const ROOT_DIR = findRootDir();
@@ -24,16 +24,17 @@ const results = ENTRY_POINTS.map( entry => ( {
 const isClass = d => d.kind === 'class';
 const isObjectTypedef = d => d.kind === 'typedef' && d.type.names[ 0 ] !== 'function';
 const isCallbackTypedef = d => d.kind === 'typedef' && d.type.names[ 0 ] === 'function';
-const isConstant = d => d.kind === 'constant' && ! d.memberof;
-const isFunction = d => d.kind === 'function' && ! d.memberof;
+const isReactComponent = d => ( d.kind === 'function' || d.kind === 'constant' ) && d.tags && d.tags.some( t => t.title === 'component' );
+const isConstant = d => d.kind === 'constant' && ! d.memberof && ! isReactComponent( d );
+const isFunction = d => d.kind === 'function' && ! d.memberof && ! isReactComponent( d );
 
-// Only classes and non-callback typedefs get sections (and therefore anchors) in the output.
+// Only classes, non-callback typedefs, and React components get sections (and therefore anchors) in the output.
 const typeRegistry = {}; // name -> output path
 for ( const { entry, jsdoc } of results ) {
 
 	for ( const d of jsdoc ) {
 
-		if ( isClass( d ) || isObjectTypedef( d ) ) {
+		if ( isClass( d ) || isObjectTypedef( d ) || isReactComponent( d ) ) {
 
 			typeRegistry[ d.name ] = entry.output;
 
@@ -101,6 +102,11 @@ for ( const { entry, jsdoc } of results ) {
 
 		} );
 
+	// sort components by source line order
+	const components = jsdoc
+		.filter( d => isReactComponent( d ) )
+		.sort( ( a, b ) => a.meta.lineno - b.meta.lineno );
+
 	const constsByGroup = groupByTag( jsdoc, isConstant, 'Constants' );
 	const funcsByGroup = groupByTag( jsdoc, isFunction, 'Functions' );
 
@@ -122,12 +128,18 @@ for ( const { entry, jsdoc } of results ) {
 
 	}
 
-	// construct the output file
+	// construct the readme files
 	const sections = [ `# ${ entry.title }`, '' ];
 
 	for ( const [ groupName, consts ] of Object.entries( constsByGroup ) ) {
 
 		sections.push( renderConstants( consts, groupName, callbackMap ) );
+
+	}
+
+	for ( const component of components ) {
+
+		sections.push( renderComponent( component, callbackMap ) );
 
 	}
 
