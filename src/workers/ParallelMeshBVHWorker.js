@@ -1,3 +1,4 @@
+/** @import { BufferGeometry } from 'three' */
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
@@ -14,6 +15,11 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 		super( worker );
 
 		this.name = 'ParallelMeshBVHWorker';
+
+		/**
+		 * Maximum number of parallel workers to use. Defaults to `navigator.hardwareConcurrency` (minimum 4).
+		 * @type {number}
+		 */
 		this.maxWorkerCount = Math.max( DEFAULT_WORKER_COUNT, 4 );
 
 		if ( ! isSharedArrayBufferSupported() ) {
@@ -131,8 +137,22 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 }
 
+/**
+ * A drop-in replacement for `GenerateMeshBVHWorker` that distributes BVH construction across
+ * multiple Web Workers in parallel for faster builds on large geometry. Requires
+ * `SharedArrayBuffer` support (cross-origin isolated context). Falls back to a single-threaded
+ * `GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable.
+ *
+ * Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
+ * `maxWorkerCount`.
+ */
 export class ParallelMeshBVHWorker {
 
+	/**
+	 * Constructs the worker. If `SharedArrayBuffer` is supported, spawns a parallel worker
+	 * capable of using up to `maxWorkerCount` threads. Otherwise, logs a warning and returns a
+	 * `GenerateMeshBVHWorker` instance instead.
+	 */
 	constructor() {
 
 		if ( isSharedArrayBufferSupported() ) {
