@@ -1547,10 +1547,63 @@ Useful for retrieving detailed hit data after a call to `MeshBVH.closestPointToP
 
 ## Debug Functions
 
+### BVHExtremes
+
+
+#### .nodeCount
+
+```js
+nodeCount: number
+```
+
+Total number of nodes in the tree including leaf nodes.
+
+#### .leafNodeCount
+
+```js
+leafNodeCount: number
+```
+
+Total number of leaf nodes in the tree.
+
+#### .surfaceAreaScore
+
+```js
+surfaceAreaScore: number
+```
+
+Total tree score based on the surface area heuristic.
+Lower is better. Useful for comparing tree quality and performance, and for detecting
+degradation after `MeshBVH.refit` calls.
+
+#### .depth
+
+```js
+depth: Object
+```
+
+Min and max depth of leaf nodes.
+
+#### .tris
+
+```js
+tris: Object
+```
+
+Min and max triangle count in leaf nodes.
+
+#### .splits
+
+```js
+splits: Array<number>
+```
+
+Number of splits on each axis as a three-element array `[X, Y, Z]`.
+
 ### getBVHExtremes
 
 ```js
-getBVHExtremes( bvh: BVH ): Array<Object>
+getBVHExtremes( bvh: MeshBVH ): Array<BVHExtremes>
 ```
 
 Measures the min and max extremes of the BVH tree structure, including node

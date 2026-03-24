@@ -90,7 +90,7 @@ for ( const { entry, jsdoc } of results ) {
 	}
 
 	// Sort typedefs so plain-object bases appear before derived types; exclude @callback entries
-	const typedefs = jsdoc
+	const allTypedefs = jsdoc
 		.filter( d => isObjectTypedef( d ) )
 		.sort( ( a, b ) => {
 
@@ -101,6 +101,26 @@ for ( const { entry, jsdoc } of results ) {
 			return a.name.localeCompare( b.name );
 
 		} );
+
+	// Typedefs tagged with @section are injected before their matching function group
+	const typedefsBySection = {};
+	const typedefs = [];
+	for ( const d of allTypedefs ) {
+
+		const sectionTag = d.tags && d.tags.find( t => t.title === 'section' );
+		if ( sectionTag ) {
+
+			const key = sectionTag.value;
+			if ( ! typedefsBySection[ key ] ) typedefsBySection[ key ] = [];
+			typedefsBySection[ key ].push( d );
+
+		} else {
+
+			typedefs.push( d );
+
+		}
+
+	}
 
 	// sort components by source line order
 	const components = jsdoc
@@ -157,7 +177,8 @@ for ( const { entry, jsdoc } of results ) {
 
 	for ( const [ groupName, funcs ] of Object.entries( funcsByGroup ) ) {
 
-		sections.push( renderFunctions( funcs, groupName, callbackMap ) );
+		const sectionTypedefs = typedefsBySection[ groupName ] || [];
+		sections.push( renderFunctions( funcs, groupName, callbackMap, sectionTypedefs, callbackMap, resolveLink ) );
 
 	}
 

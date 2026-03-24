@@ -100,12 +100,25 @@ function getRootExtremes( bvh, group ) {
 }
 
 /**
+ * @section Debug Functions
+ * @typedef {Object} BVHExtremes
+ * @property {number} nodeCount Total number of nodes in the tree including leaf nodes.
+ * @property {number} leafNodeCount Total number of leaf nodes in the tree.
+ * @property {number} surfaceAreaScore Total tree score based on the surface area heuristic.
+ * Lower is better. Useful for comparing tree quality and performance, and for detecting
+ * degradation after `MeshBVH.refit` calls.
+ * @property {{ min: number, max: number }} depth Min and max depth of leaf nodes.
+ * @property {{ min: number, max: number }} tris Min and max triangle count in leaf nodes.
+ * @property {Array<number>} splits Number of splits on each axis as a three-element array `[X, Y, Z]`.
+ */
+
+/**
  * Measures the min and max extremes of the BVH tree structure, including node
  * depth, leaf primitive count, split axis distribution, and a surface-area
  * heuristic score. Returns one entry per root group in the BVH.
  * @section Debug Functions
- * @param {BVH} bvh
- * @returns {Array<Object>}
+ * @param {MeshBVH} bvh
+ * @returns {Array<BVHExtremes>}
  */
 function getBVHExtremes( bvh ) {
 

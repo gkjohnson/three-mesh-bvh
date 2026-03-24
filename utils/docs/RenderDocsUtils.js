@@ -320,14 +320,20 @@ export function renderFunction( doc, callbackMap = {} ) {
 
 }
 
-export function renderFunctions( funcs, title = 'Functions', callbackMap = {} ) {
+export function renderFunctions( funcs, title = 'Functions', callbackMap = {}, typedefs = [], typedefCallbackMap = {}, resolveLink = null ) {
 
-	if ( funcs.length === 0 ) return '';
+	if ( funcs.length === 0 && typedefs.length === 0 ) return '';
 
 	const lines = [];
 
 	lines.push( `## ${ title }` );
 	lines.push( '' );
+
+	for ( const td of typedefs ) {
+
+		lines.push( renderTypedef( td, typedefCallbackMap, resolveLink, 3 ) );
+
+	}
 
 	for ( const fn of funcs ) {
 
@@ -371,11 +377,13 @@ export function renderConstants( constants, title = 'Constants', callbackMap = {
 
 }
 
-export function renderTypedef( typeDoc, callbackMap = {}, resolveLink = null ) {
+export function renderTypedef( typeDoc, callbackMap = {}, resolveLink = null, headingLevel = 2 ) {
 
+	const h = '#'.repeat( headingLevel );
+	const hSub = '#'.repeat( headingLevel + 1 );
 	const lines = [];
 
-	lines.push( `## ${ typeDoc.name }` );
+	lines.push( `${ h } ${ typeDoc.name }` );
 	lines.push( '' );
 
 	// If the typedef's base type is not plain Object, treat it as an extension
@@ -402,7 +410,7 @@ export function renderTypedef( typeDoc, callbackMap = {}, resolveLink = null ) {
 
 		const type = formatType( prop.type, callbackMap );
 		const optional = prop.optional ? '?' : '';
-		lines.push( `### .${ prop.name }` );
+		lines.push( `${ hSub } .${ prop.name }` );
 		lines.push( '' );
 		lines.push( '```js' );
 		lines.push( `${ prop.name }${ optional }: ${ type }` );
