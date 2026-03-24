@@ -1,3 +1,4 @@
+/** @import { MeshBVH } from '../core/MeshBVH.js' */
 import {
 	DataTexture,
 	FloatType,
