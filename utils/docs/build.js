@@ -195,12 +195,25 @@ function runJsDoc( source ) {
 }
 
 // Topological sort: every parent class appears before its subclasses.
-// Within the same generation classes are ordered alphabetically.
+// Siblings (subclasses sharing the same parent) are kept together and ordered alphabetically.
 function topologicalSortClasses( classes ) {
 
 	const byName = Object.fromEntries( classes.map( c => [ c.name, c ] ) );
 	const result = [];
 	const visited = new Set();
+
+	// Build parent -> children map so siblings can be visited eagerly
+	const childrenMap = {};
+	for ( const cls of classes ) {
+
+		for ( const parent of ( cls.augments || [] ) ) {
+
+			if ( ! childrenMap[ parent ] ) childrenMap[ parent ] = [];
+			childrenMap[ parent ].push( cls );
+
+		}
+
+	}
 
 	function visit( cls ) {
 
@@ -215,6 +228,16 @@ function topologicalSortClasses( classes ) {
 		}
 
 		result.push( cls );
+
+		// Eagerly visit children alphabetically so all siblings stay grouped together
+		const children = ( childrenMap[ cls.name ] || [] )
+			.slice()
+			.sort( ( a, b ) => a.name.localeCompare( b.name ) );
+		for ( const child of children ) {
+
+			visit( child );
+
+		}
 
 	}
 

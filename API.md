@@ -223,288 +223,6 @@ Simultaneously traverses two BVH structures to find intersecting primitive pairs
 alternating descent. `matrixToLocal` transforms `otherBvh` into the local space of this BVH.
 
 
-## BVHHelper
-
-_extends `Group`_
-
-A `THREE.Group` that visualizes a BVH as wireframe bounding boxes or solid
-face overlays. Attach it as a sibling of the mesh in the scene graph and
-call `update()` whenever the mesh's BVH or world transform changes.
-
-
-### .color
-
-```js
-readonly color: Color
-```
-
-Shortcut to `edgeMaterial.color`.
-
-
-### .opacity
-
-```js
-opacity: number
-```
-
-Opacity applied to both edge and mesh materials.
-
-
-### .depth
-
-```js
-depth: number
-```
-
-
-### .mesh
-
-```js
-mesh: Object3D | null
-```
-
-
-### .bvh
-
-```js
-bvh: GeometryBVH | null
-```
-
-
-### .displayParents
-
-```js
-displayParents: boolean
-```
-
-
-### .displayEdges
-
-```js
-displayEdges: boolean
-```
-
-
-### .instanceId
-
-```js
-instanceId: number
-```
-
-
-### .edgeMaterial
-
-```js
-edgeMaterial: 
-```
-
-Material used when rendering in wireframe edge mode. @type {LineBasicMaterial}
-
-
-### .meshMaterial
-
-```js
-meshMaterial: 
-```
-
-Material used when rendering in solid face mode. @type {MeshBasicMaterial}
-
-
-### .constructor
-
-```js
-constructor( mesh = null: Object3D | GeometryBVH | null, bvh = null: GeometryBVH | number | null, depth = 10: number )
-```
-
-### .update
-
-```js
-update(): void
-```
-
-Rebuilds the helper's display geometry from the current BVH state. Must
-be called after changes to the BVH, `depth`, `displayParents`, or
-`displayEdges`.
-
-
-### .dispose
-
-```js
-dispose(): void
-```
-
-Disposes of the materials and geometries used by the helper.
-
-
-## ExtendedTriangle
-
-_extends `Triangle`_
-
-An extended version of three.js' Triangle class. A variety of derivative values are cached on
-the object to accelerate the intersection functions. `.needsUpdate` must be set to true when
-modifying the triangle parameters.
-
-
-### .needsUpdate
-
-```js
-needsUpdate: boolean
-```
-
-Indicates that the triangle fields have changed so cached variables to accelerate other
-function execution can be updated. Must be set to true after modifying the triangle
-`a`, `b`, `c` fields.
-
-
-### .intersectsSphere
-
-```js
-intersectsSphere( sphere: Sphere ): boolean
-```
-
-Returns whether the triangle intersects the given sphere.
-
-
-### .closestPointToSegment
-
-```js
-closestPointToSegment(
-	segment: Line3,
-	target1: Vector3,
-	target2: Vector3
-): number
-```
-
-Returns the distance to the provided line segment. `target1` and `target2` are set to the
-closest points on the triangle and segment respectively.
-
-
-### .intersectsTriangle
-
-```js
-intersectsTriangle(
-	other: Triangle,
-	target: Line3,
-	suppressLog = false: boolean
-): boolean
-```
-
-Returns whether the triangles intersect. `target` is set to the line segment representing
-the intersection.
-
-
-### .distanceToPoint
-
-```js
-distanceToPoint( point: Vector3 ): number
-```
-
-Returns the distance to the provided point.
-
-
-### .distanceToTriangle
-
-```js
-distanceToTriangle(
-	other: Triangle,
-	target1: Vector3,
-	target2: Vector3
-): number
-```
-
-Returns the distance to the provided triangle.
-
-
-## VertexAttributeTexture
-
-Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the
-efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a
-texture and when passing as a uniform to a shader they should be used as a `sampler2d`,
-`usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
-
-_extends THREE.DataTexture_
-
-
-### .overrideItemSize
-
-```js
-overrideItemSize: number
-```
-
-Treats `BufferAttribute.itemSize` as though it were set to this value when packing the
-buffer attribute texture. Throws an error if the value does not divide evenly into the
-length of the BufferAttribute buffer (`count * itemSize % overrideItemSize`).
-
-Specifically used to pack geometry indices into an RGB texture rather than an Red texture.
-
-
-### .updateFrom
-
-```js
-updateFrom( attribute: BufferAttribute ): void
-```
-
-Updates the texture to have the data contained in the passed BufferAttribute using the
-BufferAttribute `itemSize` field, `normalized` field, and TypedArray layout to determine
-the appropriate texture layout, format, and type. The texture dimensions will always be
-square. Because these are intended to be sampled as 1D arrays the width of the texture must
-be taken into account to derive a sampling uv. See `texelFetch1D` in shaderFunctions.
-
-
-## FloatVertexAttributeTexture
-
-_extends [`VertexAttributeTexture`](#vertexattributetexture)_
-
-A VertexAttributeTexture that forces the float texture type.
-
-
-## GenerateMeshBVHWorker
-
-_extends `WorkerBase`_
-
-Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
-geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
-the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
-being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
-the MeshBVH is finished generating.
-
-_NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating
-a new Worker._
-
-
-### .running
-
-```js
-running: boolean
-```
-
-Flag indicating whether or not a BVH is already being generated in the worker.
-
-
-### .generate
-
-```js
-generate(
-	geometry: BufferGeometry,
-	{
-		onProgress?: function,
-	}
-): Promise<MeshBVH>
-```
-
-Generates a `MeshBVH` instance for the given geometry with the given options in a WebWorker.
-Returns a Promise that resolves with the generated `MeshBVH`. Throws if already running.
-
-
-### .dispose
-
-```js
-dispose(): void
-```
-
-Terminates the worker.
-
-
 ## GeometryBVH
 
 _extends [`BVH`](#bvh)_
@@ -551,13 +269,6 @@ constructor(
 	}
 )
 ```
-
-## IntVertexAttributeTexture
-
-_extends [`VertexAttributeTexture`](#vertexattributetexture)_
-
-A VertexAttributeTexture that forces the signed integer texture type.
-
 
 ## LineSegmentsBVH
 
@@ -954,30 +665,100 @@ The returned faceIndex can be used with the standalone function `getTriangleHitP
 to obtain more information like UV coordinates, triangle normal and materialIndex.
 
 
-## MeshBVHUniformStruct
+## PointsBVH
 
-A shader uniform object corresponding to the `BVH` shader struct defined in shaderStructs. The
-object contains four textures containing information about the BVH and geometry so it can be
-queried in a shader using the bvh intersection functions defined in shaderFunctions. This object
-is intended to be used as a shader uniform and read in the shader as a `BVH` struct.
+_extends [`GeometryBVH`](#geometrybvh)_
 
-
-### .updateFrom
-
-```js
-updateFrom( bvh: MeshBVH ): void
-```
-
-Updates the object and associated textures with data from the provided BVH.
+BVH for `THREE.Points` geometries. Each BVH primitive represents a single point.
 
 
-### .dispose
+### .shapecast
 
 ```js
-dispose(): void
+shapecast(
+	{
+		intersectsBounds: (
+			box: Box3,
+			isLeaf: boolean,
+			score: number | undefined,
+			depth: number,
+			nodeIndex: number
+		) => number,
+		intersectsPoint?: (
+			point: Vector3,
+			index: number,
+			contained: boolean,
+			depth: number
+		) => boolean,
+		intersectsRange?: (
+			offset: number,
+			count: number,
+			contained: boolean,
+			depth: number,
+			nodeIndex: number,
+			box: Box3
+		) => boolean,
+		boundsTraverseOrder?: (
+			box: Box3
+		) => number,
+	}
+): boolean
 ```
 
-Dispose of the associated textures.
+Performs a spatial query against the BVH. Extends the base `shapecast` with an
+`intersectsPoint` callback that is called once per point primitive in leaf nodes.
+
+
+## SkinnedMeshBVH
+
+_extends [`GeometryBVH`](#geometrybvh)_
+
+BVH for `SkinnedMesh` objects. Computes primitive bounds using
+`SkinnedMesh.getVertexPosition` so the tree reflects the current posed state
+of the mesh. Call `refit()` after updating the skeleton to keep bounds accurate.
+
+
+### .constructor
+
+```js
+constructor( mesh: SkinnedMesh, options: Object )
+```
+
+### .shapecast
+
+```js
+shapecast(
+	{
+		intersectsBounds: (
+			box: Box3,
+			isLeaf: boolean,
+			score: number | undefined,
+			depth: number,
+			nodeIndex: number
+		) => number,
+		intersectsTriangle?: (
+			triangle: ExtendedTriangle,
+			index: number,
+			contained: boolean,
+			depth: number
+		) => boolean,
+		intersectsRange?: (
+			offset: number,
+			count: number,
+			contained: boolean,
+			depth: number,
+			nodeIndex: number,
+			box: Box3
+		) => boolean,
+		boundsTraverseOrder?: (
+			box: Box3
+		) => number,
+	}
+): boolean
+```
+
+Performs a spatial query against the BVH. Extends the base `shapecast` with an
+`intersectsTriangle` callback that is called once per triangle primitive in leaf nodes.
 
 
 ## ObjectBVH
@@ -1054,6 +835,328 @@ shapecast(
 
 Performs a spatial query against the BVH. Extends the base `shapecast` with an
 `intersectsObject` callback that is called once per object primitive in leaf nodes.
+
+
+## BVHHelper
+
+_extends `Group`_
+
+A `THREE.Group` that visualizes a BVH as wireframe bounding boxes or solid
+face overlays. Attach it as a sibling of the mesh in the scene graph and
+call `update()` whenever the mesh's BVH or world transform changes.
+
+
+### .color
+
+```js
+readonly color: Color
+```
+
+Shortcut to `edgeMaterial.color`.
+
+
+### .opacity
+
+```js
+opacity: number
+```
+
+Opacity applied to both edge and mesh materials.
+
+
+### .depth
+
+```js
+depth: number
+```
+
+
+### .mesh
+
+```js
+mesh: Object3D | null
+```
+
+
+### .bvh
+
+```js
+bvh: GeometryBVH | null
+```
+
+
+### .displayParents
+
+```js
+displayParents: boolean
+```
+
+
+### .displayEdges
+
+```js
+displayEdges: boolean
+```
+
+
+### .instanceId
+
+```js
+instanceId: number
+```
+
+
+### .edgeMaterial
+
+```js
+edgeMaterial: 
+```
+
+Material used when rendering in wireframe edge mode. @type {LineBasicMaterial}
+
+
+### .meshMaterial
+
+```js
+meshMaterial: 
+```
+
+Material used when rendering in solid face mode. @type {MeshBasicMaterial}
+
+
+### .constructor
+
+```js
+constructor( mesh = null: Object3D | GeometryBVH | null, bvh = null: GeometryBVH | number | null, depth = 10: number )
+```
+
+### .update
+
+```js
+update(): void
+```
+
+Rebuilds the helper's display geometry from the current BVH state. Must
+be called after changes to the BVH, `depth`, `displayParents`, or
+`displayEdges`.
+
+
+### .dispose
+
+```js
+dispose(): void
+```
+
+Disposes of the materials and geometries used by the helper.
+
+
+## ExtendedTriangle
+
+_extends `Triangle`_
+
+An extended version of three.js' Triangle class. A variety of derivative values are cached on
+the object to accelerate the intersection functions. `.needsUpdate` must be set to true when
+modifying the triangle parameters.
+
+
+### .needsUpdate
+
+```js
+needsUpdate: boolean
+```
+
+Indicates that the triangle fields have changed so cached variables to accelerate other
+function execution can be updated. Must be set to true after modifying the triangle
+`a`, `b`, `c` fields.
+
+
+### .intersectsSphere
+
+```js
+intersectsSphere( sphere: Sphere ): boolean
+```
+
+Returns whether the triangle intersects the given sphere.
+
+
+### .closestPointToSegment
+
+```js
+closestPointToSegment(
+	segment: Line3,
+	target1: Vector3,
+	target2: Vector3
+): number
+```
+
+Returns the distance to the provided line segment. `target1` and `target2` are set to the
+closest points on the triangle and segment respectively.
+
+
+### .intersectsTriangle
+
+```js
+intersectsTriangle(
+	other: Triangle,
+	target: Line3,
+	suppressLog = false: boolean
+): boolean
+```
+
+Returns whether the triangles intersect. `target` is set to the line segment representing
+the intersection.
+
+
+### .distanceToPoint
+
+```js
+distanceToPoint( point: Vector3 ): number
+```
+
+Returns the distance to the provided point.
+
+
+### .distanceToTriangle
+
+```js
+distanceToTriangle(
+	other: Triangle,
+	target1: Vector3,
+	target2: Vector3
+): number
+```
+
+Returns the distance to the provided triangle.
+
+
+## VertexAttributeTexture
+
+Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the
+efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a
+texture and when passing as a uniform to a shader they should be used as a `sampler2d`,
+`usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
+
+_extends THREE.DataTexture_
+
+
+### .overrideItemSize
+
+```js
+overrideItemSize: number
+```
+
+Treats `BufferAttribute.itemSize` as though it were set to this value when packing the
+buffer attribute texture. Throws an error if the value does not divide evenly into the
+length of the BufferAttribute buffer (`count * itemSize % overrideItemSize`).
+
+Specifically used to pack geometry indices into an RGB texture rather than an Red texture.
+
+
+### .updateFrom
+
+```js
+updateFrom( attribute: BufferAttribute ): void
+```
+
+Updates the texture to have the data contained in the passed BufferAttribute using the
+BufferAttribute `itemSize` field, `normalized` field, and TypedArray layout to determine
+the appropriate texture layout, format, and type. The texture dimensions will always be
+square. Because these are intended to be sampled as 1D arrays the width of the texture must
+be taken into account to derive a sampling uv. See `texelFetch1D` in shaderFunctions.
+
+
+## IntVertexAttributeTexture
+
+_extends [`VertexAttributeTexture`](#vertexattributetexture)_
+
+A VertexAttributeTexture that forces the signed integer texture type.
+
+
+## UIntVertexAttributeTexture
+
+_extends [`VertexAttributeTexture`](#vertexattributetexture)_
+
+A VertexAttributeTexture that forces the unsigned integer texture type.
+
+
+## FloatVertexAttributeTexture
+
+_extends [`VertexAttributeTexture`](#vertexattributetexture)_
+
+A VertexAttributeTexture that forces the float texture type.
+
+
+## GenerateMeshBVHWorker
+
+_extends `WorkerBase`_
+
+Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
+geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
+the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
+being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
+the MeshBVH is finished generating.
+
+_NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating
+a new Worker._
+
+
+### .running
+
+```js
+running: boolean
+```
+
+Flag indicating whether or not a BVH is already being generated in the worker.
+
+
+### .generate
+
+```js
+generate(
+	geometry: BufferGeometry,
+	{
+		onProgress?: function,
+	}
+): Promise<MeshBVH>
+```
+
+Generates a `MeshBVH` instance for the given geometry with the given options in a WebWorker.
+Returns a Promise that resolves with the generated `MeshBVH`. Throws if already running.
+
+
+### .dispose
+
+```js
+dispose(): void
+```
+
+Terminates the worker.
+
+
+## MeshBVHUniformStruct
+
+A shader uniform object corresponding to the `BVH` shader struct defined in shaderStructs. The
+object contains four textures containing information about the BVH and geometry so it can be
+queried in a shader using the bvh intersection functions defined in shaderFunctions. This object
+is intended to be used as a shader uniform and read in the shader as a `BVH` struct.
+
+
+### .updateFrom
+
+```js
+updateFrom( bvh: MeshBVH ): void
+```
+
+Updates the object and associated textures with data from the provided BVH.
+
+
+### .dispose
+
+```js
+dispose(): void
+```
+
+Dispose of the associated textures.
 
 
 ## OrientedBox
@@ -1176,102 +1279,6 @@ Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running
 `maxWorkerCount`.
 
 
-## PointsBVH
-
-_extends [`GeometryBVH`](#geometrybvh)_
-
-BVH for `THREE.Points` geometries. Each BVH primitive represents a single point.
-
-
-### .shapecast
-
-```js
-shapecast(
-	{
-		intersectsBounds: (
-			box: Box3,
-			isLeaf: boolean,
-			score: number | undefined,
-			depth: number,
-			nodeIndex: number
-		) => number,
-		intersectsPoint?: (
-			point: Vector3,
-			index: number,
-			contained: boolean,
-			depth: number
-		) => boolean,
-		intersectsRange?: (
-			offset: number,
-			count: number,
-			contained: boolean,
-			depth: number,
-			nodeIndex: number,
-			box: Box3
-		) => boolean,
-		boundsTraverseOrder?: (
-			box: Box3
-		) => number,
-	}
-): boolean
-```
-
-Performs a spatial query against the BVH. Extends the base `shapecast` with an
-`intersectsPoint` callback that is called once per point primitive in leaf nodes.
-
-
-## SkinnedMeshBVH
-
-_extends [`GeometryBVH`](#geometrybvh)_
-
-BVH for `SkinnedMesh` objects. Computes primitive bounds using
-`SkinnedMesh.getVertexPosition` so the tree reflects the current posed state
-of the mesh. Call `refit()` after updating the skeleton to keep bounds accurate.
-
-
-### .constructor
-
-```js
-constructor( mesh: SkinnedMesh, options: Object )
-```
-
-### .shapecast
-
-```js
-shapecast(
-	{
-		intersectsBounds: (
-			box: Box3,
-			isLeaf: boolean,
-			score: number | undefined,
-			depth: number,
-			nodeIndex: number
-		) => number,
-		intersectsTriangle?: (
-			triangle: ExtendedTriangle,
-			index: number,
-			contained: boolean,
-			depth: number
-		) => boolean,
-		intersectsRange?: (
-			offset: number,
-			count: number,
-			contained: boolean,
-			depth: number,
-			nodeIndex: number,
-			box: Box3
-		) => boolean,
-		boundsTraverseOrder?: (
-			box: Box3
-		) => number,
-	}
-): boolean
-```
-
-Performs a spatial query against the BVH. Extends the base `shapecast` with an
-`intersectsTriangle` callback that is called once per triangle primitive in leaf nodes.
-
-
 ## StaticGeometryGenerator
 
 A utility class for taking a set of SkinnedMeshes or morph target geometry and baking it into
@@ -1345,13 +1352,6 @@ are incompatible lengths, types, etc.
 On subsequent calls the "index" buffer will not be modified so any BVH generated for the
 geometry is unaffected. Once the geometry is updated the `MeshBVH.refit` function can be
 called to update the BVH.
-
-
-## UIntVertexAttributeTexture
-
-_extends [`VertexAttributeTexture`](#vertexattributetexture)_
-
-A VertexAttributeTexture that forces the unsigned integer texture type.
 
 
 ## HitPointInfo
