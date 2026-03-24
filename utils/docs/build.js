@@ -101,10 +101,16 @@ for ( const { entry, jsdoc } of results ) {
 
 		} );
 
-	// sort constants by source line order
-	const constants = jsdoc
-		.filter( d => isConstant( d ) )
-		.sort( ( a, b ) => a.meta.lineno - b.meta.lineno );
+	// group constants by @group tag (or 'Constants' if untagged), preserving source line order
+	const constsByGroup = {};
+	for ( const d of jsdoc.filter( isConstant ).sort( ( a, b ) => a.meta.lineno - b.meta.lineno ) ) {
+
+		const groupTag = d.tags && d.tags.find( t => t.title === 'group' );
+		const groupName = groupTag ? groupTag.value : 'Constants';
+		if ( ! constsByGroup[ groupName ] ) constsByGroup[ groupName ] = [];
+		constsByGroup[ groupName ].push( d );
+
+	}
 
 	// group standalone functions by @group tag (or 'Functions' if untagged)
 	const funcsByGroup = {};
@@ -138,7 +144,11 @@ for ( const { entry, jsdoc } of results ) {
 	// construct the output file
 	const sections = [ `# ${ entry.title }`, '' ];
 
-	sections.push( renderConstants( constants, callbackMap ) );
+	for ( const [ groupName, consts ] of Object.entries( constsByGroup ) ) {
+
+		sections.push( renderConstants( consts, groupName, callbackMap ) );
+
+	}
 
 	for ( const cls of classes ) {
 

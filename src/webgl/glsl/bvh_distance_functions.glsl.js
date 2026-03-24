@@ -1,4 +1,16 @@
 // Distance to Point
+
+/**
+ * Set of shader functions used for interacting with the packed BVH in a shader and sampling
+ * VertexAttributeTextures. Provides distance query functions. See
+ * [src/webgl/glsl](https://github.com/gkjohnson/three-mesh-bvh/tree/master/src/webgl/glsl)
+ * for full implementations and declarations.
+ *
+ * Accessed as `BVHShaderGLSL.bvh_distance_functions`.
+ *
+ * @group Shader and Texture Packing API
+ * @type {string}
+ */
 export const bvh_distance_functions = /* glsl */`
 
 float dot2( vec3 v ) {

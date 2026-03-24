@@ -19,18 +19,6 @@ const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
 
 /**
- * If the `Raycaster` member `firstHitOnly` is set to true then the `.acceleratedRaycast` function
- * will call the `.raycastFirst` function to retrieve hits which is generally faster.
- *
- * @name firstHitOnly
- * @memberof Raycaster
- * @instance
- * @type {boolean}
- * @default false
- * @group Extension Utilities
- */
-
-/**
  * An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH
  * for raycasting if it's available otherwise it falls back to the built-in approach. The results
  * of the function are designed to be identical to the results of the conventional

@@ -391,13 +391,13 @@ export function renderFunctions( funcs, title = 'Functions', callbackMap = {} ) 
 
 }
 
-export function renderConstants( constants, callbackMap = {} ) {
+export function renderConstants( constants, title = 'Constants', callbackMap = {} ) {
 
 	if ( constants.length === 0 ) return '';
 
 	const lines = [];
 
-	lines.push( '## Constants' );
+	lines.push( `## ${ title }` );
 	lines.push( '' );
 
 	for ( const c of constants ) {

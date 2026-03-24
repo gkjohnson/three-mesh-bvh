@@ -21,6 +21,14 @@ import {
 } from '../core/utils/nodeBufferUtils.js';
 import { getIndexArray, getVertexCount } from '../core/build/geometryUtils.js';
 
+/**
+ * A shader uniform object corresponding to the `BVH` shader struct defined in shaderStructs. The
+ * object contains four textures containing information about the BVH and geometry so it can be
+ * queried in a shader using the bvh intersection functions defined in shaderFunctions. This object
+ * is intended to be used as a shader uniform and read in the shader as a `BVH` struct.
+ *
+ * @group Shader and Texture Packing API
+ */
 export class MeshBVHUniformStruct {
 
 	constructor() {
@@ -35,6 +43,12 @@ export class MeshBVHUniformStruct {
 
 	}
 
+	/**
+	 * Updates the object and associated textures with data from the provided BVH.
+	 *
+	 * @param {MeshBVH} bvh
+	 * @returns {void}
+	 */
 	updateFrom( bvh ) {
 
 		const { geometry } = bvh;
@@ -75,6 +89,11 @@ export class MeshBVHUniformStruct {
 
 	}
 
+	/**
+	 * Dispose of the associated textures.
+	 *
+	 * @returns {void}
+	 */
 	dispose() {
 
 		const { index, position, bvhBounds, bvhContents } = this;
