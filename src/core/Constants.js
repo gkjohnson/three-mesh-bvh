@@ -1,11 +1,45 @@
 // Split strategy constants
+
+/**
+ * Option for splitting each BVH node down the center of the longest axis of the bounds.
+ *
+ * This is the fastest construction option and will yield a good, performant bounds.
+ */
 export const CENTER = 0;
+
+/**
+ * Option for splitting each BVH node at the average point along the longest axis for
+ * all triangle centroids in the bounds.
+ *
+ * This strategy may be better than `CENTER` with some geometry.
+ */
 export const AVERAGE = 1;
+
+/**
+ * Option to use a Surface Area Heuristic to split the bounds more optimally. This SAH
+ * implementation tests 32 discrete splits in each node along each axis to determine
+ * which split is the lowest cost.
+ *
+ * This is the slowest construction option but will yield the best bounds of the three
+ * options and use the least memory.
+ */
 export const SAH = 2;
 
 // Traversal constants
+
+/**
+ * Indicates the shape did not intersect the given bounding box.
+ */
 export const NOT_INTERSECTED = 0;
+
+/**
+ * Indicates the shape did intersect the given bounding box.
+ */
 export const INTERSECTED = 1;
+
+/**
+ * Indicate the shape entirely contains the given bounding box.
+ */
 export const CONTAINED = 2;
 
 // SAH cost constants

@@ -1,3 +1,5 @@
+/** @import { Color } from 'three' */
+/** @import { GeometryBVH } from '../core/GeometryBVH.js' */
 import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh, Matrix4, Vector3 } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
@@ -253,14 +255,35 @@ class BVHRootHelper extends Object3D {
 
 }
 
+/**
+ * A `THREE.Group` that visualizes a BVH as wireframe bounding boxes or solid
+ * face overlays. Attach it as a sibling of the mesh in the scene graph and
+ * call `update()` whenever the mesh's BVH or world transform changes.
+ *
+ * @param {Object3D | GeometryBVH | null} [mesh=null] - The mesh whose `geometry.boundsTree`
+ *   should be displayed, or a `GeometryBVH` to display directly.
+ * @param {GeometryBVH | number | null} [bvh=null] - The BVH to visualize. When the first
+ *   argument is a `GeometryBVH`, this argument is interpreted as `depth`.
+ * @param {number} [depth=10] - Maximum tree depth to display.
+ * @extends Group
+ */
 export class BVHHelper extends Group {
 
+	/**
+	 * Shortcut to `edgeMaterial.color`.
+	 * @type {Color}
+	 * @readonly
+	 */
 	get color() {
 
 		return this.edgeMaterial.color;
 
 	}
 
+	/**
+	 * Opacity applied to both edge and mesh materials.
+	 * @type {number}
+	 */
 	get opacity() {
 
 		return this.edgeMaterial.opacity;
@@ -310,12 +333,25 @@ export class BVHHelper extends Group {
 		super();
 
 		this.name = 'BVHHelper';
+
+		/** @type {number} */
 		this.depth = depth;
+
+		/** @type {Object3D | null} */
 		this.mesh = mesh;
+
+		/** @type {GeometryBVH | null} */
 		this.bvh = bvh;
+
+		/** @type {boolean} */
 		this.displayParents = false;
+
+		/** @type {boolean} */
 		this.displayEdges = true;
+
+		/** @type {number} */
 		this.instanceId = 0;
+
 		this._roots = [];
 
 		const edgeMaterial = new LineBasicMaterial( {
@@ -334,13 +370,21 @@ export class BVHHelper extends Group {
 
 		meshMaterial.color = edgeMaterial.color;
 
+		/** Material used when rendering in wireframe edge mode. @type {LineBasicMaterial} */
 		this.edgeMaterial = edgeMaterial;
+
+		/** Material used when rendering in solid face mode. @type {MeshBasicMaterial} */
 		this.meshMaterial = meshMaterial;
 
 		this.update();
 
 	}
 
+	/**
+	 * Rebuilds the helper's display geometry from the current BVH state. Must
+	 * be called after changes to the BVH, `depth`, `displayParents`, or
+	 * `displayEdges`.
+	 */
 	update() {
 
 		const mesh = this.mesh;
@@ -452,6 +496,9 @@ export class BVHHelper extends Group {
 
 	}
 
+	/**
+	 * Disposes of the materials and geometries used by the helper.
+	 */
 	dispose() {
 
 		this.edgeMaterial.dispose();

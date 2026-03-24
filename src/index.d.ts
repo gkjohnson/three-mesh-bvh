@@ -121,6 +121,7 @@ export class BVH {
 
 export class GeometryBVH extends BVH {
 
+	readonly indirect: boolean;
 	readonly geometry: BufferGeometry;
 
 	constructor( geometry: BufferGeometry, options?: BVHOptions );
@@ -274,7 +275,8 @@ export class ObjectBVH extends BVH {
 export class SerializedBVH {
 
 	roots: Array<ArrayBuffer>;
-	index: ArrayBufferView;
+	index: Int32Array | Uint32Array | Uint16Array | null;
+	indirectBuffer: Uint32Array | Uint16Array | null;
 
 }
 
@@ -283,6 +285,8 @@ export class BVHHelper extends Group {
 
 	opacity: number;
 	depth: number;
+	mesh: Object3D | null;
+	bvh: GeometryBVH | null;
 	instanceId: number;
 	displayParents: boolean;
 	displayEdges: boolean;
@@ -293,6 +297,7 @@ export class BVHHelper extends Group {
 	constructor( mesh?: Object3D | null, bvh?: GeometryBVH | null, depth?: number );
 
 	update(): void;
+	dispose(): void;
 
 	get color(): Color;
 
@@ -334,17 +339,6 @@ declare module 'three' {
 	}
 }
 
-// GenerateMeshBVHWorker
-// export class GenerateMeshBVHWorker {
-
-//	 running: boolean;
-
-//	 generate( geometry: BufferGeometry, options?: MeshBVHOptions ): Promise<MeshBVH>;
-
-//	 terminate(): boolean;
-
-// }
-
 // Debug functions
 export function estimateMemoryInBytes( bvh: BVH ): number;
 
@@ -380,7 +374,8 @@ export interface HitTriangleInfo {
 		materialIndex: number,
 		normal: Vector3
 	},
-	uv: Vector2
+	uv: Vector2 | null,
+	barycoord: Vector3,
 }
 
 export function getTriangleHitPointInfo(
@@ -453,6 +448,7 @@ export class OrientedBox {
 
 export class StaticGeometryGenerator {
 
+	meshes: Array<Mesh>;
 	useGroups : boolean;
 	attributes : Array<string>;
 	applyWorldTransforms : boolean;

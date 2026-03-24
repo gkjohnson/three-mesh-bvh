@@ -1,3 +1,5 @@
+/** @import { Raycaster, Intersection } from 'three' */
+/** @import { GeometryBVH } from '../core/GeometryBVH.js' */
 import { Mesh, Points, Line, LineLoop, LineSegments, Sphere, BatchedMesh, REVISION } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 
@@ -16,6 +18,22 @@ const _raycastFunctions = {
 const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
 
+/**
+ * An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH
+ * for raycasting if it's available otherwise it falls back to the built-in approach. The results
+ * of the function are designed to be identical to the results of the conventional
+ * `THREE.Mesh.raycast` results.
+ *
+ * If the raycaster object being used has a property `firstHitOnly` set to `true`, then the
+ * raycasting will terminate as soon as it finds the closest intersection to the ray's origin and
+ * return only that intersection. This is typically several times faster than searching for all
+ * intersections.
+ *
+ * @section Extension Utilities
+ * @param {Raycaster} raycaster
+ * @param {Array<Intersection>} intersects
+ * @returns {void}
+ */
 export function acceleratedRaycast( raycaster, intersects ) {
 
 	if ( this.isBatchedMesh ) {
@@ -142,6 +160,19 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 
 }
 
+/**
+ * A pre-made BufferGeometry extension function that builds a new BVH, assigns it to `boundsTree`
+ * for BufferGeometry, and applies the new index buffer to the geometry. Comparable to
+ * `computeBoundingBox` and `computeBoundingSphere`.
+ *
+ * ```js
+ * THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+ * ```
+ *
+ * @section Extension Utilities
+ * @param {Object} [options]
+ * @returns {GeometryBVH}
+ */
 export function computeBoundsTree( options = {} ) {
 
 	const { type = MeshBVH } = options;
@@ -150,12 +181,38 @@ export function computeBoundsTree( options = {} ) {
 
 }
 
+/**
+ * A BufferGeometry extension function that disposes of the BVH.
+ *
+ * ```js
+ * THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+ * ```
+ *
+ * @section Extension Utilities
+ * @returns {void}
+ */
 export function disposeBoundsTree() {
 
 	this.boundsTree = null;
 
 }
 
+/**
+ * Equivalent of `computeBoundsTree` for `BatchedMesh`. Creates the
+ * `BatchedMesh.boundsTrees` array if it does not exist. If `index` is `-1`
+ * BVHs for all available geometries are generated and the full array is
+ * returned; otherwise only the BVH at that geometry index is generated and
+ * returned.
+ *
+ * ```js
+ * THREE.BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+ * ```
+ *
+ * @section Extension Utilities
+ * @param {number} [index=-1]
+ * @param {Object} [options]
+ * @returns {GeometryBVH | Array<GeometryBVH> | null}
+ */
 export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 	if ( ! IS_REVISION_166 ) {
@@ -210,6 +267,19 @@ export function computeBatchedBoundsTree( index = - 1, options = {} ) {
 
 }
 
+/**
+ * Equivalent of `disposeBoundsTree` for `BatchedMesh`. Sets entries in
+ * `BatchedMesh.boundsTrees` to `null`. If `index` is `-1` all BVHs are
+ * disposed; otherwise only the BVH at that geometry index is disposed.
+ *
+ * ```js
+ * THREE.BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
+ * ```
+ *
+ * @section Extension Utilities
+ * @param {number} [index=-1]
+ * @returns {void}
+ */
 export function disposeBatchedBoundsTree( index = - 1 ) {
 
 	if ( index < 0 ) {

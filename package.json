@@ -24,7 +24,8 @@
     "test": "npm run build-silent && vitest run",
     "lint": "eslint . && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "docs:build": "node utils/docs/build.js"
   },
   "files": [
     "src/*",
@@ -72,8 +73,10 @@
     "concurrently": "^8.2.1",
     "eslint": "^9.0.0",
     "eslint-config-mdcs": "^5.0.0",
+    "eslint-plugin-jsdoc": "^50.8.0",
     "glob": "^10.3.3",
     "globals": "^16.5.0",
+    "jsdoc": "^4.0.5",
     "jsdom": "^26.0.0",
     "jsdom-worker": "^0.3.0",
     "preprocess": "^3.2.0",

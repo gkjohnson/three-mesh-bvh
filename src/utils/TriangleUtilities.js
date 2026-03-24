@@ -1,4 +1,4 @@
-
+/** @import { BufferGeometry } from 'three' */
 import { Vector2, Vector3, Triangle } from 'three';
 
 // sets the vertices of triangle `tri` with the 3 vertices after i
@@ -40,6 +40,28 @@ const tempUV1 = /* @__PURE__ */ new Vector2();
 const tempUV2 = /* @__PURE__ */ new Vector2();
 const tempUV3 = /* @__PURE__ */ new Vector2();
 
+/**
+ * @typedef {Object} HitTriangleInfo
+ * @property {{ a: number, b: number, c: number, materialIndex: number, normal: Vector3 }} face
+ *   Triangle vertex indices, material index, and face normal.
+ * @property {Vector2|null} uv - UV coordinates at the hit point, or `null` if no UV attribute is present.
+ * @property {Vector3} barycoord - Barycentric coordinates of the hit point within the triangle.
+ */
+
+/**
+ * Computes hit-point information for a point on a triangle within a `BufferGeometry`. Returns
+ * the face vertex indices, face normal, material index, UV coordinates, and barycentric coordinates.
+ * Useful for retrieving detailed hit data after a call to `MeshBVH.closestPointToPoint` or
+ * `MeshBVH.closestPointToGeometry`.
+ *
+ * @section Functions
+ * @param {Vector3} point - The point on the triangle surface (in the geometry's local space).
+ * @param {BufferGeometry} geometry - The geometry containing the triangle.
+ * @param {number} triangleIndex - The index of the triangle within the geometry.
+ * @param {HitTriangleInfo} [target] - Optional object to write results into. Reuses existing
+ *   `face`, `uv`, and `barycoord` sub-objects if present.
+ * @returns {HitTriangleInfo}
+ */
 export function getTriangleHitPointInfo( point, geometry, triangleIndex, target ) {
 
 	const indices = geometry.getIndex().array;

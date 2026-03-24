@@ -1,9 +1,11 @@
+/** @import { Vector3 } from 'three' */
+
 /**
  * Compute a convex hull of the given points.
  *
  * Source: https://www.geeksforgeeks.org/convex-hull-set-2-graham-scan/
- * @param {Array<THREE.Vector3>} points
- * @returns {Array<THREE.Vector3>}
+ * @param {Array<Vector3>} points
+ * @returns {Array<Vector3>}
  */
 export function getConvexHull( points ) {
 

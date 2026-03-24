@@ -1,3 +1,14 @@
+/**
+ * Set of shader functions used for interacting with the packed BVH in a shader and sampling
+ * VertexAttributeTextures. Provides common utility functions including `texelFetch1D`. See
+ * [src/webgl/glsl](https://github.com/gkjohnson/three-mesh-bvh/tree/master/src/webgl/glsl)
+ * for full implementations and declarations.
+ *
+ * Accessed as `BVHShaderGLSL.common_functions`.
+ *
+ * @section Shader and Texture Packing API
+ * @type {string}
+ */
 export const common_functions = /* glsl */`
 
 // A stack of uint32 indices can can store the indices for

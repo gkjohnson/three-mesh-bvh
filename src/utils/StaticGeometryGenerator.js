@@ -1,3 +1,4 @@
+/** @import { Mesh, Material, Object3D } from 'three' */
 import { BufferAttribute, BufferGeometry, Vector3, Vector4, Matrix4, Matrix3 } from 'three';
 
 const _positionVector = /*@__PURE__*/ new Vector3();
@@ -455,8 +456,17 @@ class GeometryDiff {
 
 }
 
+/**
+ * A utility class for taking a set of SkinnedMeshes or morph target geometry and baking it into
+ * a single, static geometry that a BVH can be generated for.
+ */
 export class StaticGeometryGenerator {
 
+	/**
+	 * Takes an array of object hierarchies to bake into a single static geometry.
+	 *
+	 * @param {Object3D|Array<Object3D>} meshes
+	 */
 	constructor( meshes ) {
 
 		if ( ! Array.isArray( meshes ) ) {
@@ -480,15 +490,39 @@ export class StaticGeometryGenerator {
 
 		} );
 
+		/**
+		 * @type {Array<Mesh>}
+		 */
 		this.meshes = finalMeshes;
+
+		/**
+		 * If true then groups are used to support an array of materials on the mesh.
+		 * @type {boolean}
+		 */
 		this.useGroups = true;
+
+		/**
+		 * Whether to transform the vertices of the geometry by the world transforms of each mesh when generating.
+		 * @type {boolean}
+		 */
 		this.applyWorldTransforms = true;
+
+		/**
+		 * The set of attributes to copy onto the static geometry.
+		 * @type {Array<string>}
+		 */
 		this.attributes = [ 'position', 'normal', 'color', 'tangent', 'uv', 'uv2' ];
 		this._intermediateGeometry = new Array( finalMeshes.length ).fill().map( () => new BufferGeometry() );
 		this._diffMap = new WeakMap();
 
 	}
 
+	/**
+	 * Returns an array of materials for the meshes to be merged. These can be used alongside the
+	 * generated geometry when creating a mesh: `new Mesh( geometry, generator.getMaterials() )`.
+	 *
+	 * @returns {Array<Material>}
+	 */
 	getMaterials() {
 
 		const materials = [];
@@ -509,6 +543,20 @@ export class StaticGeometryGenerator {
 
 	}
 
+	/**
+	 * Generates a single, static geometry for the passed meshes. When generating for the first
+	 * time an empty target geometry is expected. The same generated geometry can be passed into
+	 * the function on subsequent calls to update the geometry in place to save memory. An error
+	 * will be thrown if the attributes or geometry on the meshes to bake has been changed and
+	 * are incompatible lengths, types, etc.
+	 *
+	 * On subsequent calls the "index" buffer will not be modified so any BVH generated for the
+	 * geometry is unaffected. Once the geometry is updated the `MeshBVH.refit` function can be
+	 * called to update the BVH.
+	 *
+	 * @param {BufferGeometry} [targetGeometry]
+	 * @returns {BufferGeometry}
+	 */
 	generate( targetGeometry = new BufferGeometry() ) {
 
 		// track which attributes have been updated and which to skip to avoid unnecessary attribute copies

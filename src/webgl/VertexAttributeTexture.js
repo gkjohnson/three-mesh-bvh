@@ -1,3 +1,4 @@
+/** @import { BufferAttribute } from 'three' */
 import {
 	DataTexture,
 	FloatType,
@@ -60,6 +61,16 @@ function countToIntFormat( count ) {
 
 }
 
+/**
+ * Float, Uint, and Int VertexAttributeTexture implementations are designed to simplify the
+ * efficient packing of a three.js BufferAttribute into a texture. An instance can be treated as a
+ * texture and when passing as a uniform to a shader they should be used as a `sampler2d`,
+ * `usampler2d`, and `isampler2d` when using the Float, Uint, and Int texture types respectively.
+ *
+ * _extends THREE.DataTexture_
+ *
+ * @section Shader and Texture Packing API
+ */
 export class VertexAttributeTexture extends DataTexture {
 
 	constructor() {
@@ -68,11 +79,30 @@ export class VertexAttributeTexture extends DataTexture {
 		this.minFilter = NearestFilter;
 		this.magFilter = NearestFilter;
 		this.generateMipmaps = false;
+
+		/**
+		 * Treats `BufferAttribute.itemSize` as though it were set to this value when packing the
+		 * buffer attribute texture. Throws an error if the value does not divide evenly into the
+		 * length of the BufferAttribute buffer (`count * itemSize % overrideItemSize`).
+		 *
+		 * Specifically used to pack geometry indices into an RGB texture rather than an Red texture.
+		 * @type {number}
+		 */
 		this.overrideItemSize = null;
 		this._forcedType = null;
 
 	}
 
+	/**
+	 * Updates the texture to have the data contained in the passed BufferAttribute using the
+	 * BufferAttribute `itemSize` field, `normalized` field, and TypedArray layout to determine
+	 * the appropriate texture layout, format, and type. The texture dimensions will always be
+	 * square. Because these are intended to be sampled as 1D arrays the width of the texture must
+	 * be taken into account to derive a sampling uv. See `texelFetch1D` in shaderFunctions.
+	 *
+	 * @param {BufferAttribute} attribute
+	 * @returns {void}
+	 */
 	updateFrom( attr ) {
 
 		const overrideItemSize = this.overrideItemSize;
@@ -274,6 +304,10 @@ export class VertexAttributeTexture extends DataTexture {
 
 }
 
+/**
+ * A VertexAttributeTexture that forces the unsigned integer texture type.
+ * @section Shader and Texture Packing API
+ */
 export class UIntVertexAttributeTexture extends VertexAttributeTexture {
 
 	constructor() {
@@ -285,6 +319,10 @@ export class UIntVertexAttributeTexture extends VertexAttributeTexture {
 
 }
 
+/**
+ * A VertexAttributeTexture that forces the signed integer texture type.
+ * @section Shader and Texture Packing API
+ */
 export class IntVertexAttributeTexture extends VertexAttributeTexture {
 
 	constructor() {
@@ -297,6 +335,10 @@ export class IntVertexAttributeTexture extends VertexAttributeTexture {
 
 }
 
+/**
+ * A VertexAttributeTexture that forces the float texture type.
+ * @section Shader and Texture Packing API
+ */
 export class FloatVertexAttributeTexture extends VertexAttributeTexture {
 
 	constructor() {

@@ -1,3 +1,5 @@
+/** @import { MeshBVH } from '../core/MeshBVH.js' */
+/** @import { BVH } from '../core/BVH.js' */
 import { Box3 } from 'three';
 import { PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
@@ -97,12 +99,27 @@ function getRootExtremes( bvh, group ) {
 
 }
 
+/**
+ * Measures the min and max extremes of the BVH tree structure, including node
+ * depth, leaf primitive count, split axis distribution, and a surface-area
+ * heuristic score. Returns one entry per root group in the BVH.
+ * @section Debug Functions
+ * @param {BVH} bvh
+ * @returns {Array<Object>}
+ */
 function getBVHExtremes( bvh ) {
 
 	return bvh._roots.map( ( root, i ) => getRootExtremes( bvh, i ) );
 
 }
 
+/**
+ * Roughly estimates the amount of memory in bytes used by a BVH by walking
+ * its object graph and summing typed-array byte lengths and primitive sizes.
+ * @section Debug Functions
+ * @param {BVH} bvh
+ * @returns {number}
+ */
 function estimateMemoryInBytes( obj ) {
 
 	const traversed = new Set();
@@ -166,6 +183,14 @@ function estimateMemoryInBytes( obj ) {
 
 }
 
+/**
+ * Validates that every node's bounding box fully contains its children and,
+ * for leaf nodes, fully contains all of its primitives. Uses `console.assert`
+ * to log failures and returns `false` if any check fails.
+ * @section Debug Functions
+ * @param {MeshBVH} bvh
+ * @returns {boolean}
+ */
 function validateBounds( bvh ) {
 
 	const depthStack = [];
@@ -219,7 +244,15 @@ function validateBounds( bvh ) {
 
 }
 
-// Returns a simple, human readable object that represents the BVH.
+/**
+ * Returns a plain-object tree that mirrors the BVH hierarchy, useful for
+ * inspecting or serialising the structure for debugging. Each node has a
+ * `bounds` (`Box3`) and either `{ count, offset }` (leaf) or `{ left, right }`
+ * (internal) fields.
+ * @section Debug Functions
+ * @param {BVH} bvh
+ * @returns {Object}
+ */
 function getJSONStructure( bvh ) {
 
 	const depthStack = [];

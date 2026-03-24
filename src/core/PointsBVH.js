@@ -1,3 +1,4 @@
+/** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Vector3, Matrix4, Ray, Box3 } from 'three';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
@@ -8,6 +9,19 @@ const _ray = /* @__PURE__ */ new Ray();
 const _pointPool = /* @__PURE__ */ new PrimitivePool( () => new Vector3() );
 const _box = /* @__PURE__ */ new Box3();
 
+/**
+ * @callback IntersectsPointCallback
+ * @param {Vector3} point - The point primitive in local space.
+ * @param {number} index - The primitive index within the BVH buffer.
+ * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
+ * @param {number} depth - The depth of the node in the tree.
+ * @returns {boolean} Return `true` to stop traversal.
+ */
+
+/**
+ * BVH for `THREE.Points` geometries. Each BVH primitive represents a single point.
+ * @extends GeometryBVH
+ */
 export class PointsBVH extends GeometryBVH {
 
 	get primitiveStride() {
@@ -46,6 +60,17 @@ export class PointsBVH extends GeometryBVH {
 
 	}
 
+	/**
+	 * Performs a spatial query against the BVH. Extends the base `shapecast` with an
+	 * `intersectsPoint` callback that is called once per point primitive in leaf nodes.
+	 *
+	 * @param {Object} callbacks
+	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
+	 * @param {IntersectsPointCallback} [callbacks.intersectsPoint]
+	 * @param {IntersectsRangeCallback} [callbacks.intersectsRange]
+	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
+	 * @returns {boolean}
+	 */
 	shapecast( callbacks ) {
 
 		// TODO: avoid unnecessary "iterate over points" function

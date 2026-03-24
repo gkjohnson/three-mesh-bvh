@@ -1,3 +1,14 @@
+/**
+ * Set of shader functions used for interacting with the packed BVH in a shader and sampling
+ * VertexAttributeTextures. Provides ray intersection functions. See
+ * [src/webgl/glsl](https://github.com/gkjohnson/three-mesh-bvh/tree/master/src/webgl/glsl)
+ * for full implementations and declarations.
+ *
+ * Accessed as `BVHShaderGLSL.bvh_ray_functions`.
+ *
+ * @section Shader and Texture Packing API
+ * @type {string}
+ */
 export const bvh_ray_functions = /* glsl */`
 
 #ifndef TRI_INTERSECT_EPSILON

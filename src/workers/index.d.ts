@@ -1,9 +1,12 @@
-import { MeshBVH, MeshBVHOptions } from '../index.js';
+import { MeshBVH, BVHOptions } from '../index.js';
 import { BufferGeometry } from 'three';
 
 export class GenerateMeshBVHWorker {
 
-	generate( geometry: BufferGeometry, options: MeshBVHOptions ): Promise<MeshBVH>;
+	readonly running: boolean;
+
+	generate( geometry: BufferGeometry, options?: BVHOptions ): Promise<MeshBVH>;
+	dispose(): void;
 
 }
 

@@ -1,3 +1,5 @@
+/** @import { SkinnedMesh } from 'three' */
+/** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Vector3, Vector2, Ray, Matrix4, FrontSide, BackSide, Triangle, REVISION } from 'three';
 import { GeometryBVH, ExtendedTriangle, INTERSECTED, NOT_INTERSECTED, SKIP_GENERATION } from 'three-mesh-bvh';
 
@@ -19,6 +21,24 @@ const _normalA = /* @__PURE__ */ new Vector3();
 const _normalB = /* @__PURE__ */ new Vector3();
 const _normalC = /* @__PURE__ */ new Vector3();
 
+/**
+ * @callback IntersectsTriangleCallback
+ * @param {ExtendedTriangle} triangle - The triangle primitive in local space.
+ * @param {number} index - The primitive index within the BVH buffer.
+ * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
+ * @param {number} depth - The depth of the node in the tree.
+ * @returns {boolean} Return `true` to stop traversal.
+ */
+
+/**
+ * BVH for `SkinnedMesh` objects. Computes primitive bounds using
+ * `SkinnedMesh.getVertexPosition` so the tree reflects the current posed state
+ * of the mesh. Call `refit()` after updating the skeleton to keep bounds accurate.
+ *
+ * @param {SkinnedMesh} mesh
+ * @param {Object} [options] - Same options as {@link GeometryBVH}.
+ * @extends GeometryBVH
+ */
 export class SkinnedMeshBVH extends GeometryBVH {
 
 	get primitiveStride() {
@@ -104,6 +124,17 @@ export class SkinnedMeshBVH extends GeometryBVH {
 
 	}
 
+	/**
+	 * Performs a spatial query against the BVH. Extends the base `shapecast` with an
+	 * `intersectsTriangle` callback that is called once per triangle primitive in leaf nodes.
+	 *
+	 * @param {Object} callbacks
+	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
+	 * @param {IntersectsTriangleCallback} [callbacks.intersectsTriangle]
+	 * @param {IntersectsRangeCallback} [callbacks.intersectsRange]
+	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
+	 * @returns {boolean}
+	 */
 	shapecast( callbacks ) {
 
 		const triangle = new ExtendedTriangle();
