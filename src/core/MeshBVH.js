@@ -75,12 +75,17 @@ const _getters = [ 'getX', 'getY', 'getZ' ];
  */
 
 /**
- * BVH for `THREE.Mesh` geometries. Stores one triangle per leaf node. Provides high-performance
- * raycasting and spatial query functions for mesh geometry.
+ * The MeshBVH generation process modifies the geometry's index bufferAttribute in place to save
+ * memory. The BVH construction will use the geometry's boundingBox if it exists or set it if it
+ * does not. The BVH will no longer work correctly if the index buffer is modified.
  *
- * The geometry's index buffer is reordered in place during construction unless `indirect: true`
- * is set. Only triangles within the geometry's draw range (or the provided `range` option) are
- * included. All query functions expect and return results in the BVH's local space.
+ * Only triangles within the geometry's draw range (or provided `range` option) are included in the
+ * BVH. When a geometry has multiple groups, only triangles within the defined group ranges are
+ * included. Triangles in gaps between groups are excluded.
+ *
+ * Note that all query functions expect arguments in local space of the BVH and return results in
+ * local space, as well. If world space results are needed they must be transformed into world space
+ * using `object.matrixWorld`.
  *
  * @param {BufferGeometry} geometry
  * @param {Object} [options] - Same options as {@link GeometryBVH}.
@@ -89,13 +94,13 @@ const _getters = [ 'getX', 'getY', 'getZ' ];
 export class MeshBVH extends GeometryBVH {
 
 	/**
-	 * Serializes the BVH into a plain object that can be transferred to a WebWorker,
-	 * stored, or used to reconstruct the BVH via `MeshBVH.deserialize`.
-	 *
-	 * The root buffers in the serialized result are the same buffers used by the original BVH
-	 * (unless `cloneBuffers` is `true`), so they must not be modified if `cloneBuffers` is
-	 * `false`. Use `SharedArrayBuffer` (`useSharedArrayBuffer: true`) to share BVH memory
-	 * across workers without copying.
+	 * Generates a representation of the complete bounds tree and the geometry index buffer which
+	 * can be used to recreate a bounds tree using the `deserialize` function. The `serialize` and
+	 * `deserialize` functions can be used to generate a MeshBVH asynchronously in a background web
+	 * worker to prevent the main thread from stuttering. The BVH roots buffer stored in the
+	 * serialized representation are the same as the ones used by the original BVH so they should
+	 * not be modified. If `SharedArrayBuffers` are used then the same BVH memory can be used for
+	 * multiple BVH in multiple WebWorkers.
 	 *
 	 * @static
 	 * @param {MeshBVH} bvh - The BVH to serialize.
@@ -140,8 +145,9 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Reconstructs a `MeshBVH` from serialized data produced by `MeshBVH.serialize`.
-	 * The root buffers from `data` are assigned directly to the new BVH (memory is shared).
+	 * Returns a new MeshBVH instance from the serialized data. `geometry` is the geometry used
+	 * to generate the original BVH `data` was derived from. The root buffers stored in `data`
+	 * are set directly on the new BVH so the memory is shared.
 	 *
 	 * @static
 	 * @param {SerializedBVH} data - Serialized BVH data.
@@ -232,10 +238,9 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Resolves a BVH-layout triangle index to a geometry triangle index. When `indirect` is
-	 * `false` the index is returned unchanged; when `indirect` is `true` it is looked up in
-	 * the indirect buffer. Use this when working with indices returned by
-	 * `intersectsRange` inside `shapecast`.
+	 * Helper function for use when `indirect` is set to true. This function takes a triangle
+	 * index in the BVH layout and returns the associated triangle index in the geometry index
+	 * buffer or position attribute.
 	 * @type {function(number): number}
 	 * @readonly
 	 */
@@ -261,6 +266,16 @@ export class MeshBVH extends GeometryBVH {
 
 	}
 
+	/**
+	 * Adjusts all triangle offsets stored in the BVH by the given offset. This is useful when the
+	 * triangle data has been compacted or shifted in the geometry buffers (e.g. in `BatchedMesh`
+	 * when geometries are compacted using the 'optimize' function or constructing a 'merged' BVH).
+	 * This function only adjusts the BVH to point to different triangles in the geometry. The
+	 * geometry's index buffer and/or position attributes must be updated separately to match.
+	 *
+	 * @param {number} offset
+	 * @returns {void}
+	 */
 	// implement abstract methods from BVH base class
 	shiftTriangleOffsets( offset ) {
 
@@ -421,9 +436,8 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Convenience wrapper around `raycast` and `raycastFirst`
-	 * that uses a `THREE.Object3D` and `THREE.Raycaster` as input. Results are in world space,
-	 * matching the format of three.js built-in raycast results.
+	 * A convenience function for performing a raycast based on a mesh. Results are formed like
+	 * three.js raycast results in world frame.
 	 *
 	 * @param {Object3D} object
 	 * @param {Raycaster} raycaster
@@ -480,12 +494,10 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Refits the BVH node bounds to the current triangle positions. Faster than rebuilding
-	 * but produces a less optimal tree after large vertex changes.
-	 *
-	 * `nodeIndices` is a set of BVH node indices that need to be refit. Obtain these during
-	 * a `shapecast` call by collecting the `nodeIndex` argument from
-	 * `intersectsBounds`. If omitted, all nodes are refit.
+	 * Refit the node bounds to the current triangle positions. This is quicker than regenerating
+	 * a new BVH but will not be optimal after significant changes to the vertices. `nodeIndices`
+	 * is a set of node indices (provided by the `shapecast` function) that need to be refit
+	 * including all internal nodes.
 	 *
 	 * @param {Set<number>|Array<number>|null} [nodeIndices=null]
 	 */
@@ -499,14 +511,20 @@ export class MeshBVH extends GeometryBVH {
 	/* Core Cast Functions */
 
 	/**
-	 * Returns all triangle intersections with the given ray. Results are in the local space of
-	 * the BVH and are unsorted. Unlike three.js `Raycaster` results, distances and points are
-	 * relative to the local frame — use `acceleratedRaycast` to get world-space results.
+	 * Returns all raycast triangle hits in unsorted order. It is expected that `ray` is in the
+	 * frame of the BVH already. Likewise the returned results are also provided in the local
+	 * frame of the BVH. The `side` identifier is used to determine the side to check when
+	 * raycasting or a material with the given side field can be passed. If an array of materials
+	 * is provided then it is expected that the geometry has groups and the appropriate material
+	 * side is used per group.
+	 *
+	 * Note that unlike three.js' Raycaster results the points and distances in the intersections
+	 * returned from this function are relative to the local frame of the MeshBVH. When using the
+	 * `acceleratedRaycast` function as an override for `Mesh.raycast` they are transformed into
+	 * world space to be consistent with three's results.
 	 *
 	 * @param {Ray} ray
-	 * @param {number|Material|Array<Material>} [materialOrSide=FrontSide] - A `THREE.Side`
-	 *   constant, a single material, or a per-group material array used to determine which
-	 *   triangle faces to test.
+	 * @param {number|Material|Array<Material>} [materialOrSide=FrontSide]
 	 * @param {number} [near=0]
 	 * @param {number} [far=Infinity]
 	 * @returns {Array<Intersection>}
@@ -527,8 +545,9 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Returns the first (closest) triangle intersection with the given ray. Significantly faster
-	 * than `raycast` when only the nearest hit is needed.
+	 * Returns the first raycast hit in the model. This is typically much faster than returning
+	 * all hits. See `raycast` for information on the side and material options as well as the
+	 * frame of the returned intersections.
 	 *
 	 * @param {Ray} ray
 	 * @param {number|Material|Array<Material>} [materialOrSide=FrontSide]
@@ -558,8 +577,11 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Returns whether the mesh intersects the given geometry.
-	 * Performance improves significantly if `otherGeometry` also has a `boundsTree`.
+	 * Returns whether or not the mesh intersects the given geometry.
+	 *
+	 * The `geometryToBvh` parameter is the transform of the geometry in the BVH's local frame.
+	 *
+	 * Performance improves considerably if the provided geometry also has a `boundsTree`.
 	 *
 	 * @param {BufferGeometry} otherGeometry
 	 * @param {Matrix4} geometryToBvh - Transform of `otherGeometry` into the local space of
@@ -588,8 +610,10 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Extends the base `shapecast` with an `intersectsTriangle` callback that is called once
-	 * per triangle primitive in leaf nodes.
+	 * A generalized cast function that can be used to implement intersection logic for custom
+	 * shapes. This is used internally for `intersectsBox`, `intersectsSphere`, and more. The
+	 * function returns as soon as a triangle has been reported as intersected and returns `true`
+	 * if a triangle has been intersected.
 	 *
 	 * @param {Object} callbacks
 	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
@@ -619,13 +643,13 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Extends the base `bvhcast` with an `intersectsTriangles` callback that is called for
-	 * each pair of triangles when both BVHs have reached leaf nodes.
+	 * A generalized cast function that traverses two BVH structures simultaneously to perform
+	 * intersection tests between them. This is used internally by `intersectsGeometry`. The
+	 * function returns `true` as soon as a triangle pair has been reported as intersected by
+	 * the callbacks.
 	 *
-	 * `triangle2` is already transformed into the local space of this BVH. Triangle indices
-	 * passed to `intersectsTriangles` are resolved to geometry indices automatically. Range
-	 * offsets passed to `intersectsRanges` are raw BVH storage indices — use
-	 * `resolveTriangleIndex` to convert them if needed.
+	 * `matrixToLocal` is a Matrix4 that transforms `otherBvh` into the local space of this BVH.
+	 * The other BVH's triangles are transformed by this matrix before intersection tests.
 	 *
 	 * @param {MeshBVH} otherBvh
 	 * @param {Matrix4} matrixToLocal - Transforms `otherBvh` into the local space of this BVH.
@@ -745,7 +769,9 @@ export class MeshBVH extends GeometryBVH {
 	/* Derived Cast Functions */
 
 	/**
-	 * Returns whether the mesh intersects the given axis-aligned box.
+	 * Returns whether or not the mesh intersects the given box.
+	 *
+	 * The `boxToBvh` parameter is the transform of the box in the meshes frame.
 	 *
 	 * @param {Box3} box
 	 * @param {Matrix4} boxToBvh - Transform of the box in the local space of this BVH.
@@ -766,7 +792,7 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Returns whether the mesh intersects the given sphere.
+	 * Returns whether or not the mesh intersects the given sphere.
 	 *
 	 * @param {Sphere} sphere
 	 * @returns {boolean}
@@ -783,13 +809,24 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Computes the closest point between the mesh and the given geometry. Puts the nearest
-	 * point on this mesh into `target1` (in this BVH's local space) and the nearest point on
-	 * `otherGeometry` into `target2` (in the geometry's local space).
+	 * Computes the closest distance from the geometry to the mesh and puts the closest point on
+	 * the mesh in `target1` (in the frame of the BVH) and the closest point on the other
+	 * geometry in `target2` (in the geometry frame). If `target1` is not provided a new Object
+	 * is created and returned from the function.
 	 *
-	 * Returns `null` if no point is found within `[minThreshold, maxThreshold]` and leaves
-	 * both targets unmodified. Pass `target.faceIndex` to `getTriangleHitPointInfo`
-	 * for additional triangle data.
+	 * The `geometryToBvh` parameter is the transform of the geometry in the BVH's local frame.
+	 *
+	 * If a point is found that is closer than `minThreshold` then the function will return that
+	 * result early. Any triangles or points outside of `maxThreshold` are ignored. If no point
+	 * is found within the min / max thresholds then `null` is returned and the target objects
+	 * are not modified.
+	 *
+	 * The returned faceIndex in `target1` and `target2` can be used with the standalone function
+	 * `getTriangleHitPointInfo` to obtain more information like UV coordinates, triangle normal
+	 * and materialIndex.
+	 *
+	 * _Note that this function can be very slow if `geometry` does not have a
+	 * `geometry.boundsTree` computed._
 	 *
 	 * @param {BufferGeometry} otherGeometry
 	 * @param {Matrix4} geometryToBvh - Transform of `otherGeometry` into the local space of
@@ -816,11 +853,17 @@ export class MeshBVH extends GeometryBVH {
 	}
 
 	/**
-	 * Computes the closest point on the mesh surface to the given point. Returns `null` if no
-	 * point is found within `[minThreshold, maxThreshold]` and leaves `target` unmodified.
+	 * Computes the closest distance from the point to the mesh and gives additional information
+	 * in `target`. The target can be left undefined to default to a new object which is
+	 * ultimately returned by the function.
 	 *
-	 * Pass `target.faceIndex` to `getTriangleHitPointInfo` for UV coordinates, face
-	 * normal, and material index.
+	 * If a point is found that is closer than `minThreshold` then the function will return that
+	 * result early. Any triangles or points outside of `maxThreshold` are ignored. If no point
+	 * is found within the min / max thresholds then `null` is returned and the `target` object
+	 * is not modified.
+	 *
+	 * The returned faceIndex can be used with the standalone function `getTriangleHitPointInfo`
+	 * to obtain more information like UV coordinates, triangle normal and materialIndex.
 	 *
 	 * @param {Vector3} point
 	 * @param {HitPointInfo} [target={}]

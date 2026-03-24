@@ -5,10 +5,9 @@ import { ExtendedTriangle } from './ExtendedTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
 /**
- * An oriented bounding box defined by axis-aligned `min`/`max` bounds in
- * local space and a `matrix` that transforms them into world space. Caches
- * SAT axes and corner points to accelerate intersection tests. Set
- * `needsUpdate = true` after modifying `min`, `max`, or `matrix` directly.
+ * An oriented version of three.js' Box3 class. A variety of derivative values are cached on the
+ * object to accelerate the intersection functions. `.needsUpdate` must be set to true when
+ * modifying the box parameters.
  *
  * @param {Vector3} [min]
  * @param {Vector3} [max]
@@ -20,13 +19,13 @@ export class OrientedBox {
 
 		this.isOrientedBox = true;
 
-		/** Local-space minimum corner. @type {Vector3} */
+		/** @type {Vector3} */
 		this.min = new Vector3();
 
-		/** Local-space maximum corner. @type {Vector3} */
+		/** @type {Vector3} */
 		this.max = new Vector3();
 
-		/** Transform from local box space into world space. @type {Matrix4} */
+		/** Matrix transformation applied to the box. @type {Matrix4} */
 		this.matrix = new Matrix4();
 		this.invMatrix = new Matrix4();
 		this.points = new Array( 8 ).fill().map( () => new Vector3() );
@@ -34,8 +33,9 @@ export class OrientedBox {
 		this.satBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		this.alignedSatBounds = new Array( 3 ).fill().map( () => new SeparatingAxisBounds() );
 		/**
-		 * Set to `true` after modifying `min`, `max`, or `matrix` directly to
-		 * trigger recomputation of cached data before the next query.
+		 * Indicates that the bounding box fields have changed so cached variables to accelerate
+		 * other function execution can be updated. Must be set to true after modifying the
+		 * oriented box `min`, `max`, `matrix` fields.
 		 * @type {boolean}
 		 */
 		this.needsUpdate = false;
@@ -47,7 +47,7 @@ export class OrientedBox {
 	}
 
 	/**
-	 * Sets the box parameters and marks it as needing an update.
+	 * Sets the oriented box parameters.
 	 * @param {Vector3} min
 	 * @param {Vector3} max
 	 * @param {Matrix4} matrix
@@ -129,7 +129,7 @@ OrientedBox.prototype.update = ( function () {
 } )();
 
 /**
- * Returns `true` if this oriented box intersects the given axis-aligned box.
+ * Returns true if intersecting with the provided box.
  * @function
  * @param {Box3} box
  * @returns {boolean}
@@ -180,7 +180,7 @@ OrientedBox.prototype.intersectsBox = ( function () {
 } )();
 
 /**
- * Returns `true` if this oriented box intersects the given triangle.
+ * Returns true if intersecting with the provided triangle.
  * @function
  * @param {Triangle} triangle
  * @returns {boolean}
@@ -263,12 +263,12 @@ OrientedBox.prototype.intersectsTriangle = ( function () {
 } )();
 
 /**
- * Sets `target` to the closest point on the surface of this box to `point`
- * and returns it.
+ * Returns the distance to the provided point. Sets `target` to the closest point on the surface
+ * of the box if provided.
  * @function
  * @param {Vector3} point
  * @param {Vector3} target
- * @returns {Vector3}
+ * @returns {number}
  */
 OrientedBox.prototype.closestPointToPoint = ( function () {
 
@@ -293,7 +293,7 @@ OrientedBox.prototype.closestPointToPoint = ( function () {
 } )();
 
 /**
- * Returns the shortest distance from this oriented box to the given point.
+ * Returns the distance to the provided point.
  * @function
  * @param {Vector3} point
  * @returns {number}
@@ -311,10 +311,9 @@ OrientedBox.prototype.distanceToPoint = ( function () {
 } )();
 
 /**
- * Returns the shortest distance between this oriented box and the given
- * axis-aligned box. Returns early if the distance falls below `threshold`.
- * `target1` and `target2` are set to the closest points on this box and
- * `box` respectively.
+ * Returns the distance to the provided box. `threshold` is an optional distance to return early
+ * if the distance is found to be within it. `target1` and `target2` are set to the points on the
+ * surface of this box and the `box` argument respectively.
  * @function
  * @param {Box3} box
  * @param {number} [threshold=0]

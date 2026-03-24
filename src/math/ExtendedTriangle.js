@@ -13,10 +13,9 @@ function isNearZero( value ) {
 }
 
 /**
- * A `THREE.Triangle` subclass with additional spatial query methods. Caches
- * SAT planes and bounds to accelerate intersection tests. Set `needsUpdate =
- * true` after modifying vertex positions to invalidate the cache before the
- * next query.
+ * An extended version of three.js' Triangle class. A variety of derivative values are cached on
+ * the object to accelerate the intersection functions. `.needsUpdate` must be set to true when
+ * modifying the triangle parameters.
  * @extends Triangle
  */
 export class ExtendedTriangle extends Triangle {
@@ -35,8 +34,9 @@ export class ExtendedTriangle extends Triangle {
 		this.degenerateSegment = new Line3();
 
 		/**
-		 * Set to `true` after modifying `a`, `b`, or `c` to trigger
-		 * recalculation of cached planes and SAT bounds before the next query.
+		 * Indicates that the triangle fields have changed so cached variables to accelerate other
+		 * function execution can be updated. Must be set to true after modifying the triangle
+		 * `a`, `b`, `c` fields.
 		 * @type {boolean}
 		 */
 		this.needsUpdate = true;
@@ -44,7 +44,7 @@ export class ExtendedTriangle extends Triangle {
 	}
 
 	/**
-	 * Returns `true` if this triangle intersects the given sphere.
+	 * Returns whether the triangle intersects the given sphere.
 	 * @param {Sphere} sphere
 	 * @returns {boolean}
 	 */
@@ -136,9 +136,8 @@ export class ExtendedTriangle extends Triangle {
 }
 
 /**
- * Returns the closest distance between this triangle and the given line
- * segment. `target1` and `target2` are set to the closest points on the
- * triangle and segment respectively.
+ * Returns the distance to the provided line segment. `target1` and `target2` are set to the
+ * closest points on the triangle and segment respectively.
  * @function
  * @param {Line3} segment
  * @param {Vector3} [target1]
@@ -206,9 +205,8 @@ ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 } )();
 
 /**
- * Returns `true` if this triangle intersects `other`. If `target` is
- * provided and the triangles are not coplanar, it is set to the line segment
- * describing the intersection edge.
+ * Returns whether the triangles intersect. `target` is set to the line segment representing
+ * the intersection.
  * @function
  * @param {Triangle} other
  * @param {Line3} [target]
@@ -747,7 +745,7 @@ ExtendedTriangle.prototype.intersectsTriangle = ( function () {
 
 
 /**
- * Returns the shortest distance from this triangle to the given point.
+ * Returns the distance to the provided point.
  * @function
  * @param {Vector3} point
  * @returns {number}
@@ -766,8 +764,7 @@ ExtendedTriangle.prototype.distanceToPoint = ( function () {
 
 
 /**
- * Returns the shortest distance between this triangle and `other`. `target1`
- * and `target2` are set to the closest points on each triangle respectively.
+ * Returns the distance to the provided triangle.
  * @function
  * @param {Triangle} other
  * @param {Vector3} [target1]

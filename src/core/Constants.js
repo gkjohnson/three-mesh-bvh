@@ -1,42 +1,44 @@
 // Split strategy constants
 
 /**
- * Splits each BVH node at the center of its longest axis. Fastest to build and
- * yields good performance for most geometry.
+ * Option for splitting each BVH node down the center of the longest axis of the bounds.
+ *
+ * This is the fastest construction option and will yield a good, performant bounds.
  */
 export const CENTER = 0;
 
 /**
- * Splits each BVH node at the average centroid position along the longest axis.
- * May produce better results than `CENTER` for irregular geometry.
+ * Option for splitting each BVH node at the average point along the longest axis for
+ * all triangle centroids in the bounds.
+ *
+ * This strategy may be better than `CENTER` with some geometry.
  */
 export const AVERAGE = 1;
 
 /**
- * Uses a Surface Area Heuristic to find the lowest-cost split across 32 candidate
- * positions per axis. Slowest to build but yields the most optimal tree and lowest
- * memory usage.
+ * Option to use a Surface Area Heuristic to split the bounds more optimally. This SAH
+ * implementation tests 32 discrete splits in each node along each axis to determine
+ * which split is the lowest cost.
+ *
+ * This is the slowest construction option but will yield the best bounds of the three
+ * options and use the least memory.
  */
 export const SAH = 2;
 
 // Traversal constants
 
 /**
- * Returned from `intersectsBounds` to indicate the query shape does not intersect
- * the bounding box. Traversal does not descend into this node.
+ * Indicates the shape did not intersect the given bounding box.
  */
 export const NOT_INTERSECTED = 0;
 
 /**
- * Returned from `intersectsBounds` to indicate the query shape intersects the
- * bounding box. Traversal continues into child nodes.
+ * Indicates the shape did intersect the given bounding box.
  */
 export const INTERSECTED = 1;
 
 /**
- * Returned from `intersectsBounds` to indicate the query shape fully contains the
- * bounding box. All primitives in the subtree are intersected immediately without
- * further bounds testing.
+ * Indicate the shape entirely contains the given bounding box.
  */
 export const CONTAINED = 2;
 

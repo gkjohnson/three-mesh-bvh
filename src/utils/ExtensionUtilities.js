@@ -19,12 +19,27 @@ const _mesh = /* @__PURE__ */ new Mesh();
 const _batchIntersects = [];
 
 /**
- * A drop-in replacement for `THREE.Mesh.prototype.raycast` that uses the
- * geometry's BVH when available, falling back to the built-in raycast
- * otherwise. Results are identical to the standard three.js format.
+ * If the `Raycaster` member `firstHitOnly` is set to true then the `.acceleratedRaycast` function
+ * will call the `.raycastFirst` function to retrieve hits which is generally faster.
  *
- * If `raycaster.firstHitOnly` is `true` the search terminates at the first
- * intersection, which is typically several times faster.
+ * @name firstHitOnly
+ * @memberof Raycaster
+ * @instance
+ * @type {boolean}
+ * @default false
+ * @group Extension Utilities
+ */
+
+/**
+ * An accelerated raycast function with the same signature as `THREE.Mesh.raycast`. Uses the BVH
+ * for raycasting if it's available otherwise it falls back to the built-in approach. The results
+ * of the function are designed to be identical to the results of the conventional
+ * `THREE.Mesh.raycast` results.
+ *
+ * If the raycaster object being used has a property `firstHitOnly` set to `true`, then the
+ * raycasting will terminate as soon as it finds the closest intersection to the ray's origin and
+ * return only that intersection. This is typically several times faster than searching for all
+ * intersections.
  *
  * @group Extension Utilities
  * @param {Raycaster} raycaster
@@ -158,9 +173,9 @@ function acceleratedBatchedMeshRaycast( raycaster, intersects ) {
 }
 
 /**
- * A `BufferGeometry` extension function that builds a new BVH, assigns it to
- * `geometry.boundsTree`, and applies the reordered index buffer. Comparable
- * to `computeBoundingBox` and `computeBoundingSphere`.
+ * A pre-made BufferGeometry extension function that builds a new BVH, assigns it to `boundsTree`
+ * for BufferGeometry, and applies the new index buffer to the geometry. Comparable to
+ * `computeBoundingBox` and `computeBoundingSphere`.
  *
  * ```js
  * THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -179,8 +194,7 @@ export function computeBoundsTree( options = {} ) {
 }
 
 /**
- * A `BufferGeometry` extension function that disposes of the geometry's BVH
- * by setting `boundsTree` to `null`.
+ * A BufferGeometry extension function that disposes of the BVH.
  *
  * ```js
  * THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
