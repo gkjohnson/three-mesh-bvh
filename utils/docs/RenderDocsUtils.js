@@ -309,8 +309,9 @@ function renderCallable( doc, heading, sigPrefix, callbackMap ) {
 export function renderMethod( doc, callbackMap = {} ) {
 
 	const isStatic = doc.scope === 'static';
-	const prefix = isStatic ? 'static ' : '';
-	return renderCallable( doc, `### ${ prefix }.${ doc.name }`, prefix, callbackMap );
+	const headingPrefix = isStatic ? 'static ' : '';
+	const sigPrefix = isStatic ? `static ${ doc.async ? 'async ' : '' }` : ( doc.async ? 'async ' : '' );
+	return renderCallable( doc, `### ${ headingPrefix }.${ doc.name }`, sigPrefix, callbackMap );
 
 }
 
