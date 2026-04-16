@@ -104,7 +104,7 @@ export class BVH {
 		callback: (
 			depth: number,
 			isLeaf: boolean,
-			boundingData: ArrayBuffer,
+			boundingData: Float32Array,
 			offsetOrSplit: number,
 			count: number
 		) => void,
