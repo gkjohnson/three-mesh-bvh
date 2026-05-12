@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHHelper: Handled case where the a root object does not have geometry.
 
 ### Fixed
+- MeshBVH: closestPointToGeometry will no longer log warnings for coplanar triangles.
+
+### Fixed
 - ParallelMeshBVHWorker: Fix failure when reporting progress.
 - ObjectBVH, SkinnedMeshBVH: Fix raycasting bugs for both classes
 - ObjectBVH: Fix case where the first BatchedMesh instance would be skipped
