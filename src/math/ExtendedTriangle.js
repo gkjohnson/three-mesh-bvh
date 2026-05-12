@@ -782,7 +782,11 @@ ExtendedTriangle.prototype.distanceToTriangle = ( function () {
 	return function distanceToTriangle( other, target1 = null, target2 = null ) {
 
 		const lineTarget = target1 || target2 ? line1 : null;
-		if ( this.intersectsTriangle( other, lineTarget ) ) {
+		// `intersectsTriangle` returns a zero-length segment for coplanar
+		// intersecting triangles, which is fine for our purposes here. We
+		// don't need the segment itself in this function. So we can suppress
+		// the warning about coplanar triangles.
+		if ( this.intersectsTriangle( other, lineTarget, true ) ) {
 
 			if ( target1 || target2 ) {
 
