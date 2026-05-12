@@ -74,8 +74,9 @@ export const closestPointToTriangle = wgslFn( /* wgsl */ `
 export const distanceToTriangles = wgslFn( /* wgsl */ `
 	fn distanceToTriangles(
 		// geometry info and triangle range
-		bvh_index: ptr<storage, array<vec3u>, read>,
-		bvh_position: ptr<storage, array<vec3f>, read>,
+		// Read geometry as vec4 because storage-buffer vec3 array elements use 16-byte stride.
+		bvh_index: ptr<storage, array<vec4u>, read>,
+		bvh_position: ptr<storage, array<vec4f>, read>,
 
 		offset: u32, count: u32,
 
@@ -87,9 +88,9 @@ export const distanceToTriangles = wgslFn( /* wgsl */ `
 		for ( var i = offset; i < offset + count; i = i + 1u ) {
 
 			let indices = bvh_index[ i ];
-			let a = bvh_position[ indices.x ];
-			let b = bvh_position[ indices.y ];
-			let c = bvh_position[ indices.z ];
+			let a = bvh_position[ indices.x ].xyz;
+			let b = bvh_position[ indices.y ].xyz;
+			let c = bvh_position[ indices.z ].xyz;
 
 			// get the closest point and barycoord
 			let pointRes = closestPointToTriangle( point, a, b, c );
@@ -139,8 +140,8 @@ export const distanceSqToBVHNodeBoundsPoint = wgslFn( /* wgsl */ `
 
 export const closestPointToPoint = wgslFn( /* wgsl */ `
 	fn bvhClosestPointToPoint(
-		bvh_index: ptr<storage, array<vec3u>, read>,
-		bvh_position: ptr<storage, array<vec3f>, read>,
+		bvh_index: ptr<storage, array<vec4u>, read>,
+		bvh_position: ptr<storage, array<vec4f>, read>,
 		bvh: ptr<storage, array<BVHNode>, read>,
 
 		point: vec3f,

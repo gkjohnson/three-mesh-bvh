@@ -107,8 +107,9 @@ async function init() {
 		matrix: uniform( new THREE.Matrix4() ),
 		dim: uniform( 0 ),
 
-		bvh_index: storage( geom_index, 'uvec3', geom_index.count ).toReadOnly(),
-		bvh_position: storage( geom_position, 'vec3', geom_position.count ).toReadOnly(),
+		// Read as vec4 because storage-buffer vec3 array reads are padded to 16-byte stride.
+		bvh_index: storage( geom_index, 'uvec4', geom_index.count ).toReadOnly(),
+		bvh_position: storage( geom_position, 'vec4', geom_position.count ).toReadOnly(),
 		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 
 		globalId: globalId,
@@ -118,8 +119,8 @@ async function init() {
 	const computeShader = wgslFn( /* wgsl */ `
 
 		fn computeSdf(
-			bvh_index: ptr<storage, array<vec3u>, read>,
-			bvh_position: ptr<storage, array<vec3f>, read>,
+			bvh_index: ptr<storage, array<vec4u>, read>,
+			bvh_position: ptr<storage, array<vec4f>, read>,
 			bvh: ptr<storage, array<BVHNode>, read>,
 
 			matrix: mat4x4f,
