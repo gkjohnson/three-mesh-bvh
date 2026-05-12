@@ -1,7 +1,8 @@
 /** @import { Object3D } from 'three' */
 /** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Box3, BufferGeometry, Matrix4, Mesh, Vector3, Ray, Sphere } from 'three';
-import { BVH, INTERSECTED, NOT_INTERSECTED } from 'three-mesh-bvh';
+import { BVH } from './BVH.js';
+import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 
 const _geometry = /* @__PURE__ */ new BufferGeometry();
 const _matrix = /* @__PURE__ */ new Matrix4();
