@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.10] - Unreleased
+### Fixed
+- MeshBVH: closestPointToGeometry will no longer log warnings for coplanar triangles.
+- Updated types.
+
 ## [0.9.9] - 2026-03-03
 ### Added
 - Add tests for ObjectBVH, SkinnedMeshBVH
@@ -12,9 +17,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - BVHHelper: Handled case where the a root object does not have geometry.
-
-### Fixed
-- MeshBVH: closestPointToGeometry will no longer log warnings for coplanar triangles.
 
 ### Fixed
 - ParallelMeshBVHWorker: Fix failure when reporting progress.
