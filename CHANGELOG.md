@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - MeshBVH: closestPointToGeometry will no longer log warnings for coplanar triangles.
 - Updated types.
+- Fix internal imports causing types to break in some cases.
 
 ## [0.9.9] - 2026-03-03
 ### Added
