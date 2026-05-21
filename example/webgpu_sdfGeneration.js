@@ -33,6 +33,7 @@ let layerPass, raymarchPass;
 let bvhGenerationWorker;
 let computeKernel;
 const inverseBoundsMatrix = new THREE.Matrix4();
+const sdfInv = new THREE.Matrix4();
 
 init().then( render );
 
@@ -350,7 +351,7 @@ function render() {
 		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.resolution );
 		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
-		const sdfInv = new THREE.Matrix4()
+		sdfInv
 			.copy( mesh.matrixWorld ).invert()
 			.premultiply( inverseBoundsMatrix )
 			.multiply( camera.matrixWorld );

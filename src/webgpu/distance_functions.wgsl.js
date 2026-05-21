@@ -71,6 +71,67 @@ export const closestPointToTriangle = wgslFn( /* wgsl */ `
 	}
 `, [ closestPointToTriangleResultStruct ] );
 
+export const closestPointToTriangleOpt = wgslFn( /* wgsl */ `
+
+	fn closestPointToTriangleOpt( p: vec3f, v0: vec3f, v1: vec3f, v2: vec3f, minDistSq: f32 ) -> ClosestPointToTriangleResult {
+
+		let v10 = v1 - v0;
+		let v21 = v2 - v1;
+		let v02 = v0 - v2;
+
+		let p0 = p - v0;
+		let p1 = p - v1;
+		let p2 = p - v2;
+
+		let nor = cross( v10, v02 );
+		let dot_nor_nor = dot( nor, nor );
+		let d = 1.0 / dot_nor_nor;
+
+		let dot_p0_nor = dot( p0, nor );
+		let distToPlaneSq = ( dot_p0_nor * dot_p0_nor ) * d;
+		if ( distToPlaneSq >= minDistSq ) {
+
+			var result: ClosestPointToTriangleResult;
+			result.barycoord = vec3f( -1.0, -1.0, -1.0 );
+			return result;
+
+		}
+
+		// method 2, in barycentric space
+		let  q = cross( nor, p0 );
+		var u = d * dot( q, v02 );
+		var v = d * dot( q, v10 );
+		var w = 1.0 - u - v;
+
+		if( u < 0.0 ) {
+
+			w = clamp( dot( p2, v02 ) / dot( v02, v02 ), 0.0, 1.0 );
+			u = 0.0;
+			v = 1.0 - w;
+
+		} else if( v < 0.0 ) {
+
+			u = clamp( dot( p0, v10 ) / dot( v10, v10 ), 0.0, 1.0 );
+			v = 0.0;
+			w = 1.0 - u;
+
+		} else if( w < 0.0 ) {
+
+			v = clamp( dot( p1, v21 ) / dot( v21, v21 ), 0.0, 1.0 );
+			w = 0.0;
+			u = 1.0 - v;
+
+		}
+
+		var result: ClosestPointToTriangleResult;
+		result.barycoord = vec3f( u, v, w );
+		result.point = u * v1 + v * v2 + w * v0;
+
+		return result;
+
+	}
+`, [ closestPointToTriangleResultStruct ] );
+
 export const distanceToTriangles = wgslFn( /* wgsl */ `
 	fn distanceToTriangles(
 		// geometry info and triangle range
@@ -93,7 +154,12 @@ export const distanceToTriangles = wgslFn( /* wgsl */ `
 			let c = bvh_position[ indices.z ].xyz;
 
 			// get the closest point and barycoord
-			let pointRes = closestPointToTriangle( point, a, b, c );
+			let pointRes = closestPointToTriangleOpt( point, a, b, c, ioRes.distanceSq );
+			if ( pointRes.barycoord.x < 0.0 ) {
+
+				continue;
+
+			}
 			let delta = point - pointRes.point;
 			let distSq = dot( delta, delta );
 			if ( distSq < ioRes.distanceSq ) {
@@ -111,7 +177,7 @@ export const distanceToTriangles = wgslFn( /* wgsl */ `
 		}
 
 	}
-`, [ closestPointToTriangle, closestPointToPointResultStruct ] );
+`, [ closestPointToTriangleOpt, closestPointToPointResultStruct ] );
 
 export const distanceSqToBounds = wgslFn( /* wgsl */ `
 	fn distanceSqToBounds( point: vec3f, boundsMin: vec3f, boundsMax: vec3f ) -> f32 {
@@ -130,9 +196,16 @@ export const distanceSqToBVHNodeBoundsPoint = wgslFn( /* wgsl */ `
 		currNodeIndex: u32,
 	) -> f32 {
 
-		let node = bvh[ currNodeIndex ];
-		let minBounds = vec3f(node.bounds.min[0], node.bounds.min[1], node.bounds.min[2]);
-		let maxBounds = vec3f(node.bounds.max[0], node.bounds.max[1], node.bounds.max[2]);
+		let minBounds = vec3f(
+			bvh[ currNodeIndex ].bounds.min[0],
+			bvh[ currNodeIndex ].bounds.min[1],
+			bvh[ currNodeIndex ].bounds.min[2]
+		);
+		let maxBounds = vec3f(
+			bvh[ currNodeIndex ].bounds.max[0],
+			bvh[ currNodeIndex ].bounds.max[1],
+			bvh[ currNodeIndex ].bounds.max[2]
+		);
 		return distanceSqToBounds( point, minBounds, maxBounds );
 
 	}
@@ -150,31 +223,27 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 
 		const BVH_STACK_DEPTH = 64;
 
-		// stack needs to be twice as long as the deepest tree we expect because
-		// we push both the left and right child onto the stack every traversal
-		var pointer = 0;
-		var stack: array<u32, BVH_STACK_DEPTH>;
-		stack[ 0 ] = 0u;
-
 		var res: ClosestPointToPointResult;
 		res.distanceSq = maxDistance * maxDistance;
 
-		while pointer > - 1 && pointer < BVH_STACK_DEPTH {
+		// Check root first
+		let rootDist = distanceSqToBVHNodeBoundsPoint( point, bvh, 0u );
+		if ( rootDist > res.distanceSq ) {
 
-			let currNodeIndex = stack[ pointer ];
-			let node = bvh[ currNodeIndex ];
-			pointer = pointer - 1;
+			return res;
 
-			// check if we intersect the current bounds
-			let boundsDistance = distanceSqToBVHNodeBoundsPoint( point, bvh, currNodeIndex );
-			if ( boundsDistance > res.distanceSq ) {
+		}
 
-				continue;
+		var pointer = -1;
+		var stack: array<u32, BVH_STACK_DEPTH>;
+		var distStack: array<f32, BVH_STACK_DEPTH>;
 
-			}
+		var currNodeIndex = 0u;
 
-			let boundsInfox = node.splitAxisOrTriangleCount;
-			let boundsInfoy = node.rightChildOrTriangleOffset;
+		loop {
+
+			let boundsInfox = bvh[ currNodeIndex ].splitAxisOrTriangleCount;
+			let boundsInfoy = bvh[ currNodeIndex ].rightChildOrTriangleOffset;
 
 			let isLeaf = ( boundsInfox & 0xffff0000u ) != 0u;
 
@@ -188,21 +257,96 @@ export const closestPointToPoint = wgslFn( /* wgsl */ `
 					point, &res
 				);
 
+				// Pop next node
+				var popped = false;
+				while ( pointer >= 0 ) {
+
+					let topDist = distStack[ pointer ];
+					let topIndex = stack[ pointer ];
+					pointer = pointer - 1;
+
+					if ( topDist <= res.distanceSq ) {
+
+						currNodeIndex = topIndex;
+						popped = true;
+						break;
+
+					}
+
+				}
+
+				if ( ! popped ) {
+
+					break;
+
+				}
+
 			} else {
 
 				let leftIndex = currNodeIndex + 1u;
-				let splitAxis = boundsInfox & 0x0000ffffu;
 				let rightIndex = currNodeIndex + boundsInfoy;
 
-				let leftToRight = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex ) < distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );
-				let c1 = select( rightIndex, leftIndex, leftToRight );
-				let c2 = select( leftIndex, rightIndex, leftToRight );
+				let leftDist = distanceSqToBVHNodeBoundsPoint( point, bvh, leftIndex );
+				let rightDist = distanceSqToBVHNodeBoundsPoint( point, bvh, rightIndex );
 
-				pointer = pointer + 1;
-				stack[ pointer ] = c2;
+				let leftHit = leftDist <= res.distanceSq;
+				let rightHit = rightDist <= res.distanceSq;
 
-				pointer = pointer + 1;
-				stack[ pointer ] = c1;
+				if ( leftHit && rightHit ) {
+
+					let leftToRight = leftDist < rightDist;
+					let closerIndex = select( rightIndex, leftIndex, leftToRight );
+					let furtherIndex = select( leftIndex, rightIndex, leftToRight );
+					let closerDist = select( rightDist, leftDist, leftToRight );
+					let furtherDist = select( leftDist, rightDist, leftToRight );
+
+					// Push further
+					pointer = pointer + 1;
+					if ( pointer < BVH_STACK_DEPTH ) {
+
+						stack[ pointer ] = furtherIndex;
+						distStack[ pointer ] = furtherDist;
+
+					}
+
+					// Go to closer immediately
+					currNodeIndex = closerIndex;
+
+				} else if ( leftHit ) {
+
+					currNodeIndex = leftIndex;
+
+				} else if ( rightHit ) {
+
+					currNodeIndex = rightIndex;
+
+				} else {
+
+					// Neither within range, pop next node
+					var popped = false;
+					while ( pointer >= 0 ) {
+
+						let topDist = distStack[ pointer ];
+						let topIndex = stack[ pointer ];
+						pointer = pointer - 1;
+
+						if ( topDist <= res.distanceSq ) {
+
+							currNodeIndex = topIndex;
+							popped = true;
+							break;
+
+						}
+
+					}
+
+					if ( ! popped ) {
+
+						break;
+
+					}
+
+				}
 
 			}
 

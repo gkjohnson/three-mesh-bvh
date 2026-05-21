@@ -84,36 +84,92 @@ export const intersectsBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBounds(
 		ray: Ray,
-		bounds: BVHBoundingBox,
+		bvh: ptr<storage, array<BVHNode>, read>,
+		nodeIndex: u32,
+		maxDist: f32,
 		dist: ptr<function, f32>
 	) -> bool {
 
-		let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
-		let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
+		let boundsMin = vec3f(
+			bvh[ nodeIndex ].bounds.min[0],
+			bvh[ nodeIndex ].bounds.min[1],
+			bvh[ nodeIndex ].bounds.min[2]
+		);
+		let boundsMax = vec3f(
+			bvh[ nodeIndex ].bounds.max[0],
+			bvh[ nodeIndex ].bounds.max[1],
+			bvh[ nodeIndex ].bounds.max[2]
+		);
 
 		let invDir = 1.0 / ray.direction;
 		let tMinPlane = ( boundsMin - ray.origin ) * invDir;
 		let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
 
-		let tMinHit = vec3f(
-			min( tMinPlane.x, tMaxPlane.x ),
-			min( tMinPlane.y, tMaxPlane.y ),
-			min( tMinPlane.z, tMaxPlane.z )
-		);
-
-		let tMaxHit = vec3f(
-			max( tMinPlane.x, tMaxPlane.x ),
-			max( tMinPlane.y, tMaxPlane.y ),
-			max( tMinPlane.z, tMaxPlane.z )
-		);
+		let tMinHit = min( tMinPlane, tMaxPlane );
+		let tMaxHit = max( tMinPlane, tMaxPlane );
 
 		let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
 		let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
 
-		( *dist ) = max( t0, 0.0 );
+		let tStart = max( t0, 0.0 );
+		if ( tStart > maxDist || t1 < tStart ) {
 
-		return t1 >= ( *dist );
+			return false;
+
+		}
+
+		( *dist ) = tStart;
+
+		return true;
 
 	}
 
-`, [ rayStruct, bvhNodeBoundsStruct ] );
+`, [ rayStruct, bvhNodeStruct ] );
+
+export const intersectsBoundsInvDir = wgslFn( /* wgsl */`
+
+	fn intersectsBoundsInvDir(
+		ray: Ray,
+		invDir: vec3f,
+		bvh: ptr<storage, array<BVHNode>, read>,
+		nodeIndex: u32,
+		maxDist: f32,
+		dist: ptr<function, f32>
+	) -> bool {
+
+		let boundsMin = vec3f(
+			bvh[ nodeIndex ].bounds.min[0],
+			bvh[ nodeIndex ].bounds.min[1],
+			bvh[ nodeIndex ].bounds.min[2]
+		);
+		let boundsMax = vec3f(
+			bvh[ nodeIndex ].bounds.max[0],
+			bvh[ nodeIndex ].bounds.max[1],
+			bvh[ nodeIndex ].bounds.max[2]
+		);
+
+		let tMinPlane = ( boundsMin - ray.origin ) * invDir;
+		let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
+
+		let tMinHit = min( tMinPlane, tMaxPlane );
+		let tMaxHit = max( tMinPlane, tMaxPlane );
+
+		let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
+		let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
+
+		let tStart = max( t0, 0.0 );
+		if ( tStart > maxDist || t1 < tStart ) {
+
+			return false;
+
+		}
+
+		( *dist ) = tStart;
+
+		return true;
+
+	}
+
+`, [ rayStruct, bvhNodeStruct ] );
+
+

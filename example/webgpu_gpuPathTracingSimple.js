@@ -24,7 +24,7 @@ const params = {
 let renderer, camera, scene, gui, stats;
 let fsQuad, mesh, clock, controls;
 let fsMaterial, computeKernel, outputTex;
-let dispatchSize = [];
+const dispatchSize = [ 0, 0 ];
 const WORKGROUP_SIZE = [ 8, 8, 1 ];
 
 init();
@@ -224,10 +224,8 @@ function render() {
 
 	if ( params.enableRaytracing ) {
 
-		dispatchSize = [
-			Math.ceil( outputTex.width / WORKGROUP_SIZE[ 0 ] ),
-			Math.ceil( outputTex.height / WORKGROUP_SIZE[ 1 ] ),
-		];
+		dispatchSize[ 0 ] = Math.ceil( outputTex.width / WORKGROUP_SIZE[ 0 ] );
+		dispatchSize[ 1 ] = Math.ceil( outputTex.height / WORKGROUP_SIZE[ 1 ] );
 
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();

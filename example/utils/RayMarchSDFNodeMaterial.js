@@ -69,12 +69,12 @@ export class RayMarchSDFNodeMaterial extends NodeMaterial {
 				if ( intersectsBox ) {
 
 					var intersectsSurface = false;
-					var localPoint = vec4f( sdfRayOrigin + sdfRayDirection * ( distToBox + 1e-5 ), 1.0 );
-					var point = sdfTransform * localPoint;
+					var localPoint = sdfRayOrigin + sdfRayDirection * ( distToBox + 1e-5 );
+					let localStepDir = ( sdfTransformInverse * vec4f( rayDirection, 0.0 ) ).xyz;
 
 					for ( var i: i32 = 0; i < MAX_STEPS; i = i + 1 ) {
 
-						let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
+						let uv3 = localPoint + vec3f( 0.5 );
 
 						if ( uv3.x < 0.0 || uv3.x > 1.0 || uv3.y < 0.0 || uv3.y > 1.0 || uv3.z < 0.0 || uv3.z > 1.0 ) {
 							break;
@@ -86,12 +86,12 @@ export class RayMarchSDFNodeMaterial extends NodeMaterial {
 							break;
 						}
 
-						point = vec4f(point.xyz + rayDirection * distanceToSurface, point.w);
+						localPoint = localPoint + localStepDir * distanceToSurface;
 					}
 
 					if ( intersectsSurface ) {
 
-						let uv3 = ( sdfTransformInverse * point ).xyz + vec3f( 0.5 );
+						let uv3 = localPoint + vec3f( 0.5 );
 
 						let dx = textureSample( sdf, sdf_sampler, uv3 + vec3f( normalStep.x, 0.0, 0.0 ) ).r
 							- textureSample( sdf, sdf_sampler, uv3 - vec3f( normalStep.x, 0.0, 0.0 ) ).r;

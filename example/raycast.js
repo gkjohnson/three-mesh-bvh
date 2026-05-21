@@ -43,6 +43,125 @@ const cylinder = new THREE.CylinderGeometry( 0.01, 0.01 );
 
 let lastFrameTime = null;
 
+const intersects = [];
+
+function intersectContainer( raycaster, container, intersects ) {
+
+	intersects.length = 0;
+	const originalFar = raycaster.far;
+
+	const children = container.children;
+	const l = children.length;
+
+	if ( l > 1 ) {
+
+		if ( raycaster.firstHitOnly ) {
+
+			let minDist = originalFar;
+
+			for ( let i = 0; i < l; i ++ ) {
+
+				const child = children[ i ];
+				if ( ! child.isMesh ) continue;
+
+				const worldSphere = child.worldBoundingSphere;
+				if ( worldSphere ) {
+
+					const radius = worldSphere.radius;
+					const maxDist = minDist + radius;
+
+					// Quick distance pruning
+					const distSq = raycaster.ray.origin.distanceToSquared( worldSphere.center );
+					if ( distSq > maxDist * maxDist ) {
+
+						continue;
+
+					}
+
+					// Quick intersection pruning
+					if ( ! raycaster.ray.intersectsSphere( worldSphere ) ) {
+
+						continue;
+
+					}
+
+				}
+
+				const beforeLength = intersects.length;
+				child.raycast( raycaster, intersects );
+
+				if ( intersects.length > beforeLength ) {
+
+					for ( let j = beforeLength, jl = intersects.length; j < jl; j ++ ) {
+
+						const dist = intersects[ j ].distance;
+						if ( dist < minDist ) {
+
+							minDist = dist;
+
+						}
+
+					}
+					raycaster.far = minDist;
+
+				}
+
+			}
+
+		} else {
+
+			for ( let i = 0; i < l; i ++ ) {
+
+				const child = children[ i ];
+				if ( ! child.isMesh ) continue;
+
+				const worldSphere = child.worldBoundingSphere;
+				if ( worldSphere ) {
+
+					const radius = worldSphere.radius;
+					const maxDist = originalFar + radius;
+
+					const distSq = raycaster.ray.origin.distanceToSquared( worldSphere.center );
+					if ( distSq > maxDist * maxDist ) {
+
+						continue;
+
+					}
+
+					if ( ! raycaster.ray.intersectsSphere( worldSphere ) ) {
+
+						continue;
+
+					}
+
+				}
+
+				child.raycast( raycaster, intersects );
+
+			}
+
+		}
+
+	} else if ( l === 1 ) {
+
+		const child = children[ 0 ];
+		if ( child.isMesh ) {
+
+			child.raycast( raycaster, intersects );
+
+		}
+
+	}
+
+	raycaster.far = originalFar;
+	if ( intersects.length > 1 ) {
+
+		intersects.sort( ( a, b ) => a.distance - b.distance );
+
+	}
+
+}
+
 init();
 updateFromOptions();
 
@@ -182,12 +301,12 @@ function addRaycaster() {
 			obj.rotation.y += yDir * 0.0001 * params.raycasterSpeed * deltaTime;
 			obj.rotation.z += zDir * 0.0001 * params.raycasterSpeed * deltaTime;
 
-			origMesh.updateMatrixWorld();
-			origVec.setFromMatrixPosition( origMesh.matrixWorld );
-			dirVec.copy( origVec ).multiplyScalar( - 1 ).normalize();
+			origVec.set( pointDist, 0, 0 ).applyQuaternion( obj.quaternion );
+			dirVec.set( - 1, 0, 0 ).applyQuaternion( obj.quaternion );
 
 			raycaster.set( origVec, dirVec );
-			const res = raycaster.intersectObject( containerObj, true );
+			intersectContainer( raycaster, containerObj, intersects );
+			const res = intersects;
 			const length = res.length ? res[ 0 ].distance : pointDist;
 
 			hitMesh.position.set( pointDist - length, 0, 0 );
@@ -322,7 +441,23 @@ function render() {
 	} );
 	containerObj.updateMatrixWorld();
 
+	if ( geometry.boundingSphere === null ) {
+
+		geometry.computeBoundingSphere();
+
+	}
+
+	const localSphere = geometry.boundingSphere;
+	knots.forEach( c => {
+
+		c.worldBoundingSphere = c.worldBoundingSphere || new THREE.Sphere();
+		c.worldBoundingSphere.copy( localSphere ).applyMatrix4( c.matrixWorld );
+
+	} );
+
+	const startRaycast = window.performance.now();
 	rayCasterObjects.forEach( f => f.update( deltaTime ) );
+	window.lastRaycastTime = window.performance.now() - startRaycast;
 
 	renderer.render( scene, camera );
 
@@ -331,3 +466,7 @@ function render() {
 	stats.end();
 
 }
+
+window.params = params;
+window.updateFromOptions = updateFromOptions;
+
