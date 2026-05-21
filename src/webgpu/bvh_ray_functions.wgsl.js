@@ -1,5 +1,5 @@
 import { wgslFn } from 'three/tsl';
-import { bvhNodeStruct, intersectionResultStruct, intersectsBounds, intersectsBoundsInvDir, rayStruct, constants } from './common_functions.wgsl.js';
+import { bvhNodeStruct, intersectionResultStruct, intersectsBoundsInvDir, rayStruct, constants } from './common_functions.wgsl.js';
 
 export const intersectsTriangle = wgslFn( /* wgsl */ `
 
