@@ -102,6 +102,7 @@ function intersectContainer( raycaster, container, intersects ) {
 						}
 
 					}
+
 					raycaster.far = minDist;
 
 				}

@@ -22,7 +22,7 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats;
-let fsQuad, mesh, clock, controls;
+let fsQuad, mesh, clock;
 let fsMaterial, computeKernel, outputTex;
 const dispatchSize = [ 0, 0 ];
 const WORKGROUP_SIZE = [ 8, 8, 1 ];
@@ -168,7 +168,7 @@ function init() {
 	fsQuad = new FullScreenQuad( fsMaterial );
 
 	// controls
-	controls = new OrbitControls( camera, renderer.domElement );
+	new OrbitControls( camera, renderer.domElement );
 
 	// gui
 	gui = new GUI();
