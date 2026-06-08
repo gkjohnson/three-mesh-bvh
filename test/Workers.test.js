@@ -143,8 +143,8 @@ describe( 'Workers', () => {
 
 	afterAll( async () => {
 
-		await page?.close();
-		await browser?.close();
+		await page.close();
+		await browser.close();
 		await viteServer.close();
 
 	} );
