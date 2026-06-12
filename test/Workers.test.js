@@ -8,10 +8,6 @@ describe( 'Workers', () => {
 	let browser;
 	let page;
 	let viteServer;
-	const launchOptions = {
-		headless: true,
-		args: [ '--enable-features=SharedArrayBuffer', '--no-sandbox', '--disable-setuid-sandbox' ],
-	};
 
 	function generate( options = {} ) {
 
@@ -89,35 +85,13 @@ describe( 'Workers', () => {
 
 		viteServer = await createServer( {
 			root: process.cwd(),
-			server: {
-				port: 3000,
-				headers: {
-					'Cross-Origin-Opener-Policy': 'same-origin',
-					'Cross-Origin-Embedder-Policy': 'require-corp',
-				},
-			},
+			server: { port: 3000 },
 		} );
 
-		try {
-
-			browser = await puppeteer.launch( launchOptions );
-
-		} catch ( error ) {
-
-			if ( /Could not find Chrome/.test( error.message ) ) {
-
-				browser = await puppeteer.launch( {
-					...launchOptions,
-					channel: 'chrome',
-				} );
-
-			} else {
-
-				throw error;
-
-			}
-
-		}
+		browser = await puppeteer.launch( {
+			headless: true,
+			args: [ '--enable-features=SharedArrayBuffer', '--no-sandbox', '--disable-setuid-sandbox' ],
+		} );
 
 		await viteServer.listen();
 
