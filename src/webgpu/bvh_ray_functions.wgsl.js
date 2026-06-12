@@ -1,3 +1,4 @@
+/** @import { BVHComputeData } from './BVHComputeData.js' */
 import { wgslFn } from 'three/tsl';
 import { bvhNodeStruct, intersectionResultStruct, intersectsBounds, rayStruct, constants } from './common_functions.wgsl.js';
 

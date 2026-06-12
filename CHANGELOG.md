@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- WebGPURenderer : Added `BVHComputeData` class for packing multi-object BVH scene data into GPU storage buffers for use in WebGPU compute shaders via the TSL node system.
+
+### Changed
+- WebGPURenderer: Deprecated the `wgslFn`/`wgsl`-based TSL node exports. These do not work correctly on most platforms due to WGSL restrictions on passing storage buffer pointers across function call boundaries. Use `BVHComputeData` instead.
+
 ## [0.9.10] - 2026-05-13
 ### Fixed
 - MeshBVH: closestPointToGeometry will no longer log warnings for coplanar triangles.
@@ -61,7 +68,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.9.5] - 2026-01-08
 ### Added
 - Support for PointsBVH, LineBVH, LineSegmentsBVH, LineLoopBVH.
- 
+
 ### Fixed
 - Removed unnecessary PURE annotation.
 - Fixed typing

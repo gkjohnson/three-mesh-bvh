@@ -1,3 +1,4 @@
+/** @import { BVHComputeData } from './BVHComputeData.js' */
 import { wgslFn, wgsl } from 'three/tsl';
 
 /** @deprecated Use {@link BVHComputeData} instead. */
