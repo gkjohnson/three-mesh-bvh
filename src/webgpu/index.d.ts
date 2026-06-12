@@ -12,6 +12,7 @@ export const closestPointToPointResultStruct: ReturnType<typeof wgsl>;
 export const closestPointToTriangleResultStruct: ReturnType<typeof wgsl>;
 
 export const intersectsTriangle: ReturnType<typeof wgslFn>;
+export const intersectRayTriangle: ReturnType<typeof wgslFn>;
 export const intersectTriangles: ReturnType<typeof wgslFn>;
 export const intersectsBounds: ReturnType<typeof wgslFn>;
 export const getVertexAttribute: ReturnType<typeof wgslFn>;

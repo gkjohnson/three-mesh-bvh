@@ -1,5 +1,4 @@
 import { StructTypeNode } from 'three/webgpu';
-import { uint } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 
 // temporary shim so StructTypeNodes can be passed to storage functions until
@@ -44,16 +43,12 @@ export const transformStruct = new StructTypeNode( {
 	_alignment1: 'uint',
 }, 'TransformStruct' );
 
-export const BVH_STACK_DEPTH = uint( 60 );
-
-//
-
 /**
  * WGSL struct node describing a ray–triangle intersection result, including barycentric
  * coordinates, world-space normal, hit distance, face side, triangle indices, and the
  * object index within the TLAS.
  */
-export const intersectionResultStruct = new StructTypeNode( {
+export const rayIntersectionResultStruct = new StructTypeNode( {
 	indices: 'vec4u',
 	normal: 'vec3f',
 	didHit: 'bool',
@@ -65,18 +60,18 @@ export const intersectionResultStruct = new StructTypeNode( {
 
 /**
  * WGSL function node that tests a ray against a single triangle and returns an
- * {@link intersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
+ * {@link rayIntersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
  * for {@link BVHComputeData#getShapecastFn}.
  */
-export const intersectsTriangle = wgslTagFn/* wgsl */ `
+export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	// fn
-	fn intersectsTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f ) -> ${ intersectionResultStruct } {
+	fn intersectRayTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f ) -> ${ rayIntersectionResultStruct } {
 
 		// TODO: see if we can remove the "DIST" epsilon and account for it on ray origin bounce positioning
 		const DET_EPSILON = 1e-15;
 		const DIST_EPSILON = 1e-5;
 
-		var result: ${ intersectionResultStruct };
+		var result: ${ rayIntersectionResultStruct };
 		result.didHit = false;
 
 		let edge1 = b - a;

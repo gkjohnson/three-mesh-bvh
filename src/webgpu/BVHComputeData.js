@@ -13,20 +13,25 @@ import {
 	bvhNodeStruct,
 	rayStruct,
 	transformStruct,
-	BVH_STACK_DEPTH,
-	intersectionResultStruct,
-	intersectsTriangle,
+	rayIntersectionResultStruct,
+	intersectRayTriangle,
 } from './tsl/structs.js';
-export { intersectionResultStruct, intersectsTriangle } from './tsl/structs.js';
+import { BVH_STACK_DEPTH } from './tsl/constants.js';
+export { rayIntersectionResultStruct, intersectRayTriangle } from './tsl/structs.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
 // 		- add a callback for writing a property for a geometry to a range
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
 
-//
+// scratch
+const _def = /* @__PURE__ */ new Vector4();
+const _vec = /* @__PURE__ */ new Vector4();
+const _matrix = /* @__PURE__ */ new Matrix4();
+const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 
-const isVisible = object => {
+// functions
+function isObjectVisible( object ) {
 
 	let curr = object;
 	while ( curr ) {
@@ -43,18 +48,8 @@ const isVisible = object => {
 
 	return true;
 
-};
+}
 
-
-//
-
-// scratch
-const _def = /* @__PURE__ */ new Vector4();
-const _vec = /* @__PURE__ */ new Vector4();
-const _matrix = /* @__PURE__ */ new Matrix4();
-const _inverseMatrix = /* @__PURE__ */ new Matrix4();
-
-// functions
 function dereferenceIndex( indexAttr, indirectBuffer ) {
 
 	const indexArray = indexAttr ? indexAttr.array : null;
@@ -80,7 +75,6 @@ function getTotalBVHByteLength( bvh ) {
 	return bvh._roots.reduce( ( v, root ) => v + root.byteLength, 0 );
 
 }
-
 
 /**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
@@ -704,7 +698,7 @@ export class BVHComputeData {
 		fns.raycastFirstHit = this.getShapecastFn( {
 			name: 'bvh_RaycastFirstHit',
 			shapeStruct: rayStruct,
-			resultStruct: intersectionResultStruct,
+			resultStruct: rayIntersectionResultStruct,
 
 			boundsOrderFn: wgslTagFn/* wgsl */`
 				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
@@ -714,7 +708,7 @@ export class BVHComputeData {
 				}
 			`,
 			intersectsBoundsFn: wgslTagFn/* wgsl */`
-				fn rayIntersectsBounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ intersectionResultStruct }> ) -> u32 {
+				fn rayIntersectsBounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
 
 					let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
 					let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
@@ -757,7 +751,7 @@ export class BVHComputeData {
 
 			`,
 			intersectRangeFn: wgslTagFn/* wgsl */`
-				fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ intersectionResultStruct }> ) -> bool {
+				fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
 
 					var didHit = false;
 					for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
@@ -770,7 +764,7 @@ export class BVHComputeData {
 						let b = ${ storage.attributes }[ i1 ].position.xyz;
 						let c = ${ storage.attributes }[ i2 ].position.xyz;
 
-						var triResult = ${ intersectsTriangle }( ray, a, b, c );
+						var triResult = ${ intersectRayTriangle }( ray, a, b, c );
 						triResult.dist *= ${ scratchRayScalar };
 						if ( triResult.didHit && ( ! result.didHit || triResult.dist < result.dist ) ) {
 
@@ -805,7 +799,7 @@ export class BVHComputeData {
 				}
 			`,
 			transformResultFn: wgslTagFn/* wgsl */`
-				fn transformResult( hit: ptr<function, ${ intersectionResultStruct }>, objectIndex: u32 ) -> void {
+				fn transformResult( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
 
 					let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
 					hit.normal = normalize( ( transpose( toLocal ) * vec4f( hit.normal, 0.0 ) ).xyz );
@@ -880,7 +874,7 @@ export class BVHComputeData {
 		// write node offset
 		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = bvhNodeOffsets[ root ];
 
-		let visible = isVisible( object );
+		let visible = isObjectVisible( object );
 		if ( object.isBatchedMesh ) {
 
 			visible = visible && object.getVisibleAt( instanceId );
