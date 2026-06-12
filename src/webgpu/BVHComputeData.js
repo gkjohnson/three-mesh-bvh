@@ -71,63 +71,6 @@ const isVisible = object => {
 
 };
 
-const applyBoneTransform = ( () => {
-
-	// a vec4-compatible version of SkinnedMesh.applyBoneTransform to support directions, positions
-	const _base = new Vector4();
-	const _skinIndex = new Vector4();
-	const _skinWeight = new Vector4();
-	const _matrix4 = new Matrix4();
-	const _vector4 = new Vector4();
-	return function applyBoneTransform( mesh, index, target ) {
-
-		const skeleton = mesh.skeleton;
-		const geometry = mesh.geometry;
-
-		_skinIndex.fromBufferAttribute( geometry.attributes.skinIndex, index );
-		_skinWeight.fromBufferAttribute( geometry.attributes.skinWeight, index );
-
-		if ( target.isVector4 ) {
-
-			_base.copy( target );
-			target.set( 0, 0, 0, 0 );
-
-		} else {
-
-			_base.set( ...target, 1 );
-			target.set( 0, 0, 0 );
-
-		}
-
-		_base.applyMatrix4( mesh.bindMatrix );
-
-		for ( let i = 0; i < 4; i ++ ) {
-
-			const weight = _skinWeight.getComponent( i );
-
-			if ( weight !== 0 ) {
-
-				const boneIndex = _skinIndex.getComponent( i );
-
-				_matrix4.multiplyMatrices( skeleton.bones[ boneIndex ].matrixWorld, skeleton.boneInverses[ boneIndex ] );
-
-				target.addScaledVector( _vector4.copy( _base ).applyMatrix4( _matrix4 ), weight );
-
-			}
-
-		}
-
-		if ( target.isVector4 ) {
-
-			target.w = _base.w;
-
-		}
-
-		return target.applyMatrix4( mesh.bindMatrixInverse );
-
-	};
-
-} )();
 
 
 //
@@ -853,7 +796,7 @@ export class BVHComputeData {
 
 						if ( mesh && ( name === 'position' || name === 'normal' || name === 'tangent' ) ) {
 
-							applyBoneTransform( mesh, i + vertexStart, _vec );
+							mesh.applyBoneTransform( i + vertexStart, _vec );
 
 						}
 
