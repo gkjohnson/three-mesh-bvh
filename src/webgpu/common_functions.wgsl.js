@@ -1,5 +1,6 @@
 import { wgslFn, wgsl } from 'three/tsl';
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const constants = wgsl( /* wgsl */`
 
 	const BVH_STACK_DEPTH = 60u;
@@ -8,6 +9,7 @@ export const constants = wgsl( /* wgsl */`
 
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const rayStruct = wgsl( /* wgsl */`
 	struct Ray {
 		origin: vec3f,
@@ -15,6 +17,7 @@ export const rayStruct = wgsl( /* wgsl */`
 	};
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const bvhNodeBoundsStruct = wgsl( /* wgsl */`
 	struct BVHBoundingBox {
 		min: array<f32, 3>,
@@ -22,6 +25,7 @@ export const bvhNodeBoundsStruct = wgsl( /* wgsl */`
 	}
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const bvhNodeStruct = wgsl( /* wgsl */`
 	struct BVHNode {
 		bounds: BVHBoundingBox,
@@ -30,17 +34,20 @@ export const bvhNodeStruct = wgsl( /* wgsl */`
 	};
 `, [ bvhNodeBoundsStruct ] );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const intersectionResultStruct = wgsl( /* wgsl */`
 	struct IntersectionResult {
-		didHit: bool,
 		indices: vec4u,
 		normal: vec3f,
+		didHit: bool,
 		barycoord: vec3f,
+		objectIndex: u32,
 		side: f32,
 		dist: f32,
 	};
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const getVertexAttribute = wgslFn( /* wgsl */`
 
 	fn getVertexAttribute(
@@ -58,6 +65,7 @@ export const getVertexAttribute = wgslFn( /* wgsl */`
 
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const ndcToCameraRay = wgslFn( /* wgsl*/`
 
 	fn ndcToCameraRay( ndc: vec2f, inverseModelViewProjection: mat4x4f ) -> Ray {
@@ -80,6 +88,7 @@ export const ndcToCameraRay = wgslFn( /* wgsl*/`
 	}
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const intersectsBounds = wgslFn( /* wgsl */`
 
 	fn intersectsBounds(
