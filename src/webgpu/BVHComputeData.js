@@ -1,3 +1,4 @@
+/** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
 import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage, float, uint } from 'three/tsl';
@@ -141,6 +142,9 @@ const transformStruct = new StructTypeNode( {
 	_alignment1: 'uint',
 }, 'TransformStruct' );
 
+/**
+ * WGSL struct node describing a ray–triangle intersection result.
+ */
 export const intersectionResultStruct = new StructTypeNode( {
 	indices: 'vec4u',
 	normal: 'vec3f',
@@ -191,6 +195,11 @@ function getTotalBVHByteLength( bvh ) {
 
 }
 
+/**
+ * WGSL function node that tests a ray against a single triangle and returns an
+ * {@link intersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
+ * for {@link BVHComputeData#getShapecastFn}.
+ */
 export const intersectsTriangle = wgslTagFn/* wgsl */ `
 	// fn
 	fn intersectsTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f ) -> ${ intersectionResultStruct } {
@@ -251,8 +260,29 @@ export const intersectsTriangle = wgslTagFn/* wgsl */ `
 	}
 `;
 
+/**
+ * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
+ * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
+ * {@link BVHComputeData#update} to populate the storage buffers, then reference
+ * `this.storage` and `this.fns` in your compute shader nodes.
+ *
+ * @note This API is unstable and subject to change in future releases.
+ */
 export class BVHComputeData {
 
+	/**
+	 * @param {ObjectBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * Scene objects to include, or a pre-built {@link ObjectBVH}. A single item or array of
+	 * Object3D, BufferGeometry, or GeometryBVH instances are all accepted and wrapped
+	 * automatically in an ObjectBVH.
+	 * @param {Object} [options]
+	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
+	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
+	 * attribute names; values are WGSL type strings (e.g. `'vec3f'`, `'vec4f'`).
+	 * @param {boolean} [options.autogenerateBvh=true]
+	 * When true, a {@link MeshBVH} is automatically built for any object that does not
+	 * already have `geometry.boundsTree` set.
+	 */
 	constructor( bvh, options = {} ) {
 
 		// convert the bvh argument to an ObjectBVH. Supports the following as arguments
@@ -322,6 +352,22 @@ export class BVHComputeData {
 
 	}
 
+	/**
+	 * Builds a pair of WGSL shapecast functions (BLAS + TLAS traversal) for a custom shape
+	 * type. The returned TLAS function signature is:
+	 * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
+	 *
+	 * @param {object} options
+	 * @param {string} [options.name] - WGSL function name prefix. Defaults to a random identifier.
+	 * @param {StructTypeNode} options.shapeStruct - WGSL struct describing the query shape.
+	 * @param {StructTypeNode|null} [options.resultStruct] - WGSL struct for the accumulated result, or null.
+	 * @param {Function|null} [options.boundsOrderFn] - WGSL function node controlling left/right child traversal order.
+	 * @param {Function} options.intersectsBoundsFn - WGSL function node testing the shape against a BVH node's bounds.
+	 * @param {Function} options.intersectRangeFn - WGSL function node testing the shape against a leaf triangle range.
+	 * @param {Function|null} [options.transformShapeFn] - WGSL function node that transforms the shape into object local space.
+	 * @param {Function|null} [options.transformResultFn] - WGSL function node that transforms a hit result back to world space.
+	 * @returns {Function} TSL function node for the TLAS traversal.
+	 */
 	getShapecastFn( options ) {
 
 		// TODO: test with and verify use with TSL Fn - both passing them as arguments,
@@ -493,6 +539,11 @@ export class BVHComputeData {
 
 	}
 
+	/**
+	 * Rebuilds all GPU storage buffers from the current scene state. Must be called at least
+	 * once before using `this.storage` or `this.fns` in a shader, and again whenever the
+	 * scene topology changes (objects added/removed, geometry modified).
+	 */
 	update() {
 
 		const self = this;
@@ -559,7 +610,7 @@ export class BVHComputeData {
 
 		//
 
-		// NOTE: These buffer lengths are increased to a minimum size of 2 to avoid the TSL of converting storage buffers
+		// @note These buffer lengths are increased to a minimum size of 2 to avoid TSL converting storage buffers
 		// with length 1 being converted to a scalar value.
 		// TODO: remove this when fixed in three
 		const transformBufferLength = Math.max( transformInfo.length, 2 );
@@ -966,6 +1017,17 @@ export class BVHComputeData {
 
 	}
 
+	/**
+	 * Writes the world/inverse-world matrices, node offset, and visibility flag for one
+	 * transform entry into a raw ArrayBuffer. Override this in a subclass to inject
+	 * additional per-object data (e.g. material index).
+	 *
+	 * @private
+	 * @param {Object3D} info - Transform entry from the internal transform info array.
+	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
+	 * @param {number} writeOffset - Index of the transform slot to write into.
+	 * @param {ArrayBuffer} targetBuffer - Destination buffer.
+	 */
 	writeTransformData( info, premultiplyMatrix, writeOffset, targetBuffer ) {
 
 		const { structs } = this;
@@ -1007,6 +1069,17 @@ export class BVHComputeData {
 
 	}
 
+	/**
+	 * Returns the BVH for a given object/instance, populating `rangeTarget` with the
+	 * corresponding index and vertex ranges within the packed geometry buffers. Override
+	 * to support custom BVH types or caching strategies.
+	 *
+	 * @private
+	 * @param {Object3D} object - The object to generate a BVH for.
+	 * @param {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
+	 * @param {{start:number,count:number,vertexStart:number,vertexCount:number}} rangeTarget - Populated with the object's geometry range.
+	 * @returns {MeshBVH|SkinnedMeshBVH|null}
+	 */
 	getBVH( object, instanceId, rangeTarget ) {
 
 		const { autogenerateBvh, _bvhCache } = this;
@@ -1064,6 +1137,15 @@ export class BVHComputeData {
 
 	}
 
+	/**
+	 * Returns the default vec4 value written to the attribute buffer for vertices that lack
+	 * a given attribute. Override to change per-attribute defaults.
+	 *
+	 * @private
+	 * @param {string} key - Attribute name (e.g. `'position'`, `'normal'`).
+	 * @param {Vector4} target - Receives the default value.
+	 * @returns {Vector4}
+	 */
 	getDefaultAttributeValue( key, target ) {
 
 		switch ( key ) {
@@ -1082,6 +1164,10 @@ export class BVHComputeData {
 
 	}
 
+	/**
+	 * Releases GPU resources held by this instance.
+	 * @note Not yet implemented
+	 */
 	dispose() {
 
 		// TODO: dispose buffers
