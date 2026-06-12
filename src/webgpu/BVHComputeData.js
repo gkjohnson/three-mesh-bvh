@@ -1,54 +1,28 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
 import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, float, uint } from 'three/tsl';
+import { storage, float } from 'three/tsl';
 import { wgslTagCode, wgslTagFn } from './nodes/WGSLTagFnNode.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
 import { ObjectBVH } from '../core/ObjectBVH.js';
-import { SAH } from '../core/Constants.js';
+import { SAH, BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../core/Constants.js';
+import {
+	bvhNodeBoundsStruct,
+	bvhNodeStruct,
+	rayStruct,
+	transformStruct,
+	BVH_STACK_DEPTH,
+	intersectionResultStruct,
+	intersectsTriangle,
+} from './tsl/structs.js';
+export { intersectionResultStruct, intersectsTriangle } from './tsl/structs.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
 // 		- add a callback for writing a property for a geometry to a range
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
-
-// temporary shim so StructTypeNodes can be passed to storage functions until
-// this is fixed in three.js
-Object.defineProperty( StructTypeNode.prototype, 'layout', {
-
-	get() {
-
-		return this;
-
-	}
-
-} );
-StructTypeNode.prototype.isStruct = true;
-
-//
-
-// BVH node struct definitions for use with wgslTagFn template interpolation
-const bvhNodeBoundsStruct = new StructTypeNode( {
-	min: 'array<f32, 3>',
-	max: 'array<f32, 3>',
-}, 'BVHBoundingBox' );
-bvhNodeBoundsStruct.getLength = () => 6;
-
-const bvhNodeStruct = new StructTypeNode( {
-	bounds: 'BVHBoundingBox',
-	rightChildOrTriangleOffset: 'uint',
-	splitAxisOrTriangleCount: 'uint',
-}, 'BVHNode' );
-bvhNodeStruct.getLength = () => bvhNodeBoundsStruct.getLength() + 2;
-
-const rayStruct = new StructTypeNode( {
-	origin: 'vec3f',
-	direction: 'vec3f',
-}, 'Ray' );
-
-const BVH_STACK_DEPTH = uint( 60 );
 
 //
 
@@ -72,38 +46,7 @@ const isVisible = object => {
 };
 
 
-
 //
-
-// structs
-const transformStruct = new StructTypeNode( {
-	matrixWorld: 'mat4x4f',
-	inverseMatrixWorld: 'mat4x4f',
-	nodeOffset: 'uint',
-	visible: 'uint',
-	_alignment0: 'uint',
-	_alignment1: 'uint',
-}, 'TransformStruct' );
-
-/**
- * WGSL struct node describing a ray–triangle intersection result.
- */
-export const intersectionResultStruct = new StructTypeNode( {
-	indices: 'vec4u',
-	normal: 'vec3f',
-	didHit: 'bool',
-	barycoord: 'vec3f',
-	objectIndex: 'uint',
-	side: 'float',
-	dist: 'float',
-}, 'IntersectionResult' );
-
-//
-
-// node constants
-const BYTES_PER_NODE = 6 * 4 + 4 + 4;
-const UINT32_PER_NODE = BYTES_PER_NODE / 4;
-const IS_LEAFNODE_FLAG = 0xFFFF;
 
 // scratch
 const _def = /* @__PURE__ */ new Vector4();
@@ -138,70 +81,6 @@ function getTotalBVHByteLength( bvh ) {
 
 }
 
-/**
- * WGSL function node that tests a ray against a single triangle and returns an
- * {@link intersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
- * for {@link BVHComputeData#getShapecastFn}.
- */
-export const intersectsTriangle = wgslTagFn/* wgsl */ `
-	// fn
-	fn intersectsTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f ) -> ${ intersectionResultStruct } {
-
-		// TODO: see if we can remove the "DIST" epsilon and account for it on ray origin bounce positioning
-		const DET_EPSILON = 1e-15;
-		const DIST_EPSILON = 1e-5;
-
-		var result: ${ intersectionResultStruct };
-		result.didHit = false;
-
-		let edge1 = b - a;
-		let edge2 = c - a;
-		let n = cross( edge1, edge2 );
-
-		let det = - dot( ray.direction, n );
-		if ( abs( det ) < DET_EPSILON ) {
-
-			return result;
-
-		}
-
-		let invdet = 1.0 / det;
-
-		let AO = ray.origin - a;
-		let DAO = cross( AO, ray.direction );
-
-		let u = dot( edge2, DAO ) * invdet;
-		if ( u < 0.0 || u > 1.0 ) {
-
-			return result;
-
-		}
-
-		let v = - dot( edge1, DAO ) * invdet;
-		if ( v < 0.0 || u + v > 1.0 ) {
-
-			return result;
-
-		}
-
-		let t = dot( AO, n ) * invdet;
-		let w = 1.0 - u - v;
-		if ( t < DIST_EPSILON ) {
-
-			return result;
-
-		}
-
-		result.didHit = true;
-		result.barycoord = vec3f( w, u, v );
-		result.dist = t;
-		result.side = sign( det );
-		result.normal = result.side * normalize( n );
-
-		return result;
-
-	}
-`;
 
 /**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
@@ -300,7 +179,7 @@ export class BVHComputeData {
 	 * type. The returned TLAS function signature is:
 	 * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
 	 *
-	 * @param {object} options
+	 * @param {Object} options
 	 * @param {string} [options.name] - WGSL function name prefix. Defaults to a random identifier.
 	 * @param {StructTypeNode} options.shapeStruct - WGSL struct describing the query shape.
 	 * @param {StructTypeNode|null} [options.resultStruct] - WGSL struct for the accumulated result, or null.
