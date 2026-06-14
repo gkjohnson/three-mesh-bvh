@@ -900,8 +900,6 @@ export class BVHComputeData {
 					var didHit = false;
 					let toWorld = ${ scratchToWorldMat };
 
-					var barycoord: vec3f;
-					var closestPoint: vec3f;
 					for ( var i = offset; i < offset + count; i ++ ) {
 
 						// transform the triangle to world space
