@@ -14,12 +14,10 @@ import {
 	rayStruct,
 	transformStruct,
 	rayIntersectionResultStruct,
-	intersectRayTriangle,
 	pointQueryResultStruct,
-	closestPointToTriangle,
 } from './tsl/structs.js';
+import { intersectRayTriangle, closestPointToTriangle } from './tsl/fns.js';
 import { BVH_STACK_DEPTH } from './tsl/constants.js';
-export { rayIntersectionResultStruct, intersectRayTriangle, pointQueryResultStruct, closestPointToTriangle } from './tsl/structs.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
