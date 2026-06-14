@@ -26,10 +26,10 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+    - run: npx puppeteer browsers install chrome
     - run: npm ci
     - run: npm install three@${{ matrix.three-version }}
     - run: npm run build
     - run: npm run benchmark
     - run: npm run lint
-    - run: npx puppeteer browsers install chrome
     - run: npm test
