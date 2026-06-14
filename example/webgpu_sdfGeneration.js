@@ -138,16 +138,21 @@ async function init() {
 			) * matrix;
 			let point = pointHomo.xyz / pointHomo.w;
 
-			var result: PointQueryResult;
-			bvh_ClosestPointToPoint( point, &result );
+			var pointResult: PointQueryResult;
+			bvh_ClosestPointToPoint( point, &pointResult );
 
-			let value = result.side * sqrt( result.distanceSq );
+			var rayResult: IntersectionResult;
+			let ray = Ray( point, vec3f( 0.0, 0.0, 1.0 ) );
+			bvh_RaycastFirstHit( ray, &rayResult );
+
+			let side = select( 1.0, rayResult.side, rayResult.didHit );
+			let value = side * sqrt( pointResult.distanceSq );
 
 			textureStore( output, globalId, vec4f( value, 0.0, 0.0, 0.0 ) );
 
 		}
 
-	`, [ bvhData.fns.closestPointToPoint ] );
+	`, [ bvhData.fns.closestPointToPoint, bvhData.fns.raycastFirstHit ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
