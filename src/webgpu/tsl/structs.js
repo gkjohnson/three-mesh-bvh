@@ -29,11 +29,6 @@ export const bvhNodeStruct = new StructTypeNode( {
 }, 'BVHNode' );
 bvhNodeStruct.getLength = () => bvhNodeBoundsStruct.getLength() + 2;
 
-export const rayStruct = new StructTypeNode( {
-	origin: 'vec3f',
-	direction: 'vec3f',
-}, 'Ray' );
-
 export const transformStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',
 	inverseMatrixWorld: 'mat4x4f',
@@ -42,6 +37,16 @@ export const transformStruct = new StructTypeNode( {
 	_alignment0: 'uint',
 	_alignment1: 'uint',
 }, 'TransformStruct' );
+
+
+/**
+ * WGSL struct node representing a ray with an origin and direction.
+ * Used as the input to BVH traversal and intersection functions.
+ */
+export const rayStruct = new StructTypeNode( {
+	origin: 'vec3f',
+	direction: 'vec3f',
+}, 'Ray' );
 
 /**
  * WGSL struct node describing a ray–triangle intersection result, including barycentric
