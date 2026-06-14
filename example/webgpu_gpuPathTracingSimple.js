@@ -138,7 +138,7 @@ function init() {
 			}
 
 		}
-	`, [ ndcToCameraRay, bvhData.fns.raycastFirstHit.functionNode, bvhData.fns.sampleTrianglePoint.functionNode ] );
+	`, [ ndcToCameraRay, bvhData.fns.raycastFirstHit, bvhData.fns.sampleTrianglePoint ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 

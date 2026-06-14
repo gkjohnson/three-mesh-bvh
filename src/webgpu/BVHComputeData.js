@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
 import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, float, uint, vec3 } from 'three/tsl';
+import { storage, float, uint } from 'three/tsl';
 import { wgslTagCode, wgslTagFn } from './nodes/WGSLTagFnNode.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
@@ -836,9 +836,7 @@ export class BVHComputeData {
 		`;
 
 		// closest point to point
-		const scratchCppWorldPt = vec3( 0 ).toVar( 'bvh_cppWorldPt' );
 		const scratchCppObjectIndex = uint( 0 ).toVar( 'bvh_cppObjectIndex' );
-		const scratchCppMinScaleSq = float( 1.0 ).toVar( 'bvh_cppMinScaleSq' );
 
 		fns.closestPointToPoint = this.getShapecastFn( {
 			name: 'bvh_ClosestPointToPoint',
@@ -848,8 +846,13 @@ export class BVHComputeData {
 			boundsOrderFn: wgslTagFn/* wgsl */`
 				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
-					let mid = ( node.bounds.min[ splitAxis ] + node.bounds.max[ splitAxis ] ) * 0.5;
-					return shape[ splitAxis ] <= mid;
+					let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
+					let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
+					let center = ( bMin + bMax ) * 0.5;
+					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;
+					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
+					let worldAxis = normalize( toWorld[ splitAxis ].xyz );
+					return dot( shape - worldCenter, worldAxis ) <= 0.0;
 
 				}
 			`,
@@ -859,8 +862,17 @@ export class BVHComputeData {
 
 					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
 					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
-					let d = shape - clamp( shape, bMin, bMax );
-					return select( 0u, 1u, !result.found || dot( d, d ) * ${ scratchCppMinScaleSq } < result.distanceSq );
+					let center = ( bMin + bMax ) * 0.5;
+					let halfExtent = ( bMax - bMin ) * 0.5;
+					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;
+					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
+					let worldHalfExtent = abs( toWorld[ 0 ].xyz ) * halfExtent.x
+					                   + abs( toWorld[ 1 ].xyz ) * halfExtent.y
+					                   + abs( toWorld[ 2 ].xyz ) * halfExtent.z;
+					let worldMin = worldCenter - worldHalfExtent;
+					let worldMax = worldCenter + worldHalfExtent;
+					let d = shape - clamp( shape, worldMin, worldMax );
+					return select( 0u, 1u, ! result.found || dot( d, d ) < result.distanceSq );
 
 				}
 			`,
@@ -875,17 +887,14 @@ export class BVHComputeData {
 						let i0 = ${ storage.index }[ i * 3u ];
 						let i1 = ${ storage.index }[ i * 3u + 1u ];
 						let i2 = ${ storage.index }[ i * 3u + 2u ];
-						let a = ${ storage.attributes }[ i0 ].position.xyz;
-						let b = ${ storage.attributes }[ i1 ].position.xyz;
-						let c = ${ storage.attributes }[ i2 ].position.xyz;
+						let a = ( toWorld * vec4f( ${ storage.attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
+						let b = ( toWorld * vec4f( ${ storage.attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
+						let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
 						var tri = ${ closestPointToTriangle }( shape, a, b, c );
 
-						let worldClosest = ( toWorld * vec4f( tri.closestPoint, 1.0 ) ).xyz;
-						let worldDelta = ${ scratchCppWorldPt } - worldClosest;
-						let worldDistSq = dot( worldDelta, worldDelta );
-						if ( !result.found || worldDistSq < result.distanceSq ) {
+						if ( !result.found || tri.distanceSq < result.distanceSq ) {
 
-							result.distanceSq = worldDistSq;
+							result.distanceSq = tri.distanceSq;
 							result.closestPoint = tri.closestPoint;
 							result.barycoord = tri.barycoord;
 							result.normal = tri.normal;
@@ -906,17 +915,7 @@ export class BVHComputeData {
 			transformShapeFn: wgslTagFn/* wgsl */`
 				fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
 
-					let pt = *shape;
-					${ scratchCppWorldPt } = pt;
 					${ scratchCppObjectIndex } = objectIndex;
-
-					let transform = ${ storage.transforms }[ objectIndex ];
-					*shape = ( transform.inverseMatrixWorld * vec4f( pt, 1.0 ) ).xyz;
-
-					let mw0 = transform.matrixWorld[ 0 ].xyz;
-					let mw1 = transform.matrixWorld[ 1 ].xyz;
-					let mw2 = transform.matrixWorld[ 2 ].xyz;
-					${ scratchCppMinScaleSq } = min( min( dot( mw0, mw0 ), dot( mw1, mw1 ) ), dot( mw2, mw2 ) );
 
 				}
 			`,
@@ -924,9 +923,6 @@ export class BVHComputeData {
 			transformResultFn: wgslTagFn/* wgsl */`
 				fn cppTransformResult( result: ptr<function, ${ pointQueryResultStruct }>, objectIndex: u32 ) -> void {
 
-					let transform = ${ storage.transforms }[ objectIndex ];
-					result.closestPoint = ( transform.matrixWorld * vec4f( result.closestPoint, 1.0 ) ).xyz;
-					result.normal = normalize( ( transpose( transform.inverseMatrixWorld ) * vec4f( result.normal, 0.0 ) ).xyz );
 					result.objectIndex = objectIndex;
 
 				}

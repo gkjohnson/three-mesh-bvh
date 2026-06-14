@@ -149,7 +149,7 @@ async function init() {
 			textureStore(output, globalId, vec4f(value, 0.0, 0.0, 0.0));
 		}
 
-	`, [ bvhData.fns.closestPointToPoint.functionNode ] );
+	`, [ bvhData.fns.closestPointToPoint ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
