@@ -915,8 +915,8 @@ export class BVHComputeData {
 						let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
 
 						// TODO: confirm this function
-						${ closestPointToTriangle }( shape, a, b, c, &closestPoint, &barycoord );
-
+						let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
+						let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
 						let delta = shape - closestPoint;
 						let distSq = dot( delta, delta );
 

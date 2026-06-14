@@ -83,10 +83,7 @@ export const pointQueryResultStruct = new StructTypeNode( {
 }, 'PointQueryResult' );
 
 /**
- * WGSL function node that finds the closest point on a triangle to `p` and returns a
- * {@link pointQueryResultStruct}. `faceIndices` and `objectIndex` are left zero — fill
- * them in the caller. Useful when writing a custom `intersectRangeFn` for
- * {@link BVHComputeData#getShapecastFn}.
+ * WGSL function node that finds the closest point on a triangle to `p` and returns the barycoord.
  */
 export const closestPointToTriangle = wgslTagFn/* wgsl */`
 	// fn
@@ -94,10 +91,8 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
 		p: vec3f,
 		v0: vec3f,
 		v1: vec3f,
-		v2: vec3f,
-		outPoint: ptr<function, vec3f>,
-		outBarycoord: ptr<function, vec3f>
-	) -> void {
+		v2: vec3f
+	) -> vec3f {
 
 		let v10 = v1 - v0;
 		let v21 = v2 - v1;
@@ -133,15 +128,7 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
 
 		}
 
-		let closestPoint = w * v0 + u * v1 + v * v2;
-
-		outBarycoord.x = w;
-		outBarycoord.y = u;
-		outBarycoord.z = v;
-
-		outPoint.x = closestPoint.x;
-		outPoint.y = closestPoint.y;
-		outPoint.z = closestPoint.z;
+		return vec3f( w, u, v );
 
 	}
 `;
