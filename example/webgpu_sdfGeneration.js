@@ -121,22 +121,19 @@ async function init() {
 
 			output: texture_storage_3d<r32float, write>,
 		) -> void {
-			if (globalId.x >= dim) {
+
+			if ( globalId.x >= dim || globalId.y >= dim || globalId.z >= dim ) {
+
 				return;
-			}
-			if (globalId.y >= dim) {
-				return;
-			}
-			if (globalId.z >= dim) {
-				return;
+
 			}
 
-			let pxWidth = 1.0 / f32(dim);
+			let pxWidth = 1.0 / f32( dim );
 			let halfWidth = 0.5 * pxWidth;
 			let pointHomo = vec4f(
-				halfWidth + f32(globalId.x) * pxWidth - 0.5,
-				halfWidth + f32(globalId.y) * pxWidth - 0.5,
-				halfWidth + f32(globalId.z) * pxWidth - 0.5,
+				halfWidth + f32( globalId.x ) * pxWidth - 0.5,
+				halfWidth + f32( globalId.y ) * pxWidth - 0.5,
+				halfWidth + f32( globalId.z ) * pxWidth - 0.5,
 				1.0
 			) * matrix;
 			let point = pointHomo.xyz / pointHomo.w;
@@ -146,7 +143,8 @@ async function init() {
 
 			let value = result.side * sqrt( result.distanceSq );
 
-			textureStore(output, globalId, vec4f(value, 0.0, 0.0, 0.0));
+			textureStore( output, globalId, vec4f( value, 0.0, 0.0, 0.0 ) );
+
 		}
 
 	`, [ bvhData.fns.closestPointToPoint ] );

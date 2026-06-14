@@ -928,7 +928,7 @@ export class BVHComputeData {
 							result.closestPoint = closestPoint;
 							result.barycoord = barycoord;
 							result.distanceSq = distSq;
-							result.normal = normal;
+							result.faceNormal = normal;
 							result.side = sign( dot( normal, delta ) );
 							result.faceIndices = vec4u( i0, i1, i2, i );
 							result.found = true;

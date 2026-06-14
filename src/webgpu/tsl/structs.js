@@ -77,7 +77,7 @@ export const pointQueryResultStruct = new StructTypeNode( {
 	found: 'bool',
 	barycoord: 'vec3f',
 	objectIndex: 'uint',
-	normal: 'vec3f',
+	faceNormal: 'vec3f',
 	side: 'float',
 	distanceSq: 'float',
 }, 'PointQueryResult' );
