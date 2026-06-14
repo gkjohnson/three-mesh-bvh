@@ -59,12 +59,9 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
  */
 export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	// fn
-	fn intersectRayTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f ) -> ${ rayIntersectionResultStruct } {
+	fn intersectRayTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f, threshold: f32 ) -> ${ rayIntersectionResultStruct } {
 
-		// TODO: consider using a pointer to the result struct here
-		// TODO: see if we can remove the "DIST" epsilon and account for it on ray origin bounce positioning
 		const DET_EPSILON = 1e-15;
-		const DIST_EPSILON = 1e-5;
 
 		var result: ${ rayIntersectionResultStruct };
 		result.didHit = false;
@@ -101,7 +98,7 @@ export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 
 		let t = dot( AO, n ) * invdet;
 		let w = 1.0 - u - v;
-		if ( t < DIST_EPSILON ) {
+		if ( t < threshold ) {
 
 			return result;
 
