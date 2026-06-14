@@ -1109,11 +1109,24 @@ export class BVHComputeData {
 
 	/**
 	 * Releases GPU resources held by this instance.
-	 * @note Not yet implemented
 	 */
 	dispose() {
 
-		// TODO: dispose buffers
+		const { storage } = this;
+		for ( const key in storage ) {
+
+			if ( storage[ key ] !== null ) {
+
+				storage[ key ]?.value?.dispose();
+				storage[ key ] = null;
+
+			}
+
+		}
+
+		this.fns.raycastFirstHit = null;
+		this.fns.sampleTrianglePoint = null;
+		this.fns.closestPointToPoint = null;
 
 	}
 
