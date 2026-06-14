@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
 import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, float, uint } from 'three/tsl';
+import { storage, float, mat4 } from 'three/tsl';
 import { wgslTagCode, wgslTagFn } from './nodes/WGSLTagFnNode.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
@@ -177,14 +177,14 @@ export class BVHComputeData {
 	 * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
 	 *
 	 * @param {Object} options
-	 * @param {string} [options.name] - WGSL function name prefix. Defaults to a random identifier.
-	 * @param {StructTypeNode} options.shapeStruct - WGSL struct describing the query shape.
-	 * @param {StructTypeNode|null} [options.resultStruct] - WGSL struct for the accumulated result, or null.
-	 * @param {Function|null} [options.boundsOrderFn] - WGSL function node controlling left/right child traversal order.
-	 * @param {Function} options.intersectsBoundsFn - WGSL function node testing the shape against a BVH node's bounds.
-	 * @param {Function} options.intersectRangeFn - WGSL function node testing the shape against a leaf triangle range.
-	 * @param {Function|null} [options.transformShapeFn] - WGSL function node that transforms the shape into object local space.
-	 * @param {Function|null} [options.transformResultFn] - WGSL function node that transforms a hit result back to world space.
+	 * @param {string} [options.name] - Function name. Defaults to a random identifier.
+	 * @param {StructTypeNode} options.shapeStruct - TSL struct or definition describing the query shape.
+	 * @param {StructTypeNode|null} [options.resultStruct] - TSL struct for the accumulated result, or null.
+	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
+	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
+	 * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
+	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
+	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
 	 * @returns {Function} TSL function node for the TLAS traversal.
 	 */
 	getShapecastFn( options ) {
@@ -227,7 +227,7 @@ export class BVHComputeData {
 		if ( boundsOrderFn ) {
 
 			leftToRightSnippet = wgslTagCode/* wgsl */`
-				let leftToRight = ${ boundsOrderFn }( shape, splitAxis, node );
+				let leftToRight = ${ boundsOrderFn }( shape, splitAxis, node.bounds );
 				c1 = select( rightIndex, leftIndex, leftToRight );
 				c2 = select( leftIndex, rightIndex, leftToRight );
 			`;
@@ -704,7 +704,7 @@ export class BVHComputeData {
 			resultStruct: rayIntersectionResultStruct,
 
 			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
+				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, bounds: ${ bvhNodeBoundsStruct } ) -> bool {
 
 					return ray.direction[ splitAxis ] >= 0.0;
 
@@ -836,20 +836,24 @@ export class BVHComputeData {
 		`;
 
 		// closest point to point
-		const scratchCppObjectIndex = uint( 0 ).toVar( 'bvh_cppObjectIndex' );
-
+		const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
 		fns.closestPointToPoint = this.getShapecastFn( {
 			name: 'bvh_ClosestPointToPoint',
 			shapeStruct: 'vec3f',
 			resultStruct: pointQueryResultStruct,
 
 			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
+				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, bounds: ${ bvhNodeBoundsStruct } ) -> bool {
 
-					let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
-					let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
-					let center = ( bMin + bMax ) * 0.5;
-					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;
+					// TODO: cache in a scratch variable
+					let toWorld = ${ scratchToWorldMat };
+
+					// get center
+					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
+					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
+					let center = bMin * 0.5 + bMax * 0.5;
+
+					// determine the order in world space
 					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
 					let worldAxis = normalize( toWorld[ splitAxis ].xyz );
 					return dot( shape - worldCenter, worldAxis ) <= 0.0;
@@ -860,45 +864,72 @@ export class BVHComputeData {
 			intersectsBoundsFn: wgslTagFn/* wgsl */`
 				fn cppIntersectsBounds( shape: vec3f, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ pointQueryResultStruct }> ) -> u32 {
 
+					// return 1u;
+					// we need to check this no matter what if the result has not been found yet
+					if ( ! result.found ) {
+
+						return 1u;
+
+					}
+
+					// TODO: cache in a scratch vector
+					let toWorld = ${ scratchToWorldMat };
+
+					// transform to world space
 					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
 					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
 					let center = ( bMin + bMax ) * 0.5;
 					let halfExtent = ( bMax - bMin ) * 0.5;
-					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;
 					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
-					let worldHalfExtent = abs( toWorld[ 0 ].xyz ) * halfExtent.x
-					                   + abs( toWorld[ 1 ].xyz ) * halfExtent.y
-					                   + abs( toWorld[ 2 ].xyz ) * halfExtent.z;
+					let worldHalfExtent =
+						abs( toWorld[ 0 ].xyz ) * halfExtent.x +
+					    abs( toWorld[ 1 ].xyz ) * halfExtent.y +
+					    abs( toWorld[ 2 ].xyz ) * halfExtent.z;
 					let worldMin = worldCenter - worldHalfExtent;
 					let worldMax = worldCenter + worldHalfExtent;
+
+					// intersect if the distance to the bounds is not bigger than the already found
 					let d = shape - clamp( shape, worldMin, worldMax );
-					return select( 0u, 1u, ! result.found || dot( d, d ) < result.distanceSq );
+					return select( 0u, 1u, dot( d, d ) < result.distanceSq );
 
 				}
 			`,
 
-			intersectRangeFn: wgslTagFn/* wgsl */`
+			intersectRangeFn: wgslTagFn /* wgsl */`
 				fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
 
+					// TODO: return "distance" rather than distsq
 					var didHit = false;
-					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;
-					for ( var i = offset; i < offset + count; i = i + 1u ) {
+					let toWorld = ${ scratchToWorldMat };
 
-						let i0 = ${ storage.index }[ i * 3u ];
+					var barycoord: vec3f;
+					var closestPoint: vec3f;
+					for ( var i = offset; i < offset + count; i ++ ) {
+
+						// transform the triangle to world space
+						let i0 = ${ storage.index }[ i * 3u + 0u ];
 						let i1 = ${ storage.index }[ i * 3u + 1u ];
 						let i2 = ${ storage.index }[ i * 3u + 2u ];
 						let a = ( toWorld * vec4f( ${ storage.attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
 						let b = ( toWorld * vec4f( ${ storage.attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
 						let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
-						var tri = ${ closestPointToTriangle }( shape, a, b, c );
 
-						if ( !result.found || tri.distanceSq < result.distanceSq ) {
+						// TODO: confirm this function
+						${ closestPointToTriangle }( shape, a, b, c, &closestPoint, &barycoord );
 
-							result.distanceSq = tri.distanceSq;
-							result.closestPoint = tri.closestPoint;
-							result.barycoord = tri.barycoord;
-							result.normal = tri.normal;
-							result.side = tri.side;
+						let delta = shape - closestPoint;
+						let distSq = dot( delta, delta );
+
+						// copy the content over
+						if ( ! result.found || distSq < result.distanceSq ) {
+
+							let normal = normalize( cross( a - b, b - c ) );
+
+							result.closestPoint = closestPoint;
+							result.barycoord = barycoord;
+							result.distanceSq = distSq;
+							result.normal = normal;
+							result.side = sign( dot( normal, delta ) );
 							result.faceIndices = vec4u( i0, i1, i2, i );
 							result.found = true;
 							didHit = true;
@@ -915,7 +946,7 @@ export class BVHComputeData {
 			transformShapeFn: wgslTagFn/* wgsl */`
 				fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
 
-					${ scratchCppObjectIndex } = objectIndex;
+					${ scratchToWorldMat } = ${ storage.transforms }[ objectIndex ].matrixWorld;
 
 				}
 			`,
