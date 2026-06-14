@@ -42,7 +42,6 @@ export const intersectionResultStruct = wgsl( /* wgsl */`
 		normal: vec3f,
 		didHit: bool,
 		barycoord: vec3f,
-		objectIndex: u32,
 		side: f32,
 		dist: f32,
 	};

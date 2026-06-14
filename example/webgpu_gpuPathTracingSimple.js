@@ -190,14 +190,7 @@ function resize() {
 	renderer.setSize( w, h );
 	renderer.setPixelRatio( dpr );
 
-	// reconstruct texture
-	if ( outputTex ) {
-
-		outputTex.dispose();
-
-	}
-
-	outputTex = new StorageTexture( w * dpr * scale, h * dpr * scale );
+	outputTex.setSize( Math.ceil( w * dpr * scale ), Math.ceil( h * dpr * scale ) );
 
 }
 
