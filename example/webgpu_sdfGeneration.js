@@ -1,15 +1,16 @@
-import * as THREE from 'three/webgpu';
-import { uniform, wgslFn, storage, globalId, storageTexture, } from 'three/tsl';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import Stats from 'stats.js';
+import * as THREE from 'three';
+import { WebGPURenderer, Storage3DTexture } from 'three/webgpu';
+import { uniform, wgslFn, globalId, storageTexture } from 'three/tsl';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import Stats from 'three/addons/libs/stats.module.js';
 
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 import { StaticGeometryGenerator } from 'three-mesh-bvh';
-import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
+import { BVHComputeData } from 'three-mesh-bvh/webgpu';
 
 import { RayMarchSDFNodeMaterial } from './utils/RayMarchSDFNodeMaterial';
 import { RenderSDFLayerNodeMaterial } from './utils/RenderSDFLayerNodeMaterial';
@@ -28,9 +29,10 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats, boxHelper;
-let outputContainer, bvh, geometry, sdfTex, mesh;
+let outputContainer, geometry, sdfTex, mesh;
 let layerPass, raymarchPass;
 let bvhGenerationWorker;
+let bvhData;
 let computeKernel;
 const inverseBoundsMatrix = new THREE.Matrix4();
 
@@ -49,7 +51,7 @@ async function init() {
 	outputContainer = document.getElementById( 'output' );
 
 	// renderer setup
-	renderer = new THREE.WebGPURenderer();
+	renderer = new WebGPURenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( 0, 0 );
@@ -94,23 +96,17 @@ async function init() {
 
 	geometry = staticGen.generate().center();
 
-	bvh = await bvhGenerationWorker.generate( geometry, { maxLeafSize: 1 } );
+	await bvhGenerationWorker.generate( geometry, { maxLeafSize: 1 } );
 
 	mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
 	scene.add( mesh );
 
-	const geom_index = new THREE.StorageBufferAttribute( mesh.geometry.index.array, 3 );
-	const geom_position = new THREE.StorageBufferAttribute( mesh.geometry.attributes.position.array, 3 );
-	const bvhNodes = new THREE.StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
+	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f' } } );
+	bvhData.update();
 
 	const computeShaderParams = {
 		matrix: uniform( new THREE.Matrix4() ),
 		dim: uniform( 0 ),
-
-		// Read as vec4 because storage-buffer vec3 array reads are padded to 16-byte stride.
-		bvh_index: storage( geom_index, 'uvec4', geom_index.count ).toReadOnly(),
-		bvh_position: storage( geom_position, 'vec4', geom_position.count ).toReadOnly(),
-		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 
 		globalId: globalId,
 		output: storageTexture( sdfTex ),
@@ -119,10 +115,6 @@ async function init() {
 	const computeShader = wgslFn( /* wgsl */ `
 
 		fn computeSdf(
-			bvh_index: ptr<storage, array<vec4u>, read>,
-			bvh_position: ptr<storage, array<vec4f>, read>,
-			bvh: ptr<storage, array<BVHNode>, read>,
-
 			matrix: mat4x4f,
 			dim: u32,
 			globalId: vec3u,
@@ -149,14 +141,15 @@ async function init() {
 			) * matrix;
 			let point = pointHomo.xyz / pointHomo.w;
 
-			let res = bvhClosestPointToPoint(bvh_index, bvh_position, bvh, point, 10000.0);
-			let value = res.side * sqrt( res.distanceSq );
+			var result: PointQueryResult;
+			bvh_ClosestPointToPoint( point, &result );
 
-			let mipLevel = 0;
+			let value = result.side * sqrt( result.distanceSq );
+
 			textureStore(output, globalId, vec4f(value, 0.0, 0.0, 0.0));
 		}
 
-	`, [ closestPointToPoint ] );
+	`, [ bvhData.fns.closestPointToPoint.functionNode ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
@@ -253,7 +246,7 @@ function updateSDF() {
 
 	}
 
-	sdfTex = new THREE.Storage3DTexture( dim, dim, dim );
+	sdfTex = new Storage3DTexture( dim, dim, dim );
 	sdfTex.format = THREE.RedFormat;
 	sdfTex.type = THREE.FloatType;
 	sdfTex.generateMipmaps = false;

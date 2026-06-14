@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
 import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, float } from 'three/tsl';
+import { storage, float, uint, vec3 } from 'three/tsl';
 import { wgslTagCode, wgslTagFn } from './nodes/WGSLTagFnNode.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
@@ -812,6 +812,7 @@ export class BVHComputeData {
 			`,
 		} );
 
+		// attribute interpolation function
 		const interpolateBody = structs
 			.attributes
 			.membersLayout
@@ -835,201 +836,102 @@ export class BVHComputeData {
 		`;
 
 		// closest point to point
-		// BLAS traversal runs in local space with a conservative scale-derived cutoff, then
-		// converts each hit back to world space before updating the global result. This keeps
-		// both TLAS and BLAS pruning correct without requiring per-axis scale inversion.
-		fns.closestPointToPoint = wgslTagFn/* wgsl */`
-			// fn
-			fn bvh_ClosestPointToPoint( point: vec3f, maxDistanceSq: f32 ) -> ${ pointQueryResultStruct } {
+		const scratchCppWorldPt = vec3( 0 ).toVar( 'bvh_cppWorldPt' );
+		const scratchCppObjectIndex = uint( 0 ).toVar( 'bvh_cppObjectIndex' );
+		const scratchCppMinScaleSq = float( 1.0 ).toVar( 'bvh_cppMinScaleSq' );
 
-				var result: ${ pointQueryResultStruct };
-				result.distanceSq = maxDistanceSq;
-				result.found = false;
+		fns.closestPointToPoint = this.getShapecastFn( {
+			name: 'bvh_ClosestPointToPoint',
+			shapeStruct: 'vec3f',
+			resultStruct: pointQueryResultStruct,
 
-				var tlasPointer: i32 = 0;
-				var tlasStack: array<u32, ${ BVH_STACK_DEPTH }>;
-				var blasStack: array<u32, ${ BVH_STACK_DEPTH }>;
-				tlasStack[ 0 ] = 0u;
+			boundsOrderFn: wgslTagFn/* wgsl */`
+				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
-				loop {
+					let mid = ( node.bounds.min[ splitAxis ] + node.bounds.max[ splitAxis ] ) * 0.5;
+					return shape[ splitAxis ] <= mid;
 
-					if ( tlasPointer < 0 || tlasPointer >= i32( ${ BVH_STACK_DEPTH } ) ) { break; }
+				}
+			`,
 
-					let tlasNodeIndex = tlasStack[ tlasPointer ];
-					tlasPointer = tlasPointer - 1;
-					let tlasNode = ${ storage.nodes }[ tlasNodeIndex ];
+			intersectsBoundsFn: wgslTagFn/* wgsl */`
+				fn cppBounds( shape: vec3f, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ pointQueryResultStruct }> ) -> u32 {
 
-					let tlasBoundsMin = vec3f( tlasNode.bounds.min[ 0 ], tlasNode.bounds.min[ 1 ], tlasNode.bounds.min[ 2 ] );
-					let tlasBoundsMax = vec3f( tlasNode.bounds.max[ 0 ], tlasNode.bounds.max[ 1 ], tlasNode.bounds.max[ 2 ] );
-					let tlasDelta = point - clamp( point, tlasBoundsMin, tlasBoundsMax );
-					if ( dot( tlasDelta, tlasDelta ) >= result.distanceSq ) { continue; }
+					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
+					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
+					let d = shape - clamp( shape, bMin, bMax );
+					return select( 0u, 1u, !result.found || dot( d, d ) * ${ scratchCppMinScaleSq } < result.distanceSq );
 
-					let tlasInfoX = tlasNode.splitAxisOrTriangleCount;
-					let tlasInfoY = tlasNode.rightChildOrTriangleOffset;
+				}
+			`,
 
-					if ( ( tlasInfoX & 0xffff0000u ) != 0u ) {
+			intersectRangeFn: wgslTagFn/* wgsl */`
+				fn cppRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
 
-						let tlasCount = tlasInfoX & 0x0000ffffu;
-						let tlasOffset = tlasInfoY;
+					var didHit = false;
+					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;
+					for ( var i = offset; i < offset + count; i = i + 1u ) {
 
-						for ( var ti = tlasOffset; ti < tlasOffset + tlasCount; ti = ti + 1u ) {
+						let i0 = ${ storage.index }[ i * 3u ];
+						let i1 = ${ storage.index }[ i * 3u + 1u ];
+						let i2 = ${ storage.index }[ i * 3u + 2u ];
+						let a = ${ storage.attributes }[ i0 ].position.xyz;
+						let b = ${ storage.attributes }[ i1 ].position.xyz;
+						let c = ${ storage.attributes }[ i2 ].position.xyz;
+						var tri = ${ closestPointToTriangle }( shape, a, b, c );
 
-							let transform = ${ storage.transforms }[ ti ];
-							if ( transform.visible == 0u ) { continue; }
+						let worldClosest = ( toWorld * vec4f( tri.closestPoint, 1.0 ) ).xyz;
+						let worldDelta = ${ scratchCppWorldPt } - worldClosest;
+						let worldDistSq = dot( worldDelta, worldDelta );
+						if ( !result.found || worldDistSq < result.distanceSq ) {
 
-							// transform query point to object local space
-							let localPoint = ( transform.inverseMatrixWorld * vec4f( point, 1.0 ) ).xyz;
-
-							// conservative local-space distance cutoff. For TRS matrices the column
-							// lengths of matrixWorld equal the scale factors (|R·S·eᵢ| = sᵢ),
-							// so minScaleSq = minWorldScale². Dividing the world cutoff by that
-							// gives the correct upper bound on any local-space distance that maps
-							// to within the world cutoff, even under non-uniform scale + rotation.
-							let mw0 = transform.matrixWorld[ 0 ].xyz;
-							let mw1 = transform.matrixWorld[ 1 ].xyz;
-							let mw2 = transform.matrixWorld[ 2 ].xyz;
-							let minScaleSq = min( min( dot( mw0, mw0 ), dot( mw1, mw1 ) ), dot( mw2, mw2 ) );
-							var localBestDistSq = result.distanceSq / minScaleSq;
-
-							var localClosestPoint = vec3f( 0.0 );
-							var localBarycoord = vec3f( 0.0 );
-							var localFaceIndices = vec4u( 0u );
-							var localNormal = vec3f( 0.0, 1.0, 0.0 );
-							var localSide = 1.0;
-							var foundLocal = false;
-
-							var blasPointer: i32 = 0;
-							blasStack[ 0 ] = transform.nodeOffset;
-
-							loop {
-
-								if ( blasPointer < 0 || blasPointer >= i32( ${ BVH_STACK_DEPTH } ) ) { break; }
-
-								let blasNodeIndex = blasStack[ blasPointer ];
-								blasPointer = blasPointer - 1;
-								let blasNode = ${ storage.nodes }[ blasNodeIndex ];
-
-								let blasBoundsMin = vec3f( blasNode.bounds.min[ 0 ], blasNode.bounds.min[ 1 ], blasNode.bounds.min[ 2 ] );
-								let blasBoundsMax = vec3f( blasNode.bounds.max[ 0 ], blasNode.bounds.max[ 1 ], blasNode.bounds.max[ 2 ] );
-								let blasDelta = localPoint - clamp( localPoint, blasBoundsMin, blasBoundsMax );
-								if ( dot( blasDelta, blasDelta ) >= localBestDistSq ) { continue; }
-
-								let blasInfoX = blasNode.splitAxisOrTriangleCount;
-								let blasInfoY = blasNode.rightChildOrTriangleOffset;
-
-								if ( ( blasInfoX & 0xffff0000u ) != 0u ) {
-
-									// BLAS leaf: test triangles
-									let blasCount = blasInfoX & 0x0000ffffu;
-									let blasOffset = blasInfoY;
-
-									for ( var i = blasOffset; i < blasOffset + blasCount; i = i + 1u ) {
-
-										let i0 = ${ storage.index }[ i * 3u ];
-										let i1 = ${ storage.index }[ i * 3u + 1u ];
-										let i2 = ${ storage.index }[ i * 3u + 2u ];
-
-										let a = ${ storage.attributes }[ i0 ].position.xyz;
-										let b = ${ storage.attributes }[ i1 ].position.xyz;
-										let c = ${ storage.attributes }[ i2 ].position.xyz;
-
-										var triResult = ${ closestPointToTriangle }( localPoint, a, b, c );
-										if ( triResult.distanceSq < localBestDistSq ) {
-
-											localBestDistSq = triResult.distanceSq;
-											localClosestPoint = triResult.closestPoint;
-											localBarycoord = triResult.barycoord;
-											localFaceIndices = vec4u( i0, i1, i2, i );
-											localNormal = triResult.normal;
-											localSide = triResult.side;
-											foundLocal = true;
-
-										}
-
-									}
-
-								} else {
-
-									// BLAS interior: push children in distance order
-									let leftIndex = blasNodeIndex + 1u;
-									let rightIndex = blasNodeIndex + blasInfoY;
-
-									let leftNode = ${ storage.nodes }[ leftIndex ];
-									let rightNode = ${ storage.nodes }[ rightIndex ];
-
-									let lMin = vec3f( leftNode.bounds.min[ 0 ], leftNode.bounds.min[ 1 ], leftNode.bounds.min[ 2 ] );
-									let lMax = vec3f( leftNode.bounds.max[ 0 ], leftNode.bounds.max[ 1 ], leftNode.bounds.max[ 2 ] );
-									let rMin = vec3f( rightNode.bounds.min[ 0 ], rightNode.bounds.min[ 1 ], rightNode.bounds.min[ 2 ] );
-									let rMax = vec3f( rightNode.bounds.max[ 0 ], rightNode.bounds.max[ 1 ], rightNode.bounds.max[ 2 ] );
-
-									let ldelta = localPoint - clamp( localPoint, lMin, lMax );
-									let rdelta = localPoint - clamp( localPoint, rMin, rMax );
-									let leftFirst = dot( ldelta, ldelta ) <= dot( rdelta, rdelta );
-
-									blasPointer = blasPointer + 1;
-									blasStack[ blasPointer ] = select( rightIndex, leftIndex, leftFirst );
-									blasPointer = blasPointer + 1;
-									blasStack[ blasPointer ] = select( leftIndex, rightIndex, leftFirst );
-
-								}
-
-							}
-
-							// convert local result to world space and update global best
-							if ( foundLocal ) {
-
-								let worldClosestPoint = ( transform.matrixWorld * vec4f( localClosestPoint, 1.0 ) ).xyz;
-								let worldDelta = point - worldClosestPoint;
-								let worldDistSq = dot( worldDelta, worldDelta );
-
-								if ( worldDistSq < result.distanceSq ) {
-
-									result.distanceSq = worldDistSq;
-									result.closestPoint = worldClosestPoint;
-									result.barycoord = localBarycoord;
-									result.faceIndices = localFaceIndices;
-									result.normal = normalize( ( transpose( transform.inverseMatrixWorld ) * vec4f( localNormal, 0.0 ) ).xyz );
-									result.side = localSide;
-									result.objectIndex = ti;
-									result.found = true;
-
-								}
-
-							}
+							result.distanceSq = worldDistSq;
+							result.closestPoint = tri.closestPoint;
+							result.barycoord = tri.barycoord;
+							result.normal = tri.normal;
+							result.side = tri.side;
+							result.faceIndices = vec4u( i0, i1, i2, i );
+							result.found = true;
+							didHit = true;
 
 						}
 
-					} else {
-
-						// TLAS interior: push children in distance order
-						let leftIndex = tlasNodeIndex + 1u;
-						let rightIndex = tlasNodeIndex + tlasInfoY;
-
-						let leftNode = ${ storage.nodes }[ leftIndex ];
-						let rightNode = ${ storage.nodes }[ rightIndex ];
-
-						let lMin = vec3f( leftNode.bounds.min[ 0 ], leftNode.bounds.min[ 1 ], leftNode.bounds.min[ 2 ] );
-						let lMax = vec3f( leftNode.bounds.max[ 0 ], leftNode.bounds.max[ 1 ], leftNode.bounds.max[ 2 ] );
-						let rMin = vec3f( rightNode.bounds.min[ 0 ], rightNode.bounds.min[ 1 ], rightNode.bounds.min[ 2 ] );
-						let rMax = vec3f( rightNode.bounds.max[ 0 ], rightNode.bounds.max[ 1 ], rightNode.bounds.max[ 2 ] );
-
-						let ldelta = point - clamp( point, lMin, lMax );
-						let rdelta = point - clamp( point, rMin, rMax );
-						let leftFirst = dot( ldelta, ldelta ) <= dot( rdelta, rdelta );
-
-						tlasPointer = tlasPointer + 1;
-						tlasStack[ tlasPointer ] = select( rightIndex, leftIndex, leftFirst );
-						tlasPointer = tlasPointer + 1;
-						tlasStack[ tlasPointer ] = select( leftIndex, rightIndex, leftFirst );
-
 					}
 
+					return didHit;
+
 				}
+			`,
 
-				return result;
+			transformShapeFn: wgslTagFn/* wgsl */`
+				fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
 
-			}
-		`;
+					let pt = *shape;
+					${ scratchCppWorldPt } = pt;
+					${ scratchCppObjectIndex } = objectIndex;
+
+					let transform = ${ storage.transforms }[ objectIndex ];
+					*shape = ( transform.inverseMatrixWorld * vec4f( pt, 1.0 ) ).xyz;
+
+					let mw0 = transform.matrixWorld[ 0 ].xyz;
+					let mw1 = transform.matrixWorld[ 1 ].xyz;
+					let mw2 = transform.matrixWorld[ 2 ].xyz;
+					${ scratchCppMinScaleSq } = min( min( dot( mw0, mw0 ), dot( mw1, mw1 ) ), dot( mw2, mw2 ) );
+
+				}
+			`,
+
+			transformResultFn: wgslTagFn/* wgsl */`
+				fn cppTransformResult( result: ptr<function, ${ pointQueryResultStruct }>, objectIndex: u32 ) -> void {
+
+					let transform = ${ storage.transforms }[ objectIndex ];
+					result.closestPoint = ( transform.matrixWorld * vec4f( result.closestPoint, 1.0 ) ).xyz;
+					result.normal = normalize( ( transpose( transform.inverseMatrixWorld ) * vec4f( result.normal, 0.0 ) ).xyz );
+					result.objectIndex = objectIndex;
+
+				}
+			`,
+		} );
 
 	}
 

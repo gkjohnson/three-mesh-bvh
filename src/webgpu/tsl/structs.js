@@ -64,9 +64,85 @@ export const rayIntersectionResultStruct = new StructTypeNode( {
 }, 'IntersectionResult' );
 
 /**
+ * WGSL struct node describing a closest-point query result, including the world-space
+ * closest point, squared distance, barycentric coordinates, face normal, side, triangle
+ * indices, and the object index within the TLAS.
+ *
+ * Barycoord convention matches {@link rayIntersectionResultStruct}: `(bary_a, bary_b, bary_c)`
+ * where each component is the weight for the corresponding vertex in `faceIndices.xyz`.
+ */
+export const pointQueryResultStruct = new StructTypeNode( {
+	faceIndices: 'vec4u',
+	closestPoint: 'vec3f',
+	found: 'bool',
+	barycoord: 'vec3f',
+	objectIndex: 'uint',
+	normal: 'vec3f',
+	side: 'float',
+	distanceSq: 'float',
+}, 'PointQueryResult' );
+
+/**
+ * WGSL function node that finds the closest point on a triangle to `p` and returns a
+ * {@link pointQueryResultStruct}. `faceIndices` and `objectIndex` are left zero — fill
+ * them in the caller.
+ */
+export const closestPointToTriangle = wgslTagFn/* wgsl */`
+	// fn
+	fn closestPointToTriangle( p: vec3f, a: vec3f, b: vec3f, c: vec3f ) -> ${ pointQueryResultStruct } {
+
+		let v10 = b - a;
+		let v21 = c - b;
+		let v02 = a - c;
+		let p0 = p - a;
+		let p1 = p - b;
+		let p2 = p - c;
+
+		let nor = cross( v10, v02 );
+		let q = cross( nor, p0 );
+		let d = 1.0 / dot( nor, nor );
+		var u = d * dot( q, v02 );
+		var v = d * dot( q, v10 );
+		var w = 1.0 - u - v;
+
+		if ( u < 0.0 ) {
+
+			w = clamp( dot( p2, v02 ) / dot( v02, v02 ), 0.0, 1.0 );
+			u = 0.0;
+			v = 1.0 - w;
+
+		} else if ( v < 0.0 ) {
+
+			u = clamp( dot( p0, v10 ) / dot( v10, v10 ), 0.0, 1.0 );
+			v = 0.0;
+			w = 1.0 - u;
+
+		} else if ( w < 0.0 ) {
+
+			v = clamp( dot( p1, v21 ) / dot( v21, v21 ), 0.0, 1.0 );
+			w = 0.0;
+			u = 1.0 - v;
+
+		}
+
+		var result: ${ pointQueryResultStruct };
+		result.barycoord = vec3f( w, u, v );
+		result.closestPoint = w * a + u * b + v * c;
+
+		let delta = p - result.closestPoint;
+		result.distanceSq = dot( delta, delta );
+		result.normal = normalize( cross( b - a, c - a ) );
+		result.side = sign( dot( result.normal, delta ) );
+		result.found = true;
+
+		return result;
+
+	}
+`;
+
+/**
  * WGSL function node that tests a ray against a single triangle and returns an
- * {@link rayIntersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
- * for {@link BVHComputeData#getShapecastFn}.
+ * {@link rayIntersectionResultStruct} result.
  */
 export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	// fn
