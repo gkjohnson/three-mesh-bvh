@@ -343,7 +343,7 @@ function render() {
 		const material = raymarchPass.material;
 
 		material.fragmentNode.parameters.surface.value = params.surface;
-		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.resolution );
+		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( sdfTex.width );
 		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
 		const sdfInv = new THREE.Matrix4()
