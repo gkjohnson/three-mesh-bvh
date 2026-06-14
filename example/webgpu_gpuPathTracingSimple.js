@@ -11,8 +11,7 @@ import {
 } from 'three/tsl';
 
 // three-mesh-bvh
-import { BVHComputeData } from 'three-mesh-bvh/webgpu';
-import { ndcToCameraRay } from 'three-mesh-bvh/webgpu';
+import { BVHComputeData, ndcToCameraRay } from 'three-mesh-bvh/webgpu';
 
 const params = {
 	enableRaytracing: true,
