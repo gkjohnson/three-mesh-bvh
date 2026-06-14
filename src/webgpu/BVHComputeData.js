@@ -227,7 +227,7 @@ export class BVHComputeData {
 		if ( boundsOrderFn ) {
 
 			leftToRightSnippet = wgslTagCode/* wgsl */`
-				let leftToRight = ${ boundsOrderFn }( shape, splitAxis, node.bounds );
+				let leftToRight = ${ boundsOrderFn }( shape, splitAxis, node );
 				c1 = select( rightIndex, leftIndex, leftToRight );
 				c2 = select( leftIndex, rightIndex, leftToRight );
 			`;
@@ -704,7 +704,7 @@ export class BVHComputeData {
 			resultStruct: rayIntersectionResultStruct,
 
 			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, bounds: ${ bvhNodeBoundsStruct } ) -> bool {
+				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
 					return ray.direction[ splitAxis ] >= 0.0;
 
@@ -843,14 +843,14 @@ export class BVHComputeData {
 			resultStruct: pointQueryResultStruct,
 
 			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, bounds: ${ bvhNodeBoundsStruct } ) -> bool {
+				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
 					// TODO: cache in a scratch variable
 					let toWorld = ${ scratchToWorldMat };
 
 					// get center
-					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
-					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
+					let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
+					let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
 					let center = bMin * 0.5 + bMax * 0.5;
 
 					// determine the order in world space
