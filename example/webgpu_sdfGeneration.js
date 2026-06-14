@@ -8,8 +8,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import Stats from 'three/addons/libs/stats.module.js';
 
-import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
-import { StaticGeometryGenerator } from 'three-mesh-bvh';
 import { BVHComputeData } from 'three-mesh-bvh/webgpu';
 
 import { RayMarchSDFNodeMaterial } from './utils/RayMarchSDFNodeMaterial';
@@ -29,9 +27,8 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats, boxHelper;
-let outputContainer, geometry, sdfTex, mesh;
+let outputContainer, sdfTex, mesh;
 let layerPass, raymarchPass;
-let bvhGenerationWorker;
 let bvhData;
 let computeKernel;
 const inverseBoundsMatrix = new THREE.Matrix4();
@@ -81,24 +78,15 @@ async function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// load model and generate bvh
-	bvhGenerationWorker = new GenerateMeshBVHWorker();
-
+	// load model
 	const gltf = await new GLTFLoader()
 		.setMeshoptDecoder( MeshoptDecoder )
 		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' );
 
 	gltf.scene.updateMatrixWorld( true );
 
-	const staticGen = new StaticGeometryGenerator( gltf.scene );
-	staticGen.attributes = [ 'position', 'normal' ];
-	staticGen.useGroups = false;
-
-	geometry = staticGen.generate().center();
-
-	await bvhGenerationWorker.generate( geometry, { maxLeafSize: 1 } );
-
-	mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+	mesh = gltf.scene.getObjectByProperty( 'isMesh', true );
+	mesh.geometry.center();
 	scene.add( mesh );
 
 	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f' } } );
@@ -223,10 +211,11 @@ function updateSDF() {
 	const quat = new THREE.Quaternion();
 	const scale = new THREE.Vector3();
 
-	// compute the bounding box of the geometry including the margin which is used to
+	// compute the bounding box of the scene including the margin which is used to
 	// define the range of the SDF
-	geometry.boundingBox.getCenter( center );
-	scale.subVectors( geometry.boundingBox.max, geometry.boundingBox.min );
+	const boundingBox = new THREE.Box3().setFromObject( mesh );
+	boundingBox.getCenter( center );
+	scale.subVectors( boundingBox.max, boundingBox.min );
 	scale.x += 2 * params.margin;
 	scale.y += 2 * params.margin;
 	scale.z += 2 * params.margin;
@@ -234,7 +223,7 @@ function updateSDF() {
 	inverseBoundsMatrix.copy( matrix ).invert();
 
 	// update the box helper
-	boxHelper.box.copy( geometry.boundingBox );
+	boxHelper.box.copy( boundingBox );
 	boxHelper.box.min.x -= params.margin;
 	boxHelper.box.min.y -= params.margin;
 	boxHelper.box.min.z -= params.margin;

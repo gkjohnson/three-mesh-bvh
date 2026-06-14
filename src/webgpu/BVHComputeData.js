@@ -183,6 +183,7 @@ export class BVHComputeData {
 	 * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
+	 * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
 	 * @returns {Function} TSL function node for the TLAS traversal.
 	 */
 	getShapecastFn( options ) {
@@ -202,6 +203,7 @@ export class BVHComputeData {
 			intersectRangeFn,
 			transformShapeFn = null,
 			transformResultFn = null,
+			resetShapeFn = null,
 		} = options;
 
 		const { storage } = this;
@@ -218,6 +220,13 @@ export class BVHComputeData {
 		if ( transformShapeFn ) {
 
 			transformShapeSnippet = wgslTagCode/* wgsl */`${ transformShapeFn }( &localShape, i );`;
+
+		}
+
+		let resetShapeSnippet = '';
+		if ( resetShapeFn ) {
+
+			resetShapeSnippet = wgslTagCode/* wgsl */`${ resetShapeFn }( i );`;
 
 		}
 
@@ -339,6 +348,8 @@ export class BVHComputeData {
 							didHit = true;
 
 						}
+
+						${ resetShapeSnippet }
 
 					}
 
@@ -805,6 +816,13 @@ export class BVHComputeData {
 					let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
 					hit.normal = normalize( ( transpose( toLocal ) * vec4f( hit.normal, 0.0 ) ).xyz );
 					hit.objectIndex = objectIndex;
+
+				}
+			`,
+			resetShapeFn: wgslTagFn/* wgsl */`
+				fn resetRayScalar( objectIndex: u32 ) -> void {
+
+					${ scratchRayScalar } = 1.0;
 
 				}
 			`,
