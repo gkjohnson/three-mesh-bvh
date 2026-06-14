@@ -92,19 +92,19 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
 	// fn
 	fn closestPointToTriangle(
 		p: vec3f,
-		a: vec3f,
-		b: vec3f,
-		c: vec3f,
+		v0: vec3f,
+		v1: vec3f,
+		v2: vec3f,
 		outPoint: ptr<function, vec3f>,
 		outBarycoord: ptr<function, vec3f>
 	) -> void {
 
-		let v10 = b - a;
-		let v21 = c - b;
-		let v02 = a - c;
-		let p0 = p - a;
-		let p1 = p - b;
-		let p2 = p - c;
+		let v10 = v1 - v0;
+		let v21 = v2 - v1;
+		let v02 = v0 - v2;
+		let p0 = p - v0;
+		let p1 = p - v1;
+		let p2 = p - v2;
 
 		let nor = cross( v10, v02 );
 		let q = cross( nor, p0 );
@@ -133,7 +133,7 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
 
 		}
 
-		let closestPoint =  w * a + u * b + v * c;
+		let closestPoint = w * v0 + u * v1 + v * v2;
 
 		outBarycoord.x = w;
 		outBarycoord.y = u;
