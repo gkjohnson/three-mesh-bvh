@@ -855,7 +855,7 @@ export class BVHComputeData {
 			`,
 
 			intersectsBoundsFn: wgslTagFn/* wgsl */`
-				fn cppBounds( shape: vec3f, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ pointQueryResultStruct }> ) -> u32 {
+				fn cppIntersectsBounds( shape: vec3f, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ pointQueryResultStruct }> ) -> u32 {
 
 					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
 					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
@@ -866,7 +866,7 @@ export class BVHComputeData {
 			`,
 
 			intersectRangeFn: wgslTagFn/* wgsl */`
-				fn cppRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
+				fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
 
 					var didHit = false;
 					let toWorld = ${ storage.transforms }[ ${ scratchCppObjectIndex } ].matrixWorld;

@@ -13,6 +13,7 @@ export const closestPointToTriangleResultStruct: ReturnType<typeof wgsl>;
 
 export const intersectsTriangle: ReturnType<typeof wgslFn>;
 export const intersectRayTriangle: ReturnType<typeof wgslFn>;
+export const pointQueryResultStruct: unknown;
 export const intersectTriangles: ReturnType<typeof wgslFn>;
 export const intersectsBounds: ReturnType<typeof wgslFn>;
 export const getVertexAttribute: ReturnType<typeof wgslFn>;
@@ -43,6 +44,7 @@ export class BVHComputeData {
 	fns: {
 		raycastFirstHit: unknown;
 		sampleTrianglePoint: unknown;
+		closestPointToPoint: unknown;
 	};
 
 	constructor( bvh: ObjectBVH | object | object[], options?: {
