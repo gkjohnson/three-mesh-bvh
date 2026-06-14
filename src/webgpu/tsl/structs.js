@@ -85,11 +85,19 @@ export const pointQueryResultStruct = new StructTypeNode( {
 /**
  * WGSL function node that finds the closest point on a triangle to `p` and returns a
  * {@link pointQueryResultStruct}. `faceIndices` and `objectIndex` are left zero — fill
- * them in the caller.
+ * them in the caller. Useful when writing a custom `intersectRangeFn` for
+ * {@link BVHComputeData#getShapecastFn}.
  */
 export const closestPointToTriangle = wgslTagFn/* wgsl */`
 	// fn
-	fn closestPointToTriangle( p: vec3f, a: vec3f, b: vec3f, c: vec3f ) -> ${ pointQueryResultStruct } {
+	fn closestPointToTriangle(
+		p: vec3f,
+		a: vec3f,
+		b: vec3f,
+		c: vec3f,
+		outPoint: ptr<function, vec3f>,
+		outBarycoord: ptr<function, vec3f>
+	) -> void {
 
 		let v10 = b - a;
 		let v21 = c - b;
@@ -125,29 +133,29 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
 
 		}
 
-		var result: ${ pointQueryResultStruct };
-		result.barycoord = vec3f( w, u, v );
-		result.closestPoint = w * a + u * b + v * c;
+		let closestPoint =  w * a + u * b + v * c;
 
-		let delta = p - result.closestPoint;
-		result.distanceSq = dot( delta, delta );
-		result.normal = normalize( cross( b - a, c - a ) );
-		result.side = sign( dot( result.normal, delta ) );
-		result.found = true;
+		outBarycoord.x = w;
+		outBarycoord.y = u;
+		outBarycoord.z = v;
 
-		return result;
+		outPoint.x = closestPoint.x;
+		outPoint.y = closestPoint.y;
+		outPoint.z = closestPoint.z;
 
 	}
 `;
 
 /**
  * WGSL function node that tests a ray against a single triangle and returns an
- * {@link rayIntersectionResultStruct} result.
+ * {@link rayIntersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
+ * for {@link BVHComputeData#getShapecastFn}.
  */
 export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	// fn
 	fn intersectRayTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f ) -> ${ rayIntersectionResultStruct } {
 
+		// TODO: consider using a pointer to the result struct here
 		// TODO: see if we can remove the "DIST" epsilon and account for it on ray origin bounce positioning
 		const DET_EPSILON = 1e-15;
 		const DIST_EPSILON = 1e-5;
