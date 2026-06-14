@@ -265,6 +265,8 @@ See the shader implementation in the [simple GPU Path Tracing example](https://g
 
 See [API.md](./API.md) for full API documentation.
 
+See [WEBGPU_API.md](./WEBGPU_API.md) for the WebGPU API documentation.
+
 ## Gotchas
 
 - When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
