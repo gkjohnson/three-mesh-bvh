@@ -58,7 +58,7 @@ async function init() {
 	// scene setup
 	scene = new THREE.Scene();
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xffffff, 0.2 ) );
@@ -83,10 +83,13 @@ async function init() {
 		.setMeshoptDecoder( MeshoptDecoder )
 		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' );
 
-	gltf.scene.updateMatrixWorld( true );
+	mesh = gltf.scene;
+	mesh.updateMatrixWorld( true );
 
-	mesh = gltf.scene.getObjectByProperty( 'isMesh', true );
-	mesh.geometry.center();
+	new THREE.Box3().setFromObject( mesh )
+		.getCenter( mesh.position )
+		.multiplyScalar( - 1 );
+	mesh.updateMatrixWorld( true );
 	scene.add( mesh );
 
 	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f' } } );
@@ -336,8 +339,7 @@ function render() {
 		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
 		const sdfInv = new THREE.Matrix4()
-			.copy( mesh.matrixWorld ).invert()
-			.premultiply( inverseBoundsMatrix )
+			.copy( inverseBoundsMatrix )
 			.multiply( camera.matrixWorld );
 
 		material.fragmentNode.parameters.sdfTransformInverse.value.copy( sdfInv );
