@@ -861,7 +861,6 @@ export class BVHComputeData {
 			boundsOrderFn: wgslTagFn/* wgsl */`
 				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
-					// TODO: cache in a scratch variable
 					let toWorld = ${ scratchToWorldMat };
 
 					// get center
@@ -888,7 +887,6 @@ export class BVHComputeData {
 
 					}
 
-					// TODO: cache in a scratch vector
 					let toWorld = ${ scratchToWorldMat };
 
 					// transform to world space
@@ -914,7 +912,6 @@ export class BVHComputeData {
 			intersectRangeFn: wgslTagFn /* wgsl */`
 				fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
 
-					// TODO: return "distance" rather than distsq
 					var didHit = false;
 					let toWorld = ${ scratchToWorldMat };
 
@@ -928,7 +925,6 @@ export class BVHComputeData {
 						let b = ( toWorld * vec4f( ${ storage.attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
 						let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
 
-						// TODO: confirm this function
 						let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
 						let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
 						let delta = shape - closestPoint;
