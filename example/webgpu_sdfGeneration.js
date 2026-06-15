@@ -1,15 +1,14 @@
-import * as THREE from 'three/webgpu';
-import { uniform, wgslFn, storage, globalId, storageTexture, } from 'three/tsl';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import Stats from 'stats.js';
+import * as THREE from 'three';
+import { WebGPURenderer, Storage3DTexture } from 'three/webgpu';
+import { uniform, wgslFn, globalId, storageTexture } from 'three/tsl';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import Stats from 'three/addons/libs/stats.module.js';
 
-import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
-import { StaticGeometryGenerator } from 'three-mesh-bvh';
-import { closestPointToPoint } from 'three-mesh-bvh/webgpu';
+import { BVHComputeData } from 'three-mesh-bvh/webgpu';
 
 import { RayMarchSDFNodeMaterial } from './utils/RayMarchSDFNodeMaterial';
 import { RenderSDFLayerNodeMaterial } from './utils/RenderSDFLayerNodeMaterial';
@@ -28,9 +27,9 @@ const params = {
 };
 
 let renderer, camera, scene, gui, stats, boxHelper;
-let outputContainer, bvh, geometry, sdfTex, mesh;
+let outputContainer, sdfTex, mesh;
 let layerPass, raymarchPass;
-let bvhGenerationWorker;
+let bvhData;
 let computeKernel;
 const inverseBoundsMatrix = new THREE.Matrix4();
 
@@ -49,7 +48,7 @@ async function init() {
 	outputContainer = document.getElementById( 'output' );
 
 	// renderer setup
-	renderer = new THREE.WebGPURenderer();
+	renderer = new WebGPURenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.setClearColor( 0, 0 );
@@ -59,7 +58,7 @@ async function init() {
 	// scene setup
 	scene = new THREE.Scene();
 
-	const light = new THREE.DirectionalLight( 0xffffff, 1 );
+	const light = new THREE.DirectionalLight( 0xffffff, 3 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
 	scene.add( new THREE.AmbientLight( 0xffffff, 0.2 ) );
@@ -79,38 +78,26 @@ async function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// load model and generate bvh
-	bvhGenerationWorker = new GenerateMeshBVHWorker();
-
+	// load model
 	const gltf = await new GLTFLoader()
 		.setMeshoptDecoder( MeshoptDecoder )
 		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' );
 
-	gltf.scene.updateMatrixWorld( true );
+	mesh = gltf.scene;
+	mesh.updateMatrixWorld( true );
 
-	const staticGen = new StaticGeometryGenerator( gltf.scene );
-	staticGen.attributes = [ 'position', 'normal' ];
-	staticGen.useGroups = false;
-
-	geometry = staticGen.generate().center();
-
-	bvh = await bvhGenerationWorker.generate( geometry, { maxLeafSize: 1 } );
-
-	mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+	new THREE.Box3().setFromObject( mesh )
+		.getCenter( mesh.position )
+		.multiplyScalar( - 1 );
+	mesh.updateMatrixWorld( true );
 	scene.add( mesh );
 
-	const geom_index = new THREE.StorageBufferAttribute( mesh.geometry.index.array, 3 );
-	const geom_position = new THREE.StorageBufferAttribute( mesh.geometry.attributes.position.array, 3 );
-	const bvhNodes = new THREE.StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
+	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f' } } );
+	bvhData.update();
 
 	const computeShaderParams = {
 		matrix: uniform( new THREE.Matrix4() ),
 		dim: uniform( 0 ),
-
-		// Read as vec4 because storage-buffer vec3 array reads are padded to 16-byte stride.
-		bvh_index: storage( geom_index, 'uvec4', geom_index.count ).toReadOnly(),
-		bvh_position: storage( geom_position, 'vec4', geom_position.count ).toReadOnly(),
-		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 
 		globalId: globalId,
 		output: storageTexture( sdfTex ),
@@ -119,44 +106,44 @@ async function init() {
 	const computeShader = wgslFn( /* wgsl */ `
 
 		fn computeSdf(
-			bvh_index: ptr<storage, array<vec4u>, read>,
-			bvh_position: ptr<storage, array<vec4f>, read>,
-			bvh: ptr<storage, array<BVHNode>, read>,
-
 			matrix: mat4x4f,
 			dim: u32,
 			globalId: vec3u,
 
 			output: texture_storage_3d<r32float, write>,
 		) -> void {
-			if (globalId.x >= dim) {
+
+			if ( globalId.x >= dim || globalId.y >= dim || globalId.z >= dim ) {
+
 				return;
-			}
-			if (globalId.y >= dim) {
-				return;
-			}
-			if (globalId.z >= dim) {
-				return;
+
 			}
 
-			let pxWidth = 1.0 / f32(dim);
+			let pxWidth = 1.0 / f32( dim );
 			let halfWidth = 0.5 * pxWidth;
 			let pointHomo = vec4f(
-				halfWidth + f32(globalId.x) * pxWidth - 0.5,
-				halfWidth + f32(globalId.y) * pxWidth - 0.5,
-				halfWidth + f32(globalId.z) * pxWidth - 0.5,
+				halfWidth + f32( globalId.x ) * pxWidth - 0.5,
+				halfWidth + f32( globalId.y ) * pxWidth - 0.5,
+				halfWidth + f32( globalId.z ) * pxWidth - 0.5,
 				1.0
 			) * matrix;
 			let point = pointHomo.xyz / pointHomo.w;
 
-			let res = bvhClosestPointToPoint(bvh_index, bvh_position, bvh, point, 10000.0);
-			let value = res.side * sqrt( res.distanceSq );
+			var pointResult: PointQueryResult;
+			bvh_ClosestPointToPoint( point, &pointResult );
 
-			let mipLevel = 0;
-			textureStore(output, globalId, vec4f(value, 0.0, 0.0, 0.0));
+			var rayResult: IntersectionResult;
+			let ray = Ray( point, vec3f( 0.0, 0.0, 1.0 ) );
+			bvh_RaycastFirstHit( ray, &rayResult );
+
+			let side = select( 1.0, rayResult.side, rayResult.didHit );
+			let value = side * sqrt( pointResult.distanceSq );
+
+			textureStore( output, globalId, vec4f( value, 0.0, 0.0, 0.0 ) );
+
 		}
 
-	`, [ closestPointToPoint ] );
+	`, [ bvhData.fns.closestPointToPoint, bvhData.fns.raycastFirstHit ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
@@ -227,10 +214,11 @@ function updateSDF() {
 	const quat = new THREE.Quaternion();
 	const scale = new THREE.Vector3();
 
-	// compute the bounding box of the geometry including the margin which is used to
+	// compute the bounding box of the scene including the margin which is used to
 	// define the range of the SDF
-	geometry.boundingBox.getCenter( center );
-	scale.subVectors( geometry.boundingBox.max, geometry.boundingBox.min );
+	const boundingBox = new THREE.Box3().setFromObject( mesh );
+	boundingBox.getCenter( center );
+	scale.subVectors( boundingBox.max, boundingBox.min );
 	scale.x += 2 * params.margin;
 	scale.y += 2 * params.margin;
 	scale.z += 2 * params.margin;
@@ -238,7 +226,7 @@ function updateSDF() {
 	inverseBoundsMatrix.copy( matrix ).invert();
 
 	// update the box helper
-	boxHelper.box.copy( geometry.boundingBox );
+	boxHelper.box.copy( boundingBox );
 	boxHelper.box.min.x -= params.margin;
 	boxHelper.box.min.y -= params.margin;
 	boxHelper.box.min.z -= params.margin;
@@ -253,7 +241,7 @@ function updateSDF() {
 
 	}
 
-	sdfTex = new THREE.Storage3DTexture( dim, dim, dim );
+	sdfTex = new Storage3DTexture( dim, dim, dim );
 	sdfTex.format = THREE.RedFormat;
 	sdfTex.type = THREE.FloatType;
 	sdfTex.generateMipmaps = false;
@@ -347,12 +335,11 @@ function render() {
 		const material = raymarchPass.material;
 
 		material.fragmentNode.parameters.surface.value = params.surface;
-		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( params.resolution );
+		material.fragmentNode.parameters.normalStep.value.set( 1, 1, 1 ).divideScalar( sdfTex.width );
 		material.fragmentNode.parameters.projectionInverse.value.copy( camera.projectionMatrixInverse );
 
 		const sdfInv = new THREE.Matrix4()
-			.copy( mesh.matrixWorld ).invert()
-			.premultiply( inverseBoundsMatrix )
+			.copy( inverseBoundsMatrix )
 			.multiply( camera.matrixWorld );
 
 		material.fragmentNode.parameters.sdfTransformInverse.value.copy( sdfInv );

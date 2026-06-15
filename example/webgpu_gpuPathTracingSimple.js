@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WebGPURenderer, StorageBufferAttribute, StorageTexture, MeshBasicNodeMaterial } from 'three/webgpu';
+import { WebGPURenderer, StorageTexture, MeshBasicNodeMaterial } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import Stats from 'three/addons/libs/stats.module.js';
@@ -7,12 +7,11 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import {
 	attribute, uniform, wgslFn, varyingProperty,
 	textureStore, texture, colorSpaceToWorking,
-	storage, workgroupId, localId,
+	workgroupId, localId,
 } from 'three/tsl';
 
 // three-mesh-bvh
-import { MeshBVH, SAH } from 'three-mesh-bvh';
-import { ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute } from 'three-mesh-bvh/webgpu';
+import { BVHComputeData, ndcToCameraRay } from 'three-mesh-bvh/webgpu';
 
 const params = {
 	enableRaytracing: true,
@@ -24,6 +23,7 @@ const params = {
 let renderer, camera, scene, gui, stats;
 let fsQuad, mesh, clock, controls;
 let fsMaterial, computeKernel, outputTex;
+let bvhData;
 let dispatchSize = [];
 const WORKGROUP_SIZE = [ 8, 8, 1 ];
 
@@ -64,21 +64,21 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// geometry init
+	// geometry and BVH setup
 	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.3, 300, 50 );
-	const bvh = new MeshBVH( knotGeometry, { maxLeafSize: 1, strategy: SAH } );
 	mesh = new THREE.Mesh( knotGeometry, new THREE.MeshStandardMaterial() );
 	scene.add( mesh );
 
 	// animation
 	clock = new THREE.Clock();
+	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f', normal: 'vec4f' } } );
+	bvhData.update();
+
+	outputTex = new StorageTexture( 1, 1 );
+
+	resize();
 
 	// TSL
-	const geom_index = new StorageBufferAttribute( knotGeometry.index.array, 3 );
-	const geom_position = new StorageBufferAttribute( knotGeometry.attributes.position.array, 3 );
-	const geom_normals = new StorageBufferAttribute( knotGeometry.attributes.normal.array, 3 );
-	const bvhNodes = new StorageBufferAttribute( new Float32Array( bvh._roots[ 0 ] ), 8 );
-
 	const computeShaderParams = {
 		outputTex: textureStore( outputTex ),
 		smoothNormals: uniform( 1 ),
@@ -86,12 +86,6 @@ function init() {
 		// transforms
 		inverseProjectionMatrix: uniform( new THREE.Matrix4() ),
 		cameraToModelMatrix: uniform( new THREE.Matrix4() ),
-
-		// bvh and geometry definition
-		geom_index: storage( geom_index, 'uvec3', geom_index.count ).toReadOnly(),
-		geom_position: storage( geom_position, 'vec3', geom_position.count ).toReadOnly(),
-		geom_normals: storage( geom_normals, 'vec3', geom_normals.count ).toReadOnly(),
-		bvh: storage( bvhNodes, 'BVHNode', bvhNodes.count ).toReadOnly(),
 
 		// compute variables
 		workgroupSize: uniform( new THREE.Vector3() ),
@@ -106,10 +100,6 @@ function init() {
 			smoothNormals: u32,
 			inverseProjectionMatrix: mat4x4f,
 			cameraToModelMatrix: mat4x4f,
-			geom_position: ptr<storage, array<vec3f>, read>,
-			geom_index: ptr<storage, array<vec3u>, read>,
-			geom_normals: ptr<storage, array<vec3f>, read>,
-			bvh: ptr<storage, array<BVHNode>, read>,
 			workgroupSize: vec3u,
 			workgroupId: vec3u,
 			localId: vec3u,
@@ -121,18 +111,20 @@ function init() {
 			let uv = vec2f( indexUV ) / vec2f( dimensions );
 			let ndc = uv * 2.0 - vec2f( 1.0 );
 
-			// scene ray
+			// scene ray (world space)
 			var ray = ndcToCameraRay( ndc, cameraToModelMatrix * inverseProjectionMatrix );
 
 			// get hit result
-			let hitResult = bvhIntersectFirstHit( geom_index, geom_position, bvh, ray );
+			var hit: IntersectionResult;
+			bvh_RaycastFirstHit( ray, &hit );
 
 			// write result
-			if ( hitResult.didHit && hitResult.dist < 1.0 ) {
+			if ( hit.didHit && hit.dist < 1.0 ) {
 
+				let localNormal = normalize( bvh_sampleTrianglePoint( hit.barycoord, hit.indices.xyz ).normal.xyz );
 				let normal = select(
-					hitResult.normal,
-					normalize( getVertexAttribute( hitResult.barycoord, hitResult.indices.xyz, geom_normals ) ),
+					hit.normal,
+					localNormal,
 					smoothNormals > 0u,
 				);
 				textureStore( outputTex, indexUV, vec4f( normal, 1.0 ) );
@@ -145,7 +137,7 @@ function init() {
 			}
 
 		}
-	`, [ ndcToCameraRay, bvhIntersectFirstHit, getVertexAttribute ] );
+	`, [ ndcToCameraRay, bvhData.fns.raycastFirstHit, bvhData.fns.sampleTrianglePoint ] );
 
 	computeKernel = computeShader( computeShaderParams ).computeKernel( WORKGROUP_SIZE );
 
@@ -197,17 +189,7 @@ function resize() {
 	renderer.setSize( w, h );
 	renderer.setPixelRatio( dpr );
 
-	// reconstruct texture
-	if ( outputTex ) {
-
-		outputTex.dispose();
-
-	}
-
-	outputTex = new StorageTexture( w * dpr * scale, h * dpr * scale );
-	outputTex.format = THREE.RGBAFormat;
-	outputTex.type = THREE.UnsignedByteType;
-	outputTex.magFilter = THREE.LinearFilter;
+	outputTex.setSize( Math.ceil( w * dpr * scale ), Math.ceil( h * dpr * scale ) );
 
 }
 

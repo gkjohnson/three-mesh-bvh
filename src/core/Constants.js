@@ -4,6 +4,7 @@
  * Option for splitting each BVH node down the center of the longest axis of the bounds.
  *
  * This is the fastest construction option and will yield a good, performant bounds.
+ * @type {number}
  */
 export const CENTER = 0;
 
@@ -12,6 +13,7 @@ export const CENTER = 0;
  * all triangle centroids in the bounds.
  *
  * This strategy may be better than `CENTER` with some geometry.
+ * @type {number}
  */
 export const AVERAGE = 1;
 
@@ -22,6 +24,7 @@ export const AVERAGE = 1;
  *
  * This is the slowest construction option but will yield the best bounds of the three
  * options and use the least memory.
+ * @type {number}
  */
 export const SAH = 2;
 
@@ -29,16 +32,19 @@ export const SAH = 2;
 
 /**
  * Indicates the shape did not intersect the given bounding box.
+ * @type {number}
  */
 export const NOT_INTERSECTED = 0;
 
 /**
  * Indicates the shape did intersect the given bounding box.
+ * @type {number}
  */
 export const INTERSECTED = 1;
 
 /**
  * Indicate the shape entirely contains the given bounding box.
+ * @type {number}
  */
 export const CONTAINED = 2;
 

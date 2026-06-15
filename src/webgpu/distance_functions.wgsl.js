@@ -1,6 +1,8 @@
+/** @import { BVHComputeData } from './BVHComputeData.js' */
 import { wgslFn, wgsl } from 'three/tsl';
 import { bvhNodeStruct } from './common_functions.wgsl.js';
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const closestPointToPointResultStruct = wgsl( /* wgsl */ `
 	struct ClosestPointToPointResult {
 		faceIndices: vec4u,
@@ -13,6 +15,7 @@ export const closestPointToPointResultStruct = wgsl( /* wgsl */ `
 	};
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const closestPointToTriangleResultStruct = wgsl( /* wgsl */ `
 	struct ClosestPointToTriangleResult {
 		barycoord: vec3f,
@@ -20,6 +23,7 @@ export const closestPointToTriangleResultStruct = wgsl( /* wgsl */ `
 	};
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const closestPointToTriangle = wgslFn( /* wgsl */ `
 
 	fn closestPointToTriangle( p: vec3f, v0: vec3f, v1: vec3f, v2: vec3f ) -> ClosestPointToTriangleResult {
@@ -71,6 +75,7 @@ export const closestPointToTriangle = wgslFn( /* wgsl */ `
 	}
 `, [ closestPointToTriangleResultStruct ] );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const distanceToTriangles = wgslFn( /* wgsl */ `
 	fn distanceToTriangles(
 		// geometry info and triangle range
@@ -113,6 +118,7 @@ export const distanceToTriangles = wgslFn( /* wgsl */ `
 	}
 `, [ closestPointToTriangle, closestPointToPointResultStruct ] );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const distanceSqToBounds = wgslFn( /* wgsl */ `
 	fn distanceSqToBounds( point: vec3f, boundsMin: vec3f, boundsMax: vec3f ) -> f32 {
 
@@ -123,6 +129,7 @@ export const distanceSqToBounds = wgslFn( /* wgsl */ `
 	}
 ` );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const distanceSqToBVHNodeBoundsPoint = wgslFn( /* wgsl */ `
 	fn distanceSqToBVHNodeBoundsPoint(
 		point: vec3f,
@@ -138,6 +145,7 @@ export const distanceSqToBVHNodeBoundsPoint = wgslFn( /* wgsl */ `
 	}
 `, [ distanceSqToBounds, bvhNodeStruct ] );
 
+/** @deprecated Use {@link BVHComputeData} instead. */
 export const closestPointToPoint = wgslFn( /* wgsl */ `
 	fn bvhClosestPointToPoint(
 		bvh_index: ptr<storage, array<vec4u>, read>,
