@@ -41,6 +41,8 @@ export const transformStruct = new StructTypeNode( {
 /**
  * WGSL struct node representing a ray with an origin and direction.
  * Used as the input to BVH traversal and intersection functions.
+ * @type {StructTypeNode}
+ * @section TSL Structs
  */
 export const rayStruct = new StructTypeNode( {
 	origin: 'vec3f',
@@ -51,6 +53,8 @@ export const rayStruct = new StructTypeNode( {
  * WGSL struct node describing a ray–triangle intersection result, including barycentric
  * coordinates, world-space normal, hit distance, face side, triangle indices, and the
  * object index within the TLAS.
+ * @type {StructTypeNode}
+ * @section TSL Structs
  */
 export const rayIntersectionResultStruct = new StructTypeNode( {
 	indices: 'vec4u',
@@ -69,6 +73,8 @@ export const rayIntersectionResultStruct = new StructTypeNode( {
  *
  * Barycoord convention matches {@link rayIntersectionResultStruct}: `(bary_a, bary_b, bary_c)`
  * where each component is the weight for the corresponding vertex in `faceIndices.xyz`.
+ * @type {StructTypeNode}
+ * @section TSL Structs
  */
 export const pointQueryResultStruct = new StructTypeNode( {
 	faceIndices: 'vec4u',

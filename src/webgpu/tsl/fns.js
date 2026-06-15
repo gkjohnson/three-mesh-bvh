@@ -1,8 +1,11 @@
+/** @import { FunctionNode } from 'three/tsl'; */
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { rayIntersectionResultStruct, rayStruct } from './structs.js';
 
 /**
  * WGSL function node that finds the closest point on a triangle to `p` and returns the barycoord.
+ * @type {FunctionNode}
+ * @section TSL Functions
  */
 export const closestPointToTriangle = wgslTagFn/* wgsl */`
 	// fn
@@ -56,6 +59,8 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
  * WGSL function node that tests a ray against a single triangle and returns an
  * {@link rayIntersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
  * for {@link BVHComputeData#getShapecastFn}.
+ * @type {FunctionNode}
+ * @section TSL Functions
  */
 export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	// fn

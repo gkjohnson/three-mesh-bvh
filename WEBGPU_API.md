@@ -1,20 +1,32 @@
 <!-- This file is generated automatically. Do not edit it directly. -->
 # three-mesh-bvh/webgpu
 
-## Constants
+## TSL Functions
 
 ### closestPointToTriangle
 
 ```js
-closestPointToTriangle: number
+closestPointToTriangle: FunctionNode
 ```
 
 WGSL function node that finds the closest point on a triangle to `p` and returns the barycoord.
 
+### intersectRayTriangle
+
+```js
+intersectRayTriangle: FunctionNode
+```
+
+WGSL function node that tests a ray against a single triangle and returns an
+[rayIntersectionResultStruct](rayIntersectionResultStruct) result. Useful when writing a custom `intersectRangeFn`
+for [BVHComputeData#getShapecastFn](BVHComputeData#getShapecastFn).
+
+## TSL Structs
+
 ### rayStruct
 
 ```js
-rayStruct: number
+rayStruct: StructTypeNode
 ```
 
 WGSL struct node representing a ray with an origin and direction.
@@ -23,27 +35,17 @@ Used as the input to BVH traversal and intersection functions.
 ### rayIntersectionResultStruct
 
 ```js
-rayIntersectionResultStruct: number
+rayIntersectionResultStruct: StructTypeNode
 ```
 
 WGSL struct node describing a ray–triangle intersection result, including barycentric
 coordinates, world-space normal, hit distance, face side, triangle indices, and the
 object index within the TLAS.
 
-### intersectRayTriangle
-
-```js
-intersectRayTriangle: number
-```
-
-WGSL function node that tests a ray against a single triangle and returns an
-[rayIntersectionResultStruct](rayIntersectionResultStruct) result. Useful when writing a custom `intersectRangeFn`
-for [BVHComputeData#getShapecastFn](BVHComputeData#getShapecastFn).
-
 ### pointQueryResultStruct
 
 ```js
-pointQueryResultStruct: number
+pointQueryResultStruct: StructTypeNode
 ```
 
 WGSL struct node describing a closest-point query result, including the world-space
@@ -69,7 +71,13 @@ in WebGPU compute shaders via the Three.js TSL node system. After construction, 
 constructor(
 	bvh: ObjectBVH | Object3D | BufferGeometry | GeometryBVH | Array,
 	{
+		// WGSL type map for the interleaved per-vertex attribute
+		// buffer. Keys are geometry attribute names; values are WGSL
+		// type strings (e.g. `'vec3f'`, `'vec4f'`).
 		attributes = { position: 'vec4f' }: Record<string, string>,
+
+		// When true, a [MeshBVH](MeshBVH) is automatically built for any
+		// object that does not already have `geometry.boundsTree` set.
 		autogenerateBvh = true: boolean,
 	}
 )
@@ -80,14 +88,36 @@ constructor(
 ```js
 getShapecastFn(
 	{
+		// Function name. Defaults to a random identifier.
 		name?: string,
+
+		// TSL struct or definition describing the query shape.
 		shapeStruct: StructTypeNode,
+
+		// TSL struct for the accumulated result, or null.
 		resultStruct?: StructTypeNode | null,
+
+		// function node controlling left/right child traversal order.
 		boundsOrderFn?: function | null,
+
+		// function node testing the shape against a BVH node's bounds.
 		intersectsBoundsFn: function,
+
+		// function node testing the shape against a leaf triangle
+		// range.
 		intersectRangeFn: function,
+
+		// function node that transforms the shape into object local
+		// space.
 		transformShapeFn?: function | null,
+
+		// function node that transforms a hit result back to world
+		// space.
 		transformResultFn?: function | null,
+
+		// function node called after each BLAS traversal to reset any
+		// per-object state set by `transformShapeFn`.
+		resetShapeFn?: function | null,
 	}
 ): function
 ```

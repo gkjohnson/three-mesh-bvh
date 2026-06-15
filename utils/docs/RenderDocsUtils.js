@@ -1,3 +1,32 @@
+// Wraps text to lines no longer than maxWidth characters, splitting on spaces.
+function wordWrap( text, maxWidth ) {
+
+	const lines = [];
+	let current = '';
+	for ( const word of text.split( ' ' ) ) {
+
+		if ( current.length === 0 ) {
+
+			current = word;
+
+		} else if ( current.length + 1 + word.length <= maxWidth ) {
+
+			current += ' ' + word;
+
+		} else {
+
+			lines.push( current );
+			current = word;
+
+		}
+
+	}
+
+	if ( current.length > 0 ) lines.push( current );
+	return lines;
+
+}
+
 // Converts {@link url text} inline tags in a string to Markdown [text](url) links.
 export function resolveLinks( str ) {
 
@@ -126,13 +155,25 @@ function renderParamLines( allParams, callbackMap ) {
 		if ( nested ) {
 
 			lines.push( '\t{' );
-			for ( const opt of nested ) {
+			nested.forEach( ( opt, oi ) => {
 
 				const name = opt.name.split( '.' ).pop();
 				const defStr = opt.defaultvalue !== undefined ? ` = ${ opt.defaultvalue }` : '';
 				const optional = opt.optional && opt.defaultvalue === undefined ? '?' : '';
 				const typeName = opt.type && opt.type.names && opt.type.names[ 0 ];
 				const callbackDoc = typeName && callbackMap[ typeName ];
+
+				if ( opt.description ) {
+
+					if ( oi > 0 ) lines.push( '' );
+					const text = opt.description.split( '\n' ).join( ' ' );
+					for ( const line of wordWrap( text, 60 ) ) {
+
+						lines.push( `\t\t// ${ line }` );
+
+					}
+
+				}
 
 				if ( callbackDoc ) {
 
@@ -158,7 +199,7 @@ function renderParamLines( allParams, callbackMap ) {
 
 				}
 
-			}
+			} );
 
 			lines.push( `\t}${ comma }` );
 
@@ -224,7 +265,8 @@ export function renderMember( doc, callbackMap = {} ) {
 
 	const type = formatType( doc.type, callbackMap );
 	const readonly = doc.readonly ? 'readonly ' : '';
-	lines.push( `${ readonly }${ doc.name }: ${ type }` );
+	const defaultStr = doc.defaultvalue !== undefined ? ` = ${ doc.defaultvalue }` : '';
+	lines.push( `${ readonly }${ doc.name }: ${ type }${ defaultStr }` );
 
 	lines.push( '```' );
 	lines.push( '' );
@@ -357,11 +399,11 @@ export function renderConstants( constants, title = 'Constants', callbackMap = {
 
 	for ( const c of constants ) {
 
-		const type = formatType( c.type, callbackMap ) || 'number';
+		const type = formatType( c.type, callbackMap );
 		lines.push( `### ${ c.name }` );
 		lines.push( '' );
 		lines.push( '```js' );
-		lines.push( `${ c.name }: ${ type }` );
+		lines.push( type ? `${ c.name }: ${ type }` : c.name );
 		lines.push( '```' );
 		lines.push( '' );
 
@@ -410,11 +452,12 @@ export function renderTypedef( typeDoc, callbackMap = {}, resolveLink = null, he
 	for ( const prop of ( typeDoc.properties || [] ) ) {
 
 		const type = formatType( prop.type, callbackMap );
-		const optional = prop.optional ? '?' : '';
+		const optional = prop.optional && prop.defaultvalue === undefined ? '?' : '';
+		const defStr = prop.defaultvalue !== undefined ? ` = ${ prop.defaultvalue }` : '';
 		lines.push( `${ hSub } .${ prop.name }` );
 		lines.push( '' );
 		lines.push( '```js' );
-		lines.push( `${ prop.name }${ optional }: ${ type }` );
+		lines.push( `${ prop.name }${ optional }${ defStr }: ${ type }` );
 		lines.push( '```' );
 		lines.push( '' );
 

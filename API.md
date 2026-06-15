@@ -257,14 +257,32 @@ The geometry this BVH was built from.
 constructor(
 	geometry: BufferGeometry,
 	{
+		// Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
 		strategy = CENTER: number,
+
+		// Maximum tree depth.
 		maxDepth = 40: number,
+
+		// Maximum primitives per leaf node.
 		maxLeafSize = 10: number,
+
+		// Set `geometry.boundingBox` if not already present.
 		setBoundingBox = true: boolean,
+
+		// Use `SharedArrayBuffer` for BVH root buffers.
 		useSharedArrayBuffer = false: boolean,
+
+		// Build using an indirect buffer, leaving the original index
+		// unmodified.
 		indirect = false: boolean,
+
+		// Log build progress to the console.
 		verbose = true: boolean,
+
+		// Called with a progress value in [0, 1] during build.
 		onProgress = null: function | null,
+
+		// Restrict the BVH to a specific geometry group range.
 		range = null: Object | null,
 	}
 )
@@ -366,6 +384,8 @@ using `object.matrixWorld`.
 static serialize(
 	bvh: MeshBVH,
 	{
+		// If `true`, the index and BVH root buffers   are cloned so
+		// the serialized data is independent of the live BVH.
 		cloneBuffers = true: boolean,
 	}
 ): SerializedBVH
@@ -387,6 +407,8 @@ static deserialize(
 	data: SerializedBVH,
 	geometry: BufferGeometry,
 	{
+		// If `true`, sets `geometry.index` from the   serialized index
+		// buffer (creating one if none exists).
 		setIndex = true: boolean,
 	}
 ): MeshBVH
@@ -776,7 +798,11 @@ accelerated raycasting and spatial queries across many objects at once.
 constructor(
 	root: Object3D | Array<Object3D>,
 	{
+		// Use vertex-level bounds instead of cached bounding boxes.
 		precise = false: boolean,
+
+		// Treat each instance of InstancedMesh/BatchedMesh as a
+		// separate primitive.
 		includeInstances = true: boolean,
 	}
 )
@@ -1115,6 +1141,8 @@ Flag indicating whether or not a BVH is already being generated in the worker.
 generate(
 	geometry: BufferGeometry,
 	{
+		// Callback invoked with a `[0, 1]`   progress value as the BVH
+		// is built.
 		onProgress?: function,
 	}
 ): Promise<MeshBVH>
