@@ -24,8 +24,7 @@
     "test": "npm run build-silent && vitest run",
     "lint": "eslint . && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
-    "prepublishOnly": "npm run build",
-    "docs:build": "node utils/docs/build.js"
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "src/*",
