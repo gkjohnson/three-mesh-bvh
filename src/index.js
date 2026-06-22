@@ -3,6 +3,7 @@ export * from './core/GeometryBVH.js';
 export * from './core/MeshBVH.js';
 export * from './core/LineBVH.js';
 export * from './core/PointsBVH.js';
+export * from './core/CompositeBVH.js';
 export * from './core/ObjectBVH.js';
 export * from './core/SkinnedMeshBVH.js';
 export * from './objects/BVHHelper.js';
