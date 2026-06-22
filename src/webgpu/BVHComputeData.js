@@ -13,7 +13,7 @@ import {
 	transformStruct,
 } from './tsl/structs.js';
 import { toObjectBVH } from './utils/toObjectBVH.js';
-import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBuffers.js';
+import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
