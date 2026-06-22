@@ -104,8 +104,19 @@ export class CompositeBVH extends BVH {
 		// only spend a second primitive word on the triangle / object type tag when the scene
 		// actually contains triangle primitives
 		this.hasTriangles = objects.some( object => this._isTriangleSource( object ) );
+
+		// TODO: right now the primitive buffer includes a object / instance index value + primitive type
+		// value. Would be best to keep a separate buffer or embed it as a flag.
 		this.primitiveBuffer = null;
 		this.primitiveBufferStride = this.hasTriangles ? 2 : 1;
+
+		// keep leaves homogeneous by splitting mixed triangle / object ranges at build time; only
+		// needed when triangle primitives are present
+		if ( this.hasTriangles ) {
+
+			this.partitionLeaf = partitionByType;
+
+		}
 
 		this.init( options );
 
@@ -676,6 +687,64 @@ export class CompositeBVH extends BVH {
 			}
 
 		} );
+
+	}
+
+}
+
+// build "partitionLeaf" hook: partitions a primitive range so triangle primitives end up on the
+// left and object primitives on the right, keeping every leaf homogeneous.
+function partitionByType( buffer, stride, primitiveBounds, offset, count ) {
+
+	const boundsOffset = primitiveBounds.offset || 0;
+	let left = offset;
+	let right = offset + count - 1;
+
+	// hoare partition keyed on the primitive type word
+	while ( true ) {
+
+		while ( left <= right && buffer[ left * stride + 1 ] !== OBJECT_PRIMITIVE_FLAG ) {
+
+			left ++;
+
+		}
+
+		while ( left <= right && buffer[ right * stride + 1 ] === OBJECT_PRIMITIVE_FLAG ) {
+
+			right --;
+
+		}
+
+		if ( left < right ) {
+
+			// swap the primitive words
+			for ( let i = 0; i < stride; i ++ ) {
+
+				const t0 = buffer[ left * stride + i ];
+				buffer[ left * stride + i ] = buffer[ right * stride + i ];
+				buffer[ right * stride + i ] = t0;
+
+			}
+
+			// swap the matching primitive bounds so they stay in sync
+			const l = left - boundsOffset;
+			const r = right - boundsOffset;
+			for ( let i = 0; i < 6; i ++ ) {
+
+				const tb = primitiveBounds[ l * 6 + i ];
+				primitiveBounds[ l * 6 + i ] = primitiveBounds[ r * 6 + i ];
+				primitiveBounds[ r * 6 + i ] = tb;
+
+			}
+
+			left ++;
+			right --;
+
+		} else {
+
+			return left;
+
+		}
 
 	}
 

@@ -63,6 +63,13 @@ export class BVH {
 		this.primitiveBuffer = null;
 		this.primitiveBufferStride = null;
 
+		// Optional build hook. When set to a function, the build calls it as a node is about to
+		// become a leaf to split the primitive range further.
+		// TODO: it may make sense to provide a general "partition" function and make the BVH
+		// implementation responsible for the partition & split axis logic. Then "fallback"
+		// partitioning can be embedded.
+		this.partitionLeaf = null;
+
 	}
 
 	init( options ) {
