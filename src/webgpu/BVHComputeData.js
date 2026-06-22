@@ -7,6 +7,7 @@ import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
 import { ObjectBVH } from '../core/ObjectBVH.js';
 import { BYTES_PER_NODE } from '../core/Constants.js';
+import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	transformStruct,
@@ -93,25 +94,15 @@ export class BVHComputeData {
 		this.attributes = attributes;
 		this.bvh = bvh;
 
-		this.storage = {
-			index: null,
-			attributes: null,
-			nodes: null,
-			transforms: null,
-		};
-
-		this.structs = {
-			transform: transformStruct,
-			attributes: null,
-		};
-
-		// these only reference the storage buffers / structs through proxy nodes, so they can be built
-		// up front. "sampleTrianglePoint" depends on the attribute layout and is built in "update".
-		this.fns = {
+		// storage buffers and structs are populated in "update"; their members are accessed through
+		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
+		this.storage = new NodeProxyObject();
+		this.structs = new NodeProxyObject( { transform: transformStruct } );
+		this.fns = new NodeProxyObject( {
 			raycastFirstHit: getRaycastFirstHitFn( this ),
-			sampleTrianglePoint: null,
 			closestPointToPoint: getClosestPointToPointFn( this ),
-		};
+			sampleTrianglePoint: null,
+		}, proxyFn );
 
 	}
 
@@ -269,6 +260,9 @@ export class BVHComputeData {
 		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
 		const indexStorage = storage( new StorageBufferAttribute( indexBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_index' );
 		const attributesStorage = storage( new StorageBufferAttribute( new Uint32Array( attributesBuffer ), attributeStruct.getLength() ), attributeStruct ).toReadOnly().setName( 'bvh_attributes' );
+
+		// free any buffers from a previous update before swapping in the new ones
+		this.dispose();
 
 		this.storage.transforms = transformsStorage;
 		this.storage.nodes = bvhNodesStorage;
@@ -436,16 +430,51 @@ export class BVHComputeData {
 	dispose() {
 
 		const { storage } = this;
-		for ( const key in storage ) {
+		for ( const key of Object.keys( storage ) ) {
 
-			if ( storage[ key ] !== null ) {
-
-				storage[ key ]?.value?.dispose();
-				storage[ key ] = null;
-
-			}
+			storage[ key ].value?.dispose();
+			delete storage[ key ];
 
 		}
+
+	}
+
+}
+
+
+// A container whose string members are returned as stable proxy nodes. Assigning a member stores
+// the underlying node.
+// TODO: we should automatically infer a proxy node vs fn. Perhaps in r185 we won't need the difference?
+class NodeProxyObject {
+
+	constructor( initialization = {}, createProxy = proxy ) {
+
+		const proxies = {};
+
+		// the raw backing object holds the underlying nodes and is the proxy target. "createProxy"
+		// selects the proxy variant - "proxy" for plain nodes, "proxyFn" for callable function nodes.
+		return new Proxy( { ...initialization }, {
+
+			get( target, property ) {
+
+				if ( ! proxies[ property ] ) {
+
+					proxies[ property ] = createProxy( property, target );
+
+				}
+
+				return proxies[ property ];
+
+			},
+
+			set( target, property, value ) {
+
+				target[ property ] = value;
+				return true;
+
+			},
+
+		} );
 
 	}
 

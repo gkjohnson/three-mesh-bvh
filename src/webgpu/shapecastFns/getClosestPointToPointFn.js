@@ -1,7 +1,6 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { mat4 } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { proxy } from '../nodes/NodeProxy.js';
 import { bvhNodeStruct, bvhNodeBoundsStruct, pointQueryResultStruct } from '../tsl/structs.js';
 import { closestPointToTriangle } from '../tsl/fns.js';
 
@@ -15,10 +14,8 @@ import { closestPointToTriangle } from '../tsl/fns.js';
  */
 export function getClosestPointToPointFn( bvhData ) {
 
-	// reference the storage buffers indirectly so this can be built before they exist
-	const index = proxy( 'storage.index', bvhData );
-	const attributes = proxy( 'storage.attributes', bvhData );
-	const transforms = proxy( 'storage.transforms', bvhData );
+	// these are proxy nodes, so they can be referenced before the storage buffers exist
+	const { index, attributes, transforms } = bvhData.storage;
 
 	const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
 

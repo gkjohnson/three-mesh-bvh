@@ -1,7 +1,6 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { proxy } from '../nodes/NodeProxy.js';
 import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
 
@@ -15,10 +14,8 @@ import { intersectRayTriangle } from '../tsl/fns.js';
  */
 export function getRaycastFirstHitFn( bvhData ) {
 
-	// reference the storage buffers indirectly so this can be built before they exist
-	const index = proxy( 'storage.index', bvhData );
-	const attributes = proxy( 'storage.attributes', bvhData );
-	const transforms = proxy( 'storage.transforms', bvhData );
+	// these are proxy nodes, so they can be referenced before the storage buffers exist
+	const { index, attributes, transforms } = bvhData.storage;
 
 	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
 

@@ -1,7 +1,6 @@
 /** @import { StructTypeNode } from 'three/webgpu' */
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { proxy } from '../nodes/NodeProxy.js';
 import { BVH_STACK_DEPTH } from '../tsl/constants.js';
 
 /**
@@ -43,9 +42,8 @@ export function getShapecastFn( bvhData, options ) {
 		resetShapeFn = null,
 	} = options;
 
-	// reference the storage buffers indirectly so this can be built before they exist
-	const nodes = proxy( 'storage.nodes', bvhData );
-	const transforms = proxy( 'storage.transforms', bvhData );
+	// these are proxy nodes, so they can be referenced before the storage buffers exist
+	const { nodes, transforms } = bvhData.storage;
 
 	// handle optional functions
 	let transformResultSnippet = '';
