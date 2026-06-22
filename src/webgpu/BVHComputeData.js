@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
 import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, float, mat4 } from 'three/tsl';
+import { storage } from 'three/tsl';
 import { wgslTagCode, wgslTagFn } from './nodes/WGSLTagFnNode.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
@@ -9,15 +9,13 @@ import { GeometryBVH } from '../core/GeometryBVH.js';
 import { ObjectBVH } from '../core/ObjectBVH.js';
 import { SAH, BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../core/Constants.js';
 import {
-	bvhNodeBoundsStruct,
 	bvhNodeStruct,
-	rayStruct,
 	transformStruct,
-	rayIntersectionResultStruct,
-	pointQueryResultStruct,
 } from './tsl/structs.js';
-import { intersectRayTriangle, closestPointToTriangle } from './tsl/fns.js';
 import { BVH_STACK_DEPTH } from './tsl/constants.js';
+import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
+import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
+import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -703,272 +701,11 @@ export class BVHComputeData {
 
 	_initFns() {
 
-		const { storage, structs, fns } = this;
-
-		// raycast first hit
-		const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
-		fns.raycastFirstHit = this.getShapecastFn( {
-			name: 'bvh_RaycastFirstHit',
-			shapeStruct: rayStruct,
-			resultStruct: rayIntersectionResultStruct,
-
-			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
-
-					return ray.direction[ splitAxis ] >= 0.0;
-
-				}
-			`,
-			intersectsBoundsFn: wgslTagFn/* wgsl */`
-				fn rayIntersectsBounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
-
-					let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
-					let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
-
-					let invDir = 1.0 / ray.direction;
-					let tMinPlane = ( boundsMin - ray.origin ) * invDir;
-					let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
-
-					let tMinHit = vec3f(
-						min( tMinPlane.x, tMaxPlane.x ),
-						min( tMinPlane.y, tMaxPlane.y ),
-						min( tMinPlane.z, tMaxPlane.z )
-					);
-
-					let tMaxHit = vec3f(
-						max( tMinPlane.x, tMaxPlane.x ),
-						max( tMinPlane.y, tMaxPlane.y ),
-						max( tMinPlane.z, tMaxPlane.z )
-					);
-
-					let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
-					let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
-
-					let dist = max( t0, 0.0 );
-					if ( t1 < dist ) {
-
-						return 0u;
-
-					} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
-
-						return 0u;
-
-					} else {
-
-						return 1u;
-
-					}
-
-				}
-
-			`,
-			intersectRangeFn: wgslTagFn/* wgsl */`
-				fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
-
-					var didHit = false;
-					for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
-
-						let i0 = ${ storage.index }[ ti * 3u ];
-						let i1 = ${ storage.index }[ ti * 3u + 1u ];
-						let i2 = ${ storage.index }[ ti * 3u + 2u ];
-
-						let a = ${ storage.attributes }[ i0 ].position.xyz;
-						let b = ${ storage.attributes }[ i1 ].position.xyz;
-						let c = ${ storage.attributes }[ i2 ].position.xyz;
-
-						var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
-						triResult.dist *= ${ scratchRayScalar };
-						if ( triResult.didHit && ( ! result.didHit || triResult.dist < result.dist ) ) {
-
-							result.didHit = true;
-							result.dist = triResult.dist;
-							result.normal = triResult.normal;
-							result.side = triResult.side;
-							result.barycoord = triResult.barycoord;
-							result.indices = vec4u( i0, i1, i2, ti );
-
-							didHit = true;
-
-						}
-
-					}
-
-					return didHit;
-
-				}
-			`,
-			transformShapeFn: wgslTagFn/* wgsl */`
-				fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
-
-					let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
-					ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
-					ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
-
-					let len = length( ray.direction );
-					ray.direction /= len;
-					${ scratchRayScalar } = 1.0 / len;
-
-				}
-			`,
-			transformResultFn: wgslTagFn/* wgsl */`
-				fn transformResult( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
-
-					let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
-					hit.normal = normalize( ( transpose( toLocal ) * vec4f( hit.normal, 0.0 ) ).xyz );
-					hit.objectIndex = objectIndex;
-
-				}
-			`,
-			resetShapeFn: wgslTagFn/* wgsl */`
-				fn resetRayScalar( objectIndex: u32 ) -> void {
-
-					${ scratchRayScalar } = 1.0;
-
-				}
-			`,
-		} );
-
-		// attribute interpolation function
-		const interpolateBody = structs
-			.attributes
-			.membersLayout
-			.map( ( { name } ) => {
-
-				return `result.${ name } = a0.${ name } * barycoord.x + a1.${ name } * barycoord.y + a2.${ name } * barycoord.z;`;
-
-			} ).join( '\n' );
-		fns.sampleTrianglePoint = wgslTagFn/* wgsl */`
-			// fn
-			fn bvh_sampleTrianglePoint( barycoord: vec3f, indices: vec3u ) -> ${ structs.attributes } {
-
-				var result: ${ structs.attributes };
-				var a0 = ${ storage.attributes }[ indices.x ];
-				var a1 = ${ storage.attributes }[ indices.y ];
-				var a2 = ${ storage.attributes }[ indices.z ];
-				${ interpolateBody }
-				return result;
-
-			}
-		`;
-
-		// closest point to point
-		const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
-		fns.closestPointToPoint = this.getShapecastFn( {
-			name: 'bvh_ClosestPointToPoint',
-			shapeStruct: 'vec3f',
-			resultStruct: pointQueryResultStruct,
-
-			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
-
-					let toWorld = ${ scratchToWorldMat };
-
-					// get center
-					let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
-					let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
-					let center = bMin * 0.5 + bMax * 0.5;
-
-					// determine the order in world space
-					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
-					let worldAxis = normalize( toWorld[ splitAxis ].xyz );
-					return dot( shape - worldCenter, worldAxis ) <= 0.0;
-
-				}
-			`,
-
-			intersectsBoundsFn: wgslTagFn/* wgsl */`
-				fn cppIntersectsBounds( shape: vec3f, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ pointQueryResultStruct }> ) -> u32 {
-
-					// return 1u;
-					// we need to check this no matter what if the result has not been found yet
-					if ( ! result.found ) {
-
-						return 1u;
-
-					}
-
-					let toWorld = ${ scratchToWorldMat };
-
-					// transform to world space
-					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
-					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
-					let center = ( bMin + bMax ) * 0.5;
-					let halfExtent = ( bMax - bMin ) * 0.5;
-					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
-					let worldHalfExtent =
-						abs( toWorld[ 0 ].xyz ) * halfExtent.x +
-					    abs( toWorld[ 1 ].xyz ) * halfExtent.y +
-					    abs( toWorld[ 2 ].xyz ) * halfExtent.z;
-					let worldMin = worldCenter - worldHalfExtent;
-					let worldMax = worldCenter + worldHalfExtent;
-
-					// intersect if the distance to the bounds is not bigger than the already found
-					let d = shape - clamp( shape, worldMin, worldMax );
-					return select( 0u, 1u, dot( d, d ) < result.distanceSq );
-
-				}
-			`,
-
-			intersectRangeFn: wgslTagFn /* wgsl */`
-				fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
-
-					var didHit = false;
-					let toWorld = ${ scratchToWorldMat };
-
-					for ( var i = offset; i < offset + count; i ++ ) {
-
-						// transform the triangle to world space
-						let i0 = ${ storage.index }[ i * 3u + 0u ];
-						let i1 = ${ storage.index }[ i * 3u + 1u ];
-						let i2 = ${ storage.index }[ i * 3u + 2u ];
-						let a = ( toWorld * vec4f( ${ storage.attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
-						let b = ( toWorld * vec4f( ${ storage.attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
-						let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
-
-						let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
-						let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
-						let delta = shape - closestPoint;
-						let distSq = dot( delta, delta );
-
-						// copy the content over
-						if ( ! result.found || distSq < result.distanceSq ) {
-
-							let normal = normalize( cross( a - b, b - c ) );
-
-							result.closestPoint = closestPoint;
-							result.barycoord = barycoord;
-							result.distanceSq = distSq;
-							result.faceNormal = normal;
-							result.side = sign( dot( normal, delta ) );
-							result.faceIndices = vec4u( i0, i1, i2, i );
-							result.found = true;
-							didHit = true;
-
-						}
-
-					}
-
-					return didHit;
-
-				}
-			`,
-
-			transformShapeFn: wgslTagFn/* wgsl */`
-				fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
-
-					${ scratchToWorldMat } = ${ storage.transforms }[ objectIndex ].matrixWorld;
-
-				}
-			`,
-
-			transformResultFn: wgslTagFn/* wgsl */`
-				fn cppTransformResult( result: ptr<function, ${ pointQueryResultStruct }>, objectIndex: u32 ) -> void {
-
-					result.objectIndex = objectIndex;
-
-				}
-			`,
-		} );
+		const { fns } = this;
+
+		fns.raycastFirstHit = getRaycastFirstHitFn( this );
+		fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
+		fns.closestPointToPoint = getClosestPointToPointFn( this );
 
 	}
 
