@@ -1,6 +1,7 @@
 /** @import { StructTypeNode } from 'three/webgpu' */
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
+import { proxy } from '../nodes/NodeProxy.js';
 import { BVH_STACK_DEPTH } from '../tsl/constants.js';
 
 /**
@@ -42,7 +43,9 @@ export function getShapecastFn( bvhData, options ) {
 		resetShapeFn = null,
 	} = options;
 
-	const { storage } = bvhData;
+	// reference the storage buffers indirectly so this can be built before they exist
+	const nodes = proxy( 'storage.nodes', bvhData );
+	const transforms = proxy( 'storage.transforms', bvhData );
 
 	// handle optional functions
 	let transformResultSnippet = '';
@@ -98,7 +101,7 @@ export function getShapecastFn( bvhData, options ) {
 				}
 
 				let nodeIndex = stack[ pointer ];
-				let node = ${ storage.nodes }[ nodeIndex ];
+				let node = ${ nodes }[ nodeIndex ];
 				pointer = pointer - 1;
 
 				if ( ${ intersectsBoundsFn }( shape, node.bounds, ${ resultArg } ) == 0u ) {
@@ -167,7 +170,7 @@ export function getShapecastFn( bvhData, options ) {
 
 				for ( var i = offset; i < offset + count; i ++ ) {
 
-					let transform = ${ storage.transforms }[ i ];
+					let transform = ${ transforms }[ i ];
 					if ( transform.visible == 0u ) {
 
 						continue;

@@ -1,6 +1,7 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { mat4 } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
+import { proxy } from '../nodes/NodeProxy.js';
 import { bvhNodeStruct, bvhNodeBoundsStruct, pointQueryResultStruct } from '../tsl/structs.js';
 import { closestPointToTriangle } from '../tsl/fns.js';
 
@@ -14,7 +15,11 @@ import { closestPointToTriangle } from '../tsl/fns.js';
  */
 export function getClosestPointToPointFn( bvhData ) {
 
-	const { storage } = bvhData;
+	// reference the storage buffers indirectly so this can be built before they exist
+	const index = proxy( 'storage.index', bvhData );
+	const attributes = proxy( 'storage.attributes', bvhData );
+	const transforms = proxy( 'storage.transforms', bvhData );
+
 	const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
 
 	return bvhData.getShapecastFn( {
@@ -82,12 +87,12 @@ export function getClosestPointToPointFn( bvhData ) {
 				for ( var i = offset; i < offset + count; i ++ ) {
 
 					// transform the triangle to world space
-					let i0 = ${ storage.index }[ i * 3u + 0u ];
-					let i1 = ${ storage.index }[ i * 3u + 1u ];
-					let i2 = ${ storage.index }[ i * 3u + 2u ];
-					let a = ( toWorld * vec4f( ${ storage.attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
-					let b = ( toWorld * vec4f( ${ storage.attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
-					let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
+					let i0 = ${ index }[ i * 3u + 0u ];
+					let i1 = ${ index }[ i * 3u + 1u ];
+					let i2 = ${ index }[ i * 3u + 2u ];
+					let a = ( toWorld * vec4f( ${ attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
+					let b = ( toWorld * vec4f( ${ attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
+					let c = ( toWorld * vec4f( ${ attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
 
 					let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
 					let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
@@ -120,7 +125,7 @@ export function getClosestPointToPointFn( bvhData ) {
 		transformShapeFn: wgslTagFn/* wgsl */`
 			fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
 
-				${ scratchToWorldMat } = ${ storage.transforms }[ objectIndex ].matrixWorld;
+				${ scratchToWorldMat } = ${ transforms }[ objectIndex ].matrixWorld;
 
 			}
 		`,

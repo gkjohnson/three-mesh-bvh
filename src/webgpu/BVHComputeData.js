@@ -105,10 +105,12 @@ export class BVHComputeData {
 			attributes: null,
 		};
 
+		// these only reference the storage buffers / structs through proxy nodes, so they can be built
+		// up front. "sampleTrianglePoint" depends on the attribute layout and is built in "update".
 		this.fns = {
-			raycastFirstHit: null,
+			raycastFirstHit: getRaycastFirstHitFn( this ),
 			sampleTrianglePoint: null,
-			closestPointToPoint: null,
+			closestPointToPoint: getClosestPointToPointFn( this ),
 		};
 
 	}
@@ -274,18 +276,10 @@ export class BVHComputeData {
 		this.storage.attributes = attributesStorage;
 		this.structs.attributes = attributeStruct;
 
-		this._initFns();
+		// depends on the resolved attribute struct, so it must be built here rather than up front
+		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
+
 		this._bvhCache.clear();
-
-	}
-
-	_initFns() {
-
-		const { fns } = this;
-
-		fns.raycastFirstHit = getRaycastFirstHitFn( this );
-		fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
-		fns.closestPointToPoint = getClosestPointToPointFn( this );
 
 	}
 
@@ -452,10 +446,6 @@ export class BVHComputeData {
 			}
 
 		}
-
-		this.fns.raycastFirstHit = null;
-		this.fns.sampleTrianglePoint = null;
-		this.fns.closestPointToPoint = null;
 
 	}
 

@@ -1,6 +1,7 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
+import { proxy } from '../nodes/NodeProxy.js';
 import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
 
@@ -14,7 +15,11 @@ import { intersectRayTriangle } from '../tsl/fns.js';
  */
 export function getRaycastFirstHitFn( bvhData ) {
 
-	const { storage } = bvhData;
+	// reference the storage buffers indirectly so this can be built before they exist
+	const index = proxy( 'storage.index', bvhData );
+	const attributes = proxy( 'storage.attributes', bvhData );
+	const transforms = proxy( 'storage.transforms', bvhData );
+
 	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
 
 	return bvhData.getShapecastFn( {
@@ -78,13 +83,13 @@ export function getRaycastFirstHitFn( bvhData ) {
 				var didHit = false;
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
 
-					let i0 = ${ storage.index }[ ti * 3u ];
-					let i1 = ${ storage.index }[ ti * 3u + 1u ];
-					let i2 = ${ storage.index }[ ti * 3u + 2u ];
+					let i0 = ${ index }[ ti * 3u ];
+					let i1 = ${ index }[ ti * 3u + 1u ];
+					let i2 = ${ index }[ ti * 3u + 2u ];
 
-					let a = ${ storage.attributes }[ i0 ].position.xyz;
-					let b = ${ storage.attributes }[ i1 ].position.xyz;
-					let c = ${ storage.attributes }[ i2 ].position.xyz;
+					let a = ${ attributes }[ i0 ].position.xyz;
+					let b = ${ attributes }[ i1 ].position.xyz;
+					let c = ${ attributes }[ i2 ].position.xyz;
 
 					var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					triResult.dist *= ${ scratchRayScalar };
@@ -110,7 +115,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 		transformShapeFn: wgslTagFn/* wgsl */`
 			fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
 
-				let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
+				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
 				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
 				ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
 
@@ -123,7 +128,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 		transformResultFn: wgslTagFn/* wgsl */`
 			fn transformResult( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
 
-				let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
+				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
 				hit.normal = normalize( ( transpose( toLocal ) * vec4f( hit.normal, 0.0 ) ).xyz );
 				hit.objectIndex = objectIndex;
 
