@@ -8,6 +8,7 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * type. The returned TLAS function signature is:
  * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
  *
+ * @private
  * @param {BVHComputeData} bvhData - The compute data whose storage buffers are referenced.
  * @param {Object} options
  * @param {string} [options.name] - Function name. Defaults to a random identifier.

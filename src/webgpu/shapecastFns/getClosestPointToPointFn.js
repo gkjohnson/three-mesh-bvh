@@ -8,6 +8,7 @@ import { closestPointToTriangle } from '../tsl/fns.js';
  * Builds the `closestPointToPoint` shapecast function: finds the closest point on any triangle in
  * the BVH to the given query point.
  *
+ * @private
  * @param {BVHComputeData} bvhData
  * @returns {Function} TSL function node for the TLAS traversal.
  */

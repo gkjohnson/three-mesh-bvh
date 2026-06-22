@@ -5,6 +5,7 @@ import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
  * Builds the `sampleTrianglePoint` function: interpolates the per-vertex attributes of a triangle
  * at the given barycentric coordinate.
  *
+ * @private
  * @param {BVHComputeData} bvhData
  * @returns {Function} TSL function node.
  */

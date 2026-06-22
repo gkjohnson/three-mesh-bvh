@@ -8,6 +8,7 @@ import { intersectRayTriangle } from '../tsl/fns.js';
  * Builds the `raycastFirstHit` shapecast function: traverses the BVH front to back and returns the
  * closest ray / triangle intersection.
  *
+ * @private
  * @param {BVHComputeData} bvhData
  * @returns {Function} TSL function node for the TLAS traversal.
  */

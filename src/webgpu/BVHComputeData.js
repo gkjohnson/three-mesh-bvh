@@ -1,16 +1,17 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Matrix4, Vector4 } from 'three';
-import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
+import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
 import { ObjectBVH } from '../core/ObjectBVH.js';
-import { SAH, BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../core/Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../core/Constants.js';
 import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
+import { toObjectBVH } from './utils/toObjectBVH.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
@@ -98,42 +99,9 @@ export class BVHComputeData {
 	 */
 	constructor( bvh, options = {} ) {
 
-		// convert the bvh argument to an ObjectBVH. Supports the following as arguments
-		// - Object3D
-		// - BufferGeometry
-		// - GeometryBVH
-		// - Array of the above
-		if ( ! ( bvh instanceof ObjectBVH ) ) {
-
-			if ( ! Array.isArray( bvh ) ) {
-
-				bvh = [ bvh ];
-
-			}
-
-			const objects = bvh.map( item => {
-
-				if ( item.isObject3D ) {
-
-					return item;
-
-				} else if ( item.isBufferGeometry ) {
-
-					return new Mesh( item );
-
-				} else if ( item instanceof GeometryBVH ) {
-
-					const dummy = new Mesh();
-					dummy.geometry.boundsTree = item;
-					return dummy;
-
-				}
-
-			} );
-
-			bvh = new ObjectBVH( objects, { strategy: SAH, maxLeafSize: 1 } );
-
-		}
+		// convert the bvh argument to an ObjectBVH. Supports an Object3D, BufferGeometry,
+		// GeometryBVH, an array of the above, or a pre-built ObjectBVH.
+		bvh = toObjectBVH( bvh );
 
 		const {
 			attributes = { position: 'vec4f' },
