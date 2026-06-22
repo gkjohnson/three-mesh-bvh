@@ -42,6 +42,7 @@ const _v2 = /* @__PURE__ */ new Vector3();
  *
  * @param {Object3D | Array<Object3D>} root - Root object or array of objects.
  * @param {Object} [options] - Same options as {@link ObjectBVH}.
+ * @private
  * @extends ObjectBVH
  */
 export class CompositeBVH extends ObjectBVH {
@@ -296,39 +297,36 @@ function partitionByLeafGroup( buffer, stride, primitiveBounds, offset, count ) 
 	let split = offset;
 	for ( let i = offset, l = offset + count; i < l; i ++ ) {
 
-		if ( getLeafGroup( buffer, stride, i ) === group ) {
+		if ( getLeafGroup( buffer, stride, i ) !== group ) {
 
-			swapPrimitive( buffer, stride, primitiveBounds, boundsOffset, i, split );
-			split ++;
+			continue;
 
 		}
+
+		// swap primitive i down to the split boundary, keeping its words and bounds in sync
+		for ( let j = 0; j < stride; j ++ ) {
+
+			const t = buffer[ split * stride + j ];
+			buffer[ split * stride + j ] = buffer[ i * stride + j ];
+			buffer[ i * stride + j ] = t;
+
+		}
+
+		const ls = split - boundsOffset;
+		const li = i - boundsOffset;
+		for ( let j = 0; j < 6; j ++ ) {
+
+			const t = primitiveBounds[ ls * 6 + j ];
+			primitiveBounds[ ls * 6 + j ] = primitiveBounds[ li * 6 + j ];
+			primitiveBounds[ li * 6 + j ] = t;
+
+		}
+
+		split ++;
 
 	}
 
 	return split;
-
-}
-
-// swap primitives a and b, keeping their primitive words and matching bounds in sync
-function swapPrimitive( buffer, stride, primitiveBounds, boundsOffset, a, b ) {
-
-	for ( let i = 0; i < stride; i ++ ) {
-
-		const t = buffer[ a * stride + i ];
-		buffer[ a * stride + i ] = buffer[ b * stride + i ];
-		buffer[ b * stride + i ] = t;
-
-	}
-
-	const la = a - boundsOffset;
-	const lb = b - boundsOffset;
-	for ( let i = 0; i < 6; i ++ ) {
-
-		const t = primitiveBounds[ la * 6 + i ];
-		primitiveBounds[ la * 6 + i ] = primitiveBounds[ lb * 6 + i ];
-		primitiveBounds[ lb * 6 + i ] = t;
-
-	}
 
 }
 
