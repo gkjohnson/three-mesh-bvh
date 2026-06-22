@@ -1,17 +1,18 @@
-/** @import { Object3D, BufferGeometry } from 'three' */
-import { Matrix4, Vector4 } from 'three';
+/** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
+import { Matrix4 } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
 import { ObjectBVH } from '../core/ObjectBVH.js';
-import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../core/Constants.js';
+import { BYTES_PER_NODE } from '../core/Constants.js';
 import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
 import { toObjectBVH } from './utils/toObjectBVH.js';
+import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBuffers.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
@@ -23,8 +24,6 @@ import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointF
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
 
 // scratch
-const _def = /* @__PURE__ */ new Vector4();
-const _vec = /* @__PURE__ */ new Vector4();
 const _matrix = /* @__PURE__ */ new Matrix4();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 
@@ -45,26 +44,6 @@ function isObjectVisible( object ) {
 	}
 
 	return true;
-
-}
-
-function dereferenceIndex( indexAttr, indirectBuffer ) {
-
-	const indexArray = indexAttr ? indexAttr.array : null;
-	const result = new Uint32Array( indirectBuffer.length * 3 );
-	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
-
-		const i3 = 3 * i;
-		const v3 = 3 * indirectBuffer[ i ];
-		for ( let c = 0; c < 3; c ++ ) {
-
-			result[ i3 + c ] = indexArray ? indexArray[ v3 + c ] : v3 + c;
-
-		}
-
-	}
-
-	return result;
 
 }
 
@@ -164,7 +143,6 @@ export class BVHComputeData {
 	 */
 	update() {
 
-		const self = this;
 		const { attributes, structs, bvh } = this;
 
 		// collect the BVHs
@@ -257,7 +235,7 @@ export class BVHComputeData {
 
 			// append geometry data
 			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
-			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer );
+			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeStruct, this );
 			info.indexBufferOffset = indexOffset;
 
 			// step the write offsets forward
@@ -298,196 +276,6 @@ export class BVHComputeData {
 
 		this._initFns();
 		this._bvhCache.clear();
-
-		function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffset, target, tlas = false ) {
-
-			const targetU16 = new Uint16Array( target );
-			const targetU32 = new Uint32Array( target );
-			const targetF32 = new Float32Array( target );
-
-			const result = [];
-			let tlasOffset = 0;
-			bvh._roots.forEach( root => {
-
-				const rootBuffer16 = new Uint16Array( root );
-				const rootBuffer32 = new Uint32Array( root );
-				result.push( nodeWriteOffset );
-				for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
-
-					const r32 = i * UINT32_PER_NODE;
-					const r16 = r32 * 2;
-					const n32 = nodeWriteOffset * UINT32_PER_NODE;
-					const n16 = n32 * 2;
-
-					// write bounds
-					const view = new Float32Array( root, i * BYTES_PER_NODE, 6 );
-					if ( i === 0 ) {
-
-						// if we're copying the root then check for cases where there are no primitives and therefore
-						// be a bounds of [ Infinity, - Infinity ]. Convert this to [ 1, - 1 ] for reliable GPU behavior.
-						for ( let i = 0; i < 3; i ++ ) {
-
-							const vMin = view[ i + 0 ];
-							const vMax = view[ i + 3 ];
-							if ( vMin > vMax ) {
-
-								targetF32[ n32 + i + 0 ] = 1;
-								targetF32[ n32 + i + 3 ] = - 1;
-
-							} else {
-
-								targetF32[ n32 + i + 0 ] = vMin;
-								targetF32[ n32 + i + 3 ] = vMax;
-
-							}
-
-						}
-
-					} else {
-
-						targetF32.set( view, n32 );
-
-					}
-
-					const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
-					if ( isLeaf ) {
-
-						if ( tlas ) {
-
-							// 0xFFFF == mesh leaf, 0xFF00 == TLAS leaf
-							targetU32[ n32 + 6 ] = tlasOffset;
-							targetU16[ n16 + 15 ] = 0xFF00;
-
-							const count = rootBuffer16[ r16 + 14 ];
-							// const offset = rootBuffer32[ r32 + 6 ];
-
-							// each root is expanded into a separate transform so we need to expand
-							// the embedded offsets and counts.
-							let rootsCount = 0;
-							for ( let o = 0; o < count; o ++ ) {
-
-								const roots = transformInfo[ tlasOffset ].data.bvh._roots.length;
-								tlasOffset += roots;
-								rootsCount += roots;
-
-							}
-
-							targetU16[ n16 + 14 ] = rootsCount;
-
-						} else {
-
-							targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
-							targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
-							targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
-
-						}
-
-					} else {
-
-						targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
-						targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
-
-					}
-
-					nodeWriteOffset ++;
-
-				}
-
-			} );
-
-			return result;
-
-		}
-
-		function appendIndexData( bvh, range, valueOffset, writeOffset, target ) {
-
-			const { geometry } = bvh;
-			const { start, count, vertexStart } = range;
-			if ( bvh.indirect ) {
-
-				const dereferencedIndex = dereferenceIndex( geometry.index, bvh._indirectBuffer );
-				for ( let i = 0; i < dereferencedIndex.length; i ++ ) {
-
-					target[ i + writeOffset ] = dereferencedIndex[ i ] - vertexStart + valueOffset;
-
-				}
-
-			} else if ( geometry.index ) {
-
-				for ( let i = 0; i < count; i ++ ) {
-
-					target[ i + writeOffset ] = geometry.index.getX( i + start ) - vertexStart + valueOffset;
-
-				}
-
-			} else {
-
-				for ( let i = 0; i < count; i ++ ) {
-
-					target[ i + writeOffset ] = i + start + valueOffset;
-
-				}
-
-			}
-
-		}
-
-		function appendGeometryData( bvh, range, writeOffset, target ) {
-
-			// if "mesh" is present then it is assumed to be a SkinnedMeshBVH
-			const { geometry, mesh = null } = bvh;
-			const { vertexStart, vertexCount } = range;
-			const attributesBufferF32 = new Float32Array( target );
-			const attrStructLength = attributeStruct.getLength();
-			attributeStruct.membersLayout.forEach( ( { name }, interleavedOffset ) => {
-
-				// TODO: we should be able to have access to memory layout offsets here via the struct
-				// API but it's not currently available.
-				const attr = geometry.attributes[ name ];
-				self.getDefaultAttributeValue( name, _def );
-
-				for ( let i = 0; i < vertexCount; i ++ ) {
-
-					if ( attr ) {
-
-						_vec.fromBufferAttribute( attr, i + vertexStart );
-
-						switch ( attr.itemSize ) {
-
-							case 1:
-								_vec.y = _def.y;
-								_vec.z = _def.z;
-								_vec.w = _def.w;
-								break;
-							case 2:
-								_vec.z = _def.z;
-								_vec.w = _def.w;
-								break;
-							case 3:
-								_vec.w = _def.w;
-								break;
-
-						}
-
-						if ( mesh && ( name === 'position' || name === 'normal' || name === 'tangent' ) ) {
-
-							mesh.applyBoneTransform( i + vertexStart, _vec );
-
-						}
-
-					} else {
-
-						_vec.copy( _def );
-
-					}
-
-					_vec.toArray( attributesBufferF32, ( writeOffset + i ) * attrStructLength + interleavedOffset * 4 );
-
-				}
-
-			} );
-
-		}
 
 	}
 
