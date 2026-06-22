@@ -136,6 +136,9 @@ export class BVHComputeData {
 	 */
 	update() {
 
+		// free any buffers from a previous update before swapping in the new ones
+		this.dispose();
+
 		const { attributes, structs, bvh } = this;
 
 		// collect the BVHs
@@ -260,9 +263,6 @@ export class BVHComputeData {
 		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
 		const indexStorage = storage( new StorageBufferAttribute( indexBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_index' );
 		const attributesStorage = storage( new StorageBufferAttribute( new Uint32Array( attributesBuffer ), attributeStruct.getLength() ), attributeStruct ).toReadOnly().setName( 'bvh_attributes' );
-
-		// free any buffers from a previous update before swapping in the new ones
-		this.dispose();
 
 		this.storage.transforms = transformsStorage;
 		this.storage.nodes = bvhNodesStorage;
@@ -430,7 +430,7 @@ export class BVHComputeData {
 	dispose() {
 
 		const { storage } = this;
-		for ( const key of Object.keys( storage ) ) {
+		for ( const key in storage ) {
 
 			storage[ key ].value?.dispose();
 			delete storage[ key ];
