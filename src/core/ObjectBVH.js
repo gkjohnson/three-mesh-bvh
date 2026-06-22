@@ -1,13 +1,8 @@
-/** @import { Object3D, BufferGeometry } from 'three' */
+/** @import { Object3D } from 'three' */
 /** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
 import { Box3, BufferGeometry, Matrix4, Mesh, Vector3, Ray, Sphere } from 'three';
 import { BVH } from './BVH.js';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
-
-// sentinel stored in the second primitive word to mark an entry as an object / instance
-// primitive rather than a triangle. A geometry can never have this many triangles so it is
-// safe to use as a flag. Only used by subclasses that store triangle primitives.
-const OBJECT_PRIMITIVE_FLAG = 0xffffffff;
 
 const _geometry = /* @__PURE__ */ new BufferGeometry();
 const _matrix = /* @__PURE__ */ new Matrix4();
@@ -18,10 +13,6 @@ const _vec = /* @__PURE__ */ new Vector3();
 const _ray = /* @__PURE__ */ new Ray();
 const _mesh = /* @__PURE__ */ new Mesh();
 const _geometryRange = {};
-const _v0 = /* @__PURE__ */ new Vector3();
-const _v1 = /* @__PURE__ */ new Vector3();
-const _v2 = /* @__PURE__ */ new Vector3();
-const _point = /* @__PURE__ */ new Vector3();
 
 /**
  * @callback IntersectsObjectCallback
@@ -33,22 +24,9 @@ const _point = /* @__PURE__ */ new Vector3();
  */
 
 /**
- * @callback IntersectsTriangleCallback
- * @param {Object3D} object - The mesh that owns the triangle.
- * @param {number} triangleIndex - Index of the triangle within the owning geometry.
- * @param {boolean} contained - Whether the node bounds are fully contained by the query shape.
- * @param {number} depth - The depth of the node in the tree.
- * @returns {boolean} Return `true` to stop traversal.
- */
-
-/**
- * BVH built from a scene hierarchy rather than a single geometry. Each leaf holds one Object3D
- * (or one instance of an InstancedMesh/BatchedMesh), enabling accelerated raycasting and spatial
- * queries across many objects at once.
- *
- * Primitives are stored in `primitiveBuffer`, one composite id per entry encoding both the object
- * index and, for instanced objects, the instance index: `( instanceId << idBits ) | objectId`. Use
- * {@link ObjectBVH#getObjectFromId} / {@link ObjectBVH#getInstanceFromId} to decode a composite id.
+ * BVH built from a scene hierarchy rather than a single geometry. Each leaf holds
+ * one Object3D (or one instance of an InstancedMesh/BatchedMesh), enabling
+ * accelerated raycasting and spatial queries across many objects at once.
  *
  * @param {Object3D | Array<Object3D>} root - Root object or array of objects.
  * @param {Object} [options] - Accepts all standard BVH options plus:
@@ -63,8 +41,8 @@ export class ObjectBVH extends BVH {
 		options = {
 			precise: false,
 			includeInstances: true,
-			maxLeafSize: 1,
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
+			maxLeafSize: 1,
 			...options,
 		};
 
@@ -83,47 +61,33 @@ export class ObjectBVH extends BVH {
 		this.objects = objects;
 		this.idBits = idBits;
 		this.idMask = idMask;
+		this.primitiveBuffer = null;
+		this.primitiveBufferStride = 1;
 
 		// settings
 		this.precise = options.precise;
 		this.includeInstances = options.includeInstances;
 		this.matrixWorld = options.matrixWorld;
 
-		// only spend a second primitive word on the triangle / object type tag when the scene
-		// actually contains triangle primitives ( see CompositeBVH )
-		this.hasTriangles = objects.some( object => this._isTriangleSource( object ) );
-
-		// TODO: right now the primitive buffer includes a object / instance index value + primitive type
-		// value. Would be best to keep a separate buffer or embed it as a flag.
-		this.primitiveBuffer = null;
-		this.primitiveBufferStride = this.hasTriangles ? 2 : 1;
-
-		// keep leaves homogeneous by splitting mixed triangle / object ranges at build time; only
-		// needed when triangle primitives are present
-		if ( this.hasTriangles ) {
-
-			this.partitionLeaf = partitionByLeafGroup;
-
-		}
-
 		this.init( options );
 
 	}
 
 	/**
-	 * Returns the `Object3D` associated with a composite id.
+	 * Returns the `Object3D` associated with a composite id as provided to `intersectsObject`.
 	 * @param {number} compositeId
 	 * @returns {Object3D}
 	 */
 	getObjectFromId( compositeId ) {
 
 		const { idMask, objects } = this;
-		return objects[ getObjectId( compositeId, idMask ) ];
+		const id = getObjectId( compositeId, idMask );
+		return objects[ id ];
 
 	}
 
 	/**
-	 * Returns the instance index associated with a composite id.
+	 * Returns the instance index associated with a composite id as provided to `intersectsObject`.
 	 * @param {number} compositeId
 	 * @returns {number}
 	 */
@@ -137,8 +101,7 @@ export class ObjectBVH extends BVH {
 	init( options ) {
 
 		const { objects, idBits } = this;
-		const primitiveCount = this._countPrimitives( objects );
-		this.primitiveBuffer = new Uint32Array( primitiveCount * this.primitiveBufferStride );
+		this.primitiveBuffer = new Uint32Array( this._countPrimitives( objects ) );
 		this._fillPrimitiveBuffer( objects, idBits, this.primitiveBuffer );
 
 		super.init( options );
@@ -148,23 +111,12 @@ export class ObjectBVH extends BVH {
 	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
 
 		// TODO: it would be best to cache this matrix inversion
-		const { primitiveBuffer, primitiveBufferStride, hasTriangles } = this;
+		const { primitiveBuffer } = this;
 		_inverseMatrix.copy( this.matrixWorld ).invert();
 
-		const compositeId = primitiveBuffer[ i * primitiveBufferStride ];
-		const triangleIndex = hasTriangles ? primitiveBuffer[ i * primitiveBufferStride + 1 ] : OBJECT_PRIMITIVE_FLAG;
-
-		if ( triangleIndex === OBJECT_PRIMITIVE_FLAG ) {
-
-			this._getObjectBoundingBox( compositeId, _inverseMatrix, _box );
-
-		} else {
-
-			this._getTriangleBoundingBox( compositeId, triangleIndex, _inverseMatrix, _box );
-
-		}
-
+		this._getPrimitiveBoundingBox( primitiveBuffer[ i ], _inverseMatrix, _box );
 		const { min, max } = _box;
+
 		targetBuffer[ writeOffset + 0 ] = min.x;
 		targetBuffer[ writeOffset + 1 ] = min.y;
 		targetBuffer[ writeOffset + 2 ] = min.z;
@@ -176,47 +128,35 @@ export class ObjectBVH extends BVH {
 
 	getRootRanges() {
 
-		return [ { offset: 0, count: this.primitiveBuffer.length / this.primitiveBufferStride } ];
+		return [ { offset: 0, count: this.primitiveBuffer.length } ];
 
 	}
 
 	/**
-	 * Performs a spatial query against the BVH. Extends the base `shapecast` with separate
-	 * callbacks for the two leaf primitive types.
+	 * Performs a spatial query against the BVH. Extends the base `shapecast` with an
+	 * `intersectsObject` callback that is called once per object primitive in leaf nodes.
 	 *
 	 * @param {Object} callbacks
 	 * @param {IntersectsBoundsCallback} callbacks.intersectsBounds
 	 * @param {IntersectsObjectCallback} [callbacks.intersectsObject]
-	 * @param {IntersectsTriangleCallback} [callbacks.intersectsTriangle]
 	 * @param {IntersectsRangeCallback} [callbacks.intersectsRange]
 	 * @param {BoundsTraverseOrderCallback} [callbacks.boundsTraverseOrder]
 	 * @returns {boolean}
 	 */
 	shapecast( callbacks ) {
 
-		const { intersectsObject = null, intersectsTriangle = null } = callbacks;
 		return super.shapecast( {
 			...callbacks,
 
-			intersectsPrimitive: ( object, secondary, isTriangle, contained, depth ) => {
-
-				if ( isTriangle ) {
-
-					return intersectsTriangle ? intersectsTriangle( object, secondary, contained, depth ) : false;
-
-				} else {
-
-					return intersectsObject ? intersectsObject( object, secondary, contained, depth ) : false;
-
-				}
-
-			},
+			intersectsPrimitive: callbacks.intersectsObject,
 			scratchPrimitive: null,
-			iterate: iterateOverPrimitives,
+			iterate: iterateOverObjects,
 		} );
 
 	}
 
+	// TODO: this is out of sync with the MeshBVH raycast signature.
+	// Change this to "raycastObject3D"? Or add an equivalent?
 	raycast( raycaster, intersects = [] ) {
 
 		const { matrixWorld, includeInstances } = this;
@@ -229,25 +169,6 @@ export class ObjectBVH extends BVH {
 
 		let closestDistance = Infinity;
 		let closestHit = null;
-
-		const trackHit = hit => {
-
-			if ( firstHitOnly ) {
-
-				if ( hit.distance < closestDistance ) {
-
-					closestDistance = hit.distance;
-					closestHit = hit;
-
-				}
-
-			} else {
-
-				intersects.push( hit );
-
-			}
-
-		};
 
 		this.shapecast( {
 			boundsTraverseOrder: box => {
@@ -276,33 +197,7 @@ export class ObjectBVH extends BVH {
 				}
 
 			},
-			intersectsTriangle: ( object, triangleIndex ) => {
-
-				if ( ! object.visible ) {
-
-					return;
-
-				}
-
-				// transform the triangle into world space and intersect directly
-				getTriangleVertices( object.geometry, triangleIndex, _v0, _v1, _v2 );
-				_v0.applyMatrix4( object.matrixWorld );
-				_v1.applyMatrix4( object.matrixWorld );
-				_v2.applyMatrix4( object.matrixWorld );
-
-				if ( raycaster.ray.intersectTriangle( _v0, _v1, _v2, false, _point ) ) {
-
-					trackHit( {
-						distance: raycaster.ray.origin.distanceTo( _point ),
-						point: _point.clone(),
-						object,
-						faceIndex: triangleIndex,
-					} );
-
-				}
-
-			},
-			intersectsObject: ( object, instanceId ) => {
+			intersectsObject( object, instanceId ) {
 
 				// skip non visible objects
 				if ( ! object.visible ) {
@@ -375,7 +270,25 @@ export class ObjectBVH extends BVH {
 
 				}
 
-				localIntersects.forEach( trackHit );
+				// find the closest hit to track
+				if ( firstHitOnly ) {
+
+					localIntersects.forEach( hit => {
+
+						if ( hit.distance < closestDistance ) {
+
+							closestDistance = hit.distance;
+							closestHit = hit;
+
+						}
+
+					} );
+
+				} else {
+
+					intersects.push( ...localIntersects );
+
+				}
 
 			},
 		} );
@@ -391,39 +304,13 @@ export class ObjectBVH extends BVH {
 
 	}
 
-	// whether the object contributes individual triangle primitives rather than an object primitive.
-	// ObjectBVH never inlines triangles; CompositeBVH overrides this.
-	_isTriangleSource() {
+	// get the bounding box of a primitive node accounting for the bvh options
+	_getPrimitiveBoundingBox( compositeId, inverseMatrixWorld, target ) {
 
-		return false;
-
-	}
-
-	// compute the bounds of a single triangle primitive in the BVH frame
-	_getTriangleBoundingBox( compositeId, triangleIndex, inverseMatrixWorld, target ) {
-
-		const object = this.getObjectFromId( compositeId );
-
-		// local -> bvh frame
-		_matrix
-			.copy( object.matrixWorld )
-			.premultiply( inverseMatrixWorld );
-
-		getTriangleVertices( object.geometry, triangleIndex, _v0, _v1, _v2 );
-
-		target.makeEmpty();
-		target.expandByPoint( _v0.applyMatrix4( _matrix ) );
-		target.expandByPoint( _v1.applyMatrix4( _matrix ) );
-		target.expandByPoint( _v2.applyMatrix4( _matrix ) );
-
-	}
-
-	// compute the bounds of an object / instance primitive in the BVH frame
-	_getObjectBoundingBox( compositeId, inverseMatrixWorld, target ) {
-
-		const { idMask, idBits, precise, includeInstances } = this;
+		const { objects, idMask, idBits, precise, includeInstances } = this;
+		const id = getObjectId( compositeId, idMask );
 		const instanceId = getInstanceId( compositeId, idBits, idMask );
-		const object = this.getObjectFromId( compositeId );
+		const object = objects[ id ];
 
 		if ( ! includeInstances && ( object.isInstancedMesh || object.isBatchedMesh ) ) {
 
@@ -490,6 +377,10 @@ export class ObjectBVH extends BVH {
 				_geometry.attributes = null;
 
 			} else {
+
+				_matrix
+					.copy( object.matrixWorld )
+					.premultiply( inverseMatrixWorld );
 
 				target.setFromObject( object, true ).applyMatrix4( inverseMatrixWorld );
 
@@ -563,18 +454,14 @@ export class ObjectBVH extends BVH {
 
 	}
 
-	// counts the total number of primitives required by the objects in the given array
+	// counts the total number of primitives required by the objects in given array of objects
 	_countPrimitives( objects ) {
 
 		const { includeInstances } = this;
 		let total = 0;
 		objects.forEach( object => {
 
-			if ( this._isTriangleSource( object ) ) {
-
-				total += getTriangleCount( object.geometry );
-
-			} else if ( object.isInstancedMesh && includeInstances ) {
+			if ( object.isInstancedMesh && includeInstances ) {
 
 				total += object.count;
 
@@ -602,40 +489,16 @@ export class ObjectBVH extends BVH {
 
 	_fillPrimitiveBuffer( objects, idBits, target ) {
 
-		const { includeInstances, primitiveBufferStride, hasTriangles } = this;
-
-		// write an object / instance primitive at the given primitive index
-		const writeObject = ( index, compositeId ) => {
-
-			target[ index * primitiveBufferStride ] = compositeId;
-			if ( hasTriangles ) {
-
-				target[ index * primitiveBufferStride + 1 ] = OBJECT_PRIMITIVE_FLAG;
-
-			}
-
-		};
-
+		const { includeInstances } = this;
 		let index = 0;
 		objects.forEach( ( object, i ) => {
 
-			if ( this._isTriangleSource( object ) ) {
-
-				const triangleCount = getTriangleCount( object.geometry );
-				for ( let t = 0; t < triangleCount; t ++ ) {
-
-					target[ index * primitiveBufferStride ] = i;
-					target[ index * primitiveBufferStride + 1 ] = t;
-					index ++;
-
-				}
-
-			} else if ( object.isInstancedMesh && includeInstances ) {
+			if ( object.isInstancedMesh && includeInstances ) {
 
 				const count = object.count;
 				for ( let c = 0; c < count; c ++ ) {
 
-					writeObject( index, ( c << idBits ) | i );
+					target[ index ] = ( c << idBits ) | i;
 					index ++;
 
 				}
@@ -654,7 +517,7 @@ export class ObjectBVH extends BVH {
 
 						object.getVisibleAt( iter );
 
-						writeObject( index, ( iter << idBits ) | i );
+						target[ index ] = ( iter << idBits ) | i;
 						foundInstances ++;
 						index ++;
 
@@ -670,72 +533,12 @@ export class ObjectBVH extends BVH {
 
 			} else {
 
-				writeObject( index, i );
+				target[ index ] = i;
 				index ++;
 
 			}
 
 		} );
-
-	}
-
-}
-
-// the leaf "group" a primitive belongs to. Object primitives all share one group ( they are
-// resolved through the transform buffer ), while triangle primitives group by their owning object
-// so each triangle leaf belongs to a single object and can be transformed by one matrix.
-function getLeafGroup( buffer, stride, i ) {
-
-	const typeWord = buffer[ i * stride + 1 ];
-
-	// triangle entries store their owning object index in the first word ( triangles are never
-	// instanced, so it is the raw object id ); object entries all collapse to the flag group.
-	return typeWord === OBJECT_PRIMITIVE_FLAG ? OBJECT_PRIMITIVE_FLAG : buffer[ i * stride ];
-
-}
-
-// build "partitionLeaf" hook: splits a primitive range that would become a leaf so the result is
-// homogeneous - either all object primitives or all triangles of a single object. Moves the first
-// primitive's group to the left; the build recurses on the remainder until every leaf is one group.
-function partitionByLeafGroup( buffer, stride, primitiveBounds, offset, count ) {
-
-	const boundsOffset = primitiveBounds.offset || 0;
-	const group = getLeafGroup( buffer, stride, offset );
-
-	let split = offset;
-	for ( let i = offset, l = offset + count; i < l; i ++ ) {
-
-		if ( getLeafGroup( buffer, stride, i ) === group ) {
-
-			swapPrimitive( buffer, stride, primitiveBounds, boundsOffset, i, split );
-			split ++;
-
-		}
-
-	}
-
-	return split;
-
-}
-
-// swap primitives a and b, keeping their primitive words and matching bounds in sync
-function swapPrimitive( buffer, stride, primitiveBounds, boundsOffset, a, b ) {
-
-	for ( let i = 0; i < stride; i ++ ) {
-
-		const t = buffer[ a * stride + i ];
-		buffer[ a * stride + i ] = buffer[ b * stride + i ];
-		buffer[ b * stride + i ] = t;
-
-	}
-
-	const la = a - boundsOffset;
-	const lb = b - boundsOffset;
-	for ( let i = 0; i < 6; i ++ ) {
-
-		const t = primitiveBounds[ la * 6 + i ];
-		primitiveBounds[ la * 6 + i ] = primitiveBounds[ lb * 6 + i ];
-		primitiveBounds[ lb * 6 + i ] = t;
 
 	}
 
@@ -767,32 +570,6 @@ function getObjectId( id, idMask ) {
 function getInstanceId( id, idBits, idMask ) {
 
 	return ( id & ( ~ idMask ) ) >> idBits;
-
-}
-
-// number of triangles in the given geometry
-function getTriangleCount( geometry ) {
-
-	const index = geometry.index;
-	const position = geometry.attributes.position;
-	return ( index ? index.count : position.count ) / 3;
-
-}
-
-// read the three vertex positions of the given triangle into a, b, c
-function getTriangleVertices( geometry, triangleIndex, a, b, c ) {
-
-	const index = geometry.index;
-	const position = geometry.attributes.position;
-	const i3 = triangleIndex * 3;
-
-	const i0 = index ? index.getX( i3 + 0 ) : i3 + 0;
-	const i1 = index ? index.getX( i3 + 1 ) : i3 + 1;
-	const i2 = index ? index.getX( i3 + 2 ) : i3 + 2;
-
-	a.fromBufferAttribute( position, i0 );
-	b.fromBufferAttribute( position, i1 );
-	c.fromBufferAttribute( position, i2 );
 
 }
 
@@ -848,32 +625,19 @@ function getPreciseBounds( geometry, matrix, target ) {
 
 }
 
-// iterator helper for shapecast, dispatching each primitive to the appropriate callback
-function iterateOverPrimitives( offset, count, bvh, callback, contained, depth, /* scratch */ ) {
+// iterator helper for raycasting
+function iterateOverObjects( offset, count, bvh, callback, contained, depth, /* scratch */ ) {
 
-	const { primitiveBuffer, idMask, idBits, primitiveBufferStride, hasTriangles } = bvh;
+	const { primitiveBuffer, objects, idMask, idBits } = bvh;
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
-		const compositeId = primitiveBuffer[ i * primitiveBufferStride ];
-		const triangleIndex = hasTriangles ? primitiveBuffer[ i * primitiveBufferStride + 1 ] : OBJECT_PRIMITIVE_FLAG;
-		const object = bvh.objects[ getObjectId( compositeId, idMask ) ];
+		const compositeId = primitiveBuffer[ i ];
+		const id = getObjectId( compositeId, idMask );
+		const instanceId = getInstanceId( compositeId, idBits, idMask );
+		const object = objects[ id ];
+		if ( callback( object, instanceId, contained, depth ) ) {
 
-		if ( triangleIndex === OBJECT_PRIMITIVE_FLAG ) {
-
-			const instanceId = getInstanceId( compositeId, idBits, idMask );
-			if ( callback( object, instanceId, false, contained, depth ) ) {
-
-				return true;
-
-			}
-
-		} else {
-
-			if ( callback( object, triangleIndex, true, contained, depth ) ) {
-
-				return true;
-
-			}
+			return true;
 
 		}
 

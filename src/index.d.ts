@@ -252,7 +252,7 @@ export class LineSegmentsBVH extends GeometryBVH {
 export class LineLoopBVH extends LineSegmentsBVH {}
 export class LineBVH extends LineLoopBVH {}
 
-export class CompositeBVH extends BVH {
+export class ObjectBVH extends BVH {
 
 	constructor( root: Array<Object3D> | Object3D, options?: BVHOptions );
 	getObjectFromId( compositeId: number ): Object3D;
@@ -264,20 +264,12 @@ export class CompositeBVH extends BVH {
 				instanceId: number,
 				contained: boolean,
 				depth: number
-			) => boolean|void,
-			intersectsTriangle?: (
-				object: Object3D,
-				triangleIndex: number,
-				contained: boolean,
-				depth: number
 			) => boolean|void
 		}
 	): boolean;
 	raycast( raycaster: Raycaster, intersects?: Array<Intersection> ): Array<Intersection>;
 
 }
-
-export class ObjectBVH extends CompositeBVH {}
 
 // SerializedBVH
 export class SerializedBVH {
