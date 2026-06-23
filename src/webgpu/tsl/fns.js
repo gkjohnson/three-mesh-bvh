@@ -57,7 +57,7 @@ export const closestPointToTriangle = wgslTagFn/* wgsl */`
 
 /**
  * WGSL function node that tests a ray against a single triangle and returns an
- * {@link rayIntersectionResultStruct} result. Useful when writing a custom `intersectRangeFn`
+ * {@link rayIntersectionResultStruct} result. Useful when writing a custom `intersectTriangleFn`
  * for {@link BVHComputeData#getShapecastFn}.
  * @type {FunctionNode}
  * @section TSL Functions

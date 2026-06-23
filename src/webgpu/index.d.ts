@@ -35,7 +35,7 @@ export class BVHComputeData {
 		resultStruct?: unknown;
 		boundsOrderFn?: unknown;
 		intersectsBoundsFn: unknown;
-		intersectRangeFn: unknown;
+		intersectTriangleFn: unknown;
 		transformShapeFn?: unknown;
 		transformResultFn?: unknown;
 	} ): unknown;
