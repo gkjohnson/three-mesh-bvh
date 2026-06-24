@@ -6,6 +6,7 @@ import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS, COUNT, OFFSET } from './uti
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 import { bvhcast } from './cast/bvhcast.js';
+import { BVHTraversalHelper } from './BVHTraversalHelper.js';
 
 const _tempBox = /* @__PURE__ */ new Box3();
 const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
@@ -221,38 +222,9 @@ export class BVH {
 	 */
 	traverse( callback, rootIndex = 0 ) {
 
-		const buffer = this._roots[ rootIndex ];
-		const uint32Array = new Uint32Array( buffer );
-		const uint16Array = new Uint16Array( buffer );
-		_traverse( 0 );
-
-		function _traverse( node32Index, depth = 0 ) {
-
-			const node16Index = node32Index * 2;
-			const isLeaf = IS_LEAF( node16Index, uint16Array );
-			if ( isLeaf ) {
-
-				const offset = uint32Array[ node32Index + 6 ];
-				const count = uint16Array[ node16Index + 14 ];
-				callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), offset, count );
-
-			} else {
-
-				const left = LEFT_NODE( node32Index );
-				const right = RIGHT_NODE( node32Index, uint32Array );
-				const splitAxis = SPLIT_AXIS( node32Index, uint32Array );
-				const stopTraversal = callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
-
-				if ( ! stopTraversal ) {
-
-					_traverse( left, depth + 1 );
-					_traverse( right, depth + 1 );
-
-				}
-
-			}
-
-		}
+		BVHTraversalHelper.setBVH( this, rootIndex );
+		BVHTraversalHelper.traverse( callback );
+		BVHTraversalHelper.reset();
 
 	}
 
