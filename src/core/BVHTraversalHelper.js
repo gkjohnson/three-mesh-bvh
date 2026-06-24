@@ -50,7 +50,7 @@ export const BVHTraversalHelper = new ( class {
 			let node16Index = node32Index * 2;
 			while ( ! IS_LEAF( node16Index, uint16Array ) ) {
 
-				node32Index = RIGHT_NODE( node32Index );
+				node32Index = RIGHT_NODE( node32Index, uint32Array );
 				node16Index = node32Index * 2;
 
 			}

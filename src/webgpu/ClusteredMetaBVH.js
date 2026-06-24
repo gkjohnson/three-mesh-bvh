@@ -49,18 +49,19 @@ export class ClusteredMetaBVH extends BVH {
 
 		let total = 0;
 		const { objects, bvhMap } = this;
-		objects.forEach( ( object, i ) => {
+		objects.forEach( object => {
 
 			if ( this.isInstance( object ) ) {
 
+				// TODO: support falling back to "instance" based on the number
+				// of times a geometry is reused
 				total += this._getInstanceCount( object );
 
 			} else {
 
+				// TODO: support batched mesh, etc for non-instanced meshes
 				const bvh = this.getBVH( object, 0 );
 				bvhMap.set( object, bvh );
-
-				// TODO: support batched mesh, etc
 				total += this._countRelevantLeafNodes( bvh );
 
 			}
