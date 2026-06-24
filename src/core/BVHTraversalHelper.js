@@ -59,7 +59,7 @@ export const BVHTraversalHelper = new ( class {
 
 		};
 
-		this.traverseBuffer = ( callback, node32Index, depth = 0 ) => {
+		this.traverseBuffer = ( callback, node32Index = 0, depth = 0 ) => {
 
 			const node16Index = node32Index * 2;
 			const isLeaf = IS_LEAF( node16Index, uint16Array );

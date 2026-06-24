@@ -56,7 +56,7 @@ export class ObjectBVH extends BVH {
 		// for the instanceId count
 		const objects = Array.from( objectSet );
 		const idBits = Math.ceil( Math.log2( objects.length ) );
-		const idMask = constructIdMask( idBits );
+		const idMask = ( 1 << idBits ) - 1;
 
 		this.objects = objects;
 		this.idBits = idBits;
@@ -545,20 +545,6 @@ export class ObjectBVH extends BVH {
 }
 
 // id functions
-// construct a mask with the given number of bits set to 1
-function constructIdMask( idBits ) {
-
-	let mask = 0;
-	for ( let i = 0; i < idBits; i ++ ) {
-
-		mask = mask << 1 | 1;
-
-	}
-
-	return mask;
-
-}
-
 // extract the primary object id given the provided mask
 function getObjectId( id, idMask ) {
 
