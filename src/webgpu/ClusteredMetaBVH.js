@@ -1,6 +1,15 @@
-import { Matrix4 } from 'three';
+import { Matrix4, Box3, Sphere, BufferGeometry, Vector3 } from 'three';
 import { BVH } from '../core/BVH.js';
 import { BVHTraversalHelper } from '../core/BVHTraversalHelper.js';
+import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
+
+const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _box =/* @__PURE__ */ new Box3();
+const _geometry = /* @__PURE__ */ new BufferGeometry();
+const _matrix = /* @__PURE__ */ new Matrix4();
+const _sphere = /* @__PURE__ */ new Sphere();
+const _vec = /* @__PURE__ */ new Vector3();
+const _geometryRange = {};
 
 export class ClusteredMetaBVH extends BVH {
 
@@ -23,6 +32,7 @@ export class ClusteredMetaBVH extends BVH {
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
 			maxLeafSize: 1,
 			includeInstances: true,
+			precise: false,
 			...options,
 		};
 
@@ -37,6 +47,7 @@ export class ClusteredMetaBVH extends BVH {
 		this.primitiveBufferStride = 2;
 		this.primitiveLimit = options.primitiveLimit;
 		this.matrixWorld = options.matrixWorld;
+		this.precise = options.precise;
 
 		this.idBits = idBits;
 		this.idMask = idMask;
@@ -74,6 +85,196 @@ export class ClusteredMetaBVH extends BVH {
 
 	}
 
+
+	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
+
+		// TODO: it would be best to cache this matrix inversion - we know WHEN this will
+		// be called (eg refit, rebuild?) so we can update the cached value ahead?
+		const { primitiveBuffer, bvhMap, objects } = this;
+		_inverseMatrix.copy( this.matrixWorld ).invert();
+
+		const id = primitiveBuffer[ 2 * i + 0 ];
+		const node32Index = primitiveBuffer[ 2 * i + 1 ];
+		if ( node32Index === - 1 ) {
+
+			// instance
+
+			this._getPrimitiveBoundingBox( id, _inverseMatrix, _box );
+
+		} else {
+
+			// TODO: it would be best to not create a new uint32array here over and over
+			const root = this.getBVHRoot( id );
+			const objectId = this.getObjectId( id );
+			const bvh = bvhMap.get( objects[ objectId ] );
+
+			// TODO: how can we easily create a tighter bound here if we want precise bounds?
+			arrayToBox( node32Index, new Uint32Array( bvh._roots[ root ] ), _box );
+			_box.applyMatrix4( _inverseMatrix );
+
+		}
+
+		const { min, max } = _box;
+
+		targetBuffer[ writeOffset + 0 ] = min.x;
+		targetBuffer[ writeOffset + 1 ] = min.y;
+		targetBuffer[ writeOffset + 2 ] = min.z;
+		targetBuffer[ writeOffset + 3 ] = max.x;
+		targetBuffer[ writeOffset + 4 ] = max.y;
+		targetBuffer[ writeOffset + 5 ] = max.z;
+
+	}
+
+	// get the bounding box of a primitive node accounting for the bvh options
+	_getPrimitiveBoundingBox( compositeId, inverseMatrixWorld, target ) {
+
+		const { objects, precise, includeInstances } = this;
+		const id = this.getObjectId( compositeId );
+		const instanceId = this.getInstanceId( compositeId );
+		const object = objects[ id ];
+
+		if ( ! includeInstances && ( object.isInstancedMesh || object.isBatchedMesh ) ) {
+
+			// if we're not using instances then just account for the overall bounds of the BatchedMesh and InstancedMesh
+			if ( ! object.boundingBox ) {
+
+				object.computeBoundingBox();
+
+			}
+
+			if ( ! object.boundingSphere ) {
+
+				object.computeBoundingSphere();
+
+			}
+
+			_matrix
+				.copy( object.matrixWorld )
+				.premultiply( inverseMatrixWorld );
+
+			_sphere
+				.copy( object.boundingSphere )
+				.applyMatrix4( _matrix );
+
+			target
+				.copy( object.boundingBox )
+				.applyMatrix4( _matrix );
+
+			shrinkToSphere( target, _sphere );
+
+		} else if ( precise ) {
+
+			// calculate precise bounds if necessary by calculating the bounds of all vertices
+			// in the bvh frame
+			if ( object.isInstancedMesh ) {
+
+				object
+					.getMatrixAt( instanceId, _matrix );
+
+				_matrix
+					.premultiply( object.matrixWorld )
+					.premultiply( inverseMatrixWorld );
+
+				getPreciseBounds( object.geometry, _matrix, target );
+
+			} else if ( object.isBatchedMesh ) {
+
+				const geometryId = object.getGeometryIdAt( instanceId );
+				const geometryRange = object.getGeometryRangeAt( geometryId, _geometryRange );
+
+				_geometry.index = object.geometry.index;
+				_geometry.attributes = object.geometry.attributes;
+				_geometry.setDrawRange( geometryRange.start, geometryRange.count );
+
+				object
+					.getMatrixAt( instanceId, _matrix );
+
+				_matrix
+					.premultiply( object.matrixWorld )
+					.premultiply( inverseMatrixWorld );
+
+				getPreciseBounds( _geometry, _matrix, target );
+
+				_geometry.attributes = null;
+
+			} else {
+
+				_matrix
+					.copy( object.matrixWorld )
+					.premultiply( inverseMatrixWorld );
+
+				target.setFromObject( object, true ).applyMatrix4( inverseMatrixWorld );
+
+			}
+
+		} else {
+
+			// otherwise use the fast path of extracting the cached, AABB bounds and transforming them
+			// into the local BVH frame
+			if ( object.isInstancedMesh ) {
+
+				if ( ! object.geometry.boundingBox ) {
+
+					object.geometry.computeBoundingBox();
+
+				}
+
+				if ( ! object.geometry.boundingSphere ) {
+
+					object.geometry.computeBoundingSphere();
+
+				}
+
+				object
+					.getMatrixAt( instanceId, _matrix );
+
+				_matrix
+					.premultiply( object.matrixWorld )
+					.premultiply( inverseMatrixWorld );
+
+				_sphere
+					.copy( object.geometry.boundingSphere )
+					.applyMatrix4( _matrix );
+
+				target
+					.copy( object.geometry.boundingBox )
+					.applyMatrix4( _matrix );
+
+				shrinkToSphere( target, _sphere );
+
+			} else if ( object.isBatchedMesh ) {
+
+				const geometryId = object.getGeometryIdAt( instanceId );
+
+				object
+					.getMatrixAt( instanceId, _matrix );
+
+				_matrix
+					.premultiply( object.matrixWorld )
+					.premultiply( inverseMatrixWorld );
+
+				object
+					.getBoundingSphereAt( geometryId, _sphere )
+					.applyMatrix4( _matrix );
+
+				object
+					.getBoundingBoxAt( geometryId, target )
+					.applyMatrix4( _matrix );
+
+				shrinkToSphere( target, _sphere );
+
+			} else {
+
+				target
+					.setFromObject( object, false )
+					.applyMatrix4( inverseMatrixWorld );
+
+			}
+
+		}
+
+	}
+
 	getInstanceId( id ) {
 
 		const { idMask, idBits } = this;
@@ -97,11 +298,12 @@ export class ClusteredMetaBVH extends BVH {
 	_getInstanceCount( object ) {
 
 		// TODO: can we share this with ObjectBVH?
-		if ( object.isInstancedMesh ) {
+		const { includeInstances } = this;
+		if ( object.isInstancedMesh && includeInstances ) {
 
 			return object.count;
 
-		} else if ( object.isBatchedMesh ) {
+		} else if ( object.isBatchedMesh && includeInstances ) {
 
 			return object.instanceCount;
 
@@ -232,5 +434,44 @@ function collectObjects( root, objectSet = new Set() ) {
 	}
 
 	return objectSet;
+
+}
+
+function shrinkToSphere( box, sphere ) {
+
+	_vec.copy( sphere.center ).addScalar( - sphere.radius );
+	box.min.max( _vec );
+
+	_vec.copy( sphere.center ).addScalar( sphere.radius );
+	box.max.min( _vec );
+
+}
+
+// calculate precise box bounds of the given geometry in the given frame
+function getPreciseBounds( geometry, matrix, target ) {
+
+	target.makeEmpty();
+
+	const drawRange = geometry.drawRange;
+	const indexAttr = geometry.index;
+	const posAttr = geometry.attributes.position;
+	const start = drawRange.start;
+	const vertCount = indexAttr ? indexAttr.count : posAttr.count;
+	const count = Math.min( vertCount - start, drawRange.count );
+	for ( let i = start, l = start + count; i < l; i ++ ) {
+
+		let vi = i;
+		if ( indexAttr ) {
+
+			vi = indexAttr.getX( vi );
+
+		}
+
+		_vec.fromBufferAttribute( posAttr, vi ).applyMatrix4( matrix );
+		target.expandByPoint( _vec );
+
+	}
+
+	return target;
 
 }

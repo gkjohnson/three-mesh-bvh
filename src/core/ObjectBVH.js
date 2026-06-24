@@ -115,8 +115,8 @@ export class ObjectBVH extends BVH {
 		_inverseMatrix.copy( this.matrixWorld ).invert();
 
 		this._getPrimitiveBoundingBox( primitiveBuffer[ i ], _inverseMatrix, _box );
-		const { min, max } = _box;
 
+		const { min, max } = _box;
 		targetBuffer[ writeOffset + 0 ] = min.x;
 		targetBuffer[ writeOffset + 1 ] = min.y;
 		targetBuffer[ writeOffset + 2 ] = min.z;
