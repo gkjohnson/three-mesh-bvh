@@ -100,7 +100,11 @@ export class ObjectBVH extends BVH {
 
 	init( options ) {
 
-		const { objects, idBits } = this;
+		const { objects, idBits, matrixWorld } = this;
+
+		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
+		_inverseMatrix.copy( matrixWorld ).invert();
+
 		this.primitiveBuffer = new Uint32Array( this._countPrimitives( objects ) );
 		this._fillPrimitiveBuffer( objects, idBits, this.primitiveBuffer );
 
@@ -108,12 +112,18 @@ export class ObjectBVH extends BVH {
 
 	}
 
-	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
+	refit( ...args ) {
 
-		// TODO: it would be best to cache this matrix inversion
-		const { primitiveBuffer } = this;
+		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
 		_inverseMatrix.copy( this.matrixWorld ).invert();
 
+		super.refit( ...args );
+
+	}
+
+	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
+
+		const { primitiveBuffer } = this;
 		this._getPrimitiveBoundingBox( primitiveBuffer[ i ], _inverseMatrix, _box );
 
 		const { min, max } = _box;

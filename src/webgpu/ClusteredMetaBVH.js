@@ -59,7 +59,11 @@ export class ClusteredMetaBVH extends BVH {
 	init( options ) {
 
 		let total = 0;
-		const { objects, bvhMap } = this;
+		const { objects, bvhMap, matrixWorld } = this;
+
+		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
+		_inverseMatrix.copy( matrixWorld ).invert();
+
 		objects.forEach( object => {
 
 			if ( this.isInstance( object ) ) {
@@ -85,13 +89,20 @@ export class ClusteredMetaBVH extends BVH {
 
 	}
 
+	refit( ...args ) {
+
+		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
+		_inverseMatrix.copy( this.matrixWorld ).invert();
+
+		super.refit( ...args );
+
+	}
 
 	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
 
 		// TODO: it would be best to cache this matrix inversion - we know WHEN this will
 		// be called (eg refit, rebuild?) so we can update the cached value ahead?
 		const { primitiveBuffer, bvhMap, objects } = this;
-		_inverseMatrix.copy( this.matrixWorld ).invert();
 
 		const id = primitiveBuffer[ 2 * i + 0 ];
 		const node32Index = primitiveBuffer[ 2 * i + 1 ];
