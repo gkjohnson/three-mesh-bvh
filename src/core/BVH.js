@@ -2,7 +2,7 @@
 import { Box3 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS, FLOAT32_EPSILON } from './Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
-import { IS_LEAF, LEFT_NODE, RIGHT_NODE, SPLIT_AXIS, COUNT, OFFSET } from './utils/nodeBufferUtils.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE, COUNT, OFFSET } from './utils/nodeBufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 import { bvhcast } from './cast/bvhcast.js';
