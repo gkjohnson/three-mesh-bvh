@@ -11,6 +11,7 @@ const _v2 = /* @__PURE__ */ new Vector3();
 const _ray = /* @__PURE__ */ new Ray();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _localPoint = /* @__PURE__ */ new Vector3();
+const _vec = /* @__PURE__ */ new Vector3();
 const _axes = [ 'x', 'y', 'z' ];
 
 const IS_GT_REVISION_169 = parseInt( REVISION ) >= 169;
@@ -177,7 +178,34 @@ export class SkinnedMeshBVH extends GeometryBVH {
 			},
 			intersectsBounds: box => {
 
-				return _ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+				if ( firstHitOnly ) {
+
+					if ( ! _ray.intersectBox( box, _vec ) ) {
+
+						return NOT_INTERSECTED;
+
+					}
+
+					let dist;
+					if ( box.containsPoint( _ray.origin ) ) {
+
+						dist = 0;
+
+					} else {
+
+						_vec.applyMatrix4( matrixWorld );
+						dist = raycaster.ray.origin.distanceTo( _vec );
+
+					}
+
+					// early out if the box is further than the closest raycast
+					return dist < closestDistance ? INTERSECTED : NOT_INTERSECTED;
+
+				} else {
+
+					return _ray.intersectsBox( box ) ? INTERSECTED : NOT_INTERSECTED;
+
+				}
 
 			},
 			intersectsTriangle: ( tri, triIndex ) => {
