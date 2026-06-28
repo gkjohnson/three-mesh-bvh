@@ -122,18 +122,18 @@ export class LineSegmentsBVH extends GeometryBVH {
 			},
 			intersectsBounds: box => {
 
-				_box.copy( box ).expandByScalar( Math.abs( localThreshold ) );
+				_box.copy( box ).expandByScalar( localThreshold );
 
 				if ( firstHitOnly ) {
 
-					if ( ! _ray.intersectBox( box, _vec ) ) {
+					if ( ! _ray.intersectBox( _box, _vec ) ) {
 
 						return NOT_INTERSECTED;
 
 					}
 
 					let dist;
-					if ( box.containsPoint( _ray.origin ) ) {
+					if ( _box.containsPoint( _ray.origin ) ) {
 
 						dist = 0;
 
