@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - WebGPURenderer: Deprecated the `wgslFn`/`wgsl`-based TSL node exports. These do not work correctly on most platforms due to WGSL restrictions on passing storage buffer pointers across function call boundaries. Use `BVHComputeData` instead.
 
+### Fixed
+- Case where ObjectBVH would return an incorrect raycast hit with firstHitOnly.
+- LineBVH, PointsBVH, SkinnedMeshBVH: Improved bounds traversal logic for firstHitOnly case.
+
 ## [0.9.10] - 2026-05-13
 ### Fixed
 - MeshBVH: closestPointToGeometry will no longer log warnings for coplanar triangles.
