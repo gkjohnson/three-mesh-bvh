@@ -35,12 +35,13 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  * @private
  * @param {Object} bvh
  * @param {number} geometryOffset
+ * @param {Array|null} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS leaves; `null` for BLAS data.
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
  * @param {boolean} [tlas=false]
  * @returns {Array<number>}
  */
-export function appendBVHData( bvh, geometryOffset, nodeWriteOffset, target, tlas = false ) {
+export function appendBVHData( bvh, geometryOffset, primitiveInfo, nodeWriteOffset, target, tlas = false ) {
 
 	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
@@ -94,11 +95,27 @@ export function appendBVHData( bvh, geometryOffset, nodeWriteOffset, target, tla
 
 				if ( tlas ) {
 
-					// TLAS leaf ( 0xFF00 ) - each primitive maps to exactly one transform, so the
-					// leaf's primitive range is its transform range.
-					targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
-					targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
-					targetU16[ n16 + 15 ] = 0xFF00;
+					// TLAS leaf - stores the placement / transform slot ( low 24 bits, tagged with
+					// 0xFF in the top byte ) and the cluster's BLAS-relative node offset. The GPU adds
+					// that offset to the placement's BLAS base ( transform.nodeOffset ) to reach the
+					// cluster subtree.
+					const offset = rootBuffer32[ r32 + 6 ];
+					const count = rootBuffer16[ r16 + 14 ];
+					if ( count !== 1 ) {
+
+						throw new Error( 'packBVHBufferUtils: a TLAS leaf must contain exactly one primitive.' );
+
+					}
+
+					const { transformSlot, nodeOffset } = primitiveInfo[ offset ];
+					if ( transformSlot > 0x00ffffff ) {
+
+						throw new Error( `packBVHBufferUtils: transform slot ${ transformSlot } exceeds the 24-bit TLAS leaf limit.` );
+
+					}
+
+					targetU32[ n32 + 6 ] = nodeOffset;
+					targetU32[ n32 + 7 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
 
 				} else {
 
