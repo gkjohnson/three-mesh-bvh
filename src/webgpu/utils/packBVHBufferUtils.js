@@ -95,18 +95,11 @@ export function appendBVHData( bvh, geometryOffset, primitiveInfo, nodeWriteOffs
 
 				if ( tlas ) {
 
-					// TLAS leaf - stores the placement / transform slot ( low 24 bits, tagged with
-					// 0xFF in the top byte ) and the cluster's BLAS-relative node offset. The GPU adds
+					// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
+					// 0xFF in the top byte) and the cluster's BLAS-relative node offset. The GPU adds
 					// that offset to the placement's BLAS base ( transform.nodeOffset ) to reach the
 					// cluster subtree.
 					const offset = rootBuffer32[ r32 + 6 ];
-					const count = rootBuffer16[ r16 + 14 ];
-					if ( count !== 1 ) {
-
-						throw new Error( 'packBVHBufferUtils: a TLAS leaf must contain exactly one primitive.' );
-
-					}
-
 					const { transformSlot, nodeOffset } = primitiveInfo[ offset ];
 					if ( transformSlot > 0x00ffffff ) {
 
