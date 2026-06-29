@@ -3,6 +3,10 @@ import { BVH } from '../core/BVH.js';
 import { BVHTraversalHelper } from '../core/BVHTraversalHelper.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
+// sentinel stored in the second primitive word to mark an entry as an object / instance
+// primitive rather than a cluster node.
+const OBJECT_PRIMITIVE_FLAG = 0xffffffff;
+
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _box =/* @__PURE__ */ new Box3();
 const _geometry = /* @__PURE__ */ new BufferGeometry();
@@ -70,6 +74,7 @@ export class ClusteredMetaBVH extends BVH {
 
 				// TODO: support falling back to "instance" based on the number
 				// of times a geometry is reused
+				bvhMap.set( object, null );
 				total += this._getInstanceCount( object );
 
 			} else {
@@ -84,8 +89,15 @@ export class ClusteredMetaBVH extends BVH {
 		} );
 
 		this.primitiveBuffer = new Uint32Array( total * 2 );
+		this._fillPrimitiveBuffer( this.primitiveBuffer );
 
 		super.init( options );
+
+	}
+
+	getRootRanges() {
+
+		return [ { offset: 0, count: this.primitiveBuffer.length / this.primitiveBufferStride } ];
 
 	}
 
@@ -106,7 +118,7 @@ export class ClusteredMetaBVH extends BVH {
 
 		const id = primitiveBuffer[ 2 * i + 0 ];
 		const node32Index = primitiveBuffer[ 2 * i + 1 ];
-		if ( node32Index === - 1 ) {
+		if ( node32Index === OBJECT_PRIMITIVE_FLAG ) {
 
 			// instance
 
@@ -114,14 +126,21 @@ export class ClusteredMetaBVH extends BVH {
 
 		} else {
 
-			// TODO: it would be best to not create a new uint32array here over and over
+			// TODO: it would be best to not create a new float32array here over and over
 			const root = this.getBVHRoot( id );
 			const objectId = this.getObjectId( id );
-			const bvh = bvhMap.get( objects[ objectId ] );
+			const object = objects[ objectId ];
+			const bvh = bvhMap.get( object );
+
+			// the cluster node bounds are in the object's local space - transform them through the
+			// object's world matrix and into the bvh frame
+			_matrix
+				.copy( object.matrixWorld )
+				.premultiply( _inverseMatrix );
 
 			// TODO: how can we easily create a tighter bound here if we want precise bounds?
-			arrayToBox( node32Index, new Uint32Array( bvh._roots[ root ] ), _box );
-			_box.applyMatrix4( _inverseMatrix );
+			arrayToBox( node32Index, new Float32Array( bvh._roots[ root ] ), _box );
+			_box.applyMatrix4( _matrix );
 
 		}
 
@@ -338,7 +357,7 @@ export class ClusteredMetaBVH extends BVH {
 				for ( let instance = 0, l = this._getInstanceCount( object ); instance < l; instance ++ ) {
 
 					primitiveBuffer[ 2 * offset + 0 ] = ( instance << idBits ) | objectIndex;
-					primitiveBuffer[ 2 * offset + 1 ] = - 1;
+					primitiveBuffer[ 2 * offset + 1 ] = OBJECT_PRIMITIVE_FLAG;
 
 					offset ++;
 
