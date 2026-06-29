@@ -133,7 +133,7 @@ function init() {
 
 		// Build BVH
 		container.updateMatrixWorld( true );
-		sceneBVH = new ObjectBVH( container, { maxLeafSize: 1, precise: params.precise } );
+		sceneBVH = new ObjectBVH( container, { targetLeafSize: 1, precise: params.precise } );
 
 		bvhHelper = new BVHHelper( container, sceneBVH, params.helperDepth );
 		bvhHelper.color.set( 0xffffff );

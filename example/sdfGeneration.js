@@ -92,7 +92,7 @@ function init() {
 
 			geometry = staticGen.generate().center();
 
-			return bvhGenerationWorker.generate( geometry, { maxLeafSize: 1 } );
+			return bvhGenerationWorker.generate( geometry, { targetLeafSize: 1 } );
 
 		} )
 		.then( result => {
