@@ -5,7 +5,6 @@ import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
-import { ClusteredMetaBVH } from './ClusteredMetaBVH.js';
 import { BYTES_PER_NODE, UINT32_PER_NODE } from '../core/Constants.js';
 import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
@@ -81,10 +80,9 @@ function getRootNodeOffset( bvh, root ) {
 export class BVHComputeData {
 
 	/**
-	 * @param {ClusteredMetaBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
-	 * Scene objects to include, or a pre-built {@link ClusteredMetaBVH}. A single item or array of
-	 * Object3D, BufferGeometry, or GeometryBVH instances are all accepted and wrapped
-	 * automatically in a ClusteredMetaBVH.
+	 * @param {Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * Scene objects to include. A single item or array of Object3D, BufferGeometry, or GeometryBVH instances are
+	 * all accepted and wrapped automatically in a BVH.
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
