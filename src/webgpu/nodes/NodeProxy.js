@@ -1,4 +1,4 @@
-import { Node } from 'three/webgpu';
+import { Node, TSL } from 'three/webgpu';
 
 class ProxyCallNode extends Node {
 
@@ -119,7 +119,6 @@ export const proxyFn = ( ...args ) => {
 
 	const nodeProxy = new NodeProxy( ...args );
 	const fn = ( ...params ) => new ProxyCallNode( nodeProxy, params );
-	fn.functionNode = nodeProxy;
-	return fn;
+	return TSL.nodeProxyConstructor( fn, nodeProxy );
 
 };
