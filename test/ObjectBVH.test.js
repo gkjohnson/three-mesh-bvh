@@ -22,13 +22,13 @@ const _position = /* @__PURE__ */ new Vector3();
 const _scale = /* @__PURE__ */ new Vector3();
 const _matrix = /* @__PURE__ */ new Matrix4();
 
-// ObjectBVH doesn't use indirect or shared array buffers; fix maxLeafSize to 1
+// ObjectBVH doesn't use indirect or shared array buffers; fix targetLeafSize to 1
 // so the BVH tree is properly exercised with a small number of objects.
 runTestMatrix( {
 	precise: [ false, true ],
 	indirect: [ false ],
 	useSharedArrayBuffer: [ false ],
-	maxLeafSize: [ 1 ],
+	targetLeafSize: [ 1 ],
 }, ( desc, options ) => {
 
 	// ObjectBVH requires "getGeometryRangeAt" from r169
