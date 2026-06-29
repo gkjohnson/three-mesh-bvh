@@ -13,7 +13,8 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 	const {
 		maxDepth,
 		verbose,
-		maxLeafSize,
+		strictLeafSize,
+		targetLeafSize,
 		strategy,
 		onProgress,
 	} = options;
@@ -56,7 +57,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		}
 
 		// early out if we've met our capacity
-		if ( count <= maxLeafSize || depth >= maxDepth ) {
+		if ( count <= Math.min( targetLeafSize, strictLeafSize ) || depth >= maxDepth ) {
 
 			triggerProgress( offset + count );
 			node.offset = offset;
@@ -74,12 +75,26 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 
 		}
 
-		// if it turns out we can't partition the node then force an arbitrary split in the middle. Inoptimal but
-		// ensures our leaf nodes match the "maxLeafSize" requirement
+		// if it turns out we can't partition the node
 		if ( split.axis === - 1 || splitOffset === offset || splitOffset === offset + count ) {
 
-			splitOffset = offset + Math.max( 1, Math.floor( count / 2 ) );
-			split.axis = getLongestEdgeIndex( node.boundingData );
+			if ( count > strictLeafSize ) {
+
+				// Then force an arbitrary split in the middle if we're above our strict leaf limit. Inoptimal
+				// but ensures our leaf nodes match the "strictLeafSize" requirement.
+				splitOffset = offset + Math.max( 1, Math.floor( count / 2 ) );
+				split.axis = getLongestEdgeIndex( node.boundingData );
+
+			} else {
+
+				// Otherwise return the node as-is assuming the partitioning function can't find an adequate
+				// location to split the node.
+				triggerProgress( offset + count );
+				node.offset = offset;
+				node.count = count;
+				return node;
+
+			}
 
 		}
 
