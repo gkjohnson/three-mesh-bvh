@@ -10,6 +10,8 @@ import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 const OBJECT_PRIMITIVE_FLAG = 0x80000000;
 const NODE_INDEX_BITS = 24;
 const NODE_INDEX_MASK = ( 1 << NODE_INDEX_BITS ) - 1;
+const ROOT_INDEX_BITS = 31 - NODE_INDEX_BITS;
+const ROOT_INDEX_MASK = ( 1 << ROOT_INDEX_BITS ) - 1;
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _box =/* @__PURE__ */ new Box3();
@@ -379,7 +381,13 @@ export class ClusteredMetaBVH extends BVH {
 					const nodeIndex = node32Index / UINT32_PER_NODE;
 					if ( nodeIndex > NODE_INDEX_MASK ) {
 
-						console.warn( `ClusteredMetaBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
+						throw new Error( `ClusteredMetaBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
+
+					}
+
+					if ( r > ROOT_INDEX_MASK ) {
+
+						throw new Error( `ClusteredMetaBVH: bvh root index ${ r } exceeds the ${ ROOT_INDEX_BITS }-bit packing limit and cannot be represented.` );
 
 					}
 
