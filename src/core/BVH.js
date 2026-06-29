@@ -74,7 +74,7 @@ export class BVH {
 
 		if ( 'maxLeafSize' in options ) {
 
-			console.warn( 'MeshBVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.' );
+			console.warn( 'BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.' );
 			options = {
 				...options,
 				targetLeafSize: options.maxLeafSize,
