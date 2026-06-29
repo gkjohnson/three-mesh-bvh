@@ -1,19 +1,19 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
+/** @import { CompositeBVH } from '../core/CompositeBVH.js' */
 import { Matrix4 } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
-import { ObjectBVH } from '../core/ObjectBVH.js';
 import { BYTES_PER_NODE } from '../core/Constants.js';
 import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { toObjectBVH } from './utils/toObjectBVH.js';
-import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
+import { toCompositeBVH } from './utils/toCompositeBVH.js';
+import { appendBVHData, appendCompositeNodes, appendIndexData, appendGeometryData, writeTriangleIndices } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
@@ -23,6 +23,9 @@ import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointF
 // TODO: add material support w/ function to easily update material
 // 		- add a callback for writing a property for a geometry to a range
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
+
+// marks a composite primitive as an object / instance rather than a triangle
+const OBJECT_PRIMITIVE_FLAG = 0xffffffff;
 
 // scratch
 const _matrix = /* @__PURE__ */ new Matrix4();
@@ -65,10 +68,10 @@ function getTotalBVHByteLength( bvh ) {
 export class BVHComputeData {
 
 	/**
-	 * @param {ObjectBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
-	 * Scene objects to include, or a pre-built {@link ObjectBVH}. A single item or array of
+	 * @param {CompositeBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * Scene objects to include, or a pre-built {@link CompositeBVH}. A single item or array of
 	 * Object3D, BufferGeometry, or GeometryBVH instances are all accepted and wrapped
-	 * automatically in an ObjectBVH.
+	 * automatically in a CompositeBVH.
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
@@ -79,9 +82,9 @@ export class BVHComputeData {
 	 */
 	constructor( bvh, options = {} ) {
 
-		// convert the bvh argument to an ObjectBVH. Supports an Object3D, BufferGeometry,
-		// GeometryBVH, an array of the above, or a pre-built ObjectBVH.
-		bvh = toObjectBVH( bvh );
+		// convert the bvh argument to a CompositeBVH. Supports an Object3D, BufferGeometry,
+		// GeometryBVH, an array of the above, or a pre-built CompositeBVH.
+		bvh = toCompositeBVH( bvh );
 
 		const {
 			attributes = { position: 'vec4f' },
@@ -117,7 +120,7 @@ export class BVHComputeData {
 	 * @param {StructTypeNode|null} [options.resultStruct] - TSL struct for the accumulated result, or null.
 	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
 	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
-	 * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
+	 * @param {Function} options.intersectTriangleFn - function node testing the shape against a single triangle.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
 	 * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
@@ -140,127 +143,141 @@ export class BVHComputeData {
 		this.dispose();
 
 		const { attributes, structs, bvh } = this;
+		const { objects, primitiveBuffer, primitiveBufferStride: stride, idMask } = bvh;
+		const primitiveCount = primitiveBuffer.length / stride;
 
-		// collect the BVHs
+		// --- pack every object's geometry, deduped by its BVH. Vertices are packed the same way for
+		// all objects; only instance objects additionally need their BLAS ( index + nodes ) traversed
+		// at object leaves. The index buffer reserves one triangle triple per primitive up front so a
+		// triangle leaf's offset is just its primitive index. ---
 		const bvhInfo = [];
+		const bvhInfoByBvh = new Map();
+		const objectInfo = new Array( objects.length );
+		const objectTransformSlot = new Array( objects.length ).fill( - 1 );
 		const transformInfo = [];
 
-		// accumulate the sizes of the bvh nodes buffer, number of objects, and geometry buffers
 		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
-		let indexBufferLength = 0;
+		let indexBufferLength = primitiveCount * 3;
 		let attributesBufferLength = 0;
-		bvh.primitiveBuffer.forEach( compositeId => {
 
-			const object = bvh.getObjectFromId( compositeId );
-			const instanceId = bvh.getInstanceFromId( compositeId );
+		objects.forEach( ( object, objectId ) => {
+
 			const range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
-			const primBvh = this.getBVH( object, instanceId, range );
-
+			const primBvh = this.getBVH( object, 0, range );
 			if ( ! primBvh ) {
 
 				throw new Error( 'BVHComputeData: BVH not found.' );
 
 			}
 
-			// if we haven't added this bvh, yet
-			if ( ! bvhInfo.find( info => info.bvh === primBvh ) ) {
+			let info = bvhInfoByBvh.get( primBvh );
+			if ( ! info ) {
 
-				// save the geometry info to write later and increment the buffer sizes
-				const info = {
-					index: bvhInfo.length,
-					bvh: primBvh,
-					range: range,
+				const isInstance = bvh.isInstance( object );
+				info = { bvh: primBvh, range, vertexStart: attributesBufferLength, indexStart: indexBufferLength, isInstance, bvhNodeOffsets: null };
+				attributesBufferLength += range.vertexCount;
+				if ( isInstance ) {
 
-					bvhNodeOffsets: null,
-					indexBufferOffset: null,
+					// only instance objects are traversed through a BLAS at object leaves
+					indexBufferLength += range.count;
+					bvhNodesBufferLength += getTotalBVHByteLength( primBvh );
 
-				};
+				}
 
-				// increase the buffer sizes for bvh and geometry
-				bvhNodesBufferLength += getTotalBVHByteLength( primBvh );
-				indexBufferLength += info.range.count;
-				attributesBufferLength += info.range.vertexCount;
 				bvhInfo.push( info );
+				bvhInfoByBvh.set( primBvh, info );
 
 			}
 
-			// save the index of the bvh associated with this transform
-			const data = bvhInfo.find( info => primBvh === info.bvh );
-			primBvh._roots.forEach( ( root, i ) => {
-
-				transformInfo.push( {
-					data,
-					root: i,
-					object,
-					instanceId,
-					compositeId,
-				} );
-
-			} );
+			objectInfo[ objectId ] = info;
 
 		} );
 
-		//
-
-		// @note These buffer lengths are increased to a minimum size of 2 to avoid TSL converting storage buffers
-		// with length 1 being converted to a scalar value.
-		// TODO: remove this when fixed in three
-		const transformBufferLength = Math.max( transformInfo.length, 2 );
+		// minimum size of 2 to avoid TSL collapsing length-1 storage buffers to scalars
 		indexBufferLength = Math.max( indexBufferLength, 2 );
 		attributesBufferLength = Math.max( attributesBufferLength, 2 );
 
-		// construct the attribute struct
 		const attributeStruct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
-
-		// write the geometry buffer attributes & bvh data
-		let attributesOffset = 0;
-		let indexOffset = 0;
-		let nodeWriteOffset = 0;
 		const indexBuffer = new Uint32Array( indexBufferLength );
 		const attributesBuffer = new ArrayBuffer( attributesBufferLength * attributeStruct.getLength() * 4 );
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
-		// append TLAS data
-		appendBVHData( bvh, 0, transformInfo, 0, bvhNodesBuffer, true );
-		nodeWriteOffset += getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
+		// pack every object's vertices
 		bvhInfo.forEach( info => {
 
-			// append bvh data
-			const bvhNodeOffsets = appendBVHData( info.bvh, indexOffset / 3, transformInfo, nodeWriteOffset, bvhNodesBuffer, false );
-			info.bvhNodeOffsets = bvhNodeOffsets;
+			appendGeometryData( info.bvh, info.range, info.vertexStart, attributesBuffer, attributeStruct, this );
 
-			// append geometry data
-			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
-			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeStruct, this );
-			info.indexBufferOffset = indexOffset;
+		} );
 
-			// step the write offsets forward
-			indexOffset += info.range.count;
-			attributesOffset += info.range.vertexCount;
+		// --- build the transforms and the per-primitive triangle index in primitive ( build ) order.
+		// Object primitives get a transform per BLAS root so object leaves reference a contiguous range. ---
+		for ( let p = 0; p < primitiveCount; p ++ ) {
+
+			const compositeId = primitiveBuffer[ p * stride ];
+			const triangleId = stride === 2 ? primitiveBuffer[ p * stride + 1 ] : OBJECT_PRIMITIVE_FLAG;
+			const objectId = compositeId & idMask;
+			const info = objectInfo[ objectId ];
+
+			if ( triangleId !== OBJECT_PRIMITIVE_FLAG ) {
+
+				writeTriangleIndices( objects[ objectId ].geometry, triangleId, info.vertexStart, indexBuffer, p * 3 );
+
+			} else {
+
+				const object = objects[ objectId ];
+				const instanceId = bvh.getInstanceFromId( compositeId );
+				info.bvh._roots.forEach( ( root, i ) => transformInfo.push( { data: info, root: i, object, instanceId } ) );
+
+			}
+
+		}
+
+		// one transform per triangle-source object, referenced by triangle leaves via objectIndex and
+		// appended after the object transforms so object leaves still reference a contiguous range
+		objects.forEach( ( object, objectId ) => {
+
+			if ( bvh.isInstance( object ) ) {
+
+				return;
+
+			}
+
+			objectTransformSlot[ objectId ] = transformInfo.length;
+			transformInfo.push( { data: { bvhNodeOffsets: [ 0 ] }, root: 0, object, instanceId: 0 } );
+
+		} );
+
+		// --- pack the composite top-level tree, then the instance BLAS index + nodes ---
+		appendCompositeNodes( bvh, primitiveBuffer, stride, idMask, transformInfo, objectTransformSlot, bvhNodesBuffer );
+		let nodeWriteOffset = getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
+		bvhInfo.forEach( info => {
+
+			if ( ! info.isInstance ) {
+
+				return;
+
+			}
+
+			info.bvhNodeOffsets = appendBVHData( info.bvh, info.indexStart / 3, nodeWriteOffset, bvhNodesBuffer );
+			appendIndexData( info.bvh, info.range, info.vertexStart, info.indexStart, indexBuffer );
 			nodeWriteOffset += getTotalBVHByteLength( info.bvh ) / BYTES_PER_NODE;
 
 		} );
 
-		//
+		const transformBufferLength = Math.max( transformInfo.length, 2 );
 
-		// write the transforms
+		// --- write the transforms ( BLAS node offsets are now resolved ) ---
 		const transformArrayBuffer = new ArrayBuffer( structs.transform.getLength() * transformBufferLength * 4 );
+		_inverseMatrix.copy( bvh.matrixWorld ).invert();
 		transformInfo.forEach( ( info, i ) => {
 
-			_inverseMatrix.copy( bvh.matrixWorld ).invert();
 			this.writeTransformData( info, _inverseMatrix, i, transformArrayBuffer );
 
 		} );
 
-		//
-
-		// set up the storage buffers
-		// if itemSize for StorageBufferAttribute == arraySize,
-		// then buffer is treated not as array of structs, but as a single struct
-		// And that breaks code. For now itemSize = 1 does not seem to break anything
+		// --- set up the storage buffers ---
 		const bvhNodesStorage = storage( new StorageBufferAttribute( new Uint32Array( bvhNodesBuffer ), 1 ), bvhNodeStruct ).toReadOnly().setName( 'bvh_nodes' );
-		const transformsBuffer = new StorageBufferAttribute( new Uint32Array( transformArrayBuffer ), 1 );
-		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
+		const transformsStorage = storage( new StorageBufferAttribute( new Uint32Array( transformArrayBuffer ), 1 ), structs.transform ).toReadOnly().setName( 'bvh_transforms' );
 		const indexStorage = storage( new StorageBufferAttribute( indexBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_index' );
 		const attributesStorage = storage( new StorageBufferAttribute( new Uint32Array( attributesBuffer ), attributeStruct.getLength() ), attributeStruct ).toReadOnly().setName( 'bvh_attributes' );
 

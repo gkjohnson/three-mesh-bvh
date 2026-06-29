@@ -14,8 +14,8 @@ import { closestPointToTriangle } from '../tsl/fns.js';
  */
 export function getClosestPointToPointFn( bvhData ) {
 
-	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { index, attributes, transforms } = bvhData.storage;
+	// the generator owns the leaf loop + vertex fetch; "transforms" supplies the per-object matrix
+	const { transforms } = bvhData.storage;
 
 	const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
 
@@ -75,46 +75,36 @@ export function getClosestPointToPointFn( bvhData ) {
 			}
 		`,
 
-		intersectRangeFn: wgslTagFn /* wgsl */`
-			fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
+		intersectTriangleFn: wgslTagFn /* wgsl */`
+			fn cppIntersectsTriangle( shape: vec3f, a0: vec3f, b0: vec3f, c0: vec3f, indices: vec4u, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
 
-				var didHit = false;
+				// transform the local-space triangle to world space
 				let toWorld = ${ scratchToWorldMat };
+				let a = ( toWorld * vec4f( a0, 1.0 ) ).xyz;
+				let b = ( toWorld * vec4f( b0, 1.0 ) ).xyz;
+				let c = ( toWorld * vec4f( c0, 1.0 ) ).xyz;
 
-				for ( var i = offset; i < offset + count; i ++ ) {
+				let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
+				let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
+				let delta = shape - closestPoint;
+				let distSq = dot( delta, delta );
 
-					// transform the triangle to world space
-					let i0 = ${ index }[ i * 3u + 0u ];
-					let i1 = ${ index }[ i * 3u + 1u ];
-					let i2 = ${ index }[ i * 3u + 2u ];
-					let a = ( toWorld * vec4f( ${ attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
-					let b = ( toWorld * vec4f( ${ attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
-					let c = ( toWorld * vec4f( ${ attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
+				if ( ! result.found || distSq < result.distanceSq ) {
 
-					let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
-					let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
-					let delta = shape - closestPoint;
-					let distSq = dot( delta, delta );
+					let normal = normalize( cross( a - b, b - c ) );
 
-					// copy the content over
-					if ( ! result.found || distSq < result.distanceSq ) {
-
-						let normal = normalize( cross( a - b, b - c ) );
-
-						result.closestPoint = closestPoint;
-						result.barycoord = barycoord;
-						result.distanceSq = distSq;
-						result.faceNormal = normal;
-						result.side = sign( dot( normal, delta ) );
-						result.faceIndices = vec4u( i0, i1, i2, i );
-						result.found = true;
-						didHit = true;
-
-					}
+					result.closestPoint = closestPoint;
+					result.barycoord = barycoord;
+					result.distanceSq = distSq;
+					result.faceNormal = normal;
+					result.side = sign( dot( normal, delta ) );
+					result.faceIndices = indices;
+					result.found = true;
+					return true;
 
 				}
 
-				return didHit;
+				return false;
 
 			}
 		`,

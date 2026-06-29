@@ -57,9 +57,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		// early out if we've met our capacity
 		if ( count <= maxLeafSize || depth >= maxDepth ) {
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
+			finalizeLeaf( node, offset, count, depth );
 			return node;
 
 		}
@@ -68,9 +66,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, primitiveBounds, offset, count, strategy );
 		if ( split.axis === - 1 ) {
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
+			finalizeLeaf( node, offset, count, depth );
 			return node;
 
 		}
@@ -80,9 +76,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		// create the two new child nodes
 		if ( splitOffset === offset || splitOffset === offset + count ) {
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
+			finalizeLeaf( node, offset, count, depth );
 
 		} else {
 
@@ -111,6 +105,59 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		return node;
 
 	}
+
+	// commits a leaf node, but first gives the bvh a chance to split the range further by primitive
+	// type so leaves never mix primitive types. Only runs when the bvh provides "partitionLeafByType".
+	function finalizeLeaf( node, offset, count, depth ) {
+
+		if ( bvh.partitionLeaf && count > 1 && depth < maxDepth ) {
+
+			const splitOffset = bvh.partitionLeaf( partitionBuffer, partitionStride, primitiveBounds, offset, count );
+			if ( splitOffset > offset && splitOffset < offset + count ) {
+
+				// this split has no spatial meaning, so use the longest axis as a traversal-order hint;
+				// the node bounds are what keep traversal correct.
+				node.splitAxis = longestAxis( node.boundingData );
+
+				const left = new BVHNode();
+				const lcount = splitOffset - offset;
+				node.left = left;
+				getBounds( primitiveBounds, offset, lcount, left.boundingData, cacheCentroidBoundingData );
+				splitNode( left, offset, lcount, cacheCentroidBoundingData, depth + 1 );
+
+				const right = new BVHNode();
+				const rcount = count - lcount;
+				node.right = right;
+				getBounds( primitiveBounds, splitOffset, rcount, right.boundingData, cacheCentroidBoundingData );
+				splitNode( right, splitOffset, rcount, cacheCentroidBoundingData, depth + 1 );
+
+				return;
+
+			}
+
+		}
+
+		triggerProgress( offset + count );
+		node.offset = offset;
+		node.count = count;
+
+	}
+
+}
+
+// returns the index ( 0, 1, 2 ) of the longest axis of a min / max bounding box
+function longestAxis( boundingData ) {
+
+	const x = boundingData[ 3 ] - boundingData[ 0 ];
+	const y = boundingData[ 4 ] - boundingData[ 1 ];
+	const z = boundingData[ 5 ] - boundingData[ 2 ];
+	if ( x > y && x > z ) {
+
+		return 0;
+
+	}
+
+	return y > z ? 1 : 2;
 
 }
 

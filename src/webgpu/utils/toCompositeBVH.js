@@ -1,21 +1,21 @@
 /** @import { Object3D, BufferGeometry } from 'three' */
 import { Mesh } from 'three/webgpu';
 import { GeometryBVH } from '../../core/GeometryBVH.js';
-import { ObjectBVH } from '../../core/ObjectBVH.js';
+import { CompositeBVH } from '../../core/CompositeBVH.js';
 import { SAH } from '../../core/Constants.js';
 
 /**
- * Normalizes the various accepted `bvh` arguments into an {@link ObjectBVH}. A pre-built ObjectBVH
- * is returned as-is; otherwise an Object3D, BufferGeometry, GeometryBVH, or array of those is
- * wrapped into a new ObjectBVH.
+ * Normalizes the various accepted `bvh` arguments into a {@link CompositeBVH}. A pre-built
+ * CompositeBVH is returned as-is; otherwise an Object3D, BufferGeometry, GeometryBVH, or array of
+ * those is wrapped into a new CompositeBVH.
  *
  * @private
- * @param {ObjectBVH | Object3D | BufferGeometry | GeometryBVH | Array} bvh
- * @returns {ObjectBVH}
+ * @param {CompositeBVH | Object3D | BufferGeometry | GeometryBVH | Array} bvh
+ * @returns {CompositeBVH}
  */
-export function toObjectBVH( bvh ) {
+export function toCompositeBVH( bvh ) {
 
-	if ( bvh instanceof ObjectBVH ) {
+	if ( bvh instanceof CompositeBVH ) {
 
 		return bvh;
 
@@ -47,6 +47,6 @@ export function toObjectBVH( bvh ) {
 
 	} );
 
-	return new ObjectBVH( objects, { strategy: SAH, maxLeafSize: 1 } );
+	return new CompositeBVH( objects, { strategy: SAH } );
 
 }

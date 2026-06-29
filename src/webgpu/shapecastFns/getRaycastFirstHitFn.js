@@ -14,8 +14,8 @@ import { intersectRayTriangle } from '../tsl/fns.js';
  */
 export function getRaycastFirstHitFn( bvhData ) {
 
-	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { index, attributes, transforms } = bvhData.storage;
+	// the generator owns the leaf loop + vertex fetch; "transforms" is only needed for the ray transform
+	const { transforms } = bvhData.storage;
 
 	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
 
@@ -74,38 +74,25 @@ export function getRaycastFirstHitFn( bvhData ) {
 			}
 
 		`,
-		intersectRangeFn: wgslTagFn/* wgsl */`
-			fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
+		intersectTriangleFn: wgslTagFn/* wgsl */`
+			fn intersectTriangle( ray: ${ rayStruct }, a: vec3f, b: vec3f, c: vec3f, indices: vec4u, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
 
-				var didHit = false;
-				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
+				var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
+				triResult.dist *= ${ scratchRayScalar };
+				if ( triResult.didHit && ( ! result.didHit || triResult.dist < result.dist ) ) {
 
-					let i0 = ${ index }[ ti * 3u ];
-					let i1 = ${ index }[ ti * 3u + 1u ];
-					let i2 = ${ index }[ ti * 3u + 2u ];
+					result.didHit = true;
+					result.dist = triResult.dist;
+					result.normal = triResult.normal;
+					result.side = triResult.side;
+					result.barycoord = triResult.barycoord;
+					result.indices = indices;
 
-					let a = ${ attributes }[ i0 ].position.xyz;
-					let b = ${ attributes }[ i1 ].position.xyz;
-					let c = ${ attributes }[ i2 ].position.xyz;
-
-					var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
-					triResult.dist *= ${ scratchRayScalar };
-					if ( triResult.didHit && ( ! result.didHit || triResult.dist < result.dist ) ) {
-
-						result.didHit = true;
-						result.dist = triResult.dist;
-						result.normal = triResult.normal;
-						result.side = triResult.side;
-						result.barycoord = triResult.barycoord;
-						result.indices = vec4u( i0, i1, i2, ti );
-
-						didHit = true;
-
-					}
+					return true;
 
 				}
 
-				return didHit;
+				return false;
 
 			}
 		`,
