@@ -44,7 +44,7 @@ export class NodeProxy {
 
 		}
 
-		if ( 'functionNode' in value ) {
+		if ( value && 'functionNode' in value ) {
 
 			return value.functionNode;
 
@@ -74,10 +74,19 @@ export class NodeProxy {
 
 				} else {
 
-					const value = Reflect.get( target.proxyNode, property );
+					// the proxied member may not be assigned yet ( e.g. accessed during disposal
+					// before the first update ) - resolve to undefined rather than throwing on null
+					const node = target.proxyNode;
+					if ( node === null || node === undefined ) {
+
+						return undefined;
+
+					}
+
+					const value = Reflect.get( node, property );
 					if ( typeof value === 'function' ) {
 
-						return value.bind( target.proxyNode );
+						return value.bind( node );
 
 					} else {
 
