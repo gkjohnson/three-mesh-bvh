@@ -26,7 +26,9 @@ export interface BVHOptions {
 	maxDepth?: number;
 	/** @deprecated Use maxLeafSize instead */
 	maxLeafTris?: number;
+	/** @deprecated Use targetLeafSize instead */
 	maxLeafSize?: number;
+	targetLeafSize?: number;
 	setBoundingBox?: boolean;
 	useSharedArrayBuffer?: boolean;
 	indirect?: boolean;
