@@ -308,7 +308,7 @@ export class ClusteredMetaBVH extends BVH {
 	getInstanceId( id ) {
 
 		const { idMask, idBits } = this;
-		return ( id & ( ~ idMask ) ) >> idBits;
+		return ( id & ( ~ idMask ) ) >>> idBits;
 
 	}
 
