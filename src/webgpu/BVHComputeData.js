@@ -5,14 +5,14 @@ import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
-import { ObjectBVH } from '../core/ObjectBVH.js';
-import { BYTES_PER_NODE } from '../core/Constants.js';
+import { ClusteredMetaBVH } from './ClusteredMetaBVH.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE } from '../core/Constants.js';
 import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { toObjectBVH } from './utils/toObjectBVH.js';
+import { toClusteredMetaBVH } from './utils/toClusteredMetaBVH.js';
 import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
@@ -27,6 +27,7 @@ import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointF
 // scratch
 const _matrix = /* @__PURE__ */ new Matrix4();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
 
 // functions
 function isObjectVisible( object ) {
@@ -65,10 +66,10 @@ function getTotalBVHByteLength( bvh ) {
 export class BVHComputeData {
 
 	/**
-	 * @param {ObjectBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
-	 * Scene objects to include, or a pre-built {@link ObjectBVH}. A single item or array of
+	 * @param {ClusteredMetaBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * Scene objects to include, or a pre-built {@link ClusteredMetaBVH}. A single item or array of
 	 * Object3D, BufferGeometry, or GeometryBVH instances are all accepted and wrapped
-	 * automatically in an ObjectBVH.
+	 * automatically in a ClusteredMetaBVH.
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
@@ -79,10 +80,6 @@ export class BVHComputeData {
 	 */
 	constructor( bvh, options = {} ) {
 
-		// convert the bvh argument to an ObjectBVH. Supports an Object3D, BufferGeometry,
-		// GeometryBVH, an array of the above, or a pre-built ObjectBVH.
-		bvh = toObjectBVH( bvh );
-
 		const {
 			attributes = { position: 'vec4f' },
 			autogenerateBvh = true,
@@ -92,7 +89,14 @@ export class BVHComputeData {
 
 		this.autogenerateBvh = autogenerateBvh;
 		this.attributes = attributes;
-		this.bvh = bvh;
+
+		// convert the bvh argument to a ClusteredMetaBVH. Supports an Object3D, BufferGeometry,
+		// GeometryBVH, an array of the above, or a pre-built ClusteredMetaBVH. The meta bvh splits
+		// each static mesh into clusters ( subtrees of its MeshBVH ) so dense, interpenetrating
+		// geometry produces tighter top-level bounds; "getBVH" supplies the per-object MeshBVH.
+		this.bvh = toClusteredMetaBVH( bvh, {
+			getBVH: object => this.getBVH( object, 0, _range ),
+		} );
 
 		// storage buffers and structs are populated in "update"; their members are accessed through
 		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
@@ -149,10 +153,13 @@ export class BVHComputeData {
 		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
-		bvh.primitiveBuffer.forEach( compositeId => {
+		const { primitiveBuffer, primitiveBufferStride } = bvh;
+		for ( let i = 0, l = primitiveBuffer.length; i < l; i += primitiveBufferStride ) {
 
-			const object = bvh.getObjectFromId( compositeId );
-			const instanceId = bvh.getInstanceFromId( compositeId );
+			const compositeId = primitiveBuffer[ i ];
+			const compositeNodeId = primitiveBuffer[ i + 1 ];
+			const object = bvh.objects[ bvh.getObjectId( compositeId ) ];
+			const instanceId = bvh.getInstanceId( compositeId );
 			const range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
 			const primBvh = this.getBVH( object, instanceId, range );
 
@@ -184,21 +191,23 @@ export class BVHComputeData {
 
 			}
 
-			// save the index of the bvh associated with this transform
+			// each primitive ( a single instance or cluster ) maps to one transform. A cluster points
+			// at a subtree node within its object's BVH root; an instance references the whole root.
 			const data = bvhInfo.find( info => primBvh === info.bvh );
-			primBvh._roots.forEach( ( root, i ) => {
+			const isInstance = bvh.isInstance( object );
+			const root = isInstance ? 0 : bvh.getBVHRootIndex( compositeNodeId );
+			const clusterNodeOffset = isInstance ? 0 : bvh.getBVHNodeIndex( compositeNodeId ) / UINT32_PER_NODE;
 
-				transformInfo.push( {
-					data,
-					root: i,
-					object,
-					instanceId,
-					compositeId,
-				} );
-
+			transformInfo.push( {
+				data,
+				root,
+				clusterNodeOffset,
+				object,
+				instanceId,
+				compositeId,
 			} );
 
-		} );
+		}
 
 		//
 
@@ -221,12 +230,12 @@ export class BVHComputeData {
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
 		// append TLAS data
-		appendBVHData( bvh, 0, transformInfo, 0, bvhNodesBuffer, true );
+		appendBVHData( bvh, 0, 0, bvhNodesBuffer, true );
 		nodeWriteOffset += getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
 		bvhInfo.forEach( info => {
 
 			// append bvh data
-			const bvhNodeOffsets = appendBVHData( info.bvh, indexOffset / 3, transformInfo, nodeWriteOffset, bvhNodesBuffer, false );
+			const bvhNodeOffsets = appendBVHData( info.bvh, indexOffset / 3, nodeWriteOffset, bvhNodesBuffer, false );
 			info.bvhNodeOffsets = bvhNodeOffsets;
 
 			// append geometry data
@@ -294,7 +303,7 @@ export class BVHComputeData {
 		const transformBufferF32 = new Float32Array( targetBuffer );
 		const transformBufferU32 = new Uint32Array( targetBuffer );
 
-		const { object, instanceId, root, data } = info;
+		const { object, instanceId, root, clusterNodeOffset, data } = info;
 		const { bvhNodeOffsets } = data;
 		if ( object.isInstancedMesh || object.isBatchedMesh ) {
 
@@ -315,8 +324,9 @@ export class BVHComputeData {
 		_matrix.invert();
 		_matrix.toArray( transformBufferF32, writeOffset * structs.transform.getLength() + 16 );
 
-		// write node offset
-		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = bvhNodeOffsets[ root ];
+		// write node offset - the cluster's subtree root within the packed BLAS ( the BLAS root for
+		// instances, where clusterNodeOffset is 0 )
+		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = bvhNodeOffsets[ root ] + clusterNodeOffset;
 
 		let visible = isObjectVisible( object );
 		if ( object.isBatchedMesh ) {

@@ -35,20 +35,18 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  * @private
  * @param {Object} bvh
  * @param {number} geometryOffset
- * @param {Array} transformInfo
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
  * @param {boolean} [tlas=false]
  * @returns {Array<number>}
  */
-export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffset, target, tlas = false ) {
+export function appendBVHData( bvh, geometryOffset, nodeWriteOffset, target, tlas = false ) {
 
 	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
 	const targetF32 = new Float32Array( target );
 
 	const result = [];
-	let tlasOffset = 0;
 	bvh._roots.forEach( root => {
 
 		const rootBuffer16 = new Uint16Array( root );
@@ -96,28 +94,15 @@ export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffs
 
 				if ( tlas ) {
 
-					// 0xFFFF == mesh leaf, 0xFF00 == TLAS leaf
-					targetU32[ n32 + 6 ] = tlasOffset;
+					// TLAS leaf ( 0xFF00 ) - each primitive maps to exactly one transform, so the
+					// leaf's primitive range is its transform range.
+					targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
+					targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
 					targetU16[ n16 + 15 ] = 0xFF00;
-
-					const count = rootBuffer16[ r16 + 14 ];
-					// const offset = rootBuffer32[ r32 + 6 ];
-
-					// each root is expanded into a separate transform so we need to expand
-					// the embedded offsets and counts.
-					let rootsCount = 0;
-					for ( let o = 0; o < count; o ++ ) {
-
-						const roots = transformInfo[ tlasOffset ].data.bvh._roots.length;
-						tlasOffset += roots;
-						rootsCount += roots;
-
-					}
-
-					targetU16[ n16 + 14 ] = rootsCount;
 
 				} else {
 
+					// mesh leaf ( 0xFFFF )
 					targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
 					targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
 					targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
