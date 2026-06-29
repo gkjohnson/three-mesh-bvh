@@ -1,11 +1,15 @@
 import { Matrix4, Box3, Sphere, BufferGeometry, Vector3 } from 'three';
 import { BVH } from '../core/BVH.js';
 import { BVHTraversalHelper } from '../core/BVHTraversalHelper.js';
+import { UINT32_PER_NODE } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
-// sentinel stored in the second primitive word to mark an entry as an object / instance
-// primitive rather than a cluster node.
-const OBJECT_PRIMITIVE_FLAG = 0xffffffff;
+// the high bit of the second primitive word marks an object / instance primitive; cluster
+// primitives leave it unset and pack the owning bvh root index above the node index, which
+// occupies the low NODE_INDEX_BITS bits.
+const OBJECT_PRIMITIVE_FLAG = 0x80000000;
+const NODE_INDEX_BITS = 24;
+const NODE_INDEX_MASK = ( 1 << NODE_INDEX_BITS ) - 1;
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _box =/* @__PURE__ */ new Box3();
@@ -112,24 +116,23 @@ export class ClusteredMetaBVH extends BVH {
 
 	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
 
-		// TODO: it would be best to cache this matrix inversion - we know WHEN this will
-		// be called (eg refit, rebuild?) so we can update the cached value ahead?
 		const { primitiveBuffer, bvhMap, objects } = this;
 
-		const id = primitiveBuffer[ 2 * i + 0 ];
-		const node32Index = primitiveBuffer[ 2 * i + 1 ];
-		if ( node32Index === OBJECT_PRIMITIVE_FLAG ) {
+		const compositeId = primitiveBuffer[ 2 * i + 0 ];
+		const compositeNodeId = primitiveBuffer[ 2 * i + 1 ];
+		if ( compositeNodeId & OBJECT_PRIMITIVE_FLAG ) {
 
-			// instance
-			this._getPrimitiveBoundingBox( id, _inverseMatrix, _box );
+			// instance - resolve the bounds through the cached object bounds
+			this._getPrimitiveBoundingBox( compositeId, _inverseMatrix, _box );
 
 		} else {
 
-			// TODO: it would be best to not create a new float32array here over and over
-			const root = this.getBVHRoot( id );
-			const objectId = this.getObjectId( id );
-			const object = objects[ objectId ];
+			const object = objects[ this.getObjectId( compositeId ) ];
 			const bvh = bvhMap.get( object );
+
+			// word1 packs the owning bvh root index and the cluster node index
+			const root = this.getBVHRootIndex( compositeNodeId );
+			const node32Index = this.getBVHNodeIndex( compositeNodeId );
 
 			// the cluster node bounds are in the object's local space - transform them through the
 			// object's world matrix and into the bvh frame
@@ -137,6 +140,7 @@ export class ClusteredMetaBVH extends BVH {
 				.copy( object.matrixWorld )
 				.premultiply( _inverseMatrix );
 
+			// TODO: it would be best to not create a new float32array here over and over
 			// TODO: how can we easily create a tighter bound here if we want precise bounds?
 			arrayToBox( node32Index, new Float32Array( bvh._roots[ root ] ), _box );
 			_box.applyMatrix4( _matrix );
@@ -318,9 +322,15 @@ export class ClusteredMetaBVH extends BVH {
 
 	}
 
-	getBVHRoot( id ) {
+	getBVHRootIndex( compositeNodeId ) {
 
-		return this.getInstanceId( id );
+		return compositeNodeId >>> NODE_INDEX_BITS;
+
+	}
+
+	getBVHNodeIndex( compositeNodeId ) {
+
+		return ( compositeNodeId & NODE_INDEX_MASK ) * UINT32_PER_NODE;
 
 	}
 
@@ -366,8 +376,15 @@ export class ClusteredMetaBVH extends BVH {
 
 				_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => {
 
-					primitiveBuffer[ 2 * offset + 0 ] = ( r << idBits ) | objectIndex;
-					primitiveBuffer[ 2 * offset + 1 ] = node32Index;
+					const nodeIndex = node32Index / UINT32_PER_NODE;
+					if ( nodeIndex > NODE_INDEX_MASK ) {
+
+						console.warn( `ClusteredMetaBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
+
+					}
+
+					primitiveBuffer[ 2 * offset + 0 ] = objectIndex;
+					primitiveBuffer[ 2 * offset + 1 ] = ( r << NODE_INDEX_BITS ) | ( nodeIndex & NODE_INDEX_MASK );
 
 					offset ++;
 
