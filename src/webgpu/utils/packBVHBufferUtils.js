@@ -100,7 +100,11 @@ export function appendBVHData( bvh, geometryOffset, primitiveInfo, nodeWriteOffs
 					// that offset to the placement's BLAS base ( transform.nodeOffset ) to reach the
 					// cluster subtree.
 					const offset = rootBuffer32[ r32 + 6 ];
-					const { transformSlot, nodeOffset } = primitiveInfo[ offset ];
+					const count = rootBuffer16[ r16 + 14 ];
+
+					// an empty bvh produces a single primitiveless leaf with no primitiveInfo entry; its
+					// degenerate bounds keep the GPU from traversing into it, so write an empty placeholder.
+					const { transformSlot, nodeOffset } = count === 0 ? { transformSlot: 0, nodeOffset: 0 } : primitiveInfo[ offset ];
 					if ( transformSlot > 0x00ffffff ) {
 
 						throw new Error( `packBVHBufferUtils: transform slot ${ transformSlot } exceeds the 24-bit TLAS leaf limit.` );
