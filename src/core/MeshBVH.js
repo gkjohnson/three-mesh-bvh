@@ -254,7 +254,7 @@ export class MeshBVH extends GeometryBVH {
 
 		if ( options.maxLeafTris ) {
 
-			console.warn( 'MeshBVH: "maxLeafTris" option has been deprecated. Use targetLeafSize, instead.' );
+			console.warn( 'MeshBVH: "maxLeafTris" option has been deprecated. Use "targetLeafSize", instead.' );
 			options = {
 				...options,
 				targetLeafSize: options.maxLeafTris,
