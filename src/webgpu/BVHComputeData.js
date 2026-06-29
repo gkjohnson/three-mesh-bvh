@@ -76,6 +76,8 @@ function getRootNodeOffset( bvh, root ) {
  * `this.storage` and `this.fns` in your compute shader nodes.
  *
  * @note This API is unstable and subject to change in future releases.
+ *
+ * @note This class requires three.js r185 or higher.
  */
 export class BVHComputeData {
 

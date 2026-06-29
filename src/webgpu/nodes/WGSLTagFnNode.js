@@ -1,4 +1,4 @@
-import { CodeNode, FunctionNode, Node } from 'three/webgpu';
+import { CodeNode, FunctionNode, Node, TSL } from 'three/webgpu';
 
 // minimal node that outputs a raw WGSL expression verbatim when built
 class LiteralExpression extends Node {
@@ -37,43 +37,11 @@ class PropertyRefNode extends Node {
 
 }
 
-// wraps a FunctionCallNode so that build() returns the inline call expression,
-// bypassing TempNode's variable wrapping
-class InlineCallNode extends Node {
-
-	constructor( node ) {
-
-		super();
-		this.node = node;
-
-	}
-
-	build( builder ) {
-
-		return this.node.generate( builder );
-
-	}
-
-}
-
 // returns the node that should be registered as an include for the given arg
 function getIncludeNode( arg ) {
 
-	if ( typeof arg === 'function' ) {
-
-		if ( arg.functionNode ) return arg.functionNode;
-		if ( arg.isStruct ) return arg.layout;
-		else return null;
-
-	} else if ( arg.isNode ) {
-
-		return new PropertyRefNode( arg );
-
-	} else {
-
-		return null;
-
-	}
+	if ( arg.isNode ) return new PropertyRefNode( arg );
+	return null;
 
 }
 
@@ -92,16 +60,6 @@ function extractIncludes( args ) {
 
 			}
 
-		} else {
-
-			// WGSLTagCodeNodes should be inlined if found in a template so skip it here
-			if ( ! ( arg instanceof WGSLTagCodeNode ) ) {
-
-				const node = getIncludeNode( arg );
-				if ( node ) includes.push( node );
-
-			}
-
 		}
 
 	}
@@ -112,15 +70,10 @@ function extractIncludes( args ) {
 
 // normalize args so generate can resolve them uniformly with build():
 // - callable wrappers > PropertyRefNode (emits just the function name)
-// - struct callables > StructTypeNode (emits the type name via build)
-// - FunctionCallNodes > InlineCallNode (emits inline call)
 function normalizeArgs( args ) {
 
 	return args.map( arg => {
 
-		if ( typeof arg === 'function' && arg.functionNode ) return new PropertyRefNode( arg.functionNode );
-		if ( typeof arg === 'function' && arg.isStruct ) return arg.layout;
-		if ( arg && arg.isNode && arg.functionNode ) return new InlineCallNode( arg );
 		if ( arg && arg.isNode ) {
 
 			if ( arg instanceof WGSLTagCodeNode ) {
@@ -337,8 +290,7 @@ const getFn = functionNode => {
 
 	};
 
-	fn.functionNode = functionNode;
-	return fn;
+	return TSL.nodeProxyConstructor( fn, functionNode );
 
 };
 
