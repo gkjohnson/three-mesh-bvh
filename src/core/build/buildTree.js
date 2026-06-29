@@ -2,6 +2,7 @@ import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
 import { BVHNode } from '../BVHNode.js';
 import { BYTES_PER_NODE } from '../Constants.js';
+import { getLongestEdgeIndex } from '../../utils/ArrayBoxUtilities.js';
 
 import { partition } from './sortUtils.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
@@ -78,7 +79,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		if ( split.axis === - 1 || splitOffset === offset || splitOffset === offset + count ) {
 
 			splitOffset = offset + Math.max( 1, Math.floor( count / 2 ) );
-			split.axis = depth % 3;
+			split.axis = getLongestEdgeIndex( node.boundingData );
 
 		}
 
