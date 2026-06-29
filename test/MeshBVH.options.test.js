@@ -141,7 +141,7 @@ describe( 'Options', () => {
 
 	} );
 
-	describe( 'maxLeafSize', () => {
+	describe( 'targetLeafSize', () => {
 
 		// a non-indexed geometry made of many copies of the exact same triangle. Every triangle
 		// shares the same centroid, so the optimal split can never separate them.
@@ -171,11 +171,11 @@ describe( 'Options', () => {
 
 		}
 
-		it( 'should respect maxLeafSize even when the primitives cannot be partitioned.', () => {
+		it( 'should respect targetLeafSize even when the primitives cannot be partitioned.', () => {
 
 			const triCount = 100;
-			const maxLeafSize = 1;
-			const bvh = new MeshBVH( getDuplicateTriangleGeometry( triCount ), { maxLeafSize } );
+			const targetLeafSize = 1;
+			const bvh = new MeshBVH( getDuplicateTriangleGeometry( triCount ), { targetLeafSize } );
 
 			let total = 0;
 			let largestLeaf = 0;
@@ -190,7 +190,7 @@ describe( 'Options', () => {
 
 			} );
 
-			expect( largestLeaf ).toBeLessThanOrEqual( maxLeafSize );
+			expect( largestLeaf ).toBeLessThanOrEqual( targetLeafSize );
 			expect( total ).toBe( triCount );
 			expect( validateBounds( bvh ) ).toBe( true );
 
