@@ -24,9 +24,9 @@ export interface HitPointInfo {
 export interface BVHOptions {
 	strategy?: SplitStrategy;
 	maxDepth?: number;
-	/** @deprecated Use maxLeafSize instead */
+	/** @deprecated Use targetLeafSize instead */
 	maxLeafTris?: number;
-	maxLeafSize?: number;
+	targetLeafSize?: number;
 	setBoundingBox?: boolean;
 	useSharedArrayBuffer?: boolean;
 	indirect?: boolean;
