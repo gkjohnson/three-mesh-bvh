@@ -11,6 +11,7 @@ const _linePool = /* @__PURE__ */ new PrimitivePool( () => new Line3() );
 const _intersectPointOnRay = /*@__PURE__*/ new Vector3();
 const _intersectPointOnSegment = /*@__PURE__*/ new Vector3();
 const _box = /* @__PURE__ */ new Box3();
+const _vec = /* @__PURE__ */ new Vector3();
 const _getters = [ 'getX', 'getY', 'getZ' ];
 
 /**
@@ -121,9 +122,36 @@ export class LineSegmentsBVH extends GeometryBVH {
 			},
 			intersectsBounds: box => {
 
-				// TODO: for some reason trying to early-out here is causing firstHitOnly tests to fail
-				_box.copy( box ).expandByScalar( Math.abs( localThreshold ) );
-				return _ray.intersectsBox( _box ) ? INTERSECTED : NOT_INTERSECTED;
+				_box.copy( box ).expandByScalar( localThreshold );
+
+				if ( firstHitOnly ) {
+
+					if ( ! _ray.intersectBox( _box, _vec ) ) {
+
+						return NOT_INTERSECTED;
+
+					}
+
+					let dist;
+					if ( _box.containsPoint( _ray.origin ) ) {
+
+						dist = 0;
+
+					} else {
+
+						_vec.applyMatrix4( matrixWorld );
+						dist = raycaster.ray.origin.distanceTo( _vec );
+
+					}
+
+					// early out if the box is further than the closest raycast
+					return dist < closestDistance ? INTERSECTED : NOT_INTERSECTED;
+
+				} else {
+
+					return _ray.intersectsBox( _box ) ? INTERSECTED : NOT_INTERSECTED;
+
+				}
 
 			},
 			intersectsLine: ( line, index ) => {

@@ -56,7 +56,7 @@ export class ObjectBVH extends BVH {
 		// for the instanceId count
 		const objects = Array.from( objectSet );
 		const idBits = Math.ceil( Math.log2( objects.length ) );
-		const idMask = constructIdMask( idBits );
+		const idMask = ( 1 << idBits ) - 1;
 
 		this.objects = objects;
 		this.idBits = idBits;
@@ -100,7 +100,11 @@ export class ObjectBVH extends BVH {
 
 	init( options ) {
 
-		const { objects, idBits } = this;
+		const { objects, idBits, matrixWorld } = this;
+
+		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
+		_inverseMatrix.copy( matrixWorld ).invert();
+
 		this.primitiveBuffer = new Uint32Array( this._countPrimitives( objects ) );
 		this._fillPrimitiveBuffer( objects, idBits, this.primitiveBuffer );
 
@@ -108,15 +112,21 @@ export class ObjectBVH extends BVH {
 
 	}
 
-	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
+	refit( ...args ) {
 
-		// TODO: it would be best to cache this matrix inversion
-		const { primitiveBuffer } = this;
+		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
 		_inverseMatrix.copy( this.matrixWorld ).invert();
 
-		this._getPrimitiveBoundingBox( primitiveBuffer[ i ], _inverseMatrix, _box );
-		const { min, max } = _box;
+		super.refit( ...args );
 
+	}
+
+	writePrimitiveBounds( i, targetBuffer, writeOffset ) {
+
+		const { primitiveBuffer } = this;
+		this._getPrimitiveBoundingBox( primitiveBuffer[ i ], _inverseMatrix, _box );
+
+		const { min, max } = _box;
 		targetBuffer[ writeOffset + 0 ] = min.x;
 		targetBuffer[ writeOffset + 1 ] = min.y;
 		targetBuffer[ writeOffset + 2 ] = min.z;
@@ -186,9 +196,20 @@ export class ObjectBVH extends BVH {
 
 					}
 
+					let dist;
+					if ( box.containsPoint( _ray.origin ) ) {
+
+						dist = 0;
+
+					} else {
+
+						_vec.applyMatrix4( matrixWorld );
+						dist = raycaster.ray.origin.distanceTo( _vec );
+
+					}
+
 					// early out if the box is further than the closest raycast
-					_vec.applyMatrix4( matrixWorld );
-					return raycaster.ray.origin.distanceTo( _vec ) < closestDistance ? INTERSECTED : NOT_INTERSECTED;
+					return dist < closestDistance ? INTERSECTED : NOT_INTERSECTED;
 
 				} else {
 
@@ -545,20 +566,6 @@ export class ObjectBVH extends BVH {
 }
 
 // id functions
-// construct a mask with the given number of bits set to 1
-function constructIdMask( idBits ) {
-
-	let mask = 0;
-	for ( let i = 0; i < idBits; i ++ ) {
-
-		mask = mask << 1 | 1;
-
-	}
-
-	return mask;
-
-}
-
 // extract the primary object id given the provided mask
 function getObjectId( id, idMask ) {
 

@@ -1,23 +1,23 @@
-/** @import { Object3D, BufferGeometry } from 'three' */
-import { Matrix4, Vector4 } from 'three';
-import { Mesh, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, float, mat4 } from 'three/tsl';
-import { wgslTagCode, wgslTagFn } from './nodes/WGSLTagFnNode.js';
+/** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
+import { Matrix4 } from 'three';
+import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
+import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
 import { ObjectBVH } from '../core/ObjectBVH.js';
-import { SAH, BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../core/Constants.js';
+import { BYTES_PER_NODE } from '../core/Constants.js';
+import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
-	bvhNodeBoundsStruct,
 	bvhNodeStruct,
-	rayStruct,
 	transformStruct,
-	rayIntersectionResultStruct,
-	pointQueryResultStruct,
 } from './tsl/structs.js';
-import { intersectRayTriangle, closestPointToTriangle } from './tsl/fns.js';
-import { BVH_STACK_DEPTH } from './tsl/constants.js';
+import { toObjectBVH } from './utils/toObjectBVH.js';
+import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
+import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
+import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
+import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
+import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -25,8 +25,6 @@ import { BVH_STACK_DEPTH } from './tsl/constants.js';
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
 
 // scratch
-const _def = /* @__PURE__ */ new Vector4();
-const _vec = /* @__PURE__ */ new Vector4();
 const _matrix = /* @__PURE__ */ new Matrix4();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 
@@ -47,26 +45,6 @@ function isObjectVisible( object ) {
 	}
 
 	return true;
-
-}
-
-function dereferenceIndex( indexAttr, indirectBuffer ) {
-
-	const indexArray = indexAttr ? indexAttr.array : null;
-	const result = new Uint32Array( indirectBuffer.length * 3 );
-	for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {
-
-		const i3 = 3 * i;
-		const v3 = 3 * indirectBuffer[ i ];
-		for ( let c = 0; c < 3; c ++ ) {
-
-			result[ i3 + c ] = indexArray ? indexArray[ v3 + c ] : v3 + c;
-
-		}
-
-	}
-
-	return result;
 
 }
 
@@ -103,42 +81,9 @@ export class BVHComputeData {
 	 */
 	constructor( bvh, options = {} ) {
 
-		// convert the bvh argument to an ObjectBVH. Supports the following as arguments
-		// - Object3D
-		// - BufferGeometry
-		// - GeometryBVH
-		// - Array of the above
-		if ( ! ( bvh instanceof ObjectBVH ) ) {
-
-			if ( ! Array.isArray( bvh ) ) {
-
-				bvh = [ bvh ];
-
-			}
-
-			const objects = bvh.map( item => {
-
-				if ( item.isObject3D ) {
-
-					return item;
-
-				} else if ( item.isBufferGeometry ) {
-
-					return new Mesh( item );
-
-				} else if ( item instanceof GeometryBVH ) {
-
-					const dummy = new Mesh();
-					dummy.geometry.boundsTree = item;
-					return dummy;
-
-				}
-
-			} );
-
-			bvh = new ObjectBVH( objects, { strategy: SAH, maxLeafSize: 1 } );
-
-		}
+		// convert the bvh argument to an ObjectBVH. Supports an Object3D, BufferGeometry,
+		// GeometryBVH, an array of the above, or a pre-built ObjectBVH.
+		bvh = toObjectBVH( bvh );
 
 		const {
 			attributes = { position: 'vec4f' },
@@ -151,23 +96,15 @@ export class BVHComputeData {
 		this.attributes = attributes;
 		this.bvh = bvh;
 
-		this.storage = {
-			index: null,
-			attributes: null,
-			nodes: null,
-			transforms: null,
-		};
-
-		this.structs = {
-			transform: transformStruct,
-			attributes: null,
-		};
-
-		this.fns = {
-			raycastFirstHit: null,
+		// storage buffers and structs are populated in "update"; their members are accessed through
+		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
+		this.storage = new NodeProxyObject();
+		this.structs = new NodeProxyObject( { transform: transformStruct } );
+		this.fns = new NodeProxyObject( {
+			raycastFirstHit: getRaycastFirstHitFn( this ),
+			closestPointToPoint: getClosestPointToPointFn( this ),
 			sampleTrianglePoint: null,
-			closestPointToPoint: null,
-		};
+		}, proxyFn );
 
 	}
 
@@ -190,182 +127,7 @@ export class BVHComputeData {
 	 */
 	getShapecastFn( options ) {
 
-		// TODO: test with and verify use with TSL Fn - both passing them as arguments,
-		// calling the function from a TSL Fn.
-		// TODO: revisit the semantics and mental model of "transformShapeFn" and "transformResultFn".
-		// Are they "before" and "after" hooks? Should they include words implying a direction of transform?
-		// eg "toLocal" / "toWorld"?
-		const {
-			name = `bvh_shapecast_fn_${ Math.random().toString( 36 ).substring( 2, 7 ) }`,
-			shapeStruct,
-			resultStruct = null,
-
-			boundsOrderFn = null,
-			intersectsBoundsFn,
-			intersectRangeFn,
-			transformShapeFn = null,
-			transformResultFn = null,
-			resetShapeFn = null,
-		} = options;
-
-		const { storage } = this;
-
-		// handle optional functions
-		let transformResultSnippet = '';
-		if ( transformResultFn ) {
-
-			transformResultSnippet = wgslTagCode/* wgsl */`${ transformResultFn }( result, i );`;
-
-		}
-
-		let transformShapeSnippet = '';
-		if ( transformShapeFn ) {
-
-			transformShapeSnippet = wgslTagCode/* wgsl */`${ transformShapeFn }( &localShape, i );`;
-
-		}
-
-		let resetShapeSnippet = '';
-		if ( resetShapeFn ) {
-
-			resetShapeSnippet = wgslTagCode/* wgsl */`${ resetShapeFn }( i );`;
-
-		}
-
-		let leftToRightSnippet = '';
-		if ( boundsOrderFn ) {
-
-			leftToRightSnippet = wgslTagCode/* wgsl */`
-				let leftToRight = ${ boundsOrderFn }( shape, splitAxis, node );
-				c1 = select( rightIndex, leftIndex, leftToRight );
-				c2 = select( leftIndex, rightIndex, leftToRight );
-			`;
-
-		}
-
-		const resultPtrSnippet = resultStruct ? wgslTagCode/* wgsl */`result: ptr<function, ${ resultStruct }>` : '';
-		const resultArg = resultStruct ? 'result' : '';
-
-		const getFnBody = leafSnippet => {
-
-			// returns a function with a snippet inserted for the leaf intersection test
-			return wgslTagCode/* wgsl */`
-
-				var pointer: i32 = 0;
-				var stack: array<u32, ${ BVH_STACK_DEPTH }>;
-				stack[ 0 ] = rootNodeIndex;
-
-				loop {
-
-					if ( pointer < 0 || pointer >= i32( ${ BVH_STACK_DEPTH } ) ) {
-
-						break;
-
-					}
-
-					let nodeIndex = stack[ pointer ];
-					let node = ${ storage.nodes }[ nodeIndex ];
-					pointer = pointer - 1;
-
-					if ( ${ intersectsBoundsFn }( shape, node.bounds, ${ resultArg } ) == 0u ) {
-
-						continue;
-
-					}
-
-					let infoX = node.splitAxisOrTriangleCount;
-					let infoY = node.rightChildOrTriangleOffset;
-					let isLeaf = ( infoX & 0xffff0000u ) != 0u;
-
-					if ( isLeaf ) {
-
-						let count = infoX & 0x0000ffffu;
-						let offset = infoY;
-						${ leafSnippet }
-
-					} else {
-
-						let leftIndex = nodeIndex + 1u;
-						let splitAxis = infoX & 0x0000ffffu;
-						let rightIndex = nodeIndex + infoY;
-
-						var c1 = rightIndex;
-						var c2 = leftIndex;
-						${ leftToRightSnippet }
-
-						pointer = pointer + 1;
-						stack[ pointer ] = c2;
-
-						pointer = pointer + 1;
-						stack[ pointer ] = c1;
-
-					}
-
-				}
-
-			`;
-
-		};
-
-		const blasFn = wgslTagFn/* wgsl */`
-			// fn
-			fn ${ name }_blas( shape: ${ shapeStruct }, rootNodeIndex: u32, ${ resultPtrSnippet } ) -> bool {
-
-				var didHit = false;
-				${ getFnBody( wgslTagCode/* wgsl */`
-
-					didHit = ${ intersectRangeFn }( shape, offset, count, ${ resultArg } ) || didHit;
-
-				` ) }
-
-				return didHit;
-
-			}
-		`;
-
-		const tlasFn = wgslTagFn/* wgsl */`
-			// fn
-			fn ${ name }( shape: ${ shapeStruct }, ${ resultPtrSnippet } ) -> bool {
-
-				const rootNodeIndex = 0u;
-				var didHit = false;
-				${ getFnBody( wgslTagCode/* wgsl */`
-
-					for ( var i = offset; i < offset + count; i ++ ) {
-
-						let transform = ${ storage.transforms }[ i ];
-						if ( transform.visible == 0u ) {
-
-							continue;
-
-						}
-
-						// Transform shape into object local space
-						var localShape = shape;
-						${ transformShapeSnippet }
-
-						if ( ${ blasFn }( localShape, transform.nodeOffset, ${ resultArg } ) ) {
-
-							${ transformResultSnippet }
-							didHit = true;
-
-						}
-
-						${ resetShapeSnippet }
-
-					}
-
-				` ) }
-
-				return didHit;
-
-			}
-		`;
-
-		tlasFn.outputType = resultStruct;
-		tlasFn.functionName = name;
-
-		return tlasFn;
+		return getShapecastFn( this, options );
 
 	}
 
@@ -376,7 +138,9 @@ export class BVHComputeData {
 	 */
 	update() {
 
-		const self = this;
+		// free any buffers from a previous update before swapping in the new ones
+		this.dispose();
+
 		const { attributes, structs, bvh } = this;
 
 		// collect the BVHs
@@ -469,7 +233,7 @@ export class BVHComputeData {
 
 			// append geometry data
 			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
-			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer );
+			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeStruct, this );
 			info.indexBufferOffset = indexOffset;
 
 			// step the write offsets forward
@@ -508,469 +272,10 @@ export class BVHComputeData {
 		this.storage.attributes = attributesStorage;
 		this.structs.attributes = attributeStruct;
 
-		this._initFns();
+		// depends on the resolved attribute struct, so it must be built here rather than up front
+		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
+
 		this._bvhCache.clear();
-
-		function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffset, target, tlas = false ) {
-
-			const targetU16 = new Uint16Array( target );
-			const targetU32 = new Uint32Array( target );
-			const targetF32 = new Float32Array( target );
-
-			const result = [];
-			let tlasOffset = 0;
-			bvh._roots.forEach( root => {
-
-				const rootBuffer16 = new Uint16Array( root );
-				const rootBuffer32 = new Uint32Array( root );
-				result.push( nodeWriteOffset );
-				for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
-
-					const r32 = i * UINT32_PER_NODE;
-					const r16 = r32 * 2;
-					const n32 = nodeWriteOffset * UINT32_PER_NODE;
-					const n16 = n32 * 2;
-
-					// write bounds
-					const view = new Float32Array( root, i * BYTES_PER_NODE, 6 );
-					if ( i === 0 ) {
-
-						// if we're copying the root then check for cases where there are no primitives and therefore
-						// be a bounds of [ Infinity, - Infinity ]. Convert this to [ 1, - 1 ] for reliable GPU behavior.
-						for ( let i = 0; i < 3; i ++ ) {
-
-							const vMin = view[ i + 0 ];
-							const vMax = view[ i + 3 ];
-							if ( vMin > vMax ) {
-
-								targetF32[ n32 + i + 0 ] = 1;
-								targetF32[ n32 + i + 3 ] = - 1;
-
-							} else {
-
-								targetF32[ n32 + i + 0 ] = vMin;
-								targetF32[ n32 + i + 3 ] = vMax;
-
-							}
-
-						}
-
-					} else {
-
-						targetF32.set( view, n32 );
-
-					}
-
-					const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
-					if ( isLeaf ) {
-
-						if ( tlas ) {
-
-							// 0xFFFF == mesh leaf, 0xFF00 == TLAS leaf
-							targetU32[ n32 + 6 ] = tlasOffset;
-							targetU16[ n16 + 15 ] = 0xFF00;
-
-							const count = rootBuffer16[ r16 + 14 ];
-							// const offset = rootBuffer32[ r32 + 6 ];
-
-							// each root is expanded into a separate transform so we need to expand
-							// the embedded offsets and counts.
-							let rootsCount = 0;
-							for ( let o = 0; o < count; o ++ ) {
-
-								const roots = transformInfo[ tlasOffset ].data.bvh._roots.length;
-								tlasOffset += roots;
-								rootsCount += roots;
-
-							}
-
-							targetU16[ n16 + 14 ] = rootsCount;
-
-						} else {
-
-							targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
-							targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
-							targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
-
-						}
-
-					} else {
-
-						targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
-						targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
-
-					}
-
-					nodeWriteOffset ++;
-
-				}
-
-			} );
-
-			return result;
-
-		}
-
-		function appendIndexData( bvh, range, valueOffset, writeOffset, target ) {
-
-			const { geometry } = bvh;
-			const { start, count, vertexStart } = range;
-			if ( bvh.indirect ) {
-
-				const dereferencedIndex = dereferenceIndex( geometry.index, bvh._indirectBuffer );
-				for ( let i = 0; i < dereferencedIndex.length; i ++ ) {
-
-					target[ i + writeOffset ] = dereferencedIndex[ i ] - vertexStart + valueOffset;
-
-				}
-
-			} else if ( geometry.index ) {
-
-				for ( let i = 0; i < count; i ++ ) {
-
-					target[ i + writeOffset ] = geometry.index.getX( i + start ) - vertexStart + valueOffset;
-
-				}
-
-			} else {
-
-				for ( let i = 0; i < count; i ++ ) {
-
-					target[ i + writeOffset ] = i + start + valueOffset;
-
-				}
-
-			}
-
-		}
-
-		function appendGeometryData( bvh, range, writeOffset, target ) {
-
-			// if "mesh" is present then it is assumed to be a SkinnedMeshBVH
-			const { geometry, mesh = null } = bvh;
-			const { vertexStart, vertexCount } = range;
-			const attributesBufferF32 = new Float32Array( target );
-			const attrStructLength = attributeStruct.getLength();
-			attributeStruct.membersLayout.forEach( ( { name }, interleavedOffset ) => {
-
-				// TODO: we should be able to have access to memory layout offsets here via the struct
-				// API but it's not currently available.
-				const attr = geometry.attributes[ name ];
-				self.getDefaultAttributeValue( name, _def );
-
-				for ( let i = 0; i < vertexCount; i ++ ) {
-
-					if ( attr ) {
-
-						_vec.fromBufferAttribute( attr, i + vertexStart );
-
-						switch ( attr.itemSize ) {
-
-							case 1:
-								_vec.y = _def.y;
-								_vec.z = _def.z;
-								_vec.w = _def.w;
-								break;
-							case 2:
-								_vec.z = _def.z;
-								_vec.w = _def.w;
-								break;
-							case 3:
-								_vec.w = _def.w;
-								break;
-
-						}
-
-						if ( mesh && ( name === 'position' || name === 'normal' || name === 'tangent' ) ) {
-
-							mesh.applyBoneTransform( i + vertexStart, _vec );
-
-						}
-
-					} else {
-
-						_vec.copy( _def );
-
-					}
-
-					_vec.toArray( attributesBufferF32, ( writeOffset + i ) * attrStructLength + interleavedOffset * 4 );
-
-				}
-
-			} );
-
-		}
-
-	}
-
-	_initFns() {
-
-		const { storage, structs, fns } = this;
-
-		// raycast first hit
-		const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
-		fns.raycastFirstHit = this.getShapecastFn( {
-			name: 'bvh_RaycastFirstHit',
-			shapeStruct: rayStruct,
-			resultStruct: rayIntersectionResultStruct,
-
-			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
-
-					return ray.direction[ splitAxis ] >= 0.0;
-
-				}
-			`,
-			intersectsBoundsFn: wgslTagFn/* wgsl */`
-				fn rayIntersectsBounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
-
-					let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
-					let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
-
-					let invDir = 1.0 / ray.direction;
-					let tMinPlane = ( boundsMin - ray.origin ) * invDir;
-					let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
-
-					let tMinHit = vec3f(
-						min( tMinPlane.x, tMaxPlane.x ),
-						min( tMinPlane.y, tMaxPlane.y ),
-						min( tMinPlane.z, tMaxPlane.z )
-					);
-
-					let tMaxHit = vec3f(
-						max( tMinPlane.x, tMaxPlane.x ),
-						max( tMinPlane.y, tMaxPlane.y ),
-						max( tMinPlane.z, tMaxPlane.z )
-					);
-
-					let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
-					let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
-
-					let dist = max( t0, 0.0 );
-					if ( t1 < dist ) {
-
-						return 0u;
-
-					} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
-
-						return 0u;
-
-					} else {
-
-						return 1u;
-
-					}
-
-				}
-
-			`,
-			intersectRangeFn: wgslTagFn/* wgsl */`
-				fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
-
-					var didHit = false;
-					for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
-
-						let i0 = ${ storage.index }[ ti * 3u ];
-						let i1 = ${ storage.index }[ ti * 3u + 1u ];
-						let i2 = ${ storage.index }[ ti * 3u + 2u ];
-
-						let a = ${ storage.attributes }[ i0 ].position.xyz;
-						let b = ${ storage.attributes }[ i1 ].position.xyz;
-						let c = ${ storage.attributes }[ i2 ].position.xyz;
-
-						var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
-						triResult.dist *= ${ scratchRayScalar };
-						if ( triResult.didHit && ( ! result.didHit || triResult.dist < result.dist ) ) {
-
-							result.didHit = true;
-							result.dist = triResult.dist;
-							result.normal = triResult.normal;
-							result.side = triResult.side;
-							result.barycoord = triResult.barycoord;
-							result.indices = vec4u( i0, i1, i2, ti );
-
-							didHit = true;
-
-						}
-
-					}
-
-					return didHit;
-
-				}
-			`,
-			transformShapeFn: wgslTagFn/* wgsl */`
-				fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
-
-					let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
-					ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
-					ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
-
-					let len = length( ray.direction );
-					ray.direction /= len;
-					${ scratchRayScalar } = 1.0 / len;
-
-				}
-			`,
-			transformResultFn: wgslTagFn/* wgsl */`
-				fn transformResult( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
-
-					let toLocal = ${ storage.transforms }[ objectIndex ].inverseMatrixWorld;
-					hit.normal = normalize( ( transpose( toLocal ) * vec4f( hit.normal, 0.0 ) ).xyz );
-					hit.objectIndex = objectIndex;
-
-				}
-			`,
-			resetShapeFn: wgslTagFn/* wgsl */`
-				fn resetRayScalar( objectIndex: u32 ) -> void {
-
-					${ scratchRayScalar } = 1.0;
-
-				}
-			`,
-		} );
-
-		// attribute interpolation function
-		const interpolateBody = structs
-			.attributes
-			.membersLayout
-			.map( ( { name } ) => {
-
-				return `result.${ name } = a0.${ name } * barycoord.x + a1.${ name } * barycoord.y + a2.${ name } * barycoord.z;`;
-
-			} ).join( '\n' );
-		fns.sampleTrianglePoint = wgslTagFn/* wgsl */`
-			// fn
-			fn bvh_sampleTrianglePoint( barycoord: vec3f, indices: vec3u ) -> ${ structs.attributes } {
-
-				var result: ${ structs.attributes };
-				var a0 = ${ storage.attributes }[ indices.x ];
-				var a1 = ${ storage.attributes }[ indices.y ];
-				var a2 = ${ storage.attributes }[ indices.z ];
-				${ interpolateBody }
-				return result;
-
-			}
-		`;
-
-		// closest point to point
-		const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
-		fns.closestPointToPoint = this.getShapecastFn( {
-			name: 'bvh_ClosestPointToPoint',
-			shapeStruct: 'vec3f',
-			resultStruct: pointQueryResultStruct,
-
-			boundsOrderFn: wgslTagFn/* wgsl */`
-				fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
-
-					let toWorld = ${ scratchToWorldMat };
-
-					// get center
-					let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
-					let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
-					let center = bMin * 0.5 + bMax * 0.5;
-
-					// determine the order in world space
-					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
-					let worldAxis = normalize( toWorld[ splitAxis ].xyz );
-					return dot( shape - worldCenter, worldAxis ) <= 0.0;
-
-				}
-			`,
-
-			intersectsBoundsFn: wgslTagFn/* wgsl */`
-				fn cppIntersectsBounds( shape: vec3f, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ pointQueryResultStruct }> ) -> u32 {
-
-					// return 1u;
-					// we need to check this no matter what if the result has not been found yet
-					if ( ! result.found ) {
-
-						return 1u;
-
-					}
-
-					let toWorld = ${ scratchToWorldMat };
-
-					// transform to world space
-					let bMin = vec3f( bounds.min[ 0 ], bounds.min[ 1 ], bounds.min[ 2 ] );
-					let bMax = vec3f( bounds.max[ 0 ], bounds.max[ 1 ], bounds.max[ 2 ] );
-					let center = ( bMin + bMax ) * 0.5;
-					let halfExtent = ( bMax - bMin ) * 0.5;
-					let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
-					let worldHalfExtent =
-						abs( toWorld[ 0 ].xyz ) * halfExtent.x +
-					    abs( toWorld[ 1 ].xyz ) * halfExtent.y +
-					    abs( toWorld[ 2 ].xyz ) * halfExtent.z;
-					let worldMin = worldCenter - worldHalfExtent;
-					let worldMax = worldCenter + worldHalfExtent;
-
-					// intersect if the distance to the bounds is not bigger than the already found
-					let d = shape - clamp( shape, worldMin, worldMax );
-					return select( 0u, 1u, dot( d, d ) < result.distanceSq );
-
-				}
-			`,
-
-			intersectRangeFn: wgslTagFn /* wgsl */`
-				fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
-
-					var didHit = false;
-					let toWorld = ${ scratchToWorldMat };
-
-					for ( var i = offset; i < offset + count; i ++ ) {
-
-						// transform the triangle to world space
-						let i0 = ${ storage.index }[ i * 3u + 0u ];
-						let i1 = ${ storage.index }[ i * 3u + 1u ];
-						let i2 = ${ storage.index }[ i * 3u + 2u ];
-						let a = ( toWorld * vec4f( ${ storage.attributes }[ i0 ].position.xyz, 1.0 ) ).xyz;
-						let b = ( toWorld * vec4f( ${ storage.attributes }[ i1 ].position.xyz, 1.0 ) ).xyz;
-						let c = ( toWorld * vec4f( ${ storage.attributes }[ i2 ].position.xyz, 1.0 ) ).xyz;
-
-						let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
-						let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
-						let delta = shape - closestPoint;
-						let distSq = dot( delta, delta );
-
-						// copy the content over
-						if ( ! result.found || distSq < result.distanceSq ) {
-
-							let normal = normalize( cross( a - b, b - c ) );
-
-							result.closestPoint = closestPoint;
-							result.barycoord = barycoord;
-							result.distanceSq = distSq;
-							result.faceNormal = normal;
-							result.side = sign( dot( normal, delta ) );
-							result.faceIndices = vec4u( i0, i1, i2, i );
-							result.found = true;
-							didHit = true;
-
-						}
-
-					}
-
-					return didHit;
-
-				}
-			`,
-
-			transformShapeFn: wgslTagFn/* wgsl */`
-				fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
-
-					${ scratchToWorldMat } = ${ storage.transforms }[ objectIndex ].matrixWorld;
-
-				}
-			`,
-
-			transformResultFn: wgslTagFn/* wgsl */`
-				fn cppTransformResult( result: ptr<function, ${ pointQueryResultStruct }>, objectIndex: u32 ) -> void {
-
-					result.objectIndex = objectIndex;
-
-				}
-			`,
-		} );
 
 	}
 
@@ -1129,18 +434,49 @@ export class BVHComputeData {
 		const { storage } = this;
 		for ( const key in storage ) {
 
-			if ( storage[ key ] !== null ) {
-
-				storage[ key ]?.value?.dispose();
-				storage[ key ] = null;
-
-			}
+			storage[ key ].value?.dispose();
+			delete storage[ key ];
 
 		}
 
-		this.fns.raycastFirstHit = null;
-		this.fns.sampleTrianglePoint = null;
-		this.fns.closestPointToPoint = null;
+	}
+
+}
+
+
+// A container whose string members are returned as stable proxy nodes. Assigning a member stores
+// the underlying node.
+// TODO: we should automatically infer a proxy node vs fn. Perhaps in r185 we won't need the difference?
+class NodeProxyObject {
+
+	constructor( initialization = {}, createProxy = proxy ) {
+
+		const proxies = {};
+
+		// the raw backing object holds the underlying nodes and is the proxy target. "createProxy"
+		// selects the proxy variant - "proxy" for plain nodes, "proxyFn" for callable function nodes.
+		return new Proxy( { ...initialization }, {
+
+			get( target, property ) {
+
+				if ( ! proxies[ property ] ) {
+
+					proxies[ property ] = createProxy( property, target );
+
+				}
+
+				return proxies[ property ];
+
+			},
+
+			set( target, property, value ) {
+
+				target[ property ] = value;
+				return true;
+
+			},
+
+		} );
 
 	}
 
