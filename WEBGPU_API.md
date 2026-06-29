@@ -65,6 +65,9 @@ in WebGPU compute shaders via the Three.js TSL node system. After construction, 
 > [!NOTE]
 > This API is unstable and subject to change in future releases.
 
+> [!NOTE]
+> This class requires three.js r185 or higher.
+
 ### .constructor
 
 ```js

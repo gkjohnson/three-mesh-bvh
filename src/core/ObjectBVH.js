@@ -42,7 +42,7 @@ export class ObjectBVH extends BVH {
 			precise: false,
 			includeInstances: true,
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
-			maxLeafSize: 1,
+			targetLeafSize: 1,
 			...options,
 		};
 

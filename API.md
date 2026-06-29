@@ -260,11 +260,14 @@ constructor(
 		// Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
 		strategy = CENTER: number,
 
-		// Maximum tree depth.
+		// Maximum tree depth. Note that this can cause the target leaf
+		// size to not be met if the tree is truncated.
 		maxDepth = 40: number,
 
-		// Maximum primitives per leaf node.
-		maxLeafSize = 10: number,
+		// The target number of primitives per leaf node. Note that
+		// this is a soft limit and generation strategies like SAH will
+		// terminate early if the heuristic determines.
+		targetLeafSize = 10: number,
 
 		// Set `geometry.boundingBox` if not already present.
 		setBoundingBox = true: boolean,

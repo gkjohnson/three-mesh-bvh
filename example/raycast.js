@@ -237,7 +237,7 @@ function updateFromOptions() {
 
 		console.time( 'computing bounds tree' );
 		geometry.computeBoundsTree( {
-			maxLeafSize: 5,
+			targetLeafSize: 5,
 			strategy: parseFloat( params.splitStrategy ),
 		} );
 		geometry.boundsTree.splitStrategy = params.splitStrategy;

@@ -47,6 +47,6 @@ export function toObjectBVH( bvh ) {
 
 	} );
 
-	return new ObjectBVH( objects, { strategy: SAH, maxLeafSize: 1 } );
+	return new ObjectBVH( objects, { strategy: SAH, targetLeafSize: 1 } );
 
 }

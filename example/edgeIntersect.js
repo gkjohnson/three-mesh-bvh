@@ -79,7 +79,7 @@ function init() {
 	// 	new THREE.Vector3( 0, 1, 0 ),
 	// ] );
 	// geometry.computeVertexNormals();
-	geometry.computeBoundsTree( { maxLeafSize: 1, strategy: SAH } );
+	geometry.computeBoundsTree( { targetLeafSize: 1, strategy: SAH } );
 
 	group1 = new THREE.Group();
 	mesh1 = new THREE.Mesh( geometry, material );

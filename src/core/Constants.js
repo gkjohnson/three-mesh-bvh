@@ -74,7 +74,7 @@ export const SKIP_GENERATION = Symbol( 'SKIP_GENERATION' );
 export const DEFAULT_OPTIONS = {
 	strategy: CENTER,
 	maxDepth: 40,
-	maxLeafSize: 10,
+	targetLeafSize: 10,
 	useSharedArrayBuffer: false,
 	setBoundingBox: true,
 	onProgress: null,

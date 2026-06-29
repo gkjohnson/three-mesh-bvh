@@ -45,8 +45,10 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
  * @param {BufferGeometry} geometry
  * @param {Object} [options]
  * @param {number} [options.strategy=CENTER] - Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
- * @param {number} [options.maxDepth=40] - Maximum tree depth.
- * @param {number} [options.maxLeafSize=10] - Maximum primitives per leaf node.
+ * @param {number} [options.maxDepth=40] - Maximum tree depth. Note that this can cause the target leaf size to not
+ * be met if the tree is truncated.
+ * @param {number} [options.targetLeafSize=10] - The target number of primitives per leaf node. Note that this is
+ * a soft limit and generation strategies like SAH will terminate early if the heuristic determines.
  * @param {boolean} [options.setBoundingBox=true] - Set `geometry.boundingBox` if not already present.
  * @param {boolean} [options.useSharedArrayBuffer=false] - Use `SharedArrayBuffer` for BVH root buffers.
  * @param {boolean} [options.indirect=false] - Build using an indirect buffer, leaving the original index unmodified.
