@@ -166,20 +166,18 @@ export function getShapecastFn( bvhData, options ) {
 			var didHit = false;
 			${ getFnBody( wgslTagCode/* wgsl */`
 
-				for ( var i = offset; i < offset + count; i ++ ) {
-
-					let transform = ${ transforms }[ i ];
-					if ( transform.visible == 0u ) {
-
-						continue;
-
-					}
+				// the leaf encodes the placement / transform slot in the low 24 bits of infoX and the
+				// cluster's BLAS-relative node offset in "offset". Adding the placement's BLAS base
+				// ( transform.nodeOffset ) reaches the cluster subtree.
+				let i = infoX & 0x00ffffffu;
+				let transform = ${ transforms }[ i ];
+				if ( transform.visible != 0u ) {
 
 					// Transform shape into object local space
 					var localShape = shape;
 					${ transformShapeSnippet }
 
-					if ( ${ blasFn }( localShape, transform.nodeOffset, ${ resultArg } ) ) {
+					if ( ${ blasFn }( localShape, transform.nodeOffset + offset, ${ resultArg } ) ) {
 
 						${ transformResultSnippet }
 						didHit = true;

@@ -35,20 +35,19 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  * @private
  * @param {Object} bvh
  * @param {number} geometryOffset
- * @param {Array} transformInfo
+ * @param {Array|null} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS leaves; `null` for BLAS data.
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
  * @param {boolean} [tlas=false]
  * @returns {Array<number>}
  */
-export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffset, target, tlas = false ) {
+export function appendBVHData( bvh, geometryOffset, primitiveInfo, nodeWriteOffset, target, tlas = false ) {
 
 	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
 	const targetF32 = new Float32Array( target );
 
 	const result = [];
-	let tlasOffset = 0;
 	bvh._roots.forEach( root => {
 
 		const rootBuffer16 = new Uint16Array( root );
@@ -96,28 +95,24 @@ export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffs
 
 				if ( tlas ) {
 
-					// 0xFFFF == mesh leaf, 0xFF00 == TLAS leaf
-					targetU32[ n32 + 6 ] = tlasOffset;
-					targetU16[ n16 + 15 ] = 0xFF00;
+					// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
+					// 0xFF in the top byte) and the cluster's BLAS-relative node offset. The GPU adds
+					// that offset to the placement's BLAS base ( transform.nodeOffset ) to reach the
+					// cluster subtree.
+					const offset = rootBuffer32[ r32 + 6 ];
+					const { transformSlot, nodeOffset } = primitiveInfo[ offset ];
+					if ( transformSlot > 0x00ffffff ) {
 
-					const count = rootBuffer16[ r16 + 14 ];
-					// const offset = rootBuffer32[ r32 + 6 ];
-
-					// each root is expanded into a separate transform so we need to expand
-					// the embedded offsets and counts.
-					let rootsCount = 0;
-					for ( let o = 0; o < count; o ++ ) {
-
-						const roots = transformInfo[ tlasOffset ].data.bvh._roots.length;
-						tlasOffset += roots;
-						rootsCount += roots;
+						throw new Error( `packBVHBufferUtils: transform slot ${ transformSlot } exceeds the 24-bit TLAS leaf limit.` );
 
 					}
 
-					targetU16[ n16 + 14 ] = rootsCount;
+					targetU32[ n32 + 6 ] = nodeOffset;
+					targetU32[ n32 + 7 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
 
 				} else {
 
+					// mesh leaf ( 0xFFFF )
 					targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
 					targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
 					targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;

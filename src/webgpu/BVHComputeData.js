@@ -5,14 +5,13 @@ import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
-import { ObjectBVH } from '../core/ObjectBVH.js';
-import { BYTES_PER_NODE } from '../core/Constants.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE } from '../core/Constants.js';
 import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { toObjectBVH } from './utils/toObjectBVH.js';
+import { toClusteredMetaBVH } from './utils/toClusteredMeshBVH.js';
 import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
@@ -27,6 +26,7 @@ import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointF
 // scratch
 const _matrix = /* @__PURE__ */ new Matrix4();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
 
 // functions
 function isObjectVisible( object ) {
@@ -54,6 +54,21 @@ function getTotalBVHByteLength( bvh ) {
 
 }
 
+// the node offset of a bvh root relative to the bvh's first root ( roots are packed contiguously, so
+// this folds a cluster's owning root into a single BLAS-relative offset )
+function getRootNodeOffset( bvh, root ) {
+
+	let offset = 0;
+	for ( let i = 0; i < root; i ++ ) {
+
+		offset += bvh._roots[ i ].byteLength / BYTES_PER_NODE;
+
+	}
+
+	return offset;
+
+}
+
 /**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
  * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
@@ -67,10 +82,9 @@ function getTotalBVHByteLength( bvh ) {
 export class BVHComputeData {
 
 	/**
-	 * @param {ObjectBVH|Object3D|BufferGeometry|GeometryBVH|Array} bvh
-	 * Scene objects to include, or a pre-built {@link ObjectBVH}. A single item or array of
-	 * Object3D, BufferGeometry, or GeometryBVH instances are all accepted and wrapped
-	 * automatically in an ObjectBVH.
+	 * @param {Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * Scene objects to include. A single item or array of Object3D, BufferGeometry, or GeometryBVH instances are
+	 * all accepted and wrapped automatically in a BVH.
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
@@ -81,10 +95,6 @@ export class BVHComputeData {
 	 */
 	constructor( bvh, options = {} ) {
 
-		// convert the bvh argument to an ObjectBVH. Supports an Object3D, BufferGeometry,
-		// GeometryBVH, an array of the above, or a pre-built ObjectBVH.
-		bvh = toObjectBVH( bvh );
-
 		const {
 			attributes = { position: 'vec4f' },
 			autogenerateBvh = true,
@@ -94,7 +104,14 @@ export class BVHComputeData {
 
 		this.autogenerateBvh = autogenerateBvh;
 		this.attributes = attributes;
-		this.bvh = bvh;
+
+		// convert the bvh argument to a ClusteredMetaBVH. Supports an Object3D, BufferGeometry,
+		// GeometryBVH, an array of the above, or a pre-built ClusteredMetaBVH. The meta bvh splits
+		// each static mesh into clusters ( subtrees of its MeshBVH ) so dense, interpenetrating
+		// geometry produces tighter top-level bounds; "getBVH" supplies the per-object MeshBVH.
+		this.bvh = toClusteredMetaBVH( bvh, {
+			getBVH: object => this.getBVH( object, 0, _range ),
+		} );
 
 		// storage buffers and structs are populated in "update"; their members are accessed through
 		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
@@ -151,10 +168,21 @@ export class BVHComputeData {
 		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
-		bvh.primitiveBuffer.forEach( compositeId => {
+		// per primitive ( in final tree order ): the { transformSlot, nodeOffset } written into its
+		// TLAS leaf. "nodeOffset" is BLAS-relative; the GPU adds the placement's BLAS base.
+		const primitiveInfo = [];
 
-			const object = bvh.getObjectFromId( compositeId );
-			const instanceId = bvh.getInstanceFromId( compositeId );
+		// placement ( object + instance ) -> transform slot. The many cluster primitives of one mesh
+		// share a single transform, so transforms are deduplicated here - no duplicated matrices.
+		const transformMap = new Map();
+
+		const { primitiveBuffer, primitiveBufferStride } = bvh;
+		for ( let i = 0, l = primitiveBuffer.length; i < l; i += primitiveBufferStride ) {
+
+			const compositeId = primitiveBuffer[ i ];
+			const compositeNodeId = primitiveBuffer[ i + 1 ];
+			const object = bvh.objects[ bvh.getObjectId( compositeId ) ];
+			const instanceId = bvh.getInstanceId( compositeId );
 			const range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
 			const primBvh = this.getBVH( object, instanceId, range );
 
@@ -164,11 +192,11 @@ export class BVHComputeData {
 
 			}
 
-			// if we haven't added this bvh, yet
-			if ( ! bvhInfo.find( info => info.bvh === primBvh ) ) {
+			// dedupe the geometry / BLAS
+			let data = bvhInfo.find( info => info.bvh === primBvh );
+			if ( ! data ) {
 
-				// save the geometry info to write later and increment the buffer sizes
-				const info = {
+				data = {
 					index: bvhInfo.length,
 					bvh: primBvh,
 					range: range,
@@ -180,27 +208,36 @@ export class BVHComputeData {
 
 				// increase the buffer sizes for bvh and geometry
 				bvhNodesBufferLength += getTotalBVHByteLength( primBvh );
-				indexBufferLength += info.range.count;
-				attributesBufferLength += info.range.vertexCount;
-				bvhInfo.push( info );
+				indexBufferLength += data.range.count;
+				attributesBufferLength += data.range.vertexCount;
+				bvhInfo.push( data );
 
 			}
 
-			// save the index of the bvh associated with this transform
-			const data = bvhInfo.find( info => primBvh === info.bvh );
-			primBvh._roots.forEach( ( root, i ) => {
+			// dedupe the placement into a single transform ( matrix + BLAS root base )
+			let transformSlot = transformMap.get( compositeId );
+			if ( transformSlot === undefined ) {
 
-				transformInfo.push( {
-					data,
-					root: i,
-					object,
-					instanceId,
-					compositeId,
-				} );
+				transformSlot = transformInfo.length;
+				transformMap.set( compositeId, transformSlot );
+				transformInfo.push( { data, object, instanceId, compositeId } );
 
-			} );
+			}
 
-		} );
+			// the cluster's node offset within its BLAS ( BLAS-relative, so the owning root is folded
+			// in ); an instance references the whole BLAS root ( offset 0 )
+			let nodeOffset = 0;
+			if ( ! bvh.isInstance( object ) ) {
+
+				const root = bvh.getBVHRootIndex( compositeNodeId );
+				const ordinal = bvh.getBVHNodeIndex( compositeNodeId ) / UINT32_PER_NODE;
+				nodeOffset = getRootNodeOffset( primBvh, root ) + ordinal;
+
+			}
+
+			primitiveInfo.push( { transformSlot, nodeOffset } );
+
+		}
 
 		//
 
@@ -223,12 +260,12 @@ export class BVHComputeData {
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
 		// append TLAS data
-		appendBVHData( bvh, 0, transformInfo, 0, bvhNodesBuffer, true );
+		appendBVHData( bvh, 0, primitiveInfo, 0, bvhNodesBuffer, true );
 		nodeWriteOffset += getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
 		bvhInfo.forEach( info => {
 
 			// append bvh data
-			const bvhNodeOffsets = appendBVHData( info.bvh, indexOffset / 3, transformInfo, nodeWriteOffset, bvhNodesBuffer, false );
+			const bvhNodeOffsets = appendBVHData( info.bvh, indexOffset / 3, null, nodeWriteOffset, bvhNodesBuffer, false );
 			info.bvhNodeOffsets = bvhNodeOffsets;
 
 			// append geometry data
@@ -296,7 +333,7 @@ export class BVHComputeData {
 		const transformBufferF32 = new Float32Array( targetBuffer );
 		const transformBufferU32 = new Uint32Array( targetBuffer );
 
-		const { object, instanceId, root, data } = info;
+		const { object, instanceId, data } = info;
 		const { bvhNodeOffsets } = data;
 		if ( object.isInstancedMesh || object.isBatchedMesh ) {
 
@@ -317,8 +354,9 @@ export class BVHComputeData {
 		_matrix.invert();
 		_matrix.toArray( transformBufferF32, writeOffset * structs.transform.getLength() + 16 );
 
-		// write node offset
-		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = bvhNodeOffsets[ root ];
+		// write node offset - the placement's BLAS base ( first root ). The TLAS leaf adds the
+		// per-cluster offset on top of this.
+		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = bvhNodeOffsets[ 0 ];
 
 		let visible = isObjectVisible( object );
 		if ( object.isBatchedMesh ) {
