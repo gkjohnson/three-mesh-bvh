@@ -196,9 +196,20 @@ export class ObjectBVH extends BVH {
 
 					}
 
+					let dist;
+					if ( box.containsPoint( _ray.origin ) ) {
+
+						dist = 0;
+
+					} else {
+
+						_vec.applyMatrix4( matrixWorld );
+						dist = raycaster.ray.origin.distanceTo( _vec );
+
+					}
+
 					// early out if the box is further than the closest raycast
-					_vec.applyMatrix4( matrixWorld );
-					return raycaster.ray.origin.distanceTo( _vec ) < closestDistance ? INTERSECTED : NOT_INTERSECTED;
+					return dist < closestDistance ? INTERSECTED : NOT_INTERSECTED;
 
 				} else {
 
