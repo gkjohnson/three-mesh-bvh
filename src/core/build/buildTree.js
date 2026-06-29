@@ -66,47 +66,42 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 
 		// Find where to split the volume
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, primitiveBounds, offset, count, strategy );
-		if ( split.axis === - 1 ) {
+		let splitOffset = - 1;
+		if ( split.axis !== - 1 ) {
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
-			return node;
+			splitOffset = partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
 
 		}
 
-		const splitOffset = partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
+		// if it turns out we can't partition the node then force an arbitrary split in the middle. Inoptimal but
+		// ensures our leaf nodes match the "maxLeafSize" requirement
+		if ( split.axis === - 1 || splitOffset === offset || splitOffset === offset + count ) {
+
+			splitOffset = offset + Math.max( 1, Math.floor( count / 2 ) );
+			split.axis = depth % 3;
+
+		}
 
 		// create the two new child nodes
-		if ( splitOffset === offset || splitOffset === offset + count ) {
+		node.splitAxis = split.axis;
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
+		// create the left child and compute its bounding box
+		const left = new BVHNode();
+		const lstart = offset;
+		const lcount = splitOffset - offset;
+		node.left = left;
 
-		} else {
+		getBounds( primitiveBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
+		splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
 
-			node.splitAxis = split.axis;
+		// repeat for right
+		const right = new BVHNode();
+		const rstart = splitOffset;
+		const rcount = count - lcount;
+		node.right = right;
 
-			// create the left child and compute its bounding box
-			const left = new BVHNode();
-			const lstart = offset;
-			const lcount = splitOffset - offset;
-			node.left = left;
-
-			getBounds( primitiveBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
-			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
-
-			// repeat for right
-			const right = new BVHNode();
-			const rstart = splitOffset;
-			const rcount = count - lcount;
-			node.right = right;
-
-			getBounds( primitiveBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
-			splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
-
-		}
+		getBounds( primitiveBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
+		splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
 
 		return node;
 
