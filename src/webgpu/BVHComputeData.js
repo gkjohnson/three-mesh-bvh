@@ -11,7 +11,7 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { toClusteredMetaBVH } from './utils/toClusteredMetaBVH.js';
+import { toClusteredMetaBVH } from './utils/toClusteredMeshBVH.js';
 import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';

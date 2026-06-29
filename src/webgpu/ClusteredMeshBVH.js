@@ -21,7 +21,7 @@ const _sphere = /* @__PURE__ */ new Sphere();
 const _vec = /* @__PURE__ */ new Vector3();
 const _geometryRange = {};
 
-export class ClusteredMetaBVH extends BVH {
+export class ClusteredMeshBVH extends BVH {
 
 	constructor( root, options ) {
 
