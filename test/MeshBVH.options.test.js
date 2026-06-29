@@ -3,6 +3,8 @@ import {
 	Raycaster,
 	MeshBasicMaterial,
 	TorusGeometry,
+	BufferGeometry,
+	BufferAttribute,
 } from 'three';
 import {
 	MeshBVH,
@@ -134,6 +136,63 @@ describe( 'Options', () => {
 
 			expect( ogHits ).toEqual( bvhHits );
 			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
+
+		} );
+
+	} );
+
+	describe( 'maxLeafSize', () => {
+
+		// a non-indexed geometry made of many copies of the exact same triangle. Every triangle
+		// shares the same centroid, so the optimal split can never separate them.
+		function getDuplicateTriangleGeometry( triCount ) {
+
+			const position = new Float32Array( triCount * 9 );
+			for ( let i = 0; i < triCount; i ++ ) {
+
+				const o = i * 9;
+				position[ o + 0 ] = 0;
+				position[ o + 1 ] = 0;
+				position[ o + 2 ] = 0;
+
+				position[ o + 3 ] = 1;
+				position[ o + 4 ] = 0;
+				position[ o + 5 ] = 0;
+
+				position[ o + 6 ] = 0;
+				position[ o + 7 ] = 1;
+				position[ o + 8 ] = 0;
+
+			}
+
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
+			return geometry;
+
+		}
+
+		it( 'should respect maxLeafSize even when the primitives cannot be partitioned.', () => {
+
+			const triCount = 100;
+			const maxLeafSize = 1;
+			const bvh = new MeshBVH( getDuplicateTriangleGeometry( triCount ), { maxLeafSize } );
+
+			let total = 0;
+			let largestLeaf = 0;
+			bvh.traverse( ( depth, isLeaf, box, offset, count ) => {
+
+				if ( isLeaf ) {
+
+					total += count;
+					largestLeaf = Math.max( largestLeaf, count );
+
+				}
+
+			} );
+
+			expect( largestLeaf ).toBeLessThanOrEqual( maxLeafSize );
+			expect( total ).toBe( triCount );
+			expect( validateBounds( bvh ) ).toBe( true );
 
 		} );
 
