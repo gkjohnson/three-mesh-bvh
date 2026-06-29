@@ -443,7 +443,8 @@ function collectObjects( root, objectSet = new Set() ) {
 
 		root.traverse( child => {
 
-			if ( child.isMesh || child.isLine || child.isPoints ) {
+			// NOTE: This only works with meshes for now
+			if ( child.isMesh ) {
 
 				objectSet.add( child );
 
