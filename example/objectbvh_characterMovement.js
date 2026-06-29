@@ -250,7 +250,7 @@ function loadColliderEnvironment() {
 		scene.add( level );
 
 		level.updateMatrixWorld( true );
-		sceneBVH = new ObjectBVH( level, { maxLeafSize: 1 } );
+		sceneBVH = new ObjectBVH( level, { targetLeafSize: 1 } );
 
 		sceneHelper = new BVHHelper( level, sceneBVH );
 		sceneHelper.opacity = 0.5;
