@@ -121,7 +121,6 @@ export class ClusteredMetaBVH extends BVH {
 		if ( node32Index === OBJECT_PRIMITIVE_FLAG ) {
 
 			// instance
-
 			this._getPrimitiveBoundingBox( id, _inverseMatrix, _box );
 
 		} else {
@@ -365,34 +364,14 @@ export class ClusteredMetaBVH extends BVH {
 
 			} else {
 
-				const rootCount = bvh._roots.length;
-				for ( let r = 0; r < rootCount; r ++ ) {
+				_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => {
 
-					BVHTraversalHelper.setBVH( bvh, r );
-					BVHTraversalHelper.traverseBuffer( ( depth, isLeaf, node32Index ) => {
+					primitiveBuffer[ 2 * offset + 0 ] = ( r << idBits ) | objectIndex;
+					primitiveBuffer[ 2 * offset + 1 ] = node32Index;
 
-						const start = BVHTraversalHelper.getRangeStart( node32Index );
-						const end = BVHTraversalHelper.getRangeEnd( node32Index );
-						const count = end - start;
+					offset ++;
 
-						if ( count < primitiveLimit || isLeaf ) {
-
-							primitiveBuffer[ 2 * offset + 0 ] = ( r << idBits ) | objectIndex;
-							primitiveBuffer[ 2 * offset + 1 ] = node32Index;
-
-							offset ++;
-
-							return true;
-
-						}
-
-						return false;
-
-					} );
-
-				}
-
-				BVHTraversalHelper.reset();
+				} );
 
 			}
 
@@ -402,44 +381,55 @@ export class ClusteredMetaBVH extends BVH {
 
 	_countRelevantLeafNodes( bvh ) {
 
+		const { primitiveLimit } = this;
 		let total = 0;
-		const primitiveLimit = this.primitiveLimit;
-		const rootCount = bvh._roots.length;
-		for ( let i = 0; i < rootCount; i ++ ) {
+		_traverseClusters( bvh, primitiveLimit, ( r, node32Index, count, isLeaf ) => {
 
-			BVHTraversalHelper.setBVH( bvh, i );
-			BVHTraversalHelper.traverseBuffer( ( depth, isLeaf, node32Index ) => {
+			total ++;
 
-				const start = BVHTraversalHelper.getRangeStart( node32Index );
-				const end = BVHTraversalHelper.getRangeEnd( node32Index );
-				const count = end - start;
+			if ( isLeaf && count >= primitiveLimit ) {
 
-				if ( count < primitiveLimit ) {
+				console.warn( `ClusteredMetaBVH: a leaf node with ${ count } primitives exceeds the cluster primitive limit of ${ primitiveLimit } and cannot be subdivided further.` );
 
-					total ++;
-					return true;
+			}
 
-				} else if ( isLeaf ) {
-
-					total ++;
-					console.warn( 'ClusteredMetaBVH: ' );
-					return true;
-
-				} else {
-
-					return false;
-
-				}
-
-			} );
-
-		}
-
-		BVHTraversalHelper.reset();
+		} );
 
 		return total;
 
 	}
+
+}
+
+// invokes "callback( rootIndex, node32Index, count, isLeaf )" for every cluster cut point in the
+// bvh - the highest node in each subtree whose primitive count is below "primitiveLimit", plus any
+// leaf that exceeds the limit and so cannot be subdivided further.
+function _traverseClusters( bvh, primitiveLimit, callback ) {
+
+	const rootCount = bvh._roots.length;
+	for ( let r = 0; r < rootCount; r ++ ) {
+
+		BVHTraversalHelper.setBVH( bvh, r );
+		BVHTraversalHelper.traverseBuffer( ( depth, isLeaf, node32Index ) => {
+
+			const start = BVHTraversalHelper.getRangeStart( node32Index );
+			const end = BVHTraversalHelper.getRangeEnd( node32Index );
+			const count = end - start;
+
+			if ( count < primitiveLimit || isLeaf ) {
+
+				callback( r, node32Index, count, isLeaf );
+				return true;
+
+			}
+
+			return false;
+
+		} );
+
+	}
+
+	BVHTraversalHelper.reset();
 
 }
 
