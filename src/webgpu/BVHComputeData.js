@@ -282,7 +282,7 @@ export class BVHComputeData {
 
 		// resolve each TLAS leaf's node offset now that the subtree bases are known, then pack the TLAS
 		primitiveInfo.forEach( info => info.nodeOffset = info.subtree.base );
-		appendBVHData( bvh, 0, primitiveInfo, 0, bvhNodesBuffer, true );
+		appendBVHData( bvh, primitiveInfo, 0, bvhNodesBuffer );
 
 		//
 
