@@ -15,7 +15,7 @@ const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _box =/* @__PURE__ */ new Box3();
 const _matrix = /* @__PURE__ */ new Matrix4();
 
-export class ClusteredMeshBVH extends BVH {
+export class ClusteredBVH extends BVH {
 
 	constructor( root, options ) {
 

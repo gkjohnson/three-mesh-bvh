@@ -2,21 +2,21 @@
 import { Mesh } from 'three/webgpu';
 import { GeometryBVH } from '../../core/GeometryBVH.js';
 import { SAH } from '../../core/Constants.js';
-import { ClusteredMeshBVH } from '../ClusteredMeshBVH.js';
+import { ClusteredBVH } from '../ClusteredBVH.js';
 
 /**
- * Normalizes the various accepted `bvh` arguments into a {@link ClusteredMeshBVH}. A pre-built
+ * Normalizes the various accepted `bvh` arguments into a {@link ClusteredBVH}. A pre-built
  * ClusteredMetaBVH is returned as-is; otherwise an Object3D, BufferGeometry, GeometryBVH, or array
  * of those is wrapped into a new ClusteredMetaBVH.
  *
  * @private
- * @param {ClusteredMeshBVH | Object3D | BufferGeometry | GeometryBVH | Array} bvh
+ * @param {ClusteredBVH | Object3D | BufferGeometry | GeometryBVH | Array} bvh
  * @param {Object} options - ClusteredMetaBVH options ( notably the required "getBVH" callback ).
- * @returns {ClusteredMeshBVH}
+ * @returns {ClusteredBVH}
  */
 export function toClusteredMetaBVH( bvh, options ) {
 
-	if ( bvh instanceof ClusteredMeshBVH ) {
+	if ( bvh instanceof ClusteredBVH ) {
 
 		return bvh;
 
@@ -48,6 +48,6 @@ export function toClusteredMetaBVH( bvh, options ) {
 
 	} );
 
-	return new ClusteredMeshBVH( objects, { strategy: SAH, ...options } );
+	return new ClusteredBVH( objects, { strategy: SAH, ...options } );
 
 }
