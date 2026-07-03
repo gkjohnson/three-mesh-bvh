@@ -38,9 +38,12 @@ export class ClusteredMeshBVH extends BVH {
 			},
 			primitiveLimit: 64,
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
-			maxLeafSize: 1,
 			includeInstances: true,
 			precise: false,
+
+			// force 1 object per leaf
+			_strictLeafSize: 1,
+
 			...options,
 		};
 
@@ -83,7 +86,8 @@ export class ClusteredMeshBVH extends BVH {
 				bvhList.push( bvh );
 				if ( bvh ) {
 
-					total += this._countRelevantLeafNodes( bvh );
+					// "instance" objects are referenced whole, everything else is subdivided into clusters
+					total += this.isInstance( object ) ? bvh._roots.length : this._countRelevantLeafNodes( bvh );
 
 				}
 
@@ -360,6 +364,27 @@ export class ClusteredMeshBVH extends BVH {
 
 		const { objects, bvhMap, idBits, primitiveLimit } = this;
 		let offset = 0;
+
+		const pushPrimitive = ( instance, objectIndex, r, nodeIndex ) => {
+
+			if ( nodeIndex > NODE_INDEX_MASK ) {
+
+				throw new Error( `ClusteredMetaBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
+
+			}
+
+			if ( r > ROOT_INDEX_MASK ) {
+
+				throw new Error( `ClusteredMetaBVH: bvh root index ${ r } exceeds the ${ ROOT_INDEX_BITS }-bit packing limit and cannot be represented.` );
+
+			}
+
+			primitiveBuffer[ 2 * offset + 0 ] = ( instance << idBits ) | objectIndex;
+			primitiveBuffer[ 2 * offset + 1 ] = ( r << NODE_INDEX_BITS ) | ( nodeIndex & NODE_INDEX_MASK );
+			offset ++;
+
+		};
+
 		objects.forEach( ( object, objectIndex ) => {
 
 			bvhMap.get( object ).forEach( ( bvh, instance ) => {
@@ -370,27 +395,21 @@ export class ClusteredMeshBVH extends BVH {
 
 				}
 
-				_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => {
+				if ( this.isInstance( object ) ) {
 
-					const nodeIndex = node32Index / UINT32_PER_NODE;
-					if ( nodeIndex > NODE_INDEX_MASK ) {
+					// referenced whole - one primitive per bvh root, entered at node 0
+					for ( let r = 0, rl = bvh._roots.length; r < rl; r ++ ) {
 
-						throw new Error( `ClusteredMetaBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
-
-					}
-
-					if ( r > ROOT_INDEX_MASK ) {
-
-						throw new Error( `ClusteredMetaBVH: bvh root index ${ r } exceeds the ${ ROOT_INDEX_BITS }-bit packing limit and cannot be represented.` );
+						pushPrimitive( instance, objectIndex, r, 0 );
 
 					}
 
-					primitiveBuffer[ 2 * offset + 0 ] = ( instance << idBits ) | objectIndex;
-					primitiveBuffer[ 2 * offset + 1 ] = ( r << NODE_INDEX_BITS ) | ( nodeIndex & NODE_INDEX_MASK );
+				} else {
 
-					offset ++;
+					// subdivided into clusters - one primitive per cluster cut point
+					_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => pushPrimitive( instance, objectIndex, r, node32Index / UINT32_PER_NODE ) );
 
-				} );
+				}
 
 			} );
 
