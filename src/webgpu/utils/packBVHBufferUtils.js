@@ -30,14 +30,13 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
 
 /**
  * Copies the packed nodes of the TLAS into the shared node buffer, encoding each leaf as a TLAS leaf
- * (`0xFF00` tag) from its `primitiveInfo` entry. Returns the write offset of each root.
+ * (`0xFF00` tag) from its `primitiveInfo` entry.
  *
  * @private
  * @param {Object} bvh
  * @param {Array} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS leaves.
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
- * @returns {Array<number>}
  */
 export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
@@ -45,12 +44,10 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 	const targetU32 = new Uint32Array( target );
 	const targetF32 = new Float32Array( target );
 
-	const result = [];
 	bvh._roots.forEach( root => {
 
 		const rootBuffer16 = new Uint16Array( root );
 		const rootBuffer32 = new Uint32Array( root );
-		result.push( nodeWriteOffset );
 		for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
 
 			const r32 = i * UINT32_PER_NODE;
@@ -121,8 +118,6 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 		}
 
 	} );
-
-	return result;
 
 }
 
