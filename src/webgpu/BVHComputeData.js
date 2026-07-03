@@ -12,7 +12,7 @@ import {
 	transformStruct,
 } from './tsl/structs.js';
 import { toClusteredMetaBVH } from './utils/toClusteredMeshBVH.js';
-import { appendBVHData, appendIndexData, appendGeometryData } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
@@ -148,12 +148,18 @@ export class BVHComputeData {
 		const bvhInfo = [];
 		const transformInfo = [];
 
+		// per referenced cluster subtree ( deduped by bvh + root + node ): { data, root, node, size, base }.
+		// only these subtrees are copied into the node buffer - the upper nodes above the cluster cuts,
+		// which no TLAS leaf enters, are never uploaded.
+		const subtreeInfo = [];
+		const subtreeMap = new Map();
+
 		// accumulate the sizes of the bvh nodes buffer, number of objects, and geometry buffers
 		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
-		// per primitive ( in final tree order ): the { transformSlot, nodeOffset } written into its
-		// TLAS leaf. "nodeOffset" is relative to the owning root; the leaf's transform holds the base.
+		// per primitive ( in final tree order ): the { transformSlot, subtree } for its TLAS leaf. The
+		// leaf's node offset is resolved to the subtree's packed base once all subtrees are laid out.
 		const primitiveInfo = [];
 
 		// ( placement, root ) -> transform slot. Each bvh root ( geometry group ) gets its own
@@ -177,7 +183,7 @@ export class BVHComputeData {
 
 			}
 
-			// dedupe the geometry / BLAS
+			// dedupe the geometry ( index + attributes ) once per bvh
 			let data = bvhInfo.find( info => info.bvh === primBvh );
 			if ( ! data ) {
 
@@ -186,13 +192,12 @@ export class BVHComputeData {
 					bvh: primBvh,
 					range: range,
 
-					bvhNodeOffsets: null,
-					indexBufferOffset: null,
+					geometryOffset: 0,
 
 				};
 
-				// increase the buffer sizes for bvh and geometry
-				bvhNodesBufferLength += getTotalBVHByteLength( primBvh );
+				// the whole geometry is packed once per bvh; only referenced subtrees ( below ) contribute
+				// to the node buffer
 				indexBufferLength += data.range.count;
 				attributesBufferLength += data.range.vertexCount;
 				bvhInfo.push( data );
@@ -200,7 +205,21 @@ export class BVHComputeData {
 			}
 
 			const root = bvh.getBVHRootIndex( compositeNodeId );
-			const nodeOffset = bvh.getBVHNodeIndex( compositeNodeId ) / UINT32_PER_NODE;
+			const node = bvh.getBVHNodeIndex( compositeNodeId ) / UINT32_PER_NODE;
+
+			// dedupe the referenced cluster subtree - the TLAS leaf only enters this subtree, so packing
+			// just its contiguous node range skips the unreferenced upper nodes above the cut
+			const subtreeKey = `${ data.index }_${ root }_${ node }`;
+			let subtree = subtreeMap.get( subtreeKey );
+			if ( subtree === undefined ) {
+
+				const size = getSubtreeNodeCount( primBvh._roots[ root ], node );
+				subtree = { data, root, node, size, base: 0 };
+				subtreeMap.set( subtreeKey, subtree );
+				subtreeInfo.push( subtree );
+				bvhNodesBufferLength += size * BYTES_PER_NODE;
+
+			}
 
 			// dedupe a transform per ( placement, root ) - clusters of the same root share it
 			const transformKey = `${ compositeId }_${ root }`;
@@ -213,7 +232,8 @@ export class BVHComputeData {
 
 			}
 
-			primitiveInfo.push( { transformSlot, nodeOffset } );
+			// nodeOffset is resolved to the subtree's packed base after the subtrees are laid out
+			primitiveInfo.push( { transformSlot, subtree } );
 
 		}
 
@@ -232,31 +252,37 @@ export class BVHComputeData {
 		// write the geometry buffer attributes & bvh data
 		let attributesOffset = 0;
 		let indexOffset = 0;
-		let nodeWriteOffset = 0;
 		const indexBuffer = new Uint32Array( indexBufferLength );
 		const attributesBuffer = new ArrayBuffer( attributesBufferLength * attributeStruct.getLength() * 4 );
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
-		// append TLAS data
-		appendBVHData( bvh, 0, primitiveInfo, 0, bvhNodesBuffer, true );
-		nodeWriteOffset += getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
+		// pack each unique geometry ( index + attributes ) once, recording its triangle base so the
+		// referenced subtrees' leaves can be rebased into it
 		bvhInfo.forEach( info => {
 
-			// append bvh data
-			const bvhNodeOffsets = appendBVHData( info.bvh, indexOffset / 3, null, nodeWriteOffset, bvhNodesBuffer, false );
-			info.bvhNodeOffsets = bvhNodeOffsets;
-
-			// append geometry data
+			info.geometryOffset = indexOffset / 3;
 			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
 			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeStruct, this );
-			info.indexBufferOffset = indexOffset;
 
-			// step the write offsets forward
 			indexOffset += info.range.count;
 			attributesOffset += info.range.vertexCount;
-			nodeWriteOffset += getTotalBVHByteLength( info.bvh ) / BYTES_PER_NODE;
 
 		} );
+
+		// pack only the referenced cluster subtrees into the node buffer, after the TLAS region. Each
+		// subtree's write base becomes the node offset written into its TLAS leaves.
+		let nodeWriteOffset = getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
+		subtreeInfo.forEach( subtree => {
+
+			subtree.base = nodeWriteOffset;
+			appendBVHSubtree( subtree.data.bvh._roots[ subtree.root ], subtree.node, subtree.size, subtree.data.geometryOffset, nodeWriteOffset, bvhNodesBuffer );
+			nodeWriteOffset += subtree.size;
+
+		} );
+
+		// resolve each TLAS leaf's node offset now that the subtree bases are known, then pack the TLAS
+		primitiveInfo.forEach( info => info.nodeOffset = info.subtree.base );
+		appendBVHData( bvh, 0, primitiveInfo, 0, bvhNodesBuffer, true );
 
 		//
 
@@ -311,8 +337,7 @@ export class BVHComputeData {
 		const transformBufferF32 = new Float32Array( targetBuffer );
 		const transformBufferU32 = new Uint32Array( targetBuffer );
 
-		const { object, instanceId, root, data } = info;
-		const { bvhNodeOffsets } = data;
+		const { object, instanceId } = info;
 		if ( object.isInstancedMesh || object.isBatchedMesh ) {
 
 			object.getMatrixAt( instanceId, _matrix );
@@ -332,10 +357,6 @@ export class BVHComputeData {
 		_matrix.invert();
 		_matrix.toArray( transformBufferF32, writeOffset * structs.transform.getLength() + 16 );
 
-		// write node offset - the owning root's base. The TLAS leaf adds the per-cluster offset within
-		// that root on top of this.
-		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = bvhNodeOffsets[ root ];
-
 		let visible = isObjectVisible( object );
 		if ( object.isBatchedMesh ) {
 
@@ -343,7 +364,7 @@ export class BVHComputeData {
 
 		}
 
-		transformBufferU32[ writeOffset * structs.transform.getLength() + 33 ] = visible ? 1 : 0;
+		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = visible ? 1 : 0;
 
 	}
 

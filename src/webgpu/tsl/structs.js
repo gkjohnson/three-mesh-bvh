@@ -31,10 +31,10 @@ bvhNodeStruct.getLength = () => bvhNodeBoundsStruct.getLength() + 2;
 export const transformStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',
 	inverseMatrixWorld: 'mat4x4f',
-	nodeOffset: 'uint',
 	visible: 'uint',
 	_alignment0: 'uint',
 	_alignment1: 'uint',
+	_alignment2: 'uint',
 }, 'TransformStruct' );
 
 

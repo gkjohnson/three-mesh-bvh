@@ -96,9 +96,8 @@ export function appendBVHData( bvh, geometryOffset, primitiveInfo, nodeWriteOffs
 				if ( tlas ) {
 
 					// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
-					// 0xFF in the top byte) and the cluster's BLAS-relative node offset. The GPU adds
-					// that offset to the placement's BLAS base ( transform.nodeOffset ) to reach the
-					// cluster subtree.
+					// 0xFF in the top byte) and the cluster subtree's absolute node offset, which the
+					// GPU enters directly as the BLAS entry node.
 					const offset = rootBuffer32[ r32 + 6 ];
 					const count = rootBuffer16[ r16 + 14 ];
 
@@ -137,6 +136,115 @@ export function appendBVHData( bvh, geometryOffset, primitiveInfo, nodeWriteOffs
 	} );
 
 	return result;
+
+}
+
+/**
+ * Counts the nodes in the contiguous ( depth-first ) subtree rooted at "nodeIndex". A subtree's node
+ * count is `rightOffset + subtreeSize( rightChild )`, unwinding down the right spine.
+ *
+ * @private
+ * @param {ArrayBuffer} root - A single BVH root's packed node buffer.
+ * @param {number} nodeIndex - Node index ( in node units ) of the subtree root.
+ * @returns {number}
+ */
+export function getSubtreeNodeCount( root, nodeIndex ) {
+
+	return spanOf( new Uint16Array( root ), new Uint32Array( root ), nodeIndex );
+
+}
+
+// exact contiguous span ( node count ) of the subtree rooted at "nodeIndex"
+function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
+
+	const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ nodeIndex * UINT32_PER_NODE * 2 + 15 ];
+	if ( isLeaf ) {
+
+		return 1;
+
+	}
+
+	const rightOffset = rootBuffer32[ nodeIndex * UINT32_PER_NODE + 6 ];
+	return rightOffset + spanOf( rootBuffer16, rootBuffer32, nodeIndex + rightOffset );
+
+}
+
+/**
+ * Copies a single contiguous subtree ( `[ subtreeStart, subtreeStart + subtreeSize )` ) of a BVH root
+ * into the shared node buffer, rebasing leaf triangle offsets by "geometryOffset". Internal nodes'
+ * child offsets are relative and so remain valid on the contiguous copy.
+ *
+ * @private
+ * @param {ArrayBuffer} root - The BVH root's packed node buffer.
+ * @param {number} subtreeStart - Node index of the subtree root.
+ * @param {number} subtreeSize - Number of nodes in the subtree.
+ * @param {number} geometryOffset - Triangle base added to leaf offsets.
+ * @param {number} nodeWriteOffset - Node index in "target" to write the subtree root to.
+ * @param {ArrayBuffer} target
+ */
+export function appendBVHSubtree( root, subtreeStart, subtreeSize, geometryOffset, nodeWriteOffset, target ) {
+
+	const targetU16 = new Uint16Array( target );
+	const targetU32 = new Uint32Array( target );
+	const targetF32 = new Float32Array( target );
+	const rootBuffer16 = new Uint16Array( root );
+	const rootBuffer32 = new Uint32Array( root );
+
+	for ( let k = 0; k < subtreeSize; k ++ ) {
+
+		const src = subtreeStart + k;
+		const r32 = src * UINT32_PER_NODE;
+		const r16 = r32 * 2;
+		const n32 = nodeWriteOffset * UINT32_PER_NODE;
+		const n16 = n32 * 2;
+
+		// write bounds - fix up an empty subtree root's [ Infinity, -Infinity ] to [ 1, -1 ]
+		const view = new Float32Array( root, src * BYTES_PER_NODE, 6 );
+		if ( k === 0 ) {
+
+			for ( let c = 0; c < 3; c ++ ) {
+
+				const vMin = view[ c + 0 ];
+				const vMax = view[ c + 3 ];
+				if ( vMin > vMax ) {
+
+					targetF32[ n32 + c + 0 ] = 1;
+					targetF32[ n32 + c + 3 ] = - 1;
+
+				} else {
+
+					targetF32[ n32 + c + 0 ] = vMin;
+					targetF32[ n32 + c + 3 ] = vMax;
+
+				}
+
+			}
+
+		} else {
+
+			targetF32.set( view, n32 );
+
+		}
+
+		const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
+		if ( isLeaf ) {
+
+			// mesh leaf ( 0xFFFF ) - rebase the triangle offset into the packed index buffer
+			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
+			targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
+			targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
+
+		} else {
+
+			// internal node - the right-child offset is relative, so it is valid as-is on the copy
+			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
+			targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
+
+		}
+
+		nodeWriteOffset ++;
+
+	}
 
 }
 
