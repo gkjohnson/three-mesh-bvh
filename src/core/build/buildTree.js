@@ -1,8 +1,8 @@
 import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
+import { getLongestEdgeIndex } from '../../utils/ArrayBoxUtilities.js';
 import { BVHNode } from '../BVHNode.js';
 import { BYTES_PER_NODE } from '../Constants.js';
-import { getLongestEdgeIndex } from '../../utils/ArrayBoxUtilities.js';
 
 import { partition } from './sortUtils.js';
 import { countNodes, populateBuffer } from './buildUtils.js';
@@ -14,6 +14,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		maxDepth,
 		verbose,
 		targetLeafSize,
+		_strictLeafSize = Infinity,
 		strategy,
 		onProgress,
 	} = options;
@@ -55,8 +56,12 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 
 		}
 
-		// early out if we've met our capacity
-		if ( count <= targetLeafSize || depth >= maxDepth ) {
+		// A hard guarantee that no leaf exceeds "_strictLeafSize" primitives. When this node is over
+		// that limit it must keep splitting regardless of the heuristic.
+		const mustSplit = count > _strictLeafSize;
+
+		// early out if we've met our capacity - unless the strict guarantee still requires a split
+		if ( ( count <= targetLeafSize && ! mustSplit ) || depth >= maxDepth ) {
 
 			triggerProgress( offset + count );
 			node.offset = offset;
@@ -67,19 +72,24 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 
 		// Find where to split the volume
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, primitiveBounds, offset, count, strategy );
-		let splitOffset = - 1;
-		if ( split.axis !== - 1 ) {
+		let splitOffset = split.axis === - 1 ? - 1 : partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
 
-			splitOffset = partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
-
-		}
-
-		// if it turns out we can't partition the node then force an arbitrary split in the middle. Inoptimal but
-		// ensures our leaf nodes match the "maxLeafSize" requirement
+		// If the heuristic can't produce a usable split then make a leaf unless the strict guarantee requires the split -
+		// in which case force an arbitrary median split. The axis comes from the node bounds so parallel and serial
+		// builds produce identical trees.
 		if ( split.axis === - 1 || splitOffset === offset || splitOffset === offset + count ) {
 
+			if ( ! mustSplit ) {
+
+				triggerProgress( offset + count );
+				node.offset = offset;
+				node.count = count;
+				return node;
+
+			}
+
+			split.axis = Math.max( 0, getLongestEdgeIndex( node.boundingData ) );
 			splitOffset = offset + Math.max( 1, Math.floor( count / 2 ) );
-			split.axis = getLongestEdgeIndex( node.boundingData );
 
 		}
 
