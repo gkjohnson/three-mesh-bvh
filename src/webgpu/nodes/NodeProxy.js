@@ -44,7 +44,7 @@ export class NodeProxy {
 
 		}
 
-		if ( 'functionNode' in value ) {
+		if ( value && 'functionNode' in value ) {
 
 			return value.functionNode;
 
@@ -74,10 +74,17 @@ export class NodeProxy {
 
 				} else {
 
-					const value = Reflect.get( target.proxyNode, property );
+					const node = target.proxyNode;
+					if ( ! node ) {
+
+						return undefined;
+
+					}
+
+					const value = Reflect.get( node, property );
 					if ( typeof value === 'function' ) {
 
-						return value.bind( target.proxyNode );
+						return value.bind( node );
 
 					} else {
 

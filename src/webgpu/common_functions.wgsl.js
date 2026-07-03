@@ -1,5 +1,6 @@
 /** @import { BVHComputeData } from './BVHComputeData.js' */
 import { wgslFn, wgsl } from 'three/tsl';
+import { rayStruct, bvhNodeBoundsStruct } from './tsl/structs.js';
 
 /** @deprecated Use {@link BVHComputeData} instead. */
 export const constants = wgsl( /* wgsl */`
@@ -9,31 +10,6 @@ export const constants = wgsl( /* wgsl */`
 	const TRI_INTERSECT_EPSILON = 1e-5;
 
 ` );
-
-/** @deprecated Use {@link BVHComputeData} instead. */
-export const rayStruct = wgsl( /* wgsl */`
-	struct Ray {
-		origin: vec3f,
-		direction: vec3f,
-	};
-` );
-
-/** @deprecated Use {@link BVHComputeData} instead. */
-export const bvhNodeBoundsStruct = wgsl( /* wgsl */`
-	struct BVHBoundingBox {
-		min: array<f32, 3>,
-		max: array<f32, 3>,
-	}
-` );
-
-/** @deprecated Use {@link BVHComputeData} instead. */
-export const bvhNodeStruct = wgsl( /* wgsl */`
-	struct BVHNode {
-		bounds: BVHBoundingBox,
-		rightChildOrTriangleOffset: u32,
-		splitAxisOrTriangleCount: u32,
-	};
-`, [ bvhNodeBoundsStruct ] );
 
 /** @deprecated Use {@link BVHComputeData} instead. */
 export const intersectionResultStruct = wgsl( /* wgsl */`
@@ -63,29 +39,6 @@ export const getVertexAttribute = wgslFn( /* wgsl */`
 
 	}
 
-` );
-
-/** @deprecated Use {@link BVHComputeData} instead. */
-export const ndcToCameraRay = wgslFn( /* wgsl*/`
-
-	fn ndcToCameraRay( ndc: vec2f, inverseModelViewProjection: mat4x4f ) -> Ray {
-
-		// Calculate the ray by picking the points at the near and far plane and deriving the ray
-		// direction from the two points. This approach works for both orthographic and perspective
-		// camera projection matrices.
-		// The returned ray direction is not normalized and extends to the camera far plane.
-		var homogeneous = vec4f();
-		var ray = Ray();
-
-		homogeneous = inverseModelViewProjection * vec4f( ndc, 0.0, 1.0 );
-		ray.origin = homogeneous.xyz / homogeneous.w;
-
-		homogeneous = inverseModelViewProjection * vec4f( ndc, 1.0, 1.0 );
-		ray.direction = ( homogeneous.xyz / homogeneous.w ) - ray.origin;
-
-		return ray;
-
-	}
 ` );
 
 /** @deprecated Use {@link BVHComputeData} instead. */
