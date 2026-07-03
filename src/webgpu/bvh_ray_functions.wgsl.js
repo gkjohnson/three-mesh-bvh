@@ -1,6 +1,7 @@
 /** @import { BVHComputeData } from './BVHComputeData.js' */
 import { wgslFn } from 'three/tsl';
-import { bvhNodeStruct, intersectionResultStruct, intersectsBounds, rayStruct, constants } from './common_functions.wgsl.js';
+import { intersectionResultStruct, intersectsBounds, constants } from './common_functions.wgsl.js';
+import { bvhNodeStruct, rayStruct } from './tsl/structs.js';
 
 /** @deprecated Use {@link BVHComputeData} instead. */
 export const intersectsTriangle = wgslFn( /* wgsl */ `

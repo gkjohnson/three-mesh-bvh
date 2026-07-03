@@ -73,6 +73,16 @@ export class BVH {
 			...options,
 		};
 
+		if ( 'maxLeafSize' in options ) {
+
+			console.warn( 'BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.' );
+			options = {
+				...options,
+				targetLeafSize: options.maxLeafSize,
+			};
+
+		}
+
 		buildPackedTree( this, options );
 
 	}

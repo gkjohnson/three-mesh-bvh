@@ -23,7 +23,7 @@ const params = {
 
 	options: {
 		strategy: SAH,
-		maxLeafSize: 10,
+		targetLeafSize: 10,
 		maxDepth: 40,
 		rebuild: function () {
 
@@ -258,7 +258,7 @@ function init() {
 	const gui = new GUI();
 	const bvhFolder = gui.addFolder( 'BVH' );
 	bvhFolder.add( params.options, 'strategy', { CENTER, AVERAGE, SAH } );
-	bvhFolder.add( params.options, 'maxLeafSize', 1, 30, 1 );
+	bvhFolder.add( params.options, 'targetLeafSize', 1, 30, 1 );
 	bvhFolder.add( params.options, 'maxDepth', 1, 40, 1 );
 	bvhFolder.add( params.options, 'rebuild' );
 	bvhFolder.open();
@@ -315,7 +315,7 @@ function updateBVH() {
 	const startTime = performance.now();
 	mesh.geometry.computeBoundsTree( {
 		strategy: parseInt( params.options.strategy ),
-		maxLeafSize: params.options.maxLeafSize,
+		targetLeafSize: params.options.targetLeafSize,
 		maxDepth: params.options.maxDepth,
 	} );
 	const deltaTime = performance.now() - startTime;

@@ -74,10 +74,8 @@ export class NodeProxy {
 
 				} else {
 
-					// the proxied member may not be assigned yet ( e.g. accessed during disposal
-					// before the first update ) - resolve to undefined rather than throwing on null
 					const node = target.proxyNode;
-					if ( node === null || node === undefined ) {
+					if ( ! node ) {
 
 						return undefined;
 

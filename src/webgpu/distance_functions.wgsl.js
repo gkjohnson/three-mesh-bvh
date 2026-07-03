@@ -1,6 +1,6 @@
 /** @import { BVHComputeData } from './BVHComputeData.js' */
 import { wgslFn, wgsl } from 'three/tsl';
-import { bvhNodeStruct } from './common_functions.wgsl.js';
+import { bvhNodeStruct } from './tsl/structs.js';
 
 /** @deprecated Use {@link BVHComputeData} instead. */
 export const closestPointToPointResultStruct = wgsl( /* wgsl */ `

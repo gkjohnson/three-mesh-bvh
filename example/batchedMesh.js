@@ -296,7 +296,7 @@ function updateFromOptions() {
 
 		console.time( 'computing bounds tree' );
 		batchedMesh.computeBoundsTree( - 1, {
-			maxLeafSize: 5,
+			targetLeafSize: 5,
 			strategy: parseFloat( params.mesh.splitStrategy ),
 			indirect: params.mesh.indirect,
 		} );
