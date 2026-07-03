@@ -40,7 +40,6 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  */
 export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
-	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
 	const targetF32 = new Float32Array( target );
 
@@ -53,7 +52,6 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 			const r32 = i * UINT32_PER_NODE;
 			const r16 = r32 * 2;
 			const n32 = nodeWriteOffset * UINT32_PER_NODE;
-			const n16 = n32 * 2;
 
 			// write bounds
 			const view = new Float32Array( root, i * BYTES_PER_NODE, 6 );
