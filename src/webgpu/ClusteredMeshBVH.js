@@ -4,10 +4,8 @@ import { BVHTraversalHelper } from '../core/BVHTraversalHelper.js';
 import { UINT32_PER_NODE } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 
-// the high bit of the second primitive word marks an object / instance primitive; cluster
-// primitives leave it unset and pack the owning bvh root index above the node index, which
-// occupies the low NODE_INDEX_BITS bits.
-const OBJECT_PRIMITIVE_FLAG = 0x80000000;
+// the second primitive word packs the owning bvh root index above the node index, which occupies
+// the low NODE_INDEX_BITS bits.
 const NODE_INDEX_BITS = 24;
 const NODE_INDEX_MASK = ( 1 << NODE_INDEX_BITS ) - 1;
 const ROOT_INDEX_BITS = 31 - NODE_INDEX_BITS;
@@ -76,21 +74,22 @@ export class ClusteredMeshBVH extends BVH {
 
 		objects.forEach( object => {
 
-			if ( this.isInstance( object ) ) {
+			// resolve and retain a bvh per instance - InstancedMesh instances share one, while
+			// BatchedMesh instances may each differ. A falsy entry excludes that instance from the tree.
+			const bvhList = [];
+			for ( let instance = 0, count = this._getInstanceCount( object ); instance < count; instance ++ ) {
 
-				// TODO: support falling back to "instance" based on the number
-				// of times a geometry is reused
-				bvhMap.set( object, null );
-				total += this._getInstanceCount( object );
+				const bvh = this.getBVH( object, instance );
+				bvhList.push( bvh );
+				if ( bvh ) {
 
-			} else {
+					total += this._countRelevantLeafNodes( bvh );
 
-				// TODO: support batched mesh, etc for non-instanced meshes
-				const bvh = this.getBVH( object, 0 );
-				bvhMap.set( object, bvh );
-				total += this._countRelevantLeafNodes( bvh );
+				}
 
 			}
+
+			bvhMap.set( object, bvhList );
 
 		} );
 
@@ -122,32 +121,33 @@ export class ClusteredMeshBVH extends BVH {
 
 		const compositeId = primitiveBuffer[ 2 * i + 0 ];
 		const compositeNodeId = primitiveBuffer[ 2 * i + 1 ];
-		if ( compositeNodeId & OBJECT_PRIMITIVE_FLAG ) {
+		const object = objects[ this.getObjectId( compositeId ) ];
+		const instanceId = this.getInstanceId( compositeId );
+		const bvh = bvhMap.get( object )[ instanceId ];
 
-			// instance - resolve the bounds through the cached object bounds
-			this._getPrimitiveBoundingBox( compositeId, _inverseMatrix, _box );
+		// word1 packs the owning bvh root index and the cluster node index
+		const root = this.getBVHRootIndex( compositeNodeId );
+		const node32Index = this.getBVHNodeIndex( compositeNodeId );
+
+		// the world matrix of this instance - InstancedMesh / BatchedMesh use their per-instance
+		// matrix - brought into the meta-bvh frame
+		if ( object.isInstancedMesh || object.isBatchedMesh ) {
+
+			object.getMatrixAt( instanceId, _matrix );
+			_matrix.premultiply( object.matrixWorld );
 
 		} else {
 
-			const object = objects[ this.getObjectId( compositeId ) ];
-			const bvh = bvhMap.get( object );
-
-			// word1 packs the owning bvh root index and the cluster node index
-			const root = this.getBVHRootIndex( compositeNodeId );
-			const node32Index = this.getBVHNodeIndex( compositeNodeId );
-
-			// the cluster node bounds are in the object's local space - transform them through the
-			// object's world matrix and into the bvh frame
-			_matrix
-				.copy( object.matrixWorld )
-				.premultiply( _inverseMatrix );
-
-			// TODO: it would be best to not create a new float32array here over and over
-			// TODO: how can we easily create a tighter bound here if we want precise bounds?
-			arrayToBox( node32Index, new Float32Array( bvh._roots[ root ] ), _box );
-			_box.applyMatrix4( _matrix );
+			_matrix.copy( object.matrixWorld );
 
 		}
+
+		_matrix.premultiply( _inverseMatrix );
+
+		// the cluster node bounds are in the bvh's local space - transform them into the meta-bvh frame
+		// TODO: it would be best to not create a new float32array here over and over
+		arrayToBox( node32Index, new Float32Array( bvh._roots[ root ] ), _box );
+		_box.applyMatrix4( _matrix );
 
 		const { min, max } = _box;
 
@@ -362,19 +362,13 @@ export class ClusteredMeshBVH extends BVH {
 		let offset = 0;
 		objects.forEach( ( object, objectIndex ) => {
 
-			const bvh = bvhMap.get( object );
-			if ( bvh === null ) {
+			bvhMap.get( object ).forEach( ( bvh, instance ) => {
 
-				for ( let instance = 0, l = this._getInstanceCount( object ); instance < l; instance ++ ) {
+				if ( ! bvh ) {
 
-					primitiveBuffer[ 2 * offset + 0 ] = ( instance << idBits ) | objectIndex;
-					primitiveBuffer[ 2 * offset + 1 ] = OBJECT_PRIMITIVE_FLAG;
-
-					offset ++;
+					return;
 
 				}
-
-			} else {
 
 				_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => {
 
@@ -391,14 +385,14 @@ export class ClusteredMeshBVH extends BVH {
 
 					}
 
-					primitiveBuffer[ 2 * offset + 0 ] = objectIndex;
+					primitiveBuffer[ 2 * offset + 0 ] = ( instance << idBits ) | objectIndex;
 					primitiveBuffer[ 2 * offset + 1 ] = ( r << NODE_INDEX_BITS ) | ( nodeIndex & NODE_INDEX_MASK );
 
 					offset ++;
 
 				} );
 
-			}
+			} );
 
 		} );
 
