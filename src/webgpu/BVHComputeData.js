@@ -199,16 +199,8 @@ export class BVHComputeData {
 
 			}
 
-			// the owning bvh root and the cluster's node offset within it; an instance references the
-			// whole bvh through its first root ( root 0, offset 0 )
-			let root = 0;
-			let nodeOffset = 0;
-			if ( ! bvh.isInstance( object ) ) {
-
-				root = bvh.getBVHRootIndex( compositeNodeId );
-				nodeOffset = bvh.getBVHNodeIndex( compositeNodeId ) / UINT32_PER_NODE;
-
-			}
+			const root = bvh.getBVHRootIndex( compositeNodeId );
+			const nodeOffset = bvh.getBVHNodeIndex( compositeNodeId ) / UINT32_PER_NODE;
 
 			// dedupe a transform per ( placement, root ) - clusters of the same root share it
 			const transformKey = `${ compositeId }_${ root }`;
