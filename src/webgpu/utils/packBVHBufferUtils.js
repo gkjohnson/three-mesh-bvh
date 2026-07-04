@@ -120,12 +120,12 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 }
 
 /**
- * Counts the nodes in the contiguous ( depth-first ) subtree rooted at "nodeIndex". A subtree's node
- * count is `rightOffset + subtreeSize( rightChild )`, unwinding down the right spine.
+ * Counts the nodes in the contiguous (depth-first) subtree rooted at "nodeIndex". A subtree's node
+ * count is `rightOffset + subtreeSize(rightChild)`, unwinding down the right spine.
  *
  * @private
  * @param {ArrayBuffer} root - A single BVH root's packed node buffer.
- * @param {number} nodeIndex - Node index ( in node units ) of the subtree root.
+ * @param {number} nodeIndex - Node index (in node units) of the subtree root.
  * @returns {number}
  */
 export function getSubtreeNodeCount( root, nodeIndex ) {
@@ -150,7 +150,7 @@ function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
 }
 
 /**
- * Copies a single contiguous subtree ( `[ subtreeStart, subtreeStart + subtreeSize )` ) of a BVH root
+ * Copies a single contiguous subtree (`[ subtreeStart, subtreeStart + subtreeSize )`) of a BVH root
  * into the shared node buffer, rebasing leaf triangle offsets by "geometryOffset". Internal nodes'
  * child offsets are relative and so remain valid on the contiguous copy.
  *

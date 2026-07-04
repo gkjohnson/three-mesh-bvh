@@ -148,7 +148,7 @@ export class BVHComputeData {
 		const bvhInfo = [];
 		const transformInfo = [];
 
-		// per referenced cluster subtree ( deduped by bvh + root + node ): { data, root, node, size, base }.
+		// per referenced cluster subtree (deduped by bvh + root + node): { data, root, node, size, base }.
 		// only these subtrees are copied into the node buffer - the upper nodes above the cluster cuts,
 		// which no TLAS leaf enters, are never uploaded.
 		const subtreeInfo = [];
@@ -158,12 +158,13 @@ export class BVHComputeData {
 		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
-		// per primitive ( in final tree order ): the { transformSlot, subtree } for its TLAS leaf. The
+
+		// per primitive (in final tree order): the { transformSlot, subtree } for its TLAS leaf. The
 		// leaf's node offset is resolved to the subtree's packed base once all subtrees are laid out.
 		const primitiveInfo = [];
 
-		// ( placement, root ) -> transform slot. Each bvh root ( geometry group ) gets its own
-		// transform so per-group data ( e.g. materials ) can be attached; the many cluster primitives
+		// (placement, root) -> transform slot. Each bvh root (geometry group) gets its own
+		// transform so per-group data (e.g. materials) can be attached; the many cluster primitives
 		// of a single root share that transform, so matrices are not duplicated per cluster.
 		const transformMap = new Map();
 
