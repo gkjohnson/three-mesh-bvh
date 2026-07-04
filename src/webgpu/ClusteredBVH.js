@@ -22,20 +22,21 @@ export class ClusteredBVH extends BVH {
 		super();
 
 		options = {
-			getBVH: () => {
+			getBVH: ( object, instance ) => {
 
-				throw new Error();
+				// function must be deterministic
+				throw new Error( 'ClusteredBVH: getBVH callback must be provided ' );
 
 			},
 			isInstance: object => {
 
+				// TODO: name this something different, adjust the default behavior?
 				return object.isSkinnedMesh || object.isInstancedMesh || object.isBatchedMesh;
 
 			},
 			primitiveLimit: 64,
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
 			includeInstances: true,
-			precise: false,
 
 			// force 1 object per leaf
 			_strictLeafSize: 1,
@@ -47,17 +48,18 @@ export class ClusteredBVH extends BVH {
 		const idBits = Math.ceil( Math.log2( objects.length ) );
 		const idMask = ( 1 << idBits ) - 1;
 
+		// options
+		this.objects = objects;
 		this.getBVH = options.getBVH;
 		this.isInstance = options.isInstance;
-		this.objects = objects;
-		this.bvhMap = new WeakMap();
-		this.primitiveBufferStride = 2;
 		this.primitiveLimit = options.primitiveLimit;
 		this.matrixWorld = options.matrixWorld;
-		this.precise = options.precise;
 
+		// local
+		this.bvhMap = new WeakMap();
 		this.idBits = idBits;
 		this.idMask = idMask;
+		this.primitiveBufferStride = 2;
 
 		this.init( options );
 
@@ -73,8 +75,9 @@ export class ClusteredBVH extends BVH {
 
 		objects.forEach( object => {
 
-			// resolve and retain a bvh per instance - InstancedMesh instances share one, while
-			// BatchedMesh instances may each differ. A falsy entry excludes that instance from the tree.
+			// resolve and retain a bvh per instance - the "getBVH" function is expected to return the same
+			// instance given the same inputs, in addition to any shared instances. A falsy entry excludes that
+			// instance from the tree.
 			const bvhList = [];
 			for ( let instance = 0, count = this._getInstanceCount( object ); instance < count; instance ++ ) {
 
@@ -253,7 +256,11 @@ export class ClusteredBVH extends BVH {
 				} else {
 
 					// subdivided into clusters - one primitive per cluster cut point
-					_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => pushPrimitive( instance, objectIndex, r, node32Index / UINT32_PER_NODE ) );
+					_traverseClusters( bvh, primitiveLimit, ( r, node32Index ) => {
+
+						pushPrimitive( instance, objectIndex, r, node32Index / UINT32_PER_NODE );
+
+					} );
 
 				}
 
@@ -285,9 +292,7 @@ export class ClusteredBVH extends BVH {
 
 }
 
-// invokes "callback( rootIndex, node32Index, count, isLeaf )" for every cluster cut point in the
-// bvh - the highest node in each subtree whose primitive count is below "primitiveLimit", plus any
-// leaf that exceeds the limit and so cannot be subdivided further.
+// runs the provided callback for every node that meets the primitive limit.
 function _traverseClusters( bvh, primitiveLimit, callback ) {
 
 	const rootCount = bvh._roots.length;
@@ -317,6 +322,7 @@ function _traverseClusters( bvh, primitiveLimit, callback ) {
 
 }
 
+// collects all mesh instances
 function collectObjects( root, objectSet = new Set() ) {
 
 	if ( Array.isArray( root ) ) {
