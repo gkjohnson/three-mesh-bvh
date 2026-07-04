@@ -7,6 +7,7 @@ export const BVHTraversalHelper = new ( class {
 		let buffer = null;
 		let uint32Array = null;
 		let uint16Array = null;
+		let traversing = false;
 
 		this.root = null;
 		this.buffer = null;
@@ -14,6 +15,12 @@ export const BVHTraversalHelper = new ( class {
 		this.uint16Array = null;
 
 		this.setBVH = ( bvh, root ) => {
+
+			if ( traversing ) {
+
+				throw new Error( 'BVHTraversalHelper: cannot call setBVH during an active traversal.' );
+
+			}
 
 			this.root = root;
 			this.buffer = buffer = bvh._roots[ root ];
@@ -59,7 +66,8 @@ export const BVHTraversalHelper = new ( class {
 
 		};
 
-		this.traverseBuffer = ( callback, node32Index = 0, depth = 0 ) => {
+		// internal recursive walk - the public "traverseBuffer" wraps this with the re-entrancy guard
+		const walk = ( callback, node32Index, depth ) => {
 
 			const node16Index = node32Index * 2;
 			const isLeaf = IS_LEAF( node16Index, uint16Array );
@@ -68,8 +76,29 @@ export const BVHTraversalHelper = new ( class {
 
 				const left = LEFT_NODE( node32Index );
 				const right = RIGHT_NODE( node32Index, uint32Array );
-				this.traverseBuffer( callback, left, depth + 1 );
-				this.traverseBuffer( callback, right, depth + 1 );
+				walk( callback, left, depth + 1 );
+				walk( callback, right, depth + 1 );
+
+			}
+
+		};
+
+		this.traverseBuffer = callback => {
+
+			if ( traversing ) {
+
+				throw new Error( 'BVHTraversalHelper: cannot start a traversal during an active traversal.' );
+
+			}
+
+			traversing = true;
+			try {
+
+				walk( callback, 0, 0 );
+
+			} finally {
+
+				traversing = false;
 
 			}
 

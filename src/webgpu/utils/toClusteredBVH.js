@@ -6,12 +6,12 @@ import { ClusteredBVH } from '../ClusteredBVH.js';
 
 /**
  * Normalizes the various accepted `bvh` arguments into a {@link ClusteredBVH}. A pre-built
- * ClusteredMetaBVH is returned as-is; otherwise an Object3D, BufferGeometry, GeometryBVH, or array
- * of those is wrapped into a new ClusteredMetaBVH.
+ * ClusteredBVH is returned as-is; otherwise an Object3D, BufferGeometry, GeometryBVH, or array
+ * of those is wrapped into a new ClusteredBVH.
  *
  * @private
  * @param {ClusteredBVH | Object3D | BufferGeometry | GeometryBVH | Array} bvh
- * @param {Object} options - ClusteredMetaBVH options ( notably the required "getBVH" callback ).
+ * @param {Object} options - ClusteredBVH options ( notably the required "getBVH" callback ).
  * @returns {ClusteredBVH}
  */
 export function toClusteredBVH( bvh, options ) {

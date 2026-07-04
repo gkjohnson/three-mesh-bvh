@@ -52,6 +52,7 @@ export class ClusteredBVH extends BVH {
 		this.objects = objects;
 		this.getBVH = options.getBVH;
 		this.isInstance = options.isInstance;
+		this.includeInstances = options.includeInstances;
 		this.primitiveLimit = options.primitiveLimit;
 		this.matrixWorld = options.matrixWorld;
 
@@ -218,13 +219,13 @@ export class ClusteredBVH extends BVH {
 
 			if ( nodeIndex > NODE_INDEX_MASK ) {
 
-				throw new Error( `ClusteredMetaBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
+				throw new Error( `ClusteredBVH: cluster node index ${ nodeIndex } exceeds the ${ NODE_INDEX_BITS }-bit packing limit and cannot be represented.` );
 
 			}
 
 			if ( r > ROOT_INDEX_MASK ) {
 
-				throw new Error( `ClusteredMetaBVH: bvh root index ${ r } exceeds the ${ ROOT_INDEX_BITS }-bit packing limit and cannot be represented.` );
+				throw new Error( `ClusteredBVH: bvh root index ${ r } exceeds the ${ ROOT_INDEX_BITS }-bit packing limit and cannot be represented.` );
 
 			}
 
@@ -280,7 +281,7 @@ export class ClusteredBVH extends BVH {
 
 			if ( isLeaf && count >= primitiveLimit ) {
 
-				console.warn( `ClusteredMetaBVH: a leaf node with ${ count } primitives exceeds the cluster primitive limit of ${ primitiveLimit } and cannot be subdivided further.` );
+				console.warn( `ClusteredBVH: a leaf node with ${ count } primitives exceeds the cluster primitive limit of ${ primitiveLimit } and cannot be subdivided further.` );
 
 			}
 
