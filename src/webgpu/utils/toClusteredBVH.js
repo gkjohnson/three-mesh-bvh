@@ -14,7 +14,7 @@ import { ClusteredBVH } from '../ClusteredBVH.js';
  * @param {Object} options - ClusteredMetaBVH options ( notably the required "getBVH" callback ).
  * @returns {ClusteredBVH}
  */
-export function toClusteredMetaBVH( bvh, options ) {
+export function toClusteredBVH( bvh, options ) {
 
 	if ( bvh instanceof ClusteredBVH ) {
 
