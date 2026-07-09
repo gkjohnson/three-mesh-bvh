@@ -1,20 +1,5 @@
 import { StructTypeNode } from 'three/webgpu';
 
-// temporary shim so StructTypeNodes can be passed to storage functions until
-// this is fixed in three.js
-Object.defineProperty( StructTypeNode.prototype, 'layout', {
-
-	get() {
-
-		return this;
-
-	}
-
-} );
-StructTypeNode.prototype.isStruct = true;
-
-//
-
 export const bvhNodeBoundsStruct = new StructTypeNode( {
 	min: 'array<f32, 3>',
 	max: 'array<f32, 3>',

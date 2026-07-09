@@ -137,6 +137,7 @@ export class BVHComputeData {
 
 		this.bvh = toClusteredBVH( this.objects, {
 			getBVH: object => this.getBVH( object, 0, _range ),
+			primitiveLimit: this.objects.length < 3 ? Infinity : 32,
 		} );
 
 		// free any buffers from a previous update before swapping in the new ones

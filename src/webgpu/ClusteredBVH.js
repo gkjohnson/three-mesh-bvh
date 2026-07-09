@@ -34,7 +34,7 @@ export class ClusteredBVH extends BVH {
 				return object.isSkinnedMesh || object.isInstancedMesh || object.isBatchedMesh;
 
 			},
-			primitiveLimit: 64,
+			primitiveLimit: 32,
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
 			includeInstances: true,
 
