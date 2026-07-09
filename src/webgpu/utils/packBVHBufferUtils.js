@@ -29,37 +29,29 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
 }
 
 /**
- * Copies the packed nodes of a BVH into the shared node buffer, rewriting leaf offsets / counts and
- * tagging leaves as mesh (`0xFFFF`) or TLAS (`0xFF00`) leaves. Returns the write offset of each root.
+ * Copies the packed nodes of the TLAS into the shared node buffer, encoding each leaf as a TLAS leaf
+ * (`0xFF00` tag) from its `primitiveInfo` entry.
  *
  * @private
  * @param {Object} bvh
- * @param {number} geometryOffset
- * @param {Array} transformInfo
+ * @param {Array} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS leaves.
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
- * @param {boolean} [tlas=false]
- * @returns {Array<number>}
  */
-export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffset, target, tlas = false ) {
+export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
-	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
 	const targetF32 = new Float32Array( target );
 
-	const result = [];
-	let tlasOffset = 0;
 	bvh._roots.forEach( root => {
 
 		const rootBuffer16 = new Uint16Array( root );
 		const rootBuffer32 = new Uint32Array( root );
-		result.push( nodeWriteOffset );
 		for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
 
 			const r32 = i * UINT32_PER_NODE;
 			const r16 = r32 * 2;
 			const n32 = nodeWriteOffset * UINT32_PER_NODE;
-			const n16 = n32 * 2;
 
 			// write bounds
 			const view = new Float32Array( root, i * BYTES_PER_NODE, 6 );
@@ -94,35 +86,23 @@ export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffs
 			const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
 			if ( isLeaf ) {
 
-				if ( tlas ) {
+				// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
+				// 0xFF in the top byte) and the cluster subtree's absolute node offset, which the
+				// GPU enters directly as the BLAS entry node.
+				const offset = rootBuffer32[ r32 + 6 ];
+				const count = rootBuffer16[ r16 + 14 ];
 
-					// 0xFFFF == mesh leaf, 0xFF00 == TLAS leaf
-					targetU32[ n32 + 6 ] = tlasOffset;
-					targetU16[ n16 + 15 ] = 0xFF00;
+				// an empty bvh produces a single primitiveless leaf with no primitiveInfo entry; its
+				// degenerate bounds keep the GPU from traversing into it, so write an empty placeholder.
+				const { transformSlot, nodeOffset } = count === 0 ? { transformSlot: 0, nodeOffset: 0 } : primitiveInfo[ offset ];
+				if ( transformSlot > 0x00ffffff ) {
 
-					const count = rootBuffer16[ r16 + 14 ];
-					// const offset = rootBuffer32[ r32 + 6 ];
-
-					// each root is expanded into a separate transform so we need to expand
-					// the embedded offsets and counts.
-					let rootsCount = 0;
-					for ( let o = 0; o < count; o ++ ) {
-
-						const roots = transformInfo[ tlasOffset ].data.bvh._roots.length;
-						tlasOffset += roots;
-						rootsCount += roots;
-
-					}
-
-					targetU16[ n16 + 14 ] = rootsCount;
-
-				} else {
-
-					targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
-					targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
-					targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
+					throw new Error( `packBVHBufferUtils: transform slot ${ transformSlot } exceeds the 24-bit TLAS leaf limit.` );
 
 				}
+
+				targetU32[ n32 + 6 ] = nodeOffset;
+				targetU32[ n32 + 7 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
 
 			} else {
 
@@ -137,7 +117,114 @@ export function appendBVHData( bvh, geometryOffset, transformInfo, nodeWriteOffs
 
 	} );
 
-	return result;
+}
+
+/**
+ * Counts the nodes in the contiguous (depth-first) subtree rooted at "nodeIndex". A subtree's node
+ * count is `rightOffset + subtreeSize(rightChild)`, unwinding down the right spine.
+ *
+ * @private
+ * @param {ArrayBuffer} root - A single BVH root's packed node buffer.
+ * @param {number} nodeIndex - Node index (in node units) of the subtree root.
+ * @returns {number}
+ */
+export function getSubtreeNodeCount( root, nodeIndex ) {
+
+	return spanOf( new Uint16Array( root ), new Uint32Array( root ), nodeIndex );
+
+}
+
+// exact contiguous span ( node count ) of the subtree rooted at "nodeIndex"
+function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
+
+	const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ nodeIndex * UINT32_PER_NODE * 2 + 15 ];
+	if ( isLeaf ) {
+
+		return 1;
+
+	}
+
+	const rightOffset = rootBuffer32[ nodeIndex * UINT32_PER_NODE + 6 ];
+	return rightOffset + spanOf( rootBuffer16, rootBuffer32, nodeIndex + rightOffset );
+
+}
+
+/**
+ * Copies a single contiguous subtree (`[ subtreeStart, subtreeStart + subtreeSize )`) of a BVH root
+ * into the shared node buffer, rebasing leaf triangle offsets by "geometryOffset". Internal nodes'
+ * child offsets are relative and so remain valid on the contiguous copy.
+ *
+ * @private
+ * @param {ArrayBuffer} root - The BVH root's packed node buffer.
+ * @param {number} subtreeStart - Node index of the subtree root.
+ * @param {number} subtreeSize - Number of nodes in the subtree.
+ * @param {number} geometryOffset - Triangle base added to leaf offsets.
+ * @param {number} nodeWriteOffset - Node index in "target" to write the subtree root to.
+ * @param {ArrayBuffer} target
+ */
+export function appendBVHSubtree( root, subtreeStart, subtreeSize, geometryOffset, nodeWriteOffset, target ) {
+
+	const targetU16 = new Uint16Array( target );
+	const targetU32 = new Uint32Array( target );
+	const targetF32 = new Float32Array( target );
+	const rootBuffer16 = new Uint16Array( root );
+	const rootBuffer32 = new Uint32Array( root );
+
+	for ( let k = 0; k < subtreeSize; k ++ ) {
+
+		const src = subtreeStart + k;
+		const r32 = src * UINT32_PER_NODE;
+		const r16 = r32 * 2;
+		const n32 = nodeWriteOffset * UINT32_PER_NODE;
+		const n16 = n32 * 2;
+
+		// write bounds - fix up an empty subtree root's [ Infinity, -Infinity ] to [ 1, -1 ]
+		const view = new Float32Array( root, src * BYTES_PER_NODE, 6 );
+		if ( k === 0 ) {
+
+			for ( let c = 0; c < 3; c ++ ) {
+
+				const vMin = view[ c + 0 ];
+				const vMax = view[ c + 3 ];
+				if ( vMin > vMax ) {
+
+					targetF32[ n32 + c + 0 ] = 1;
+					targetF32[ n32 + c + 3 ] = - 1;
+
+				} else {
+
+					targetF32[ n32 + c + 0 ] = vMin;
+					targetF32[ n32 + c + 3 ] = vMax;
+
+				}
+
+			}
+
+		} else {
+
+			targetF32.set( view, n32 );
+
+		}
+
+		const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
+		if ( isLeaf ) {
+
+			// mesh leaf ( 0xFFFF ) - rebase the triangle offset into the packed index buffer
+			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
+			targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
+			targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
+
+		} else {
+
+			// internal node - the right-child offset is relative, so it is valid as-is on the copy
+			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
+			targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
+
+		}
+
+		nodeWriteOffset ++;
+
+	}
 
 }
 

@@ -576,7 +576,7 @@ function getObjectId( id, idMask ) {
 // extract the instance id given the mask and number of bits to shift
 function getInstanceId( id, idBits, idMask ) {
 
-	return ( id & ( ~ idMask ) ) >> idBits;
+	return ( id & ( ~ idMask ) ) >>> idBits;
 
 }
 

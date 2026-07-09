@@ -119,6 +119,22 @@ export function getClosestPointToPointFn( bvhData ) {
 			}
 		`,
 
+		resetShapeFn: wgslTagFn/* wgsl */`
+				fn cppResetShape( objectIndex: u32 ) -> void {
+
+					// node bounds are transformed by "toWorld" during the bounds tests. Only the
+					// object-local BLAS bounds need the object's world matrix - the top-level bounds
+					// are already in world space - so restore identity before top-level traversal resumes.
+					${ scratchToWorldMat } = mat4x4f(
+						1.0, 0.0, 0.0, 0.0,
+						0.0, 1.0, 0.0, 0.0,
+						0.0, 0.0, 1.0, 0.0,
+						0.0, 0.0, 0.0, 1.0
+					);
+
+				}
+			`,
+
 		transformShapeFn: wgslTagFn/* wgsl */`
 			fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
 

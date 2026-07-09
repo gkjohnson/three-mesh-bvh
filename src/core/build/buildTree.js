@@ -1,5 +1,6 @@
 import { getBounds } from './computeBoundsUtils.js';
 import { getOptimalSplit } from './splitUtils.js';
+import { getLongestEdgeIndex } from '../../utils/ArrayBoxUtilities.js';
 import { BVHNode } from '../BVHNode.js';
 import { BYTES_PER_NODE } from '../Constants.js';
 
@@ -13,6 +14,7 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 		maxDepth,
 		verbose,
 		targetLeafSize,
+		_strictLeafSize = Infinity,
 		strategy,
 		onProgress,
 	} = options;
@@ -54,8 +56,12 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 
 		}
 
-		// early out if we've met our capacity
-		if ( count <= targetLeafSize || depth >= maxDepth ) {
+		// A hard guarantee that no leaf exceeds "_strictLeafSize" primitives. When this node is over
+		// that limit it must keep splitting regardless of the heuristic.
+		const mustSplit = count > _strictLeafSize;
+
+		// early out if we've met our capacity - unless the strict guarantee still requires a split
+		if ( ( count <= targetLeafSize && ! mustSplit ) || depth >= maxDepth ) {
 
 			triggerProgress( offset + count );
 			node.offset = offset;
@@ -66,47 +72,47 @@ export function buildTree( bvh, primitiveBounds, offset, count, options, loadRan
 
 		// Find where to split the volume
 		const split = getOptimalSplit( node.boundingData, centroidBoundingData, primitiveBounds, offset, count, strategy );
-		if ( split.axis === - 1 ) {
+		let splitOffset = split.axis === - 1 ? - 1 : partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
-			return node;
+		// If the heuristic can't produce a usable split then make a leaf unless the strict guarantee requires the split -
+		// in which case force an arbitrary median split. The axis comes from the node bounds so parallel and serial
+		// builds produce identical trees.
+		if ( split.axis === - 1 || splitOffset === offset || splitOffset === offset + count ) {
+
+			if ( ! mustSplit ) {
+
+				triggerProgress( offset + count );
+				node.offset = offset;
+				node.count = count;
+				return node;
+
+			}
+
+			split.axis = Math.max( 0, getLongestEdgeIndex( node.boundingData ) );
+			splitOffset = offset + Math.max( 1, Math.floor( count / 2 ) );
 
 		}
-
-		const splitOffset = partition( partitionBuffer, partitionStride, primitiveBounds, offset, count, split );
 
 		// create the two new child nodes
-		if ( splitOffset === offset || splitOffset === offset + count ) {
+		node.splitAxis = split.axis;
 
-			triggerProgress( offset + count );
-			node.offset = offset;
-			node.count = count;
+		// create the left child and compute its bounding box
+		const left = new BVHNode();
+		const lstart = offset;
+		const lcount = splitOffset - offset;
+		node.left = left;
 
-		} else {
+		getBounds( primitiveBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
+		splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
 
-			node.splitAxis = split.axis;
+		// repeat for right
+		const right = new BVHNode();
+		const rstart = splitOffset;
+		const rcount = count - lcount;
+		node.right = right;
 
-			// create the left child and compute its bounding box
-			const left = new BVHNode();
-			const lstart = offset;
-			const lcount = splitOffset - offset;
-			node.left = left;
-
-			getBounds( primitiveBounds, lstart, lcount, left.boundingData, cacheCentroidBoundingData );
-			splitNode( left, lstart, lcount, cacheCentroidBoundingData, depth + 1 );
-
-			// repeat for right
-			const right = new BVHNode();
-			const rstart = splitOffset;
-			const rcount = count - lcount;
-			node.right = right;
-
-			getBounds( primitiveBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
-			splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
-
-		}
+		getBounds( primitiveBounds, rstart, rcount, right.boundingData, cacheCentroidBoundingData );
+		splitNode( right, rstart, rcount, cacheCentroidBoundingData, depth + 1 );
 
 		return node;
 

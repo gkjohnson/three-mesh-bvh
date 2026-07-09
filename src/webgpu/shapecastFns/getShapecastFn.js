@@ -4,8 +4,8 @@ import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { BVH_STACK_DEPTH } from '../tsl/constants.js';
 
 /**
- * Builds a pair of WGSL shapecast functions (BLAS + TLAS traversal) for a custom shape
- * type. The returned TLAS function signature is:
+ * Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
+ * merged stack/loop for a custom shape type. The returned function signature is:
  * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
  *
  * @private
@@ -20,7 +20,7 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
  * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
  * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
- * @returns {Function} TSL function node for the TLAS traversal.
+ * @returns {Function} TSL function node for the traversal.
  */
 export function getShapecastFn( bvhData, options ) {
 
@@ -49,21 +49,21 @@ export function getShapecastFn( bvhData, options ) {
 	let transformResultSnippet = '';
 	if ( transformResultFn ) {
 
-		transformResultSnippet = wgslTagCode/* wgsl */`${ transformResultFn }( result, i );`;
+		transformResultSnippet = wgslTagCode/* wgsl */`${ transformResultFn }( result, objectIndex );`;
 
 	}
 
 	let transformShapeSnippet = '';
 	if ( transformShapeFn ) {
 
-		transformShapeSnippet = wgslTagCode/* wgsl */`${ transformShapeFn }( &localShape, i );`;
+		transformShapeSnippet = wgslTagCode/* wgsl */`${ transformShapeFn }( &localShape, objectIndex );`;
 
 	}
 
 	let resetShapeSnippet = '';
 	if ( resetShapeFn ) {
 
-		resetShapeSnippet = wgslTagCode/* wgsl */`${ resetShapeFn }( i );`;
+		resetShapeSnippet = wgslTagCode/* wgsl */`${ resetShapeFn }( objectIndex );`;
 
 	}
 
@@ -71,7 +71,7 @@ export function getShapecastFn( bvhData, options ) {
 	if ( boundsOrderFn ) {
 
 		leftToRightSnippet = wgslTagCode/* wgsl */`
-			let leftToRight = ${ boundsOrderFn }( shape, splitAxis, node );
+			let leftToRight = ${ boundsOrderFn }( localShape, splitAxis, node );
 			c1 = select( rightIndex, leftIndex, leftToRight );
 			c2 = select( leftIndex, rightIndex, leftToRight );
 		`;
@@ -81,17 +81,51 @@ export function getShapecastFn( bvhData, options ) {
 	const resultPtrSnippet = resultStruct ? wgslTagCode/* wgsl */`result: ptr<function, ${ resultStruct }>` : '';
 	const resultArg = resultStruct ? 'result' : '';
 
-	const getFnBody = leafSnippet => {
+	// The TLAS and per-cluster BLAS are traversed with a single shared stack and loop. A thread
+	// inside a cluster's BLAS ( using its transformed localShape ) and a thread still in the TLAS
+	// run the same loop body, keeping SIMD lanes converged instead of recursing into a separate
+	// BLAS fn.
+	const tlasFn = wgslTagFn/* wgsl */`
+		// fn
+		fn ${ name }( shape: ${ shapeStruct }, ${ resultPtrSnippet } ) -> bool {
 
-		// returns a function with a snippet inserted for the leaf intersection test
-		return wgslTagCode/* wgsl */`
+			var didHit = false;
 
+			var isTLAS = true;
 			var pointer: i32 = 0;
 			var stack: array<u32, ${ BVH_STACK_DEPTH }>;
-			stack[ 0 ] = rootNodeIndex;
+			stack[ 0 ] = 0u;
+
+			var blasDidHit: bool = false;
+			var objectIndex: u32 = 0;
+			var localShape: ${ shapeStruct } = shape;
+
+			// the stack depth the current cluster's BLAS drains back down to once it is complete
+			var tlasReset: i32 = 0;
 
 			loop {
 
+				// The cluster's BLAS has drained back to its TLAS leaf. Finalize the cluster that
+				// was just traversed and resume the TLAS.
+				if ( ! isTLAS && tlasReset == pointer ) {
+
+					if ( blasDidHit ) {
+
+						blasDidHit = false;
+						didHit = true;
+						${ transformResultSnippet }
+
+					}
+
+					${ resetShapeSnippet }
+
+					objectIndex = 0;
+					isTLAS = true;
+					localShape = shape;
+
+				}
+
+				// check if we've finished all nodes on the stack (or overrun the stack)
 				if ( pointer < 0 || pointer >= i32( ${ BVH_STACK_DEPTH } ) ) {
 
 					break;
@@ -102,7 +136,8 @@ export function getShapecastFn( bvhData, options ) {
 				let node = ${ nodes }[ nodeIndex ];
 				pointer = pointer - 1;
 
-				if ( ${ intersectsBoundsFn }( shape, node.bounds, ${ resultArg } ) == 0u ) {
+				// skip the node if we don't intersect the bounds
+				if ( ${ intersectsBoundsFn }( localShape, node.bounds, ${ resultArg } ) == 0u ) {
 
 					continue;
 
@@ -114,9 +149,36 @@ export function getShapecastFn( bvhData, options ) {
 
 				if ( isLeaf ) {
 
-					let count = infoX & 0x0000ffffu;
-					let offset = infoY;
-					${ leafSnippet }
+					if ( isTLAS ) {
+
+						// the leaf encodes the placement / transform slot in the low 24 bits of infoX
+						// and the cluster subtree's absolute node offset in infoY, which is pushed
+						// directly as the BLAS entry node. Each TLAS leaf references one cluster.
+						objectIndex = infoX & 0x00ffffffu;
+
+						let transform = ${ transforms }[ objectIndex ];
+						if ( transform.visible != 0u ) {
+
+							tlasReset = pointer;
+							isTLAS = false;
+							blasDidHit = false;
+
+							// Transform shape into object local space
+							localShape = shape;
+							${ transformShapeSnippet }
+
+							pointer = pointer + 1;
+							stack[ pointer ] = infoY;
+
+						}
+
+					} else {
+
+						let count = infoX & 0x0000ffffu;
+						let offset = infoY;
+						blasDidHit = ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) || blasDidHit;
+
+					}
 
 				} else {
 
@@ -137,60 +199,6 @@ export function getShapecastFn( bvhData, options ) {
 				}
 
 			}
-
-		`;
-
-	};
-
-	const blasFn = wgslTagFn/* wgsl */`
-		// fn
-		fn ${ name }_blas( shape: ${ shapeStruct }, rootNodeIndex: u32, ${ resultPtrSnippet } ) -> bool {
-
-			var didHit = false;
-			${ getFnBody( wgslTagCode/* wgsl */`
-
-				didHit = ${ intersectRangeFn }( shape, offset, count, ${ resultArg } ) || didHit;
-
-			` ) }
-
-			return didHit;
-
-		}
-	`;
-
-	const tlasFn = wgslTagFn/* wgsl */`
-		// fn
-		fn ${ name }( shape: ${ shapeStruct }, ${ resultPtrSnippet } ) -> bool {
-
-			const rootNodeIndex = 0u;
-			var didHit = false;
-			${ getFnBody( wgslTagCode/* wgsl */`
-
-				for ( var i = offset; i < offset + count; i ++ ) {
-
-					let transform = ${ transforms }[ i ];
-					if ( transform.visible == 0u ) {
-
-						continue;
-
-					}
-
-					// Transform shape into object local space
-					var localShape = shape;
-					${ transformShapeSnippet }
-
-					if ( ${ blasFn }( localShape, transform.nodeOffset, ${ resultArg } ) ) {
-
-						${ transformResultSnippet }
-						didHit = true;
-
-					}
-
-					${ resetShapeSnippet }
-
-				}
-
-			` ) }
 
 			return didHit;
 
