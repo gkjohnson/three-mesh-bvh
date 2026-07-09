@@ -28,13 +28,13 @@ export class ClusteredBVH extends BVH {
 				throw new Error( 'ClusteredBVH: getBVH callback must be provided ' );
 
 			},
-			isInstance: object => {
+			shouldCluster: object => {
 
 				// TODO: name this something different, adjust the default behavior?
 				return object.isSkinnedMesh || object.isInstancedMesh || object.isBatchedMesh;
 
 			},
-			primitiveLimit: 32,
+			primitiveLimit: 64,
 			matrixWorld: Array.isArray( root ) ? new Matrix4() : root.matrixWorld,
 			includeInstances: true,
 
@@ -51,7 +51,7 @@ export class ClusteredBVH extends BVH {
 		// options
 		this.objects = objects;
 		this.getBVH = options.getBVH;
-		this.isInstance = options.isInstance;
+		this.shouldCluster = options.shouldCluster;
 		this.includeInstances = options.includeInstances;
 		this.primitiveLimit = options.primitiveLimit;
 		this.matrixWorld = options.matrixWorld;
@@ -87,7 +87,7 @@ export class ClusteredBVH extends BVH {
 				if ( bvh ) {
 
 					// "instance" objects are referenced whole, everything else is subdivided into clusters
-					total += this.isInstance( object ) ? bvh._roots.length : this._countRelevantLeafNodes( bvh );
+					total += this.shouldCluster( object ) ? bvh._roots.length : this._countRelevantLeafNodes( bvh );
 
 				}
 
@@ -245,7 +245,7 @@ export class ClusteredBVH extends BVH {
 
 				}
 
-				if ( this.isInstance( object ) ) {
+				if ( this.shouldCluster( object ) ) {
 
 					// referenced whole - one primitive per bvh root, entered at node 0
 					for ( let r = 0, rl = bvh._roots.length; r < rl; r ++ ) {
@@ -294,6 +294,7 @@ export class ClusteredBVH extends BVH {
 }
 
 // runs the provided callback for every node that meets the primitive limit.
+// TODO: this is slow - it would be best to cache these bounds sizes once first
 function _traverseClusters( bvh, primitiveLimit, callback ) {
 
 	const rootCount = bvh._roots.length;
