@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.9.12] - Unreleased
 ### Fixed
 - BVHComputeData: Fix "dispose" deleting storage nodes unnecessarily.
+- BVHComputeData: Throw error if the traversal could overrun the stack.
 
 ## [0.9.11] - 2026-07-10
 ### Added
