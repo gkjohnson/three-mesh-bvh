@@ -322,6 +322,15 @@ export class BVHComputeData {
 	updateTransforms() {
 
 		const { bvh, storage } = this;
+
+		bvh.refit();
+
+		// the TLAS occupies the head of the node buffer - rewrite just those nodes' bounds. A null
+		// "primitiveInfo" leaves the leaf encodings, and the cluster subtrees that follow them, in place.
+		const nodesAttribute = storage.nodes.proxyNode.value;
+		appendBVHData( bvh, null, 0, nodesAttribute.array.buffer );
+		nodesAttribute.needsUpdate = true;
+
 		const transformsAttribute = storage.transforms.proxyNode.value;
 		const transformArrayBuffer = transformsAttribute.array.buffer;
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
