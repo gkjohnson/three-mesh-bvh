@@ -604,7 +604,6 @@ export class BVHComputeData {
 		for ( const key in storage ) {
 
 			storage[ key ].value?.dispose();
-			delete storage[ key ];
 
 		}
 
