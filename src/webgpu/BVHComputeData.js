@@ -73,7 +73,7 @@ function getTransformKey( compositeId, root ) {
 export class BVHComputeData {
 
 	/**
-	 * @param {Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * @param {Object3D|BufferGeometry|GeometryBVH|Array} objects
 	 * Scene objects to include. A single item or array of Object3D, BufferGeometry, or GeometryBVH instances are
 	 * all accepted and wrapped automatically in a BVH.
 	 * @param {Object} [options]
@@ -84,7 +84,7 @@ export class BVHComputeData {
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
 	 */
-	constructor( bvh, options = {} ) {
+	constructor( objects, options = {} ) {
 
 		const {
 			attributes = { position: 'vec4f' },
@@ -96,7 +96,7 @@ export class BVHComputeData {
 		this.autogenerateBvh = autogenerateBvh;
 		this.attributes = attributes;
 
-		this.objects = bvh;
+		this.objects = objects;
 		this.bvh = null;
 
 		// storage buffers and structs are populated in "update"; their members are accessed through
@@ -112,8 +112,8 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Builds a pair of WGSL shapecast functions (BLAS + TLAS traversal) for a custom shape
-	 * type. The returned TLAS function signature is:
+	 * Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
+	 * merged stack/loop for a custom shape type. The returned function signature is:
 	 * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
 	 *
 	 * @param {Object} options
@@ -126,7 +126,7 @@ export class BVHComputeData {
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
 	 * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
-	 * @returns {Function} TSL function node for the TLAS traversal.
+	 * @returns {Function} TSL function node for the traversal.
 	 */
 	getShapecastFn( options ) {
 
@@ -141,8 +141,10 @@ export class BVHComputeData {
 	 */
 	update() {
 
+		// TODO
+
 		this.bvh = toClusteredBVH( this.objects, {
-			getBVH: object => this.getBVH( object, 0, _range ),
+			getBVH: ( object, instance ) => this.getBVH( object, instance, _range ),
 			primitiveLimit: this.objects.length < 3 ? Infinity : 32,
 		} );
 
@@ -304,7 +306,12 @@ export class BVHComputeData {
 		this.structs.attributes = attributeStruct;
 
 		// writes every transform
-		this.updateTransforms();
+		_inverseMatrix.copy( bvh.matrixWorld ).invert();
+		transformMap.forEach( info => {
+
+			this.writeTransformData( info, _inverseMatrix, info.slot, transformArrayBuffer );
+
+		} );
 
 		// depends on the resolved attribute struct, so it must be built here rather than up front
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
@@ -345,12 +352,12 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Writes the world/inverse-world matrices, node offset, and visibility flag for one
-	 * transform entry into a raw ArrayBuffer. Override this in a subclass to inject
-	 * additional per-object data (e.g. material index).
+	 * Writes the world/inverse-world matrices and visibility flag for one transform entry
+	 * into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
+	 * data (e.g. material index).
 	 *
 	 * @private
-	 * @param {Object3D} info - Transform entry from the internal transform info array.
+	 * @param {Object} info - Transform entry from the internal transform map.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
 	 * @param {number} writeOffset - Index of the transform slot to write into.
 	 * @param {ArrayBuffer} targetBuffer - Destination buffer.
