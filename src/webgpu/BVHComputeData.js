@@ -11,13 +11,14 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount, getMaxNodeDepth } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
+import { BVH_STACK_DEPTH } from './tsl/constants.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -271,6 +272,9 @@ export class BVHComputeData {
 		// leaf's node offset is resolved to the subtree's packed base once all subtrees are laid out.
 		const primitiveInfo = [];
 
+		// tracks the deepest packed cluster subtree for the traversal depth bound below
+		let maxSubtreeDepth = 0;
+
 		// the transform slots, derived from the same primitive buffer walk "updateTransforms" uses
 		const transformMap = this._getTransformMap( bvh );
 
@@ -325,6 +329,7 @@ export class BVHComputeData {
 				subtreeMap.set( subtreeKey, subtree );
 				subtreeInfo.push( subtree );
 				bvhNodesBufferLength += size * BYTES_PER_NODE;
+				maxSubtreeDepth = Math.max( maxSubtreeDepth, getMaxNodeDepth( primBvh._roots[ root ], node ) );
 
 			}
 
@@ -333,6 +338,16 @@ export class BVHComputeData {
 				transformSlot: transformMap.get( getTransformKey( compositeId, root ) ).slot,
 				subtree,
 			} );
+
+		}
+
+		// Get the max depth of the tlas traversal and infer the needed depth for the compute stack. Subtract one since
+		// the TLAS leaf pushes one node instead of two.
+		const tlasDepth = getMaxNodeDepth( bvh._roots[ 0 ] );
+		const maxTraversalDepth = tlasDepth + maxSubtreeDepth - 1;
+		if ( maxTraversalDepth > BVH_STACK_DEPTH.value ) {
+
+			throw new Error( 'BVHComputeData: BVH depth overruns the compute stack depth.' );
 
 		}
 

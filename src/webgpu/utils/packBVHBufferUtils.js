@@ -2,6 +2,7 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { Vector4 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../../core/Constants.js';
+import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../../core/utils/nodeBufferUtils.js';
 
 // scratch
 const _def = /* @__PURE__ */ new Vector4();
@@ -93,7 +94,7 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 			}
 
-			const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
+			const isLeaf = IS_LEAF( r16, rootBuffer16 );
 			if ( isLeaf ) {
 
 				// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
@@ -147,7 +148,7 @@ export function getSubtreeNodeCount( root, nodeIndex ) {
 // exact contiguous span ( node count ) of the subtree rooted at "nodeIndex"
 function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
 
-	const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ nodeIndex * UINT32_PER_NODE * 2 + 15 ];
+	const isLeaf = IS_LEAF( nodeIndex * UINT32_PER_NODE * 2, rootBuffer16 );
 	if ( isLeaf ) {
 
 		return 1;
@@ -156,6 +157,46 @@ function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
 
 	const rightOffset = rootBuffer32[ nodeIndex * UINT32_PER_NODE + 6 ];
 	return rightOffset + spanOf( rootBuffer16, rootBuffer32, nodeIndex + rightOffset );
+
+}
+
+/**
+ * Returns the number of nodes along the deepest root-to-leaf path of the subtree rooted at
+ * node index "start". A lone leaf has a depth of 1.
+ *
+ * @private
+ * @param {ArrayBuffer} root - A single BVH root's packed node buffer.
+ * @param {number} start - Node index of the subtree root.
+ * @returns {number}
+ */
+export function getMaxNodeDepth( root, start = 0 ) {
+
+	const rootBuffer16 = new Uint16Array( root );
+	const rootBuffer32 = new Uint32Array( root );
+	let maxDepth = 0;
+
+	traverse( start * UINT32_PER_NODE, 1 );
+	return maxDepth;
+
+	function traverse( node, depth ) {
+
+		const n32 = node;
+		const n16 = node * 2;
+		const isLeaf = IS_LEAF( n16, rootBuffer16 );
+		if ( isLeaf ) {
+
+			maxDepth = Math.max( depth, maxDepth );
+
+		} else {
+
+			const right = RIGHT_NODE( n32, rootBuffer32 );
+			const left = LEFT_NODE( n32 );
+			traverse( left, depth + 1 );
+			traverse( right, depth + 1 );
+
+		}
+
+	}
 
 }
 
@@ -216,7 +257,7 @@ export function appendBVHSubtree( root, subtreeStart, subtreeSize, geometryOffse
 
 		}
 
-		const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ r16 + 15 ];
+		const isLeaf = IS_LEAF( r16, rootBuffer16 );
 		if ( isLeaf ) {
 
 			// mesh leaf ( 0xFFFF ) - rebase the triangle offset into the packed index buffer
