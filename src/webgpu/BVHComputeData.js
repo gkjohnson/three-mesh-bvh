@@ -142,6 +142,15 @@ export class BVHComputeData {
 	update() {
 
 		// TODO
+		// - check if the total object geometries have changed somehow. We should sort the objects to
+		// a deterministic order and then check the BVH. Anything different in this case will trigger
+		// a full refresh (detecting batched mesh / instance differences by geometry id + count).
+		// - If the geometries are the same then we check whether they've changed (attribute versions,
+		// skinned mesh bone tex versions, morph target versions). If a geometry _has_ changed then
+		// the BVH needs to be refit (get BVH needs to continue to return consistent objects that are
+		// of the same structure - how to confirm this? requires caching?), then it should be written
+		// to the bvh nodes while refitting the TLAS.
+		// - If only non-structural attributes have changed then we can just write those (eg normals)
 
 		this.bvh = toClusteredBVH( this.objects, {
 			getBVH: ( object, instance ) => this.getBVH( object, instance, _range ),
