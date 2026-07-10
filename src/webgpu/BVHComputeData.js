@@ -1,5 +1,5 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
-import { Matrix4 } from 'three';
+import { Matrix4, Mesh, Group } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
@@ -11,12 +11,13 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { toClusteredBVH } from './utils/toClusteredBVH.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
+import { SAH } from '../core/Constants.js';
+import { ClusteredBVH } from './ClusteredBVH.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -91,11 +92,37 @@ export class BVHComputeData {
 			autogenerateBvh = true,
 		} = options;
 
+		// convert the arguments to a list of objects
+		if ( ! Array.isArray( objects ) ) {
+
+			objects = [ objects ];
+
+		}
+
+		objects = objects.map( item => {
+
+			if ( item.isObject3D ) {
+
+				return item;
+
+			} else if ( item.isBufferGeometry ) {
+
+				return new Mesh( item );
+
+			} else if ( item instanceof GeometryBVH ) {
+
+				const dummy = new Mesh();
+				dummy.geometry.boundsTree = item;
+				return dummy;
+
+			}
+
+		} );
+
 		this._bvhCache = new Map();
 
 		this.autogenerateBvh = autogenerateBvh;
 		this.attributes = attributes;
-
 		this.objects = objects;
 		this.bvh = null;
 
@@ -108,6 +135,52 @@ export class BVHComputeData {
 			closestPointToPoint: getClosestPointToPointFn( this ),
 			sampleTrianglePoint: null,
 		}, proxyFn );
+
+	}
+
+	/**
+	 * Returns the representative root object for the scene to be constructed.
+	 * @returns {Array<Object3D>}
+	 */
+	getRootObject() {
+
+		// convert the arguments to a list of objects
+		let { objects } = this;
+		if ( objects.isObject3D ) {
+
+			return objects;
+
+		}
+
+		if ( ! Array.isArray( objects ) ) {
+
+			objects = [ objects ];
+
+		}
+
+		objects = objects.map( item => {
+
+			if ( item.isObject3D ) {
+
+				return item;
+
+			} else if ( item.isBufferGeometry ) {
+
+				return new Mesh( item );
+
+			} else if ( item instanceof GeometryBVH ) {
+
+				const dummy = new Mesh();
+				dummy.geometry.boundsTree = item;
+				return dummy;
+
+			}
+
+		} );
+
+		const result = new Group();
+		result.children = objects;
+		return result;
 
 	}
 
@@ -152,9 +225,27 @@ export class BVHComputeData {
 		// to the bvh nodes while refitting the TLAS.
 		// - If only non-structural attributes have changed then we can just write those (eg normals)
 
-		this.bvh = toClusteredBVH( this.objects, {
+		// TODO: we should include some kind of heuristic here for using a clustered or non-clustered
+		// BVH. Something like number of leaf objects, etc?
+
+		// "objects" may be a single item rather than an array
+		const root = this.getRootObject();
+		let total = 0;
+		root.traverse( c => {
+
+			// TODO: this needs to be in-sync with how clustered bvh totals count
+			if ( c.isMesh ) {
+
+				total ++;
+
+			}
+
+		} );
+
+		this.bvh = new ClusteredBVH( root, {
+			strategy: SAH,
 			getBVH: ( object, instance ) => this.getBVH( object, instance, _range ),
-			primitiveLimit: this.objects.length < 3 ? Infinity : 32,
+			primitiveLimit: total < 3 ? Infinity : 64,
 		} );
 
 		// free any buffers from a previous update before swapping in the new ones
@@ -239,7 +330,7 @@ export class BVHComputeData {
 
 			// nodeOffset is resolved to the subtree's packed base after the subtrees are laid out
 			primitiveInfo.push( {
-				transformSlot: transformMap.get( getTransformKey( compositeId, root ) ),
+				transformSlot: transformMap.get( getTransformKey( compositeId, root ) ).slot,
 				subtree,
 			} );
 
@@ -325,15 +416,16 @@ export class BVHComputeData {
 		// depends on the resolved attribute struct, so it must be built here rather than up front
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
+		// clear our cache for now. In the future we will need to keep this around.
 		this._bvhCache.clear();
 
 	}
 
 	/**
-	 * Rewrites every entry in the transform buffer from the objects' current world matrices. Call this
-	 * when object transforms or visibility change but the scene topology does not. The transform slots
-	 * are derived from the clustered BVH's primitive buffer, so they match those written by
-	 * {@link BVHComputeData#update}, which calls this internally.
+	 * Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
+	 * current world matrices. Call this when object transforms or visibility change but the scene
+	 * topology does not. The transform slots are derived from the clustered BVH's primitive buffer,
+	 * so they match those written by {@link BVHComputeData#update}.
 	 */
 	updateTransforms() {
 
