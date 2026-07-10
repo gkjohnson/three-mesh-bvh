@@ -21,6 +21,17 @@ WGSL function node that tests a ray against a single triangle and returns an
 [rayIntersectionResultStruct](rayIntersectionResultStruct) result. Useful when writing a custom `intersectRangeFn`
 for [BVHComputeData#getShapecastFn](BVHComputeData#getShapecastFn).
 
+### ndcToCameraRay
+
+```js
+ndcToCameraRay: FunctionNode
+```
+
+WGSL function node that builds a camera ray (origin + far-plane direction) from an NDC
+coordinate and an inverse model-view-projection matrix. Works for both perspective and
+orthographic projections. The returned direction is not normalized and extends to the
+camera far plane.
+
 ## TSL Structs
 
 ### rayStruct
@@ -72,7 +83,7 @@ in WebGPU compute shaders via the Three.js TSL node system. After construction, 
 
 ```js
 constructor(
-	bvh: ObjectBVH | Object3D | BufferGeometry | GeometryBVH | Array,
+	objects: Object3D | BufferGeometry | GeometryBVH | Array,
 	{
 		// WGSL type map for the interleaved per-vertex attribute
 		// buffer. Keys are geometry attribute names; values are WGSL
@@ -85,6 +96,15 @@ constructor(
 	}
 )
 ```
+
+### .getRootObject
+
+```js
+getRootObject(): Object3D
+```
+
+Returns the representative root object for the scene to be constructed.
+
 
 ### .getShapecastFn
 
@@ -125,8 +145,8 @@ getShapecastFn(
 ): function
 ```
 
-Builds a pair of WGSL shapecast functions (BLAS + TLAS traversal) for a custom shape
-type. The returned TLAS function signature is:
+Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
+merged stack/loop for a custom shape type. The returned function signature is:
 `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
 
 
@@ -139,6 +159,18 @@ update(): void
 Rebuilds all GPU storage buffers from the current scene state. Must be called at least
 once before using `this.storage` or `this.fns` in a shader, and again whenever the
 scene topology changes (objects added/removed, geometry modified).
+
+
+### .updateTransforms
+
+```js
+updateTransforms(): void
+```
+
+Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
+current world matrices. Call this when object transforms or visibility change but the scene
+topology does not. The transform slots are derived from the clustered BVH's primitive buffer,
+so they match those written by [BVHComputeData#update](BVHComputeData#update).
 
 
 ### .dispose

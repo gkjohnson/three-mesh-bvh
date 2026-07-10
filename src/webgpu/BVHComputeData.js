@@ -140,7 +140,7 @@ export class BVHComputeData {
 
 	/**
 	 * Returns the representative root object for the scene to be constructed.
-	 * @returns {Array<Object3D>}
+	 * @returns {Object3D}
 	 */
 	getRootObject() {
 
