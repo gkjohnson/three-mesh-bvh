@@ -2,6 +2,7 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { Vector4 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../../core/Constants.js';
+import { LEFT_NODE, RIGHT_NODE } from '../../core/utils/nodeBufferUtils.js';
 
 // scratch
 const _def = /* @__PURE__ */ new Vector4();
@@ -156,6 +157,45 @@ function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
 
 	const rightOffset = rootBuffer32[ nodeIndex * UINT32_PER_NODE + 6 ];
 	return rightOffset + spanOf( rootBuffer16, rootBuffer32, nodeIndex + rightOffset );
+
+}
+
+/**
+ * Returns the number of nodes along the deepest root-to-leaf path of the subtree rooted at
+ * node index "start". A lone leaf has a depth of 1.
+ *
+ * @private
+ * @param {ArrayBuffer} root - A single BVH root's packed node buffer.
+ * @param {number} start - Node index of the subtree root.
+ * @returns {number}
+ */
+export function getMaxNodeDepth( root, start = 0 ) {
+
+	const rootBuffer16 = new Uint16Array( root );
+	const rootBuffer32 = new Uint32Array( root );
+	let maxDepth = 0;
+
+	traverse( start * UINT32_PER_NODE, 1 );
+	return maxDepth;
+
+	function traverse( node, depth ) {
+
+		const n32 = node;
+		const isLeaf = IS_LEAFNODE_FLAG === rootBuffer16[ n32 * 2 + 15 ];
+		if ( isLeaf ) {
+
+			maxDepth = Math.max( depth, maxDepth );
+
+		} else {
+
+			const right = RIGHT_NODE( n32, rootBuffer32 );
+			const left = LEFT_NODE( n32 );
+			traverse( left, depth + 1 );
+			traverse( right, depth + 1 );
+
+		}
+
+	}
 
 }
 
