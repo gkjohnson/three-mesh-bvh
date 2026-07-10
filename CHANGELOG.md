@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.12] - Unreleased
+### Fixed
+- BVHComputeData: Fix "dispose" deleting storage nodes unnecessarily.
+
 ## [0.9.11] - 2026-07-10
 ### Added
 - WebGPURenderer : Added `BVHComputeData` class for packing multi-object BVH scene data into GPU storage buffers for use in WebGPU compute shaders via the TSL node system.
