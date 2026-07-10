@@ -85,7 +85,7 @@ function init() {
 
 		// transforms
 		inverseProjectionMatrix: uniform( new THREE.Matrix4() ),
-		cameraToModelMatrix: uniform( new THREE.Matrix4() ),
+		cameraToWorldMatrix: uniform( new THREE.Matrix4() ),
 
 		// compute variables
 		workgroupSize: uniform( new THREE.Vector3() ),
@@ -99,7 +99,7 @@ function init() {
 			outputTex: texture_storage_2d<rgba8unorm, write>,
 			smoothNormals: u32,
 			inverseProjectionMatrix: mat4x4f,
-			cameraToModelMatrix: mat4x4f,
+			cameraToWorldMatrix: mat4x4f,
 			workgroupSize: vec3u,
 			workgroupId: vec3u,
 			localId: vec3u,
@@ -112,7 +112,7 @@ function init() {
 			let ndc = uv * 2.0 - vec2f( 1.0 );
 
 			// scene ray (world space)
-			var ray = ndcToCameraRay( ndc, cameraToModelMatrix * inverseProjectionMatrix );
+			var ray = ndcToCameraRay( ndc, cameraToWorldMatrix * inverseProjectionMatrix );
 
 			// get hit result
 			var hit: IntersectionResult;
@@ -201,6 +201,7 @@ function render() {
 	if ( params.animate ) {
 
 		mesh.rotation.y += delta;
+		bvhData.updateTransforms();
 
 	}
 
@@ -217,7 +218,7 @@ function render() {
 		computeKernel.computeNode.parameters.outputTex.value = outputTex;
 		computeKernel.computeNode.parameters.smoothNormals.value = Number( params.smoothNormals );
 		computeKernel.computeNode.parameters.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
-		computeKernel.computeNode.parameters.cameraToModelMatrix.value.copy( mesh.matrixWorld ).invert().multiply( camera.matrixWorld );
+		computeKernel.computeNode.parameters.cameraToWorldMatrix.value.copy( camera.matrixWorld );
 		computeKernel.computeNode.parameters.workgroupSize.value.fromArray( WORKGROUP_SIZE );
 		renderer.compute( computeKernel, dispatchSize );
 

@@ -34,7 +34,9 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  *
  * @private
  * @param {Object} bvh
- * @param {Array} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS leaves.
+ * @param {Array|null} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS
+ * leaves. Pass null to write only the node bounds and leave the existing node data in place, as when
+ * refreshing a refit tree whose topology is unchanged.
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
  */
@@ -80,6 +82,14 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 			} else {
 
 				targetF32.set( view, n32 );
+
+			}
+
+			// a refit only moves bounds, so the node data written on the first pass remains valid
+			if ( primitiveInfo === null ) {
+
+				nodeWriteOffset ++;
+				continue;
 
 			}
 

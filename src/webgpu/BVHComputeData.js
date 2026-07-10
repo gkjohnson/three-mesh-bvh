@@ -1,5 +1,5 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
-import { Matrix4 } from 'three';
+import { Matrix4, Mesh, Group } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
@@ -11,12 +11,13 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { toClusteredBVH } from './utils/toClusteredBVH.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
+import { SAH } from '../core/Constants.js';
+import { ClusteredBVH } from './ClusteredBVH.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -54,6 +55,12 @@ function getTotalBVHByteLength( bvh ) {
 
 }
 
+function getTransformKey( compositeId, root ) {
+
+	return `${ compositeId }_${ root }`;
+
+}
+
 /**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
  * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
@@ -67,7 +74,7 @@ function getTotalBVHByteLength( bvh ) {
 export class BVHComputeData {
 
 	/**
-	 * @param {Object3D|BufferGeometry|GeometryBVH|Array} bvh
+	 * @param {Object3D|BufferGeometry|GeometryBVH|Array} objects
 	 * Scene objects to include. A single item or array of Object3D, BufferGeometry, or GeometryBVH instances are
 	 * all accepted and wrapped automatically in a BVH.
 	 * @param {Object} [options]
@@ -78,19 +85,45 @@ export class BVHComputeData {
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
 	 */
-	constructor( bvh, options = {} ) {
+	constructor( objects, options = {} ) {
 
 		const {
 			attributes = { position: 'vec4f' },
 			autogenerateBvh = true,
 		} = options;
 
+		// convert the arguments to a list of objects
+		if ( ! Array.isArray( objects ) ) {
+
+			objects = [ objects ];
+
+		}
+
+		objects = objects.map( item => {
+
+			if ( item.isObject3D ) {
+
+				return item;
+
+			} else if ( item.isBufferGeometry ) {
+
+				return new Mesh( item );
+
+			} else if ( item instanceof GeometryBVH ) {
+
+				const dummy = new Mesh();
+				dummy.geometry.boundsTree = item;
+				return dummy;
+
+			}
+
+		} );
+
 		this._bvhCache = new Map();
 
 		this.autogenerateBvh = autogenerateBvh;
 		this.attributes = attributes;
-
-		this.objects = bvh;
+		this.objects = objects;
 		this.bvh = null;
 
 		// storage buffers and structs are populated in "update"; their members are accessed through
@@ -106,8 +139,54 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Builds a pair of WGSL shapecast functions (BLAS + TLAS traversal) for a custom shape
-	 * type. The returned TLAS function signature is:
+	 * Returns the representative root object for the scene to be constructed.
+	 * @returns {Array<Object3D>}
+	 */
+	getRootObject() {
+
+		// convert the arguments to a list of objects
+		let { objects } = this;
+		if ( objects.isObject3D ) {
+
+			return objects;
+
+		}
+
+		if ( ! Array.isArray( objects ) ) {
+
+			objects = [ objects ];
+
+		}
+
+		objects = objects.map( item => {
+
+			if ( item.isObject3D ) {
+
+				return item;
+
+			} else if ( item.isBufferGeometry ) {
+
+				return new Mesh( item );
+
+			} else if ( item instanceof GeometryBVH ) {
+
+				const dummy = new Mesh();
+				dummy.geometry.boundsTree = item;
+				return dummy;
+
+			}
+
+		} );
+
+		const result = new Group();
+		result.children = objects;
+		return result;
+
+	}
+
+	/**
+	 * Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
+	 * merged stack/loop for a custom shape type. The returned function signature is:
 	 * `fn name( shape: ShapeStruct[, result: ptr<function, ResultStruct>] ) -> bool`
 	 *
 	 * @param {Object} options
@@ -120,7 +199,7 @@ export class BVHComputeData {
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
 	 * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
-	 * @returns {Function} TSL function node for the TLAS traversal.
+	 * @returns {Function} TSL function node for the traversal.
 	 */
 	getShapecastFn( options ) {
 
@@ -135,9 +214,38 @@ export class BVHComputeData {
 	 */
 	update() {
 
-		this.bvh = toClusteredBVH( this.objects, {
-			getBVH: object => this.getBVH( object, 0, _range ),
-			primitiveLimit: this.objects.length < 3 ? Infinity : 32,
+		// TODO
+		// - check if the total object geometries have changed somehow. We should sort the objects to
+		// a deterministic order and then check the BVH. Anything different in this case will trigger
+		// a full refresh (detecting batched mesh / instance differences by geometry id + count).
+		// - If the geometries are the same then we check whether they've changed (attribute versions,
+		// skinned mesh bone tex versions, morph target versions). If a geometry _has_ changed then
+		// the BVH needs to be refit (get BVH needs to continue to return consistent objects that are
+		// of the same structure - how to confirm this? requires caching?), then it should be written
+		// to the bvh nodes while refitting the TLAS.
+		// - If only non-structural attributes have changed then we can just write those (eg normals)
+
+		// TODO: we should include some kind of heuristic here for using a clustered or non-clustered
+		// BVH. Something like number of leaf objects, etc?
+
+		// "objects" may be a single item rather than an array
+		const root = this.getRootObject();
+		let total = 0;
+		root.traverse( c => {
+
+			// TODO: this needs to be in-sync with how clustered bvh totals count
+			if ( c.isMesh ) {
+
+				total ++;
+
+			}
+
+		} );
+
+		this.bvh = new ClusteredBVH( root, {
+			strategy: SAH,
+			getBVH: ( object, instance ) => this.getBVH( object, instance, _range ),
+			primitiveLimit: total < 3 ? Infinity : 64,
 		} );
 
 		// free any buffers from a previous update before swapping in the new ones
@@ -147,7 +255,6 @@ export class BVHComputeData {
 
 		// collect the BVHs
 		const bvhInfo = [];
-		const transformInfo = [];
 
 		// per referenced cluster subtree (deduped by bvh + root + node): { data, root, node, size, base }.
 		// only these subtrees are copied into the node buffer - the upper nodes above the cluster cuts,
@@ -164,10 +271,8 @@ export class BVHComputeData {
 		// leaf's node offset is resolved to the subtree's packed base once all subtrees are laid out.
 		const primitiveInfo = [];
 
-		// (placement, root) -> transform slot. Each bvh root (geometry group) gets its own
-		// transform so per-group data (e.g. materials) can be attached; the many cluster primitives
-		// of a single root share that transform, so matrices are not duplicated per cluster.
-		const transformMap = new Map();
+		// the transform slots, derived from the same primitive buffer walk "updateTransforms" uses
+		const transformMap = this._getTransformMap( bvh );
 
 		const { primitiveBuffer, primitiveBufferStride } = bvh;
 		for ( let i = 0, l = primitiveBuffer.length; i < l; i += primitiveBufferStride ) {
@@ -223,19 +328,11 @@ export class BVHComputeData {
 
 			}
 
-			// dedupe a transform per ( placement, root ) - clusters of the same root share it
-			const transformKey = `${ compositeId }_${ root }`;
-			let transformSlot = transformMap.get( transformKey );
-			if ( transformSlot === undefined ) {
-
-				transformSlot = transformInfo.length;
-				transformMap.set( transformKey, transformSlot );
-				transformInfo.push( { data, object, instanceId, compositeId, root } );
-
-			}
-
 			// nodeOffset is resolved to the subtree's packed base after the subtrees are laid out
-			primitiveInfo.push( { transformSlot, subtree } );
+			primitiveInfo.push( {
+				transformSlot: transformMap.get( getTransformKey( compositeId, root ) ).slot,
+				subtree,
+			} );
 
 		}
 
@@ -244,7 +341,7 @@ export class BVHComputeData {
 		// @note These buffer lengths are increased to a minimum size of 2 to avoid TSL converting storage buffers
 		// with length 1 being converted to a scalar value.
 		// TODO: remove this when fixed in three
-		const transformBufferLength = Math.max( transformInfo.length, 2 );
+		const transformBufferLength = Math.max( transformMap.size, 2 );
 		indexBufferLength = Math.max( indexBufferLength, 2 );
 		attributesBufferLength = Math.max( attributesBufferLength, 2 );
 
@@ -288,14 +385,7 @@ export class BVHComputeData {
 
 		//
 
-		// write the transforms
 		const transformArrayBuffer = new ArrayBuffer( structs.transform.getLength() * transformBufferLength * 4 );
-		transformInfo.forEach( ( info, i ) => {
-
-			_inverseMatrix.copy( bvh.matrixWorld ).invert();
-			this.writeTransformData( info, _inverseMatrix, i, transformArrayBuffer );
-
-		} );
 
 		//
 
@@ -315,20 +405,60 @@ export class BVHComputeData {
 		this.storage.attributes = attributesStorage;
 		this.structs.attributes = attributeStruct;
 
+		// writes every transform
+		_inverseMatrix.copy( bvh.matrixWorld ).invert();
+		transformMap.forEach( info => {
+
+			this.writeTransformData( info, _inverseMatrix, info.slot, transformArrayBuffer );
+
+		} );
+
 		// depends on the resolved attribute struct, so it must be built here rather than up front
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
+		// clear our cache for now. In the future we will need to keep this around.
 		this._bvhCache.clear();
 
 	}
 
 	/**
-	 * Writes the world/inverse-world matrices, node offset, and visibility flag for one
-	 * transform entry into a raw ArrayBuffer. Override this in a subclass to inject
-	 * additional per-object data (e.g. material index).
+	 * Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
+	 * current world matrices. Call this when object transforms or visibility change but the scene
+	 * topology does not. The transform slots are derived from the clustered BVH's primitive buffer,
+	 * so they match those written by {@link BVHComputeData#update}.
+	 */
+	updateTransforms() {
+
+		const { bvh, storage } = this;
+
+		bvh.refit();
+
+		// the TLAS occupies the head of the node buffer - rewrite just those nodes' bounds. A null
+		// "primitiveInfo" leaves the leaf encodings, and the cluster subtrees that follow them, in place.
+		const nodesAttribute = storage.nodes.proxyNode.value;
+		appendBVHData( bvh, null, 0, nodesAttribute.array.buffer );
+		nodesAttribute.needsUpdate = true;
+
+		const transformsAttribute = storage.transforms.proxyNode.value;
+		const transformArrayBuffer = transformsAttribute.array.buffer;
+		_inverseMatrix.copy( bvh.matrixWorld ).invert();
+		this._getTransformMap( bvh ).forEach( info => {
+
+			this.writeTransformData( info, _inverseMatrix, info.slot, transformArrayBuffer );
+
+		} );
+
+		transformsAttribute.needsUpdate = true;
+
+	}
+
+	/**
+	 * Writes the world/inverse-world matrices and visibility flag for one transform entry
+	 * into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
+	 * data (e.g. material index).
 	 *
 	 * @private
-	 * @param {Object3D} info - Transform entry from the internal transform info array.
+	 * @param {Object} info - Transform entry from the internal transform map.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
 	 * @param {number} writeOffset - Index of the transform slot to write into.
 	 * @param {ArrayBuffer} targetBuffer - Destination buffer.
@@ -477,6 +607,38 @@ export class BVHComputeData {
 			delete storage[ key ];
 
 		}
+
+	}
+
+	// Provides a consistent, deduplicated list of the transforms from the clustered BVH
+	_getTransformMap( bvh ) {
+
+		const { primitiveBuffer, primitiveBufferStride } = bvh;
+		const transformMap = new Map();
+
+		for ( let i = 0, l = primitiveBuffer.length; i < l; i += primitiveBufferStride ) {
+
+			const compositeId = primitiveBuffer[ i ];
+			const root = bvh.getBVHRootIndex( primitiveBuffer[ i + 1 ] );
+			const key = getTransformKey( compositeId, root );
+
+			// each bvh root gets its own transform so per-group data like materials can
+			// be attached. The many cluster primitives of a root all share it, so matrices
+			// are not duplicated.
+			if ( transformMap.has( key ) ) {
+
+				continue;
+
+			}
+
+			const slot = transformMap.size;
+			const object = bvh.objects[ bvh.getObjectId( compositeId ) ];
+			const instanceId = bvh.getInstanceId( compositeId );
+			transformMap.set( key, { object, instanceId, compositeId, root, slot } );
+
+		}
+
+		return transformMap;
 
 	}
 
