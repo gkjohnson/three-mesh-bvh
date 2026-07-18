@@ -129,3 +129,47 @@ export const proxyFn = ( ...args ) => {
 	return TSL.nodeProxyConstructor( fn, nodeProxy );
 
 };
+
+//
+
+// A node proxy that falls back to the active context
+export class ContextNodeProxy extends NodeProxy {
+
+	get proxyNode() {
+
+		return super.proxyNode || this.fallbackNode;
+
+	}
+
+	constructor( path, def ) {
+
+		super( path, null );
+
+		Object.defineProperty( this, 'fallbackNode', {
+			value: def,
+		} );
+
+	}
+
+	setup( builder ) {
+
+		this.proxyObject = builder.getContext();
+		return this.proxyNode.setup( builder );
+
+	}
+
+}
+
+export const contextProxy = ( ...args ) => {
+
+	return new ContextNodeProxy( ...args );
+
+};
+
+export const contextProxyFn = ( ...args ) => {
+
+	const nodeProxy = new ContextNodeProxy( ...args );
+	const fn = ( ...params ) => new ProxyCallNode( nodeProxy, params );
+	return TSL.nodeProxyConstructor( fn, nodeProxy );
+
+};

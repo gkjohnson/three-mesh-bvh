@@ -82,6 +82,8 @@ function normalizeArgs( args, builder ) {
 
 		if ( arg && arg.isNode ) {
 
+			arg.setup( builder );
+
 			// TODO: this need to be made to work fluidly with the proxy node w/ context
 			// instanceof is not safe for the proxy case
 			if ( arg.isWGSLTagCodeNode ) {
@@ -153,12 +155,17 @@ export class WGSLTagFnNode extends FunctionNode {
 
 	}
 
+	setup( builder ) {
+
+		super.setup( builder );
+		this._normalizedArgs = normalizeArgs( this.args, builder );
+
+	}
+
 	// assemble the signature from tokens and arg names then parse
 	getNodeFunction( builder ) {
 
-		const { tokens } = this;
-		const args = normalizeArgs( this.args, builder );
-
+		const { tokens, _normalizedArgs } = this;
 		const nodeData = builder.getDataFromNode( this );
 		let nodeFunction = nodeData.nodeFunction;
 		if ( nodeFunction === undefined ) {
@@ -170,9 +177,9 @@ export class WGSLTagFnNode extends FunctionNode {
 
 				fullCode += tokens[ i ];
 
-				if ( i < args.length ) {
+				if ( i < _normalizedArgs.length ) {
 
-					const arg = args[ i ];
+					const arg = _normalizedArgs[ i ];
 					if ( Array.isArray( arg ) ) {
 
 						// include array — no text output
@@ -219,7 +226,8 @@ export class WGSLTagFnNode extends FunctionNode {
 	generate( builder, output ) {
 
 		const result = super.generate( builder, output );
-		const fullCode = assembleTemplate( this.tokens, normalizeArgs( this.args, builder ), builder );
+		const { _normalizedArgs } = this;
+		const fullCode = assembleTemplate( this.tokens, _normalizedArgs, builder );
 
 		const { type } = this.getNodeFunction( builder );
 		const nodeCode = builder.getCodeFromNode( this, type );
@@ -249,11 +257,18 @@ export class WGSLTagCodeNode extends CodeNode {
 
 	}
 
+	setup( builder ) {
+
+		super.setup( builder );
+		this._normalizedArgs = normalizeArgs( this.args, builder );
+
+	}
+
 	build( builder, output ) {
 
 		if ( output === 'inline' ) {
 
-			return assembleTemplate( this.tokens, normalizeArgs( this.args, builder ), builder );
+			return assembleTemplate( this.tokens, this._normalizedArgs, builder );
 
 		} else {
 
@@ -268,7 +283,7 @@ export class WGSLTagCodeNode extends CodeNode {
 		super.generate( builder );
 
 		const nodeCode = builder.getCodeFromNode( this, this.getNodeType( builder ) );
-		nodeCode.code = assembleTemplate( this.tokens, normalizeArgs( this.args, builder ), builder );
+		nodeCode.code = assembleTemplate( this.tokens, this._normalizedArgs, builder );
 		return nodeCode.code;
 
 	}
