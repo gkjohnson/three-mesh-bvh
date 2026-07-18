@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: Fix "dispose" deleting storage nodes unnecessarily.
 - BVHComputeData: Throw error if the traversal could overrun the stack.
 
+### Added
+- WGSLTag functions: Add support for inline-functions that evaluate on build.
+- NodeProxy: Add support for context-value proxies.
+
 ## [0.9.11] - 2026-07-10
 ### Added
 - WebGPURenderer : Added `BVHComputeData` class for packing multi-object BVH scene data into GPU storage buffers for use in WebGPU compute shaders via the TSL node system.
