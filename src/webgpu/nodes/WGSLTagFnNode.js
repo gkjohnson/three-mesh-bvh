@@ -84,7 +84,7 @@ function normalizeArgs( args, builder ) {
 
 			// TODO: this need to be made to work fluidly with the proxy node w/ context
 			// instanceof is not safe for the proxy case
-			if ( arg instanceof WGSLTagCodeNode || arg.isFn ) {
+			if ( arg.isWGSLTagCodeNode ) {
 
 				// use a custom flag for this node to inline the output
 				return new PropertyRefNode( arg, 'inline' );

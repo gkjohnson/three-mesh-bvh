@@ -40,7 +40,7 @@ export class NodeProxy {
 		let value = proxyObject;
 		for ( let i = 0, l = properties.length; i < l; i ++ ) {
 
-			value = value[ properties[ i ] ];
+			value = value?.[ properties[ i ] ];
 
 		}
 
@@ -50,7 +50,7 @@ export class NodeProxy {
 
 		} else {
 
-			return value;
+			return value ?? null;
 
 		}
 
