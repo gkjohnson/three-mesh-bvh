@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.13] - 2026-07-19
+### Fixed
+- NodeProxy: Add support for context-value proxies.
+
 ## [0.9.12] - 2026-07-18
 ### Fixed
 - BVHComputeData: Fix "dispose" deleting storage nodes unnecessarily.
@@ -11,7 +15,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - WGSLTag functions: Add support for inline-functions that evaluate on build.
-- NodeProxy: Add support for context-value proxies.
 
 ## [0.9.11] - 2026-07-10
 ### Added
