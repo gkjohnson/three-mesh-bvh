@@ -34,6 +34,7 @@ export function getShapecastFn( bvhData, options ) {
 		shapeStruct,
 		resultStruct = null,
 
+		prefixFn = null,
 		boundsOrderFn = null,
 		intersectsBoundsFn,
 		intersectRangeFn,
@@ -44,6 +45,13 @@ export function getShapecastFn( bvhData, options ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { nodes, transforms } = bvhData.storage;
+
+	let prefixSnippet = '';
+	if ( prefixFn ) {
+
+		prefixSnippet = wgslTagCode/* wgsl */`${ prefixFn }();`;
+
+	}
 
 	// handle optional functions
 	let transformResultSnippet = '';
@@ -88,6 +96,8 @@ export function getShapecastFn( bvhData, options ) {
 	const tlasFn = wgslTagFn/* wgsl */`
 		// fn
 		fn ${ name }( shape: ${ shapeStruct }, ${ resultPtrSnippet } ) -> bool {
+
+			${ prefixSnippet }
 
 			var didHit = false;
 
