@@ -14,6 +14,7 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @param {string} [options.name] - Function name. Defaults to a random identifier.
  * @param {StructTypeNode} options.shapeStruct - TSL struct or definition describing the query shape.
  * @param {StructTypeNode|null} [options.resultStruct] - TSL struct for the accumulated result, or null.
+ * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
  * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
  * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
@@ -34,6 +35,7 @@ export function getShapecastFn( bvhData, options ) {
 		shapeStruct,
 		resultStruct = null,
 
+		prefixFn = null,
 		boundsOrderFn = null,
 		intersectsBoundsFn,
 		intersectRangeFn,
@@ -44,6 +46,13 @@ export function getShapecastFn( bvhData, options ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { nodes, transforms } = bvhData.storage;
+
+	let prefixSnippet = '';
+	if ( prefixFn ) {
+
+		prefixSnippet = wgslTagCode/* wgsl */`${ prefixFn }();`;
+
+	}
 
 	// handle optional functions
 	let transformResultSnippet = '';
@@ -88,6 +97,8 @@ export function getShapecastFn( bvhData, options ) {
 	const tlasFn = wgslTagFn/* wgsl */`
 		// fn
 		fn ${ name }( shape: ${ shapeStruct }, ${ resultPtrSnippet } ) -> bool {
+
+			${ prefixSnippet }
 
 			var didHit = false;
 
