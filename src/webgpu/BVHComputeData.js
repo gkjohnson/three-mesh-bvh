@@ -376,6 +376,9 @@ export class BVHComputeData {
 		bvhInfo.forEach( info => {
 
 			info.geometryOffset = indexOffset / 3;
+			// A non-indirect bvh built over a sub-range stores absolute leaf offsets, so shift the
+			// base back by the range's triangle start.
+			if ( ! info.bvh.indirect ) info.geometryOffset -= info.range.start / 3;
 			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
 			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeStruct, this );
 
