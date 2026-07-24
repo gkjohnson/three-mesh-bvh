@@ -1,0 +1,2 @@
+import{Cr as e}from"./ExtendedTriangle-DOKLf4jx.js";var t=e.prototype.raycast,n=function(e,n){this.boundsTree?this.boundsTree.raycastObject3D(this,e,n):t.call(this,e,n)};function r(e,t){if(this.boundsTree)return this.boundsTree.raycast(e,t),!1}export{n,r as t};
+//# sourceMappingURL=BVHRaycastUtils-DvfL03Wn.js.map

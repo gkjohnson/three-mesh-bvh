@@ -1,0 +1,2 @@
+function e(e){let n=new Map,r=new Map,i=e.clone();return t(e,i,function(e,t){n.set(t,e),r.set(e,t)}),i.traverse(function(e){if(!e.isSkinnedMesh)return;let t=e,i=n.get(e),a=i.skeleton.bones;t.skeleton=i.skeleton.clone(),t.bindMatrix.copy(i.bindMatrix),t.skeleton.bones=a.map(function(e){return r.get(e)}),t.bind(t.skeleton,t.bindMatrix)}),i}function t(e,n,r){r(e,n);for(let i=0;i<e.children.length;i++)t(e.children[i],n.children[i],r)}export{e as t};
+//# sourceMappingURL=SkeletonUtils-CHxfGqZJ.js.map
