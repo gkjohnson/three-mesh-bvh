@@ -67,6 +67,7 @@ export const closestPointToTriangle = wgslFn( /* wgsl */ `
 
 		}
 
+		// output the barycoord in v0, v1, v2 weight order
 		var result: ClosestPointToTriangleResult;
 		result.barycoord = vec3f( w, u, v );
 		result.point = u * v1 + v * v2 + w * v0;

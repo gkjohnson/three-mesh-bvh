@@ -60,6 +60,7 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 
 	}
 
+	// output the barycoord in v0, v1, v2 weight order
 	barycoord = vec3( w, u, v );
     return u * v1 + v * v2 + w * v0;
 
