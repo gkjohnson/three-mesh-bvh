@@ -26,8 +26,9 @@ export const closestPointToTriangleResultStruct = wgsl( /* wgsl */ `
 /** @deprecated Use {@link BVHComputeData} instead. */
 export const closestPointToTriangle = wgslFn( /* wgsl */ `
 
+	// implementation from https://www.shadertoy.com/view/ttfGWl, though method 2 has been removed
+	// and is now available at this fork: https://www.shadertoy.com/view/WlB3zW
 	fn closestPointToTriangle( p: vec3f, v0: vec3f, v1: vec3f, v2: vec3f ) -> ClosestPointToTriangleResult {
-		// https://www.shadertoy.com/view/ttfGWl
 
 		let v10 = v1 - v0;
 		let v21 = v2 - v1;
@@ -40,7 +41,7 @@ export const closestPointToTriangle = wgslFn( /* wgsl */ `
 		let nor = cross( v10, v02 );
 
 		// method 2, in barycentric space
-		let  q = cross( nor, p0 );
+		let q = cross( nor, p0 );
 		let d = 1.0 / dot( nor, nor );
 		var u = d * dot( q, v02 );
 		var v = d * dot( q, v10 );
@@ -67,7 +68,7 @@ export const closestPointToTriangle = wgslFn( /* wgsl */ `
 		}
 
 		var result: ClosestPointToTriangleResult;
-		result.barycoord = vec3f( u, v, w );
+		result.barycoord = vec3f( w, u, v );
 		result.point = u * v1 + v * v2 + w * v0;
 
 		return result;
