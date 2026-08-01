@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three-mesh-bvh - BVH Inspector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <style type="text/css">
+        html, body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #info {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            color: white;
+            font-family: monospace;
+            text-align: center;
+            padding: 5px 0;
+            pointer-events: none;
+        }
+
+        a {
+            color: #eee;
+        }
+
+        #container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            padding: 5px;
+            color: white;
+            opacity: 0.5;
+            font-family: monospace;
+            pointer-events: none;
+        }
+
+        #output, #benchmark {
+            white-space: pre;
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/inspector-C8s_kD4a.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ExtendedTriangle-DOKLf4jx.js">
+  <link rel="modulepreload" crossorigin href="./assets/OrbitControls-BX2ddTIw.js">
+  <link rel="modulepreload" crossorigin href="./assets/lil-gui.module.min-CCk8J1jY.js">
+  <link rel="modulepreload" crossorigin href="./assets/BufferGeometryUtils-BSUi9BiE.js">
+  <link rel="modulepreload" crossorigin href="./assets/SkeletonUtils-CHxfGqZJ.js">
+  <link rel="modulepreload" crossorigin href="./assets/GLTFLoader-p6qoQbZ1.js">
+  <link rel="modulepreload" crossorigin href="./assets/Pass-WYNZO8G0.js">
+  <link rel="modulepreload" crossorigin href="./assets/MeshBVH-C4U8FvwO.js">
+  <link rel="modulepreload" crossorigin href="./assets/Debug-C58SX-pf.js">
+  <link rel="modulepreload" crossorigin href="./assets/BVHHelper-C2-gy3_w.js">
+  <link rel="modulepreload" crossorigin href="./assets/ExtensionUtilities-Bpk56uAW.js">
+</head>
+<body>
+    <div id="info">
+		BVH inspector showing the number of traversals at a given pixel, various BVH construction stats, and basic raycast benchmark.
+		<br/>
+		<br/>
+		Pixels with traversal counts above the "traversalTreshold" are highlighted in red.
+	</div>
+	<div id="container">
+		<div id="output"></div>
+		<div id="benchmark"></div>
+	</div>
+</body>
+</html>

@@ -1,0 +1,2 @@
+import{J as e,Ut as t,_ as n,an as r}from"./ExtendedTriangle-DOKLf4jx.js";var i=new r(-1,1,1,-1,0,1),a=new class extends n{constructor(){super(),this.setAttribute(`position`,new e([-1,3,0,-1,-1,0,3,-1,0],3)),this.setAttribute(`uv`,new e([0,2,0,0,2,0],2))}},o=class{constructor(e){this._mesh=new t(a,e)}dispose(){this._mesh.geometry.dispose()}render(e){e.render(this._mesh,i)}get material(){return this._mesh.material}set material(e){this._mesh.material=e}};export{o as t};
+//# sourceMappingURL=Pass-WYNZO8G0.js.map
