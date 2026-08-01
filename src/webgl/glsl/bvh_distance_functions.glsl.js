@@ -19,7 +19,8 @@ float dot2( vec3 v ) {
 
 }
 
-// https://www.shadertoy.com/view/ttfGWl
+// implementation from https://www.shadertoy.com/view/ttfGWl, though method 2 has been removed
+// and is now available at this fork: https://www.shadertoy.com/view/WlB3zW
 vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoord ) {
 
     vec3 v10 = v1 - v0;
@@ -59,7 +60,8 @@ vec3 closestPointToTriangle( vec3 p, vec3 v0, vec3 v1, vec3 v2, out vec3 barycoo
 
 	}
 
-	barycoord = vec3( u, v, w );
+	// output the barycoord in v0, v1, v2 weight order
+	barycoord = vec3( w, u, v );
     return u * v1 + v * v2 + w * v0;
 
 }
