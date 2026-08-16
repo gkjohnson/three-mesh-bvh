@@ -46,6 +46,7 @@ export interface ComputeBVHOptions extends BVHOptions {
 
 export interface MeshBVHSerializeOptions {
 	cloneBuffers?: boolean;
+	optimizeSize?: boolean;
 }
 
 export interface MeshBVHDeserializeOptions {
@@ -279,6 +280,7 @@ export class SerializedBVH {
 	roots: Array<ArrayBuffer>;
 	index: Int32Array | Uint32Array | Uint16Array | null;
 	indirectBuffer: Uint32Array | Uint16Array | null;
+	indexOffset: number | null;
 
 }
 

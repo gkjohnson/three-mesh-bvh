@@ -6,7 +6,7 @@ import { SKIP_GENERATION, BYTES_PER_NODE, UINT32_PER_NODE, FLOAT32_EPSILON } fro
 import { OrientedBox } from '../math/OrientedBox.js';
 import { ExtendedTrianglePool } from '../utils/ExtendedTrianglePool.js';
 import { closestPointToPoint } from './cast/closestPointToPoint.js';
-import { IS_LEAF } from './utils/nodeBufferUtils.js';
+import { IS_LEAF, OFFSET, COUNT } from './utils/nodeBufferUtils.js';
 
 import { iterateOverTriangles } from './utils/iterationUtils.generated.js';
 import { refit } from './cast/refit.generated.js';
@@ -31,6 +31,42 @@ const _direction = /* @__PURE__ */ new Vector3();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _worldScale = /* @__PURE__ */ new Vector3();
 const _getters = [ 'getX', 'getY', 'getZ' ];
+
+// Derives the range of primitives referenced by the leaf nodes in the given roots so
+// only the portion of the geometry index buffer that the BVH actually depends on has
+// to be stored when serializing with the "optimizeSize" option. Roots derived from
+// geometry groups may leave gaps between them which are retained to avoid storing a
+// more complicated per-root representation.
+function getReferencedPrimitiveRange( roots ) {
+
+	let start = Infinity;
+	let end = 0;
+	for ( let rootIndex = 0, rootCount = roots.length; rootIndex < rootCount; rootIndex ++ ) {
+
+		const root = roots[ rootIndex ];
+		const uint32Array = new Uint32Array( root );
+		const uint16Array = new Uint16Array( root );
+		const totalNodes = root.byteLength / BYTES_PER_NODE;
+		for ( let node = 0; node < totalNodes; node ++ ) {
+
+			const node32Index = UINT32_PER_NODE * node;
+			const node16Index = 2 * node32Index;
+			if ( IS_LEAF( node16Index, uint16Array ) ) {
+
+				const offset = OFFSET( node32Index, uint32Array );
+				const count = COUNT( node16Index, uint16Array );
+				start = Math.min( start, offset );
+				end = Math.max( end, offset + count );
+
+			}
+
+		}
+
+	}
+
+	return { start, end };
+
+}
 
 /**
  * @callback IntersectsTriangleCallback
@@ -60,10 +96,13 @@ const _getters = [ 'getX', 'getY', 'getZ' ];
  * or storage, with optional buffer sharing via `SharedArrayBuffer`.
  *
  * @typedef {Object} SerializedBVH
+ * @property {number} version - Serialization format version.
  * @property {Array<ArrayBuffer>} roots - BVH root node buffers.
  * @property {Int32Array|Uint32Array|Uint16Array|null} index - Serialized geometry index buffer.
  * @property {Uint32Array|Uint16Array|null} indirectBuffer - Indirect primitive index buffer, or `null`
  *   if the BVH was not built in indirect mode.
+ * @property {number|null} indexOffset - Position in the geometry index buffer that `index` starts at.
+ *   Non-zero only when serialized with the `optimizeSize` option over a subrange BVH; `null` otherwise.
  */
 
 /**
@@ -107,12 +146,20 @@ export class MeshBVH extends GeometryBVH {
 	 * @param {Object} [options]
 	 * @param {boolean} [options.cloneBuffers=true] - If `true`, the index and BVH root buffers
 	 *   are cloned so the serialized data is independent of the live BVH.
+	 * @param {boolean} [options.optimizeSize=false] - If `true`, produce a smaller representation
+	 *   at the cost of a slower serialization pass. Only the portion of the geometry index buffer
+	 *   referenced by the BVH leaf nodes is stored, along with the position it was extracted from
+	 *   (`indexOffset`). Indirect BVHs store no index buffer at all because the indirect buffer
+	 *   already contains everything needed to re-instantiate them. Deserializing such data
+	 *   requires a geometry whose index buffer is at least as long as the referenced range
+	 *   because the stored range is copied back into place.
 	 * @returns {SerializedBVH}
 	 */
 	static serialize( bvh, options = {} ) {
 
 		options = {
 			cloneBuffers: true,
+			optimizeSize: false,
 			...options,
 		};
 
@@ -125,8 +172,37 @@ export class MeshBVH extends GeometryBVH {
 			roots: null,
 			index: null,
 			indirectBuffer: null,
+			indexOffset: null,
 		};
-		if ( options.cloneBuffers ) {
+
+		if ( options.optimizeSize ) {
+
+			result.roots = options.cloneBuffers ? rootData.map( root => root.slice() ) : rootData;
+
+			if ( indirectBuffer ) {
+
+				// in indirect mode the indirect buffer already holds every triangle index the
+				// BVH references so the geometry index does not have to be stored at all
+				result.indirectBuffer = options.cloneBuffers ? indirectBuffer.slice() : indirectBuffer;
+
+			} else if ( indexAttribute && rootData.length > 0 ) {
+
+				// derive the range of the index buffer that the leaf nodes reference so only
+				// that section has to be stored. NOTE: the geometry index may have been
+				// reordered in place during construction so this is the only reliable way to
+				// determine what is used after the build.
+				const { start, end } = getReferencedPrimitiveRange( rootData );
+				const stride = bvh.primitiveStride;
+				const startIndex = start * stride;
+				const count = ( end - start ) * stride;
+				result.indexOffset = startIndex;
+				result.index = options.cloneBuffers
+					? indexAttribute.array.slice( startIndex, startIndex + count )
+					: indexAttribute.array.subarray( startIndex, startIndex + count );
+
+			}
+
+		} else if ( options.cloneBuffers ) {
 
 			result.roots = rootData.map( root => root.slice() );
 			result.index = indexAttribute ? indexAttribute.array.slice() : null;
@@ -154,7 +230,10 @@ export class MeshBVH extends GeometryBVH {
 	 * @param {BufferGeometry} geometry - The geometry the BVH was originally built from.
 	 * @param {Object} [options]
 	 * @param {boolean} [options.setIndex=true] - If `true`, sets `geometry.index` from the
-	 *   serialized index buffer (creating one if none exists).
+	 *   serialized index buffer (creating one if none exists). Serialized data produced with
+	 *   the `optimizeSize` option only stores the referenced portion of the index buffer, which
+	 *   is copied back to the position stored in `data.indexOffset`. Such data cannot
+	 *   instantiate an index on a geometry that does not have one unless the range starts at 0.
 	 * @returns {MeshBVH}
 	 */
 	static deserialize( data, geometry, options = {} ) {
@@ -165,7 +244,7 @@ export class MeshBVH extends GeometryBVH {
 			...options,
 		};
 
-		const { index, roots, indirectBuffer } = data;
+		const { index, roots, indirectBuffer, indexOffset } = data;
 
 		// handle backwards compatibility by fixing up the buffer roots
 		// see issue gkjohnson/three-mesh-bvh#759
@@ -183,17 +262,35 @@ export class MeshBVH extends GeometryBVH {
 		bvh._roots = roots;
 		bvh._indirectBuffer = indirectBuffer || null;
 
-		if ( options.setIndex ) {
+		if ( options.setIndex && index ) {
 
 			const indexAttribute = geometry.getIndex();
 			if ( indexAttribute === null ) {
 
-				const newIndex = new BufferAttribute( data.index, 1, false );
+				if ( indexOffset ) {
+
+					throw new Error(
+						'MeshBVH.deserialize: Serialized data was optimized for size and only stores a ' +
+						'portion of the index buffer so a geometry with an existing index buffer is required.'
+					);
+
+				}
+
+				const newIndex = new BufferAttribute( index, 1, false );
 				geometry.setIndex( newIndex );
 
 			} else if ( indexAttribute.array !== index ) {
 
-				indexAttribute.array.set( index );
+				const indexOffsetValue = indexOffset || 0;
+				if ( indexOffsetValue + index.length > indexAttribute.array.length ) {
+
+					throw new Error(
+						'MeshBVH.deserialize: Serialized index range is larger than the geometry index buffer.'
+					);
+
+				}
+
+				indexAttribute.array.set( index, indexOffsetValue );
 				indexAttribute.needsUpdate = true;
 
 			}

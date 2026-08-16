@@ -161,6 +161,119 @@ describe( 'Serialization', () => {
 
 	} );
 
+	describe( 'optimizeSize', () => {
+
+		it( 'should only store the index range referenced by the BVH leaf nodes.', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const rangeStart = 300; // in vertex / index units
+			const rangeCount = 600; // 200 triangles
+			const bvh = new MeshBVH( geometry, { range: { start: rangeStart, count: rangeCount } } );
+
+			const serialized = MeshBVH.serialize( bvh, { optimizeSize: true } );
+
+			// the BVH only covers 600 indices starting at 300 so nothing else should be stored
+			expect( serialized.indexOffset ).toBe( 300 );
+			expect( serialized.index.length ).toBe( 600 );
+
+			// the stored range must match the same slice of the live, reordered geometry index
+			expect( Array.from( serialized.index ) ).toEqual( Array.from( geometry.index.array.slice( 300, 900 ) ) );
+
+		} );
+
+		it( 'should deserialize the stored range back into a matching BVH.', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+
+			const serialized = MeshBVH.serialize( bvh, { optimizeSize: true } );
+
+			// a fresh geometry with the same shape still has its pristine index so the
+			// reordered range referenced by the roots must be restored from the serialized data
+			const target = new SphereGeometry( 1, 32, 32 );
+			const deserialized = MeshBVH.deserialize( serialized, target );
+
+			expect( target.index.array.slice( 300, 900 ) ).toEqual( serialized.index );
+			expect( deserialized ).toEqualBVH( bvh );
+
+		} );
+
+		it( 'should not store an index buffer when the BVH is indirect.', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 300, count: 600 } } );
+
+			const serialized = MeshBVH.serialize( bvh, { optimizeSize: true } );
+
+			expect( serialized.index ).toBe( null );
+			expect( serialized.indexOffset ).toBe( null );
+			expect( serialized.indirectBuffer.length ).toBe( 200 );
+
+			// deserialization requires no index data at all
+			const deserialized = MeshBVH.deserialize( serialized, geometry.clone() );
+			expect( deserialized ).toEqualBVH( bvh );
+
+		} );
+
+		it( 'should throw when deserializing a subrange into a geometry without an index.', () => {
+
+			const geometry = new SphereGeometry( 5, 32, 32 );
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+
+			const serialized = MeshBVH.serialize( bvh, { optimizeSize: true } );
+			expect( serialized.indexOffset ).toBeGreaterThan( 0 );
+
+			const unindexed = new BufferGeometry();
+			unindexed.setAttribute( 'position', new BufferAttribute( new Float32Array( 60000 * 3 ), 3, false ) );
+
+			expect( () => MeshBVH.deserialize( serialized, unindexed ) ).toThrow();
+
+		} );
+
+		it( 'should throw when the geometry index buffer is too small for the stored range.', () => {
+
+			const geometry = new SphereGeometry( 1, 64, 64 );
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+
+			const serialized = MeshBVH.serialize( bvh, { optimizeSize: true } );
+
+			// a geometry whose index only holds 300 indices cannot accept a 600 index range
+			const small = new BufferGeometry();
+			small.setIndex( new BufferAttribute( new Uint16Array( 300 ), 1, false ) );
+
+			expect( () => MeshBVH.deserialize( serialized, small ) ).toThrow( /larger than the geometry index buffer/ );
+
+		} );
+
+		it( 'should default to storing the full index when optimizeSize is not set.', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+
+			const serialized = MeshBVH.serialize( bvh );
+
+			expect( serialized.indexOffset ).toBe( null );
+			expect( serialized.index.length ).toBe( geometry.index.count );
+
+		} );
+
+		it( 'should not share buffers with the live BVH when cloneBuffers is true.', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const bvh = new MeshBVH( geometry, { range: { start: 300, count: 600 } } );
+
+			const cloned = MeshBVH.serialize( bvh, { optimizeSize: true, cloneBuffers: true } );
+			expect( cloned.index ).not.toBe( geometry.index.array );
+			expect( cloned.roots[ 0 ] ).not.toBe( bvh._roots[ 0 ] );
+
+			const shared = MeshBVH.serialize( bvh, { optimizeSize: true, cloneBuffers: false } );
+			expect( shared.index.buffer ).toBe( geometry.index.array.buffer );
+			expect( shared.roots[ 0 ] ).toBe( bvh._roots[ 0 ] );
+
+		} );
+
+	} );
+
 	describe( 'backwards compatibility', () => {
 
 		it( 'should deserialize version 0 data (old byte offset format) correctly', () => {
