@@ -101,8 +101,9 @@ function getReferencedPrimitiveRange( roots ) {
  * @property {Int32Array|Uint32Array|Uint16Array|null} index - Serialized geometry index buffer.
  * @property {Uint32Array|Uint16Array|null} indirectBuffer - Indirect primitive index buffer, or `null`
  *   if the BVH was not built in indirect mode.
- * @property {number|null} indexOffset - Position in the geometry index buffer that `index` starts at.
- *   Non-zero only when serialized with the `optimizeSize` option over a subrange BVH; `null` otherwise.
+ * @property {number} [indexOffset] - Position in the geometry index buffer that `index` starts at.
+ *   Only present when serialized with the `optimizeSize` option and the BVH references a
+ *   portion of the geometry index buffer; absent otherwise.
  */
 
 /**
@@ -172,7 +173,6 @@ export class MeshBVH extends GeometryBVH {
 			roots: null,
 			index: null,
 			indirectBuffer: null,
-			indexOffset: null,
 		};
 
 		if ( options.optimizeSize ) {

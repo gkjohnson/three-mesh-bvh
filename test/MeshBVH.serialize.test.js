@@ -206,7 +206,7 @@ describe( 'Serialization', () => {
 			const serialized = MeshBVH.serialize( bvh, { optimizeSize: true } );
 
 			expect( serialized.index ).toBe( null );
-			expect( serialized.indexOffset ).toBe( null );
+			expect( 'indexOffset' in serialized ).toBe( false );
 			expect( serialized.indirectBuffer.length ).toBe( 200 );
 
 			// deserialization requires no index data at all
@@ -252,8 +252,37 @@ describe( 'Serialization', () => {
 
 			const serialized = MeshBVH.serialize( bvh );
 
-			expect( serialized.indexOffset ).toBe( null );
+			expect( 'indexOffset' in serialized ).toBe( false );
 			expect( serialized.index.length ).toBe( geometry.index.count );
+
+		} );
+
+		it( 'should preserve the legacy serialized shape when optimizeSize is not set.', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const bvh = new MeshBVH( geometry );
+
+			const serialized = MeshBVH.serialize( bvh );
+
+			// the default output must keep the exact key shape serialized data has
+			// always had so downstream consumers (JSON, key iteration) are unaffected
+			expect( Object.keys( serialized ) ).toEqual( [ 'version', 'roots', 'index', 'indirectBuffer' ] );
+
+		} );
+
+		it( 'should deserialize data without an indexOffset field (legacy serialized data).', () => {
+
+			const geometry = new SphereGeometry( 1, 32, 32 );
+			const bvh = new MeshBVH( geometry );
+
+			const serialized = MeshBVH.serialize( bvh );
+
+			// data written before this option existed has no indexOffset field at all
+			const legacyData = { ...serialized };
+			delete legacyData.indexOffset;
+
+			const deserialized = MeshBVH.deserialize( legacyData, geometry.clone() );
+			expect( deserialized ).toEqualBVH( bvh );
 
 		} );
 
