@@ -210,7 +210,7 @@ export class WGSLTagFnNode extends FunctionNode {
 			}
 
 			// remove comments
-			fullCode = fullCode.replace( /\/\/.+[\n\r]/g, '' );
+			fullCode = fullCode.replace( /\/\/.*[\n\r]/g, '' );
 
 			// parse it so we have the signature defined - we will define the body content after
 			nodeFunction = builder.parser.parseFunction( fullCode );
