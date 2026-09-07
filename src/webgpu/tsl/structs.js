@@ -24,14 +24,16 @@ export const transformStruct = new StructTypeNode( {
 
 
 /**
- * WGSL struct node representing a ray with an origin and direction.
- * Used as the input to BVH traversal and intersection functions.
+ * WGSL struct node representing a ray with an origin, direction, and maximum trace distance.
+ * Used as the input to BVH traversal and intersection functions. Traversal ignores hits at or
+ * beyond "maxDist", and a value of 0 (the zero-initialized default) means unbounded.
  * @type {StructTypeNode}
  * @section TSL Structs
  */
 export const rayStruct = new StructTypeNode( {
 	origin: 'vec3f',
 	direction: 'vec3f',
+	maxDist: 'float',
 }, 'Ray' );
 
 /**

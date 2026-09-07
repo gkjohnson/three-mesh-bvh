@@ -133,7 +133,7 @@ async function init() {
 			bvh_ClosestPointToPoint( point, &pointResult );
 
 			var rayResult: IntersectionResult;
-			let ray = Ray( point, vec3f( 0.0, 0.0, 1.0 ) );
+			let ray = Ray( point, vec3f( 0.0, 0.0, 1.0 ), 0.0 );
 			bvh_RaycastFirstHit( ray, &rayResult );
 
 			let side = select( 1.0, rayResult.side, rayResult.didHit );
