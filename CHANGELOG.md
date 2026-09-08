@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.15] - 2026-09-08
+### Changed
+- BVHComputeData: "ray" struct now includes "maxDist" field, supports limited ray traversal.
+
 ## [0.9.14] - 2026-08-01
 ### Fixed
 - BVHComputeData: handle BatchedMesh indirect "range" BVHs correctly.
