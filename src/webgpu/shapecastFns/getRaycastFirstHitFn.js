@@ -61,6 +61,11 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 					return 0u;
 
+				} else if ( ray.maxDist > 0.0 && dist * ${ scratchRayScalar } >= ray.maxDist ) {
+
+					// the node sits entirely beyond the ray's maximum trace distance
+					return 0u;
+
 				} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
 
 					return 0u;
@@ -90,7 +95,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 					var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					triResult.dist *= ${ scratchRayScalar };
-					if ( triResult.didHit && ( ! result.didHit || triResult.dist < result.dist ) ) {
+					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist < ray.maxDist ) && ( ! result.didHit || triResult.dist < result.dist ) ) {
 
 						result.didHit = true;
 						result.dist = triResult.dist;

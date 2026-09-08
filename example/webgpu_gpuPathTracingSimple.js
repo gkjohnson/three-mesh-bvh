@@ -114,12 +114,12 @@ function init() {
 			// scene ray (world space)
 			var ray = ndcToCameraRay( ndc, cameraToWorldMatrix * inverseProjectionMatrix );
 
-			// get hit result
+			// get hit result - the traversal clips at the ray's far plane distance
 			var hit: IntersectionResult;
 			bvh_RaycastFirstHit( ray, &hit );
 
 			// write result
-			if ( hit.didHit && hit.dist < 1.0 ) {
+			if ( hit.didHit ) {
 
 				let localNormal = normalize( bvh_sampleTrianglePoint( hit.barycoord, hit.indices.xyz ).normal.xyz );
 				let normal = select(

@@ -123,8 +123,9 @@ export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 /**
  * WGSL function node that builds a camera ray (origin + far-plane direction) from an NDC
  * coordinate and an inverse model-view-projection matrix. Works for both perspective and
- * orthographic projections. The returned direction is not normalized and extends to the
- * camera far plane.
+ * orthographic projections. The origin sits on the near plane, the returned direction is
+ * normalized, and "maxDist" is the world-space distance to the far plane so traversal
+ * clips there.
  * @type {FunctionNode}
  * @section TSL Functions
  */
@@ -139,7 +140,9 @@ export const ndcToCameraRay = wgslTagFn/* wgsl */`
 		ray.origin = homogeneous.xyz / homogeneous.w;
 
 		homogeneous = inverseModelViewProjection * vec4f( ndc, 1.0, 1.0 );
-		ray.direction = ( homogeneous.xyz / homogeneous.w ) - ray.origin;
+		let toFarPlane = ( homogeneous.xyz / homogeneous.w ) - ray.origin;
+		ray.maxDist = length( toFarPlane );
+		ray.direction = toFarPlane / ray.maxDist;
 
 		return ray;
 
