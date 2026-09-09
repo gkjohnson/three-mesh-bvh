@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.9.15] - 2026-09-09
 ### Changed
 - BVHComputeData: "ray" struct now includes "maxDist" field, supports limited ray traversal.
+- BVHComputeData: "ndcToCameraRay" function now sets the ray max distance, returns a normalized direction.
 
 ## [0.9.14] - 2026-08-01
 ### Fixed
