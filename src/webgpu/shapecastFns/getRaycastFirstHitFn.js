@@ -63,7 +63,6 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 				} else if ( ray.maxDist > 0.0 && dist * ${ scratchRayScalar } >= ray.maxDist ) {
 
-					// the node sits entirely beyond the ray's maximum trace distance
 					return 0u;
 
 				} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
