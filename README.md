@@ -14,71 +14,71 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 # Examples
 
-[Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/raycast.html)
+[Raycasting](https://gkjohnson.github.io/three-mesh-bvh/raycast.html)
 
-[Skinned geometry](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/skinnedMesh.html)
+[Skinned geometry](https://gkjohnson.github.io/three-mesh-bvh/skinnedMesh.html)
 
-[Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html)
+[Point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/pointCloudIntersection.html)
 
-[Line intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/lineIntersection.html)
+[Line intersection](https://gkjohnson.github.io/three-mesh-bvh/lineIntersection.html)
 
-[Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/shapecast.html)
+[Shape intersection](https://gkjohnson.github.io/three-mesh-bvh/shapecast.html)
 
-[Geometry edge intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/edgeIntersect.html)
+[Geometry edge intersection](https://gkjohnson.github.io/three-mesh-bvh/edgeIntersect.html)
 
-[SDF generation](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sdfGeneration.html)
+[SDF generation](https://gkjohnson.github.io/three-mesh-bvh/sdfGeneration.html)
 
-[WebWorker generation](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/asyncGenerate.html)
+[WebWorker generation](https://gkjohnson.github.io/three-mesh-bvh/asyncGenerate.html)
 
-[BVH options inspector](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/inspector.html)
+[BVH options inspector](https://gkjohnson.github.io/three-mesh-bvh/inspector.html)
 
-[BatchedMesh Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/batchedMesh.html)
+[BatchedMesh Raycasting](https://gkjohnson.github.io/three-mesh-bvh/batchedMesh.html)
 
 **Tools**
 
-[Sculpting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/sculpt.html)
+[Sculpting](https://gkjohnson.github.io/three-mesh-bvh/sculpt.html)
 
-[Distance comparison](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/distancecast.html)
+[Distance comparison](https://gkjohnson.github.io/three-mesh-bvh/distancecast.html)
 
-[Triangle painting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/collectTriangles.html)
+[Triangle painting](https://gkjohnson.github.io/three-mesh-bvh/collectTriangles.html)
 
-[Lasso selection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/selection.html)
+[Lasso selection](https://gkjohnson.github.io/three-mesh-bvh/selection.html)
 
-[Clipped edges](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/clippedEdges.html)
+[Clipped edges](https://gkjohnson.github.io/three-mesh-bvh/clippedEdges.html)
 
-[Geometry voxelization](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/voxelize.html)
+[Geometry voxelization](https://gkjohnson.github.io/three-mesh-bvh/voxelize.html)
 
 **Games**
 
-[Sphere physics collision](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/physics.html)
+[Sphere physics collision](https://gkjohnson.github.io/three-mesh-bvh/physics.html)
 
-[Player movement](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/characterMovement.html)
+[Player movement](https://gkjohnson.github.io/three-mesh-bvh/characterMovement.html)
 
 **Path Tracing**
 
-[Simple GPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracingSimple.html)
+[Simple GPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/gpuPathTracingSimple.html)
 
-[Lambert GPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/gpuPathTracing.html)
+[Lambert GPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/gpuPathTracing.html)
 
-[CPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/cpuPathTracing.html)
+[CPU Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/cpuPathTracing.html)
 
-[Gem Refraction Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/diamond.html)
+[Gem Refraction Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/diamond.html)
 
 **Object Hierarchy BVH**
 
-[Accelerated Scene Raycasting](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_sceneRaycast.html)
+[Accelerated Scene Raycasting](https://gkjohnson.github.io/three-mesh-bvh/objectbvh_sceneRaycast.html)
 
-[Skinned Meshes](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_skinnedMeshes.html)
+[Skinned Meshes](https://gkjohnson.github.io/three-mesh-bvh/objectbvh_skinnedMeshes.html)
 
-[Frustum Culling](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_frustumCulling.html)
+[Frustum Culling](https://gkjohnson.github.io/three-mesh-bvh/objectbvh_frustumCulling.html)
 
-<!-- [Character Movement](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/objectbvh_characterMovement.html) -->
+<!-- [Character Movement](https://gkjohnson.github.io/three-mesh-bvh/objectbvh_characterMovement.html) -->
 
 
 <!--
 **WebGPU Compute Shaders**
 
-[Simple Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/webgpu_gpuPathTracingSimple.html)
+[Simple Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/webgpu_gpuPathTracingSimple.html)
 -->
 
 **External Projects**
@@ -173,7 +173,7 @@ geometry.computeBoundsTree( { type: PointsBVH } );
 geometry.boundsTree = new PointsBVH( geometry );
 ```
 
-Each BVH type implements a core API including shapecast & raycastObject3D for its specific primitive type. See the [point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/pointCloudIntersection.html) & [line intersection](https://gkjohnson.github.io/three-mesh-bvh/example/bundle/lineIntersection.html) examples for a working demonstration. Some features like webworker-generation and serialization are not supported at the moment.
+Each BVH type implements a core API including shapecast & raycastObject3D for its specific primitive type. See the [point cloud intersection](https://gkjohnson.github.io/three-mesh-bvh/pointCloudIntersection.html) & [line intersection](https://gkjohnson.github.io/three-mesh-bvh/lineIntersection.html) examples for a working demonstration. Some features like webworker-generation and serialization are not supported at the moment.
 
 ## Additional BVHs
 
