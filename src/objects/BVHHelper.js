@@ -52,6 +52,13 @@ class BVHRootHelper extends Object3D {
 
 	raycast() {}
 
+	intersectsFrustum( frustum ) {
+
+		// three r186+ frustum culls through this method, so forward it like Mesh / Line / Points do
+		return frustum.intersectsObject( this );
+
+	}
+
 	update() {
 
 		const boundsTree = this.bvh;
