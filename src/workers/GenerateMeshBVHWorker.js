@@ -10,8 +10,8 @@ import { WorkerBase } from './utils/WorkerBase.js';
  * being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
  * the MeshBVH is finished generating.
  *
- * _NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating
- * a new Worker._
+ * @note It's best to reuse a single instance of this class to avoid the overhead of instantiating
+ * a new Worker.
  *
  * @extends WorkerBase
  */

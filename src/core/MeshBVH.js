@@ -825,8 +825,8 @@ export class MeshBVH extends GeometryBVH {
 	 * `getTriangleHitPointInfo` to obtain more information like UV coordinates, triangle normal
 	 * and materialIndex.
 	 *
-	 * _Note that this function can be very slow if `geometry` does not have a
-	 * `geometry.boundsTree` computed._
+	 * @note This function can be very slow if `geometry` does not have a `geometry.boundsTree`
+	 * computed.
 	 *
 	 * @param {BufferGeometry} otherGeometry
 	 * @param {Matrix4} geometryToBvh - Transform of `otherGeometry` into the local space of
