@@ -264,11 +264,9 @@ See the shader implementation in the [simple GPU Path Tracing example](https://g
 
 # API
 
-See [API.md](./API.md) for full API documentation.
+See the [docs site](https://gkjohnson.github.io/tools/docs/three-mesh-bvh/) for full API documentation.
 
-See [WEBGPU_API.md](./WEBGPU_API.md) for the WebGPU API documentation.
-
-The same documentation is also available on the [docs site](https://gkjohnson.github.io/tools/docs/three-mesh-bvh/).
+The same documentation is also available as markdown in [API.md](./API.md) and, for WebGPU, [WEBGPU_API.md](./WEBGPU_API.md).
 
 ## Gotchas
 
