@@ -23,6 +23,16 @@ export function getRaycastFirstHitFn( bvhData ) {
 		name: 'bvh_RaycastFirstHit',
 		shapeStruct: rayStruct,
 		resultStruct: rayIntersectionResultStruct,
+		childOrderFn: wgslTagFn/* wgsl */`
+			fn getCWBVHChildOrder( ray: ${ rayStruct } ) -> u32 {
+
+				return
+					select( 0u, 4u, ray.direction.x < 0.0 ) |
+					select( 0u, 2u, ray.direction.y < 0.0 ) |
+					select( 0u, 1u, ray.direction.z < 0.0 );
+
+			}
+		`,
 
 		boundsOrderFn: wgslTagFn/* wgsl */`
 			fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {

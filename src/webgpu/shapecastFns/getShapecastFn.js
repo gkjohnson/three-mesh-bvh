@@ -2,6 +2,7 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { BVH_STACK_DEPTH } from '../tsl/constants.js';
+import { getCWBVHShapecastFn } from './getCWBVHShapecastFn.js';
 
 /**
  * Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
@@ -16,6 +17,7 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @param {StructTypeNode|null} [options.resultStruct] - TSL struct for the accumulated result, or null.
  * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
  * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
+ * @param {Function|null} [options.childOrderFn] - function node returning the preferred CWBVH child octant (0-7).
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
  * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
@@ -24,6 +26,12 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @returns {Function} TSL function node for the traversal.
  */
 export function getShapecastFn( bvhData, options ) {
+
+	if ( bvhData.useCompressedWideBVH ) {
+
+		return getCWBVHShapecastFn( bvhData, options );
+
+	}
 
 	// TODO: test with and verify use with TSL Fn - both passing them as arguments,
 	// calling the function from a TSL Fn.
@@ -87,8 +95,8 @@ export function getShapecastFn( bvhData, options ) {
 
 	}
 
-	const resultPtrSnippet = resultStruct ? wgslTagCode/* wgsl */`result: ptr<function, ${ resultStruct }>` : '';
-	const resultArg = resultStruct ? 'result' : '';
+	const resultPtrSnippet = resultStruct ? wgslTagCode/* wgsl */`, result: ptr<function, ${ resultStruct }>` : '';
+	const resultArgSnippet = resultStruct ? ', result' : '';
 
 	// The TLAS and per-cluster BLAS are traversed with a single shared stack and loop. A thread
 	// inside a cluster's BLAS ( using its transformed localShape ) and a thread still in the TLAS
@@ -96,7 +104,7 @@ export function getShapecastFn( bvhData, options ) {
 	// BLAS fn.
 	const tlasFn = wgslTagFn/* wgsl */`
 		// fn
-		fn ${ name }( shape: ${ shapeStruct }, ${ resultPtrSnippet } ) -> bool {
+		fn ${ name }( shape: ${ shapeStruct }${ resultPtrSnippet } ) -> bool {
 
 			${ prefixSnippet }
 
@@ -148,7 +156,7 @@ export function getShapecastFn( bvhData, options ) {
 				pointer = pointer - 1;
 
 				// skip the node if we don't intersect the bounds
-				if ( ${ intersectsBoundsFn }( localShape, node.bounds, ${ resultArg } ) == 0u ) {
+				if ( ${ intersectsBoundsFn }( localShape, node.bounds${ resultArgSnippet } ) == 0u ) {
 
 					continue;
 
@@ -187,7 +195,7 @@ export function getShapecastFn( bvhData, options ) {
 
 						let count = infoX & 0x0000ffffu;
 						let offset = infoY;
-						blasDidHit = ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) || blasDidHit;
+						blasDidHit = ${ intersectRangeFn }( localShape, offset, count${ resultArgSnippet } ) || blasDidHit;
 
 					}
 

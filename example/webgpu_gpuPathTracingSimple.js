@@ -71,7 +71,10 @@ function init() {
 
 	// animation
 	clock = new THREE.Clock();
-	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f', normal: 'vec4f' } } );
+	bvhData = new BVHComputeData( mesh, {
+		attributes: { position: 'vec4f', normal: 'vec4f' },
+		useCompressedWideBVH: true,
+	} );
 	bvhData.update();
 
 	outputTex = new StorageTexture( 1, 1 );
