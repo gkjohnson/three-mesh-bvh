@@ -49,6 +49,9 @@ export function getShapecastFn( bvhData, options ) {
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { nodes, transforms } = bvhData.storage;
 
+	const resultPtrSnippet = resultStruct ? wgslTagCode/* wgsl */`result: ptr<function, ${ resultStruct }>` : '';
+	const resultArg = resultStruct ? 'result' : '';
+
 	let prefixSnippet = '';
 	if ( prefixFn ) {
 
@@ -101,9 +104,6 @@ export function getShapecastFn( bvhData, options ) {
 		`;
 
 	}
-
-	const resultPtrSnippet = resultStruct ? wgslTagCode/* wgsl */`result: ptr<function, ${ resultStruct }>` : '';
-	const resultArg = resultStruct ? 'result' : '';
 
 	// The TLAS and per-cluster BLAS are traversed with a single shared stack and loop. A thread
 	// inside a cluster's BLAS ( using its transformed localShape ) and a thread still in the TLAS
