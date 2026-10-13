@@ -91,7 +91,10 @@ export class BVHComputeData {
 		const {
 			attributes = { position: 'vec4f' },
 			autogenerateBvh = true,
+			earlyOut = null,
 		} = options;
+
+		this.earlyOut = earlyOut;
 
 		// convert the arguments to a list of objects
 		if ( ! Array.isArray( objects ) ) {
@@ -132,7 +135,7 @@ export class BVHComputeData {
 		this.storage = new NodeProxyObject();
 		this.structs = new NodeProxyObject( { transform: transformStruct } );
 		this.fns = new NodeProxyObject( {
-			raycastFirstHit: getRaycastFirstHitFn( this ),
+			raycastFirstHit: getRaycastFirstHitFn( this, { earlyOutFn: this.earlyOut } ),
 			closestPointToPoint: getClosestPointToPointFn( this ),
 			sampleTrianglePoint: null,
 		}, proxyFn );

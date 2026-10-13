@@ -19,6 +19,7 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
  * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
+ * @param {Function|null} [options.earlyOutFn] - optional function node called after an intersection test to check whether to early out.
  * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
  * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
  * @returns {Function} TSL function node for the traversal.
@@ -40,6 +41,7 @@ export function getShapecastFn( bvhData, options ) {
 		intersectsBoundsFn,
 		intersectRangeFn,
 		transformShapeFn = null,
+		earlyOutFn = null,
 		transformResultFn = null,
 		resetShapeFn = null,
 	} = options;
@@ -73,6 +75,19 @@ export function getShapecastFn( bvhData, options ) {
 	if ( resetShapeFn ) {
 
 		resetShapeSnippet = wgslTagCode/* wgsl */`${ resetShapeFn }( objectIndex );`;
+
+	}
+
+	let earlyOutSnippet = '';
+	if ( earlyOutFn ) {
+
+		earlyOutSnippet = wgslTagCode/* wgsl */`
+			if ( ${ earlyOutFn }( ${ resultArg } ) ) {
+
+				break;
+
+			}
+		`;
 
 	}
 
@@ -188,6 +203,7 @@ export function getShapecastFn( bvhData, options ) {
 						let count = infoX & 0x0000ffffu;
 						let offset = infoY;
 						blasDidHit = ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) || blasDidHit;
+						${ earlyOutSnippet }
 
 					}
 

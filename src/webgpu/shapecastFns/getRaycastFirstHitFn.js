@@ -12,7 +12,7 @@ import { intersectRayTriangle } from '../tsl/fns.js';
  * @param {BVHComputeData} bvhData
  * @returns {Function} TSL function node for the TLAS traversal.
  */
-export function getRaycastFirstHitFn( bvhData ) {
+export function getRaycastFirstHitFn( bvhData, options = {} ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, attributes, transforms } = bvhData.storage;
@@ -142,6 +142,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 			}
 		`,
+		earlyOutFn: options.earlyOutFn || null,
 	} );
 
 }
