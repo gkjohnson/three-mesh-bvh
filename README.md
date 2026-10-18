@@ -75,12 +75,11 @@ Casting 500 rays against an 80,000 polygon model at 60fps!
 
 <!-- [Character Movement](https://gkjohnson.github.io/three-mesh-bvh/objectbvh_characterMovement.html) -->
 
-
-<!--
 **WebGPU Compute Shaders**
 
 [Simple Path Tracing](https://gkjohnson.github.io/three-mesh-bvh/webgpu_gpuPathTracingSimple.html)
--->
+
+[SDF Generation](https://gkjohnson.github.io/three-mesh-bvh/webgpu_sdfGeneration.html)
 
 **External Projects**
 
