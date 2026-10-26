@@ -1,6 +1,7 @@
 import {
 	Mesh,
 	BufferGeometry,
+	Float32BufferAttribute,
 	SphereGeometry,
 	MeshBasicMaterial,
 	Raycaster,
@@ -26,6 +27,27 @@ describe( 'Multi-Material', () => {
 		raycaster = new Raycaster();
 		raycaster.ray.origin.set( 0, 0, - 10 );
 		raycaster.ray.direction.set( 0, 0, 1 );
+
+	} );
+
+	it.each( [
+		[ false, 'raycast', []],
+		[ false, 'raycastFirst', null ],
+		[ true, 'raycast', []],
+		[ true, 'raycastFirst', null ],
+	] )( 'should skip triangle reads on a root miss (indirect: %s, %s)', ( indirect, method, expected ) => {
+
+		const geometry = new BufferGeometry();
+		const position = new Float32BufferAttribute( [ 0, 0, 0, 1, 0, 0, 0, 1, 0 ], 3 );
+		geometry.setAttribute( 'position', position );
+		geometry.addGroup( 0, 3, 0 );
+		const tree = new MeshBVH( geometry, { indirect } );
+		const getX = vi.spyOn( position, 'getX' );
+		raycaster.ray.origin.set( 2, 2, - 1 );
+
+		expect( tree[ method ]( raycaster.ray, [ new MeshBasicMaterial() ] ) ).toEqual( expected );
+		expect( getX ).not.toHaveBeenCalled();
+		getX.mockRestore();
 
 	} );
 
