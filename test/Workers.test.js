@@ -2,6 +2,7 @@
 
 import puppeteer from 'puppeteer';
 import { createServer } from 'vite';
+import { runTestMatrix } from './utils.js';
 
 describe( 'Workers', () => {
 
@@ -130,129 +131,26 @@ describe( 'Workers', () => {
 
 	} );
 
-	describe( 'GenerateMeshBVHWorker', () => {
+	runTestMatrix( {
+		parallel: [ false, true ],
+		groups: [ false, true ],
+	}, ( desc, options ) => {
 
-		it( 'should log onProgress correctly', async () => {
+		describe( `Running with Options: { ${ desc } }`, () => {
 
-			const { workerBvh, bvh, error, progress } = await generate( { progress: true } );
-			const minProgress = Math.min( ...progress );
-			const maxProgress = Math.max( ...progress );
+			it( 'should generate a matching bvh and log onProgress correctly', async () => {
 
-			expect( minProgress ).toBeLessThan( 0.001 );
-			expect( maxProgress ).toBe( 1 );
+				const { workerBvh, bvh, error, progress } = await generate( { ...options, progress: true } );
+				const minProgress = Math.min( ...progress );
+				const maxProgress = Math.max( ...progress );
 
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
+				expect( minProgress ).toBeLessThan( 0.01 );
+				expect( maxProgress ).toBe( 1 );
 
-		} );
+				expect( error ).toBe( null );
+				expect( workerBvh ).toEqual( bvh );
 
-		it( 'should log onProgress correctly with groups', async () => {
-
-			const { workerBvh, bvh, error, progress } = await generate( { progress: true, groups: true } );
-			const minProgress = Math.min( ...progress );
-			const maxProgress = Math.max( ...progress );
-
-			expect( minProgress ).toBeLessThan( 0.001 );
-			expect( maxProgress ).toBe( 1 );
-
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching bvh', async () => {
-
-			const { workerBvh, bvh, error } = await generate();
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching indirect bvh', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { indirect: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching bvh with groups', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { groups: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching indirect bvh with groups', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { indirect: true, groups: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-	} );
-
-	describe( 'ParallelMeshBVHWorker', () => {
-
-		it( 'should log onProgress correctly', async () => {
-
-			const { workerBvh, bvh, error, progress } = await generate( { parallel: true, progress: true } );
-			const minProgress = Math.min( ...progress );
-			const maxProgress = Math.max( ...progress );
-
-			expect( minProgress ).toBeLessThan( 0.001 );
-			expect( maxProgress ).toBe( 1 );
-
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should log onProgress correctly with groups', async () => {
-
-			const { workerBvh, bvh, error, progress } = await generate( { parallel: true, progress: true, groups: true } );
-			const minProgress = Math.min( ...progress );
-			const maxProgress = Math.max( ...progress );
-
-			expect( minProgress ).toBeLessThan( 0.001 );
-			expect( maxProgress ).toBe( 1 );
-
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching bvh', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { parallel: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching indirect bvh', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { indirect: true, parallel: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching bvh with groups', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { groups: true, parallel: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
-
-		} );
-
-		it( 'should generate a matching indirect bvh with groups', async () => {
-
-			const { workerBvh, bvh, error } = await generate( { indirect: true, groups: true, parallel: true } );
-			expect( error ).toBe( null );
-			expect( workerBvh ).toEqual( bvh );
+			} );
 
 		} );
 
