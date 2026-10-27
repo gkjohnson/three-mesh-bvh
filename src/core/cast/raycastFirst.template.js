@@ -9,7 +9,14 @@ const _xyzFields = [ 'x', 'y', 'z' ];
 export function raycastFirst/* @echo INDIRECT_STRING */( bvh, root, materialOrSide, ray, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	const result = _raycastFirst( 0, bvh, materialOrSide, ray, near, far );
+
+	let result = null;
+	if ( intersectsNodeBounds( 0, BufferStack.float32Array, ray, near, far ) ) {
+
+		result = _raycastFirst( 0, bvh, materialOrSide, ray, near, far );
+
+	}
+
 	BufferStack.clearBuffer();
 
 	return result;

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - SAH builds are faster: 8 bins per axis and an exact sweep for small nodes.
 
+### Fixed
+- MeshBVH: Raycasts no longer test triangles when the ray misses a root that is a leaf.
+- OrientedBox: Fixed "distanceToBox" using the wrong axis for one set of box edges.
+
 ## [0.9.16] - 2026-10-08
 ### Fixed
 - BVHHelper: Fixed helper not rendering with three.js r186 correctly.

@@ -417,11 +417,11 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 					start[ f1 ] = min[ f1 ];
 					start[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
-					start[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
+					start[ f3 ] = i2 ? min[ f3 ] : max[ f3 ];
 
 					end[ f1 ] = max[ f1 ];
 					end[ f2 ] = i1 ? min[ f2 ] : max[ f2 ];
-					end[ f3 ] = i2 ? min[ f3 ] : max[ f2 ];
+					end[ f3 ] = i2 ? min[ f3 ] : max[ f3 ];
 
 					count ++;
 
