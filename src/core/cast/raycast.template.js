@@ -7,7 +7,12 @@ import { intersectTris_indirect } from '../utils/iterationUtils_indirect.generat
 export function raycast/* @echo INDIRECT_STRING */( bvh, root, materialOrSide, ray, intersects, near, far ) {
 
 	BufferStack.setBuffer( bvh._roots[ root ] );
-	_raycast( 0, bvh, materialOrSide, ray, intersects, near, far );
+	if ( intersectsNodeBounds( 0, BufferStack.float32Array, ray, near, far ) ) {
+
+		_raycast( 0, bvh, materialOrSide, ray, intersects, near, far );
+
+	}
+
 	BufferStack.clearBuffer();
 
 }
