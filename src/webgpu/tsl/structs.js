@@ -6,12 +6,17 @@ export const bvhNodeBoundsStruct = new StructTypeNode( {
 }, 'BVHBoundingBox' );
 bvhNodeBoundsStruct.getLength = () => 6;
 
+// an internal node stores the bounds of both its children so they are tested where the parent is
+// fetched. A leaf's bounds live in its parent and its own bounds fields are unused.
 export const bvhNodeStruct = new StructTypeNode( {
-	bounds: 'BVHBoundingBox',
+	leftBounds: 'BVHBoundingBox',
+	rightBounds: 'BVHBoundingBox',
 	rightChildOrTriangleOffset: 'uint',
 	splitAxisOrTriangleCount: 'uint',
+	_alignment0: 'uint',
+	_alignment1: 'uint',
 }, 'BVHNode' );
-bvhNodeStruct.getLength = () => bvhNodeBoundsStruct.getLength() + 2;
+bvhNodeStruct.getLength = () => 2 * bvhNodeBoundsStruct.getLength() + 4;
 
 export const transformStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',

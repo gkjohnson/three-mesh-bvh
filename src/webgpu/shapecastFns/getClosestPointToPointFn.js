@@ -29,9 +29,15 @@ export function getClosestPointToPointFn( bvhData ) {
 
 				let toWorld = ${ scratchToWorldMat };
 
-				// get center
-				let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
-				let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
+				// get the center of the two children's bounds
+				let bMin = min(
+					vec3f( node.leftBounds.min[ 0 ], node.leftBounds.min[ 1 ], node.leftBounds.min[ 2 ] ),
+					vec3f( node.rightBounds.min[ 0 ], node.rightBounds.min[ 1 ], node.rightBounds.min[ 2 ] )
+				);
+				let bMax = max(
+					vec3f( node.leftBounds.max[ 0 ], node.leftBounds.max[ 1 ], node.leftBounds.max[ 2 ] ),
+					vec3f( node.rightBounds.max[ 0 ], node.rightBounds.max[ 1 ], node.rightBounds.max[ 2 ] )
+				);
 				let center = bMin * 0.5 + bMax * 0.5;
 
 				// determine the order in world space

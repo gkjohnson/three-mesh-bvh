@@ -83,6 +83,8 @@ export function getShapecastFn( bvhData, options ) {
 			let leftToRight = ${ boundsOrderFn }( localShape, splitAxis, node );
 			c1 = select( rightIndex, leftIndex, leftToRight );
 			c2 = select( leftIndex, rightIndex, leftToRight );
+			hit1 = select( hitRight, hitLeft, leftToRight );
+			hit2 = select( hitLeft, hitRight, leftToRight );
 		`;
 
 	}
@@ -143,16 +145,10 @@ export function getShapecastFn( bvhData, options ) {
 
 				}
 
+				// a node's bounds were tested by its parent, so the popped node is always entered
 				let nodeIndex = stack[ pointer ];
 				let node = ${ nodes }[ nodeIndex ];
 				pointer = pointer - 1;
-
-				// skip the node if we don't intersect the bounds
-				if ( ${ intersectsBoundsFn }( localShape, node.bounds, ${ resultArg } ) == 0u ) {
-
-					continue;
-
-				}
 
 				let infoX = node.splitAxisOrTriangleCount;
 				let infoY = node.rightChildOrTriangleOffset;
@@ -193,19 +189,32 @@ export function getShapecastFn( bvhData, options ) {
 
 				} else {
 
+					// test both children here, pushing the farther one first so the nearer is popped next
 					let leftIndex = nodeIndex + 1u;
 					let splitAxis = infoX & 0x0000ffffu;
 					let rightIndex = nodeIndex + infoY;
+					let hitLeft = ${ intersectsBoundsFn }( localShape, node.leftBounds, ${ resultArg } ) != 0u;
+					let hitRight = ${ intersectsBoundsFn }( localShape, node.rightBounds, ${ resultArg } ) != 0u;
 
 					var c1 = rightIndex;
 					var c2 = leftIndex;
+					var hit1 = hitRight;
+					var hit2 = hitLeft;
 					${ leftToRightSnippet }
 
-					pointer = pointer + 1;
-					stack[ pointer ] = c2;
+					if ( hit2 ) {
 
-					pointer = pointer + 1;
-					stack[ pointer ] = c1;
+						pointer = pointer + 1;
+						stack[ pointer ] = c2;
+
+					}
+
+					if ( hit1 ) {
+
+						pointer = pointer + 1;
+						stack[ pointer ] = c1;
+
+					}
 
 				}
 
