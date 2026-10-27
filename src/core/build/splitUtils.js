@@ -2,7 +2,10 @@ import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expan
 import { CENTER, AVERAGE, SAH, PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
 
 const BIN_COUNT = 32;
-const binsSort = ( a, b ) => a.candidate - b.candidate;
+
+// nodes with fewer primitives than this test a split at every primitive center instead of binning
+const SWEEP_COUNT = BIN_COUNT / 4;
+
 const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
 
 	return {
@@ -10,13 +13,27 @@ const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
 		count: 0,
 		bounds: new Float32Array( 6 ),
 		rightCacheBounds: new Float32Array( 6 ),
-		leftCacheBounds: new Float32Array( 6 ),
 		candidate: 0,
 
 	};
 
 } );
 const leftBounds = /* @__PURE__ */ new Float32Array( 6 );
+const rightBounds = /* @__PURE__ */ new Float32Array( 6 );
+
+// the primitives of a small node ordered along an axis, and the bounds of the tail from each position
+const sweepOrder = /* @__PURE__ */ new Int32Array( SWEEP_COUNT );
+const sweepRightBounds = /* @__PURE__ */ new Float32Array( SWEEP_COUNT * 6 );
+
+function computeSurfaceAreaAt( array, offset ) {
+
+	const d0 = array[ offset + 3 ] - array[ offset ];
+	const d1 = array[ offset + 4 ] - array[ offset + 1 ];
+	const d2 = array[ offset + 5 ] - array[ offset + 2 ];
+
+	return 2 * ( d0 * d1 + d1 * d2 + d2 * d0 );
+
+}
 
 export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count, strategy ) {
 
@@ -60,105 +77,61 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 			// If we have fewer primitives than we're planning to split then just check all
 			// the primitive positions because it will be faster.
-			if ( count < BIN_COUNT / 4 ) {
+			if ( count < SWEEP_COUNT ) {
 
-				// initialize the bin candidates
-				const truncatedBins = [ ...sahBins ];
-				truncatedBins.length = count;
+				// order the primitives by center along the axis
+				for ( let i = 0; i < count; i ++ ) {
 
-				// set the candidates
-				let b = 0;
-				for ( let c = cStart; c < cEnd; c += 6, b ++ ) {
-
-					const bin = truncatedBins[ b ];
-					bin.candidate = primitiveBounds[ c + 2 * a ];
-					bin.count = 0;
-
-					const {
-						bounds,
-						leftCacheBounds,
-						rightCacheBounds,
-					} = bin;
-					for ( let d = 0; d < 3; d ++ ) {
-
-						rightCacheBounds[ d ] = Infinity;
-						rightCacheBounds[ d + 3 ] = - Infinity;
-
-						leftCacheBounds[ d ] = Infinity;
-						leftCacheBounds[ d + 3 ] = - Infinity;
-
-						bounds[ d ] = Infinity;
-						bounds[ d + 3 ] = - Infinity;
-
-					}
-
-					expandByPrimitiveBounds( c, primitiveBounds, bounds );
-
-				}
-
-				truncatedBins.sort( binsSort );
-
-				// remove redundant splits
-				let splitCount = count;
-				for ( let bi = 0; bi < splitCount; bi ++ ) {
-
-					const bin = truncatedBins[ bi ];
-					while ( bi + 1 < splitCount && truncatedBins[ bi + 1 ].candidate === bin.candidate ) {
-
-						truncatedBins.splice( bi + 1, 1 );
-						splitCount --;
-
-					}
-
-				}
-
-				// find the appropriate bin for each primitive and expand the bounds.
-				for ( let c = cStart; c < cEnd; c += 6 ) {
-
+					const c = cStart + i * 6;
 					const center = primitiveBounds[ c + 2 * a ];
-					for ( let bi = 0; bi < splitCount; bi ++ ) {
+					let j = i;
+					while ( j > 0 && primitiveBounds[ sweepOrder[ j - 1 ] + 2 * a ] > center ) {
 
-						const bin = truncatedBins[ bi ];
-						if ( center >= bin.candidate ) {
-
-							expandByPrimitiveBounds( c, primitiveBounds, bin.rightCacheBounds );
-
-						} else {
-
-							expandByPrimitiveBounds( c, primitiveBounds, bin.leftCacheBounds );
-							bin.count ++;
-
-						}
+						sweepOrder[ j ] = sweepOrder[ j - 1 ];
+						j --;
 
 					}
 
+					sweepOrder[ j ] = c;
+
 				}
 
-				// expand all the bounds
-				for ( let bi = 0; bi < splitCount; bi ++ ) {
+				// the bounds of the primitives from each position to the end
+				for ( let d = 0; d < 3; d ++ ) {
 
-					const bin = truncatedBins[ bi ];
-					const leftCount = bin.count;
-					const rightCount = count - bin.count;
+					leftBounds[ d ] = Infinity;
+					leftBounds[ d + 3 ] = - Infinity;
+					rightBounds[ d ] = Infinity;
+					rightBounds[ d + 3 ] = - Infinity;
+
+				}
+
+				for ( let i = count - 1; i >= 0; i -- ) {
+
+					expandByPrimitiveBounds( sweepOrder[ i ], primitiveBounds, rightBounds );
+					sweepRightBounds.set( rightBounds, i * 6 );
+
+				}
+
+				// sweep the splits between consecutive centers, growing the left bounds as we go
+				for ( let i = 0; i < count - 1; i ++ ) {
+
+					expandByPrimitiveBounds( sweepOrder[ i ], primitiveBounds, leftBounds );
+
+					// a primitive whose center lies on the split plane is considered to be on the right
+					// side, so equal centers cannot be split apart
+					const candidate = primitiveBounds[ sweepOrder[ i + 1 ] + 2 * a ];
+					if ( primitiveBounds[ sweepOrder[ i ] + 2 * a ] === candidate ) {
+
+						continue;
+
+					}
 
 					// check the cost of this split
-					const leftBounds = bin.leftCacheBounds;
-					const rightBounds = bin.rightCacheBounds;
-
-					let leftProb = 0;
-					if ( leftCount !== 0 ) {
-
-						leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
-
-					}
-
-					let rightProb = 0;
-					if ( rightCount !== 0 ) {
-
-						rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
-
-					}
-
+					const leftCount = i + 1;
+					const rightCount = count - leftCount;
+					const leftProb = computeSurfaceArea( leftBounds ) / rootSurfaceArea;
+					const rightProb = computeSurfaceAreaAt( sweepRightBounds, leftCount * 6 ) / rootSurfaceArea;
 					const cost = TRAVERSAL_COST + PRIMITIVE_INTERSECT_COST * (
 						leftProb * leftCount + rightProb * rightCount
 					);
@@ -167,7 +140,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 						axis = a;
 						bestCost = cost;
-						pos = bin.candidate;
+						pos = candidate;
 
 					}
 
