@@ -82,7 +82,7 @@
     "puppeteer": "^25.1.0",
     "rollup": "^3.28.1",
     "seedrandom": "^3.0.5",
-    "simple-git": "^3.19.1",
+    "simple-git": "^4.0.1",
     "simplex-noise": "^2.4.0",
     "stats.js": "^0.17.0",
     "three": "^0.185.0",
