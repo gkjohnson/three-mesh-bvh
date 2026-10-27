@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Changed
 - SAH builds are faster: 8 bins per axis and an exact sweep for small nodes.
+- BVH builds write nodes directly into the packed buffer instead of an intermediate node tree, using a fraction of the memory.
 
 ## [0.9.16] - 2026-10-08
 ### Fixed
