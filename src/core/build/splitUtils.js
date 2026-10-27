@@ -1,4 +1,4 @@
-import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByPrimitiveBounds } from '../../utils/ArrayBoxUtilities.js';
+import { getLongestEdgeIndex, computeSurfaceArea, expandByPrimitiveBounds } from '../../utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
 
 const BIN_COUNT = 8;
@@ -6,24 +6,32 @@ const BIN_COUNT = 8;
 // nodes with fewer primitives than this test a split at every primitive center instead of binning
 const SWEEP_COUNT = 8;
 
-const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
-
-	return {
-
-		count: 0,
-		bounds: new Float32Array( 6 ),
-		rightCacheBounds: new Float32Array( 6 ),
-		candidate: 0,
-
-	};
-
-} );
+// per bin primitive count and bounds, and the union of the bounds from each bin to the last
+const binCounts = /* @__PURE__ */ new Int32Array( BIN_COUNT );
+const binBounds = /* @__PURE__ */ new Float32Array( BIN_COUNT * 6 );
+const binRightBounds = /* @__PURE__ */ new Float32Array( BIN_COUNT * 6 );
 const leftBounds = /* @__PURE__ */ new Float32Array( 6 );
 const rightBounds = /* @__PURE__ */ new Float32Array( 6 );
 
 // the primitives of a small node ordered along an axis, and the bounds of the tail from each position
 const sweepOrder = /* @__PURE__ */ new Int32Array( SWEEP_COUNT );
 const sweepRightBounds = /* @__PURE__ */ new Float32Array( SWEEP_COUNT * 6 );
+
+// expands the bounds stored at "offset" in "bounds" by the primitive at "startIndex"
+function expandBoundsAt( startIndex, primitiveBounds, bounds, offset ) {
+
+	for ( let d = 0; d < 3; d ++ ) {
+
+		const center = primitiveBounds[ startIndex + 2 * d ];
+		const half = primitiveBounds[ startIndex + 2 * d + 1 ];
+		const min = center - half;
+		const max = center + half;
+		if ( min < bounds[ offset + d ] ) bounds[ offset + d ] = min;
+		if ( max > bounds[ offset + d + 3 ] ) bounds[ offset + d + 3 ] = max;
+
+	}
+
+}
 
 function computeSurfaceAreaAt( array, offset ) {
 
@@ -151,15 +159,11 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 				// reset the bins
 				for ( let i = 0; i < BIN_COUNT; i ++ ) {
 
-					const bin = sahBins[ i ];
-					bin.count = 0;
-					bin.candidate = axisLeft + binWidth + i * binWidth;
-
-					const bounds = bin.bounds;
+					binCounts[ i ] = 0;
 					for ( let d = 0; d < 3; d ++ ) {
 
-						bounds[ d ] = Infinity;
-						bounds[ d + 3 ] = - Infinity;
+						binBounds[ i * 6 + d ] = Infinity;
+						binBounds[ i * 6 + d + 3 ] = - Infinity;
 
 					}
 
@@ -176,44 +180,54 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 					let binIndex = ~ ~ ( relativeCenter / binWidth );
 					if ( binIndex >= BIN_COUNT ) binIndex = BIN_COUNT - 1;
 
-					const bin = sahBins[ binIndex ];
-					bin.count ++;
-
-					expandByPrimitiveBounds( c, primitiveBounds, bin.bounds );
+					binCounts[ binIndex ] ++;
+					expandBoundsAt( c, primitiveBounds, binBounds, binIndex * 6 );
 
 				}
 
 				// cache the unioned bounds from right to left so we don't have to regenerate them each time
-				const lastBin = sahBins[ BIN_COUNT - 1 ];
-				copyBounds( lastBin.bounds, lastBin.rightCacheBounds );
+				const last = ( BIN_COUNT - 1 ) * 6;
+				for ( let d = 0; d < 6; d ++ ) {
+
+					binRightBounds[ last + d ] = binBounds[ last + d ];
+
+				}
+
 				for ( let i = BIN_COUNT - 2; i >= 0; i -- ) {
 
-					const bin = sahBins[ i ];
-					const nextBin = sahBins[ i + 1 ];
-					unionBounds( bin.bounds, nextBin.rightCacheBounds, bin.rightCacheBounds );
+					const o = i * 6;
+					const next = o + 6;
+					for ( let d = 0; d < 3; d ++ ) {
+
+						binRightBounds[ o + d ] = Math.min( binBounds[ o + d ], binRightBounds[ next + d ] );
+						binRightBounds[ o + d + 3 ] = Math.max( binBounds[ o + d + 3 ], binRightBounds[ next + d + 3 ] );
+
+					}
 
 				}
 
 				let leftCount = 0;
 				for ( let i = 0; i < BIN_COUNT - 1; i ++ ) {
 
-					const bin = sahBins[ i ];
-					const binCount = bin.count;
-					const bounds = bin.bounds;
-
-					const nextBin = sahBins[ i + 1 ];
-					const rightBounds = nextBin.rightCacheBounds;
+					const o = i * 6;
+					const binCount = binCounts[ i ];
 
 					// don't do anything with the bounds if the new bounds have no primitives
 					if ( binCount !== 0 ) {
 
-						if ( leftCount === 0 ) {
+						for ( let d = 0; d < 3; d ++ ) {
 
-							copyBounds( bounds, leftBounds );
+							if ( leftCount === 0 ) {
 
-						} else {
+								leftBounds[ d ] = binBounds[ o + d ];
+								leftBounds[ d + 3 ] = binBounds[ o + d + 3 ];
 
-							unionBounds( bounds, leftBounds, leftBounds );
+							} else {
+
+								leftBounds[ d ] = Math.min( leftBounds[ d ], binBounds[ o + d ] );
+								leftBounds[ d + 3 ] = Math.max( leftBounds[ d + 3 ], binBounds[ o + d + 3 ] );
+
+							}
 
 						}
 
@@ -234,7 +248,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 					const rightCount = count - leftCount;
 					if ( rightCount !== 0 ) {
 
-						rightProb = computeSurfaceArea( rightBounds ) / rootSurfaceArea;
+						rightProb = computeSurfaceAreaAt( binRightBounds, o + 6 ) / rootSurfaceArea;
 
 					}
 
@@ -246,7 +260,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 						axis = a;
 						bestCost = cost;
-						pos = bin.candidate;
+						pos = axisLeft + binWidth + i * binWidth;
 
 					}
 
