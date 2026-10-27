@@ -1,10 +1,10 @@
 import { getLongestEdgeIndex, computeSurfaceArea, copyBounds, unionBounds, expandByPrimitiveBounds } from '../../utils/ArrayBoxUtilities.js';
 import { CENTER, AVERAGE, SAH, PRIMITIVE_INTERSECT_COST, TRAVERSAL_COST } from '../Constants.js';
 
-const BIN_COUNT = 32;
+const BIN_COUNT = 8;
 
 // nodes with fewer primitives than this test a split at every primitive center instead of binning
-const SWEEP_COUNT = BIN_COUNT / 4;
+const SWEEP_COUNT = 8;
 
 const sahBins = /* @__PURE__ */ new Array( BIN_COUNT ).fill().map( () => {
 
