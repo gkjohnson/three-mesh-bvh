@@ -9,16 +9,19 @@ import { BYTES_PER_NODE, UINT32_PER_NODE } from '../core/Constants.js';
 import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
+	cwbvhNodeStruct,
+	cwbvhLeafStruct,
 	transformStruct,
 } from './tsl/structs.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount, getMaxNodeDepth } from './utils/packBVHBufferUtils.js';
+import { CWBVHBuilder } from './utils/CWBVHBuilder.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
-import { BVH_STACK_DEPTH } from './tsl/constants.js';
+import { BVH_STACK_DEPTH, CWBVH_STACK_DEPTH } from './tsl/constants.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -62,6 +65,54 @@ function getTransformKey( compositeId, root ) {
 
 }
 
+function addCWBVHTLAS( builder, bvh, primitiveInfo ) {
+
+	// maxLeafSize 1 keeps every TLAS leaf referencing exactly one cluster subtree
+	return builder.add( bvh._roots[ 0 ], 0, offset => {
+
+		const info = primitiveInfo[ offset ];
+		if ( info.transformSlot > 0x7fffffff ) {
+
+			throw new Error( `BVHComputeData: transform slot ${ info.transformSlot } exceeds the CWBVH limit.` );
+
+		}
+
+		return {
+			value: () => info.subtree.base,
+			meta: 0x80000000 | info.transformSlot,
+		};
+
+	}, 1 );
+
+}
+
+function buildCWBVHData( bvh, subtreeInfo, primitiveInfo ) {
+
+	const builder = new CWBVHBuilder();
+	const tlas = addCWBVHTLAS( builder, bvh, primitiveInfo );
+	const tlasLeafCount = builder.leaves.length;
+
+	let maxBlasStackSize = 1;
+	subtreeInfo.forEach( subtree => {
+
+		const result = builder.add( subtree.data.bvh._roots[ subtree.root ], subtree.node, ( offset, count ) => ( {
+			value: offset + subtree.data.geometryOffset,
+			meta: count,
+		} ) );
+		subtree.base = result.root;
+		maxBlasStackSize = Math.max( maxBlasStackSize, result.maxStackSize );
+
+	} );
+
+	return {
+		...builder.build(),
+		tlasNodeCount: tlas.nodeCount,
+		tlasLeafCount,
+		maxStackSize: tlas.maxStackSize + maxBlasStackSize,
+	};
+
+}
+
 /**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
  * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
@@ -85,12 +136,16 @@ export class BVHComputeData {
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
+	 * @param {boolean} [options.useCompressedWideBVH=false]
+	 * When true, GPU nodes use an 8-way, 8-bit quantized CWBVH layout instead of the
+	 * default binary layout.
 	 */
 	constructor( objects, options = {} ) {
 
 		const {
 			attributes = { position: 'vec4f' },
 			autogenerateBvh = true,
+			useCompressedWideBVH = false,
 		} = options;
 
 		// convert the arguments to a list of objects
@@ -123,6 +178,7 @@ export class BVHComputeData {
 		this._bvhCache = new Map();
 
 		this.autogenerateBvh = autogenerateBvh;
+		this.useCompressedWideBVH = useCompressedWideBVH;
 		this.attributes = attributes;
 		this.objects = objects;
 		this.bvh = null;
@@ -196,6 +252,7 @@ export class BVHComputeData {
 	 * @param {StructTypeNode|null} [options.resultStruct] - TSL struct for the accumulated result, or null.
 	 * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
 	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
+	 * @param {Function|null} [options.childOrderFn] - function node returning the preferred CWBVH child octant (0-7).
 	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
 	 * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
@@ -265,7 +322,7 @@ export class BVHComputeData {
 		const subtreeMap = new Map();
 
 		// accumulate the sizes of the bvh nodes buffer, number of objects, and geometry buffers
-		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
+		let bvhNodesBufferLength = this.useCompressedWideBVH ? 0 : getTotalBVHByteLength( bvh );
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
 
@@ -329,8 +386,12 @@ export class BVHComputeData {
 				subtree = { data, root, node, size, base: 0 };
 				subtreeMap.set( subtreeKey, subtree );
 				subtreeInfo.push( subtree );
-				bvhNodesBufferLength += size * BYTES_PER_NODE;
-				maxSubtreeDepth = Math.max( maxSubtreeDepth, getMaxNodeDepth( primBvh._roots[ root ], node ) );
+				if ( ! this.useCompressedWideBVH ) {
+
+					bvhNodesBufferLength += size * BYTES_PER_NODE;
+					maxSubtreeDepth = Math.max( maxSubtreeDepth, getMaxNodeDepth( primBvh._roots[ root ], node ) );
+
+				}
 
 			}
 
@@ -346,7 +407,7 @@ export class BVHComputeData {
 		// the TLAS leaf pushes one node instead of two.
 		const tlasDepth = getMaxNodeDepth( bvh._roots[ 0 ] );
 		const maxTraversalDepth = tlasDepth + maxSubtreeDepth - 1;
-		if ( maxTraversalDepth > BVH_STACK_DEPTH.value ) {
+		if ( ! this.useCompressedWideBVH && maxTraversalDepth > BVH_STACK_DEPTH.value ) {
 
 			throw new Error( 'BVHComputeData: BVH depth overruns the compute stack depth.' );
 
@@ -369,7 +430,7 @@ export class BVHComputeData {
 		let indexOffset = 0;
 		const indexBuffer = new Uint32Array( indexBufferLength );
 		const attributesBuffer = new ArrayBuffer( attributesBufferLength * attributeStruct.getLength() * 4 );
-		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
+		const bvhNodesBuffer = this.useCompressedWideBVH ? null : new ArrayBuffer( bvhNodesBufferLength );
 
 		// pack each unique geometry ( index + attributes ) once, recording its triangle base so the
 		// referenced subtrees' leaves can be rebased into it
@@ -395,18 +456,39 @@ export class BVHComputeData {
 
 		// pack only the referenced cluster subtrees into the node buffer, after the TLAS region. Each
 		// subtree's write base becomes the node offset written into its TLAS leaves.
-		let nodeWriteOffset = getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
-		subtreeInfo.forEach( subtree => {
+		let cwbvhData = null;
+		if ( this.useCompressedWideBVH ) {
 
-			subtree.base = nodeWriteOffset;
-			appendBVHSubtree( subtree.data.bvh._roots[ subtree.root ], subtree.node, subtree.size, subtree.data.geometryOffset, nodeWriteOffset, bvhNodesBuffer );
-			nodeWriteOffset += subtree.size;
+			cwbvhData = buildCWBVHData( bvh, subtreeInfo, primitiveInfo );
+			if ( cwbvhData.maxStackSize > CWBVH_STACK_DEPTH.value ) {
 
-		} );
+				throw new Error( 'BVHComputeData: CWBVH depth overruns the compute stack depth.' );
 
-		// resolve each TLAS leaf's node offset now that the subtree bases are known, then pack the TLAS
-		primitiveInfo.forEach( info => info.nodeOffset = info.subtree.base );
-		appendBVHData( bvh, primitiveInfo, 0, bvhNodesBuffer );
+			}
+
+			this._cwbvhInfo = {
+				primitiveInfo,
+				tlasNodeCount: cwbvhData.tlasNodeCount,
+				tlasLeafCount: cwbvhData.tlasLeafCount,
+			};
+
+		} else {
+
+			let nodeWriteOffset = getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
+			subtreeInfo.forEach( subtree => {
+
+				subtree.base = nodeWriteOffset;
+				appendBVHSubtree( subtree.data.bvh._roots[ subtree.root ], subtree.node, subtree.size, subtree.data.geometryOffset, nodeWriteOffset, bvhNodesBuffer );
+				nodeWriteOffset += subtree.size;
+
+			} );
+
+			// resolve each TLAS leaf's node offset now that the subtree bases are known, then pack the TLAS
+			primitiveInfo.forEach( info => info.nodeOffset = info.subtree.base );
+			appendBVHData( bvh, primitiveInfo, 0, bvhNodesBuffer );
+			this._cwbvhInfo = null;
+
+		}
 
 		//
 
@@ -418,7 +500,9 @@ export class BVHComputeData {
 		// if itemSize for StorageBufferAttribute == arraySize,
 		// then buffer is treated not as array of structs, but as a single struct
 		// And that breaks code. For now itemSize = 1 does not seem to break anything
-		const bvhNodesStorage = storage( new StorageBufferAttribute( new Uint32Array( bvhNodesBuffer ), 1 ), bvhNodeStruct ).toReadOnly().setName( 'bvh_nodes' );
+		const nodeArray = this.useCompressedWideBVH ? cwbvhData.nodes : new Uint32Array( bvhNodesBuffer );
+		const nodeStruct = this.useCompressedWideBVH ? cwbvhNodeStruct : bvhNodeStruct;
+		const bvhNodesStorage = storage( new StorageBufferAttribute( nodeArray, 1 ), nodeStruct ).toReadOnly().setName( 'bvh_nodes' );
 		const transformsBuffer = new StorageBufferAttribute( new Uint32Array( transformArrayBuffer ), 1 );
 		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
 		const indexStorage = storage( new StorageBufferAttribute( indexBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_index' );
@@ -426,6 +510,12 @@ export class BVHComputeData {
 
 		this.storage.transforms = transformsStorage;
 		this.storage.nodes = bvhNodesStorage;
+		if ( this.useCompressedWideBVH ) {
+
+			this.storage.leaves = storage( new StorageBufferAttribute( cwbvhData.leaves, 1 ), cwbvhLeafStruct ).toReadOnly().setName( 'bvh_leaves' );
+
+		}
+
 		this.storage.index = indexStorage;
 		this.storage.attributes = attributesStorage;
 		this.structs.attributes = attributeStruct;
@@ -458,10 +548,29 @@ export class BVHComputeData {
 
 		bvh.refit();
 
-		// the TLAS occupies the head of the node buffer - rewrite just those nodes' bounds. A null
-		// "primitiveInfo" leaves the leaf encodings, and the cluster subtrees that follow them, in place.
 		const nodesAttribute = storage.nodes.proxyNode.value;
-		appendBVHData( bvh, null, 0, nodesAttribute.array.buffer );
+		if ( this.useCompressedWideBVH ) {
+
+			const { primitiveInfo, tlasNodeCount, tlasLeafCount } = this._cwbvhInfo;
+			const builder = new CWBVHBuilder();
+			const tlas = addCWBVHTLAS( builder, bvh, primitiveInfo );
+			const data = builder.build();
+			if ( tlas.nodeCount !== tlasNodeCount || builder.leaves.length !== tlasLeafCount ) {
+
+				throw new Error( 'BVHComputeData: CWBVH topology changed. Call update() instead.' );
+
+			}
+
+			nodesAttribute.array.set( data.nodes, 0 );
+
+		} else {
+
+			// the TLAS occupies the head of the node buffer - rewrite just those nodes' bounds. A null
+			// "primitiveInfo" leaves the leaf encodings, and the cluster subtrees that follow them, in place.
+			appendBVHData( bvh, null, 0, nodesAttribute.array.buffer );
+
+		}
+
 		nodesAttribute.needsUpdate = true;
 
 		const transformsAttribute = storage.transforms.proxyNode.value;
@@ -538,7 +647,10 @@ export class BVHComputeData {
 	 */
 	getBVH( object, instanceId, rangeTarget ) {
 
-		const { autogenerateBvh, _bvhCache } = this;
+		const { autogenerateBvh, useCompressedWideBVH, _bvhCache } = this;
+
+		// the SAH-optimal CWBVH collapse works best from single-primitive binary leaves
+		const bvhOptions = useCompressedWideBVH ? { targetLeafSize: 1 } : {};
 
 		let bvh = null;
 		if ( object.boundsTree || object.isSkinnedMesh ) {
@@ -552,7 +664,7 @@ export class BVHComputeData {
 			if ( bvh === null && autogenerateBvh ) {
 
 				const id = object.uuid;
-				bvh = _bvhCache.get( id ) || new SkinnedMeshBVH( object );
+				bvh = _bvhCache.get( id ) || new SkinnedMeshBVH( object, bvhOptions );
 				_bvhCache.set( id, bvh );
 
 			}
@@ -567,7 +679,7 @@ export class BVHComputeData {
 			if ( bvh === null && autogenerateBvh ) {
 
 				const id = `batched_${ object.geometry.uuid }_${ range.start }_${ range.count }`;
-				bvh = _bvhCache.get( id ) || new MeshBVH( object.geometry, { range: { ...rangeTarget } } );
+				bvh = _bvhCache.get( id ) || new MeshBVH( object.geometry, { ...bvhOptions, range: { ...rangeTarget } } );
 				_bvhCache.set( id, bvh );
 
 			}
@@ -582,7 +694,7 @@ export class BVHComputeData {
 			if ( bvh === null && autogenerateBvh ) {
 
 				const id = geometry.uuid;
-				bvh = _bvhCache.get( id ) || new MeshBVH( geometry );
+				bvh = _bvhCache.get( id ) || new MeshBVH( geometry, bvhOptions );
 				_bvhCache.set( id, bvh );
 
 			}

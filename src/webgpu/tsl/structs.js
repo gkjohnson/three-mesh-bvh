@@ -13,6 +13,17 @@ export const bvhNodeStruct = new StructTypeNode( {
 }, 'BVHNode' );
 bvhNodeStruct.getLength = () => bvhNodeBoundsStruct.getLength() + 2;
 
+export const cwbvhNodeStruct = new StructTypeNode( {
+	data: 'array<u32, 20>',
+}, 'CWBVHNode' );
+cwbvhNodeStruct.getLength = () => 20;
+
+export const cwbvhLeafStruct = new StructTypeNode( {
+	value: 'uint',
+	info: 'uint',
+}, 'CWBVHLeaf' );
+cwbvhLeafStruct.getLength = () => 2;
+
 export const transformStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',
 	inverseMatrixWorld: 'mat4x4f',
