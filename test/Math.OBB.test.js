@@ -1,4 +1,4 @@
-import { Vector3, Triangle, Plane } from 'three';
+import { Vector3, Triangle, Plane, Box3 } from 'three';
 import { OrientedBox } from 'three-mesh-bvh';
 import { setRandomVector, getRandomOrientation } from './utils.js';
 
@@ -156,6 +156,43 @@ describe( 'OBB Intersections', () => {
 			expect( box.intersectsTriangle( triangle ) ).toBe( false );
 
 		}
+
+	} );
+
+} );
+
+describe( 'OBB Distance', () => {
+
+	it( 'should measure the distance to an AABB edge that sits on the max side of the third axis', () => {
+
+		// Use a box with a different size on each axis so that mixing up the max values of
+		// two axes produces a different edge.
+		const aabb = new Box3(
+			new Vector3( 0, 0, 0 ),
+			new Vector3( 1, 2, 3 ),
+		);
+
+		// Orient a cube so that one of its edges points at the AABB edge running along x at
+		// y = 2, z = 3, crossing it at a right angle. The closest points are then in the middle
+		// of both edges rather than on a corner of either box.
+		const edgeDirection = new Vector3( 0, 1, - 1 ).normalize();
+		const outward = new Vector3( 0, 1, 1 ).normalize();
+		const xAxis = new Vector3( 1, 0, 0 );
+		const axis2 = xAxis.clone().add( outward ).normalize();
+		const axis3 = xAxis.clone().sub( outward ).normalize();
+
+		const halfSize = 0.5;
+		const distance = 1;
+		const center = new Vector3( 0.5, 2, 3 )
+			.addScaledVector( outward, distance + halfSize * Math.SQRT2 );
+
+		const box = new OrientedBox();
+		box.min.setScalar( - halfSize );
+		box.max.setScalar( halfSize );
+		box.matrix.makeBasis( edgeDirection, axis2, axis3 ).setPosition( center );
+		box.needsUpdate = true;
+
+		expect( box.distanceToBox( aabb ) ).toBeCloseTo( distance, 5 );
 
 	} );
 
