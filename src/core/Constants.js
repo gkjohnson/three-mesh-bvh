@@ -19,8 +19,8 @@ export const AVERAGE = 1;
 
 /**
  * Option to use a Surface Area Heuristic to split the bounds more optimally. This SAH
- * implementation tests 32 discrete splits in each node along each axis to determine
- * which split is the lowest cost.
+ * implementation tests 8 discrete splits in each node along each axis to determine
+ * which split is the lowest cost, or every primitive center in small nodes.
  *
  * This is the slowest construction option but will yield the best bounds of the three
  * options and use the least memory.

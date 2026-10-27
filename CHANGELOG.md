@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Changed
+- SAH builds are faster: 8 bins per axis and an exact sweep for small nodes.
+
 ### Fixed
 - MeshBVH: Raycasts no longer test triangles when the ray misses a root that is a leaf.
 - OrientedBox: Fixed "distanceToBox" using the wrong axis for one set of box edges.
