@@ -31,8 +31,8 @@ SAH: number
 ```
 
 Option to use a Surface Area Heuristic to split the bounds more optimally. This SAH
-implementation tests 32 discrete splits in each node along each axis to determine
-which split is the lowest cost.
+implementation tests 8 discrete splits in each node along each axis to determine
+which split is the lowest cost, or every primitive center in small nodes.
 
 This is the slowest construction option but will yield the best bounds of the three
 options and use the least memory.
@@ -662,9 +662,9 @@ The returned faceIndex in `target1` and `target2` can be used with the standalon
 `getTriangleHitPointInfo` to obtain more information like UV coordinates, triangle normal
 and materialIndex.
 
-_Note that this function can be very slow if `geometry` does not have a
-`geometry.boundsTree` computed._
-
+> [!NOTE]
+> This function can be very slow if `geometry` does not have a `geometry.boundsTree`
+> computed.
 
 ### .closestPointToPoint
 
@@ -1125,9 +1125,9 @@ the BVH is being generated meaning the geometry will be unavailable to use while
 being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
 the MeshBVH is finished generating.
 
-_NOTE It's best to reuse a single instance of this class to avoid the overhead of instantiating
-a new Worker._
-
+> [!NOTE]
+> It's best to reuse a single instance of this class to avoid the overhead of instantiating
+> a new Worker.
 
 ### .running
 

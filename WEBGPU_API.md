@@ -29,8 +29,9 @@ ndcToCameraRay: FunctionNode
 
 WGSL function node that builds a camera ray (origin + far-plane direction) from an NDC
 coordinate and an inverse model-view-projection matrix. Works for both perspective and
-orthographic projections. The returned direction is not normalized and extends to the
-camera far plane.
+orthographic projections. The origin sits on the near plane, the returned direction is
+normalized, and "maxDist" is the world-space distance to the far plane so traversal
+clips there.
 
 ## TSL Structs
 
@@ -40,8 +41,9 @@ camera far plane.
 rayStruct: StructTypeNode
 ```
 
-WGSL struct node representing a ray with an origin and direction.
-Used as the input to BVH traversal and intersection functions.
+WGSL struct node representing a ray with an origin, direction, and maximum trace distance.
+Used as the input to BVH traversal and intersection functions. Traversal ignores hits at or
+beyond "maxDist", and a value of 0 (the zero-initialized default) means unbounded.
 
 ### rayIntersectionResultStruct
 
@@ -120,6 +122,10 @@ getShapecastFn(
 		// TSL struct for the accumulated result, or null.
 		resultStruct?: StructTypeNode | null,
 
+		// function node that runs before the bvh traversal - useful
+		// for resetting or initializing necessary module variables.
+		prefixFn?: function | null,
+
 		// function node controlling left/right child traversal order.
 		boundsOrderFn?: function | null,
 
@@ -159,6 +165,17 @@ update(): void
 Rebuilds all GPU storage buffers from the current scene state. Must be called at least
 once before using `this.storage` or `this.fns` in a shader, and again whenever the
 scene topology changes (objects added/removed, geometry modified).
+
+
+### .updateAsync
+
+```js
+async updateAsync(): Promise<void>
+```
+
+Like [BVHComputeData#update](BVHComputeData#update) but awaits [BVHComputeData#getBVH](BVHComputeData#getBVH) for every
+object and instance first, so an override may build the BVHs asynchronously as long as it
+returns the built BVH synchronously afterward. The BVHs are all requested at once.
 
 
 ### .updateTransforms
