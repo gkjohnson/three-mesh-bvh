@@ -4,9 +4,48 @@ import { Vector4 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../../core/Constants.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../../core/utils/nodeBufferUtils.js';
 
+// the GPU node: both children's bounds, then the right child offset or triangle offset, then the
+// split axis or leaf count, padded to 64 bytes
+export const GPU_BYTES_PER_NODE = 64;
+export const GPU_UINT32_PER_NODE = GPU_BYTES_PER_NODE / 4;
+
 // scratch
 const _def = /* @__PURE__ */ new Vector4();
 const _vec = /* @__PURE__ */ new Vector4();
+
+// writes the bounds of a source node into "target" at float offset "t32", turning the
+// [ Infinity, - Infinity ] bounds of an empty leaf into [ 1, - 1 ] so the GPU never enters it
+function writeBounds( rootF32, srcNode, targetF32, t32 ) {
+
+	const r32 = srcNode * UINT32_PER_NODE;
+	for ( let c = 0; c < 3; c ++ ) {
+
+		const vMin = rootF32[ r32 + c ];
+		const vMax = rootF32[ r32 + c + 3 ];
+		if ( vMin > vMax ) {
+
+			targetF32[ t32 + c ] = 1;
+			targetF32[ t32 + c + 3 ] = - 1;
+
+		} else {
+
+			targetF32[ t32 + c ] = vMin;
+			targetF32[ t32 + c + 3 ] = vMax;
+
+		}
+
+	}
+
+}
+
+// writes both children's bounds of an internal source node into the GPU node at "n32"
+function writeChildBounds( rootF32, rootU32, srcNode, targetF32, n32 ) {
+
+	const r32 = srcNode * UINT32_PER_NODE;
+	writeBounds( rootF32, srcNode + 1, targetF32, n32 );
+	writeBounds( rootF32, srcNode + rootU32[ r32 + 6 ], targetF32, n32 + 6 );
+
+}
 
 // resolve an indirect buffer into a flat triangle index array
 function dereferenceIndex( indexAttr, indirectBuffer ) {
@@ -50,39 +89,18 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 		const rootBuffer16 = new Uint16Array( root );
 		const rootBuffer32 = new Uint32Array( root );
+		const rootBufferF32 = new Float32Array( root );
 		for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
 
 			const r32 = i * UINT32_PER_NODE;
 			const r16 = r32 * 2;
-			const n32 = nodeWriteOffset * UINT32_PER_NODE;
+			const n32 = nodeWriteOffset * GPU_UINT32_PER_NODE;
+			const isLeaf = IS_LEAF( r16, rootBuffer16 );
 
-			// write bounds
-			const view = new Float32Array( root, i * BYTES_PER_NODE, 6 );
-			if ( i === 0 ) {
+			// write the children's bounds - a leaf's bounds are held by its parent
+			if ( ! isLeaf ) {
 
-				// if we're copying the root then check for cases where there are no primitives and therefore
-				// be a bounds of [ Infinity, - Infinity ]. Convert this to [ 1, - 1 ] for reliable GPU behavior.
-				for ( let i = 0; i < 3; i ++ ) {
-
-					const vMin = view[ i + 0 ];
-					const vMax = view[ i + 3 ];
-					if ( vMin > vMax ) {
-
-						targetF32[ n32 + i + 0 ] = 1;
-						targetF32[ n32 + i + 3 ] = - 1;
-
-					} else {
-
-						targetF32[ n32 + i + 0 ] = vMin;
-						targetF32[ n32 + i + 3 ] = vMax;
-
-					}
-
-				}
-
-			} else {
-
-				targetF32.set( view, n32 );
+				writeChildBounds( rootBufferF32, rootBuffer32, i, targetF32, n32 );
 
 			}
 
@@ -94,7 +112,6 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 			}
 
-			const isLeaf = IS_LEAF( r16, rootBuffer16 );
 			if ( isLeaf ) {
 
 				// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
@@ -112,13 +129,13 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 				}
 
-				targetU32[ n32 + 6 ] = nodeOffset;
-				targetU32[ n32 + 7 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
+				targetU32[ n32 + 12 ] = nodeOffset;
+				targetU32[ n32 + 13 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
 
 			} else {
 
-				targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
-				targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
+				targetU32[ n32 + 12 ] = rootBuffer32[ r32 + 6 ];
+				targetU32[ n32 + 13 ] = rootBuffer32[ r32 + 7 ];
 
 			}
 
@@ -220,56 +237,31 @@ export function appendBVHSubtree( root, subtreeStart, subtreeSize, geometryOffse
 	const targetF32 = new Float32Array( target );
 	const rootBuffer16 = new Uint16Array( root );
 	const rootBuffer32 = new Uint32Array( root );
+	const rootBufferF32 = new Float32Array( root );
 
 	for ( let k = 0; k < subtreeSize; k ++ ) {
 
 		const src = subtreeStart + k;
 		const r32 = src * UINT32_PER_NODE;
 		const r16 = r32 * 2;
-		const n32 = nodeWriteOffset * UINT32_PER_NODE;
+		const n32 = nodeWriteOffset * GPU_UINT32_PER_NODE;
 		const n16 = n32 * 2;
-
-		// write bounds - fix up an empty subtree root's [ Infinity, -Infinity ] to [ 1, -1 ]
-		const view = new Float32Array( root, src * BYTES_PER_NODE, 6 );
-		if ( k === 0 ) {
-
-			for ( let c = 0; c < 3; c ++ ) {
-
-				const vMin = view[ c + 0 ];
-				const vMax = view[ c + 3 ];
-				if ( vMin > vMax ) {
-
-					targetF32[ n32 + c + 0 ] = 1;
-					targetF32[ n32 + c + 3 ] = - 1;
-
-				} else {
-
-					targetF32[ n32 + c + 0 ] = vMin;
-					targetF32[ n32 + c + 3 ] = vMax;
-
-				}
-
-			}
-
-		} else {
-
-			targetF32.set( view, n32 );
-
-		}
 
 		const isLeaf = IS_LEAF( r16, rootBuffer16 );
 		if ( isLeaf ) {
 
 			// mesh leaf ( 0xFFFF ) - rebase the triangle offset into the packed index buffer
-			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
-			targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
-			targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
+			targetU32[ n32 + 12 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
+			targetU16[ n16 + 26 ] = rootBuffer16[ r16 + 14 ];
+			targetU16[ n16 + 27 ] = IS_LEAFNODE_FLAG;
 
 		} else {
 
-			// internal node - the right-child offset is relative, so it is valid as-is on the copy
-			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
-			targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
+			// internal node - the children's bounds are stored here and the right-child offset is
+			// relative, so it is valid as-is on the copy
+			writeChildBounds( rootBufferF32, rootBuffer32, src, targetF32, n32 );
+			targetU32[ n32 + 12 ] = rootBuffer32[ r32 + 6 ];
+			targetU32[ n32 + 13 ] = rootBuffer32[ r32 + 7 ];
 
 		}
 

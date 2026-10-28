@@ -28,16 +28,27 @@ export function getClosestPointToPointFn( bvhData ) {
 			fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
 				let toWorld = ${ scratchToWorldMat };
+				let absX = abs( toWorld[ 0 ].xyz );
+				let absY = abs( toWorld[ 1 ].xyz );
+				let absZ = abs( toWorld[ 2 ].xyz );
 
-				// get center
-				let bMin = vec3f( node.bounds.min[ 0 ], node.bounds.min[ 1 ], node.bounds.min[ 2 ] );
-				let bMax = vec3f( node.bounds.max[ 0 ], node.bounds.max[ 1 ], node.bounds.max[ 2 ] );
-				let center = bMin * 0.5 + bMax * 0.5;
+				// squared distance from the point to each child's bounds in world space
+				let lMin = vec3f( node.leftBounds.min[ 0 ], node.leftBounds.min[ 1 ], node.leftBounds.min[ 2 ] );
+				let lMax = vec3f( node.leftBounds.max[ 0 ], node.leftBounds.max[ 1 ], node.leftBounds.max[ 2 ] );
+				let lHalf = ( lMax - lMin ) * 0.5;
+				let lCenter = ( toWorld * vec4f( ( lMin + lMax ) * 0.5, 1.0 ) ).xyz;
+				let lExtent = absX * lHalf.x + absY * lHalf.y + absZ * lHalf.z;
+				let lDelta = shape - clamp( shape, lCenter - lExtent, lCenter + lExtent );
 
-				// determine the order in world space
-				let worldCenter = ( toWorld * vec4f( center, 1.0 ) ).xyz;
-				let worldAxis = normalize( toWorld[ splitAxis ].xyz );
-				return dot( shape - worldCenter, worldAxis ) <= 0.0;
+				let rMin = vec3f( node.rightBounds.min[ 0 ], node.rightBounds.min[ 1 ], node.rightBounds.min[ 2 ] );
+				let rMax = vec3f( node.rightBounds.max[ 0 ], node.rightBounds.max[ 1 ], node.rightBounds.max[ 2 ] );
+				let rHalf = ( rMax - rMin ) * 0.5;
+				let rCenter = ( toWorld * vec4f( ( rMin + rMax ) * 0.5, 1.0 ) ).xyz;
+				let rExtent = absX * rHalf.x + absY * rHalf.y + absZ * rHalf.z;
+				let rDelta = shape - clamp( shape, rCenter - rExtent, rCenter + rExtent );
+
+				// the nearer child is traversed first
+				return dot( lDelta, lDelta ) <= dot( rDelta, rDelta );
 
 			}
 		`,

@@ -11,7 +11,7 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount, getMaxNodeDepth } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
@@ -50,9 +50,9 @@ function isObjectVisible( object ) {
 
 }
 
-function getTotalBVHByteLength( bvh ) {
+function getTotalBVHNodeCount( bvh ) {
 
-	return bvh._roots.reduce( ( v, root ) => v + root.byteLength, 0 );
+	return bvh._roots.reduce( ( v, root ) => v + root.byteLength / BYTES_PER_NODE, 0 );
 
 }
 
@@ -265,7 +265,7 @@ export class BVHComputeData {
 		const subtreeMap = new Map();
 
 		// accumulate the sizes of the bvh nodes buffer, number of objects, and geometry buffers
-		let bvhNodesBufferLength = getTotalBVHByteLength( bvh );
+		let bvhNodesBufferLength = getTotalBVHNodeCount( bvh ) * GPU_BYTES_PER_NODE;
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
 
@@ -329,7 +329,7 @@ export class BVHComputeData {
 				subtree = { data, root, node, size, base: 0 };
 				subtreeMap.set( subtreeKey, subtree );
 				subtreeInfo.push( subtree );
-				bvhNodesBufferLength += size * BYTES_PER_NODE;
+				bvhNodesBufferLength += size * GPU_BYTES_PER_NODE;
 				maxSubtreeDepth = Math.max( maxSubtreeDepth, getMaxNodeDepth( primBvh._roots[ root ], node ) );
 
 			}
@@ -395,7 +395,7 @@ export class BVHComputeData {
 
 		// pack only the referenced cluster subtrees into the node buffer, after the TLAS region. Each
 		// subtree's write base becomes the node offset written into its TLAS leaves.
-		let nodeWriteOffset = getTotalBVHByteLength( bvh ) / BYTES_PER_NODE;
+		let nodeWriteOffset = getTotalBVHNodeCount( bvh );
 		subtreeInfo.forEach( subtree => {
 
 			subtree.base = nodeWriteOffset;
