@@ -29,6 +29,7 @@ export class BVHComputeData {
 	} );
 
 	update(): void;
+	updateAsync(): Promise<void>;
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;

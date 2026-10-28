@@ -246,7 +246,7 @@ export class BVHComputeData {
 
 		this.bvh = new ClusteredBVH( root, {
 			strategy: SAH,
-			getBVH: ( object, instance ) => this.getBVH( object, instance, _range ),
+			getBVH: ( object, instance ) => this._getBVHSync( object, instance, _range ),
 			primitiveLimit: total < 3 ? Infinity : 64,
 		} );
 
@@ -287,7 +287,7 @@ export class BVHComputeData {
 			const object = bvh.objects[ bvh.getObjectId( compositeId ) ];
 			const instanceId = bvh.getInstanceId( compositeId );
 			const range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
-			const primBvh = this.getBVH( object, instanceId, range );
+			const primBvh = this._getBVHSync( object, instanceId, range );
 
 			if ( ! primBvh ) {
 
@@ -447,6 +447,47 @@ export class BVHComputeData {
 	}
 
 	/**
+	 * Like {@link BVHComputeData#update} but awaits {@link BVHComputeData#getBVH} for every
+	 * object and instance first, so an override may build the BVHs asynchronously as long as it
+	 * returns the built BVH synchronously afterward. The BVHs are all requested at once.
+	 * @returns {Promise<void>}
+	 */
+	async updateAsync() {
+
+		const promises = [];
+		this.getRootObject().traverse( object => {
+
+			if ( ! object.isMesh ) {
+
+				return;
+
+			}
+
+			let instanceCount = 1;
+			if ( object.isInstancedMesh ) {
+
+				instanceCount = object.count;
+
+			} else if ( object.isBatchedMesh ) {
+
+				instanceCount = object.instanceCount;
+
+			}
+
+			for ( let instanceId = 0; instanceId < instanceCount; instanceId ++ ) {
+
+				promises.push( this.getBVH( object, instanceId, _range ) );
+
+			}
+
+		} );
+
+		await Promise.all( promises );
+		this.update();
+
+	}
+
+	/**
 	 * Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
 	 * current world matrices. Call this when object transforms or visibility change but the scene
 	 * topology does not. The transform slots are derived from the clustered BVH's primitive buffer,
@@ -528,13 +569,15 @@ export class BVHComputeData {
 	/**
 	 * Returns the BVH for a given object/instance, populating `rangeTarget` with the
 	 * corresponding index and vertex ranges within the packed geometry buffers. Override
-	 * to support custom BVH types or caching strategies.
+	 * to support custom BVH types or caching strategies. With {@link BVHComputeData#updateAsync}
+	 * an override may return a promise while the BVH is being built, and the BVH itself once
+	 * it is.
 	 *
 	 * @private
 	 * @param {Object3D} object - The object to generate a BVH for.
 	 * @param {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
 	 * @param {{start:number,count:number,vertexStart:number,vertexCount:number}} rangeTarget - Populated with the object's geometry range.
-	 * @returns {MeshBVH|SkinnedMeshBVH|null}
+	 * @returns {MeshBVH|SkinnedMeshBVH|null|Promise<MeshBVH|SkinnedMeshBVH|null>}
 	 */
 	getBVH( object, instanceId, rangeTarget ) {
 
@@ -631,6 +674,20 @@ export class BVHComputeData {
 			storage[ key ].value?.dispose();
 
 		}
+
+	}
+
+	// "getBVH" with a check that an async override has finished building
+	_getBVHSync( object, instanceId, rangeTarget ) {
+
+		const bvh = this.getBVH( object, instanceId, rangeTarget );
+		if ( bvh instanceof Promise ) {
+
+			throw new Error( 'BVHComputeData: "getBVH" returned a promise. Use "updateAsync" instead.' );
+
+		}
+
+		return bvh;
 
 	}
 
