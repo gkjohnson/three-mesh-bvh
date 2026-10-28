@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- BVHComputeData: "updateAsync" so a "getBVH" override can build BVHs asynchronously.
+
 ### Changed
 - SAH builds are faster: 8 bins per axis and an exact sweep for small nodes.
 - BVH builds write nodes directly into the packed buffer instead of an intermediate node tree, using a fraction of the memory.
@@ -12,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - MeshBVH: Raycasts no longer test triangles when the ray misses a root that is a leaf.
 - OrientedBox: Fixed "distanceToBox" using the wrong axis for one set of box edges.
+- ExtendedTriangle: Fixed "closestPointToSegment" returning a positive distance for segments that pass through the triangle.
 
 ## [0.9.16] - 2026-10-08
 ### Fixed
