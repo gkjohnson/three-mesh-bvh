@@ -152,10 +152,30 @@ ExtendedTriangle.prototype.closestPointToSegment = ( function () {
 
 	return function distanceToSegment( segment, target1 = null, target2 = null ) {
 
+		if ( this.needsUpdate ) {
+
+			this.update();
+
+		}
+
 		const { start, end } = segment;
 		const points = this.points;
 		let distSq;
 		let closestDistanceSq = Infinity;
+
+		const startDist = this.plane.distanceToPoint( start );
+		const endDist = this.plane.distanceToPoint( end );
+		if (
+			startDist * endDist < 0 &&
+			this.plane.intersectLine( segment, point1 ) !== null &&
+			this.containsPoint( point1 )
+		) {
+
+			if ( target1 ) target1.copy( point1 );
+			if ( target2 ) target2.copy( point1 );
+			return 0;
+
+		}
 
 		// check the triangle edges
 		for ( let i = 0; i < 3; i ++ ) {

@@ -1,4 +1,4 @@
-import { Triangle, Line3 } from 'three';
+import { Triangle, Line3, Vector3 } from 'three';
 import { ExtendedTriangle } from 'three-mesh-bvh';
 
 describe( 'Triangle Intersections', () => {
@@ -554,6 +554,83 @@ describe( 'Triangle Intersection line', () => {
 
 		expect( t1.intersectsTriangle( t2 ) ).toBe( false );
 		expect( t2.intersectsTriangle( t1 ) ).toBe( false );
+
+	} );
+
+} );
+
+describe( 'ExtendedTriangle.closestPointToSegment', () => {
+
+	it( 'should return zero when the segment crosses the triangle', () => {
+
+		const triangle = new ExtendedTriangle(
+			new Vector3( - 1, 0, - 1 ),
+			new Vector3( 1, 0, - 1 ),
+			new Vector3( 0, 0, 1 ),
+		);
+		triangle.needsUpdate = true;
+
+		const segment = new Line3( new Vector3( 0.1, 1, 0 ), new Vector3( - 0.1, - 1, 0.2 ) );
+		const target1 = new Vector3();
+		const target2 = new Vector3();
+
+		expect( triangle.closestPointToSegment( segment, target1, target2 ) ).toBeCloseTo( 0 );
+		expect( target1.distanceTo( new Vector3( 0, 0, 0.1 ) ) ).toBeCloseTo( 0 );
+		expect( target2.distanceTo( new Vector3( 0, 0, 0.1 ) ) ).toBeCloseTo( 0 );
+
+	} );
+
+	it( 'should keep the distance when the segment passes outside the triangle', () => {
+
+		const triangle = new ExtendedTriangle(
+			new Vector3( - 1, 0, - 1 ),
+			new Vector3( 1, 0, - 1 ),
+			new Vector3( 0, 0, 1 ),
+		);
+		triangle.needsUpdate = true;
+
+		const segment = new Line3( new Vector3( 3, 1, 0 ), new Vector3( 3, - 1, 0 ) );
+
+		expect( triangle.closestPointToSegment( segment ) ).toBeCloseTo( Math.sqrt( 5 ) );
+
+	} );
+
+	it( 'should not exceed the brute force distance for random pairs', () => {
+
+		let seed = 1;
+		const random = () => {
+
+			seed = ( seed * 16807 ) % 2147483647;
+			return ( seed / 2147483647 ) * 2 - 1;
+
+		};
+
+		const triangle = new ExtendedTriangle();
+		const segment = new Line3();
+		const point = new Vector3();
+		const closest = new Vector3();
+
+		for ( let i = 0; i < 2000; i ++ ) {
+
+			triangle.a.set( random(), random(), random() );
+			triangle.b.set( random(), random(), random() );
+			triangle.c.set( random(), random(), random() );
+			triangle.needsUpdate = true;
+			segment.start.set( random(), random(), random() );
+			segment.end.set( random(), random(), random() );
+
+			let bruteForce = Infinity;
+			for ( let s = 0; s <= 1000; s ++ ) {
+
+				segment.at( s / 1000, point );
+				triangle.closestPointToPoint( point, closest );
+				bruteForce = Math.min( bruteForce, point.distanceTo( closest ) );
+
+			}
+
+			expect( triangle.closestPointToSegment( segment ) ).toBeLessThanOrEqual( bruteForce + 1e-6 );
+
+		}
 
 	} );
 
