@@ -199,7 +199,14 @@ class BVHRootHelper extends Object3D {
 		const targetDepth = this.depth - 1;
 		const displayParents = this.displayParents;
 		let boundsCount = 0;
-		bvh.traverse( ( depth, isLeaf ) => {
+		bvh.traverse( ( depth, isLeaf, boundingData ) => {
+
+			// skip nodes with no bounds, such as the root of an empty geometry
+			if ( arrayToBox( 0, boundingData, boundingBox ).isEmpty() ) {
+
+				return true;
+
+			}
 
 			if ( depth >= targetDepth || isLeaf ) {
 
@@ -219,10 +226,15 @@ class BVHRootHelper extends Object3D {
 		const positionArray = new Float32Array( 8 * 3 * boundsCount );
 		bvh.traverse( ( depth, isLeaf, boundingData ) => {
 
+			arrayToBox( 0, boundingData, boundingBox );
+			if ( boundingBox.isEmpty() ) {
+
+				return true;
+
+			}
+
 			const terminate = depth >= targetDepth || isLeaf;
 			if ( terminate || displayParents ) {
-
-				arrayToBox( 0, boundingData, boundingBox );
 
 				const { min, max } = boundingBox;
 				for ( let x = - 1; x <= 1; x += 2 ) {
