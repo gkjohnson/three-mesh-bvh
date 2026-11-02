@@ -13,6 +13,7 @@ import {
 } from './tsl/structs.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
+import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
@@ -67,6 +68,15 @@ function getTransformKey( compositeId, root ) {
  * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
  * {@link BVHComputeData#update} to populate the storage buffers, then reference
  * `this.storage` and `this.fns` in your compute shader nodes.
+ *
+ * `this.fns` provides the following WGSL functions:
+ * - `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
+ * - `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
+ * - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
+ *
+ * Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
+ * A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
+ * No alpha or material tests are applied.
  *
  * @note This API is unstable and subject to change in future releases.
  *
@@ -133,6 +143,7 @@ export class BVHComputeData {
 		this.structs = new NodeProxyObject( { transform: transformStruct } );
 		this.fns = new NodeProxyObject( {
 			raycastFirstHit: getRaycastFirstHitFn( this ),
+			raycastAnyHit: getRaycastAnyHitFn( this ),
 			closestPointToPoint: getClosestPointToPointFn( this ),
 			sampleTrianglePoint: null,
 		}, proxyFn );
@@ -197,6 +208,7 @@ export class BVHComputeData {
 	 * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
 	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
 	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
+	 * @param {boolean} [options.terminateOnHit=false] - return as soon as `intersectRangeFn` reports a hit, after running `transformResultFn` and `resetShapeFn`.
 	 * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.

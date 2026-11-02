@@ -1,38 +1,42 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { float } from 'three/tsl';
-import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
+import { wgslTagFn, wgslTagCode } from '../nodes/WGSLTagFnNode.js';
+import { rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct, bvhNodeStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
 
 /**
- * Builds the `raycastFirstHit` shapecast function: traverses the BVH front to back and returns the
+ * Builds the `raycastFirstHit` shapecast function: traverses the BVH and returns the
  * closest ray / triangle intersection.
  *
  * @private
  * @param {BVHComputeData} bvhData
+ * @param {boolean} [anyHit=false] - Internal early-exit variant used by raycastAnyHit.
  * @returns {Function} TSL function node for the TLAS traversal.
  */
-export function getRaycastFirstHitFn( bvhData ) {
+export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, attributes, transforms } = bvhData.storage;
 
 	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
 
-	return bvhData.getShapecastFn( {
-		name: 'bvh_RaycastFirstHit',
+	// unique helper names so both variants can be used in the same shader without duplicate declarations
+	const suffix = anyHit ? 'AnyHit' : 'FirstHit';
+	const options = {
+		name: anyHit ? 'bvh_RaycastAnyHitTraversal' : 'bvh_RaycastFirstHit',
+		terminateOnHit: anyHit,
 		shapeStruct: rayStruct,
 		resultStruct: rayIntersectionResultStruct,
 
-		boundsOrderFn: wgslTagFn/* wgsl */`
-			fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
+		boundsOrderFn: wgslTagFn`
+			fn rayBoundsOrder${ suffix }( ray: ${ rayStruct }, axis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
-				return ray.direction[ splitAxis ] >= 0.0;
+				return ray.direction[ axis ] >= 0.0;
 
 			}
 		`,
 		intersectsBoundsFn: wgslTagFn/* wgsl */`
-			fn rayIntersectsBounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
+			fn rayIntersectsBounds${ suffix }( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
 
 				let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
 				let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
@@ -57,16 +61,18 @@ export function getRaycastFirstHitFn( bvhData ) {
 				let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
 				let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
 
+				// the distance is scaled to world space so it can be compared across clusters
 				let dist = max( t0, 0.0 );
+				let worldDist = dist * ${ scratchRayScalar };
 				if ( t1 < dist ) {
 
 					return 0u;
 
-				} else if ( ray.maxDist > 0.0 && dist * ${ scratchRayScalar } >= ray.maxDist ) {
+				} else if ( ray.maxDist > 0.0 && worldDist >= ray.maxDist ) {
 
 					return 0u;
 
-				} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
+				} else if ( result.didHit && worldDist >= result.dist ) {
 
 					return 0u;
 
@@ -77,10 +83,9 @@ export function getRaycastFirstHitFn( bvhData ) {
 				}
 
 			}
-
 		`,
 		intersectRangeFn: wgslTagFn/* wgsl */`
-			fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
+			fn intersectRange${ suffix }( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
 
 				var didHit = false;
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
@@ -97,6 +102,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 					triResult.dist *= ${ scratchRayScalar };
 					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist < ray.maxDist ) && ( ! result.didHit || triResult.dist < result.dist ) ) {
 
+						${ anyHit ? wgslTagCode`return true;` : wgslTagCode`
 						result.didHit = true;
 						result.dist = triResult.dist;
 						result.normal = triResult.normal;
@@ -105,6 +111,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 						result.indices = vec4u( i0, i1, i2, ti );
 
 						didHit = true;
+						` }
 
 					}
 
@@ -115,7 +122,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 			}
 		`,
 		transformShapeFn: wgslTagFn/* wgsl */`
-			fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
+			fn transformRay${ suffix }( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
 
 				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
 				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
@@ -127,8 +134,8 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 			}
 		`,
-		transformResultFn: wgslTagFn/* wgsl */`
-			fn transformResult( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
+		transformResultFn: anyHit ? null : wgslTagFn/* wgsl */`
+			fn transformResult${ suffix }( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
 
 				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
 				hit.normal = normalize( ( transpose( toLocal ) * vec4f( hit.normal, 0.0 ) ).xyz );
@@ -137,12 +144,14 @@ export function getRaycastFirstHitFn( bvhData ) {
 			}
 		`,
 		resetShapeFn: wgslTagFn/* wgsl */`
-			fn resetRayScalar( objectIndex: u32 ) -> void {
+			fn resetRayScalar${ suffix }( objectIndex: u32 ) -> void {
 
 				${ scratchRayScalar } = 1.0;
 
 			}
 		`,
-	} );
+	};
+
+	return bvhData.getShapecastFn( options );
 
 }

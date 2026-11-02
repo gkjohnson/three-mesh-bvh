@@ -17,6 +17,7 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
  * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
+ * @param {boolean} [options.terminateOnHit=false] - return as soon as `intersectRangeFn` reports a hit, after running `transformResultFn` and `resetShapeFn`.
  * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
  * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
@@ -39,6 +40,7 @@ export function getShapecastFn( bvhData, options ) {
 		boundsOrderFn = null,
 		intersectsBoundsFn,
 		intersectRangeFn,
+		terminateOnHit = false,
 		transformShapeFn = null,
 		transformResultFn = null,
 		resetShapeFn = null,
@@ -184,6 +186,15 @@ export function getShapecastFn( bvhData, options ) {
 						let count = infoX & 0x0000ffffu;
 						let offset = infoY;
 						blasDidHit = ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) || blasDidHit;
+						${ terminateOnHit ? wgslTagCode`
+							if ( blasDidHit ) {
+
+								${ transformResultSnippet }
+								${ resetShapeSnippet }
+								return true;
+
+							}
+						` : '' }
 
 					}
 

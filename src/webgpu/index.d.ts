@@ -19,6 +19,7 @@ export class BVHComputeData {
 
 	fns: {
 		raycastFirstHit: unknown;
+		raycastAnyHit: unknown;
 		sampleTrianglePoint: unknown;
 		closestPointToPoint: unknown;
 	};
@@ -36,6 +37,7 @@ export class BVHComputeData {
 		resultStruct?: unknown;
 		boundsOrderFn?: unknown;
 		intersectsBoundsFn: unknown;
+		terminateOnHit?: boolean;
 		intersectRangeFn: unknown;
 		transformShapeFn?: unknown;
 		transformResultFn?: unknown;
