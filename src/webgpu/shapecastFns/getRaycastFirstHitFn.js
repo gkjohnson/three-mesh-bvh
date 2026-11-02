@@ -1,11 +1,11 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { float } from 'three/tsl';
 import { wgslTagFn, wgslTagCode } from '../nodes/WGSLTagFnNode.js';
-import { rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct, bvhNodeStruct } from '../tsl/structs.js';
+import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
 
 /**
- * Builds the `raycastFirstHit` shapecast function: traverses the BVH and returns the
+ * Builds the `raycastFirstHit` shapecast function: traverses the BVH front to back and returns the
  * closest ray / triangle intersection.
  *
  * @private
@@ -22,16 +22,16 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 
 	// unique helper names so both variants can be used in the same shader without duplicate declarations
 	const suffix = anyHit ? 'AnyHit' : 'FirstHit';
-	const options = {
+	return bvhData.getShapecastFn( {
 		name: anyHit ? 'bvh_RaycastAnyHitTraversal' : 'bvh_RaycastFirstHit',
 		terminateOnHit: anyHit,
 		shapeStruct: rayStruct,
 		resultStruct: rayIntersectionResultStruct,
 
-		boundsOrderFn: wgslTagFn`
-			fn rayBoundsOrder${ suffix }( ray: ${ rayStruct }, axis: u32, node: ${ bvhNodeStruct } ) -> bool {
+		boundsOrderFn: wgslTagFn/* wgsl */`
+			fn getBoundsOrder${ suffix }( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
 
-				return ray.direction[ axis ] >= 0.0;
+				return ray.direction[ splitAxis ] >= 0.0;
 
 			}
 		`,
@@ -61,18 +61,16 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 				let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
 				let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
 
-				// the distance is scaled to world space so it can be compared across clusters
 				let dist = max( t0, 0.0 );
-				let worldDist = dist * ${ scratchRayScalar };
 				if ( t1 < dist ) {
 
 					return 0u;
 
-				} else if ( ray.maxDist > 0.0 && worldDist >= ray.maxDist ) {
+				} else if ( ray.maxDist > 0.0 && dist * ${ scratchRayScalar } >= ray.maxDist ) {
 
 					return 0u;
 
-				} else if ( result.didHit && worldDist >= result.dist ) {
+				} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
 
 					return 0u;
 
@@ -83,6 +81,7 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 				}
 
 			}
+
 		`,
 		intersectRangeFn: wgslTagFn/* wgsl */`
 			fn intersectRange${ suffix }( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
@@ -150,8 +149,6 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 
 			}
 		`,
-	};
-
-	return bvhData.getShapecastFn( options );
+	} );
 
 }
