@@ -19,7 +19,7 @@ export function getRaycastAnyHitFn( bvhData ) {
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, attributes, transforms } = bvhData.storage;
 
-	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
+	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalarAnyHit' );
 
 	return bvhData.getShapecastFn( {
 		name: 'bvh_RaycastAnyHit',
