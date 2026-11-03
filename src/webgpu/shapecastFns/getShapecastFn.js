@@ -1,7 +1,7 @@
 /** @import { StructTypeNode } from 'three/webgpu' */
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { BVH_STACK_DEPTH } from '../tsl/constants.js';
+import { BVH_STACK_DEPTH, NOT_INTERSECTED, STOP_TRAVERSAL } from '../tsl/constants.js';
 
 /**
  * Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
@@ -17,7 +17,9 @@ import { BVH_STACK_DEPTH } from '../tsl/constants.js';
  * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
  * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
- * @param {Function} options.intersectRangeFn - function node testing the shape against a leaf triangle range.
+ * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range.
+ * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (2, a hit that ends the entire traversal
+ * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
  * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
  * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
@@ -183,7 +185,16 @@ export function getShapecastFn( bvhData, options ) {
 
 						let count = infoX & 0x0000ffffu;
 						let offset = infoY;
-						blasDidHit = ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) || blasDidHit;
+						// Cast bool callbacks to u32 to preserve their existing hit / miss behavior.
+						let rangeResult = u32( ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) );
+						blasDidHit = rangeResult != ${ NOT_INTERSECTED } || blasDidHit;
+						if ( rangeResult == ${ STOP_TRAVERSAL } ) {
+
+							${ transformResultSnippet }
+							${ resetShapeSnippet }
+							return true;
+
+						}
 
 					}
 

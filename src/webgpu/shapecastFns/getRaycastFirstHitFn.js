@@ -3,6 +3,7 @@ import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
+import { rayBoundsDistance } from './rayShapecastUtils.js';
 
 /**
  * Builds the `raycastFirstHit` shapecast function: traverses the BVH front to back and returns the
@@ -17,7 +18,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, attributes, transforms } = bvhData.storage;
 
-	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
+	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalar' );
 
 	return bvhData.getShapecastFn( {
 		name: 'bvh_RaycastFirstHit',
@@ -34,39 +35,16 @@ export function getRaycastFirstHitFn( bvhData ) {
 		intersectsBoundsFn: wgslTagFn/* wgsl */`
 			fn rayIntersectsBounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
 
-				let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
-				let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
-
-				// Avoid 0 * infinity for rays parallel to a slab and on its boundary.
-				let parallel = ray.direction == vec3f( 0.0 );
-				if ( any( parallel & ( ( ray.origin < boundsMin ) | ( ray.origin > boundsMax ) ) ) ) {
+				let dist = ${ rayBoundsDistance }( ray, bounds ) * ${ scratchRayScalar };
+				if ( dist < 0.0 ) {
 
 					return 0u;
 
-				}
-
-				let invDir = 1.0 / select( ray.direction, vec3f( 1.0 ), parallel );
-				let tMinPlane = ( boundsMin - ray.origin ) * invDir;
-				let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
-
-				// parallel axes never limit the slab interval
-				const FLT_MAX = 3.402823e38;
-				let tMinHit = select( min( tMinPlane, tMaxPlane ), vec3f( - FLT_MAX ), parallel );
-				let tMaxHit = select( max( tMinPlane, tMaxPlane ), vec3f( FLT_MAX ), parallel );
-
-				let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
-				let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
-
-				let dist = max( t0, 0.0 );
-				if ( t1 < dist ) {
+				} else if ( ray.maxDist > 0.0 && dist >= ray.maxDist ) {
 
 					return 0u;
 
-				} else if ( ray.maxDist > 0.0 && dist * ${ scratchRayScalar } >= ray.maxDist ) {
-
-					return 0u;
-
-				} else if ( result.didHit && dist * ${ scratchRayScalar } >= result.dist ) {
+				} else if ( result.didHit && dist >= result.dist ) {
 
 					return 0u;
 
