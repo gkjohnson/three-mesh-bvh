@@ -3,6 +3,7 @@ import { float } from 'three/tsl';
 import { wgslTagFn, wgslTagCode } from '../nodes/WGSLTagFnNode.js';
 import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
+import { STOP_TRAVERSAL } from '../tsl/constants.js';
 
 /**
  * Builds the `raycastFirstHit` shapecast function: traverses the BVH front to back and returns the
@@ -24,7 +25,6 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 	const suffix = anyHit ? 'AnyHit' : 'FirstHit';
 	return bvhData.getShapecastFn( {
 		name: anyHit ? 'bvh_RaycastAnyHitTraversal' : 'bvh_RaycastFirstHit',
-		terminateOnHit: anyHit,
 		shapeStruct: rayStruct,
 		resultStruct: rayIntersectionResultStruct,
 
@@ -84,7 +84,7 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 
 		`,
 		intersectRangeFn: wgslTagFn/* wgsl */`
-			fn intersectRange${ suffix }( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
+			fn intersectRange${ suffix }( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> u32 {
 
 				var didHit = false;
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
@@ -101,7 +101,7 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 					triResult.dist *= ${ scratchRayScalar };
 					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist < ray.maxDist ) && ( ! result.didHit || triResult.dist < result.dist ) ) {
 
-						${ anyHit ? wgslTagCode`return true;` : wgslTagCode`
+						${ anyHit ? wgslTagCode`return ${ STOP_TRAVERSAL };` : wgslTagCode`
 						result.didHit = true;
 						result.dist = triResult.dist;
 						result.normal = triResult.normal;
@@ -116,7 +116,7 @@ export function getRaycastFirstHitFn( bvhData, anyHit = false ) {
 
 				}
 
-				return didHit;
+				return u32( didHit );
 
 			}
 		`,
