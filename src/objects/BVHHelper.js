@@ -202,7 +202,8 @@ class BVHRootHelper extends Object3D {
 		bvh.traverse( ( depth, isLeaf, boundingData ) => {
 
 			// skip nodes with no bounds, such as the root of an empty geometry
-			if ( arrayToBox( 0, boundingData, boundingBox ).isEmpty() ) {
+			arrayToBox( 0, boundingData, boundingBox );
+			if ( boundingBox.isEmpty() ) {
 
 				return true;
 
