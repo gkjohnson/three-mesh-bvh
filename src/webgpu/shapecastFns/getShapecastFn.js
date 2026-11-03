@@ -1,7 +1,8 @@
 /** @import { StructTypeNode } from 'three/webgpu' */
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { BVH_STACK_DEPTH, NOT_INTERSECTED, STOP_TRAVERSAL } from '../tsl/constants.js';
+import { BVH_STACK_DEPTH } from '../tsl/constants.js';
+import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../../core/Constants.js';
 
 /**
  * Builds a WGSL shapecast function that traverses the TLAS and per-cluster BLAS in a single
@@ -18,7 +19,7 @@ import { BVH_STACK_DEPTH, NOT_INTERSECTED, STOP_TRAVERSAL } from '../tsl/constan
  * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
  * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range.
- * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (2, a hit that ends the entire traversal
+ * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
  * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
  * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
@@ -187,8 +188,8 @@ export function getShapecastFn( bvhData, options ) {
 						let offset = infoY;
 						// Cast bool callbacks to u32 to preserve their existing hit / miss behavior.
 						let rangeResult = u32( ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) );
-						blasDidHit = rangeResult != ${ NOT_INTERSECTED } || blasDidHit;
-						if ( rangeResult == ${ STOP_TRAVERSAL } ) {
+						blasDidHit = rangeResult != ${ NOT_INTERSECTED }u || blasDidHit;
+						if ( rangeResult == ${ STOP_TRAVERSAL }u ) {
 
 							${ transformResultSnippet }
 							${ resetShapeSnippet }

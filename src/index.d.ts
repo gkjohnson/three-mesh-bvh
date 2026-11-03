@@ -14,6 +14,7 @@ export enum ShapecastIntersection {}
 export const NOT_INTERSECTED: ShapecastIntersection;
 export const INTERSECTED: ShapecastIntersection;
 export const CONTAINED: ShapecastIntersection;
+export const STOP_TRAVERSAL: ShapecastIntersection;
 
 export interface HitPointInfo {
 	point: Vector3;

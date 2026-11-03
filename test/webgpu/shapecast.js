@@ -1,8 +1,8 @@
 import { BoxGeometry, Mesh } from 'three';
 import { WebGPURenderer, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage, uint } from 'three/tsl';
-import { MeshBVH } from '../../src/index.js';
-import { BVHComputeData, wgslTagFn, rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/webgpu/index.js';
+import { MeshBVH, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/index.js';
+import { BVHComputeData, wgslTagFn, rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct } from '../../src/webgpu/index.js';
 
 async function init() {
 
@@ -67,7 +67,7 @@ async function init() {
 					result.visits += 1u;
 					if ( ${ activeObject } == 0u ) { result.badState += 1u; }
 					${ booleanResult ? `return ${ hit ? 'true' : 'false' };` : '' }
-					${ booleanResult ? '' : `if ( result.visits == ${ stopAfter }u ) { return 2u; }` }
+					${ booleanResult ? '' : `if ( result.visits == ${ stopAfter }u ) { return ${ STOP_TRAVERSAL }u; }` }
 					${ booleanResult ? '' : `return ${ hit ? 1 : 0 }u;` }
 				}
 			`,
@@ -116,9 +116,9 @@ async function init() {
 			${ output }[ 5 ] = u32( ${ data.fns.raycastAnyHit }( ray ) );
 			ray.origin.x = 10.0;
 			${ output }[ 6 ] = u32( ${ data.fns.raycastAnyHit }( ray ) );
-			${ output }[ 7 ] = ${ NOT_INTERSECTED };
-			${ output }[ 8 ] = ${ INTERSECTED };
-			${ output }[ 9 ] = ${ STOP_TRAVERSAL };
+			${ output }[ 7 ] = ${ NOT_INTERSECTED }u;
+			${ output }[ 8 ] = ${ INTERSECTED }u;
+			${ output }[ 9 ] = ${ STOP_TRAVERSAL }u;
 		}
 	`(), 10 );
 

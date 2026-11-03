@@ -48,6 +48,12 @@ export const INTERSECTED = 1;
  */
 export const CONTAINED = 2;
 
+/**
+ * Indicates the shape intersected the given range and the traversal should stop.
+ * @type {number}
+ */
+export const STOP_TRAVERSAL = 3;
+
 // SAH cost constants
 // TODO: hone these costs more. The relative difference between them should be the
 // difference in measured time to perform a primitive intersection vs traversing

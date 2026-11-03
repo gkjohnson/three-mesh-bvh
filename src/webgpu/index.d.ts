@@ -1,9 +1,4 @@
 import { ObjectBVH } from 'three-mesh-bvh';
-import { Node } from 'three/webgpu';
-
-export const NOT_INTERSECTED: Node;
-export const INTERSECTED: Node;
-export const STOP_TRAVERSAL: Node;
 
 export class BVHComputeData {
 

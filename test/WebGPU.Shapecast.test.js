@@ -79,7 +79,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 	it( 'supports closest-hit and any-hit together, transforms, misses, and exclusive maxDist', async () => {
 
 		const result = await page.evaluate( () => window.testRays() );
-		expect( result ).toEqual( [ 1, 1, 300, 0, 0, 1, 0, 0, 1, 2 ] );
+		expect( result ).toEqual( [ 1, 1, 300, 0, 0, 1, 0, 0, 1, 3 ] );
 		expect( errors ).toEqual( [] );
 
 	} );

@@ -209,7 +209,7 @@ export class BVHComputeData {
 	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
 	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
 	 * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range.
-	 * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (2, a hit that ends the entire traversal
+	 * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
 	 * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.

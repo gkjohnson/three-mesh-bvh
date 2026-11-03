@@ -3,7 +3,7 @@ import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { rayStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
-import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../tsl/constants.js';
+import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../../core/Constants.js';
 import { rayBoundsDistance } from './rayShapecastUtils.js';
 
 /**
@@ -45,13 +45,13 @@ export function getRaycastAnyHitFn( bvhData ) {
 					let triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist * ${ scratchRayScalar } < ray.maxDist ) ) {
 
-						return ${ STOP_TRAVERSAL };
+						return ${ STOP_TRAVERSAL }u;
 
 					}
 
 				}
 
-				return ${ NOT_INTERSECTED };
+				return ${ NOT_INTERSECTED }u;
 
 			}
 		`,
