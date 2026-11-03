@@ -1,26 +1,61 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { rayStruct, rayIntersectionResultStruct } from '../tsl/structs.js';
-import { getRaycastFirstHitFn } from './getRaycastFirstHitFn.js';
+import { rayStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
+import { intersectRayTriangle } from '../tsl/fns.js';
+import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../tsl/constants.js';
+import { rayBoundsDistance, getRayTransformFns } from './rayShapecastUtils.js';
 
 /**
- * Builds an occlusion query that returns immediately after the first triangle hit.
- * Uses the same two-sided triangle and exclusive maxDist conventions as raycastFirstHit.
- * No material or alpha acceptance test is applied.
+ * Builds the `raycastAnyHit` shapecast function: returns whether the ray hits any triangle, ending
+ * the traversal at the first hit found.
+ *
  * @private
  * @param {BVHComputeData} bvhData
- * @returns {Function}
+ * @returns {Function} TSL function node for the TLAS traversal.
  */
 export function getRaycastAnyHitFn( bvhData ) {
 
-	const traversal = getRaycastFirstHitFn( bvhData, true );
-	return wgslTagFn`
-		fn bvh_RaycastAnyHit( ray: ${ rayStruct } ) -> bool {
+	// these are proxy nodes, so they can be referenced before the storage buffers exist
+	const { index, attributes } = bvhData.storage;
 
-			var hit: ${ rayIntersectionResultStruct };
-			return ${ traversal }( ray, &hit );
+	const { scratchRayScalar, transformShapeFn, resetShapeFn } = getRayTransformFns( bvhData );
 
-		}
-	`;
+	return bvhData.getShapecastFn( {
+		name: 'bvh_RaycastAnyHit',
+		shapeStruct: rayStruct,
+
+		intersectsBoundsFn: wgslTagFn/* wgsl */`
+			fn rayIntersectsBoundsAnyHit( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct } ) -> u32 {
+
+				let dist = ${ rayBoundsDistance }( ray, bounds ) * ${ scratchRayScalar };
+				return u32( dist >= 0.0 && ( ray.maxDist <= 0.0 || dist < ray.maxDist ) );
+
+			}
+		`,
+		intersectRangeFn: wgslTagFn/* wgsl */`
+			fn intersectRangeAnyHit( ray: ${ rayStruct }, offset: u32, count: u32 ) -> u32 {
+
+				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
+
+					let a = ${ attributes }[ ${ index }[ ti * 3u ] ].position.xyz;
+					let b = ${ attributes }[ ${ index }[ ti * 3u + 1u ] ].position.xyz;
+					let c = ${ attributes }[ ${ index }[ ti * 3u + 2u ] ].position.xyz;
+
+					let triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
+					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist * ${ scratchRayScalar } < ray.maxDist ) ) {
+
+						return ${ STOP_TRAVERSAL };
+
+					}
+
+				}
+
+				return ${ NOT_INTERSECTED };
+
+			}
+		`,
+		transformShapeFn,
+		resetShapeFn,
+	} );
 
 }
