@@ -1,6 +1,3 @@
-/** @import { Node } from 'three/webgpu' */
-/** @import { BVHComputeData } from '../BVHComputeData.js' */
-import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { rayStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 
@@ -36,57 +33,3 @@ export const rayBoundsDistance = wgslTagFn/* wgsl */`
 
 	}
 `;
-
-const _rayTransformFns = new WeakMap();
-
-/**
- * Returns the functions that move a ray into and out of an object's local space. They are created
- * once per BVHComputeData so the ray queries share them and a shader using several of them
- * declares each function once.
- *
- * @private
- * @param {BVHComputeData} bvhData
- * @returns {{ scratchRayScalar: Node, transformShapeFn: Function, resetShapeFn: Function }}
- */
-export function getRayTransformFns( bvhData ) {
-
-	if ( _rayTransformFns.has( bvhData ) ) {
-
-		return _rayTransformFns.get( bvhData );
-
-	}
-
-	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { transforms } = bvhData.storage;
-
-	// scales local space ray distances back to world space
-	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
-
-	const result = {
-		scratchRayScalar,
-		transformShapeFn: wgslTagFn/* wgsl */`
-			fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
-
-				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
-				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
-				ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
-
-				let len = length( ray.direction );
-				ray.direction /= len;
-				${ scratchRayScalar } = 1.0 / len;
-
-			}
-		`,
-		resetShapeFn: wgslTagFn/* wgsl */`
-			fn resetRayScalar( objectIndex: u32 ) -> void {
-
-				${ scratchRayScalar } = 1.0;
-
-			}
-		`,
-	};
-
-	_rayTransformFns.set( bvhData, result );
-	return result;
-
-}

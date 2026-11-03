@@ -1,9 +1,10 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
+import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { rayStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
 import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../tsl/constants.js';
-import { rayBoundsDistance, getRayTransformFns } from './rayShapecastUtils.js';
+import { rayBoundsDistance } from './rayShapecastUtils.js';
 
 /**
  * Builds the `raycastAnyHit` shapecast function: returns whether the ray hits any triangle, ending
@@ -16,9 +17,9 @@ import { rayBoundsDistance, getRayTransformFns } from './rayShapecastUtils.js';
 export function getRaycastAnyHitFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { index, attributes } = bvhData.storage;
+	const { index, attributes, transforms } = bvhData.storage;
 
-	const { scratchRayScalar, transformShapeFn, resetShapeFn } = getRayTransformFns( bvhData );
+	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
 
 	return bvhData.getShapecastFn( {
 		name: 'bvh_RaycastAnyHit',
@@ -54,8 +55,26 @@ export function getRaycastAnyHitFn( bvhData ) {
 
 			}
 		`,
-		transformShapeFn,
-		resetShapeFn,
+		transformShapeFn: wgslTagFn/* wgsl */`
+			fn transformRayAnyHit( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
+
+				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
+				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
+				ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
+
+				let len = length( ray.direction );
+				ray.direction /= len;
+				${ scratchRayScalar } = 1.0 / len;
+
+			}
+		`,
+		resetShapeFn: wgslTagFn/* wgsl */`
+			fn resetRayScalarAnyHit( objectIndex: u32 ) -> void {
+
+				${ scratchRayScalar } = 1.0;
+
+			}
+		`,
 	} );
 
 }

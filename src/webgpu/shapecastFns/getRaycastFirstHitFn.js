@@ -1,8 +1,9 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
+import { float } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { rayStruct, rayIntersectionResultStruct, bvhNodeStruct, bvhNodeBoundsStruct } from '../tsl/structs.js';
 import { intersectRayTriangle } from '../tsl/fns.js';
-import { rayBoundsDistance, getRayTransformFns } from './rayShapecastUtils.js';
+import { rayBoundsDistance } from './rayShapecastUtils.js';
 
 /**
  * Builds the `raycastFirstHit` shapecast function: traverses the BVH front to back and returns the
@@ -17,7 +18,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, attributes, transforms } = bvhData.storage;
 
-	const { scratchRayScalar, transformShapeFn, resetShapeFn } = getRayTransformFns( bvhData );
+	const scratchRayScalar = float( 1.0 ).toVar( `bvh_rayScalar_${ Math.random().toString( 36 ).substring( 2, 7 ) }` );
 
 	return bvhData.getShapecastFn( {
 		name: 'bvh_RaycastFirstHit',
@@ -91,7 +92,19 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 			}
 		`,
-		transformShapeFn,
+		transformShapeFn: wgslTagFn/* wgsl */`
+			fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
+
+				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
+				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
+				ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
+
+				let len = length( ray.direction );
+				ray.direction /= len;
+				${ scratchRayScalar } = 1.0 / len;
+
+			}
+		`,
 		transformResultFn: wgslTagFn/* wgsl */`
 			fn transformResult( hit: ptr<function, ${ rayIntersectionResultStruct }>, objectIndex: u32 ) -> void {
 
@@ -101,7 +114,13 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 			}
 		`,
-		resetShapeFn,
+		resetShapeFn: wgslTagFn/* wgsl */`
+			fn resetRayScalar( objectIndex: u32 ) -> void {
+
+				${ scratchRayScalar } = 1.0;
+
+			}
+		`,
 	} );
 
 }
