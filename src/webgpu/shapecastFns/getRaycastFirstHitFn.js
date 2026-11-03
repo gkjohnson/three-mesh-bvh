@@ -37,21 +37,22 @@ export function getRaycastFirstHitFn( bvhData ) {
 				let boundsMin = vec3( bounds.min[0], bounds.min[1], bounds.min[2] );
 				let boundsMax = vec3( bounds.max[0], bounds.max[1], bounds.max[2] );
 
-				let invDir = 1.0 / ray.direction;
+				// Avoid 0 * infinity for rays parallel to a slab and on its boundary.
+				let parallel = ray.direction == vec3f( 0.0 );
+				if ( any( parallel & ( ( ray.origin < boundsMin ) | ( ray.origin > boundsMax ) ) ) ) {
+
+					return 0u;
+
+				}
+
+				let invDir = 1.0 / select( ray.direction, vec3f( 1.0 ), parallel );
 				let tMinPlane = ( boundsMin - ray.origin ) * invDir;
 				let tMaxPlane = ( boundsMax - ray.origin ) * invDir;
 
-				let tMinHit = vec3f(
-					min( tMinPlane.x, tMaxPlane.x ),
-					min( tMinPlane.y, tMaxPlane.y ),
-					min( tMinPlane.z, tMaxPlane.z )
-				);
-
-				let tMaxHit = vec3f(
-					max( tMinPlane.x, tMaxPlane.x ),
-					max( tMinPlane.y, tMaxPlane.y ),
-					max( tMinPlane.z, tMaxPlane.z )
-				);
+				// parallel axes never limit the slab interval
+				const FLT_MAX = 3.402823e38;
+				let tMinHit = select( min( tMinPlane, tMaxPlane ), vec3f( - FLT_MAX ), parallel );
+				let tMaxHit = select( max( tMinPlane, tMaxPlane ), vec3f( FLT_MAX ), parallel );
 
 				let t0 = max( max( tMinHit.x, tMinHit.y ), tMinHit.z );
 				let t1 = min( min( tMaxHit.x, tMaxHit.y ), tMaxHit.z );
