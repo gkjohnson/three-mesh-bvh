@@ -138,7 +138,49 @@ export class GeometryBVH extends BVH {
 
 	}
 
+	/**
+	 * Builds a BVH like the constructor does but spreads the work over multiple tasks, waiting for a new task after
+	 * every `timeSlice` milliseconds of work so a page can render and handle input in the meantime, e.g. to show the
+	 * progress reported to `onProgress`, without a web worker. The geometry index is reordered as the build progresses.
+	 *
+	 * @param {BufferGeometry} geometry
+	 * @param {Object} [options] - The options of the constructor.
+	 * @param {number} [options.timeSlice=16] - The milliseconds of work before waiting for a new task.
+	 * @returns {Promise<GeometryBVH>}
+	 */
+	static async generateAsync( geometry, options = {} ) {
+
+		const bvh = new this( geometry, {
+			...options,
+			[ SKIP_GENERATION ]: true,
+		} );
+
+		await bvh.initAsync( {
+			...DEFAULT_OPTIONS,
+			...options,
+		} );
+
+		return bvh;
+
+	}
+
 	init( options ) {
+
+		this._initPrimitives( options );
+		super.init( options );
+		this._initBoundingBox( options );
+
+	}
+
+	async initAsync( options ) {
+
+		this._initPrimitives( options );
+		await super.initAsync( options );
+		this._initBoundingBox( options );
+
+	}
+
+	_initPrimitives( options ) {
 
 		const { geometry, primitiveStride } = this;
 
@@ -155,7 +197,11 @@ export class GeometryBVH extends BVH {
 
 		}
 
-		super.init( options );
+	}
+
+	_initBoundingBox( options ) {
+
+		const { geometry } = this;
 
 		if ( ! geometry.boundingBox && options.setBoundingBox ) {
 
