@@ -84,4 +84,18 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
+	it.each( [ false, true ] )( 'builds precise camera rays far from the origin (orthographic: %s)', async orthographic => {
+
+		// one pixel of a 1080p, 60 degree view is ~1e-3 radians
+		const { direction, origin, maxDist } = await page.evaluate( o => window.testCameraRay( o ), orthographic );
+		expect( direction ).toBeLessThan( 1e-5 );
+
+		// f32 spacing is ~1e-3 at 1e4 units. maxDist is limited by the f32 inverse projection, not
+		// this function: ~0.8% for this near / far, and it grows with far / near
+		expect( origin ).toBeLessThan( 2e-3 );
+		expect( maxDist ).toBeLessThan( 2e-2 );
+		expect( errors ).toEqual( [] );
+
+	} );
+
 } );

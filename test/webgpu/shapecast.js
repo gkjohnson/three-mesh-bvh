@@ -1,8 +1,8 @@
-import { BoxGeometry, Mesh } from 'three';
+import { BoxGeometry, Mesh, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { WebGPURenderer, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, uint } from 'three/tsl';
+import { storage, uint, uniform } from 'three/tsl';
 import { MeshBVH, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/index.js';
-import { BVHComputeData, wgslTagFn, rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct } from '../../src/webgpu/index.js';
+import { BVHComputeData, ndcToCameraRay, wgslTagFn, rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct } from '../../src/webgpu/index.js';
 
 async function init() {
 
@@ -121,6 +121,49 @@ async function init() {
 			${ output }[ 9 ] = ${ STOP_TRAVERSAL }u;
 		}
 	`(), 10 );
+
+	// Far from the origin with a small near plane, where f32 error is largest. Returns the max
+	// direction angle (radians), origin distance, and relative maxDist error against float64.
+	window.testCameraRay = async orthographic => {
+
+		const camera = orthographic ? new OrthographicCamera( - 16, 16, 9, - 9, 0.01, 10000 ) : new PerspectiveCamera( 60, 16 / 9, 0.01, 10000 );
+		camera.coordinateSystem = renderer.coordinateSystem;
+		camera.position.set( 6000, 3000, 7400 );
+		camera.lookAt( 0, 0, 0 );
+		camera.updateMatrixWorld();
+		camera.updateProjectionMatrix();
+
+		const ndcs = [ - 1, 0, 1 ].flatMap( x => [ - 1, 0, 1 ].map( y => [ x, y ] ) );
+		const cameraToWorld = uniform( camera.matrixWorld );
+		const inverseProjection = uniform( camera.projectionMatrixInverse );
+		const bits = await readCompute( output => wgslTagFn`
+			fn cameraRays() -> void {
+				for ( var i = 0u; i < 9u; i ++ ) {
+					let ndc = vec2f( f32( i / 3u ), f32( i % 3u ) ) - vec2f( 1.0 );
+					let ray = ${ ndcToCameraRay }( ndc, ${ cameraToWorld }, ${ inverseProjection } );
+					let values = array<f32, 7>( ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z, ray.maxDist );
+					for ( var j = 0u; j < 7u; j ++ ) {
+						${ output }[ i * 7u + j ] = bitcast<u32>( values[ j ] );
+					}
+				}
+			}
+		`(), ndcs.length * 7 );
+
+		const values = new Float32Array( new Uint32Array( bits ).buffer );
+		let direction = 0, origin = 0, maxDist = 0;
+		ndcs.forEach( ( [ x, y ], i ) => {
+
+			const near = new Vector3( x, y, 0 ).unproject( camera );
+			const toFar = new Vector3( x, y, 1 ).unproject( camera ).sub( near );
+			const v = values.subarray( i * 7, i * 7 + 7 );
+			direction = Math.max( direction, new Vector3( v[ 3 ], v[ 4 ], v[ 5 ] ).angleTo( toFar ) );
+			origin = Math.max( origin, new Vector3( v[ 0 ], v[ 1 ], v[ 2 ] ).distanceTo( near ) );
+			maxDist = Math.max( maxDist, Math.abs( v[ 6 ] - toFar.length() ) / toFar.length() );
+
+		} );
+		return { direction, origin, maxDist };
+
+	};
 
 	window.ready = true;
 

@@ -112,7 +112,7 @@ function init() {
 			let ndc = uv * 2.0 - vec2f( 1.0 );
 
 			// scene ray (world space)
-			var ray = ndcToCameraRay( ndc, cameraToWorldMatrix * inverseProjectionMatrix );
+			var ray = ndcToCameraRay( ndc, cameraToWorldMatrix, inverseProjectionMatrix );
 
 			// get hit result - the traversal clips at the ray's far plane distance
 			var hit: IntersectionResult;
