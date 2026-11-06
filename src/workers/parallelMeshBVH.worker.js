@@ -23,221 +23,253 @@ self.onmessage = async ( { data } ) => {
 
 		isRunning = true;
 
-		triggerOnProgress( 0 );
+		try {
 
-		const {
-			maxWorkerCount,
-			index,
-			position,
-			options,
-		} = data;
+			triggerOnProgress( 0 );
 
-		// initialize the number of workers balanced for a binary tree
-		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
+			const {
+				maxWorkerCount,
+				index,
+				position,
+				options,
+			} = data;
 
-		// generate necessary buffers and objects - based on the "buildTree" implementation
-		const geometry = getGeometry( index, position, options.groups );
-		let proxyBvh = createProxyBVH( geometry, null );
+			// initialize the number of workers balanced for a binary tree
+			workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
 
-		let indirectBuffer = null;
-		if ( options.indirect ) {
+			// generate necessary buffers and objects - based on the "buildTree" implementation
+			const geometry = getGeometry( index, position, options.groups );
+			let proxyBvh = createProxyBVH( geometry, null );
 
-			const ranges = getRootPrimitiveRanges( geometry, options.range, proxyBvh.primitiveStride );
-			indirectBuffer = generateIndirectBuffer( ranges, true );
-			proxyBvh._indirectBuffer = indirectBuffer;
+			let indirectBuffer = null;
+			if ( options.indirect ) {
 
-		}
+				const ranges = getRootPrimitiveRanges( geometry, options.range, proxyBvh.primitiveStride );
+				indirectBuffer = generateIndirectBuffer( ranges, true );
+				proxyBvh._indirectBuffer = indirectBuffer;
 
-		// get the range of buffer data to construct / arrange as done in "buildTree"
-		const rootRanges = proxyBvh.getRootRanges( options.range );
-		const firstRange = rootRanges[ 0 ];
-		const lastRange = rootRanges[ rootRanges.length - 1 ];
-		const fullRange = {
-			offset: firstRange.offset,
-			count: lastRange.offset + lastRange.count - firstRange.offset,
-		};
+			}
 
-		// construct the primitive bounds for sorting
-		const primitiveBounds = new Float32Array( 6 * fullRange.count );
-		primitiveBounds.offset = fullRange.offset;
-		proxyBvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
+			// get the range of buffer data to construct / arrange as done in "buildTree"
+			const rootRanges = proxyBvh.getRootRanges( options.range );
+			const firstRange = rootRanges[ 0 ];
+			const lastRange = rootRanges[ rootRanges.length - 1 ];
+			const fullRange = {
+				offset: firstRange.offset,
+				count: lastRange.offset + lastRange.count - firstRange.offset,
+			};
 
-		// generate portions of the triangle bounds buffer over multiple frames
-		const boundsPromises = [];
-		const triCount = primitiveBounds.length / 6;
-		for ( let i = 0, l = workerPool.workerCount; i < l; i ++ ) {
+			// construct the primitive bounds for sorting
+			const primitiveBounds = new Float32Array( 6 * fullRange.count );
+			primitiveBounds.offset = fullRange.offset;
+			proxyBvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
-			const countPerWorker = Math.ceil( triCount / l );
-			const offset = i * countPerWorker;
-			const count = Math.min( countPerWorker, triCount - offset );
+			// generate portions of the triangle bounds buffer over multiple frames
+			const boundsPromises = [];
+			const triCount = primitiveBounds.length / 6;
+			for ( let i = 0, l = workerPool.workerCount; i < l; i ++ ) {
 
-			boundsPromises.push( workerPool.runSubTask(
-				i,
-				{
-					operation: 'BUILD_TRIANGLE_BOUNDS',
-					offset,
-					count,
-					index,
-					position,
-					triangleBounds: primitiveBounds,
-					triangleBoundsOffset: primitiveBounds.offset,
-					indirectBuffer,
-				}
-			) );
+				const countPerWorker = Math.ceil( triCount / l );
+				const offset = i * countPerWorker;
+				const count = Math.min( countPerWorker, triCount - offset );
 
-		}
-
-		await Promise.all( boundsPromises );
-
-		let totalProgress = 0;
-
-		const localOptions = {
-			...DEFAULT_OPTIONS,
-			...options,
-			verbose: false,
-			maxDepth: Math.round( Math.log2( workerPool.workerCount ) ),
-			onProgress: options.includedProgressCallback ?
-				getOnProgressDeltaCallback( delta => {
-
-					totalProgress += 0.1 * delta;
-					triggerOnProgress( totalProgress );
-
-				} ) :
-				null,
-		};
-
-		// generate the ranges for all roots asynchronously
-		const packedRoots = [];
-		for ( let i = 0, l = rootRanges.length; i < l; i ++ ) {
-
-			// build the tree down to the necessary depth
-			const promises = [];
-			const range = rootRanges[ i ];
-			const topTree = buildTree( proxyBvh, primitiveBounds, range.offset, range.count, localOptions, fullRange );
-			const leaves = getLeaves( topTree, range );
-			let bufferLengths = 0;
-			let nextWorker = 0;
-
-			// trigger workers for each generated leaf node
-			for ( let j = 0, l = leaves.length; j < l; j ++ ) {
-
-				const leaf = leaves[ j ];
-
-				// adjust the maxDepth to account for the depth we've already traversed
-				const workerOptions = {
-					...DEFAULT_OPTIONS,
-					...options
-				};
-
-				workerOptions.maxDepth = workerOptions.maxDepth - leaf.depth;
-
-				const pr = workerPool.runSubTask(
-					nextWorker ++,
+				boundsPromises.push( workerPool.runSubTask(
+					i,
 					{
-						operation: 'BUILD_SUBTREE',
-						offset: leaf.offset,
-						count: leaf.count,
-						indirectBuffer,
+						operation: 'BUILD_TRIANGLE_BOUNDS',
+						offset,
+						count,
 						index,
 						position,
 						triangleBounds: primitiveBounds,
 						triangleBoundsOffset: primitiveBounds.offset,
-						options: workerOptions,
-					},
-					getOnProgressDeltaCallback( delta => {
-
-						totalProgress += 0.9 * delta / nextWorker;
-						triggerOnProgress( totalProgress );
-
-					} ),
-				).then( data => {
-
-					leaf.buffer = data.buffer;
-					bufferLengths += data.buffer.byteLength;
-
-				} );
-
-				promises.push( pr );
+						indirectBuffer,
+					}
+				) );
 
 			}
 
-			// wait for the sub trees to complete
-			await Promise.all( promises );
+			await Promise.all( boundsPromises );
 
-			const internalNodes = topTree.byteLength / BYTES_PER_NODE - leaves.length;
-			const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
-			const buffer = new BufferConstructor( bufferLengths + internalNodes * BYTES_PER_NODE );
-			mergeSubtrees( topTree, leaves, buffer );
+			let totalProgress = 0;
 
-			packedRoots.push( buffer );
+			const localOptions = {
+				...DEFAULT_OPTIONS,
+				...options,
+				verbose: false,
+				maxDepth: Math.round( Math.log2( workerPool.workerCount ) ),
+				onProgress: options.includedProgressCallback ?
+					getOnProgressDeltaCallback( delta => {
+
+						totalProgress += 0.1 * delta;
+						triggerOnProgress( totalProgress );
+
+					} ) :
+					null,
+			};
+
+			// generate the ranges for all roots asynchronously
+			const packedRoots = [];
+			for ( let i = 0, l = rootRanges.length; i < l; i ++ ) {
+
+				// build the tree down to the necessary depth
+				const promises = [];
+				const range = rootRanges[ i ];
+				const topTree = buildTree( proxyBvh, primitiveBounds, range.offset, range.count, localOptions, fullRange );
+				const leaves = getLeaves( topTree, range );
+				let bufferLengths = 0;
+				let nextWorker = 0;
+
+				// trigger workers for each generated leaf node
+				for ( let j = 0, l = leaves.length; j < l; j ++ ) {
+
+					const leaf = leaves[ j ];
+
+					// adjust the maxDepth to account for the depth we've already traversed
+					const workerOptions = {
+						...DEFAULT_OPTIONS,
+						...options
+					};
+
+					workerOptions.maxDepth = workerOptions.maxDepth - leaf.depth;
+
+					const pr = workerPool.runSubTask(
+						nextWorker ++,
+						{
+							operation: 'BUILD_SUBTREE',
+							offset: leaf.offset,
+							count: leaf.count,
+							indirectBuffer,
+							index,
+							position,
+							triangleBounds: primitiveBounds,
+							triangleBoundsOffset: primitiveBounds.offset,
+							options: workerOptions,
+						},
+						getOnProgressDeltaCallback( delta => {
+
+							totalProgress += 0.9 * delta / nextWorker;
+							triggerOnProgress( totalProgress );
+
+						} ),
+					).then( data => {
+
+						leaf.buffer = data.buffer;
+						bufferLengths += data.buffer.byteLength;
+
+					} );
+
+					promises.push( pr );
+
+				}
+
+				// wait for the sub trees to complete
+				await Promise.all( promises );
+
+				const internalNodes = topTree.byteLength / BYTES_PER_NODE - leaves.length;
+				const BufferConstructor = options.useSharedArrayBuffer ? SharedArrayBuffer : ArrayBuffer;
+				const buffer = new BufferConstructor( bufferLengths + internalNodes * BYTES_PER_NODE );
+				mergeSubtrees( topTree, leaves, buffer );
+
+				packedRoots.push( buffer );
+
+			}
+
+			// transfer the data back
+			self.postMessage( {
+				error: null,
+				serialized: {
+					version: 1,
+					roots: packedRoots,
+					index: index,
+					indirectBuffer: indirectBuffer,
+				},
+				position,
+				progress: 1,
+			} );
+
+		} catch ( error ) {
+
+			// the onmessage handler is async, so a throw here would only reject its promise and
+			// leave the caller waiting. Drop the pool so a failed sub worker isn't reused.
+			workerPool.setWorkerCount( 0 );
+			self.postMessage( {
+				error,
+				serialized: null,
+				position: null,
+				progress: 1,
+			} );
 
 		}
-
-		// transfer the data back
-		self.postMessage( {
-			error: null,
-			serialized: {
-				version: 1,
-				roots: packedRoots,
-				index: index,
-				indirectBuffer: indirectBuffer,
-			},
-			position,
-			progress: 1,
-		} );
 
 		isRunning = false;
 
 	} else if ( operation === 'BUILD_SUBTREE' ) {
 
-		const {
-			offset,
-			count,
-			indirectBuffer,
-			index,
-			position,
-			triangleBounds,
-			triangleBoundsOffset,
-			options,
-		} = data;
+		try {
 
-		const geometry = getGeometry( index, position );
-		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
+			const {
+				offset,
+				count,
+				indirectBuffer,
+				index,
+				position,
+				triangleBounds,
+				triangleBoundsOffset,
+				options,
+			} = data;
 
-		// the subtree is transferred back, so it cannot be a shared buffer
-		const localOptions = {
-			...DEFAULT_OPTIONS,
-			...options,
-			useSharedArrayBuffer: false,
-			onProgress: options.includedProgressCallback ? triggerOnProgress : null,
-		};
+			const geometry = getGeometry( index, position );
+			const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
-		// reconstruct the triangle bounds structure before use
-		triangleBounds.offset = triangleBoundsOffset;
+			// the subtree is transferred back, so it cannot be a shared buffer
+			const localOptions = {
+				...DEFAULT_OPTIONS,
+				...options,
+				useSharedArrayBuffer: false,
+				onProgress: options.includedProgressCallback ? triggerOnProgress : null,
+			};
 
-		const buffer = buildTree( proxyBvh, triangleBounds, offset, count, localOptions, { offset, count } );
-		self.postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
+			// reconstruct the triangle bounds structure before use
+			triangleBounds.offset = triangleBoundsOffset;
+
+			const buffer = buildTree( proxyBvh, triangleBounds, offset, count, localOptions, { offset, count } );
+			self.postMessage( { type: 'result', buffer, progress: 1 }, [ buffer ] );
+
+		} catch ( error ) {
+
+			self.postMessage( { type: 'result', error } );
+
+		}
 
 	} else if ( operation === 'BUILD_TRIANGLE_BOUNDS' ) {
 
-		const {
-			index,
-			position,
-			triangleBounds,
-			triangleBoundsOffset,
-			offset,
-			count,
-			indirectBuffer,
-		} = data;
+		try {
 
-		// reconstruct the triangle bounds structure before use
-		triangleBounds.offset = triangleBoundsOffset;
+			const {
+				index,
+				position,
+				triangleBounds,
+				triangleBoundsOffset,
+				offset,
+				count,
+				indirectBuffer,
+			} = data;
 
-		const geometry = getGeometry( index, position );
-		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
-		proxyBvh.computePrimitiveBounds( offset, count, triangleBounds );
+			// reconstruct the triangle bounds structure before use
+			triangleBounds.offset = triangleBoundsOffset;
 
-		self.postMessage( { type: 'result' } );
+			const geometry = getGeometry( index, position );
+			const proxyBvh = createProxyBVH( geometry, indirectBuffer );
+			proxyBvh.computePrimitiveBounds( offset, count, triangleBounds );
+
+			self.postMessage( { type: 'result' } );
+
+		} catch ( error ) {
+
+			self.postMessage( { type: 'result', error } );
+
+		}
 
 	} else if ( operation === 'REFIT' ) {
 

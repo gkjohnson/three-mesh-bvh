@@ -131,6 +131,42 @@ describe( 'Workers', () => {
 
 	} );
 
+	it.each( [ 'ParallelMeshBVHWorker', 'GenerateMeshBVHWorker' ] )( '%s should reject a failed build and accept the next one', async name => {
+
+		const { error, built, unhandled } = await page.evaluate( async name => {
+
+			const { TorusGeometry } = window.THREE;
+			const worker = new window[ name ]();
+
+			let unhandled = 0;
+			const onUnhandled = () => unhandled ++;
+			window.addEventListener( 'unhandledrejection', onUnhandled );
+
+			let error = null;
+			try {
+
+				// nothing validates the range, so a negative count throws inside the worker
+				await worker.generate( new TorusGeometry( 5, 5, 50, 100 ), { range: { start: 0, count: - 30 } } );
+
+			} catch ( e ) {
+
+				error = e.message;
+
+			}
+
+			const bvh = await worker.generate( new TorusGeometry( 5, 5, 50, 100 ) );
+			worker.dispose();
+			window.removeEventListener( 'unhandledrejection', onUnhandled );
+			return { error, built: Boolean( bvh ), unhandled };
+
+		}, name );
+
+		expect( error ).toMatch( /RangeError/ );
+		expect( built ).toBe( true );
+		expect( unhandled ).toBe( 0 );
+
+	} );
+
 	runTestMatrix( {
 		parallel: [ false, true ],
 		groups: [ false, true ],
