@@ -96,10 +96,13 @@ describe( 'Workers', () => {
 
 					const attr = geometry.attributes[ name ];
 					const workerAttr = workerGeometry.attributes[ name ];
-					for ( let i = 0; i < attr.count * 3; i ++ ) {
+					for ( let i = 0; i < attr.count; i ++ ) {
 
-						const item = Math.floor( i / 3 );
-						if ( workerAttr.getComponent( item, i % 3 ) !== attr.getComponent( item, i % 3 ) ) {
+						if (
+							workerAttr.getX( i ) !== attr.getX( i ) ||
+							workerAttr.getY( i ) !== attr.getY( i ) ||
+							workerAttr.getZ( i ) !== attr.getZ( i )
+						) {
 
 							return false;
 
