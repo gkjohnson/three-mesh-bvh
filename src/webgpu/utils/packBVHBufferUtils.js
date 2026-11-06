@@ -12,6 +12,7 @@ export const GPU_UINT32_PER_NODE = GPU_BYTES_PER_NODE / 4;
 // scratch
 const _def = /* @__PURE__ */ new Vector4();
 const _vec = /* @__PURE__ */ new Vector4();
+const _defArray = [ 0, 0, 0, 0 ];
 
 // writes the bounds of a source node into "target" at float offset "t32", turning the
 // [ Infinity, - Infinity ] bounds of an empty leaf into [ 1, - 1 ] so the GPU never enters it
@@ -341,6 +342,35 @@ export function appendGeometryData( bvh, range, writeOffset, target, attributeSt
 		const attr = geometry.attributes[ name ];
 		bvhData.getDefaultAttributeValue( name, _def );
 
+		const isSkinned = mesh && ( name === 'position' || name === 'normal' || name === 'tangent' );
+
+		// copy straight from the backing array since per-vertex accessors dominate update time on large
+		// scenes. Normalized, half float and skinned values need the accessor path below to be converted.
+		if ( attr && ! isSkinned && ! attr.normalized && ! attr.isFloat16BufferAttribute ) {
+
+			const { itemSize } = attr;
+			const array = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array;
+			const stride = attr.isInterleavedBufferAttribute ? attr.data.stride : itemSize;
+			const offset = attr.isInterleavedBufferAttribute ? attr.offset : 0;
+			const copyCount = Math.min( itemSize, 4 );
+			_def.toArray( _defArray );
+
+			for ( let i = 0; i < vertexCount; i ++ ) {
+
+				const readIndex = ( i + vertexStart ) * stride + offset;
+				const writeIndex = ( writeOffset + i ) * attrStructLength + interleavedOffset * 4;
+				for ( let c = 0; c < 4; c ++ ) {
+
+					attributesBufferF32[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
+
+				}
+
+			}
+
+			return;
+
+		}
+
 		for ( let i = 0; i < vertexCount; i ++ ) {
 
 			if ( attr ) {
@@ -364,7 +394,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, attributeSt
 
 				}
 
-				if ( mesh && ( name === 'position' || name === 'normal' || name === 'tangent' ) ) {
+				if ( isSkinned ) {
 
 					mesh.applyBoneTransform( i + vertexStart, _vec );
 
