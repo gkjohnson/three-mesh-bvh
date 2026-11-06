@@ -9,7 +9,7 @@ import { WorkerBase } from './utils/WorkerBase.js';
  * the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
  * being processed unless `SharedArrayBuffers` are used. For an interleaved position attribute this
  * includes every attribute stored in the same interleaved buffer. They will be automatically
- * replaced when the MeshBVH is finished generating.
+ * replaced when the MeshBVH is finished generating or the build fails.
  *
  * @note It's best to reuse a single instance of this class to avoid the overhead of instantiating
  * a new Worker.
@@ -82,6 +82,18 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				const { data } = e;
 
 				if ( data.error ) {
+
+					if ( data.position ) {
+
+						positionBuffer.array = data.position;
+
+					}
+
+					if ( data.index ) {
+
+						geometry.index.array = data.index;
+
+					}
 
 					reject( new Error( data.error ) );
 					worker.onmessage = null;

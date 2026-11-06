@@ -234,4 +234,69 @@ describe( 'Workers', () => {
 
 	} );
 
+	for ( const interleaved of [ false, true ] ) {
+
+		it( `should restore the geometry arrays when the build fails with { interleaved: ${ interleaved } }`, async () => {
+
+			const { error, returned, restored, sharedBuffer } = await page.evaluate( async interleaved => {
+
+				const { TorusGeometry, InterleavedBuffer, InterleavedBufferAttribute } = window.THREE;
+				const { GenerateMeshBVHWorker } = window;
+
+				const geometry = new TorusGeometry( 5, 5, 50, 100 );
+				if ( interleaved ) {
+
+					const { position, normal } = geometry.attributes;
+					const buffer = new InterleavedBuffer( new Float32Array( position.count * 6 ), 6 );
+					geometry.setAttribute( 'normal', new InterleavedBufferAttribute( buffer, 3, 0 ) );
+					geometry.setAttribute( 'position', new InterleavedBufferAttribute( buffer, 3, 3 ) );
+					for ( let i = 0; i < position.count; i ++ ) {
+
+						geometry.attributes.normal.setXYZ( i, normal.getX( i ), normal.getY( i ), normal.getZ( i ) );
+						geometry.attributes.position.setXYZ( i, position.getX( i ), position.getY( i ), position.getZ( i ) );
+
+					}
+
+				}
+
+				const { index, attributes } = geometry;
+				const before = [ index.array.slice(), attributes.position.array.slice(), attributes.normal.array.slice() ];
+				const transferred = [ index.array, attributes.position.array ];
+
+				let error = null;
+				const worker = new GenerateMeshBVHWorker();
+				try {
+
+					// nothing validates the range, so a negative count fails to allocate the
+					// primitive bounds inside the worker, after the arrays were transferred
+					await worker.generate( geometry, { range: { start: 0, count: - 30 } } );
+
+				} catch ( e ) {
+
+					error = e.message;
+
+				}
+
+				worker.dispose();
+
+				const after = [ geometry.index.array, geometry.attributes.position.array, geometry.attributes.normal.array ];
+				return {
+					error,
+					// new instances, so the arrays went to the worker and came back rather than never leaving
+					returned: transferred.every( ( array, i ) => after[ i ] !== array ),
+					restored: after.every( ( array, i ) => array.length === before[ i ].length && array.every( ( v, j ) => v === before[ i ][ j ] ) ),
+					sharedBuffer: Boolean( geometry.attributes.position.isInterleavedBufferAttribute ) && geometry.attributes.normal.data === geometry.attributes.position.data,
+				};
+
+			}, interleaved );
+
+			expect( error ).not.toBe( null );
+			expect( returned ).toBe( true );
+			expect( restored ).toBe( true );
+			expect( sharedBuffer ).toBe( interleaved );
+
+		} );
+
+	}
+
 } );

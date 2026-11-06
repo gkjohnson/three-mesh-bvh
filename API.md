@@ -1124,7 +1124,7 @@ geometry position and index buffer attribute `ArrayBuffers` are transferred to t
 the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
 being processed unless `SharedArrayBuffers` are used. For an interleaved position attribute this
 includes every attribute stored in the same interleaved buffer. They will be automatically
-replaced when the MeshBVH is finished generating.
+replaced when the MeshBVH is finished generating or the build fails.
 
 > [!NOTE]
 > It's best to reuse a single instance of this class to avoid the overhead of instantiating

@@ -97,14 +97,18 @@ self.onmessage = ( { data } ) => {
 
 	} catch ( error ) {
 
+		// hand the transferred arrays back so the geometry is still usable after a failed build
 		self.postMessage( {
 
 			error,
 			serialized: null,
-			position: null,
+			position,
+			index,
 			progress: 1,
 
-		} );
+		}, [ position, index ]
+			.filter( arr => arr && ( ( typeof SharedArrayBuffer === 'undefined' ) || ! ( arr.buffer instanceof SharedArrayBuffer ) ) )
+			.map( arr => arr.buffer ) );
 
 	}
 
