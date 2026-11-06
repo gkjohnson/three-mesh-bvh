@@ -7,8 +7,9 @@ import { WorkerBase } from './utils/WorkerBase.js';
  * Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
  * geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
  * the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
- * being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
- * the MeshBVH is finished generating.
+ * being processed unless `SharedArrayBuffers` are used. For an interleaved position attribute this
+ * includes every attribute stored in the same interleaved buffer. They will be automatically
+ * replaced when the MeshBVH is finished generating or the build fails.
  *
  * @note It's best to reuse a single instance of this class to avoid the overhead of instantiating
  * a new Worker.
@@ -61,14 +62,14 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
-			if (
-				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
-				geometry.index && geometry.index.isInterleavedBufferAttribute
-			) {
+			if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
 
-				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute is not supported for the index attribute.' );
 
 			}
+
+			const positionAttr = geometry.attributes.position;
+			const positionBuffer = positionAttr.isInterleavedBufferAttribute ? positionAttr.data : positionAttr;
 
 			worker.onerror = e => {
 
@@ -81,6 +82,18 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				const { data } = e;
 
 				if ( data.error ) {
+
+					if ( data.position ) {
+
+						positionBuffer.array = data.position;
+
+					}
+
+					if ( data.index ) {
+
+						geometry.index.array = data.index;
+
+					}
 
 					reject( new Error( data.error ) );
 					worker.onmessage = null;
@@ -97,7 +110,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					// we need to replace the arrays because they're neutered entirely by the
 					// webworker transfer.
-					geometry.attributes.position.array = position;
+					positionBuffer.array = position;
 					if ( serialized.index ) {
 
 						if ( geometry.index ) {
@@ -137,7 +150,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 			};
 
 			const index = geometry.index ? geometry.index.array : null;
-			const position = geometry.attributes.position.array;
+			const position = positionBuffer.array;
 			const transferable = [ position ];
 			if ( index ) {
 
@@ -149,6 +162,9 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 				index,
 				position,
+				positionStride: positionAttr.isInterleavedBufferAttribute ? positionAttr.data.stride : 3,
+				positionOffset: positionAttr.offset || 0,
+				positionNormalized: positionAttr.normalized,
 				options: {
 					...options,
 					onProgress: null,

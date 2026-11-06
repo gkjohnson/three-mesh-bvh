@@ -1,6 +1,8 @@
 import {
 	BufferGeometry,
 	BufferAttribute,
+	InterleavedBuffer,
+	InterleavedBufferAttribute,
 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 
@@ -29,11 +31,20 @@ self.onmessage = ( { data } ) => {
 
 	}
 
-	const { index, position, options } = data;
+	const { index, position, positionStride, positionOffset, positionNormalized, options } = data;
 	try {
 
 		const geometry = new BufferGeometry();
-		geometry.setAttribute( 'position', new BufferAttribute( position, 3, false ) );
+		if ( positionStride === 3 ) {
+
+			geometry.setAttribute( 'position', new BufferAttribute( position, 3, positionNormalized ) );
+
+		} else {
+
+			geometry.setAttribute( 'position', new InterleavedBufferAttribute( new InterleavedBuffer( position, positionStride ), 3, positionOffset, positionNormalized ) );
+
+		}
+
 		if ( index ) {
 
 			geometry.setIndex( new BufferAttribute( index, 1, false ) );
@@ -86,14 +97,18 @@ self.onmessage = ( { data } ) => {
 
 	} catch ( error ) {
 
+		// hand the transferred arrays back so the geometry is still usable after a failed build
 		self.postMessage( {
 
 			error,
 			serialized: null,
-			position: null,
+			position,
+			index,
 			progress: 1,
 
-		} );
+		}, [ position, index ]
+			.filter( arr => arr && ( ( typeof SharedArrayBuffer === 'undefined' ) || ! ( arr.buffer instanceof SharedArrayBuffer ) ) )
+			.map( arr => arr.buffer ) );
 
 	}
 
