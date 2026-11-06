@@ -145,7 +145,8 @@ export class GeometryBVH extends BVH {
 	 *
 	 * @param {BufferGeometry} geometry
 	 * @param {Object} [options] - The options of the constructor.
-	 * @param {number} [options.timeSlice=16] - The milliseconds of work before waiting for a new task.
+	 * @param {number} [options.timeSlice=16] - The milliseconds of work before waiting for a new task. The time is
+	 * checked between subtrees of a few thousand primitives, which are built at once.
 	 * @returns {Promise<GeometryBVH>}
 	 */
 	static async generateAsync( geometry, options = {} ) {

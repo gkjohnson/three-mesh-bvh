@@ -20,24 +20,6 @@ const _centroidBounds = /* @__PURE__ */ new Float32Array( 6 );
 // splitAxis / isLeaf + count 	: 1 uint32 / 2 uint16
 export function buildTree( bvh, primitiveBounds, offset, count, options, loadRange ) {
 
-	// the generator only yields after a time slice so it runs to completion in one step
-	const generator = buildTreeGenerator( bvh, primitiveBounds, offset, count, options, loadRange, Infinity );
-	let result = generator.next();
-	while ( ! result.done ) {
-
-		result = generator.next();
-
-	}
-
-	return result.value;
-
-}
-
-// Generator form of "buildTree" that yields once more than "timeSlice" milliseconds have passed since
-// it started or resumed so a build can be spread over multiple tasks. The node bounds are computed
-// after resuming because the shared scratch arrays may have been used by another build in between.
-export function* buildTreeGenerator( bvh, primitiveBounds, offset, count, options, loadRange, timeSlice ) {
-
 	// expand variables
 	const {
 		maxDepth,
@@ -62,68 +44,8 @@ export function* buildTreeGenerator( bvh, primitiveBounds, offset, count, option
 	let nodeCount = 0;
 	let reachedMaxDepth = false;
 
-	// the right subtrees still to be built, depth first, as parent node index, offset, count and depth
-	const stack = [];
-
-	// the node to write next and the node whose right child it is, or -1 for a left child or the root
-	let nodeOffset = offset;
-	let nodePrimitives = count;
-	let depth = 0;
-	let parentIndex = - 1;
-
-	let sliceStart = performance.now();
-	let steps = 0;
-
-	while ( true ) {
-
-		// yield after the time slice, checking the time every 64 nodes
-		if ( ( ++ steps & 63 ) === 0 && performance.now() - sliceStart > timeSlice ) {
-
-			yield;
-			sliceStart = performance.now();
-
-		}
-
-		const nodeIndex = nodeCount ++;
-		const node32 = nodeIndex * UINT32_PER_NODE;
-
-		// a right child is stored in its parent as an offset relative to the parent, after the left subtree
-		if ( parentIndex !== - 1 ) {
-
-			const relativeRightIndex = nodeIndex - parentIndex;
-			if ( relativeRightIndex > MAX_POINTER ) {
-
-				throw new Error( 'MeshBVH: Cannot store relative child node offset greater than 32 bits.' );
-
-			}
-
-			uint32Array[ parentIndex * UINT32_PER_NODE + 6 ] = relativeRightIndex;
-
-		}
-
-		getBounds( primitiveBounds, nodeOffset, nodePrimitives, _nodeBounds, _centroidBounds );
-		float32Array.set( _nodeBounds, node32 );
-
-		if ( splitNode( node32, nodeIndex, nodeOffset, nodePrimitives, depth ) ) {
-
-			continue;
-
-		}
-
-		// the node is a leaf, continue with the last right subtree not built yet
-		if ( stack.length === 0 ) {
-
-			break;
-
-		}
-
-		depth = stack.pop();
-		nodePrimitives = stack.pop();
-		nodeOffset = stack.pop();
-		parentIndex = stack.pop();
-
-	}
-
+	getBounds( primitiveBounds, offset, count, _nodeBounds, _centroidBounds );
+	splitNode( offset, count, 0 );
 	return buffer.slice( 0, nodeCount * BYTES_PER_NODE );
 
 	function triggerProgress( primitivesProcessed ) {
@@ -146,12 +68,15 @@ export function* buildTreeGenerator( bvh, primitiveBounds, offset, count, option
 
 	}
 
-	// splits the node whose bounds are in "_nodeBounds", continuing with its left child and pushing its right
-	// child onto the stack, and returns true, or makes it a leaf node, recording the offset and count of its
-	// primitives, and returns false.
-	function splitNode( node32, nodeIndex, offset, count, nodeDepth ) {
+	// writes the node whose bounds are in "_nodeBounds" and either recursively splits it, creating left and right
+	// subtrees for it, or makes it a leaf node, recording the offset and count of its primitives.
+	function splitNode( offset, count, depth ) {
 
-		if ( ! reachedMaxDepth && nodeDepth >= maxDepth ) {
+		const nodeIndex = nodeCount ++;
+		const node32 = nodeIndex * UINT32_PER_NODE;
+		float32Array.set( _nodeBounds, node32 );
+
+		if ( ! reachedMaxDepth && depth >= maxDepth ) {
 
 			reachedMaxDepth = true;
 			if ( verbose ) {
@@ -167,10 +92,10 @@ export function* buildTreeGenerator( bvh, primitiveBounds, offset, count, option
 		const mustSplit = count > _strictLeafSize;
 
 		// early out if we've met our capacity - unless the strict guarantee still requires a split
-		if ( ( count <= targetLeafSize && ! mustSplit ) || nodeDepth >= maxDepth ) {
+		if ( ( count <= targetLeafSize && ! mustSplit ) || depth >= maxDepth ) {
 
 			writeLeaf( node32, offset, count );
-			return false;
+			return;
 
 		}
 
@@ -186,7 +111,7 @@ export function* buildTreeGenerator( bvh, primitiveBounds, offset, count, option
 			if ( ! mustSplit ) {
 
 				writeLeaf( node32, offset, count );
-				return false;
+				return;
 
 			}
 
@@ -197,63 +122,30 @@ export function* buildTreeGenerator( bvh, primitiveBounds, offset, count, option
 
 		uint32Array[ node32 + 7 ] = split.axis;
 
-		// the left child directly follows this node, the right child follows the left subtree
+		// the left child directly follows this node
 		const leftCount = splitOffset - offset;
-		stack.push( nodeIndex, splitOffset, count - leftCount, nodeDepth + 1 );
+		getBounds( primitiveBounds, offset, leftCount, _nodeBounds, _centroidBounds );
+		splitNode( offset, leftCount, depth + 1 );
 
-		nodeOffset = offset;
-		nodePrimitives = leftCount;
-		depth = nodeDepth + 1;
-		parentIndex = - 1;
-		return true;
+		// the right child follows the left subtree, stored as an offset relative to this node
+		const relativeRightIndex = nodeCount - nodeIndex;
+		if ( relativeRightIndex > MAX_POINTER ) {
+
+			throw new Error( 'MeshBVH: Cannot store relative child node offset greater than 32 bits.' );
+
+		}
+
+		uint32Array[ node32 + 6 ] = relativeRightIndex;
+
+		const rightCount = count - leftCount;
+		getBounds( primitiveBounds, splitOffset, rightCount, _nodeBounds, _centroidBounds );
+		splitNode( splitOffset, rightCount, depth + 1 );
 
 	}
 
 }
 
 export function buildPackedTree( bvh, options ) {
-
-	const { rootRanges, fullRange, primitiveBounds } = getBuildRanges( bvh, options );
-
-	// Build BVH roots
-	bvh._roots = rootRanges.map( range => {
-
-		return buildTree( bvh, primitiveBounds, range.offset, range.count, options, fullRange );
-
-	} );
-
-}
-
-// Like "buildPackedTree" but builds the roots in slices of "timeSlice" milliseconds of work, waiting for a
-// new task between them so a page can render and handle input meanwhile. The roots are assigned once
-// they are all built.
-export async function buildPackedTreeAsync( bvh, options ) {
-
-	const { timeSlice = 16 } = options;
-	const { rootRanges, fullRange, primitiveBounds } = getBuildRanges( bvh, options );
-
-	const roots = [];
-	for ( const range of rootRanges ) {
-
-		const generator = buildTreeGenerator( bvh, primitiveBounds, range.offset, range.count, options, fullRange, timeSlice );
-		let result = generator.next();
-		while ( ! result.done ) {
-
-			await nextTask();
-			result = generator.next();
-
-		}
-
-		roots.push( result.value );
-
-	}
-
-	bvh._roots = roots;
-
-}
-
-// returns the root ranges to build, the full range of primitives they span and the bounds of those primitives
-function getBuildRanges( bvh, options ) {
 
 	// get the range of buffer data to construct / arrange
 	const rootRanges = bvh.getRootRanges( options.range );
@@ -269,31 +161,10 @@ function getBuildRanges( bvh, options ) {
 	primitiveBounds.offset = fullRange.offset;
 	bvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
-	return { rootRanges, fullRange, primitiveBounds };
+	// Build BVH roots
+	bvh._roots = rootRanges.map( range => {
 
-}
-
-// resolves in a new task, without the minimum delay of nested timeouts where MessageChannel is available
-function nextTask() {
-
-	return new Promise( resolve => {
-
-		if ( typeof MessageChannel === 'undefined' ) {
-
-			setTimeout( resolve );
-			return;
-
-		}
-
-		const channel = new MessageChannel();
-		channel.port1.onmessage = () => {
-
-			channel.port1.close();
-			resolve();
-
-		};
-
-		channel.port2.postMessage( null );
+		return buildTree( bvh, primitiveBounds, range.offset, range.count, options, fullRange );
 
 	} );
 
