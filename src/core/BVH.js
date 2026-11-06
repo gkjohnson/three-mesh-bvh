@@ -4,6 +4,7 @@ import { BYTES_PER_NODE, UINT32_PER_NODE, DEFAULT_OPTIONS, FLOAT32_EPSILON } fro
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE, COUNT, OFFSET } from './utils/nodeBufferUtils.js';
 import { buildPackedTree } from './build/buildTree.js';
+import { buildPackedTreeAsync } from './build/buildTreeAsync.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { BVHTraversalHelper } from './BVHTraversalHelper.js';
@@ -51,6 +52,28 @@ const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
  * @returns {boolean}
  */
 
+// merges the build options with the defaults, mapping deprecated options
+function getBuildOptions( options ) {
+
+	options = {
+		...DEFAULT_OPTIONS,
+		...options,
+	};
+
+	if ( 'maxLeafSize' in options ) {
+
+		console.warn( 'BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.' );
+		options = {
+			...options,
+			targetLeafSize: options.maxLeafSize,
+		};
+
+	}
+
+	return options;
+
+}
+
 /**
  * Abstract base class for BVH implementations. Provides core tree traversal and spatial query
  * methods. Subclasses implement primitive-specific logic by overriding `writePrimitiveBounds`
@@ -68,22 +91,13 @@ export class BVH {
 
 	init( options ) {
 
-		options = {
-			...DEFAULT_OPTIONS,
-			...options,
-		};
+		buildPackedTree( this, getBuildOptions( options ) );
 
-		if ( 'maxLeafSize' in options ) {
+	}
 
-			console.warn( 'BVH: "maxLeafSize" option has been deprecated. Use "targetLeafSize", instead.' );
-			options = {
-				...options,
-				targetLeafSize: options.maxLeafSize,
-			};
+	async initAsync( options ) {
 
-		}
-
-		buildPackedTree( this, options );
+		await buildPackedTreeAsync( this, getBuildOptions( options ) );
 
 	}
 

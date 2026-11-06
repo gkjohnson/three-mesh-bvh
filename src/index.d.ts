@@ -41,6 +41,10 @@ export interface BVHOptions {
 /** @deprecated Use BVHOptions instead */
 export interface MeshBVHOptions extends BVHOptions {} // eslint-disable-line
 
+export interface BVHAsyncOptions extends BVHOptions {
+	timeSlice?: number;
+}
+
 export interface ComputeBVHOptions extends BVHOptions {
 	type?: typeof GeometryBVH;
 }
@@ -127,6 +131,8 @@ export class GeometryBVH extends BVH {
 	readonly indirect: boolean;
 	readonly geometry: BufferGeometry;
 
+	static generateAsync( geometry: BufferGeometry, options?: BVHAsyncOptions ): Promise<GeometryBVH>;
+
 	constructor( geometry: BufferGeometry, options?: BVHOptions );
 	raycastObject3D( object: Object3D, raycaster: Raycaster, intersects: Array<Intersection> ): void;
 
@@ -138,6 +144,8 @@ export class MeshBVH extends GeometryBVH {
 	readonly resolveTriangleIndex: ( i: number ) => number;
 
 	static serialize( bvh: MeshBVH, options?: MeshBVHSerializeOptions ): SerializedBVH;
+
+	static generateAsync( geometry: BufferGeometry, options?: BVHAsyncOptions ): Promise<MeshBVH>;
 
 	static deserialize(
 		data: SerializedBVH,

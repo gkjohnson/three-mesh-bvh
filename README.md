@@ -257,6 +257,22 @@ worker.generate( geometry ).then( bvh => {
 } );
 ```
 
+_A BVH can also be generated on the main thread without blocking it using "generateAsync", which spreads the build over multiple tasks so the page can render and handle input between them - to show the build progress, for example. It needs no worker files or bundler support but the work itself still happens on the main thread. The "timeSlice" option sets the milliseconds of work done before waiting for the next task._
+
+```js
+import { MeshBVH } from 'three-mesh-bvh';
+
+// ...
+
+const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
+geometry.boundsTree = await MeshBVH.generateAsync( geometry, {
+
+    timeSlice: 16,
+    onProgress: progress => progressBar.value = progress,
+
+} );
+```
+
 ## BVH Queries in a Shader
 
 See the shader implementation in the [simple GPU Path Tracing example](https://github.com/gkjohnson/three-mesh-bvh/blob/master/example/gpuPathTracingSimple.js) for an example on how to perform BVH ray queries in a shader. Or the [GPU SDF Generation example](https://github.com/gkjohnson/three-mesh-bvh/blob/master/example/sdfGeneration.js) for how to perform distance and closest point to point queries in a shader.
