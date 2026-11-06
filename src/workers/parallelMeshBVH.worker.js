@@ -1,4 +1,4 @@
-import { MathUtils, BufferGeometry, BufferAttribute } from 'three';
+import { MathUtils, BufferGeometry, BufferAttribute, InterleavedBuffer, InterleavedBufferAttribute } from 'three';
 import { WorkerPool } from './utils/WorkerPool.js';
 import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG, DEFAULT_OPTIONS, SKIP_GENERATION } from '../core/Constants.js';
 import { buildTree } from '../core/build/buildTree.js';
@@ -29,6 +29,9 @@ self.onmessage = async ( { data } ) => {
 			maxWorkerCount,
 			index,
 			position,
+			positionStride,
+			positionOffset,
+			positionNormalized,
 			options,
 		} = data;
 
@@ -36,7 +39,7 @@ self.onmessage = async ( { data } ) => {
 		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
 
 		// generate necessary buffers and objects - based on the "buildTree" implementation
-		const geometry = getGeometry( index, position, options.groups );
+		const geometry = getGeometry( index, position, positionStride, positionOffset, positionNormalized, options.groups );
 		let proxyBvh = createProxyBVH( geometry, null );
 
 		let indirectBuffer = null;
@@ -79,6 +82,9 @@ self.onmessage = async ( { data } ) => {
 					count,
 					index,
 					position,
+					positionStride,
+					positionOffset,
+					positionNormalized,
 					triangleBounds: primitiveBounds,
 					triangleBoundsOffset: primitiveBounds.offset,
 					indirectBuffer,
@@ -140,6 +146,9 @@ self.onmessage = async ( { data } ) => {
 						indirectBuffer,
 						index,
 						position,
+						positionStride,
+						positionOffset,
+						positionNormalized,
 						triangleBounds: primitiveBounds,
 						triangleBoundsOffset: primitiveBounds.offset,
 						options: workerOptions,
@@ -196,12 +205,15 @@ self.onmessage = async ( { data } ) => {
 			indirectBuffer,
 			index,
 			position,
+			positionStride,
+			positionOffset,
+			positionNormalized,
 			triangleBounds,
 			triangleBoundsOffset,
 			options,
 		} = data;
 
-		const geometry = getGeometry( index, position );
+		const geometry = getGeometry( index, position, positionStride, positionOffset, positionNormalized );
 		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		// the subtree is transferred back, so it cannot be a shared buffer
@@ -223,6 +235,9 @@ self.onmessage = async ( { data } ) => {
 		const {
 			index,
 			position,
+			positionStride,
+			positionOffset,
+			positionNormalized,
 			triangleBounds,
 			triangleBoundsOffset,
 			offset,
@@ -233,7 +248,7 @@ self.onmessage = async ( { data } ) => {
 		// reconstruct the triangle bounds structure before use
 		triangleBounds.offset = triangleBoundsOffset;
 
-		const geometry = getGeometry( index, position );
+		const geometry = getGeometry( index, position, positionStride, positionOffset, positionNormalized );
 		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 		proxyBvh.computePrimitiveBounds( offset, count, triangleBounds );
 
@@ -285,7 +300,7 @@ function triggerOnProgress( progress ) {
 
 }
 
-function getGeometry( index, position, groups = null ) {
+function getGeometry( index, position, positionStride, positionOffset, positionNormalized, groups = null ) {
 
 	const geometry = new BufferGeometry();
 	if ( index ) {
@@ -294,7 +309,15 @@ function getGeometry( index, position, groups = null ) {
 
 	}
 
-	geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
+	if ( positionStride === 3 ) {
+
+		geometry.setAttribute( 'position', new BufferAttribute( position, 3, positionNormalized ) );
+
+	} else {
+
+		geometry.setAttribute( 'position', new InterleavedBufferAttribute( new InterleavedBuffer( position, positionStride ), 3, positionOffset, positionNormalized ) );
+
+	}
 
 	if ( groups ) {
 

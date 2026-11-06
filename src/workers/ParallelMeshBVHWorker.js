@@ -40,14 +40,14 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			}
 
-			if (
-				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
-				geometry.index && geometry.index.isInterleavedBufferAttribute
-			) {
+			if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
 
-				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute is not supported for the index attribute.' );
 
 			}
+
+			const positionAttr = geometry.attributes.position;
+			const positionBuffer = positionAttr.isInterleavedBufferAttribute ? positionAttr.data : positionAttr;
 
 			worker.onerror = e => {
 
@@ -75,7 +75,7 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 					// we need to replace the arrays because they're neutered entirely by the
 					// webworker transfer.
-					geometry.attributes.position.array = position;
+					positionBuffer.array = position;
 					if ( serialized.index ) {
 
 						if ( geometry.index ) {
@@ -115,13 +115,16 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 			};
 
 			const index = geometry.index ? geometry.index.array : null;
-			const position = geometry.attributes.position.array;
+			const position = positionBuffer.array;
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
 				maxWorkerCount: this.maxWorkerCount,
 				index: convertToBufferType( index, SharedArrayBuffer ),
 				position: convertToBufferType( position, SharedArrayBuffer ),
+				positionStride: positionAttr.isInterleavedBufferAttribute ? positionAttr.data.stride : 3,
+				positionOffset: positionAttr.offset || 0,
+				positionNormalized: positionAttr.normalized,
 				options: {
 					...options,
 					onProgress: null,
