@@ -7,6 +7,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	let browser, page, server;
 	const errors = [];
+	const warnings = [];
 
 	beforeAll( async () => {
 
@@ -18,6 +19,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 		page.on( 'console', message => {
 
 			if ( message.type() === 'error' ) errors.push( message.text() );
+			if ( message.type() === 'warn' ) warnings.push( message.text() );
 
 		} );
 		await page.goto( `http://localhost:${ server.httpServer.address().port }/test/webgpu/shapecast.html` );
@@ -94,6 +96,17 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 		// this function: ~0.8% for this near / far, and it grows with far / near
 		expect( origin ).toBeLessThan( 2e-3 );
 		expect( maxDist ).toBeLessThan( 2e-2 );
+		expect( errors ).toEqual( [] );
+
+	} );
+
+	it.each( [ false, true ] )( 'supports the deprecated inverse model-view-projection camera ray arguments (named: %s)', async named => {
+
+		warnings.length = 0;
+		const { direction, maxDist } = await page.evaluate( n => window.testDeprecatedCameraRay( n ), named );
+		expect( direction ).toBeLessThan( 1e-5 );
+		expect( maxDist ).toBeLessThan( 1e-3 );
+		expect( warnings.some( w => w.includes( 'ndcToCameraRay' ) ) ).toBe( true );
 		expect( errors ).toEqual( [] );
 
 	} );

@@ -120,16 +120,27 @@ export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	}
 `;
 
-/**
- * WGSL function node that builds a camera ray (origin + far-plane direction) from an NDC
- * coordinate, the camera's world matrix, and its inverse projection matrix. Works for both
- * perspective and orthographic projections. The origin sits on the near plane, the returned
- * direction is normalized, and "maxDist" is the world-space distance to the far plane so
- * traversal clips there.
- * @type {FunctionNode}
- * @section TSL Functions
- */
-export const ndcToCameraRay = wgslTagFn/* wgsl */`
+const ndcToCameraRayDeprecated = wgslTagFn/* wgsl */`
+	// fn
+	fn ndcToCameraRayDeprecated( ndc: vec2f, inverseModelViewProjection: mat4x4f ) -> ${ rayStruct } {
+
+		var homogeneous = vec4f();
+		var ray: ${ rayStruct };
+
+		homogeneous = inverseModelViewProjection * vec4f( ndc, 0.0, 1.0 );
+		ray.origin = homogeneous.xyz / homogeneous.w;
+
+		homogeneous = inverseModelViewProjection * vec4f( ndc, 1.0, 1.0 );
+		let toFarPlane = ( homogeneous.xyz / homogeneous.w ) - ray.origin;
+		ray.maxDist = length( toFarPlane );
+		ray.direction = toFarPlane / ray.maxDist;
+
+		return ray;
+
+	}
+`;
+
+const ndcToCameraRayFn = wgslTagFn/* wgsl */`
 	// fn
 	fn ndcToCameraRay( ndc: vec2f, cameraToWorld: mat4x4f, inverseProjection: mat4x4f ) -> ${ rayStruct } {
 
@@ -141,14 +152,51 @@ export const ndcToCameraRay = wgslTagFn/* wgsl */`
 		homogeneous = inverseProjection * vec4f( ndc, 0.0, 1.0 );
 		let nearPoint = homogeneous.xyz / homogeneous.w;
 
+		// take the direction from the z = 0.5 point rather than the far plane, whose w loses
+		// precision for large far / near ratios
+		homogeneous = inverseProjection * vec4f( ndc, 0.5, 1.0 );
+		let toMidPoint = ( cameraToWorld * vec4f( ( homogeneous.xyz / homogeneous.w ) - nearPoint, 0.0 ) ).xyz;
+
 		homogeneous = inverseProjection * vec4f( ndc, 1.0, 1.0 );
 		let toFarPlane = ( cameraToWorld * vec4f( ( homogeneous.xyz / homogeneous.w ) - nearPoint, 0.0 ) ).xyz;
 
 		ray.origin = ( cameraToWorld * vec4f( nearPoint, 1.0 ) ).xyz;
+		ray.direction = normalize( toMidPoint );
 		ray.maxDist = length( toFarPlane );
-		ray.direction = toFarPlane / ray.maxDist;
 
 		return ray;
 
 	}
 `;
+
+/**
+ * WGSL function node that builds a camera ray (origin + direction) from an NDC coordinate,
+ * the camera's world matrix, and its inverse projection matrix. Works for both
+ * perspective and orthographic projections. The origin sits on the near plane, the returned
+ * direction is normalized, and "maxDist" is the world-space distance to the far plane so
+ * traversal clips there.
+ *
+ * Calling it from TSL with the deprecated "( ndc, inverseModelViewProjection )" arguments still
+ * works but logs a warning, and will be removed in the next breaking release. WGSL code that calls
+ * it by name must pass all three arguments.
+ * @type {FunctionNode}
+ * @section TSL Functions
+ */
+export const ndcToCameraRay = new Proxy( ndcToCameraRayFn, {
+
+	apply( target, thisArg, params ) {
+
+		const [ first ] = params;
+		const namedDeprecated = params.length === 1 && first && typeof first === 'object' && ! first.isNode && 'inverseModelViewProjection' in first;
+		if ( params.length === 2 || namedDeprecated ) {
+
+			console.warn( 'ndcToCameraRay: "( ndc, inverseModelViewProjection )" arguments have been deprecated. Use "( ndc, cameraToWorld, inverseProjection )", instead.' );
+			return ndcToCameraRayDeprecated( ...params );
+
+		}
+
+		return target( ...params );
+
+	},
+
+} );

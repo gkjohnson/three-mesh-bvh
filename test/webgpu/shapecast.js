@@ -1,6 +1,6 @@
 import { BoxGeometry, Mesh, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { WebGPURenderer, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, uint, uniform } from 'three/tsl';
+import { storage, uint, uniform, vec2 } from 'three/tsl';
 import { MeshBVH, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/index.js';
 import { BVHComputeData, ndcToCameraRay, wgslTagFn, rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct } from '../../src/webgpu/index.js';
 
@@ -162,6 +162,40 @@ async function init() {
 
 		} );
 		return { direction, origin, maxDist };
+
+	};
+
+	// The deprecated two argument form, called from TSL with an inverse model-view-projection.
+	window.testDeprecatedCameraRay = async named => {
+
+		const camera = new PerspectiveCamera( 60, 16 / 9, 0.1, 1000 );
+		camera.coordinateSystem = renderer.coordinateSystem;
+		camera.position.set( 3, 2, 5 );
+		camera.lookAt( 0, 0, 0 );
+		camera.updateMatrixWorld();
+		camera.updateProjectionMatrix();
+
+		const inverseModelViewProjection = camera.matrixWorld.clone().multiply( camera.projectionMatrixInverse );
+		const ndc = vec2( 0.5, - 0.25 );
+		const matrix = uniform( inverseModelViewProjection );
+		const ray = named ? ndcToCameraRay( { ndc, inverseModelViewProjection: matrix } ) : ndcToCameraRay( ndc, matrix );
+		const bits = await readCompute( output => wgslTagFn`
+			fn deprecatedCameraRay() -> void {
+				let ray = ${ ray };
+				let values = array<f32, 4>( ray.direction.x, ray.direction.y, ray.direction.z, ray.maxDist );
+				for ( var j = 0u; j < 4u; j ++ ) {
+					${ output }[ j ] = bitcast<u32>( values[ j ] );
+				}
+			}
+		`(), 4 );
+
+		const v = new Float32Array( new Uint32Array( bits ).buffer );
+		const near = new Vector3( 0.5, - 0.25, 0 ).unproject( camera );
+		const toFar = new Vector3( 0.5, - 0.25, 1 ).unproject( camera ).sub( near );
+		return {
+			direction: new Vector3( v[ 0 ], v[ 1 ], v[ 2 ] ).angleTo( toFar ),
+			maxDist: Math.abs( v[ 3 ] - toFar.length() ) / toFar.length(),
+		};
 
 	};
 
