@@ -5,13 +5,12 @@ import {
 	InterleavedBuffer,
 	InterleavedBufferAttribute,
 	Mesh,
+	REVISION,
 	Skeleton,
 	SkinnedMesh,
 	TorusKnotGeometry,
 	Vector4,
 } from 'three';
-import { StructTypeNode } from 'three/webgpu';
-import { BVHComputeData } from '../src/webgpu/BVHComputeData.js';
 import { appendGeometryData } from '../src/webgpu/utils/packBVHBufferUtils.js';
 
 const attributes = {
@@ -26,6 +25,13 @@ const attributes = {
 	missing: 'vec4f',
 };
 const names = Object.keys( attributes );
+
+// BVHComputeData requires r185. Before that "three/webgpu" is either missing (0.159) or fails to load
+// in node (0.168), so it's imported through a variable that vite only resolves when the tests run.
+const IS_REVISION_185 = parseInt( REVISION ) >= 185;
+const THREE_WEBGPU = 'three/webgpu';
+
+let BVHComputeData, StructTypeNode;
 
 function createGeometry() {
 
@@ -94,7 +100,14 @@ function getExpected( data, geometry, vertexStart, vertexCount, mesh = null ) {
 
 }
 
-describe( 'BVHComputeData', () => {
+describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
+
+	beforeAll( async () => {
+
+		( { StructTypeNode } = await import( /* @vite-ignore */ THREE_WEBGPU ) );
+		( { BVHComputeData } = await import( '../src/webgpu/BVHComputeData.js' ) );
+
+	} );
 
 	it( 'packs every attribute layout the same as Vector4.fromBufferAttribute.', () => {
 
