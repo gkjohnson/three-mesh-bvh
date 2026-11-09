@@ -536,8 +536,7 @@ export class BVHComputeData {
 	 * into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
 	 * data (e.g. material index).
 	 *
-	 * @private
-	 * @param {Object} info - Transform entry from the internal transform map.
+	 * @param {{object:Object3D,instanceId:number,compositeId:number,root:number,slot:number}} info - Transform entry: the object, its instance index, and the transform slot it is written to.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
 	 * @param {number} writeOffset - Index of the transform slot to write into.
 	 * @param {ArrayBuffer} targetBuffer - Destination buffer.
@@ -586,7 +585,6 @@ export class BVHComputeData {
 	 * an override may return a promise while the BVH is being built, and the BVH itself once
 	 * it is.
 	 *
-	 * @private
 	 * @param {Object3D} object - The object to generate a BVH for.
 	 * @param {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
 	 * @param {{start:number,count:number,vertexStart:number,vertexCount:number}} rangeTarget - Populated with the object's geometry range.
@@ -653,7 +651,6 @@ export class BVHComputeData {
 	 * Returns the default vec4 value written to the attribute buffer for vertices that lack
 	 * a given attribute. Override to change per-attribute defaults.
 	 *
-	 * @private
 	 * @param {string} key - Attribute name (e.g. `'position'`, `'normal'`).
 	 * @param {Vector4} target - Receives the default value.
 	 * @returns {Vector4}

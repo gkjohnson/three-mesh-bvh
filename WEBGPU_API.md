@@ -190,6 +190,49 @@ topology does not. The transform slots are derived from the clustered BVH's prim
 so they match those written by [BVHComputeData#update](BVHComputeData#update).
 
 
+### .writeTransformData
+
+```js
+writeTransformData(
+	info: {object:Object3D,instanceId:number,compositeId:number,root:number,slot:number},
+	premultiplyMatrix: Matrix4,
+	writeOffset: number,
+	targetBuffer: ArrayBuffer
+): void
+```
+
+Writes the world/inverse-world matrices and visibility flag for one transform entry
+into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
+data (e.g. material index).
+
+
+### .getBVH
+
+```js
+getBVH(
+	object: Object3D,
+	instanceId: number,
+	rangeTarget: {start:number,count:number,vertexStart:number,vertexCount:number}
+): MeshBVH | SkinnedMeshBVH | null | Promise<MeshBVH | SkinnedMeshBVH | null>
+```
+
+Returns the BVH for a given object/instance, populating `rangeTarget` with the
+corresponding index and vertex ranges within the packed geometry buffers. Override
+to support custom BVH types or caching strategies. With [BVHComputeData#updateAsync](BVHComputeData#updateAsync)
+an override may return a promise while the BVH is being built, and the BVH itself once
+it is.
+
+
+### .getDefaultAttributeValue
+
+```js
+getDefaultAttributeValue( key: string, target: Vector4 ): Vector4
+```
+
+Returns the default vec4 value written to the attribute buffer for vertices that lack
+a given attribute. Override to change per-attribute defaults.
+
+
 ### .dispose
 
 ```js
