@@ -12,7 +12,7 @@ import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
  */
 export function getSampleTrianglePointFn( bvhData ) {
 
-	const { storage, structs } = bvhData;
+	const { fns, structs } = bvhData;
 
 	const interpolateBody = structs
 		.attributes
@@ -28,9 +28,9 @@ export function getSampleTrianglePointFn( bvhData ) {
 		fn bvh_sampleTrianglePoint( barycoord: vec3f, indices: vec3u ) -> ${ structs.attributes } {
 
 			var result: ${ structs.attributes };
-			var a0 = ${ storage.attributes }[ indices.x ];
-			var a1 = ${ storage.attributes }[ indices.y ];
-			var a2 = ${ storage.attributes }[ indices.z ];
+			var a0 = ${ fns.getVertex }( indices.x );
+			var a1 = ${ fns.getVertex }( indices.y );
+			var a2 = ${ fns.getVertex }( indices.z );
 			${ interpolateBody }
 			return result;
 

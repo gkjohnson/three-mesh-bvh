@@ -11,7 +11,7 @@ import {
 	TorusKnotGeometry,
 	Vector4,
 } from 'three';
-import { appendGeometryData } from '../src/webgpu/utils/packBVHBufferUtils.js';
+import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
 
 const attributes = {
 	position: 'vec4f',
@@ -27,11 +27,10 @@ const attributes = {
 const names = Object.keys( attributes );
 
 // BVHComputeData requires r185. Before that "three/webgpu" is either missing (0.159) or fails to load
-// in node (0.168), so it's imported through a variable that vite only resolves when the tests run.
+// in node (0.168), so BVHComputeData is only imported when the tests run.
 const IS_REVISION_185 = parseInt( REVISION ) >= 185;
-const THREE_WEBGPU = 'three/webgpu';
 
-let BVHComputeData, StructTypeNode;
+let BVHComputeData;
 
 function createGeometry() {
 
@@ -104,7 +103,6 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	beforeAll( async () => {
 
-		( { StructTypeNode } = await import( /* @vite-ignore */ THREE_WEBGPU ) );
 		( { BVHComputeData } = await import( '../src/webgpu/BVHComputeData.js' ) );
 
 	} );
@@ -139,18 +137,70 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		mesh.skeleton.update();
 
 		const data = new BVHComputeData( mesh, { attributes } );
-		const struct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
-		const stride = names.length * 4;
+		const layout = getAttributeLayout( attributes );
+		const stride = layout.stride;
 		const vertexStart = 17;
 		const vertexCount = 50;
 		const writeOffset = 9;
 		const target = new ArrayBuffer( ( writeOffset + vertexCount ) * stride * 4 );
 
-		appendGeometryData( { geometry, mesh }, { vertexStart, vertexCount }, writeOffset, target, struct, data );
+		appendGeometryData( { geometry, mesh }, { vertexStart, vertexCount }, writeOffset, target, layout, data );
 
 		const packed = new Float32Array( target );
 		expect( packed.slice( 0, writeOffset * stride ).every( v => v === 0 ) ).toBe( true );
 		expect( packed.slice( writeOffset * stride ) ).toEqual( getExpected( data, geometry, vertexStart, vertexCount, mesh ) );
+
+	} );
+
+	it( 'lays out attributes in declaration order without padding.', () => {
+
+		const layout = getAttributeLayout( {
+			position: 'vec3f',
+			normal: 'vec3f',
+			tangent: 'vec4f',
+			color: 'vec3f',
+			uv: 'vec2f',
+			uv1: 'vec2f',
+			id: 'u32',
+		} );
+
+		expect( layout.members.map( m => [ m.name, m.offset, m.size ] ) ).toEqual( [
+			[ 'position', 0, 3 ],
+			[ 'normal', 3, 3 ],
+			[ 'tangent', 6, 4 ],
+			[ 'color', 10, 3 ],
+			[ 'uv', 13, 2 ],
+			[ 'uv1', 15, 2 ],
+			[ 'id', 17, 1 ],
+		] );
+		expect( layout.stride ).toBe( 18 );
+		expect( () => getAttributeLayout( { position: 'mat3x3f' } ) ).toThrow();
+
+	} );
+
+	it( 'packs attributes smaller than vec4f at their own offsets.', () => {
+
+		const geometry = createGeometry();
+		const uv1 = geometry.attributes.uv.clone();
+		uv1.array.forEach( ( v, i, arr ) => arr[ i ] = v + 100 );
+		geometry.setAttribute( 'uv1', uv1 );
+
+		const count = geometry.attributes.position.count;
+		const data = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', uv: 'vec2f', uv1: 'vec2f' } } );
+		data.update();
+
+		const packed = new Float32Array( data.storage.attributes.value.array.buffer );
+		const { position, uv } = geometry.attributes;
+		for ( let i = 0; i < count; i ++ ) {
+
+			const o = i * 7;
+			expect( [ ...packed.slice( o, o + 7 ) ] ).toEqual( [
+				position.getX( i ), position.getY( i ), position.getZ( i ),
+				uv.getX( i ), uv.getY( i ),
+				uv1.getX( i ), uv1.getY( i ),
+			].map( Math.fround ) );
+
+		}
 
 	} );
 

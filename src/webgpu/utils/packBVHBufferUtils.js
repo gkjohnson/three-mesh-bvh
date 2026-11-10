@@ -317,28 +317,58 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
 }
 
 /**
- * Writes a BVH's interleaved per-vertex attributes into the shared attribute buffer, filling missing
- * attributes with their defaults and applying bone transforms for skinned meshes.
+ * Returns the tightly packed layout of the per-vertex attributes: each member's offset and size in
+ * 32-bit words, in declaration order and without padding, and the vertex stride in words.
+ *
+ * @private
+ * @param {Record<string,string>} attributes - Attribute name to WGSL type map.
+ * @returns {{members:Array<{name:string,type:string,offset:number,size:number}>,stride:number}}
+ */
+export function getAttributeLayout( attributes ) {
+
+	const members = [];
+	let stride = 0;
+	for ( const name in attributes ) {
+
+		const type = attributes[ name ];
+		const match = /^(?:[fiu]32|vec([234])[fiu])$/.exec( type );
+		if ( ! match ) {
+
+			throw new Error( `BVHComputeData: Unsupported attribute type "${ type }" for "${ name }".` );
+
+		}
+
+		const size = match[ 1 ] ? parseInt( match[ 1 ] ) : 1;
+		members.push( { name, type, offset: stride, size } );
+		stride += size;
+
+	}
+
+	return { members, stride };
+
+}
+
+/**
+ * Writes a BVH's per-vertex attributes into the shared attribute buffer at the offsets given by the
+ * layout, filling missing attributes with their defaults and applying bone transforms for skinned meshes.
  *
  * @private
  * @param {Object} bvh
  * @param {{vertexStart:number,vertexCount:number}} range
  * @param {number} writeOffset
  * @param {ArrayBuffer} target
- * @param {StructTypeNode} attributeStruct
+ * @param {{members:Array<{name:string,offset:number,size:number}>,stride:number}} layout - From `getAttributeLayout`.
  * @param {BVHComputeData} bvhData - Provides per-attribute defaults via `getDefaultAttributeValue`.
  */
-export function appendGeometryData( bvh, range, writeOffset, target, attributeStruct, bvhData ) {
+export function appendGeometryData( bvh, range, writeOffset, target, layout, bvhData ) {
 
 	// if "mesh" is present then it is assumed to be a SkinnedMeshBVH
 	const { geometry, mesh = null } = bvh;
 	const { vertexStart, vertexCount } = range;
+	const { members, stride } = layout;
 	const attributesBufferF32 = new Float32Array( target );
-	const attrStructLength = attributeStruct.getLength();
-	attributeStruct.membersLayout.forEach( ( { name }, interleavedOffset ) => {
+	members.forEach( ( { name, offset: memberOffset, size } ) => {
 
-		// TODO: we should be able to have access to memory layout offsets here via the struct
-		// API but it's not currently available.
 		const attr = geometry.attributes[ name ];
 		bvhData.getDefaultAttributeValue( name, _def );
 
@@ -350,16 +380,16 @@ export function appendGeometryData( bvh, range, writeOffset, target, attributeSt
 
 			const { itemSize } = attr;
 			const array = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array;
-			const stride = attr.isInterleavedBufferAttribute ? attr.data.stride : itemSize;
+			const itemStride = attr.isInterleavedBufferAttribute ? attr.data.stride : itemSize;
 			const offset = attr.isInterleavedBufferAttribute ? attr.offset : 0;
-			const copyCount = Math.min( itemSize, 4 );
+			const copyCount = Math.min( itemSize, size );
 			_def.toArray( _defArray );
 
 			for ( let i = 0; i < vertexCount; i ++ ) {
 
-				const readIndex = ( i + vertexStart ) * stride + offset;
-				const writeIndex = ( writeOffset + i ) * attrStructLength + interleavedOffset * 4;
-				for ( let c = 0; c < 4; c ++ ) {
+				const readIndex = ( i + vertexStart ) * itemStride + offset;
+				const writeIndex = ( writeOffset + i ) * stride + memberOffset;
+				for ( let c = 0; c < size; c ++ ) {
 
 					attributesBufferF32[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
 
@@ -406,7 +436,12 @@ export function appendGeometryData( bvh, range, writeOffset, target, attributeSt
 
 			}
 
-			_vec.toArray( attributesBufferF32, ( writeOffset + i ) * attrStructLength + interleavedOffset * 4 );
+			const writeIndex = ( writeOffset + i ) * stride + memberOffset;
+			for ( let c = 0; c < size; c ++ ) {
+
+				attributesBufferF32[ writeIndex + c ] = _vec.getComponent( c );
+
+			}
 
 		}
 

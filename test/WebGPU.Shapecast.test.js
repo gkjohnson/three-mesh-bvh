@@ -86,6 +86,14 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
+	it( 'reads vertices packed without padding through getVertex, sampleTrianglePoint and raycasts', async () => {
+
+		const { values, expected } = await page.evaluate( () => window.testGetVertex() );
+		expect( values ).toEqual( expected );
+		expect( errors ).toEqual( [] );
+
+	} );
+
 	it.each( [ false, true ] )( 'builds precise camera rays far from the origin (orthographic: %s)', async orthographic => {
 
 		// one pixel of a 1080p, 60 degree view is ~1e-3 radians

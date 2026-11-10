@@ -199,6 +199,58 @@ async function init() {
 
 	};
 
+	// A layout with members smaller than vec4f. Returns every vertex read through getVertex, a
+	// sampleTrianglePoint at each triangle's first corner, and a closest-hit distance, with the CPU values.
+	window.testGetVertex = async () => {
+
+		const vertexGeometry = new BoxGeometry();
+		vertexGeometry.clearGroups();
+		const uv1 = vertexGeometry.attributes.uv.clone();
+		uv1.array.forEach( ( v, i, arr ) => arr[ i ] = v + 100 );
+		vertexGeometry.setAttribute( 'uv1', uv1 );
+		const vertexData = new BVHComputeData( new Mesh( vertexGeometry ), { attributes: { position: 'vec3f', uv: 'vec2f', uv1: 'vec2f', normal: 'vec3f' } } );
+		vertexData.update();
+
+		const { position, uv, normal } = vertexGeometry.attributes;
+		const count = position.count;
+		const triangle = vertexGeometry.index.array.slice( 0, 3 );
+		const bits = await readCompute( output => wgslTagFn`
+			fn vertices() -> void {
+				for ( var i = 0u; i < ${ count }u; i ++ ) {
+					let v = ${ vertexData.fns.getVertex }( i );
+					let values = array<f32, 10>( v.position.x, v.position.y, v.position.z, v.uv.x, v.uv.y, v.uv1.x, v.uv1.y, v.normal.x, v.normal.y, v.normal.z );
+					for ( var j = 0u; j < 10u; j ++ ) {
+						${ output }[ i * 10u + j ] = bitcast<u32>( values[ j ] );
+					}
+				}
+				let s = ${ vertexData.fns.sampleTrianglePoint }( vec3f( 1.0, 0.0, 0.0 ), vec3u( ${ triangle[ 0 ] }u, ${ triangle[ 1 ] }u, ${ triangle[ 2 ] }u ) );
+				let sampled = array<f32, 10>( s.position.x, s.position.y, s.position.z, s.uv.x, s.uv.y, s.uv1.x, s.uv1.y, s.normal.x, s.normal.y, s.normal.z );
+				for ( var j = 0u; j < 10u; j ++ ) {
+					${ output }[ ${ count * 10 }u + j ] = bitcast<u32>( sampled[ j ] );
+				}
+				var ray: ${ rayStruct };
+				ray.origin = vec3f( 0.1, 0.1, 5.0 );
+				ray.direction = vec3f( 0.0, 0.0, -1.0 );
+				var hit: ${ rayIntersectionResultStruct };
+				let didHit = ${ vertexData.fns.raycastFirstHit }( ray, &hit );
+				${ output }[ ${ count * 10 + 10 }u ] = bitcast<u32>( select( -1.0, hit.dist, didHit ) );
+			}
+		`(), count * 10 + 11 );
+
+		const values = Array.from( new Float32Array( new Uint32Array( bits ).buffer ) );
+		const expected = [];
+		for ( let i = 0; i < count; i ++ ) {
+
+			expected.push( position.getX( i ), position.getY( i ), position.getZ( i ), uv.getX( i ), uv.getY( i ), uv1.getX( i ), uv1.getY( i ), normal.getX( i ), normal.getY( i ), normal.getZ( i ) );
+
+		}
+
+		expected.push( ...expected.slice( triangle[ 0 ] * 10, triangle[ 0 ] * 10 + 10 ) );
+		expected.push( 4.5 );
+		return { values, expected: expected.map( Math.fround ) };
+
+	};
+
 	window.ready = true;
 
 }
