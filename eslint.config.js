@@ -11,6 +11,7 @@ export default [
 		name: 'files to ignore',
 		ignores: [
 			'**/*.generated.js',
+			'**/*.bundled.worker.js',
 			'**/node_modules/**',
 			'**/build/**',
 		],
