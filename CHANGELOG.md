@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## Unreleased
 ### Changed
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
+- BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 
 ## [0.9.18] - 2026-11-03
 ### Added
