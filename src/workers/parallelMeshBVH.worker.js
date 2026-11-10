@@ -10,13 +10,29 @@ let isRunning = false;
 let prevTime = - 1;
 const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
 
-self.onmessage = async ( { data } ) => {
+self.onmessage = ( { data } ) => {
 
 	if ( isRunning ) {
 
 		throw new Error( 'Worker is already running a task.' );
 
 	}
+
+	handleMessage( data ).catch( error => {
+
+		// drop the pool so a failed sub worker isn't reused
+		workerPool.setWorkerCount( 0 );
+		self.postMessage( { type: 'result', error, serialized: null, position: null, progress: 1 } );
+
+	} ).finally( () => {
+
+		isRunning = false;
+
+	} );
+
+};
+
+async function handleMessage( data ) {
 
 	const { operation } = data;
 	if ( operation === 'BUILD_BVH' ) {
@@ -186,8 +202,6 @@ self.onmessage = async ( { data } ) => {
 			progress: 1,
 		} );
 
-		isRunning = false;
-
 	} else if ( operation === 'BUILD_SUBTREE' ) {
 
 		const {
@@ -249,7 +263,7 @@ self.onmessage = async ( { data } ) => {
 
 	}
 
-};
+}
 
 // Helper functions and utils
 function getOnProgressDeltaCallback( cb ) {

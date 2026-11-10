@@ -46,7 +46,9 @@ export class WorkerPool {
 			worker.onerror = e => {
 
 				worker.isRunning = false;
-				reject( e );
+
+				// a worker that fails to load reports a plain Event, which can't be posted on
+				reject( new Error( e.message || 'Worker failed.' ) );
 
 			};
 
@@ -69,7 +71,15 @@ export class WorkerPool {
 					}
 
 					worker.isRunning = false;
-					resolve( e.data );
+					if ( e.data.error ) {
+
+						reject( e.data.error );
+
+					} else {
+
+						resolve( e.data );
+
+					}
 
 				}
 

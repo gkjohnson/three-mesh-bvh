@@ -40,11 +40,15 @@ export class WorkerBase {
 		this.running = true;
 
 		const promise = this.runTask( this.worker, ...args );
-		promise.finally( () => {
+
+		// "finally" would return a second promise that rejects unhandled when the build fails
+		const onDone = () => {
 
 			this.running = false;
 
-		} );
+		};
+
+		promise.then( onDone, onDone );
 
 		return promise;
 
