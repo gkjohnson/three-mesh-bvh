@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, BVHHelper, StaticGeometryGenerator } from 'three-mesh-bvh';
+import { MeshBVH, BVHHelper } from 'three-mesh-bvh';
 
 const params = {
 	displayCollider: false,
@@ -212,13 +213,25 @@ function loadColliderEnvironment() {
 			porchLight.castShadow = true;
 			environment.add( porchLight );
 
-			// Generate merged collision geometry
+			// Merge the world space positions of the meshes into a single collision geometry
 			environment.updateMatrixWorld( true );
 
-			const staticGenerator = new StaticGeometryGenerator( environment );
-			staticGenerator.attributes = [ 'position' ];
+			const geometries = [];
+			environment.traverse( c => {
 
-			const mergedGeometry = staticGenerator.generate();
+				if ( c.isMesh ) {
+
+					const geometry = new THREE.BufferGeometry();
+					geometry.setAttribute( 'position', c.geometry.attributes.position.clone() );
+					geometry.setIndex( c.geometry.index );
+					geometry.applyMatrix4( c.matrixWorld );
+					geometries.push( geometry );
+
+				}
+
+			} );
+
+			const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries );
 			mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
 
 			collider = new THREE.Mesh( mergedGeometry );
