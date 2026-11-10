@@ -98,3 +98,6 @@ self.onmessage = ( { data } ) => {
 	}
 
 };
+
+// let the main thread know the script has loaded so it can send jobs
+self.postMessage( { type: 'ready' } );

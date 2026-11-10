@@ -8,7 +8,18 @@ import { generateIndirectBuffer } from '../core/GeometryBVH.js';
 
 let isRunning = false;
 let prevTime = - 1;
-const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
+const workerPool = new WorkerPool( () => {
+
+	// the bundled worker is a classic script loaded from a blob url, so it spawns copies of itself
+	if ( self.location.protocol === 'blob:' ) {
+
+		return new Worker( self.location.href );
+
+	}
+
+	return new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+
+} );
 
 self.onmessage = async ( { data } ) => {
 
@@ -406,3 +417,6 @@ function mergeSubtrees( topTree, leaves, target ) {
 	}
 
 }
+
+// let the main thread know the script has loaded so it can send jobs
+self.postMessage( { type: 'ready' } );

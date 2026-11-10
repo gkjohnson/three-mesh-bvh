@@ -9,10 +9,13 @@ import { ensureIndex } from '../core/build/geometryUtils.js';
 const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
 class _ParallelMeshBVHWorker extends WorkerBase {
 
-	constructor() {
+	constructor( options = {} ) {
 
-		const worker = new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
-		super( worker );
+		super(
+			() => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ),
+			new URL( './parallelMeshBVH.bundled.worker.js', import.meta.url ),
+			options,
+		);
 
 		this.name = 'ParallelMeshBVHWorker';
 
@@ -152,18 +155,22 @@ export class ParallelMeshBVHWorker {
 	 * Constructs the worker. If `SharedArrayBuffer` is supported, spawns a parallel worker
 	 * capable of using up to `maxWorkerCount` threads. Otherwise, logs a warning and returns a
 	 * `GenerateMeshBVHWorker` instance instead.
+	 *
+	 * @param {Object} [options]
+	 * @param {boolean} [options.useBundledWorker=false] - Load the pre-bundled worker script through
+	 *   a blob url without trying the worker module first. See `GenerateMeshBVHWorker`.
 	 */
-	constructor() {
+	constructor( options = {} ) {
 
 		if ( isSharedArrayBufferSupported() ) {
 
-			return new _ParallelMeshBVHWorker();
+			return new _ParallelMeshBVHWorker( options );
 
 		} else {
 
 			console.warn( 'ParallelMeshBVHWorker: SharedArrayBuffers not supported. Falling back to single-threaded GenerateMeshBVHWorker.' );
 
-			const object = new GenerateMeshBVHWorker();
+			const object = new GenerateMeshBVHWorker( options );
 			object.maxWorkerCount = DEFAULT_WORKER_COUNT;
 			return object;
 

@@ -10,6 +10,10 @@ import { WorkerBase } from './utils/WorkerBase.js';
  * being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
  * the MeshBVH is finished generating.
  *
+ * If the worker module can't be loaded, such as when the library is loaded from a CDN on another
+ * origin or the worker can't resolve the "three" import, a pre-bundled copy of the worker script
+ * with three.js included is loaded through a blob url instead.
+ *
  * @note It's best to reuse a single instance of this class to avoid the overhead of instantiating
  * a new Worker.
  *
@@ -17,10 +21,18 @@ import { WorkerBase } from './utils/WorkerBase.js';
  */
 export class GenerateMeshBVHWorker extends WorkerBase {
 
-	constructor() {
+	/**
+	 * @param {Object} [options]
+	 * @param {boolean} [options.useBundledWorker=false] - Load the pre-bundled worker script through
+	 *   a blob url without trying the worker module first.
+	 */
+	constructor( options = {} ) {
 
-		const worker = new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
-		super( worker );
+		super(
+			() => new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } ),
+			new URL( './generateMeshBVH.bundled.worker.js', import.meta.url ),
+			options,
+		);
 		this.name = 'GenerateMeshBVHWorker';
 
 	}
@@ -28,6 +40,15 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	/**
 	 * Flag indicating whether or not a BVH is already being generated in the worker.
 	 * @name running
+	 * @memberof GenerateMeshBVHWorker
+	 * @instance
+	 * @type {boolean}
+	 */
+
+	/**
+	 * Whether the pre-bundled worker script is used. Set from the constructor option and set to
+	 * `true` if the worker module failed to load.
+	 * @name useBundledWorker
 	 * @memberof GenerateMeshBVHWorker
 	 * @instance
 	 * @type {boolean}

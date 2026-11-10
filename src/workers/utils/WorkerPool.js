@@ -52,6 +52,13 @@ export class WorkerPool {
 
 			worker.onmessage = e => {
 
+				// a new worker posts this once its script has loaded, before the result
+				if ( e.data.type === 'ready' ) {
+
+					return;
+
+				}
+
 				if ( e.data.type === 'progress' ) {
 
 					if ( onProgress ) {
