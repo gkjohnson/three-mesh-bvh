@@ -61,6 +61,14 @@ CONTAINED: number
 
 Indicate the shape entirely contains the given bounding box.
 
+### STOP_TRAVERSAL
+
+```js
+STOP_TRAVERSAL: number
+```
+
+Indicates the shape intersected the given range and the traversal should stop.
+
 ## Shader and Texture Packing API
 
 ### bvh_ray_functions

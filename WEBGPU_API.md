@@ -27,11 +27,15 @@ for [BVHComputeData#getShapecastFn](BVHComputeData#getShapecastFn).
 ndcToCameraRay: FunctionNode
 ```
 
-WGSL function node that builds a camera ray (origin + far-plane direction) from an NDC
-coordinate and an inverse model-view-projection matrix. Works for both perspective and
-orthographic projections. The origin sits on the near plane, the returned direction is
-normalized, and "maxDist" is the world-space distance to the far plane so traversal
-clips there.
+WGSL function node that builds a camera ray (origin + direction) from an NDC coordinate,
+the camera's world matrix, and its inverse projection matrix. Works for both
+perspective and orthographic projections. The origin sits on the near plane, the returned
+direction is normalized, and "maxDist" is the world-space distance to the far plane so
+traversal clips there.
+
+Calling it from TSL with the deprecated "( ndc, inverseModelViewProjection )" arguments still
+works but logs a warning, and will be removed in the next breaking release. WGSL code that calls
+it by name must pass all three arguments.
 
 ## TSL Structs
 
@@ -74,6 +78,15 @@ Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) fo
 in WebGPU compute shaders via the Three.js TSL node system. After construction, call
 [BVHComputeData#update](BVHComputeData#update) to populate the storage buffers, then reference
 `this.storage` and `this.fns` in your compute shader nodes.
+
+`this.fns` provides the following WGSL functions:
+- `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
+- `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
+- `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
+
+Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
+A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
+No alpha or material tests are applied.
 
 > [!NOTE]
 > This API is unstable and subject to change in future releases.
@@ -132,8 +145,12 @@ getShapecastFn(
 		// function node testing the shape against a BVH node's bounds.
 		intersectsBoundsFn: function,
 
-		// function node testing the shape against a leaf triangle
-		// range.
+		// function node testing a leaf triangle range. Returns
+		// `NOT_INTERSECTED` (0), `INTERSECTED` (1), or
+		// `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
+		// after running `transformResultFn` and `resetShapeFn`).
+		// Boolean returns remain supported: false misses and true hits
+		// without stopping.
 		intersectRangeFn: function,
 
 		// function node that transforms the shape into object local
@@ -194,7 +211,7 @@ so they match those written by [BVHComputeData#update](BVHComputeData#update).
 
 ```js
 writeTransformData(
-	info: {object:Object3D,instanceId:number,compositeId:number,root:number,slot:number},
+	info: Object,
 	premultiplyMatrix: Matrix4,
 	writeOffset: number,
 	targetBuffer: ArrayBuffer
@@ -212,8 +229,8 @@ data (e.g. material index).
 getBVH(
 	object: Object3D,
 	instanceId: number,
-	rangeTarget: {start:number,count:number,vertexStart:number,vertexCount:number}
-): MeshBVH | SkinnedMeshBVH | null | Promise<MeshBVH | SkinnedMeshBVH | null>
+	rangeTarget: Object
+): MeshBVH | SkinnedMeshBVH | null | Promise<(MeshBVH|SkinnedMeshBVH|null)>
 ```
 
 Returns the BVH for a given object/instance, populating `rangeTarget` with the
