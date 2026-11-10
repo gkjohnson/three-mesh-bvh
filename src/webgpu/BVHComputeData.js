@@ -16,7 +16,7 @@ import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
-import { getVertexFn } from './shapecastFns/getVertexFn.js';
+import { getVertexFn, getVertexPositionFn } from './shapecastFns/getVertexFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
@@ -76,6 +76,7 @@ function getTransformKey( compositeId, root ) {
  * - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
  * - `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. `storage.attributes`
  *   is a tightly packed `array<u32>`, so read vertices through this rather than indexing it directly.
+ * - `getVertexPosition( index ) -> vec3f`: reads only the position of a vertex, for custom traversal.
  *
  * Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
  * A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
@@ -147,9 +148,10 @@ export class BVHComputeData {
 		this.fns = new NodeProxyObject( {
 			sampleTrianglePoint: null,
 			getVertex: null,
+			getVertexPosition: null,
 		}, proxyFn );
 
-		// these read vertices through "fns.getVertex", so "fns" must exist before they're built
+		// these read vertices through "fns.getVertexPosition", so "fns" must exist before they're built
 		this.fns.raycastFirstHit = getRaycastFirstHitFn( this );
 		this.fns.raycastAnyHit = getRaycastAnyHitFn( this );
 		this.fns.closestPointToPoint = getClosestPointToPointFn( this );
@@ -461,6 +463,7 @@ export class BVHComputeData {
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
+		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.

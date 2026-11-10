@@ -23,6 +23,7 @@ export class BVHComputeData {
 		raycastAnyHit: unknown;
 		sampleTrianglePoint: unknown;
 		getVertex: unknown;
+		getVertexPosition: unknown;
 		closestPointToPoint: unknown;
 	};
 

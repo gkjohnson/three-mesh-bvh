@@ -47,3 +47,41 @@ export function getVertexFn( bvhData, layout ) {
 	`;
 
 }
+
+/**
+ * Builds the `getVertexPosition` function: reads only the position of a vertex from the packed
+ * attribute buffer, so traversal doesn't unpack the whole attribute struct.
+ *
+ * @private
+ * @param {BVHComputeData} bvhData
+ * @param {{members:Array<Object>,stride:number}} layout
+ * @returns {Function} TSL function node.
+ */
+export function getVertexPositionFn( bvhData, layout ) {
+
+	const { storage } = bvhData;
+
+	const position = layout.members.find( member => member.name === 'position' );
+	if ( ! position || position.size < 3 ) {
+
+		throw new Error( 'BVHComputeData: The "position" attribute must be "vec3f" or "vec4f".' );
+
+	}
+
+	const { offset } = position;
+	return wgslTagFn/* wgsl */`
+		// fn
+		fn bvh_getVertexPosition( index: u32 ) -> vec3f {
+
+			let attributes = &${ storage.attributes };
+			let base = index * ${ layout.stride }u;
+			return bitcast<vec3f>( vec3u(
+				( *attributes )[ base + ${ offset }u ],
+				( *attributes )[ base + ${ offset + 1 }u ],
+				( *attributes )[ base + ${ offset + 2 }u ]
+			) );
+
+		}
+	`;
+
+}

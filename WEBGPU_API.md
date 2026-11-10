@@ -85,6 +85,7 @@ in WebGPU compute shaders via the Three.js TSL node system. After construction, 
 - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
 - `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. `storage.attributes`
   is a tightly packed `array<u32>`, so read vertices through this rather than indexing it directly.
+- `getVertexPosition( index ) -> vec3f`: reads only the position of a vertex, for custom traversal.
 
 Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
 A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.

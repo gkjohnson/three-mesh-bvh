@@ -86,7 +86,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
-	it( 'reads vertices packed without padding through getVertex, sampleTrianglePoint and raycasts', async () => {
+	it( 'reads vertices packed without padding through getVertex, getVertexPosition, sampleTrianglePoint and raycasts', async () => {
 
 		const { values, expected } = await page.evaluate( () => window.testGetVertex() );
 		expect( values ).toEqual( expected );

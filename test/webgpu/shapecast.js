@@ -200,7 +200,8 @@ async function init() {
 	};
 
 	// A layout with members smaller than vec4f. Returns every vertex read through getVertex, a
-	// sampleTrianglePoint at each triangle's first corner, the raycast and closest point results, with the CPU values.
+	// sampleTrianglePoint at each triangle's first corner, the raycast and closest point results and
+	// every position read through getVertexPosition, with the CPU values.
 	window.testGetVertex = async () => {
 
 		const vertexGeometry = new BoxGeometry();
@@ -208,7 +209,7 @@ async function init() {
 		const uv1 = vertexGeometry.attributes.uv.clone();
 		uv1.array.forEach( ( v, i, arr ) => arr[ i ] = v + 100 );
 		vertexGeometry.setAttribute( 'uv1', uv1 );
-		const vertexData = new BVHComputeData( new Mesh( vertexGeometry ), { attributes: { position: 'vec3f', uv: 'vec2f', uv1: 'vec2f', normal: 'vec3f' } } );
+		const vertexData = new BVHComputeData( new Mesh( vertexGeometry ), { attributes: { uv: 'vec2f', position: 'vec3f', uv1: 'vec2f', normal: 'vec3f' } } );
 		vertexData.update();
 
 		const { position, uv, normal } = vertexGeometry.attributes;
@@ -241,8 +242,14 @@ async function init() {
 				var point: ${ pointQueryResultStruct };
 				let found = ${ vertexData.fns.closestPointToPoint }( ray.origin, &point );
 				${ output }[ ${ count * 10 + 13 }u ] = bitcast<u32>( select( -1.0, point.distanceSq, found ) );
+				for ( var i = 0u; i < ${ count }u; i ++ ) {
+					let p = ${ vertexData.fns.getVertexPosition }( i );
+					${ output }[ ${ count * 10 + 14 }u + i * 3u + 0u ] = bitcast<u32>( p.x );
+					${ output }[ ${ count * 10 + 14 }u + i * 3u + 1u ] = bitcast<u32>( p.y );
+					${ output }[ ${ count * 10 + 14 }u + i * 3u + 2u ] = bitcast<u32>( p.z );
+				}
 			}
-		`(), count * 10 + 14 );
+		`(), count * 13 + 14 );
 
 		const values = Array.from( new Float32Array( new Uint32Array( bits ).buffer ) );
 		const expected = [];
@@ -254,6 +261,12 @@ async function init() {
 
 		expected.push( ...expected.slice( triangle[ 0 ] * 10, triangle[ 0 ] * 10 + 10 ) );
 		expected.push( 4.5, 0, 1, 4.5 * 4.5 );
+		for ( let i = 0; i < count; i ++ ) {
+
+			expected.push( position.getX( i ), position.getY( i ), position.getZ( i ) );
+
+		}
+
 		return { values, expected: expected.map( Math.fround ) };
 
 	};
