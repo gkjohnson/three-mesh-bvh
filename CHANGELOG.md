@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 
+### Fixed
+- ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
+- Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
+
 ## [0.9.18] - 2026-11-03
 ### Added
 - BVHComputeData: "raycastAnyHit" function that ends traversal at the first hit, for shadow and occlusion rays.
