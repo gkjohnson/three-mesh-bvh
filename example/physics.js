@@ -57,7 +57,7 @@ const params = {
 };
 
 let renderer, camera, scene, clock, stats;
-let environment, sceneBVH, bvhHelper;
+let environment, sceneBVH, bvhHelpers;
 const spheres = [];
 const hits = [];
 const tempSphere = new THREE.Sphere();
@@ -124,14 +124,22 @@ function init() {
 	visFolder.add( params, 'displayBVH' );
 	visFolder.add( params, 'displayParents' ).onChange( v => {
 
-		bvhHelper.displayParents = v;
-		bvhHelper.update();
+		bvhHelpers.children.forEach( helper => {
+
+			helper.displayParents = v;
+			helper.update();
+
+		} );
 
 	} );
 	visFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		bvhHelper.depth = v;
-		bvhHelper.update();
+		bvhHelpers.children.forEach( helper => {
+
+			helper.depth = v;
+			helper.update();
+
+		} );
 
 	} );
 	visFolder.open();
@@ -214,7 +222,8 @@ function loadColliderEnvironment() {
 			porchLight.castShadow = true;
 			environment.add( porchLight );
 
-			// Generate a BVH for each mesh and a scene BVH over all of them
+			// Generate a BVH for each mesh and a scene BVH over all of them, with helpers for each
+			bvhHelpers = new THREE.Group();
 			environment.updateMatrixWorld( true );
 			environment.traverse( c => {
 
@@ -224,14 +233,16 @@ function loadColliderEnvironment() {
 					c.castShadow = c.receiveShadow = true;
 					c.material.shadowSide = 2;
 
+					bvhHelpers.add( new BVHHelper( c, params.displayDepth ) );
+
 				}
 
 			} );
 
 			sceneBVH = new ObjectBVH( environment );
-			bvhHelper = new BVHHelper( environment, sceneBVH, params.displayDepth );
+			bvhHelpers.add( new BVHHelper( environment, sceneBVH, params.displayDepth ) );
 
-			scene.add( bvhHelper, environment );
+			scene.add( bvhHelpers, environment );
 
 		}
 	);
@@ -502,7 +513,7 @@ function render() {
 
 	if ( sceneBVH ) {
 
-		bvhHelper.visible = params.displayBVH;
+		bvhHelpers.visible = params.displayBVH;
 
 		if ( ! params.pause ) update( params.simulationSpeed * delta );
 
