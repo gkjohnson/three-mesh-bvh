@@ -1133,6 +1133,10 @@ the BVH is being generated meaning the geometry will be unavailable to use while
 being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
 the MeshBVH is finished generating.
 
+If the worker module can't be loaded, such as when the library is loaded from a CDN on another
+origin or the worker can't resolve the "three" import, a pre-bundled copy of the worker script
+with three.js included is loaded through a blob url instead.
+
 > [!NOTE]
 > It's best to reuse a single instance of this class to avoid the overhead of instantiating
 > a new Worker.
@@ -1145,6 +1149,28 @@ running: boolean
 
 Flag indicating whether or not a BVH is already being generated in the worker.
 
+
+### .useBundledWorker
+
+```js
+useBundledWorker: boolean
+```
+
+Whether the pre-bundled worker script is used. Set from the constructor option and set to
+`true` if the worker module failed to load.
+
+
+### .constructor
+
+```js
+constructor(
+	{
+		// Load the pre-bundled worker script through a blob url
+		// without trying the worker module first.
+		useBundledWorker = false: boolean,
+	}
+)
+```
 
 ### .generate
 
@@ -1316,6 +1342,24 @@ multiple Web Workers in parallel for faster builds on large geometry. Requires
 
 Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
 `maxWorkerCount`.
+
+
+### .constructor
+
+```js
+constructor(
+	{
+		// Load the pre-bundled worker script through a blob url
+		// without trying the worker module first. See
+		// `GenerateMeshBVHWorker`.
+		useBundledWorker = false: boolean,
+	}
+)
+```
+
+Constructs the worker. If `SharedArrayBuffer` is supported, spawns a parallel worker
+capable of using up to `maxWorkerCount` threads. Otherwise, logs a warning and returns a
+`GenerateMeshBVHWorker` instance instead.
 
 
 ## StaticGeometryGenerator

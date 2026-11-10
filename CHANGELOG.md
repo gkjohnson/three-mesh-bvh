@@ -5,9 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: Fall back to a pre-bundled copy of the worker script, loaded through a blob url, when the worker module can't be loaded, such as when the library is loaded from a CDN. Adds a "useBundledWorker" option to use it directly.
+
 ### Changed
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: Jobs are sent once the worker has loaded so a worker that fails to load no longer leaves the geometry buffers detached.
+
+### Fixed
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: A rejected "generate" call is no longer also reported as an unhandled rejection.
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The first progress update is no longer dropped when a job starts right after the worker is created.
 
 ## [0.9.18] - 2026-11-03
 ### Added

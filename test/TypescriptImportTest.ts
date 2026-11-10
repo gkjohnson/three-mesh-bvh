@@ -1,5 +1,6 @@
 import { BufferGeometry, Mesh, Raycaster, BatchedMesh } from 'three';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree, computeBatchedBoundsTree, disposeBatchedBoundsTree } from 'three-mesh-bvh';
+import { GenerateMeshBVHWorker, ParallelMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 Mesh.prototype.raycast = acceleratedRaycast;
 BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -21,3 +22,13 @@ const raycaster = new Raycaster();
 raycaster.firstHitOnly = true;
 
 mesh.raycast( raycaster, [] );
+
+const worker = new GenerateMeshBVHWorker( { useBundledWorker: true } );
+worker.generate( mesh.geometry ).then( bvh => {
+
+	mesh.geometry.boundsTree = bvh;
+
+} );
+
+const parallelWorker = new ParallelMeshBVHWorker();
+const useBundledWorker: boolean = parallelWorker.useBundledWorker;
