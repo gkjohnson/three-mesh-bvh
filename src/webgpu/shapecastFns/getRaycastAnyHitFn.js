@@ -18,7 +18,7 @@ export function getRaycastAnyHitFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, transforms } = bvhData.storage;
-	const { getVertexPosition } = bvhData._internalFns;
+	const { getVertex } = bvhData.fns;
 
 	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalarAnyHit' );
 
@@ -39,9 +39,9 @@ export function getRaycastAnyHitFn( bvhData ) {
 
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
 
-					let a = ${ getVertexPosition }( ${ index }[ ti * 3u ] );
-					let b = ${ getVertexPosition }( ${ index }[ ti * 3u + 1u ] );
-					let c = ${ getVertexPosition }( ${ index }[ ti * 3u + 2u ] );
+					let a = ${ getVertex }( ${ index }[ ti * 3u ] ).position.xyz;
+					let b = ${ getVertex }( ${ index }[ ti * 3u + 1u ] ).position.xyz;
+					let c = ${ getVertex }( ${ index }[ ti * 3u + 2u ] ).position.xyz;
 
 					let triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist * ${ scratchRayScalar } < ray.maxDist ) ) {

@@ -161,7 +161,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 			color: 'vec3f',
 			uv: 'vec2f',
 			uv1: 'vec2f',
-			id: 'u32',
+			weight: 'f32',
 		} );
 
 		expect( layout.members.map( m => [ m.name, m.offset, m.size ] ) ).toEqual( [
@@ -171,15 +171,11 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 			[ 'color', 10, 3 ],
 			[ 'uv', 13, 2 ],
 			[ 'uv1', 15, 2 ],
-			[ 'id', 17, 1 ],
+			[ 'weight', 17, 1 ],
 		] );
 		expect( layout.stride ).toBe( 18 );
 		expect( () => getAttributeLayout( { position: 'mat3x3f' } ) ).toThrow( 'Unsupported attribute type' );
-		expect( () => getAttributeLayout( { position: undefined } ) ).toThrow( 'Unsupported attribute type' );
-
-		const aliases = getAttributeLayout( { position: 'vec3', id: 'uint', offset: 'int', weight: 'float', cell: 'ivec2', mask: 'uvec4' } );
-		expect( aliases.members.map( m => m.type ) ).toEqual( [ 'vec3f', 'u32', 'i32', 'f32', 'vec2i', 'vec4u' ] );
-		expect( aliases.stride ).toBe( 12 );
+		expect( () => getAttributeLayout( { id: 'u32' } ) ).toThrow( 'Unsupported attribute type' );
 
 	} );
 
@@ -207,33 +203,6 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 				color.getX( i ), color.getY( i ), color.getZ( i ),
 				half.getX( i ), half.getY( i ),
 			].map( Math.fround ) );
-
-		}
-
-	} );
-
-	it( 'packs integer attributes as integers.', () => {
-
-		const geometry = createGeometry();
-		const count = geometry.attributes.position.count;
-		const ids = new Uint16Array( count ).map( ( v, i ) => i * 3 + 1 );
-		const offsets = new Int8Array( count ).map( ( v, i ) => i % 2 ? - 2 : 5 );
-		geometry.setAttribute( 'id', new BufferAttribute( ids, 1 ) );
-		geometry.setAttribute( 'offset', new BufferAttribute( offsets, 1 ) );
-		const tags = new Uint8Array( count ).map( ( v, i ) => i % 2 ? 255 : 128 );
-		geometry.setAttribute( 'tag', new BufferAttribute( tags, 1, true ) );
-
-		const data = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', id: 'u32', offset: 'i32', tag: 'u32' } } );
-		data.update();
-
-		const { buffer } = data.storage.attributes.value.array;
-		const packedU32 = new Uint32Array( buffer );
-		const packedI32 = new Int32Array( buffer );
-		for ( let i = 0; i < count; i ++ ) {
-
-			expect( packedU32[ i * 6 + 3 ] ).toBe( ids[ i ] );
-			expect( packedI32[ i * 6 + 4 ] ).toBe( offsets[ i ] );
-			expect( packedU32[ i * 6 + 5 ] ).toBe( tags[ i ] );
 
 		}
 

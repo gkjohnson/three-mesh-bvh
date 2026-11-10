@@ -17,7 +17,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, transforms } = bvhData.storage;
-	const { getVertexPosition } = bvhData._internalFns;
+	const { getVertex } = bvhData.fns;
 
 	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalar' );
 
@@ -68,9 +68,9 @@ export function getRaycastFirstHitFn( bvhData ) {
 					let i1 = ${ index }[ ti * 3u + 1u ];
 					let i2 = ${ index }[ ti * 3u + 2u ];
 
-					let a = ${ getVertexPosition }( i0 );
-					let b = ${ getVertexPosition }( i1 );
-					let c = ${ getVertexPosition }( i2 );
+					let a = ${ getVertex }( i0 ).position.xyz;
+					let b = ${ getVertex }( i1 ).position.xyz;
+					let c = ${ getVertex }( i2 ).position.xyz;
 
 					var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					triResult.dist *= ${ scratchRayScalar };

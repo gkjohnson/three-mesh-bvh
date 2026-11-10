@@ -16,7 +16,7 @@ import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
-import { getVertexFn, getVertexPositionFn } from './shapecastFns/getVertexFn.js';
+import { getVertexFn } from './shapecastFns/getVertexFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
@@ -94,10 +94,7 @@ export class BVHComputeData {
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
-	 * attribute names; values are `f32`, `i32`, `u32` or `vecN` with an `f`, `i` or `u` suffix (e.g.
-	 * `'vec3f'`, `'vec2f'`, `'vec4u'`). TSL names such as `'vec3'` or `'uint'` are also accepted. Integer
-	 * members store the source values as is, ignoring `normalized`; float sources are converted the way an
-	 * `Int32Array` or `Uint32Array` assignment converts them.
+	 * attribute names; values are `'f32'`, `'vec2f'`, `'vec3f'` or `'vec4f'`.
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
@@ -147,14 +144,15 @@ export class BVHComputeData {
 		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
 		this.storage = new NodeProxyObject();
 		this.structs = new NodeProxyObject( { transform: transformStruct } );
-		this._internalFns = new NodeProxyObject( { getVertexPosition: null }, proxyFn );
 		this.fns = new NodeProxyObject( {
-			raycastFirstHit: getRaycastFirstHitFn( this ),
-			raycastAnyHit: getRaycastAnyHitFn( this ),
-			closestPointToPoint: getClosestPointToPointFn( this ),
 			sampleTrianglePoint: null,
 			getVertex: null,
 		}, proxyFn );
+
+		// these read vertices through "fns.getVertex", so "fns" must exist before they're built
+		this.fns.raycastFirstHit = getRaycastFirstHitFn( this );
+		this.fns.raycastAnyHit = getRaycastAnyHitFn( this );
+		this.fns.closestPointToPoint = getClosestPointToPointFn( this );
 
 	}
 
@@ -385,8 +383,7 @@ export class BVHComputeData {
 		// construct the attribute struct, which is what getVertex returns. The buffer itself is packed
 		// without the struct's alignment padding.
 		const attributeLayout = getAttributeLayout( attributes );
-		const attributeTypes = Object.fromEntries( attributeLayout.members.map( ( { name, type } ) => [ name, type ] ) );
-		const attributeStruct = new StructTypeNode( attributeTypes, 'bvh_GeometryStruct' );
+		const attributeStruct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
 
 		// write the geometry buffer attributes & bvh data
 		let attributesOffset = 0;
@@ -464,8 +461,7 @@ export class BVHComputeData {
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
-		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this, attributeLayout );
-		this._internalFns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
+		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.
 		this._bvhCache.clear();

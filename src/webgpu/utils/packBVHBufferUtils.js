@@ -316,7 +316,13 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
 
 }
 
-const TSL_TYPES = { float: 'f32', int: 'i32', uint: 'u32' };
+// size in 32-bit words of each supported attribute type
+const ATTRIBUTE_TYPE_SIZES = {
+	f32: 1,
+	vec2f: 2,
+	vec3f: 3,
+	vec4f: 4,
+};
 
 /**
  * Returns the tightly packed layout of the per-vertex attributes: each member's offset and size in
@@ -324,7 +330,7 @@ const TSL_TYPES = { float: 'f32', int: 'i32', uint: 'u32' };
  *
  * @private
  * @param {Record<string,string>} attributes - Attribute name to WGSL type map.
- * @returns {{members:Array<{name:string,type:string,scalar:string,offset:number,size:number}>,stride:number}}
+ * @returns {{members:Array<{name:string,offset:number,size:number}>,stride:number}}
  */
 export function getAttributeLayout( attributes ) {
 
@@ -332,20 +338,14 @@ export function getAttributeLayout( attributes ) {
 	let stride = 0;
 	for ( const name in attributes ) {
 
-		// map TSL type names such as 'vec3' or 'uint' to their WGSL equivalents
-		const declared = String( attributes[ name ] );
-		const vector = /^([iu]?)vec([234])$/.exec( declared );
-		const type = TSL_TYPES[ declared ] || ( vector ? `vec${ vector[ 2 ] }${ vector[ 1 ] || 'f' }` : declared );
-		const match = /^(?:([fiu])32|vec([234])([fiu]))$/.exec( type );
-		if ( ! match ) {
+		const size = ATTRIBUTE_TYPE_SIZES[ attributes[ name ] ];
+		if ( ! size ) {
 
-			throw new Error( `BVHComputeData: Unsupported attribute type "${ declared }" for "${ name }".` );
+			throw new Error( `BVHComputeData: Unsupported attribute type "${ attributes[ name ] }" for "${ name }".` );
 
 		}
 
-		const size = match[ 2 ] ? parseInt( match[ 2 ] ) : 1;
-		const scalar = match[ 1 ] || match[ 3 ];
-		members.push( { name, type, scalar, offset: stride, size } );
+		members.push( { name, offset: stride, size } );
 		stride += size;
 
 	}
@@ -363,7 +363,7 @@ export function getAttributeLayout( attributes ) {
  * @param {{vertexStart:number,vertexCount:number}} range
  * @param {number} writeOffset
  * @param {ArrayBuffer} target
- * @param {{members:Array<{name:string,type:string,scalar:string,offset:number,size:number}>,stride:number}} layout - From `getAttributeLayout`.
+ * @param {{members:Array<{name:string,offset:number,size:number}>,stride:number}} layout - From `getAttributeLayout`.
  * @param {BVHComputeData} bvhData - Provides per-attribute defaults via `getDefaultAttributeValue`.
  */
 export function appendGeometryData( bvh, range, writeOffset, target, layout, bvhData ) {
@@ -372,11 +372,8 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 	const { geometry, mesh = null } = bvh;
 	const { vertexStart, vertexCount } = range;
 	const { members, stride } = layout;
-	const views = { f: new Float32Array( target ), i: new Int32Array( target ), u: new Uint32Array( target ) };
-	members.forEach( ( { name, scalar, offset: memberOffset, size } ) => {
-
-		// integer members are stored as integers rather than float bits so getVertex can read them as is
-		const view = views[ scalar ];
+	const attributesBufferF32 = new Float32Array( target );
+	members.forEach( ( { name, offset: memberOffset, size } ) => {
 
 		const attr = geometry.attributes[ name ];
 		bvhData.getDefaultAttributeValue( name, _def );
@@ -384,9 +381,8 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 		const isSkinned = mesh && ( name === 'position' || name === 'normal' || name === 'tangent' );
 
 		// copy straight from the backing array since per-vertex accessors dominate update time on large
-		// scenes. Normalized float members, half float and skinned values need the accessor path below to
-		// be converted. Integer members take the raw values of a normalized source, not 0 or 1.
-		if ( attr && ! isSkinned && ( ! attr.normalized || scalar !== 'f' ) && ! attr.isFloat16BufferAttribute ) {
+		// scenes. Normalized, half float and skinned values need the accessor path below to be converted.
+		if ( attr && ! isSkinned && ! attr.normalized && ! attr.isFloat16BufferAttribute ) {
 
 			const { itemSize } = attr;
 			const array = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array;
@@ -401,7 +397,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 				const writeIndex = ( writeOffset + i ) * stride + memberOffset;
 				for ( let c = 0; c < size; c ++ ) {
 
-					view[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
+					attributesBufferF32[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
 
 				}
 
@@ -449,7 +445,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 			const writeIndex = ( writeOffset + i ) * stride + memberOffset;
 			for ( let c = 0; c < size; c ++ ) {
 
-				view[ writeIndex + c ] = _vec.getComponent( c );
+				attributesBufferF32[ writeIndex + c ] = _vec.getComponent( c );
 
 			}
 

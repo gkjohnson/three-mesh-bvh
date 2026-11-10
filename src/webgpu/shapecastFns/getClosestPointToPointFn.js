@@ -16,7 +16,7 @@ export function getClosestPointToPointFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { index, transforms } = bvhData.storage;
-	const { getVertexPosition } = bvhData._internalFns;
+	const { getVertex } = bvhData.fns;
 
 	const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
 
@@ -99,9 +99,9 @@ export function getClosestPointToPointFn( bvhData ) {
 					let i0 = ${ index }[ i * 3u + 0u ];
 					let i1 = ${ index }[ i * 3u + 1u ];
 					let i2 = ${ index }[ i * 3u + 2u ];
-					let a = ( toWorld * vec4f( ${ getVertexPosition }( i0 ), 1.0 ) ).xyz;
-					let b = ( toWorld * vec4f( ${ getVertexPosition }( i1 ), 1.0 ) ).xyz;
-					let c = ( toWorld * vec4f( ${ getVertexPosition }( i2 ), 1.0 ) ).xyz;
+					let a = ( toWorld * vec4f( ${ getVertex }( i0 ).position.xyz, 1.0 ) ).xyz;
+					let b = ( toWorld * vec4f( ${ getVertex }( i1 ).position.xyz, 1.0 ) ).xyz;
+					let c = ( toWorld * vec4f( ${ getVertex }( i2 ).position.xyz, 1.0 ) ).xyz;
 
 					let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
 					let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
