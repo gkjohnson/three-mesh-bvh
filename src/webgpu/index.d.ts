@@ -1,4 +1,5 @@
-import { ObjectBVH } from 'three-mesh-bvh';
+import { Matrix4, Object3D, Vector4 } from 'three';
+import { MeshBVH, ObjectBVH, SkinnedMeshBVH } from 'three-mesh-bvh';
 
 export class BVHComputeData {
 
@@ -41,5 +42,32 @@ export class BVHComputeData {
 		transformShapeFn?: unknown;
 		transformResultFn?: unknown;
 	} ): unknown;
+
+	// override points for subclasses
+	writeTransformData(
+		info: {
+			object: Object3D;
+			instanceId: number;
+			compositeId: number;
+			root: number;
+			slot: number;
+		},
+		premultiplyMatrix: Matrix4,
+		writeOffset: number,
+		targetBuffer: ArrayBuffer,
+	): void;
+
+	getBVH(
+		object: Object3D,
+		instanceId: number,
+		rangeTarget: {
+			start: number;
+			count: number;
+			vertexStart: number;
+			vertexCount: number;
+		},
+	): MeshBVH | SkinnedMeshBVH | null | Promise<MeshBVH | SkinnedMeshBVH | null>;
+
+	getDefaultAttributeValue( key: string, target: Vector4 ): Vector4;
 
 }
