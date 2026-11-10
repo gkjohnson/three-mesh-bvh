@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, ObjectBVH, BVHHelper } from 'three-mesh-bvh';
+import { MeshBVH, ObjectBVH, BVHHelper, ExtendedTriangle } from 'three-mesh-bvh';
 
 const params = {
 	firstPerson: false,
@@ -31,7 +31,7 @@ const _sceneLocalBox = new THREE.Box3();
 const _objectLocalBox = new THREE.Box3();
 const _invMat = new THREE.Matrix4();
 const _worldSegment = new THREE.Line3();
-const _localSegment = new THREE.Line3();
+const _worldTriangle = new ExtendedTriangle();
 
 let renderer, camera, scene, clock, stats, controls;
 let level, player, playerMesh, sceneBVH, sceneHelper;
@@ -358,12 +358,12 @@ function updatePlayer( delta ) {
 
 			}
 
-			_invMat.copy( object.matrixWorld ).invert();
+			const { matrixWorld } = object;
+			_invMat.copy( matrixWorld ).invert();
 
-			// Get capsule AABB, segment and radius in object space
+			// Get capsule AABB in object space to find nearby triangles. The collision is resolved
+			// in world space since objects may be scaled non-uniformly.
 			getCapsuleBox( _invMat, _objectLocalBox );
-			_localSegment.copy( _worldSegment ).applyMatrix4( _invMat );
-			const localRadius = capsuleInfo.radius * _invMat.getMaxScaleOnAxis();
 
 			object.geometry.boundsTree.shapecast( {
 
@@ -371,24 +371,27 @@ function updatePlayer( delta ) {
 
 				intersectsTriangle: tri => {
 
+					_worldTriangle.a.copy( tri.a ).applyMatrix4( matrixWorld );
+					_worldTriangle.b.copy( tri.b ).applyMatrix4( matrixWorld );
+					_worldTriangle.c.copy( tri.c ).applyMatrix4( matrixWorld );
+					_worldTriangle.needsUpdate = true;
+
 					const triPoint = _tempVector;
 					const capsulePoint = _tempVector2;
 
-					const distance = tri.closestPointToSegment( _localSegment, triPoint, capsulePoint );
-					if ( distance < localRadius ) {
+					const distance = _worldTriangle.closestPointToSegment( _worldSegment, triPoint, capsulePoint );
+					if ( distance < capsuleInfo.radius ) {
 
-						const depth = localRadius - distance;
+						const depth = capsuleInfo.radius - distance;
 						const direction = capsulePoint.sub( triPoint ).normalize();
-						_localSegment.start.addScaledVector( direction, depth );
-						_localSegment.end.addScaledVector( direction, depth );
+						_worldSegment.start.addScaledVector( direction, depth );
+						_worldSegment.end.addScaledVector( direction, depth );
 
 					}
 
 				}
 
 			} );
-
-			_worldSegment.copy( _localSegment ).applyMatrix4( object.matrixWorld );
 
 		},
 
