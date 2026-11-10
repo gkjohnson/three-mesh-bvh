@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - GenerateMeshBVHWorker, ParallelMeshBVHWorker: A rejected "generate" call is no longer also reported as an unhandled rejection.
 - GenerateMeshBVHWorker, ParallelMeshBVHWorker: The first progress update is no longer dropped when a job starts right after the worker is created.
 
+### Fixed
+- ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
+- Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
+
 ## [0.9.18] - 2026-11-03
 ### Added
 - BVHComputeData: "raycastAnyHit" function that ends traversal at the first hit, for shadow and occlusion rays.

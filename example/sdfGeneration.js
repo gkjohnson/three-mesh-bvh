@@ -5,7 +5,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats.js';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
-import { StaticGeometryGenerator } from 'three-mesh-bvh';
 import { GenerateSDFMaterial } from './utils/GenerateSDFMaterial.js';
 import { RenderSDFLayerMaterial } from './utils/RenderSDFLayerMaterial.js';
 import { RayMarchSDFMaterial } from './utils/RayMarchSDFMaterial.js';
@@ -84,13 +83,8 @@ function init() {
 		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' )
 		.then( gltf => {
 
-			gltf.scene.updateMatrixWorld( true );
-
-			const staticGen = new StaticGeometryGenerator( gltf.scene );
-			staticGen.attributes = [ 'position', 'normal' ];
-			staticGen.useGroups = false;
-
-			geometry = staticGen.generate().center();
+			// the model is a single mesh with no transform so its geometry can be used directly
+			geometry = gltf.scene.children[ 0 ].geometry.center();
 
 			return bvhGenerationWorker.generate( geometry, { targetLeafSize: 1 } );
 

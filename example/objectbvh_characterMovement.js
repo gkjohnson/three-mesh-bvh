@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, ObjectBVH, BVHHelper } from 'three-mesh-bvh';
+import { MeshBVH, ObjectBVH, BVHHelper, ExtendedTriangle } from 'three-mesh-bvh';
 
 const params = {
 	firstPerson: false,
@@ -24,12 +24,14 @@ const _playerVelocity = new THREE.Vector3();
 const _upVector = new THREE.Vector3( 0, 1, 0 );
 const _tempVector = new THREE.Vector3();
 const _tempVector2 = new THREE.Vector3();
+const _walkDirection = new THREE.Vector3();
+const _segmentStart = new THREE.Vector3();
+const _quat = new THREE.Quaternion();
 const _sceneLocalBox = new THREE.Box3();
 const _objectLocalBox = new THREE.Box3();
 const _invMat = new THREE.Matrix4();
 const _worldSegment = new THREE.Line3();
-const _localSegment = new THREE.Line3();
-const _sphere = new THREE.Sphere();
+const _worldTriangle = new ExtendedTriangle();
 
 let renderer, camera, scene, clock, stats, controls;
 let level, player, playerMesh, sceneBVH, sceneHelper;
@@ -273,6 +275,19 @@ function reset() {
 
 }
 
+// Get the bounds of the world space capsule transformed by the given matrix
+function getCapsuleBox( matrix, target ) {
+
+	const { radius } = player.capsuleInfo;
+	target.makeEmpty();
+	target.expandByPoint( _worldSegment.start );
+	target.expandByPoint( _worldSegment.end );
+	target.min.addScalar( - radius );
+	target.max.addScalar( radius );
+	return target.applyMatrix4( matrix );
+
+}
+
 function updatePlayer( delta ) {
 
 	player.updateMatrixWorld();
@@ -289,26 +304,11 @@ function updatePlayer( delta ) {
 	_worldSegment.start.addScaledVector( _playerVelocity, delta );
 	_worldSegment.end.addScaledVector( _playerVelocity, delta );
 
-	// Calculate walk direction
-	const angle = controls.getAzimuthalAngle();
-	const walkDirection = new THREE.Vector3();
-	const directions = [
-		{ key: keys.fwd, vec: [ 0, 0, - 1 ] },
-		{ key: keys.bkd, vec: [ 0, 0, 1 ] },
-		{ key: keys.lft, vec: [ - 1, 0, 0 ] },
-		{ key: keys.rgt, vec: [ 1, 0, 0 ] },
-	];
-
-	for ( const { key, vec } of directions ) {
-
-		if ( key ) {
-
-			_tempVector.set( ...vec ).applyAxisAngle( _upVector, angle );
-			walkDirection.addScaledVector( _tempVector, params.playerSpeed * delta );
-
-		}
-
-	}
+	// Calculate walk direction relative to the camera
+	const walkDirection = _walkDirection
+		.set( Number( keys.rgt ) - Number( keys.lft ), 0, Number( keys.bkd ) - Number( keys.fwd ) )
+		.applyAxisAngle( _upVector, controls.getAzimuthalAngle() )
+		.multiplyScalar( params.playerSpeed * delta );
 
 	// Update walk animation
 	const animationStep = delta * 25;
@@ -329,12 +329,8 @@ function updatePlayer( delta ) {
 		_worldSegment.end.add( walkDirection );
 
 		// Rotate player to face walk direction
-		const right = new THREE.Vector3( 1, 0, 0 );
-		const walkAngle = right.angleTo( walkDirection.normalize() );
-		right.cross( walkDirection );
-
-		const quat = new THREE.Quaternion().setFromAxisAngle( _upVector, Math.sign( right.y ) * walkAngle );
-		player.quaternion.slerp( quat, 1 - ( 2 ** ( - delta / 0.05 ) ) );
+		_quat.setFromAxisAngle( _upVector, Math.atan2( - walkDirection.z, walkDirection.x ) );
+		player.quaternion.slerp( _quat, 1 - ( 2 ** ( - delta / 0.05 ) ) );
 
 	} else if ( animationOnGround ) {
 
@@ -347,14 +343,9 @@ function updatePlayer( delta ) {
 	playerMesh.rotation.x = Math.sin( walkAnimation ) * 0.3;
 
 	// Get capsule AABB in scene BVH space
-	_sceneLocalBox.makeEmpty();
-	_sceneLocalBox.expandByPoint( _worldSegment.start );
-	_sceneLocalBox.expandByPoint( _worldSegment.end );
-	_sceneLocalBox.min.addScalar( - capsuleInfo.radius );
-	_sceneLocalBox.max.addScalar( capsuleInfo.radius );
-	_sceneLocalBox.applyMatrix4( _invMat );
+	getCapsuleBox( _invMat, _sceneLocalBox );
 
-	const segmentStart = _worldSegment.start.clone();
+	_segmentStart.copy( _worldSegment.start );
 	sceneBVH.shapecast( {
 
 		intersectsBounds: box => box.intersectsBox( _sceneLocalBox ),
@@ -367,21 +358,12 @@ function updatePlayer( delta ) {
 
 			}
 
-			_invMat.copy( object.matrixWorld ).invert();
+			const { matrixWorld } = object;
+			_invMat.copy( matrixWorld ).invert();
 
-			// Get capsule AABB in object space
-			_objectLocalBox.makeEmpty();
-			_objectLocalBox.expandByPoint( _worldSegment.start );
-			_objectLocalBox.expandByPoint( _worldSegment.end );
-			_objectLocalBox.min.addScalar( - capsuleInfo.radius );
-			_objectLocalBox.max.addScalar( capsuleInfo.radius );
-			_objectLocalBox.applyMatrix4( _invMat );
-
-			// Get segment and sphere in local space
-			_localSegment.copy( _worldSegment ).applyMatrix4( _invMat );
-			_sphere.radius = capsuleInfo.radius;
-			_sphere.applyMatrix4( _invMat );
-			const localRadius = _sphere.radius;
+			// Get capsule AABB in object space to find nearby triangles. The collision is resolved
+			// in world space since objects may be scaled non-uniformly.
+			getCapsuleBox( _invMat, _objectLocalBox );
 
 			object.geometry.boundsTree.shapecast( {
 
@@ -389,24 +371,27 @@ function updatePlayer( delta ) {
 
 				intersectsTriangle: tri => {
 
+					_worldTriangle.a.copy( tri.a ).applyMatrix4( matrixWorld );
+					_worldTriangle.b.copy( tri.b ).applyMatrix4( matrixWorld );
+					_worldTriangle.c.copy( tri.c ).applyMatrix4( matrixWorld );
+					_worldTriangle.needsUpdate = true;
+
 					const triPoint = _tempVector;
 					const capsulePoint = _tempVector2;
 
-					const distance = tri.closestPointToSegment( _localSegment, triPoint, capsulePoint );
-					if ( distance < localRadius ) {
+					const distance = _worldTriangle.closestPointToSegment( _worldSegment, triPoint, capsulePoint );
+					if ( distance < capsuleInfo.radius ) {
 
-						const depth = localRadius - distance;
+						const depth = capsuleInfo.radius - distance;
 						const direction = capsulePoint.sub( triPoint ).normalize();
-						_localSegment.start.addScaledVector( direction, depth );
-						_localSegment.end.addScaledVector( direction, depth );
+						_worldSegment.start.addScaledVector( direction, depth );
+						_worldSegment.end.addScaledVector( direction, depth );
 
 					}
 
 				}
 
 			} );
-
-			_worldSegment.copy( _localSegment ).applyMatrix4( object.matrixWorld );
 
 		},
 
@@ -419,7 +404,7 @@ function updatePlayer( delta ) {
 	player.position.add( deltaVector );
 
 	// Check if player is on ground
-	deltaVector.copy( segmentStart ).subVectors( _worldSegment.start, deltaVector );
+	deltaVector.subVectors( _worldSegment.start, _segmentStart );
 	const touchingGround = deltaVector.y > Math.abs( delta * _playerVelocity.y * 0.25 );
 
 	if ( touchingGround ) {

@@ -5,13 +5,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, BVHHelper, StaticGeometryGenerator } from 'three-mesh-bvh';
+import { MeshBVH, ObjectBVH, BVHHelper, ExtendedTriangle } from 'three-mesh-bvh';
 
 const params = {
 
 	firstPerson: false,
 
-	displayCollider: false,
 	displayBVH: false,
 	displayDepth: 10,
 	gravity: - 30,
@@ -23,7 +22,7 @@ const params = {
 };
 
 let renderer, camera, scene, clock, gui, stats;
-let environment, collider, bvhHelper, player, controls;
+let environment, sceneBVH, bvhHelpers, player, controls;
 let playerIsOnGround = false;
 let fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
 let playerVelocity = new THREE.Vector3();
@@ -31,8 +30,11 @@ let upVector = new THREE.Vector3( 0, 1, 0 );
 let tempVector = new THREE.Vector3();
 let tempVector2 = new THREE.Vector3();
 let tempBox = new THREE.Box3();
+let sceneBox = new THREE.Box3();
+let localBox = new THREE.Box3();
 let tempMat = new THREE.Matrix4();
 let tempSegment = new THREE.Line3();
+let worldTriangle = new ExtendedTriangle();
 
 init();
 
@@ -121,12 +123,15 @@ function init() {
 	} );
 
 	const visFolder = gui.addFolder( 'Visualization' );
-	visFolder.add( params, 'displayCollider' );
 	visFolder.add( params, 'displayBVH' );
 	visFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		bvhHelper.depth = v;
-		bvhHelper.update();
+		bvhHelpers.children.forEach( helper => {
+
+			helper.depth = v;
+			helper.update();
+
+		} );
 
 	} );
 	visFolder.open();
@@ -271,20 +276,24 @@ function loadColliderEnvironment() {
 
 			}
 
-			const staticGenerator = new StaticGeometryGenerator( environment );
-			staticGenerator.attributes = [ 'position' ];
+			// generate a bvh for each mesh and a scene bvh over all of them, with helpers for each
+			bvhHelpers = new THREE.Group();
+			environment.updateMatrixWorld( true );
+			environment.traverse( c => {
 
-			const mergedGeometry = staticGenerator.generate();
-			mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
+				if ( c.isMesh ) {
 
-			collider = new THREE.Mesh( mergedGeometry );
-			collider.material.wireframe = true;
-			collider.material.opacity = 0.5;
-			collider.material.transparent = true;
+					c.geometry.boundsTree = new MeshBVH( c.geometry );
+					bvhHelpers.add( new BVHHelper( c, params.displayDepth ) );
 
-			bvhHelper = new BVHHelper( collider, params.displayDepth );
-			scene.add( bvhHelper );
-			scene.add( collider );
+				}
+
+			} );
+
+			sceneBVH = new ObjectBVH( environment );
+			bvhHelpers.add( new BVHHelper( environment, sceneBVH, params.displayDepth ) );
+
+			scene.add( bvhHelpers );
 			scene.add( environment );
 
 		} );
@@ -351,43 +360,62 @@ function updatePlayer( delta ) {
 	// adjust player position based on collisions
 	const capsuleInfo = player.capsuleInfo;
 	tempBox.makeEmpty();
-	tempMat.copy( collider.matrixWorld ).invert();
-	tempSegment.copy( capsuleInfo.segment );
+	tempSegment.copy( capsuleInfo.segment ).applyMatrix4( player.matrixWorld );
 
-	// get the position of the capsule in the local space of the collider
-	tempSegment.start.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
-	tempSegment.end.applyMatrix4( player.matrixWorld ).applyMatrix4( tempMat );
-
-	// get the axis aligned bounding box of the capsule
+	// get the world space axis aligned bounding box of the capsule
 	tempBox.expandByPoint( tempSegment.start );
 	tempBox.expandByPoint( tempSegment.end );
 
 	tempBox.min.addScalar( - capsuleInfo.radius );
 	tempBox.max.addScalar( capsuleInfo.radius );
 
-	collider.geometry.boundsTree.shapecast( {
+	// find the meshes and triangles near the capsule using its bounds in the local space of
+	// each bvh. The collision is resolved in world space since meshes may be scaled non-uniformly.
+	tempMat.copy( sceneBVH.matrixWorld ).invert();
+	sceneBox.copy( tempBox ).applyMatrix4( tempMat );
 
-		intersectsBounds: box => box.intersectsBox( tempBox ),
+	sceneBVH.shapecast( {
 
-		intersectsTriangle: tri => {
+		intersectsBounds: box => box.intersectsBox( sceneBox ),
 
-			// check if the triangle is intersecting the capsule and adjust the
-			// capsule position if it is.
-			const triPoint = tempVector;
-			const capsulePoint = tempVector2;
+		intersectsObject: object => {
 
-			const distance = tri.closestPointToSegment( tempSegment, triPoint, capsulePoint );
-			if ( distance < capsuleInfo.radius ) {
+			const { matrixWorld } = object;
+			tempMat.copy( matrixWorld ).invert();
+			localBox.copy( tempBox ).applyMatrix4( tempMat );
 
-				const depth = capsuleInfo.radius - distance;
-				const direction = capsulePoint.sub( triPoint ).normalize();
+			object.geometry.boundsTree.shapecast( {
 
-				tempSegment.start.addScaledVector( direction, depth );
-				tempSegment.end.addScaledVector( direction, depth );
+				intersectsBounds: box => box.intersectsBox( localBox ),
 
-			}
+				intersectsTriangle: tri => {
 
-		}
+					// check if the triangle is intersecting the capsule and adjust the
+					// capsule position if it is.
+					worldTriangle.a.copy( tri.a ).applyMatrix4( matrixWorld );
+					worldTriangle.b.copy( tri.b ).applyMatrix4( matrixWorld );
+					worldTriangle.c.copy( tri.c ).applyMatrix4( matrixWorld );
+					worldTriangle.needsUpdate = true;
+
+					const triPoint = tempVector;
+					const capsulePoint = tempVector2;
+
+					const distance = worldTriangle.closestPointToSegment( tempSegment, triPoint, capsulePoint );
+					if ( distance < capsuleInfo.radius ) {
+
+						const depth = capsuleInfo.radius - distance;
+						const direction = capsulePoint.sub( triPoint ).normalize();
+
+						tempSegment.start.addScaledVector( direction, depth );
+						tempSegment.end.addScaledVector( direction, depth );
+
+					}
+
+				}
+
+			} );
+
+		},
 
 	} );
 
@@ -395,7 +423,7 @@ function updatePlayer( delta ) {
 	// triangle collisions and moving it. capsuleInfo.segment.start is assumed to be
 	// the origin of the player model.
 	const newPosition = tempVector;
-	newPosition.copy( tempSegment.start ).applyMatrix4( collider.matrixWorld );
+	newPosition.copy( tempSegment.start );
 
 	// check how much the collider was moved
 	const deltaVector = tempVector2;
@@ -454,10 +482,9 @@ function render() {
 
 	}
 
-	if ( collider ) {
+	if ( sceneBVH ) {
 
-		collider.visible = params.displayCollider;
-		bvhHelper.visible = params.displayBVH;
+		bvhHelpers.visible = params.displayBVH;
 
 		const physicsSteps = params.physicsSteps;
 
