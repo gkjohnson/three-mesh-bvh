@@ -1,13 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import Stats from 'stats.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { MeshBVH, BVHHelper } from 'three-mesh-bvh';
+import { MeshBVH, ObjectBVH, BVHHelper } from 'three-mesh-bvh';
 
 const params = {
-	displayCollider: false,
 	displayBVH: false,
 	displayParents: false,
 	displayDepth: 10,
@@ -59,10 +57,14 @@ const params = {
 };
 
 let renderer, camera, scene, clock, stats;
-let environment, collider, bvhHelper;
+let environment, sceneBVH, bvhHelper;
 const spheres = [];
 const hits = [];
 const tempSphere = new THREE.Sphere();
+const sceneSphere = new THREE.Sphere();
+const localSphere = new THREE.Sphere();
+const invMatrix = new THREE.Matrix4();
+const worldTriangle = new THREE.Triangle();
 const deltaVec = new THREE.Vector3();
 const tempVec = new THREE.Vector3();
 const forwardVector = new THREE.Vector3( 0, 0, 1 );
@@ -119,7 +121,6 @@ function init() {
 	const gui = new GUI();
 
 	const visFolder = gui.addFolder( 'Visualization' );
-	visFolder.add( params, 'displayCollider' );
 	visFolder.add( params, 'displayBVH' );
 	visFolder.add( params, 'displayParents' ).onChange( v => {
 
@@ -213,46 +214,24 @@ function loadColliderEnvironment() {
 			porchLight.castShadow = true;
 			environment.add( porchLight );
 
-			// Merge the world space positions of the meshes into a single collision geometry
+			// Generate a BVH for each mesh and a scene BVH over all of them
 			environment.updateMatrixWorld( true );
-
-			const geometries = [];
 			environment.traverse( c => {
 
 				if ( c.isMesh ) {
 
-					const geometry = new THREE.BufferGeometry();
-					geometry.setAttribute( 'position', c.geometry.attributes.position.clone() );
-					geometry.setIndex( c.geometry.index );
-					geometry.applyMatrix4( c.matrixWorld );
-					geometries.push( geometry );
-
-				}
-
-			} );
-
-			const mergedGeometry = BufferGeometryUtils.mergeGeometries( geometries );
-			mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
-
-			collider = new THREE.Mesh( mergedGeometry );
-			collider.material.wireframe = true;
-			collider.material.opacity = 0.5;
-			collider.material.transparent = true;
-
-			bvhHelper = new BVHHelper( collider, params.displayDepth );
-
-			scene.add( bvhHelper, collider, environment );
-
-			environment.traverse( c => {
-
-				if ( c.material ) {
-
+					c.geometry.boundsTree = new MeshBVH( c.geometry );
 					c.castShadow = c.receiveShadow = true;
 					c.material.shadowSide = 2;
 
 				}
 
 			} );
+
+			sceneBVH = new ObjectBVH( environment );
+			bvhHelper = new BVHHelper( environment, sceneBVH, params.displayDepth );
+
+			scene.add( bvhHelper, environment );
 
 		}
 	);
@@ -311,8 +290,6 @@ function createSphere() {
 
 function updateSphereCollisions( deltaTime ) {
 
-	const bvh = collider.geometry.boundsTree;
-
 	for ( let i = 0, l = spheres.length; i < l; i ++ ) {
 
 		const sphere = spheres[ i ];
@@ -336,34 +313,56 @@ function updateSphereCollisions( deltaTime ) {
 
 		}
 
-		// Check collision with environment
+		// Check collision with environment. The meshes and triangles near the sphere are found
+		// with a bounding sphere in each BVH's local space and the collision is resolved in world
+		// space, since the meshes may be scaled non-uniformly.
 		tempSphere.copy( sphere.collider );
+		invMatrix.copy( sceneBVH.matrixWorld ).invert();
+		sceneSphere.copy( tempSphere ).applyMatrix4( invMatrix );
 
 		let collided = false;
-		bvh.shapecast( {
+		sceneBVH.shapecast( {
 
-			intersectsBounds: box => box.intersectsSphere( tempSphere ),
+			intersectsBounds: box => box.intersectsSphere( sceneSphere ),
 
-			intersectsTriangle: tri => {
+			intersectsObject: object => {
 
-				tri.closestPointToPoint( tempSphere.center, deltaVec );
-				deltaVec.sub( tempSphere.center );
-				const distance = deltaVec.length();
+				const { matrixWorld } = object;
+				invMatrix.copy( matrixWorld ).invert();
+				localSphere.copy( tempSphere ).applyMatrix4( invMatrix );
 
-				if ( distance < tempSphere.radius ) {
+				object.geometry.boundsTree.shapecast( {
 
-					const radius = tempSphere.radius;
-					const depth = distance - radius;
-					deltaVec.multiplyScalar( 1 / distance );
-					tempSphere.center.addScaledVector( deltaVec, depth );
+					intersectsBounds: box => box.intersectsSphere( localSphere ),
 
-					collided = true;
+					intersectsTriangle: tri => {
 
-				}
+						worldTriangle.a.copy( tri.a ).applyMatrix4( matrixWorld );
+						worldTriangle.b.copy( tri.b ).applyMatrix4( matrixWorld );
+						worldTriangle.c.copy( tri.c ).applyMatrix4( matrixWorld );
+						worldTriangle.closestPointToPoint( tempSphere.center, deltaVec );
+						deltaVec.sub( tempSphere.center );
+						const distance = deltaVec.length();
+
+						if ( distance < tempSphere.radius ) {
+
+							const radius = tempSphere.radius;
+							const depth = distance - radius;
+							deltaVec.multiplyScalar( 1 / distance );
+							tempSphere.center.addScaledVector( deltaVec, depth );
+							localSphere.center.copy( tempSphere.center ).applyMatrix4( invMatrix );
+
+							collided = true;
+
+						}
+
+					},
+
+					boundsTraverseOrder: box => box.distanceToPoint( localSphere.center ) - localSphere.radius,
+
+				} );
 
 			},
-
-			boundsTraverseOrder: box => box.distanceToPoint( tempSphere.center ) - tempSphere.radius,
 
 		} );
 
@@ -461,7 +460,7 @@ function updateSphereCollisions( deltaTime ) {
 
 function update( delta ) {
 
-	if ( collider ) {
+	if ( sceneBVH ) {
 
 		const steps = params.physicsSteps;
 		for ( let i = 0; i < steps; i ++ ) updateSphereCollisions( delta / steps );
@@ -501,9 +500,8 @@ function render() {
 
 	const delta = Math.min( clock.getDelta(), 0.1 );
 
-	if ( collider ) {
+	if ( sceneBVH ) {
 
-		collider.visible = params.displayCollider;
 		bvhHelper.visible = params.displayBVH;
 
 		if ( ! params.pause ) update( params.simulationSpeed * delta );
