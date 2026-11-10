@@ -21,17 +21,11 @@ import { WorkerBase } from './utils/WorkerBase.js';
  */
 export class GenerateMeshBVHWorker extends WorkerBase {
 
-	/**
-	 * @param {Object} [options]
-	 * @param {boolean} [options.useBundledWorker=false] - Load the pre-bundled worker script through
-	 *   a blob url without trying the worker module first.
-	 */
-	constructor( options = {} ) {
+	constructor() {
 
 		super(
 			() => new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } ),
 			new URL( './generateMeshBVH.bundled.worker.js', import.meta.url ),
-			options,
 		);
 		this.name = 'GenerateMeshBVHWorker';
 
@@ -40,15 +34,6 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	/**
 	 * Flag indicating whether or not a BVH is already being generated in the worker.
 	 * @name running
-	 * @memberof GenerateMeshBVHWorker
-	 * @instance
-	 * @type {boolean}
-	 */
-
-	/**
-	 * Whether the pre-bundled worker script is used. Set from the constructor option and set to
-	 * `true` if the worker module failed to load.
-	 * @name useBundledWorker
 	 * @memberof GenerateMeshBVHWorker
 	 * @instance
 	 * @type {boolean}
