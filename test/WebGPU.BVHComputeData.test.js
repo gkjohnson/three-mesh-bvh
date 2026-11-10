@@ -208,4 +208,12 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'packs layouts without a position attribute.', () => {
+
+		const data = new BVHComputeData( new Mesh( createGeometry() ), { attributes: { uv: 'vec2f' } } );
+		expect( () => data.update() ).not.toThrow();
+		expect( data.storage.attributes.value.array.length ).toBeGreaterThan( 0 );
+
+	} );
+
 } );

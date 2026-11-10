@@ -55,7 +55,7 @@ export function getVertexFn( bvhData, layout ) {
  * @private
  * @param {BVHComputeData} bvhData
  * @param {{members:Array<Object>,stride:number}} layout
- * @returns {Function} TSL function node.
+ * @returns {Function|null} TSL function node, or null if there is no vec3f or vec4f position.
  */
 export function getVertexPositionFn( bvhData, layout ) {
 
@@ -64,7 +64,8 @@ export function getVertexPositionFn( bvhData, layout ) {
 	const position = layout.members.find( member => member.name === 'position' );
 	if ( ! position || position.size < 3 ) {
 
-		throw new Error( 'BVHComputeData: The "position" attribute must be "vec3f" or "vec4f".' );
+		// only the traversal fns need positions, so layouts without one still work through getVertex
+		return null;
 
 	}
 
