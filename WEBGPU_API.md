@@ -83,6 +83,8 @@ in WebGPU compute shaders via the Three.js TSL node system. After construction, 
 - `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
 - `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
 - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
+- `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. `storage.attributes`
+  is a tightly packed `array<u32>`, so read vertices through this rather than indexing it directly.
 
 Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
 A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
@@ -101,8 +103,13 @@ constructor(
 	objects: Object3D | BufferGeometry | GeometryBVH | Array,
 	{
 		// WGSL type map for the interleaved per-vertex attribute
-		// buffer. Keys are geometry attribute names; values are WGSL
-		// type strings (e.g. `'vec3f'`, `'vec4f'`).
+		// buffer. Keys are geometry attribute names; values are `f32`,
+		// `i32`, `u32` or `vecN` with an `f`, `i` or `u` suffix (e.g.
+		// `'vec3f'`, `'vec2f'`, `'vec4u'`). TSL names such as `'vec3'`
+		// or `'uint'` are also accepted. Integer members store the
+		// source values as is, ignoring `normalized`; float sources are
+		// converted the way an `Int32Array` or `Uint32Array` assignment
+		// converts them.
 		attributes = { position: 'vec4f' }: Record<string, string>,
 
 		// When true, a [MeshBVH](MeshBVH) is automatically built for any

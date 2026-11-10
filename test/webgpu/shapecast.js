@@ -1,4 +1,4 @@
-import { BoxGeometry, Mesh, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
+import { BoxGeometry, BufferAttribute, Mesh, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { WebGPURenderer, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage, uint, uniform, vec2 } from 'three/tsl';
 import { MeshBVH, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/index.js';
@@ -255,6 +255,58 @@ async function init() {
 		expected.push( ...expected.slice( triangle[ 0 ] * 10, triangle[ 0 ] * 10 + 10 ) );
 		expected.push( 4.5, 0, 1, 4.5 * 4.5 );
 		return { values, expected: expected.map( Math.fround ) };
+
+	};
+
+	// Integer members are read as is and sampleTrianglePoint takes them from the nearest corner.
+	window.testIntegerVertex = async () => {
+
+		const vertexGeometry = new BoxGeometry();
+		vertexGeometry.clearGroups();
+		const count = vertexGeometry.attributes.position.count;
+		const ids = new Uint16Array( count ).map( ( v, i ) => i * 3 + 1 );
+		const cells = new Int8Array( count * 2 ).map( ( v, i ) => i % 2 ? - i : i );
+		vertexGeometry.setAttribute( 'id', new BufferAttribute( ids, 1 ) );
+		vertexGeometry.setAttribute( 'cell', new BufferAttribute( cells, 2 ) );
+		const vertexData = new BVHComputeData( new Mesh( vertexGeometry ), { attributes: { position: 'vec3f', id: 'u32', cell: 'vec2i' } } );
+		vertexData.update();
+
+		const triangle = vertexGeometry.index.array.slice( 0, 3 );
+		const corners = [[ 0.6, 0.3, 0.1 ], [ 0.2, 0.7, 0.1 ], [ 0.1, 0.3, 0.6 ]];
+		const bits = await readCompute( output => wgslTagFn`
+			fn vertices() -> void {
+				for ( var i = 0u; i < ${ count }u; i ++ ) {
+					let v = ${ vertexData.fns.getVertex }( i );
+					${ output }[ i * 3u ] = v.id;
+					${ output }[ i * 3u + 1u ] = bitcast<u32>( v.cell.x );
+					${ output }[ i * 3u + 2u ] = bitcast<u32>( v.cell.y );
+				}
+				let indices = vec3u( ${ triangle[ 0 ] }u, ${ triangle[ 1 ] }u, ${ triangle[ 2 ] }u );
+				let barycoords = array<vec3f, 3>( ${ corners.map( c => `vec3f( ${ c.join( ', ' ) } )` ).join( ', ' ) } );
+				for ( var j = 0u; j < 3u; j ++ ) {
+					let s = ${ vertexData.fns.sampleTrianglePoint }( barycoords[ j ], indices );
+					${ output }[ ${ count * 3 }u + j * 3u ] = s.id;
+					${ output }[ ${ count * 3 }u + j * 3u + 1u ] = bitcast<u32>( s.cell.x );
+					${ output }[ ${ count * 3 }u + j * 3u + 2u ] = bitcast<u32>( s.cell.y );
+				}
+			}
+		`(), count * 3 + 9 );
+
+		const values = Array.from( new Int32Array( new Uint32Array( bits ).buffer ) );
+		const expected = [];
+		for ( let i = 0; i < count; i ++ ) {
+
+			expected.push( ids[ i ], cells[ i * 2 ], cells[ i * 2 + 1 ] );
+
+		}
+
+		for ( let j = 0; j < 3; j ++ ) {
+
+			expected.push( ...expected.slice( triangle[ j ] * 3, triangle[ j ] * 3 + 3 ) );
+
+		}
+
+		return { values, expected };
 
 	};
 

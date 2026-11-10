@@ -95,7 +95,9 @@ export class BVHComputeData {
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
 	 * attribute names; values are `f32`, `i32`, `u32` or `vecN` with an `f`, `i` or `u` suffix (e.g.
-	 * `'vec3f'`, `'vec2f'`, `'vec4u'`).
+	 * `'vec3f'`, `'vec2f'`, `'vec4u'`). TSL names such as `'vec3'` or `'uint'` are also accepted. Integer
+	 * members store the source values as is, ignoring `normalized`; float sources are converted the way an
+	 * `Int32Array` or `Uint32Array` assignment converts them.
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
@@ -382,8 +384,9 @@ export class BVHComputeData {
 
 		// construct the attribute struct, which is what getVertex returns. The buffer itself is packed
 		// without the struct's alignment padding.
-		const attributeStruct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
 		const attributeLayout = getAttributeLayout( attributes );
+		const attributeTypes = Object.fromEntries( attributeLayout.members.map( ( { name, type } ) => [ name, type ] ) );
+		const attributeStruct = new StructTypeNode( attributeTypes, 'bvh_GeometryStruct' );
 
 		// write the geometry buffer attributes & bvh data
 		let attributesOffset = 0;
@@ -461,7 +464,7 @@ export class BVHComputeData {
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
-		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
+		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this, attributeLayout );
 		this._internalFns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
 
 		// clear our cache for now. In the future we will need to keep this around.
