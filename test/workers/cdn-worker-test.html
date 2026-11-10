@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<script>
+		// load three and three-mesh-bvh from the origin in the "cdn" query parameter, like a page using
+		// an import map that points to a CDN
+		const cdn = new URLSearchParams( location.search ).get( 'cdn' );
+		const importMap = document.createElement( 'script' );
+		importMap.type = 'importmap';
+		importMap.textContent = JSON.stringify( {
+			imports: {
+				'three': `${ cdn }/node_modules/three/build/three.module.js`,
+				'three-mesh-bvh': `${ cdn }/src/index.js`,
+				'three-mesh-bvh/worker': `${ cdn }/src/workers/index.js`,
+			},
+		} );
+		document.currentScript.after( importMap );
+	</script>
+</head>
+<body>
+	<script type="module">
+		import * as THREE from 'three';
+		import { MeshBVH } from 'three-mesh-bvh';
+		import { ParallelMeshBVHWorker, GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
+
+		window.THREE = THREE;
+		window.MeshBVH = MeshBVH;
+		window.ParallelMeshBVHWorker = ParallelMeshBVHWorker;
+		window.GenerateMeshBVHWorker = GenerateMeshBVHWorker;
+	</script>
+</body>
+</html>
