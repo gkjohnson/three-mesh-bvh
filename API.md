@@ -1150,28 +1150,6 @@ running: boolean
 Flag indicating whether or not a BVH is already being generated in the worker.
 
 
-### .useBundledWorker
-
-```js
-useBundledWorker: boolean
-```
-
-Whether the pre-bundled worker script is used. Set from the constructor option and set to
-`true` if the worker module failed to load.
-
-
-### .constructor
-
-```js
-constructor(
-	{
-		// Load the pre-bundled worker script through a blob url
-		// without trying the worker module first.
-		useBundledWorker = false: boolean,
-	}
-)
-```
-
 ### .generate
 
 ```js
@@ -1342,24 +1320,6 @@ multiple Web Workers in parallel for faster builds on large geometry. Requires
 
 Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
 `maxWorkerCount`.
-
-
-### .constructor
-
-```js
-constructor(
-	{
-		// Load the pre-bundled worker script through a blob url
-		// without trying the worker module first. See
-		// `GenerateMeshBVHWorker`.
-		useBundledWorker = false: boolean,
-	}
-)
-```
-
-Constructs the worker. If `SharedArrayBuffer` is supported, spawns a parallel worker
-capable of using up to `maxWorkerCount` threads. Otherwise, logs a warning and returns a
-`GenerateMeshBVHWorker` instance instead.
 
 
 ## StaticGeometryGenerator

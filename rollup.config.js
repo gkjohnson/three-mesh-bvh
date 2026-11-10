@@ -5,9 +5,7 @@ import terser from '@rollup/plugin-terser';
 
 const { version } = JSON.parse( readFileSync( './package.json', 'utf8' ) );
 
-// Self-contained, minified copies of the worker scripts with three.js bundled in. They are
-// classic scripts with no imports so they can be loaded into a Worker from a blob url when the
-// worker module can't be loaded directly, such as when the library is loaded from a CDN.
+// self-contained worker scripts with three.js bundled in, used as a fallback via blob urls
 function bundledWorker( name ) {
 
 	return {

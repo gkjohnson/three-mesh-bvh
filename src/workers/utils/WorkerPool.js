@@ -54,7 +54,7 @@ export class WorkerPool {
 
 			worker.onmessage = e => {
 
-				// a new worker posts this once its script has loaded, before the result
+				// ignore the load signal
 				if ( e.data.type === 'ready' ) {
 
 					return;

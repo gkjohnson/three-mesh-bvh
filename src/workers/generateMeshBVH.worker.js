@@ -6,9 +6,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 
 self.onmessage = ( { data } ) => {
 
-	// "performance.now" starts near 0 in a new worker, so start at -Infinity to always post the first
-	// progress update
-	let prevTime = - Infinity;
+	let prevTime = - 1;
 	function onProgressCallback( progress ) {
 
 		// account for error
@@ -101,5 +99,5 @@ self.onmessage = ( { data } ) => {
 
 };
 
-// let the main thread know the script has loaded so it can send jobs
+// signal that the script has loaded
 self.postMessage( { type: 'ready' } );

@@ -3,6 +3,8 @@ import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 
+let _fallbackUrl = null;
+
 /**
  * Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
  * geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
@@ -21,34 +23,43 @@ import { WorkerBase } from './utils/WorkerBase.js';
  */
 export class GenerateMeshBVHWorker extends WorkerBase {
 
-	/**
-	 * @param {Object} [options]
-	 * @param {boolean} [options.useBundledWorker=false] - Load the pre-bundled worker script through
-	 *   a blob url without trying the worker module first.
-	 */
-	constructor( options = {} ) {
+	constructor() {
 
-		super(
-			() => new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } ),
-			new URL( './generateMeshBVH.bundled.worker.js', import.meta.url ),
-			options,
-		);
+		super();
 		this.name = 'GenerateMeshBVHWorker';
+
+	}
+
+	getWorker() {
+
+		return new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+
+	}
+
+	async getFallbackWorker() {
+
+		// load the bundled script through a blob url so it works from another origin
+		_fallbackUrl = _fallbackUrl || fetch( new URL( './generateMeshBVH.bundled.worker.js', import.meta.url ) )
+			.then( response => {
+
+				if ( ! response.ok ) {
+
+					throw new Error( 'GenerateMeshBVHWorker: Could not load the bundled worker.' );
+
+				}
+
+				return response.blob();
+
+			} )
+			.then( blob => URL.createObjectURL( blob ) );
+
+		return new Worker( await _fallbackUrl );
 
 	}
 
 	/**
 	 * Flag indicating whether or not a BVH is already being generated in the worker.
 	 * @name running
-	 * @memberof GenerateMeshBVHWorker
-	 * @instance
-	 * @type {boolean}
-	 */
-
-	/**
-	 * Whether the pre-bundled worker script is used. Set from the constructor option and set to
-	 * `true` if the worker module failed to load.
-	 * @name useBundledWorker
 	 * @memberof GenerateMeshBVHWorker
 	 * @instance
 	 * @type {boolean}

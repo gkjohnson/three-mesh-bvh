@@ -7,12 +7,10 @@ import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { generateIndirectBuffer } from '../core/GeometryBVH.js';
 
 let isRunning = false;
-// "performance.now" starts near 0 in a new worker, so start at -Infinity to always post the first
-// progress update
-let prevTime = - Infinity;
+let prevTime = - 1;
 const workerPool = new WorkerPool( () => {
 
-	// the bundled worker is a classic script loaded from a blob url, so it spawns copies of itself
+	// the bundled worker spawns copies of its own blob url
 	if ( self.location.protocol === 'blob:' ) {
 
 		return new Worker( self.location.href );
@@ -434,5 +432,5 @@ function mergeSubtrees( topTree, leaves, target ) {
 
 }
 
-// let the main thread know the script has loaded so it can send jobs
+// signal that the script has loaded
 self.postMessage( { type: 'ready' } );
