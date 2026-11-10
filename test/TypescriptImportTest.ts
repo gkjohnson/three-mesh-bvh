@@ -30,5 +30,7 @@ worker.generate( mesh.geometry ).then( bvh => {
 
 } );
 
-const parallelWorker = new ParallelMeshBVHWorker();
-const useBundledWorker: boolean = parallelWorker.useBundledWorker;
+const parallelWorker = new ParallelMeshBVHWorker( { useBundledWorker: true } );
+const bundledWorker = new GenerateMeshBVHWorker( { useBundledWorker: parallelWorker.useBundledWorker } );
+bundledWorker.dispose();
+parallelWorker.dispose();
