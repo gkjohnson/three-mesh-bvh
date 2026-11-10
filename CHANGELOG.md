@@ -6,13 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: Support an interleaved position attribute. The index still can't be interleaved.
 - GenerateMeshBVHWorker, ParallelMeshBVHWorker: Fall back to a pre-bundled copy of the worker script, loaded through a blob url, when the worker module fails to load, such as when the library is loaded from a CDN. Jobs are sent once the worker has loaded so a failed load no longer leaves the geometry buffers detached.
 
 ### Changed
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The geometry position and index are copied to the worker by default instead of transferred, so the geometry stays readable during the build and attributes sharing its buffers are no longer detached. The reordered index is written back into the original index array. Set the new "transferBuffers" option to keep the previous behavior.
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 
 ### Fixed
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The position attribute's "normalized" flag is now respected when building in the worker.
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 
