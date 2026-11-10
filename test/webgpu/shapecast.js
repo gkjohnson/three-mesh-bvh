@@ -2,7 +2,7 @@ import { BoxGeometry, Mesh, OrthographicCamera, PerspectiveCamera, Vector3 } fro
 import { WebGPURenderer, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage, uint, uniform, vec2 } from 'three/tsl';
 import { MeshBVH, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/index.js';
-import { BVHComputeData, ndcToCameraRay, wgslTagFn, rayStruct, rayIntersectionResultStruct, bvhNodeBoundsStruct } from '../../src/webgpu/index.js';
+import { BVHComputeData, ndcToCameraRay, wgslTagFn, rayStruct, rayIntersectionResultStruct, pointQueryResultStruct, bvhNodeBoundsStruct } from '../../src/webgpu/index.js';
 
 async function init() {
 
@@ -200,7 +200,7 @@ async function init() {
 	};
 
 	// A layout with members smaller than vec4f. Returns every vertex read through getVertex, a
-	// sampleTrianglePoint at each triangle's first corner, and a closest-hit distance, with the CPU values.
+	// sampleTrianglePoint at each triangle's first corner, the raycast and closest point results, with the CPU values.
 	window.testGetVertex = async () => {
 
 		const vertexGeometry = new BoxGeometry();
@@ -234,8 +234,15 @@ async function init() {
 				var hit: ${ rayIntersectionResultStruct };
 				let didHit = ${ vertexData.fns.raycastFirstHit }( ray, &hit );
 				${ output }[ ${ count * 10 + 10 }u ] = bitcast<u32>( select( -1.0, hit.dist, didHit ) );
+				ray.maxDist = 4.4;
+				${ output }[ ${ count * 10 + 11 }u ] = bitcast<u32>( select( 0.0, 1.0, ${ vertexData.fns.raycastAnyHit }( ray ) ) );
+				ray.maxDist = 4.6;
+				${ output }[ ${ count * 10 + 12 }u ] = bitcast<u32>( select( 0.0, 1.0, ${ vertexData.fns.raycastAnyHit }( ray ) ) );
+				var point: ${ pointQueryResultStruct };
+				let found = ${ vertexData.fns.closestPointToPoint }( ray.origin, &point );
+				${ output }[ ${ count * 10 + 13 }u ] = bitcast<u32>( select( -1.0, point.distanceSq, found ) );
 			}
-		`(), count * 10 + 11 );
+		`(), count * 10 + 14 );
 
 		const values = Array.from( new Float32Array( new Uint32Array( bits ).buffer ) );
 		const expected = [];
@@ -246,7 +253,7 @@ async function init() {
 		}
 
 		expected.push( ...expected.slice( triangle[ 0 ] * 10, triangle[ 0 ] * 10 + 10 ) );
-		expected.push( 4.5 );
+		expected.push( 4.5, 0, 1, 4.5 * 4.5 );
 		return { values, expected: expected.map( Math.fround ) };
 
 	};

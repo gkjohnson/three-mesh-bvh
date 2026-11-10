@@ -94,7 +94,8 @@ export class BVHComputeData {
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
-	 * attribute names; values are WGSL type strings (e.g. `'vec3f'`, `'vec4f'`).
+	 * attribute names; values are `f32`, `i32`, `u32` or `vecN` with an `f`, `i` or `u` suffix (e.g.
+	 * `'vec3f'`, `'vec2f'`, `'vec4u'`).
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.

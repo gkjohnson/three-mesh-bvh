@@ -322,7 +322,7 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
  *
  * @private
  * @param {Record<string,string>} attributes - Attribute name to WGSL type map.
- * @returns {{members:Array<{name:string,type:string,offset:number,size:number}>,stride:number}}
+ * @returns {{members:Array<{name:string,type:string,scalar:string,offset:number,size:number}>,stride:number}}
  */
 export function getAttributeLayout( attributes ) {
 
@@ -331,15 +331,16 @@ export function getAttributeLayout( attributes ) {
 	for ( const name in attributes ) {
 
 		const type = attributes[ name ];
-		const match = /^(?:[fiu]32|vec([234])[fiu])$/.exec( type );
+		const match = /^(?:([fiu])32|vec([234])([fiu]))$/.exec( type );
 		if ( ! match ) {
 
 			throw new Error( `BVHComputeData: Unsupported attribute type "${ type }" for "${ name }".` );
 
 		}
 
-		const size = match[ 1 ] ? parseInt( match[ 1 ] ) : 1;
-		members.push( { name, type, offset: stride, size } );
+		const size = match[ 2 ] ? parseInt( match[ 2 ] ) : 1;
+		const scalar = match[ 1 ] || match[ 3 ];
+		members.push( { name, type, scalar, offset: stride, size } );
 		stride += size;
 
 	}
@@ -357,7 +358,7 @@ export function getAttributeLayout( attributes ) {
  * @param {{vertexStart:number,vertexCount:number}} range
  * @param {number} writeOffset
  * @param {ArrayBuffer} target
- * @param {{members:Array<{name:string,offset:number,size:number}>,stride:number}} layout - From `getAttributeLayout`.
+ * @param {{members:Array<{name:string,type:string,scalar:string,offset:number,size:number}>,stride:number}} layout - From `getAttributeLayout`.
  * @param {BVHComputeData} bvhData - Provides per-attribute defaults via `getDefaultAttributeValue`.
  */
 export function appendGeometryData( bvh, range, writeOffset, target, layout, bvhData ) {
@@ -366,8 +367,11 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 	const { geometry, mesh = null } = bvh;
 	const { vertexStart, vertexCount } = range;
 	const { members, stride } = layout;
-	const attributesBufferF32 = new Float32Array( target );
-	members.forEach( ( { name, offset: memberOffset, size } ) => {
+	const views = { f: new Float32Array( target ), i: new Int32Array( target ), u: new Uint32Array( target ) };
+	members.forEach( ( { name, scalar, offset: memberOffset, size } ) => {
+
+		// integer members are stored as integers rather than float bits so getVertex can read them as is
+		const view = views[ scalar ];
 
 		const attr = geometry.attributes[ name ];
 		bvhData.getDefaultAttributeValue( name, _def );
@@ -391,7 +395,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 				const writeIndex = ( writeOffset + i ) * stride + memberOffset;
 				for ( let c = 0; c < size; c ++ ) {
 
-					attributesBufferF32[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
+					view[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
 
 				}
 
@@ -439,7 +443,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 			const writeIndex = ( writeOffset + i ) * stride + memberOffset;
 			for ( let c = 0; c < size; c ++ ) {
 
-				attributesBufferF32[ writeIndex + c ] = _vec.getComponent( c );
+				view[ writeIndex + c ] = _vec.getComponent( c );
 
 			}
 

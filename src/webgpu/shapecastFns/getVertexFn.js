@@ -1,8 +1,8 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 
-// builds a tagged-template call from a list of strings and nodes, since the function body depends on
-// the attribute layout
+// the function bodies depend on the attribute layout, so the tagged-template arguments are built up
+// as a list of strings and nodes
 function buildFn( parts ) {
 
 	const tokens = [ '' ];
@@ -26,14 +26,14 @@ function buildFn( parts ) {
 
 }
 
-// returns the parts of a WGSL expression that reads one layout member from the u32 attribute buffer
-function readMember( attributes, { type, offset, size } ) {
+function readMember( attributes, { type, scalar, offset, size } ) {
 
-	const cast = /f$|^f32$/.test( type ) ? 'bitcast<f32>' : /i$|^i32$/.test( type ) ? 'bitcast<i32>' : '';
+	const cast = scalar === 'f' ? 'bitcast<f32>' : scalar === 'i' ? 'bitcast<i32>' : '';
 	const parts = size === 1 ? [] : [ `${ type }( ` ];
 	for ( let c = 0; c < size; c ++ ) {
 
-		parts.push( c === 0 ? `${ cast }( ` : `, ${ cast }( `, attributes, `[ base + ${ offset + c }u ] )` );
+		const separator = c === 0 ? '' : ', ';
+		parts.push( `${ separator }${ cast }( `, attributes, `[ base + ${ offset + c }u ] )` );
 
 	}
 
@@ -80,14 +80,14 @@ export function getVertexPositionFn( bvhData, layout ) {
 
 	const { storage } = bvhData;
 	const position = layout.members.find( member => member.name === 'position' );
-	if ( ! position || position.size < 3 ) {
+	if ( ! position || position.size < 3 || position.scalar !== 'f' ) {
 
 		return null;
 
 	}
 
 	const parts = [ '\n\t\tfn bvh_getVertexPosition( index: u32 ) -> vec3f {\n\n' ];
-	parts.push( `\t\t\tlet base = index * ${ layout.stride }u;\n\t\t\treturn `, ...readMember( storage.attributes, { ...position, type: 'vec3f', size: 3 } ), ';\n' );
+	parts.push( `\t\t\tlet base = index * ${ layout.stride }u;\n\t\t\treturn `, ...readMember( storage.attributes, { ...position, type: 'vec3f', scalar: 'f', size: 3 } ), ';\n' );
 	parts.push( '\n\t\t}\n' );
 	return buildFn( parts );
 

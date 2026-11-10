@@ -204,4 +204,28 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'packs integer attributes as integers.', () => {
+
+		const geometry = createGeometry();
+		const count = geometry.attributes.position.count;
+		const ids = new Uint16Array( count ).map( ( v, i ) => i * 3 + 1 );
+		const offsets = new Int8Array( count ).map( ( v, i ) => i % 2 ? - 2 : 5 );
+		geometry.setAttribute( 'id', new BufferAttribute( ids, 1 ) );
+		geometry.setAttribute( 'offset', new BufferAttribute( offsets, 1 ) );
+
+		const data = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', id: 'u32', offset: 'i32' } } );
+		data.update();
+
+		const { buffer } = data.storage.attributes.value.array;
+		const packedU32 = new Uint32Array( buffer );
+		const packedI32 = new Int32Array( buffer );
+		for ( let i = 0; i < count; i ++ ) {
+
+			expect( packedU32[ i * 5 + 3 ] ).toBe( ids[ i ] );
+			expect( packedI32[ i * 5 + 4 ] ).toBe( offsets[ i ] );
+
+		}
+
+	} );
+
 } );
