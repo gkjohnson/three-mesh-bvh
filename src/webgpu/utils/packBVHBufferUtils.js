@@ -373,7 +373,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 	const { vertexStart, vertexCount } = range;
 	const { members, stride } = layout;
 	const attributesBufferF32 = new Float32Array( target );
-	members.forEach( ( { name, offset: memberOffset, size } ) => {
+	members.forEach( ( { name, offset, size } ) => {
 
 		const attr = geometry.attributes[ name ];
 		bvhData.getDefaultAttributeValue( name, _def );
@@ -386,15 +386,15 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 
 			const { itemSize } = attr;
 			const array = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array;
-			const itemStride = attr.isInterleavedBufferAttribute ? attr.data.stride : itemSize;
-			const offset = attr.isInterleavedBufferAttribute ? attr.offset : 0;
+			const attrStride = attr.isInterleavedBufferAttribute ? attr.data.stride : itemSize;
+			const attrOffset = attr.isInterleavedBufferAttribute ? attr.offset : 0;
 			const copyCount = Math.min( itemSize, size );
 			_def.toArray( _defArray );
 
 			for ( let i = 0; i < vertexCount; i ++ ) {
 
-				const readIndex = ( i + vertexStart ) * itemStride + offset;
-				const writeIndex = ( writeOffset + i ) * stride + memberOffset;
+				const readIndex = ( i + vertexStart ) * attrStride + attrOffset;
+				const writeIndex = ( writeOffset + i ) * stride + offset;
 				for ( let c = 0; c < size; c ++ ) {
 
 					attributesBufferF32[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
@@ -442,7 +442,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 
 			}
 
-			const writeIndex = ( writeOffset + i ) * stride + memberOffset;
+			const writeIndex = ( writeOffset + i ) * stride + offset;
 			for ( let c = 0; c < size; c ++ ) {
 
 				attributesBufferF32[ writeIndex + c ] = _vec.getComponent( c );
