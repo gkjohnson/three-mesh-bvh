@@ -11,11 +11,12 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
+import { getVertexFn, getVertexPositionFn } from './shapecastFns/getVertexFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
@@ -73,6 +74,9 @@ function getTransformKey( compositeId, root ) {
  * - `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
  * - `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
  * - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
+ * - `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. `storage.attributes`
+ *   is a tightly packed `array<u32>`, so read vertices through this rather than indexing it directly.
+ * - `getVertexPosition( index ) -> vec3f`: reads only the position of a vertex, for custom traversal.
  *
  * Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
  * A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
@@ -91,7 +95,7 @@ export class BVHComputeData {
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
 	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
-	 * attribute names; values are WGSL type strings (e.g. `'vec3f'`, `'vec4f'`).
+	 * attribute names; values are `'f32'`, `'vec2f'`, `'vec3f'` or `'vec4f'`.
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
@@ -142,11 +146,15 @@ export class BVHComputeData {
 		this.storage = new NodeProxyObject();
 		this.structs = new NodeProxyObject( { transform: transformStruct } );
 		this.fns = new NodeProxyObject( {
-			raycastFirstHit: getRaycastFirstHitFn( this ),
-			raycastAnyHit: getRaycastAnyHitFn( this ),
-			closestPointToPoint: getClosestPointToPointFn( this ),
 			sampleTrianglePoint: null,
+			getVertex: null,
+			getVertexPosition: null,
 		}, proxyFn );
+
+		// these read vertices through "fns.getVertexPosition", so "fns" must exist before they're built
+		this.fns.raycastFirstHit = getRaycastFirstHitFn( this );
+		this.fns.raycastAnyHit = getRaycastAnyHitFn( this );
+		this.fns.closestPointToPoint = getClosestPointToPointFn( this );
 
 	}
 
@@ -374,14 +382,16 @@ export class BVHComputeData {
 		indexBufferLength = Math.max( indexBufferLength, 2 );
 		attributesBufferLength = Math.max( attributesBufferLength, 2 );
 
-		// construct the attribute struct
+		// construct the attribute struct, which is what getVertex returns. The buffer itself is packed
+		// without the struct's alignment padding.
+		const attributeLayout = getAttributeLayout( attributes );
 		const attributeStruct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
 
 		// write the geometry buffer attributes & bvh data
 		let attributesOffset = 0;
 		let indexOffset = 0;
 		const indexBuffer = new Uint32Array( indexBufferLength );
-		const attributesBuffer = new ArrayBuffer( attributesBufferLength * attributeStruct.getLength() * 4 );
+		const attributesBuffer = new ArrayBuffer( attributesBufferLength * attributeLayout.stride * 4 );
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
 		// pack each unique geometry ( index + attributes ) once, recording its triangle base so the
@@ -399,7 +409,7 @@ export class BVHComputeData {
 			}
 
 			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
-			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeStruct, this );
+			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeLayout, this );
 
 			indexOffset += info.range.count;
 			attributesOffset += info.range.vertexCount;
@@ -435,7 +445,7 @@ export class BVHComputeData {
 		const transformsBuffer = new StorageBufferAttribute( new Uint32Array( transformArrayBuffer ), 1 );
 		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
 		const indexStorage = storage( new StorageBufferAttribute( indexBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_index' );
-		const attributesStorage = storage( new StorageBufferAttribute( new Uint32Array( attributesBuffer ), attributeStruct.getLength() ), attributeStruct ).toReadOnly().setName( 'bvh_attributes' );
+		const attributesStorage = storage( new StorageBufferAttribute( new Uint32Array( attributesBuffer ), 1 ), 'uint' ).toReadOnly().setName( 'bvh_attributes' );
 
 		this.storage.transforms = transformsStorage;
 		this.storage.nodes = bvhNodesStorage;
@@ -451,7 +461,9 @@ export class BVHComputeData {
 
 		} );
 
-		// depends on the resolved attribute struct, so it must be built here rather than up front
+		// these depend on the resolved attribute layout, so they must be built here rather than up front
+		this.fns.getVertex = getVertexFn( this, attributeLayout );
+		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.
