@@ -52,7 +52,14 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 				return response.blob();
 
 			} )
-			.then( blob => URL.createObjectURL( blob ) );
+			.then( blob => URL.createObjectURL( blob ) )
+			.catch( error => {
+
+				// allow a later worker to retry
+				_fallbackUrl = null;
+				throw error;
+
+			} );
 
 		return new Worker( await _fallbackUrl );
 

@@ -6,7 +6,8 @@ import { MeshBVH } from '../core/MeshBVH.js';
 
 self.onmessage = ( { data } ) => {
 
-	let prevTime = - 1;
+	// a new worker's clock starts near 0, so start at -Infinity to post the first update
+	let prevTime = - Infinity;
 	function onProgressCallback( progress ) {
 
 		// account for error

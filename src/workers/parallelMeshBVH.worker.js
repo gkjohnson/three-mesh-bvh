@@ -7,7 +7,8 @@ import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { generateIndirectBuffer } from '../core/GeometryBVH.js';
 
 let isRunning = false;
-let prevTime = - 1;
+// a new worker's clock starts near 0, so start at -Infinity to post the first update
+let prevTime = - Infinity;
 const workerPool = new WorkerPool( () => {
 
 	// the bundled worker spawns copies of its own blob url
