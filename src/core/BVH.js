@@ -7,9 +7,25 @@ import { buildPackedTree } from './build/buildTree.js';
 import { shapecast as shapecastFunc } from './cast/shapecast.js';
 import { bvhcast } from './cast/bvhcast.js';
 import { BVHTraversalHelper } from './BVHTraversalHelper.js';
+import { REVISION } from '../utils/Revision.generated.js';
 
 const _tempBox = /* @__PURE__ */ new Box3();
 const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
+
+// mark the page as using three-mesh-bvh, like three.js' "__THREE__"
+if ( typeof window !== 'undefined' ) {
+
+	if ( window.__THREE_MESH_BVH__ ) {
+
+		console.warn( 'three-mesh-bvh: Multiple instances of three-mesh-bvh being imported.' );
+
+	} else {
+
+		window.__THREE_MESH_BVH__ = REVISION;
+
+	}
+
+}
 
 /**
  * @callback BoundsTraverseOrderCallback
