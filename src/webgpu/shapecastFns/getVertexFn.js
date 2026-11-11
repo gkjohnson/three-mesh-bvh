@@ -19,18 +19,50 @@ export function getVertexFn( bvhData, layout ) {
 		.members
 		.map( ( { name, offset, size } ) => {
 
-			const words = [];
-			for ( let c = 0; c < size; c ++ ) {
+			const x = offset;
+			const y = offset + 1;
+			const z = offset + 2;
+			const w = offset + 3;
+			if ( size === 1 ) {
 
-				words.push( `( *attributes )[ base + ${ offset + c }u ]` );
+				return /* wgsl */`
+					result.${ name } = bitcast<f32>( ( *attributes )[ base + ${ x }u ] );
+				`;
+
+			} else if ( size === 2 ) {
+
+				return /* wgsl */`
+					result.${ name } = bitcast<vec2f>( vec2u(
+						( *attributes )[ base + ${ x }u ],
+						( *attributes )[ base + ${ y }u ],
+					) );
+				`;
+
+			} else if ( size === 3 ) {
+
+				return /* wgsl */`
+					result.${ name } = bitcast<vec3f>( vec3u(
+						( *attributes )[ base + ${ x }u ],
+						( *attributes )[ base + ${ y }u ],
+						( *attributes )[ base + ${ z }u ],
+					) );
+				`;
+
+			} else {
+
+				return /* wgsl */`
+					result.${ name } = bitcast<vec4f>( vec4u(
+						( *attributes )[ base + ${ x }u ],
+						( *attributes )[ base + ${ y }u ],
+						( *attributes )[ base + ${ z }u ],
+						( *attributes )[ base + ${ w }u ],
+					) );
+				`;
 
 			}
 
-			const type = size === 1 ? 'f32' : `vec${ size }f`;
-			const value = size === 1 ? words[ 0 ] : `vec${ size }u( ${ words.join( ', ' ) } )`;
-			return `result.${ name } = bitcast<${ type }>( ${ value } );`;
-
-		} ).join( '\n' );
+		} )
+		.join( '\n' );
 
 	return wgslTagFn/* wgsl */`
 		// fn
@@ -74,12 +106,11 @@ export function getVertexPositionFn( bvhData, layout ) {
 		// fn
 		fn bvh_getVertexPosition( index: u32 ) -> vec3f {
 
-			let attributes = &${ storage.attributes };
 			let base = index * ${ layout.stride }u;
 			return bitcast<vec3f>( vec3u(
-				( *attributes )[ base + ${ offset }u ],
-				( *attributes )[ base + ${ offset + 1 }u ],
-				( *attributes )[ base + ${ offset + 2 }u ]
+				${ storage.attributes }[ base + ${ offset }u ],
+				${ storage.attributes }[ base + ${ offset + 1 }u ],
+				${ storage.attributes }[ base + ${ offset + 2 }u ],
 			) );
 
 		}
