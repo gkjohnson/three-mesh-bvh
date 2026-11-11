@@ -42,7 +42,9 @@ const preprocessPlugin = options => {
 
 };
 
-const { version } = JSON.parse( readFileSync( './package.json', 'utf8' ) );
+// the publish build passes "--environment RELEASE", any other build is marked as a dev build
+const { version: packageVersion } = JSON.parse( readFileSync( './package.json', 'utf8' ) );
+const version = process.env.RELEASE ? packageVersion : `${ packageVersion }-dev`;
 
 // Transforms every template.js files into a sibling directory with and without "indirect" flags
 export default glob.sync( './src/**/*.template.js' )
