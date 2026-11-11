@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import * as glob from 'glob';
 import { preprocess } from 'preprocess';
 
@@ -41,18 +42,20 @@ const preprocessPlugin = options => {
 
 };
 
+const { version } = JSON.parse( readFileSync( './package.json', 'utf8' ) );
+
 // Transforms every template.js files into a sibling directory with and without "indirect" flags
 export default glob.sync( './src/**/*.template.js' )
 	.flatMap( input => [ {
 		input,
-		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect' } ) ],
+		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect', VERSION: version } ) ],
 		external: () => true,
 		output: {
 			file: input.replace( /\.template\.js$/, '_indirect.generated.js' ),
 		},
 	}, {
 		input,
-		plugins: [ preprocessPlugin( { INDIRECT: false, INDIRECT_STRING: '' } ) ],
+		plugins: [ preprocessPlugin( { INDIRECT: false, INDIRECT_STRING: '', VERSION: version } ) ],
 		external: () => true,
 		output: {
 			file: input.replace( /\.template\.js$/, '.generated.js' ),

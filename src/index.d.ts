@@ -5,6 +5,8 @@ import { BufferGeometry, Vector3, Side, Material, Ray, Sphere, Matrix4, Color,
 } from 'three';
 
 // Contants
+export const REVISION: string;
+
 export enum SplitStrategy {}
 export const CENTER: SplitStrategy;
 export const AVERAGE: SplitStrategy;

@@ -7,6 +7,7 @@ export * from './core/ObjectBVH.js';
 export * from './core/SkinnedMeshBVH.js';
 export * from './objects/BVHHelper.js';
 export { CENTER, AVERAGE, SAH, NOT_INTERSECTED, INTERSECTED, CONTAINED, STOP_TRAVERSAL, SKIP_GENERATION } from './core/Constants.js';
+export { REVISION } from './utils/Revision.generated.js';
 export { getBVHExtremes, estimateMemoryInBytes, getJSONStructure, validateBounds } from './debug/Debug.js';
 export * from './utils/ExtensionUtilities.js';
 export { getTriangleHitPointInfo } from './utils/TriangleUtilities.js';
