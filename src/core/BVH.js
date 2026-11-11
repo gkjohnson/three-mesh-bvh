@@ -12,7 +12,8 @@ import { REVISION } from '../utils/Revision.generated.js';
 const _tempBox = /* @__PURE__ */ new Box3();
 const _tempBuffer = /* @__PURE__ */ new Float32Array( 6 );
 
-// mark the page as using three-mesh-bvh, like three.js' "__THREE__"
+// mark the page as using three-mesh-bvh, like three.js' "__THREE__". This is set here rather than in the entry
+// file since every BVH class extends this one, while bundlers can skip the entry file due to "sideEffects": false
 if ( typeof window !== 'undefined' ) {
 
 	if ( window.__THREE_MESH_BVH__ ) {

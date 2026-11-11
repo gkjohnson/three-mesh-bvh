@@ -42,40 +42,23 @@ const preprocessPlugin = options => {
 
 };
 
-// Writes the package version to a module so it's available at runtime
 const { version } = JSON.parse( readFileSync( './package.json', 'utf8' ) );
-const revisionPlugin = {
-	name: 'revision',
-	resolveId: id => id === 'revision' ? id : null,
-	load: id => id === 'revision' ? `export const REVISION = '${ version }';\n` : null,
-};
 
 // Transforms every template.js files into a sibling directory with and without "indirect" flags
-const templates = glob.sync( './src/**/*.template.js' )
+export default glob.sync( './src/**/*.template.js' )
 	.flatMap( input => [ {
 		input,
-		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect' } ) ],
+		plugins: [ preprocessPlugin( { INDIRECT: true, INDIRECT_STRING: '_indirect', VERSION: version } ) ],
 		external: () => true,
 		output: {
 			file: input.replace( /\.template\.js$/, '_indirect.generated.js' ),
 		},
 	}, {
 		input,
-		plugins: [ preprocessPlugin( { INDIRECT: false, INDIRECT_STRING: '' } ) ],
+		plugins: [ preprocessPlugin( { INDIRECT: false, INDIRECT_STRING: '', VERSION: version } ) ],
 		external: () => true,
 		output: {
 			file: input.replace( /\.template\.js$/, '.generated.js' ),
 		},
 	} ] );
-
-export default [
-	...templates,
-	{
-		input: 'revision',
-		plugins: [ revisionPlugin ],
-		output: {
-			file: './src/utils/Revision.generated.js',
-		},
-	},
-];
 
