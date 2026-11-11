@@ -1,4 +1,5 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
+/** @import { AttributeLayout } from '../utils/packBVHBufferUtils.js' */
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 
 /**
@@ -8,7 +9,7 @@ import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
  *
  * @private
  * @param {BVHComputeData} bvhData
- * @param {{members:Array<Object>,stride:number}} layout
+ * @param {AttributeLayout} layout
  * @returns {Function} TSL function node.
  */
 export function getVertexFn( bvhData, layout ) {
@@ -86,7 +87,7 @@ export function getVertexFn( bvhData, layout ) {
  *
  * @private
  * @param {BVHComputeData} bvhData
- * @param {{members:Array<Object>,stride:number}} layout
+ * @param {AttributeLayout} layout
  * @returns {Function|null} TSL function node, or null if there is no vec3f or vec4f position.
  */
 export function getVertexPositionFn( bvhData, layout ) {

@@ -316,6 +316,25 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
 
 }
 
+/**
+ * An attribute in the packed per-vertex layout.
+ *
+ * @private
+ * @typedef {Object} AttributeLayoutMember
+ * @property {string} name - Geometry attribute name.
+ * @property {number} offset - Offset within the vertex in 32-bit words.
+ * @property {number} size - Size in 32-bit words.
+ */
+
+/**
+ * The tightly packed per-vertex attribute layout.
+ *
+ * @private
+ * @typedef {Object} AttributeLayout
+ * @property {Array<AttributeLayoutMember>} members - Attributes in declaration order.
+ * @property {number} stride - Vertex stride in 32-bit words.
+ */
+
 // size in 32-bit words of each supported attribute type
 const ATTRIBUTE_TYPE_SIZES = {
 	f32: 1,
@@ -330,7 +349,7 @@ const ATTRIBUTE_TYPE_SIZES = {
  *
  * @private
  * @param {Record<string,string>} attributes - Attribute name to WGSL type map.
- * @returns {{members:Array<{name:string,offset:number,size:number}>,stride:number}}
+ * @returns {AttributeLayout}
  */
 export function getAttributeLayout( attributes ) {
 
@@ -363,7 +382,7 @@ export function getAttributeLayout( attributes ) {
  * @param {{vertexStart:number,vertexCount:number}} range
  * @param {number} writeOffset
  * @param {ArrayBuffer} target
- * @param {{members:Array<{name:string,offset:number,size:number}>,stride:number}} layout - From `getAttributeLayout`.
+ * @param {AttributeLayout} layout - From `getAttributeLayout`.
  * @param {BVHComputeData} bvhData - Provides per-attribute defaults via `getDefaultAttributeValue`.
  */
 export function appendGeometryData( bvh, range, writeOffset, target, layout, bvhData ) {
