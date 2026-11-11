@@ -64,5 +64,6 @@ example/dev-bundle
 .parcel-cache
 
 *.generated.js
+*.bundled.worker.js
 
 build/**

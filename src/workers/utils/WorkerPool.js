@@ -54,6 +54,13 @@ export class WorkerPool {
 
 			worker.onmessage = e => {
 
+				// ignore the load signal
+				if ( e.data.type === 'ready' ) {
+
+					return;
+
+				}
+
 				if ( e.data.type === 'progress' ) {
 
 					if ( onProgress ) {

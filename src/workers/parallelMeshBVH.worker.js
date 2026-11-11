@@ -7,8 +7,20 @@ import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { generateIndirectBuffer } from '../core/GeometryBVH.js';
 
 let isRunning = false;
-let prevTime = - 1;
-const workerPool = new WorkerPool( () => new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } ) );
+// a new worker's clock starts near 0, so start at -Infinity to post the first update
+let prevTime = - Infinity;
+const workerPool = new WorkerPool( () => {
+
+	// the bundled worker spawns copies of its own blob url
+	if ( self.location.protocol === 'blob:' ) {
+
+		return new Worker( self.location.href );
+
+	}
+
+	return new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+
+} );
 
 self.onmessage = ( { data } ) => {
 
@@ -420,3 +432,6 @@ function mergeSubtrees( topTree, leaves, target ) {
 	}
 
 }
+
+// signal that the script has loaded
+self.postMessage( { type: 'ready' } );

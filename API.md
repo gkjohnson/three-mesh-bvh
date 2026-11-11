@@ -1133,6 +1133,10 @@ the BVH is being generated meaning the geometry will be unavailable to use while
 being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
 the MeshBVH is finished generating.
 
+If the worker module can't be loaded, such as when the library is loaded from a CDN on another
+origin or the worker can't resolve the "three" import, a pre-bundled copy of the worker script
+with three.js included is loaded through a blob url instead.
+
 > [!NOTE]
 > It's best to reuse a single instance of this class to avoid the overhead of instantiating
 > a new Worker.

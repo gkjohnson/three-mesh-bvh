@@ -3,12 +3,18 @@ import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 
+let _fallbackUrl = null;
+
 /**
  * Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
  * geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
  * the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
  * being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
  * the MeshBVH is finished generating.
+ *
+ * If the worker module can't be loaded, such as when the library is loaded from a CDN on another
+ * origin or the worker can't resolve the "three" import, a pre-bundled copy of the worker script
+ * with three.js included is loaded through a blob url instead.
  *
  * @note It's best to reuse a single instance of this class to avoid the overhead of instantiating
  * a new Worker.
@@ -19,9 +25,42 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
-		super( worker );
+		super();
 		this.name = 'GenerateMeshBVHWorker';
+
+	}
+
+	getWorker() {
+
+		return new Worker( new URL( './generateMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+
+	}
+
+	async getFallbackWorker() {
+
+		// load the bundled script through a blob url so it works from another origin
+		_fallbackUrl = _fallbackUrl || fetch( new URL( './generateMeshBVH.bundled.worker.js', import.meta.url ) )
+			.then( response => {
+
+				if ( ! response.ok ) {
+
+					throw new Error( 'GenerateMeshBVHWorker: Could not load the bundled worker.' );
+
+				}
+
+				return response.blob();
+
+			} )
+			.then( blob => URL.createObjectURL( blob ) )
+			.catch( error => {
+
+				// allow a later worker to retry
+				_fallbackUrl = null;
+				throw error;
+
+			} );
+
+		return new Worker( await _fallbackUrl );
 
 	}
 

@@ -6,13 +6,14 @@ import { convertToBufferType, isSharedArrayBufferSupported } from '../utils/Buff
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
 
+let _fallbackUrl = null;
+
 const DEFAULT_WORKER_COUNT = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4;
 class _ParallelMeshBVHWorker extends WorkerBase {
 
 	constructor() {
 
-		const worker = new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
-		super( worker );
+		super();
 
 		this.name = 'ParallelMeshBVHWorker';
 
@@ -27,6 +28,40 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 			throw new Error( 'ParallelMeshBVHWorker: Shared Array Buffers are not supported.' );
 
 		}
+
+	}
+
+	getWorker() {
+
+		return new Worker( new URL( './parallelMeshBVH.worker.js', import.meta.url ), { type: 'module' } );
+
+	}
+
+	async getFallbackWorker() {
+
+		// load the bundled script through a blob url so it works from another origin
+		_fallbackUrl = _fallbackUrl || fetch( new URL( './parallelMeshBVH.bundled.worker.js', import.meta.url ) )
+			.then( response => {
+
+				if ( ! response.ok ) {
+
+					throw new Error( 'ParallelMeshBVHWorker: Could not load the bundled worker.' );
+
+				}
+
+				return response.blob();
+
+			} )
+			.then( blob => URL.createObjectURL( blob ) )
+			.catch( error => {
+
+				// allow a later worker to retry
+				_fallbackUrl = null;
+				throw error;
+
+			} );
+
+		return new Worker( await _fallbackUrl );
 
 	}
 

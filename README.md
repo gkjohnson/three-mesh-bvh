@@ -241,6 +241,8 @@ worker.generate( geometry ).then( bvh => {
 } );
 ```
 
+_If the worker module fails to load, such as when three-mesh-bvh is loaded from a CDN on another origin or when the worker can't resolve the "three" import because workers don't use the page's import map, a pre-bundled copy of the worker with three.js included is loaded through a blob url instead._
+
 _Parallel BVH generation is also supported using "ParallelMeshBVHWorker", which requires support for SharedArrayBuffer. If SharedArrayBuffer is not available it falls back to "GenerateMeshBVHWorker". It is recommended that geometry passed to this function have `position` and `index` with SharedArrayBuffer arrays, otherwise buffer copies must be made._
 
 ```js
