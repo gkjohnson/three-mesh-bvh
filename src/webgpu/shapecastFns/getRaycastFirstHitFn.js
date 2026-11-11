@@ -16,8 +16,8 @@ import { rayBoundsDistance } from './rayShapecastUtils.js';
 export function getRaycastFirstHitFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { index, transforms } = bvhData.storage;
-	const { getVertexPosition } = bvhData.fns;
+	const { transforms } = bvhData.storage;
+	const { getTriangleIndices, getVertexPosition } = bvhData.fns;
 
 	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalar' );
 
@@ -64,13 +64,10 @@ export function getRaycastFirstHitFn( bvhData ) {
 				var didHit = false;
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
 
-					let i0 = ${ index }[ ti * 3u ];
-					let i1 = ${ index }[ ti * 3u + 1u ];
-					let i2 = ${ index }[ ti * 3u + 2u ];
-
-					let a = ${ getVertexPosition }( i0 );
-					let b = ${ getVertexPosition }( i1 );
-					let c = ${ getVertexPosition }( i2 );
+					let indices = ${ getTriangleIndices }( ti );
+					let a = ${ getVertexPosition }( indices.x );
+					let b = ${ getVertexPosition }( indices.y );
+					let c = ${ getVertexPosition }( indices.z );
 
 					var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					triResult.dist *= ${ scratchRayScalar };
@@ -81,7 +78,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 						result.normal = triResult.normal;
 						result.side = triResult.side;
 						result.barycoord = triResult.barycoord;
-						result.indices = vec4u( i0, i1, i2, ti );
+						result.indices = vec4u( indices, ti );
 
 						didHit = true;
 

@@ -94,6 +94,20 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
+	it( 'reads the triangles of an indexed and a non-indexed geometry in one scene through getTriangleIndices', async () => {
+
+		const { triangles, expectedTriangles, hits } = await page.evaluate( () => window.testTriangleIndices() );
+		expect( triangles ).toEqual( expectedTriangles );
+
+		// the unit box's front face is at z = 0.5, the size 2 box's at z = 1
+		const [ distA, matchA, xA, zA, distB, matchB, xB, zB ] = hits;
+		expect( distA ).toBeCloseTo( 4.5, 5 );
+		expect( distB ).toBeCloseTo( 4, 5 );
+		expect( [ matchA, xA, zA, matchB, xB, zB ] ).toEqual( [ 1, 0.5, 0.5, 1, 1, 1 ] );
+		expect( errors ).toEqual( [] );
+
+	} );
+
 	it.each( [ false, true ] )( 'builds precise camera rays far from the origin (orthographic: %s)', async orthographic => {
 
 		// one pixel of a 1080p, 60 degree view is ~1e-3 radians

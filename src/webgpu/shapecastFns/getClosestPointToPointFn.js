@@ -15,8 +15,8 @@ import { closestPointToTriangle } from '../tsl/fns.js';
 export function getClosestPointToPointFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { index, transforms } = bvhData.storage;
-	const { getVertexPosition } = bvhData.fns;
+	const { transforms } = bvhData.storage;
+	const { getTriangleIndices, getVertexPosition } = bvhData.fns;
 
 	const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
 
@@ -96,12 +96,10 @@ export function getClosestPointToPointFn( bvhData ) {
 				for ( var i = offset; i < offset + count; i ++ ) {
 
 					// transform the triangle to world space
-					let i0 = ${ index }[ i * 3u + 0u ];
-					let i1 = ${ index }[ i * 3u + 1u ];
-					let i2 = ${ index }[ i * 3u + 2u ];
-					let a = ( toWorld * vec4f( ${ getVertexPosition }( i0 ), 1.0 ) ).xyz;
-					let b = ( toWorld * vec4f( ${ getVertexPosition }( i1 ), 1.0 ) ).xyz;
-					let c = ( toWorld * vec4f( ${ getVertexPosition }( i2 ), 1.0 ) ).xyz;
+					let indices = ${ getTriangleIndices }( i );
+					let a = ( toWorld * vec4f( ${ getVertexPosition }( indices.x ), 1.0 ) ).xyz;
+					let b = ( toWorld * vec4f( ${ getVertexPosition }( indices.y ), 1.0 ) ).xyz;
+					let c = ( toWorld * vec4f( ${ getVertexPosition }( indices.z ), 1.0 ) ).xyz;
 
 					let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
 					let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
@@ -118,7 +116,7 @@ export function getClosestPointToPointFn( bvhData ) {
 						result.distanceSq = distSq;
 						result.faceNormal = normal;
 						result.side = sign( dot( normal, delta ) );
-						result.faceIndices = vec4u( i0, i1, i2, i );
+						result.faceIndices = vec4u( indices, i );
 						result.found = true;
 						didHit = true;
 

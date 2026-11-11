@@ -16,7 +16,7 @@ import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
-import { getVertexFn, getVertexPositionFn } from './shapecastFns/getVertexFn.js';
+import { getTriangleIndicesFn, getVertexFn, getVertexPositionFn } from './shapecastFns/getVertexFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
@@ -74,8 +74,9 @@ function getTransformKey( compositeId, root ) {
  * - `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
  * - `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
  * - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
- * - `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. `storage.attributes`
- *   is a tightly packed `array<u32>`, so read vertices through this rather than indexing it directly.
+ * - `getTriangleIndices( triIndex ) -> vec3u`: reads the vertex indices of a triangle.
+ * - `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. The index and
+ *   attribute data share one internal buffer whose packing may change, so read them through these.
  * - `getVertexPosition( index ) -> vec3f`: reads only the position of a vertex, for custom traversal.
  *
  * Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
@@ -147,11 +148,15 @@ export class BVHComputeData {
 		this.structs = new NodeProxyObject( { transform: transformStruct } );
 		this.fns = new NodeProxyObject( {
 			sampleTrianglePoint: null,
+			getTriangleIndices: null,
 			getVertex: null,
 			getVertexPosition: null,
 		}, proxyFn );
 
-		// these read vertices through "fns.getVertexPosition", so "fns" must exist before they're built
+		// the index data sits at the start of the geometry buffer, so this needs no layout from "update"
+		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
+
+		// these read through "fns.getTriangleIndices" and "fns.getVertexPosition", so "fns" must exist first
 		this.fns.raycastFirstHit = getRaycastFirstHitFn( this );
 		this.fns.raycastAnyHit = getRaycastAnyHitFn( this );
 		this.fns.closestPointToPoint = getClosestPointToPointFn( this );
@@ -379,19 +384,20 @@ export class BVHComputeData {
 		// with length 1 being converted to a scalar value.
 		// TODO: remove this when fixed in three
 		const transformBufferLength = Math.max( transformMap.size, 2 );
-		indexBufferLength = Math.max( indexBufferLength, 2 );
-		attributesBufferLength = Math.max( attributesBufferLength, 2 );
 
 		// construct the attribute struct, which is what getVertex returns. The buffer itself is packed
 		// without the struct's alignment padding.
 		const attributeLayout = getAttributeLayout( attributes );
 		const attributeStruct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
 
-		// write the geometry buffer attributes & bvh data
+		// write the geometry buffer & bvh data. The index data comes first and the attributes follow it,
+		// so the index and attributes take one storage binding instead of two.
 		let attributesOffset = 0;
 		let indexOffset = 0;
-		const indexBuffer = new Uint32Array( indexBufferLength );
-		const attributesBuffer = new ArrayBuffer( attributesBufferLength * attributeLayout.stride * 4 );
+		const attributesWordLength = attributesBufferLength * attributeLayout.stride;
+		const geometryBuffer = new Uint32Array( Math.max( indexBufferLength + attributesWordLength, 2 ) );
+		const indexBuffer = geometryBuffer.subarray( 0, indexBufferLength );
+		const attributesBuffer = new Float32Array( geometryBuffer.buffer, indexBufferLength * 4, attributesWordLength );
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
 		// pack each unique geometry ( index + attributes ) once, recording its triangle base so the
@@ -444,13 +450,11 @@ export class BVHComputeData {
 		const bvhNodesStorage = storage( new StorageBufferAttribute( new Uint32Array( bvhNodesBuffer ), 1 ), bvhNodeStruct ).toReadOnly().setName( 'bvh_nodes' );
 		const transformsBuffer = new StorageBufferAttribute( new Uint32Array( transformArrayBuffer ), 1 );
 		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
-		const indexStorage = storage( new StorageBufferAttribute( indexBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_index' );
-		const attributesStorage = storage( new StorageBufferAttribute( new Uint32Array( attributesBuffer ), 1 ), 'uint' ).toReadOnly().setName( 'bvh_attributes' );
+		const geometryStorage = storage( new StorageBufferAttribute( geometryBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_geometry' );
 
 		this.storage.transforms = transformsStorage;
 		this.storage.nodes = bvhNodesStorage;
-		this.storage.index = indexStorage;
-		this.storage.attributes = attributesStorage;
+		this.storage.geometry = geometryStorage;
 		this.structs.attributes = attributeStruct;
 
 		// writes every transform
@@ -462,8 +466,8 @@ export class BVHComputeData {
 		} );
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
-		this.fns.getVertex = getVertexFn( this, attributeLayout );
-		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
+		this.fns.getVertex = getVertexFn( this, attributeLayout, indexBufferLength );
+		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout, indexBufferLength );
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.
