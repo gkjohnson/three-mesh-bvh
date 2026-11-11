@@ -95,8 +95,11 @@ export class BVHComputeData {
 	 * all accepted and wrapped automatically in a BVH.
 	 * @param {Object} [options]
 	 * @param {Record<string,string>} [options.attributes={ position: 'vec4f' }]
-	 * WGSL type map for the interleaved per-vertex attribute buffer. Keys are geometry
-	 * attribute names; values are `'f32'`, `'vec2f'`, `'vec3f'` or `'vec4f'`.
+	 * Type map for the interleaved per-vertex attribute buffer. Keys are geometry attribute names;
+	 * values are `'f32'`, `'vec2f'`, `'vec3f'` or `'vec4f'`, or one of the packed types, which unpack
+	 * to a `vec4f`: `'oct16'` stores a direction and the sign of w in one word (normals, tangents),
+	 * so it always unpacks to a unit vector with w = ±1, and `'2x16float'` stores four half floats in
+	 * two words (colors).
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set.
@@ -392,7 +395,7 @@ export class BVHComputeData {
 		// construct the attribute struct, which is what getVertex returns. The buffer itself is packed
 		// without the struct's alignment padding.
 		const attributeLayout = getAttributeLayout( attributes );
-		const attributeStruct = new StructTypeNode( attributes, 'bvh_GeometryStruct' );
+		const attributeStruct = new StructTypeNode( Object.fromEntries( attributeLayout.members.map( m => [ m.name, m.structType ] ) ), 'bvh_GeometryStruct' );
 
 		// write the geometry buffer & bvh data. The index data comes first and the attributes follow it,
 		// so the index and attributes take one storage binding instead of two.

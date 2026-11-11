@@ -94,6 +94,34 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
+	it( 'unpacks "oct16" normals and tangents and "2x16float" colors through getVertex', async () => {
+
+		const { values, expected, count, hitDistance } = await page.evaluate( () => window.testPackedAttributes() );
+		let maxAngle = 0;
+		for ( let i = 0; i < count; i ++ ) {
+
+			for ( const k of [ 0, 4 ] ) {
+
+				const o = i * 12 + k;
+				const a = values.slice( o, o + 3 );
+				const b = expected.slice( o, o + 3 );
+				const dot = ( a[ 0 ] * b[ 0 ] + a[ 1 ] * b[ 1 ] + a[ 2 ] * b[ 2 ] ) / Math.hypot( ...a ) / Math.hypot( ...b );
+				maxAngle = Math.max( maxAngle, Math.acos( Math.min( dot, 1 ) ) );
+				expect( values[ o + 3 ] ).toBe( expected[ o + 3 ] );
+
+			}
+
+			expect( values.slice( i * 12 + 8, i * 12 + 12 ) ).toEqual( expected.slice( i * 12 + 8, i * 12 + 12 ) );
+
+		}
+
+		// the 16 / 15 bit octahedral encoding is accurate to about 1e-4 radians
+		expect( maxAngle ).toBeLessThan( 2e-4 );
+		expect( values[ count * 12 ] ).toBeCloseTo( hitDistance, 5 );
+		expect( errors ).toEqual( [] );
+
+	} );
+
 	it( 'reads the triangles of an indexed and a non-indexed geometry in one scene through getTriangleIndices', async () => {
 
 		const { triangles, expectedTriangles, hits } = await page.evaluate( () => window.testTriangleIndices() );
