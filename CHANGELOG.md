@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - GenerateMeshBVHWorker, ParallelMeshBVHWorker: Fall back to a pre-bundled copy of the worker script, loaded through a blob url, when the worker module fails to load, such as when the library is loaded from a CDN. Jobs are sent once the worker has loaded so a failed load no longer leaves the geometry buffers detached.
 - "REVISION" export with the package version, with a "-dev" suffix outside of published builds, and a "window.__THREE_MESH_BVH__" global set to it so pages using the library can be detected, with a warning when multiple copies are loaded.
+- BVHHelper: "displayChildBVHs" option to also display the BVHs of the objects in an ObjectBVH.
 
 ### Changed
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.

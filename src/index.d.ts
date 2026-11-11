@@ -295,6 +295,7 @@ export class BVHHelper extends Group {
 	instanceId: number;
 	displayParents: boolean;
 	displayEdges: boolean;
+	displayChildBVHs: boolean;
 	edgeMaterial: LineBasicMaterial;
 	meshMaterial: MeshBasicMaterial;
 
