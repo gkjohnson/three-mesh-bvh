@@ -24,7 +24,7 @@
     "test": "npm run build-silent && vitest run",
     "lint": "eslint . && tsc --noEmit",
     "benchmark": "npm run build-silent && node benchmark/run-benchmark.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "rollup -c rollup-templating.config.js --environment RELEASE && rollup -c"
   },
   "files": [
     "src/*",
