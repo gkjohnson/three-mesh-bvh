@@ -1,5 +1,6 @@
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 /** @import { AttributeLayout } from '../utils/packBVHBufferUtils.js' */
+/** @import { Node } from 'three/webgpu' */
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 
 /**
@@ -37,7 +38,7 @@ export function getTriangleIndicesFn( bvhData ) {
  * @private
  * @param {BVHComputeData} bvhData
  * @param {AttributeLayout} layout
- * @param {number} attributesOffset - Start of the attribute data in the geometry buffer, in 32-bit words.
+ * @param {Node} attributesOffset - Uniform with the start of the attribute data in the geometry buffer, in 32-bit words.
  * @returns {Function} TSL function node.
  */
 export function getVertexFn( bvhData, layout, attributesOffset ) {
@@ -98,7 +99,7 @@ export function getVertexFn( bvhData, layout, attributesOffset ) {
 		fn bvh_getVertex( index: u32 ) -> ${ structs.attributes } {
 
 			let attributes = &${ storage.geometry };
-			let base = ${ attributesOffset }u + index * ${ layout.stride }u;
+			let base = ${ attributesOffset } + index * ${ layout.stride }u;
 
 			var result: ${ structs.attributes };
 			${ readBody }
@@ -116,7 +117,7 @@ export function getVertexFn( bvhData, layout, attributesOffset ) {
  * @private
  * @param {BVHComputeData} bvhData
  * @param {AttributeLayout} layout
- * @param {number} attributesOffset - Start of the attribute data in the geometry buffer, in 32-bit words.
+ * @param {Node} attributesOffset - Uniform with the start of the attribute data in the geometry buffer, in 32-bit words.
  * @returns {Function|null} TSL function node, or null if there is no vec3f or vec4f position.
  */
 export function getVertexPositionFn( bvhData, layout, attributesOffset ) {
@@ -136,7 +137,7 @@ export function getVertexPositionFn( bvhData, layout, attributesOffset ) {
 		// fn
 		fn bvh_getVertexPosition( index: u32 ) -> vec3f {
 
-			let base = ${ attributesOffset }u + index * ${ layout.stride }u;
+			let base = ${ attributesOffset } + index * ${ layout.stride }u;
 			return bitcast<vec3f>( vec3u(
 				${ storage.geometry }[ base + ${ offset }u ],
 				${ storage.geometry }[ base + ${ offset + 1 }u ],

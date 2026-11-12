@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
 import { Matrix4, Mesh, Group } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage } from 'three/tsl';
+import { storage, uniform } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
@@ -152,6 +152,10 @@ export class BVHComputeData {
 			getVertex: null,
 			getVertexPosition: null,
 		}, proxyFn );
+
+		// the start of the attribute data in the geometry buffer, in 32-bit words. A uniform so the shader
+		// code doesn't change, and need recompiling, when the index length does
+		this._attributesOffset = uniform( 0, 'uint' );
 
 		// the index data sits at the start of the geometry buffer, so this needs no layout from "update"
 		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
@@ -456,6 +460,7 @@ export class BVHComputeData {
 		this.storage.nodes = bvhNodesStorage;
 		this.storage.geometry = geometryStorage;
 		this.structs.attributes = attributeStruct;
+		this._attributesOffset.value = indexBufferLength;
 
 		// writes every transform
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
@@ -466,8 +471,8 @@ export class BVHComputeData {
 		} );
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
-		this.fns.getVertex = getVertexFn( this, attributeLayout, indexBufferLength );
-		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout, indexBufferLength );
+		this.fns.getVertex = getVertexFn( this, attributeLayout, this._attributesOffset );
+		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout, this._attributesOffset );
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.
