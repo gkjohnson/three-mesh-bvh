@@ -437,6 +437,7 @@ export class BVHHelper extends Group {
 
 		}
 
+		// construct roots for each bvh group
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
@@ -469,9 +470,11 @@ export class BVHHelper extends Group {
 		}
 
 		// display the BVHs of the objects in an ObjectBVH with a helper per object or instance
+		// TODO: add a public way to access the composite ids of an ObjectBVH
 		const childHelpers = this._childHelpers;
 		const primitives = this.displayChildBVHs && bvh instanceof ObjectBVH ? bvh.primitiveBuffer : [];
-		while ( childHelpers.length > primitives.length ) {
+		const totalPrimitives = primitives.length;
+		while ( childHelpers.length > totalPrimitives ) {
 
 			const helper = childHelpers.pop();
 			helper._disposeGeometry();
@@ -479,7 +482,7 @@ export class BVHHelper extends Group {
 
 		}
 
-		for ( let i = 0; i < primitives.length; i ++ ) {
+		for ( let i = 0; i < totalPrimitives; i ++ ) {
 
 			const object = bvh.getObjectFromId( primitives[ i ] );
 			if ( i >= childHelpers.length ) {
