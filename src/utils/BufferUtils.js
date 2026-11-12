@@ -20,7 +20,7 @@ export function convertToBufferType( array, BufferConstructor ) {
 		}
 
 		const ArrayConstructor = array.constructor;
-		const result = new ArrayConstructor( new BufferConstructor( buffer.byteLength ) );
+		const result = new ArrayConstructor( new BufferConstructor( array.byteLength ) );
 		result.set( array );
 		return result;
 
