@@ -9,6 +9,7 @@ import { MeshBVH, ObjectBVH, BVHHelper, ExtendedTriangle } from 'three-mesh-bvh'
 const params = {
 	firstPerson: false,
 	displayBVH: false,
+	displayChildBVHs: true,
 	visualizeDepth: 10,
 	gravity: - 80,
 	playerSpeed: 10,
@@ -140,6 +141,12 @@ function init() {
 
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayBVH' );
+	visFolder.add( params, 'displayChildBVHs' ).onChange( () => {
+
+		sceneHelper.displayChildBVHs = params.displayChildBVHs;
+		sceneHelper.update();
+
+	} );
 	visFolder.add( params, 'visualizeDepth', 1, 20, 1 ).onChange( () => {
 
 		sceneHelper.depth = params.visualizeDepth;
@@ -257,6 +264,7 @@ function loadColliderEnvironment() {
 		sceneHelper = new BVHHelper( level, sceneBVH );
 		sceneHelper.opacity = 0.5;
 		sceneHelper.color.set( 0xffffff );
+		sceneHelper.displayChildBVHs = params.displayChildBVHs;
 		sceneHelper.update();
 		scene.add( sceneHelper );
 

@@ -12,6 +12,7 @@ const params = {
 	firstPerson: false,
 
 	displayBVH: false,
+	displayChildBVHs: true,
 	displayDepth: 10,
 	gravity: - 30,
 	playerSpeed: 10,
@@ -22,7 +23,7 @@ const params = {
 };
 
 let renderer, camera, scene, clock, gui, stats;
-let environment, sceneBVH, bvhHelpers, player, controls;
+let environment, sceneBVH, bvhHelper, player, controls;
 let playerIsOnGround = false;
 let fwdPressed = false, bkdPressed = false, lftPressed = false, rgtPressed = false;
 let playerVelocity = new THREE.Vector3();
@@ -124,14 +125,16 @@ function init() {
 
 	const visFolder = gui.addFolder( 'Visualization' );
 	visFolder.add( params, 'displayBVH' );
+	visFolder.add( params, 'displayChildBVHs' ).onChange( v => {
+
+		bvhHelper.displayChildBVHs = v;
+		bvhHelper.update();
+
+	} );
 	visFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		bvhHelpers.children.forEach( helper => {
-
-			helper.depth = v;
-			helper.update();
-
-		} );
+		bvhHelper.depth = v;
+		bvhHelper.update();
 
 	} );
 	visFolder.open();
@@ -276,24 +279,24 @@ function loadColliderEnvironment() {
 
 			}
 
-			// generate a bvh for each mesh and a scene bvh over all of them, with helpers for each
-			bvhHelpers = new THREE.Group();
+			// generate a bvh for each mesh and a scene bvh over all of them
 			environment.updateMatrixWorld( true );
 			environment.traverse( c => {
 
 				if ( c.isMesh ) {
 
 					c.geometry.boundsTree = new MeshBVH( c.geometry );
-					bvhHelpers.add( new BVHHelper( c, params.displayDepth ) );
 
 				}
 
 			} );
 
 			sceneBVH = new ObjectBVH( environment );
-			bvhHelpers.add( new BVHHelper( environment, sceneBVH, params.displayDepth ) );
+			bvhHelper = new BVHHelper( environment, sceneBVH, params.displayDepth );
+			bvhHelper.displayChildBVHs = params.displayChildBVHs;
+			bvhHelper.update();
 
-			scene.add( bvhHelpers );
+			scene.add( bvhHelper );
 			scene.add( environment );
 
 		} );
@@ -484,7 +487,7 @@ function render() {
 
 	if ( sceneBVH ) {
 
-		bvhHelpers.visible = params.displayBVH;
+		bvhHelper.visible = params.displayBVH;
 
 		const physicsSteps = params.physicsSteps;
 

@@ -3,6 +3,7 @@
 import { LineBasicMaterial, BufferAttribute, Box3, Group, MeshBasicMaterial, Object3D, BufferGeometry, Mesh, Matrix4, Vector3 } from 'three';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
 import { MeshBVH } from '../core/MeshBVH.js';
+import { ObjectBVH } from '../core/ObjectBVH.js';
 
 const boundingBox = /* @__PURE__ */ new Box3();
 const matrix = /* @__PURE__ */ new Matrix4();
@@ -372,7 +373,14 @@ export class BVHHelper extends Group {
 		/** @type {number} */
 		this.instanceId = 0;
 
+		/**
+		 * When displaying an `ObjectBVH`, also display the BVHs of the objects it contains.
+		 * @type {boolean}
+		 */
+		this.displayChildBVHs = false;
+
 		this._roots = [];
+		this._childHelpers = [];
 
 		const edgeMaterial = new LineBasicMaterial( {
 			color: 0x00FF88,
@@ -429,6 +437,7 @@ export class BVHHelper extends Group {
 
 		}
 
+		// construct roots for each bvh group
 		const totalRoots = bvh ? bvh._roots.length : 0;
 		while ( this._roots.length > totalRoots ) {
 
@@ -457,6 +466,45 @@ export class BVHHelper extends Group {
 			root.displayEdges = displayEdges;
 			root.material = displayEdges ? edgeMaterial : meshMaterial;
 			root.update();
+
+		}
+
+		// display the BVHs of the objects in an ObjectBVH with a helper per object or instance
+		// TODO: add a public way to access the composite ids of an ObjectBVH
+		const childHelpers = this._childHelpers;
+		const primitives = this.displayChildBVHs && bvh instanceof ObjectBVH ? bvh.primitiveBuffer : [];
+		const totalPrimitives = primitives.length;
+		while ( childHelpers.length > totalPrimitives ) {
+
+			const helper = childHelpers.pop();
+			helper._disposeGeometry();
+			this.remove( helper );
+
+		}
+
+		for ( let i = 0; i < totalPrimitives; i ++ ) {
+
+			const object = bvh.getObjectFromId( primitives[ i ] );
+			if ( i >= childHelpers.length ) {
+
+				// child helpers share this helper's materials
+				const helper = new BVHHelper( object, this.depth );
+				helper.edgeMaterial.dispose();
+				helper.meshMaterial.dispose();
+				helper.edgeMaterial = this.edgeMaterial;
+				helper.meshMaterial = this.meshMaterial;
+				this.add( helper );
+				childHelpers.push( helper );
+
+			}
+
+			const helper = childHelpers[ i ];
+			helper.mesh = object;
+			helper.instanceId = bvh.getInstanceFromId( primitives[ i ] );
+			helper.depth = this.depth;
+			helper.displayParents = this.displayParents;
+			helper.displayEdges = this.displayEdges;
+			helper.update();
 
 		}
 
@@ -529,13 +577,15 @@ export class BVHHelper extends Group {
 
 		this.edgeMaterial.dispose();
 		this.meshMaterial.dispose();
+		this._disposeGeometry();
 
-		const children = this.children;
-		for ( let i = 0, l = children.length; i < l; i ++ ) {
+	}
 
-			children[ i ].geometry.dispose();
+	// disposes the geometry of this helper and its child helpers, which share its materials
+	_disposeGeometry() {
 
-		}
+		this._roots.forEach( root => root.geometry.dispose() );
+		this._childHelpers.forEach( helper => helper._disposeGeometry() );
 
 	}
 

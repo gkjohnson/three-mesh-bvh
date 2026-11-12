@@ -8,6 +8,7 @@ import { MeshBVH, ObjectBVH, BVHHelper } from 'three-mesh-bvh';
 const params = {
 	displayBVH: false,
 	displayParents: false,
+	displayChildBVHs: true,
 	displayDepth: 10,
 	gravity: - 9.8,
 	physicsSteps: 5,
@@ -57,7 +58,7 @@ const params = {
 };
 
 let renderer, camera, scene, clock, stats;
-let environment, sceneBVH, bvhHelpers;
+let environment, sceneBVH, bvhHelper;
 const spheres = [];
 const hits = [];
 const tempSphere = new THREE.Sphere();
@@ -124,22 +125,20 @@ function init() {
 	visFolder.add( params, 'displayBVH' );
 	visFolder.add( params, 'displayParents' ).onChange( v => {
 
-		bvhHelpers.children.forEach( helper => {
+		bvhHelper.displayParents = v;
+		bvhHelper.update();
 
-			helper.displayParents = v;
-			helper.update();
+	} );
+	visFolder.add( params, 'displayChildBVHs' ).onChange( v => {
 
-		} );
+		bvhHelper.displayChildBVHs = v;
+		bvhHelper.update();
 
 	} );
 	visFolder.add( params, 'displayDepth', 1, 20, 1 ).onChange( v => {
 
-		bvhHelpers.children.forEach( helper => {
-
-			helper.depth = v;
-			helper.update();
-
-		} );
+		bvhHelper.depth = v;
+		bvhHelper.update();
 
 	} );
 	visFolder.open();
@@ -222,8 +221,7 @@ function loadColliderEnvironment() {
 			porchLight.castShadow = true;
 			environment.add( porchLight );
 
-			// Generate a BVH for each mesh and a scene BVH over all of them, with helpers for each
-			bvhHelpers = new THREE.Group();
+			// Generate a BVH for each mesh and a scene BVH over all of them
 			environment.updateMatrixWorld( true );
 			environment.traverse( c => {
 
@@ -233,16 +231,16 @@ function loadColliderEnvironment() {
 					c.castShadow = c.receiveShadow = true;
 					c.material.shadowSide = 2;
 
-					bvhHelpers.add( new BVHHelper( c, params.displayDepth ) );
-
 				}
 
 			} );
 
 			sceneBVH = new ObjectBVH( environment );
-			bvhHelpers.add( new BVHHelper( environment, sceneBVH, params.displayDepth ) );
+			bvhHelper = new BVHHelper( environment, sceneBVH, params.displayDepth );
+			bvhHelper.displayChildBVHs = params.displayChildBVHs;
+			bvhHelper.update();
 
-			scene.add( bvhHelpers, environment );
+			scene.add( bvhHelper, environment );
 
 		}
 	);
@@ -513,7 +511,7 @@ function render() {
 
 	if ( sceneBVH ) {
 
-		bvhHelpers.visible = params.displayBVH;
+		bvhHelper.visible = params.displayBVH;
 
 		if ( ! params.pause ) update( params.simulationSpeed * delta );
 
