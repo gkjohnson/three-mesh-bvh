@@ -271,6 +271,90 @@ async function init() {
 
 	};
 
+	// An indexed and a non-indexed geometry in one scene, so the second geometry's indices are rebased
+	// and its vertices sit after the first's. Returns every triangle's positions read through
+	// getTriangleIndices, plus a first hit on each mesh and its indices, with the CPU values.
+	window.testTriangleIndices = async () => {
+
+		const indexed = new BoxGeometry();
+		const nonIndexed = new BoxGeometry( 2, 2, 2 ).toNonIndexed();
+		const triMeshes = [ new Mesh( indexed ), new Mesh( nonIndexed ) ];
+		triMeshes[ 1 ].position.x = 5;
+		triMeshes.forEach( mesh => mesh.updateMatrixWorld( true ) );
+		const triData = new BVHComputeData( triMeshes, { attributes: { position: 'vec3f' } } );
+		triData.update();
+
+		const triCount = ( indexed.index.count + nonIndexed.attributes.position.count ) / 3;
+		const bits = await readCompute( output => wgslTagFn`
+			fn triangles() -> void {
+				for ( var t = 0u; t < ${ triCount }u; t ++ ) {
+					let indices = ${ triData.fns.getTriangleIndices }( t );
+					for ( var k = 0u; k < 3u; k ++ ) {
+						let p = ${ triData.fns.getVertexPosition }( indices[ k ] );
+						${ output }[ t * 9u + k * 3u + 0u ] = bitcast<u32>( p.x );
+						${ output }[ t * 9u + k * 3u + 1u ] = bitcast<u32>( p.y );
+						${ output }[ t * 9u + k * 3u + 2u ] = bitcast<u32>( p.z );
+					}
+				}
+				var ray: ${ rayStruct };
+				ray.origin = vec3f( 0.1, 0.1, 5.0 );
+				ray.direction = vec3f( 0.0, 0.0, -1.0 );
+				for ( var m = 0u; m < 2u; m ++ ) {
+					ray.origin.x = 0.1 + f32( m ) * 5.0;
+					var hit: ${ rayIntersectionResultStruct };
+					let didHit = ${ triData.fns.raycastFirstHit }( ray, &hit );
+					let base = ${ triCount * 9 }u + m * 4u;
+					${ output }[ base ] = bitcast<u32>( select( -1.0, hit.dist, didHit ) );
+					let expected = ${ triData.fns.getTriangleIndices }( hit.indices.w );
+					${ output }[ base + 1u ] = u32( all( expected == hit.indices.xyz ) );
+					let p = ${ triData.fns.getVertexPosition }( hit.indices.x );
+					${ output }[ base + 2u ] = bitcast<u32>( abs( p.x ) );
+					${ output }[ base + 3u ] = bitcast<u32>( abs( p.z ) );
+				}
+			}
+		`(), triCount * 9 + 8 );
+
+		const values = new Float32Array( new Uint32Array( bits ).buffer );
+		const toKey = triangle => Array.from( triangle ).join();
+		const triangles = [];
+		for ( let t = 0; t < triCount; t ++ ) {
+
+			triangles.push( toKey( values.slice( t * 9, t * 9 + 9 ) ) );
+
+		}
+
+		const expectedTriangles = [];
+		[ indexed, nonIndexed ].forEach( geo => {
+
+			const { position } = geo.attributes;
+			const count = geo.index ? geo.index.count : position.count;
+			for ( let i = 0; i < count; i += 3 ) {
+
+				const triangle = [];
+				for ( let k = 0; k < 3; k ++ ) {
+
+					const v = geo.index ? geo.index.getX( i + k ) : i + k;
+					triangle.push( position.getX( v ), position.getY( v ), position.getZ( v ) );
+
+				}
+
+				expectedTriangles.push( toKey( triangle.map( Math.fround ) ) );
+
+			}
+
+		} );
+
+		const hits = new Uint32Array( bits ).slice( triCount * 9 );
+		const hitValues = values.slice( triCount * 9 );
+		return {
+			triangles: triangles.sort(),
+			expectedTriangles: expectedTriangles.sort(),
+			// distance, indices match getTriangleIndices, |x| and |z| of the hit triangle's first vertex
+			hits: [ hitValues[ 0 ], hits[ 1 ], hitValues[ 2 ], hitValues[ 3 ], hitValues[ 4 ], hits[ 5 ], hitValues[ 6 ], hitValues[ 7 ] ],
+		};
+
+	};
+
 	window.ready = true;
 
 }

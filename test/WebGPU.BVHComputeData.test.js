@@ -1,5 +1,6 @@
 import {
 	Bone,
+	BoxGeometry,
 	BufferAttribute,
 	Float16BufferAttribute,
 	InterleavedBuffer,
@@ -53,6 +54,13 @@ function createGeometry() {
 	geometry.setAttribute( 'id', new BufferAttribute( id, 1 ) );
 
 	return geometry;
+
+}
+
+// the attribute data follows the index data in the geometry buffer
+function getPackedAttributes( data, indexCount ) {
+
+	return new Float32Array( data.storage.geometry.value.array.buffer, indexCount * 4 );
 
 }
 
@@ -114,7 +122,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const data = new BVHComputeData( new Mesh( geometry ), { attributes } );
 		data.update();
 
-		const packed = new Float32Array( data.storage.attributes.value.array.buffer );
+		const packed = getPackedAttributes( data, geometry.index.count );
 		expect( packed.slice( 0, count * names.length * 4 ) ).toEqual( getExpected( data, geometry, 0, count ) );
 
 	} );
@@ -142,11 +150,10 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const vertexStart = 17;
 		const vertexCount = 50;
 		const writeOffset = 9;
-		const target = new ArrayBuffer( ( writeOffset + vertexCount ) * stride * 4 );
+		const packed = new Float32Array( ( writeOffset + vertexCount ) * stride );
 
-		appendGeometryData( { geometry, mesh }, { vertexStart, vertexCount }, writeOffset, target, layout, data );
+		appendGeometryData( { geometry, mesh }, { vertexStart, vertexCount }, writeOffset, packed, layout, data );
 
-		const packed = new Float32Array( target );
 		expect( packed.slice( 0, writeOffset * stride ).every( v => v === 0 ) ).toBe( true );
 		expect( packed.slice( writeOffset * stride ) ).toEqual( getExpected( data, geometry, vertexStart, vertexCount, mesh ) );
 
@@ -191,7 +198,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const data = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', uv: 'vec2f', uv1: 'vec2f', color: 'vec3f', half: 'vec2f' } } );
 		data.update();
 
-		const packed = new Float32Array( data.storage.attributes.value.array.buffer );
+		const packed = getPackedAttributes( data, geometry.index.count );
 		const { position, uv, color, half } = geometry.attributes;
 		for ( let i = 0; i < count; i ++ ) {
 
@@ -212,7 +219,53 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 		const data = new BVHComputeData( new Mesh( createGeometry() ), { attributes: { uv: 'vec2f' } } );
 		expect( () => data.update() ).not.toThrow();
-		expect( data.storage.attributes.value.array.length ).toBeGreaterThan( 0 );
+		expect( data.storage.geometry.value.array.length ).toBeGreaterThan( 0 );
+
+	} );
+
+	it( 'packs the index data of every geometry before the attributes, rebased to each geometry\'s vertices.', () => {
+
+		const indexed = new BoxGeometry();
+		const nonIndexed = new BoxGeometry( 2, 2, 2 ).toNonIndexed();
+		const data = new BVHComputeData( [ new Mesh( indexed ), new Mesh( nonIndexed ) ], { attributes: { position: 'vec3f' } } );
+		data.update();
+
+		const indexCount = indexed.index.count + nonIndexed.attributes.position.count;
+		const vertexCount = indexed.attributes.position.count + nonIndexed.attributes.position.count;
+		const geometry = data.storage.geometry.value.array;
+		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
+
+		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set
+		const packed = getPackedAttributes( data, indexCount );
+		const toKey = ( x, y, z ) => [ x, y, z ].join();
+		const packedTriangles = [];
+		for ( let i = 0; i < indexCount; i += 3 ) {
+
+			const triangle = [ 0, 1, 2 ].map( k => toKey( ...packed.slice( geometry[ i + k ] * 3, geometry[ i + k ] * 3 + 3 ) ) );
+			packedTriangles.push( triangle.join( '|' ) );
+
+		}
+
+		const expectedTriangles = [];
+		[ indexed, nonIndexed ].forEach( geo => {
+
+			const { position } = geo.attributes;
+			const count = geo.index ? geo.index.count : position.count;
+			for ( let i = 0; i < count; i += 3 ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const v = geo.index ? geo.index.getX( i + k ) : i + k;
+					return toKey( ...[ position.getX( v ), position.getY( v ), position.getZ( v ) ].map( Math.fround ) );
+
+				} );
+				expectedTriangles.push( triangle.join( '|' ) );
+
+			}
+
+		} );
+
+		expect( packedTriangles.sort() ).toEqual( expectedTriangles.sort() );
 
 	} );
 

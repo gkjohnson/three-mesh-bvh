@@ -7,8 +7,6 @@ export class BVHComputeData {
 	attributes: Record<string, string>;
 
 	storage: {
-		index: unknown;
-		attributes: unknown;
 		nodes: unknown;
 		transforms: unknown;
 	};
@@ -22,6 +20,7 @@ export class BVHComputeData {
 		raycastFirstHit: unknown;
 		raycastAnyHit: unknown;
 		sampleTrianglePoint: unknown;
+		getTriangleIndices: unknown;
 		getVertex: unknown;
 		getVertexPosition: unknown;
 		closestPointToPoint: unknown;

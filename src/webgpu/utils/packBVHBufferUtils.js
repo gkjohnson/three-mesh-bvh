@@ -381,7 +381,7 @@ export function getAttributeLayout( attributes ) {
  * @param {Object} bvh
  * @param {{vertexStart:number,vertexCount:number}} range
  * @param {number} writeOffset
- * @param {ArrayBuffer} target
+ * @param {Float32Array} target
  * @param {AttributeLayout} layout - From `getAttributeLayout`.
  * @param {BVHComputeData} bvhData - Provides per-attribute defaults via `getDefaultAttributeValue`.
  */
@@ -391,7 +391,6 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 	const { geometry, mesh = null } = bvh;
 	const { vertexStart, vertexCount } = range;
 	const { members, stride } = layout;
-	const attributesBufferF32 = new Float32Array( target );
 	members.forEach( ( { name, offset, size } ) => {
 
 		const attr = geometry.attributes[ name ];
@@ -416,7 +415,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 				const writeIndex = ( writeOffset + i ) * stride + offset;
 				for ( let c = 0; c < size; c ++ ) {
 
-					attributesBufferF32[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
+					target[ writeIndex + c ] = c < copyCount ? array[ readIndex + c ] : _defArray[ c ];
 
 				}
 
@@ -464,7 +463,7 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 			const writeIndex = ( writeOffset + i ) * stride + offset;
 			for ( let c = 0; c < size; c ++ ) {
 
-				attributesBufferF32[ writeIndex + c ] = _vec.getComponent( c );
+				target[ writeIndex + c ] = _vec.getComponent( c );
 
 			}
 
