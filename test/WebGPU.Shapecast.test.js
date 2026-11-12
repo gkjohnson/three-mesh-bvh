@@ -94,7 +94,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
-	it( 'unpacks "oct16" normals and tangents and "2x16float" colors through getVertex', async () => {
+	it( 'unpacks "oct16" normals and tangents, "2x16float" uvs and "4x16float" colors through getVertex', async () => {
 
 		const { values, expected, count, hitDistance } = await page.evaluate( () => window.testPackedAttributes() );
 		let maxAngle = 0;
@@ -102,7 +102,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 			for ( const k of [ 0, 4 ] ) {
 
-				const o = i * 12 + k;
+				const o = i * 14 + k;
 				const a = values.slice( o, o + 3 );
 				const b = expected.slice( o, o + 3 );
 				const dot = ( a[ 0 ] * b[ 0 ] + a[ 1 ] * b[ 1 ] + a[ 2 ] * b[ 2 ] ) / Math.hypot( ...a ) / Math.hypot( ...b );
@@ -111,13 +111,13 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 			}
 
-			expect( values.slice( i * 12 + 8, i * 12 + 12 ) ).toEqual( expected.slice( i * 12 + 8, i * 12 + 12 ) );
+			expect( values.slice( i * 14 + 8, i * 14 + 14 ) ).toEqual( expected.slice( i * 14 + 8, i * 14 + 14 ) );
 
 		}
 
 		// the 16 / 15 bit octahedral encoding is accurate to about 1e-4 radians
 		expect( maxAngle ).toBeLessThan( 2e-4 );
-		expect( values[ count * 12 ] ).toBeCloseTo( hitDistance, 5 );
+		expect( values[ count * 14 ] ).toBeCloseTo( hitDistance, 5 );
 		expect( errors ).toEqual( [] );
 
 	} );

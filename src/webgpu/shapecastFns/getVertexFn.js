@@ -72,6 +72,12 @@ export function getVertexFn( bvhData, layout, attributesOffset ) {
 			} else if ( type === '2x16float' ) {
 
 				return /* wgsl */`
+					result.${ name } = unpack2x16float( ( *attributes )[ base + ${ x }u ] );
+				`;
+
+			} else if ( type === '4x16float' ) {
+
+				return /* wgsl */`
 					result.${ name } = vec4f(
 						unpack2x16float( ( *attributes )[ base + ${ x }u ] ),
 						unpack2x16float( ( *attributes )[ base + ${ y }u ] ),
@@ -143,21 +149,13 @@ export function getVertexFn( bvhData, layout, attributesOffset ) {
  * @param {BVHComputeData} bvhData
  * @param {AttributeLayout} layout
  * @param {Node} attributesOffset - Uniform with the start of the attribute data in the geometry buffer, in 32-bit words.
- * @returns {Function|null} TSL function node, or null if there is no vec3f or vec4f position.
+ * @returns {Function} TSL function node.
  */
 export function getVertexPositionFn( bvhData, layout, attributesOffset ) {
 
 	const { storage } = bvhData;
 
-	const position = layout.members.find( member => member.name === 'position' );
-	if ( ! position || ( position.type !== 'vec3f' && position.type !== 'vec4f' ) ) {
-
-		// only the traversal fns need positions, so layouts without one still work through getVertex
-		return null;
-
-	}
-
-	const { offset } = position;
+	const { offset } = layout.members.find( member => member.name === 'position' );
 	return wgslTagFn/* wgsl */`
 		// fn
 		fn bvh_getVertexPosition( index: u32 ) -> vec3f {

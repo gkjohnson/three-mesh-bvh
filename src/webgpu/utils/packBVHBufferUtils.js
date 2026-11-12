@@ -338,14 +338,16 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
  */
 
 // size in 32-bit words of each supported attribute type and the struct type it unpacks to. "oct16"
-// octahedron-encodes a direction plus the sign of w into one word, "2x16float" stores four half floats.
+// octahedron-encodes a direction plus the sign of w into one word, "2x16float" and "4x16float" store
+// two and four half floats.
 const ATTRIBUTE_TYPES = {
 	f32: { size: 1, structType: 'f32' },
 	vec2f: { size: 2, structType: 'vec2f' },
 	vec3f: { size: 3, structType: 'vec3f' },
 	vec4f: { size: 4, structType: 'vec4f' },
 	oct16: { size: 1, structType: 'vec4f' },
-	'2x16float': { size: 2, structType: 'vec4f' },
+	'2x16float': { size: 1, structType: 'vec2f' },
+	'4x16float': { size: 2, structType: 'vec4f' },
 };
 
 /**
@@ -475,6 +477,10 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 				words[ writeIndex ] = packOct16( _vec );
 
 			} else if ( type === '2x16float' ) {
+
+				words[ writeIndex ] = toHalfFloat( _vec.x ) | toHalfFloat( _vec.y ) << 16;
+
+			} else if ( type === '4x16float' ) {
 
 				words[ writeIndex ] = toHalfFloat( _vec.x ) | toHalfFloat( _vec.y ) << 16;
 				words[ writeIndex + 1 ] = toHalfFloat( _vec.z ) | toHalfFloat( _vec.w ) << 16;
