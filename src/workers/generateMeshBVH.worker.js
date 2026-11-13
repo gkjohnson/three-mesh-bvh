@@ -30,11 +30,11 @@ self.onmessage = ( { data } ) => {
 
 	}
 
-	const { index, position, options } = data;
+	const { index, position, normalized, options } = data;
 	try {
 
 		const geometry = new BufferGeometry();
-		geometry.setAttribute( 'position', new BufferAttribute( position, 3, false ) );
+		geometry.setAttribute( 'position', new BufferAttribute( position, 3, normalized ) );
 		if ( index ) {
 
 			geometry.setIndex( new BufferAttribute( index, 1, false ) );

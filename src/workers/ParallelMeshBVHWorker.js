@@ -2,7 +2,7 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { convertToBufferType, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
 
@@ -75,14 +75,21 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			}
 
-			if (
-				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
-				geometry.index && geometry.index.isInterleavedBufferAttribute
-			) {
+			if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
 
-				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute is not supported for the index attribute.' );
 
 			}
+
+			let { transferBuffers = false } = options;
+			if ( transferBuffers && geometry.attributes.position.isInterleavedBufferAttribute ) {
+
+				console.warn( 'ParallelMeshBVHWorker: An interleaved position attribute cannot be transferred. Copying the buffers instead.' );
+				transferBuffers = false;
+
+			}
+
+			const indexAttribute = geometry.index;
 
 			worker.onerror = e => {
 
@@ -108,19 +115,30 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 						...options,
 					};
 
-					// we need to replace the arrays because they're neutered entirely by the
-					// webworker transfer.
-					geometry.attributes.position.array = position;
+					if ( transferBuffers ) {
+
+						// we need to replace the arrays because they're neutered entirely by the
+						// webworker transfer.
+						geometry.attributes.position.array = position;
+
+					}
+
 					if ( serialized.index ) {
 
-						if ( geometry.index ) {
-
-							geometry.index.array = serialized.index;
-
-						} else {
+						if ( ! indexAttribute ) {
 
 							const newIndex = new BufferAttribute( serialized.index, 1, false );
 							geometry.setIndex( newIndex );
+
+						} else if ( transferBuffers ) {
+
+							indexAttribute.array = serialized.index;
+
+						} else if ( ! bvh.indirect ) {
+
+							// the build reordered a copy of the index so write it back
+							indexAttribute.array.set( serialized.index );
+							indexAttribute.needsUpdate = true;
 
 						}
 
@@ -149,14 +167,26 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			};
 
-			const index = geometry.index ? geometry.index.array : null;
-			const position = geometry.attributes.position.array;
+			let index, position;
+			if ( transferBuffers ) {
+
+				index = convertToBufferType( geometry.index ? geometry.index.array : null, SharedArrayBuffer );
+				position = convertToBufferType( geometry.attributes.position.array, SharedArrayBuffer );
+
+			} else {
+
+				index = geometry.index ? copyAttributeArray( geometry.index, SharedArrayBuffer ) : null;
+				position = copyAttributeArray( geometry.attributes.position, SharedArrayBuffer );
+
+			}
+
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
 				maxWorkerCount: this.maxWorkerCount,
-				index: convertToBufferType( index, SharedArrayBuffer ),
-				position: convertToBufferType( position, SharedArrayBuffer ),
+				index,
+				position,
+				normalized: geometry.attributes.position.normalized,
 				options: {
 					...options,
 					onProgress: null,
@@ -176,7 +206,10 @@ class _ParallelMeshBVHWorker extends WorkerBase {
  * A drop-in replacement for `GenerateMeshBVHWorker` that distributes BVH construction across
  * multiple Web Workers in parallel for faster builds on large geometry. Requires
  * `SharedArrayBuffer` support (cross-origin isolated context). Falls back to a single-threaded
- * `GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable.
+ * `GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable. A parallel build
+ * transfers nothing: the geometry arrays are copied into `SharedArrayBuffers` for it. With
+ * `transferBuffers` set, arrays that already use a `SharedArrayBuffer` are shared without a copy,
+ * and the others are replaced by their copies when the build finishes.
  *
  * Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
  * `maxWorkerCount`.

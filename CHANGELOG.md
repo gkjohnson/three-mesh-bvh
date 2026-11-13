@@ -6,17 +6,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 ### Added
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: Support an interleaved position attribute. The index still can't be interleaved.
 - GenerateMeshBVHWorker, ParallelMeshBVHWorker: Fall back to a pre-bundled copy of the worker script, loaded through a blob url, when the worker module fails to load, such as when the library is loaded from a CDN. Jobs are sent once the worker has loaded so a failed load no longer leaves the geometry buffers detached.
 - "REVISION" export with the package version, with a "-dev" suffix outside of published builds, and a "window.__THREE_MESH_BVH__" global set to it so pages using the library can be detected, with a warning when multiple copies are loaded.
 - BVHHelper: "displayChildBVHs" option to also display the BVHs of the objects in an ObjectBVH.
 - BVHComputeData: "oct16", "2x16float" and "4x16float" packed attribute types for octahedral encoded normals and tangents and half float uvs and colors.
 
 ### Changed
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The geometry position and index are copied to the worker by default instead of transferred, so the geometry stays readable during the build and attributes sharing its buffers are no longer detached. The reordered index is written back into the original index array. Set the new "transferBuffers" option to keep the previous behavior.
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
 
 ### Fixed
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The position attribute's "normalized" flag is now respected when building in the worker.
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 

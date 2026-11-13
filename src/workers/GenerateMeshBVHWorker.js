@@ -2,15 +2,18 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
+import { copyAttributeArray } from '../utils/BufferUtils.js';
 
 let _fallbackUrl = null;
 
 /**
  * Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
- * geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
- * the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
- * being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
- * the MeshBVH is finished generating.
+ * geometry position and index arrays are copied to the Worker so the geometry can still be read
+ * while the BVH is being generated, and the reordered index is written back to the geometry's
+ * original index array when it finishes. If `transferBuffers` is set the array `ArrayBuffers` are
+ * transferred instead, meaning the geometry will be unavailable to use while the BVH is being
+ * processed unless `SharedArrayBuffers` are used. They will be automatically replaced when the
+ * MeshBVH is finished generating.
  *
  * If the worker module can't be loaded, such as when the library is loaded from a CDN on another
  * origin or the worker can't resolve the "three" import, a pre-bundled copy of the worker script
@@ -75,6 +78,8 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	/**
 	 * Generates a `MeshBVH` instance for the given geometry with the given options in a WebWorker.
 	 * Returns a Promise that resolves with the generated `MeshBVH`. Throws if already running.
+	 * By default the geometry can still be read during the build, but its position and index
+	 * arrays must not be modified until the promise resolves.
 	 *
 	 * @name generate
 	 * @memberof GenerateMeshBVHWorker
@@ -84,6 +89,11 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	 * @param {Object} [options] - Same options accepted by the `MeshBVH` constructor.
 	 * @param {function(number): void} [options.onProgress] - Callback invoked with a `[0, 1]`
 	 *   progress value as the BVH is built.
+	 * @param {boolean} [options.transferBuffers=false] - If true the position and index
+	 *   `ArrayBuffers` are transferred to the worker rather than copied, avoiding the copy but
+	 *   leaving the geometry unusable until the build finishes. Any other attribute stored in the
+	 *   same `ArrayBuffer` is detached as well. Ignored with a warning for an interleaved position
+	 *   attribute.
 	 * @returns {Promise<MeshBVH>}
 	 */
 
@@ -100,14 +110,21 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
-			if (
-				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
-				geometry.index && geometry.index.isInterleavedBufferAttribute
-			) {
+			if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
 
-				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
+				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute is not supported for the index attribute.' );
 
 			}
+
+			let { transferBuffers = false } = options;
+			if ( transferBuffers && geometry.attributes.position.isInterleavedBufferAttribute ) {
+
+				console.warn( 'GenerateMeshBVHWorker: An interleaved position attribute cannot be transferred. Copying the buffers instead.' );
+				transferBuffers = false;
+
+			}
+
+			const indexAttribute = geometry.index;
 
 			worker.onerror = e => {
 
@@ -134,19 +151,30 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					}, options );
 
-					// we need to replace the arrays because they're neutered entirely by the
-					// webworker transfer.
-					geometry.attributes.position.array = position;
+					if ( transferBuffers ) {
+
+						// we need to replace the arrays because they're neutered entirely by the
+						// webworker transfer.
+						geometry.attributes.position.array = position;
+
+					}
+
 					if ( serialized.index ) {
 
-						if ( geometry.index ) {
-
-							geometry.index.array = serialized.index;
-
-						} else {
+						if ( ! indexAttribute ) {
 
 							const newIndex = new BufferAttribute( serialized.index, 1, false );
 							geometry.setIndex( newIndex );
+
+						} else if ( transferBuffers ) {
+
+							indexAttribute.array = serialized.index;
+
+						} else if ( ! bvh.indirect ) {
+
+							// the build reordered a copy of the index so write it back
+							indexAttribute.array.set( serialized.index );
+							indexAttribute.needsUpdate = true;
 
 						}
 
@@ -175,8 +203,19 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 			};
 
-			const index = geometry.index ? geometry.index.array : null;
-			const position = geometry.attributes.position.array;
+			let index, position;
+			if ( transferBuffers ) {
+
+				index = geometry.index ? geometry.index.array : null;
+				position = geometry.attributes.position.array;
+
+			} else {
+
+				index = geometry.index ? copyAttributeArray( geometry.index ) : null;
+				position = copyAttributeArray( geometry.attributes.position );
+
+			}
+
 			const transferable = [ position ];
 			if ( index ) {
 
@@ -188,6 +227,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 				index,
 				position,
+				normalized: geometry.attributes.position.normalized,
 				options: {
 					...options,
 					onProgress: null,

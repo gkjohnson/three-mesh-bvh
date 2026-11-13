@@ -5,7 +5,7 @@ export class GenerateMeshBVHWorker {
 
 	readonly running: boolean;
 
-	generate( geometry: BufferGeometry, options?: BVHOptions ): Promise<MeshBVH>;
+	generate( geometry: BufferGeometry, options?: BVHOptions & { transferBuffers?: boolean } ): Promise<MeshBVH>;
 	dispose(): void;
 
 }
