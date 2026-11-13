@@ -7,6 +7,8 @@ import {
 	Raycaster,
 	Float32BufferAttribute,
 	Uint16BufferAttribute,
+	Group,
+	Vector3,
 	REVISION,
 } from 'three';
 import {
@@ -40,6 +42,50 @@ runTestMatrix( {
 	} else {
 
 		describe.skip( 'Skipping tests due to three.js revision' );
+
+	}
+
+} );
+
+// The structure of the raycast results has changed in previous versions
+describe.skipIf( parseInt( REVISION ) < 175 )( 'Raycast threshold scale', () => {
+
+	// the bvh must scale the threshold the same way Line.raycast does in the installed three.js version
+	const cases = [
+		{ name: 'non-uniform object scale', objectScale: [ 1, 1, 0.5 ], parentScale: 1, offset: 0.11 },
+		{ name: 'scaled parent', objectScale: [ 1, 1, 1 ], parentScale: 2, offset: 0.15 },
+	];
+
+	for ( const { name, objectScale, parentScale, offset } of cases ) {
+
+		it( `matches three.js with a ${ name }`, () => {
+
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new Float32BufferAttribute( [ 0, 0, 0, 1, 0, 0 ], 3 ) );
+			geometry.computeBoundsTree( { type: LineSegmentsBVH } );
+			const bvh = geometry.boundsTree;
+
+			const lineSegments = new LineSegments( geometry );
+			lineSegments.scale.set( ...objectScale );
+
+			const parent = new Group();
+			parent.scale.setScalar( parentScale );
+			parent.add( lineSegments );
+			parent.updateMatrixWorld( true );
+
+			// passes over the middle of the segment, "offset" away from it in world units
+			const raycaster = new Raycaster( new Vector3( 0.5 * parentScale, offset, - 1 ), new Vector3( 0, 0, 1 ) );
+			raycaster.params.Line.threshold = 0.1;
+
+			const bvhHits = raycaster.intersectObject( lineSegments );
+
+			geometry.boundsTree = null;
+			const ogHits = raycaster.intersectObject( lineSegments );
+			geometry.boundsTree = bvh;
+
+			expect( bvhHits ).toEqual( ogHits );
+
+		} );
 
 	}
 
