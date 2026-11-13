@@ -478,12 +478,12 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 
 			} else if ( type === '2x16float' ) {
 
-				words[ writeIndex ] = toHalfFloat( _vec.x ) | toHalfFloat( _vec.y ) << 16;
+				words[ writeIndex ] = toHalfFloat( _vec.x ) | ( toHalfFloat( _vec.y ) << 16 );
 
 			} else if ( type === '4x16float' ) {
 
-				words[ writeIndex ] = toHalfFloat( _vec.x ) | toHalfFloat( _vec.y ) << 16;
-				words[ writeIndex + 1 ] = toHalfFloat( _vec.z ) | toHalfFloat( _vec.w ) << 16;
+				words[ writeIndex ] = toHalfFloat( _vec.x ) | ( toHalfFloat( _vec.y ) << 16 );
+				words[ writeIndex + 1 ] = toHalfFloat( _vec.z ) | ( toHalfFloat( _vec.w ) << 16 );
 
 			} else {
 
