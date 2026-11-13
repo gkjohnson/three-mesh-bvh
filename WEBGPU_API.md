@@ -104,9 +104,14 @@ No alpha or material tests are applied.
 constructor(
 	objects: Object3D | BufferGeometry | GeometryBVH | Array,
 	{
-		// WGSL type map for the interleaved per-vertex attribute
-		// buffer. Keys are geometry attribute names; values are `'f32'`,
-		// `'vec2f'`, `'vec3f'` or `'vec4f'`.
+		// Type map for the interleaved per-vertex attribute buffer.
+		// Keys are geometry attribute names; values are `'f32'`,
+		// `'vec2f'`, `'vec3f'` or `'vec4f'`, or one of the packed types:
+		// `'oct16'` stores a direction and the sign of w in one word
+		// (normals, tangents) and always unpacks to a `vec4f` unit vector
+		// with w = ±1, `'2x16float'` stores two half floats in one word
+		// (uvs) and unpacks to a `vec2f`, and `'4x16float'` stores four
+		// half floats in two words (colors) and unpacks to a `vec4f`.
 		attributes = { position: 'vec4f' }: Record<string, string>,
 
 		// When true, a [MeshBVH](MeshBVH) is automatically built for any

@@ -1,4 +1,4 @@
-import { BoxGeometry, Mesh, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
+import { BoxGeometry, BufferAttribute, DataUtils, Mesh, OrthographicCamera, PerspectiveCamera, Ray, TorusKnotGeometry, Vector3 } from 'three';
 import { WebGPURenderer, StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
 import { storage, uint, uniform, vec2 } from 'three/tsl';
 import { MeshBVH, NOT_INTERSECTED, INTERSECTED, STOP_TRAVERSAL } from '../../src/index.js';
@@ -268,6 +268,73 @@ async function init() {
 		}
 
 		return { values, expected: expected.map( Math.fround ) };
+
+	};
+
+	// Normals and tangents packed as "oct16", uvs as "2x16float" and HDR colors as "4x16float". Returns every
+	// vertex's normal, tangent, color and uv read through getVertex, the CPU values, and a raycast hit distance.
+	window.testPackedAttributes = async () => {
+
+		const geometry = new TorusKnotGeometry( 1, 0.4, 32, 8 );
+		geometry.computeTangents();
+		const { normal, tangent, uv } = geometry.attributes;
+		const count = normal.count;
+		for ( let i = 0; i < count; i += 2 ) {
+
+			tangent.setW( i, - tangent.getW( i ) );
+
+		}
+
+		const colors = new Float32Array( count * 4 ).map( ( v, i ) => ( ( i * 7919 ) % 1000 ) / 125 - 0.5 );
+		geometry.setAttribute( 'color', new BufferAttribute( colors, 4 ) );
+
+		// aim the ray through the first triangle's centroid so it hits
+		const { position } = geometry.attributes;
+		const { index } = geometry;
+		const centroid = new Vector3();
+		for ( let k = 0; k < 3; k ++ ) {
+
+			centroid.add( new Vector3().fromBufferAttribute( position, index.getX( k ) ).divideScalar( 3 ) );
+
+		}
+
+		const packedData = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', normal: 'oct16', tangent: 'oct16', color: '4x16float', uv: '2x16float' } } );
+		packedData.update();
+
+		const bits = await readCompute( output => wgslTagFn`
+			fn vertices() -> void {
+				for ( var i = 0u; i < ${ count }u; i ++ ) {
+					let v = ${ packedData.fns.getVertex }( i );
+					let values = array<vec4f, 4>( v.normal, v.tangent, v.color, vec4f( v.uv, 0.0, 0.0 ) );
+					for ( var j = 0u; j < 14u; j ++ ) {
+						${ output }[ i * 14u + j ] = bitcast<u32>( values[ j / 4u ][ j % 4u ] );
+					}
+				}
+				var ray: ${ rayStruct };
+				ray.origin = vec3f( ${ centroid.x }, ${ centroid.y }, 5.0 );
+				ray.direction = vec3f( 0.0, 0.0, -1.0 );
+				var hit: ${ rayIntersectionResultStruct };
+				let didHit = ${ packedData.fns.raycastFirstHit }( ray, &hit );
+				${ output }[ ${ count * 14 }u ] = bitcast<u32>( select( -1.0, hit.dist, didHit ) );
+			}
+		`(), count * 14 + 1 );
+
+		const values = Array.from( new Float32Array( new Uint32Array( bits ).buffer ) );
+		const half = v => DataUtils.fromHalfFloat( DataUtils.toHalfFloat( v ) );
+		const expected = [];
+		for ( let i = 0; i < count; i ++ ) {
+
+			expected.push(
+				normal.getX( i ), normal.getY( i ), normal.getZ( i ), 1,
+				tangent.getX( i ), tangent.getY( i ), tangent.getZ( i ), tangent.getW( i ),
+				...[ ...colors.slice( i * 4, i * 4 + 4 ) ].map( half ),
+				half( uv.getX( i ) ), half( uv.getY( i ) ),
+			);
+
+		}
+
+		const hitDistance = new MeshBVH( geometry ).raycastFirst( new Ray( new Vector3( centroid.x, centroid.y, 5 ), new Vector3( 0, 0, - 1 ) ) ).distance;
+		return { values, expected, count, hitDistance };
 
 	};
 

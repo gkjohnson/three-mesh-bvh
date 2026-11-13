@@ -2,6 +2,7 @@ import {
 	Bone,
 	BoxGeometry,
 	BufferAttribute,
+	BufferGeometry,
 	Float16BufferAttribute,
 	InterleavedBuffer,
 	InterleavedBufferAttribute,
@@ -215,11 +216,54 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs layouts without a position attribute.', () => {
+	it( 'packs "oct16" directions, "2x16float" uvs and "4x16float" colors.', () => {
 
-		const data = new BVHComputeData( new Mesh( createGeometry() ), { attributes: { uv: 'vec2f' } } );
-		expect( () => data.update() ).not.toThrow();
-		expect( data.storage.geometry.value.array.length ).toBeGreaterThan( 0 );
+		// the path tracer layout from #961 with "2x16float" uvs comes to 36 bytes per vertex
+		const layout = getAttributeLayout( { position: 'vec3f', normal: 'oct16', tangent: 'oct16', color: '4x16float', uv: '2x16float', uv1: '2x16float' } );
+		expect( layout.members.map( m => [ m.name, m.offset, m.size, m.structType ] ) ).toEqual( [
+			[ 'position', 0, 3, 'vec3f' ],
+			[ 'normal', 3, 1, 'vec4f' ],
+			[ 'tangent', 4, 1, 'vec4f' ],
+			[ 'color', 5, 2, 'vec4f' ],
+			[ 'uv', 7, 1, 'vec2f' ],
+			[ 'uv1', 8, 1, 'vec2f' ],
+		] );
+		expect( layout.stride * 4 ).toBe( 36 );
+
+		const geometry = new BufferGeometry();
+		geometry.setAttribute( 'position', new BufferAttribute( new Float32Array( [ 0, 0, 0, 1, 0, 0, 0, 1, 0 ] ), 3 ) );
+		geometry.setAttribute( 'normal', new BufferAttribute( new Float32Array( [ 0, 0, 1, 0, 0, - 1, 2, 0, 0 ] ), 3 ) );
+		geometry.setAttribute( 'tangent', new BufferAttribute( new Float32Array( [ 1, 0, 0, - 1, 0, 1, 0, 1, 0, 0, - 1, - 1 ] ), 4 ) );
+		geometry.setAttribute( 'color', new BufferAttribute( new Float32Array( [ 0.5, 1, 2, 1, 0, 0, 0, 0, 1e5, - 1, 0.25, 4 ] ), 4 ) );
+		geometry.setAttribute( 'uv', new BufferAttribute( new Float32Array( [ 0.5, 1, 0, 0, 0.25, - 2 ] ), 2 ) );
+
+		const data = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', normal: 'oct16', tangent: 'oct16', color: '4x16float', uv: '2x16float' } } );
+		const warn = vi.spyOn( console, 'warn' );
+		try {
+
+			data.update();
+			expect( warn ).not.toHaveBeenCalled();
+
+		} finally {
+
+			warn.mockRestore();
+
+		}
+
+		const words = data.storage.geometry.value.array.slice( 3, 3 + 3 * 8 );
+		const vertex = i => [ ...words.slice( i * 8 + 3, i * 8 + 8 ) ];
+
+		// u is snorm16 in the low bits, v a 15-bit snorm above it, the top bit is the sign of w
+		expect( vertex( 0 ) ).toEqual( [ 0x00000000, 0x80007fff, 0x3c003800, 0x3c004000, 0x3c003800 ] );
+		expect( vertex( 1 ) ).toEqual( [ 0x3fff7fff, 0x3fff0000, 0x00000000, 0x00000000, 0x00000000 ] );
+		expect( vertex( 2 ) ).toEqual( [ 0x00007fff, 0xbfff7fff, 0xbc007bff, 0x44003400, 0xc0003400 ] );
+
+		// a missing direction is written as word 0, which unpacks to ( 0, 0, 1, 1 )
+		geometry.deleteAttribute( 'tangent' );
+		const missingLayout = getAttributeLayout( { position: 'vec3f', tangent: 'oct16' } );
+		const missing = new Uint32Array( 3 * missingLayout.stride ).fill( 0xffffffff );
+		appendGeometryData( { geometry }, { vertexStart: 0, vertexCount: 3 }, 0, new Float32Array( missing.buffer ), missingLayout, data );
+		expect( [ ...missing ].filter( ( w, i ) => i % 4 === 3 ) ).toEqual( [ 0, 0, 0 ] );
 
 	} );
 

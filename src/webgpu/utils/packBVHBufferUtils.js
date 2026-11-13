@@ -1,6 +1,6 @@
 /** @import { StructTypeNode } from 'three/webgpu' */
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
-import { Vector4 } from 'three';
+import { DataUtils, Vector4 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../../core/Constants.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../../core/utils/nodeBufferUtils.js';
 
@@ -322,6 +322,8 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
  * @private
  * @typedef {Object} AttributeLayoutMember
  * @property {string} name - Geometry attribute name.
+ * @property {string} type - Attribute type, eg "vec3f" or "oct16".
+ * @property {string} structType - WGSL type of the unpacked value in the attribute struct.
  * @property {number} offset - Offset within the vertex in 32-bit words.
  * @property {number} size - Size in 32-bit words.
  */
@@ -335,12 +337,17 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
  * @property {number} stride - Vertex stride in 32-bit words.
  */
 
-// size in 32-bit words of each supported attribute type
-const ATTRIBUTE_TYPE_SIZES = {
-	f32: 1,
-	vec2f: 2,
-	vec3f: 3,
-	vec4f: 4,
+// size in 32-bit words of each supported attribute type and the struct type it unpacks to. "oct16"
+// octahedron-encodes a direction plus the sign of w into one word, "2x16float" and "4x16float" store
+// two and four half floats.
+const ATTRIBUTE_TYPES = {
+	f32: { size: 1, structType: 'f32' },
+	vec2f: { size: 2, structType: 'vec2f' },
+	vec3f: { size: 3, structType: 'vec3f' },
+	vec4f: { size: 4, structType: 'vec4f' },
+	oct16: { size: 1, structType: 'vec4f' },
+	'2x16float': { size: 1, structType: 'vec2f' },
+	'4x16float': { size: 2, structType: 'vec4f' },
 };
 
 /**
@@ -348,7 +355,7 @@ const ATTRIBUTE_TYPE_SIZES = {
  * 32-bit words, in declaration order and without padding, and the vertex stride in words.
  *
  * @private
- * @param {Record<string,string>} attributes - Attribute name to WGSL type map.
+ * @param {Record<string,string>} attributes - Attribute name to attribute type map.
  * @returns {AttributeLayout}
  */
 export function getAttributeLayout( attributes ) {
@@ -357,14 +364,16 @@ export function getAttributeLayout( attributes ) {
 	let stride = 0;
 	for ( const name in attributes ) {
 
-		const size = ATTRIBUTE_TYPE_SIZES[ attributes[ name ] ];
-		if ( ! size ) {
+		const type = attributes[ name ];
+		const info = ATTRIBUTE_TYPES[ type ];
+		if ( ! info ) {
 
-			throw new Error( `BVHComputeData: Unsupported attribute type "${ attributes[ name ] }" for "${ name }".` );
+			throw new Error( `BVHComputeData: Unsupported attribute type "${ type }" for "${ name }".` );
 
 		}
 
-		members.push( { name, offset: stride, size } );
+		const { size, structType } = info;
+		members.push( { name, type, structType, offset: stride, size } );
 		stride += size;
 
 	}
@@ -391,7 +400,8 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 	const { geometry, mesh = null } = bvh;
 	const { vertexStart, vertexCount } = range;
 	const { members, stride } = layout;
-	members.forEach( ( { name, offset, size } ) => {
+	const words = new Uint32Array( target.buffer, target.byteOffset, target.length );
+	members.forEach( ( { name, type, structType, offset, size } ) => {
 
 		const attr = geometry.attributes[ name ];
 		bvhData.getDefaultAttributeValue( name, _def );
@@ -399,8 +409,9 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 		const isSkinned = mesh && ( name === 'position' || name === 'normal' || name === 'tangent' );
 
 		// copy straight from the backing array since per-vertex accessors dominate update time on large
-		// scenes. Normalized, half float and skinned values need the accessor path below to be converted.
-		if ( attr && ! isSkinned && ! attr.normalized && ! attr.isFloat16BufferAttribute ) {
+		// scenes. Normalized, half float, skinned and packed values need the accessor path below to be converted.
+		const isPacked = structType !== type;
+		if ( attr && ! isSkinned && ! isPacked && ! attr.normalized && ! attr.isFloat16BufferAttribute ) {
 
 			const { itemSize } = attr;
 			const array = attr.isInterleavedBufferAttribute ? attr.data.array : attr.array;
@@ -461,14 +472,68 @@ export function appendGeometryData( bvh, range, writeOffset, target, layout, bvh
 			}
 
 			const writeIndex = ( writeOffset + i ) * stride + offset;
-			for ( let c = 0; c < size; c ++ ) {
+			if ( type === 'oct16' ) {
 
-				target[ writeIndex + c ] = _vec.getComponent( c );
+				words[ writeIndex ] = packOct16( _vec );
+
+			} else if ( type === '2x16float' ) {
+
+				words[ writeIndex ] = toHalfFloat( _vec.x ) | ( toHalfFloat( _vec.y ) << 16 );
+
+			} else if ( type === '4x16float' ) {
+
+				words[ writeIndex ] = toHalfFloat( _vec.x ) | ( toHalfFloat( _vec.y ) << 16 );
+				words[ writeIndex + 1 ] = toHalfFloat( _vec.z ) | ( toHalfFloat( _vec.w ) << 16 );
+
+			} else {
+
+				for ( let c = 0; c < size; c ++ ) {
+
+					target[ writeIndex + c ] = _vec.getComponent( c );
+
+				}
 
 			}
 
 		}
 
 	} );
+
+}
+
+// clamped first since DataUtils.toHalfFloat warns on every out of range value
+function toHalfFloat( v ) {
+
+	return DataUtils.toHalfFloat( Math.max( - 65504, Math.min( 65504, v ) ) );
+
+}
+
+/**
+ * Octahedron-encodes the direction of a vector's xyz into one word: u as snorm16 in the low bits,
+ * v as a 15-bit snorm above it, and the sign of w in the top bit. Unpacked in `getVertexFn`. Only
+ * the direction and the sign of w are kept, so a zero vector unpacks to ( 0, 0, 1, 1 ).
+ *
+ * @private
+ * @param {Vector4} v
+ * @returns {number}
+ */
+export function packOct16( v ) {
+
+	const { x, y, z, w } = v;
+	const l1 = Math.abs( x ) + Math.abs( y ) + Math.abs( z );
+	let u = l1 === 0 ? 0 : x / l1;
+	let t = l1 === 0 ? 0 : y / l1;
+	if ( z < 0 ) {
+
+		// fold the lower hemisphere over the diagonals
+		const pu = u;
+		u = ( 1 - Math.abs( t ) ) * ( pu >= 0 ? 1 : - 1 );
+		t = ( 1 - Math.abs( pu ) ) * ( t >= 0 ? 1 : - 1 );
+
+	}
+
+	const qu = Math.round( Math.max( - 1, Math.min( 1, u ) ) * 32767 );
+	const qv = Math.round( Math.max( - 1, Math.min( 1, t ) ) * 16383 );
+	return ( ( qu & 0xffff ) | ( ( qv & 0x7fff ) << 16 ) | ( w < 0 ? 0x80000000 : 0 ) ) >>> 0;
 
 }
