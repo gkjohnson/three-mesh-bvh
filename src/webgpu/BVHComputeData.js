@@ -6,7 +6,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
 import { BYTES_PER_NODE, UINT32_PER_NODE } from '../core/Constants.js';
-import { proxy, proxyFn } from './nodes/NodeProxy.js';
+import { proxyFn, NodeProxyObject } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	objectRecordStruct,
@@ -754,45 +754,6 @@ export class BVHComputeData {
 		}
 
 		return transformMap;
-
-	}
-
-}
-
-
-// A container whose string members are returned as stable proxy nodes. Assigning a member stores
-// the underlying node.
-// TODO: we should automatically infer a proxy node vs fn. Perhaps in r185 we won't need the difference?
-class NodeProxyObject {
-
-	constructor( initialization = {}, createProxy = proxy ) {
-
-		const proxies = {};
-
-		// the raw backing object holds the underlying nodes and is the proxy target. "createProxy"
-		// selects the proxy variant - "proxy" for plain nodes, "proxyFn" for callable function nodes.
-		return new Proxy( { ...initialization }, {
-
-			get( target, property ) {
-
-				if ( ! proxies[ property ] ) {
-
-					proxies[ property ] = createProxy( property, target );
-
-				}
-
-				return proxies[ property ];
-
-			},
-
-			set( target, property, value ) {
-
-				target[ property ] = value;
-				return true;
-
-			},
-
-		} );
 
 	}
 
