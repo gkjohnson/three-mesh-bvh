@@ -15,7 +15,7 @@ import { closestPointToTriangle } from '../tsl/fns.js';
 export function getClosestPointToPointFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { transforms } = bvhData.storage;
+	const { objects } = bvhData.storage;
 	const { getTriangleIndices, getVertexPosition } = bvhData.fns;
 
 	const scratchToWorldMat = mat4().toVar( 'bvh_toWorldMat' );
@@ -148,7 +148,7 @@ export function getClosestPointToPointFn( bvhData ) {
 		transformShapeFn: wgslTagFn/* wgsl */`
 			fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
 
-				${ scratchToWorldMat } = ${ transforms }[ objectIndex ].matrixWorld;
+				${ scratchToWorldMat } = ${ objects }[ objectIndex ].matrixWorld;
 
 			}
 		`,

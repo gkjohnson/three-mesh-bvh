@@ -18,14 +18,14 @@ export const bvhNodeStruct = new StructTypeNode( {
 }, 'BVHNode' );
 bvhNodeStruct.getLength = () => 2 * bvhNodeBoundsStruct.getLength() + 4;
 
-export const transformStruct = new StructTypeNode( {
+export const objectRecordStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',
 	inverseMatrixWorld: 'mat4x4f',
 	visible: 'uint',
 	_alignment0: 'uint',
 	_alignment1: 'uint',
 	_alignment2: 'uint',
-}, 'TransformStruct' );
+}, 'ObjectRecord' );
 
 
 /**
