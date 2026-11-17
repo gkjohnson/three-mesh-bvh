@@ -1,7 +1,6 @@
 /** @import { StructTypeNode } from 'three/webgpu' */
 /** @import { BVHComputeData } from '../BVHComputeData.js' */
 import { wgslTagCode, wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { BVH_STACK_DEPTH } from '../tsl/constants.js';
 import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../../core/Constants.js';
 
 /**
@@ -49,6 +48,7 @@ export function getShapecastFn( bvhData, options ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { nodes, transforms } = bvhData.storage;
+	const stackDepth = bvhData._stackDepth;
 
 	let prefixSnippet = '';
 	if ( prefixFn ) {
@@ -109,7 +109,7 @@ export function getShapecastFn( bvhData, options ) {
 
 			var isTLAS = true;
 			var pointer: i32 = 0;
-			var stack: array<u32, ${ BVH_STACK_DEPTH }>;
+			var stack: array<u32, ${ stackDepth }>;
 			stack[ 0 ] = 0u;
 
 			var blasDidHit: bool = false;
@@ -142,7 +142,7 @@ export function getShapecastFn( bvhData, options ) {
 				}
 
 				// check if we've finished all nodes on the stack (or overrun the stack)
-				if ( pointer < 0 || pointer >= i32( ${ BVH_STACK_DEPTH } ) ) {
+				if ( pointer < 0 || pointer >= i32( ${ stackDepth } ) ) {
 
 					break;
 

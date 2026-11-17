@@ -1,6 +1,6 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
 import { Matrix4, Mesh, Group } from 'three';
-import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
+import { StorageBufferAttribute, StructTypeNode, ConstNode } from 'three/webgpu';
 import { storage, uniform } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
@@ -20,7 +20,6 @@ import { getTriangleIndicesFn, getVertexFn, getVertexPositionFn } from './shapec
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
-import { BVH_STACK_DEPTH } from './tsl/constants.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -156,6 +155,10 @@ export class BVHComputeData {
 			getVertexPosition: null,
 		}, proxyFn );
 
+		// the size of the shapecast traversal stack, set to the depth of the packed bvhs in "update"
+		this._stackDepth = new ConstNode( 1, 'uint' );
+		this._hasUpdated = false;
+
 		// the start of the attribute data in the geometry buffer, in 32-bit words. A uniform so the shader
 		// code doesn't change, and need recompiling, when the index length does
 		this._attributesOffset = uniform( 0, 'uint' );
@@ -246,6 +249,9 @@ export class BVHComputeData {
 	 * Rebuilds all GPU storage buffers from the current scene state. Must be called at least
 	 * once before using `this.storage` or `this.fns` in a shader, and again whenever the
 	 * scene topology changes (objects added/removed, geometry modified).
+	 *
+	 * The traversal stack of the shapecast functions is sized to the depth of the packed BVHs, so
+	 * shaders built before an update that makes the BVHs deeper must be rebuilt.
 	 */
 	update() {
 
@@ -378,12 +384,15 @@ export class BVHComputeData {
 		// Get the max depth of the tlas traversal and infer the needed depth for the compute stack. Subtract one since
 		// the TLAS leaf pushes one node instead of two.
 		const tlasDepth = getMaxNodeDepth( bvh._roots[ 0 ] );
-		const maxTraversalDepth = tlasDepth + maxSubtreeDepth - 1;
-		if ( maxTraversalDepth > BVH_STACK_DEPTH.value ) {
+		const maxTraversalDepth = Math.max( tlasDepth + maxSubtreeDepth - 1, 1 );
+		if ( this._hasUpdated && maxTraversalDepth > this._stackDepth.value ) {
 
-			throw new Error( 'BVHComputeData: BVH depth overruns the compute stack depth.' );
+			console.warn( 'BVHComputeData: The BVH is deeper than in the last update. Shaders built before this update must be rebuilt.' );
 
 		}
+
+		this._stackDepth.value = maxTraversalDepth;
+		this._hasUpdated = true;
 
 		//
 
