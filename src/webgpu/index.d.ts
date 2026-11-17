@@ -8,11 +8,11 @@ export class BVHComputeData {
 
 	storage: {
 		nodes: unknown;
-		transforms: unknown;
+		objects: unknown;
 	};
 
 	structs: {
-		transform: unknown;
+		objectRecord: unknown;
 		attributes: unknown;
 	};
 
@@ -45,7 +45,7 @@ export class BVHComputeData {
 	} ): unknown;
 
 	// override points for subclasses
-	writeTransformData(
+	writeObjectRecord(
 		info: {
 			object: Object3D;
 			instanceId: number;

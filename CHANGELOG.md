@@ -12,13 +12,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: "oct16", "2x16float" and "4x16float" packed attribute types for octahedral encoded normals and tangents and half float uvs and colors.
 
 ### Changed
-- BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
+- BVHComputeData: "writeObjectRecord" (previously the private "writeTransformData"), "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
+- BVHComputeData: The per-object transform data is renamed to an object record: "storage.transforms" is now "storage.objects", "structs.transform" is "structs.objectRecord" and the "transformStruct" export is "objectRecordStruct".
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
 
 ### Fixed
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
+- BVHComputeData: "update" throws again when the BVH is deeper than the traversal stack instead of silently missing hits.
 
 ## [0.9.18] - 2026-11-03
 ### Added

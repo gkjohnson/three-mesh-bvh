@@ -9,7 +9,7 @@ import { BYTES_PER_NODE, UINT32_PER_NODE } from '../core/Constants.js';
 import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
-	transformStruct,
+	objectRecordStruct,
 } from './tsl/structs.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
@@ -148,7 +148,7 @@ export class BVHComputeData {
 		// storage buffers and structs are populated in "update"; their members are accessed through
 		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
 		this.storage = new NodeProxyObject();
-		this.structs = new NodeProxyObject( { transform: transformStruct } );
+		this.structs = new NodeProxyObject( { objectRecord: objectRecordStruct } );
 		this.fns = new NodeProxyObject( {
 			sampleTrianglePoint: null,
 			getTriangleIndices: null,
@@ -446,7 +446,7 @@ export class BVHComputeData {
 
 		//
 
-		const transformArrayBuffer = new ArrayBuffer( structs.transform.getLength() * transformBufferLength * 4 );
+		const transformArrayBuffer = new ArrayBuffer( structs.objectRecord.getLength() * transformBufferLength * 4 );
 
 		//
 
@@ -456,10 +456,10 @@ export class BVHComputeData {
 		// And that breaks code. For now itemSize = 1 does not seem to break anything
 		const bvhNodesStorage = storage( new StorageBufferAttribute( new Uint32Array( bvhNodesBuffer ), 1 ), bvhNodeStruct ).toReadOnly().setName( 'bvh_nodes' );
 		const transformsBuffer = new StorageBufferAttribute( new Uint32Array( transformArrayBuffer ), 1 );
-		const transformsStorage = storage( transformsBuffer, structs.transform ).toReadOnly().setName( 'bvh_transforms' );
+		const objectsStorage = storage( transformsBuffer, structs.objectRecord ).toReadOnly().setName( 'bvh_objects' );
 		const geometryStorage = storage( new StorageBufferAttribute( geometryBuffer, 1 ), 'uint' ).toReadOnly().setName( 'bvh_geometry' );
 
-		this.storage.transforms = transformsStorage;
+		this.storage.objects = objectsStorage;
 		this.storage.nodes = bvhNodesStorage;
 		this.storage.geometry = geometryStorage;
 		this.structs.attributes = attributeStruct;
@@ -469,7 +469,7 @@ export class BVHComputeData {
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
 		transformMap.forEach( info => {
 
-			this.writeTransformData( info, _inverseMatrix, info.slot, transformArrayBuffer );
+			this.writeObjectRecord( info, _inverseMatrix, info.slot, transformArrayBuffer );
 
 		} );
 
@@ -542,12 +542,12 @@ export class BVHComputeData {
 		appendBVHData( bvh, null, 0, nodesAttribute.array.buffer );
 		nodesAttribute.needsUpdate = true;
 
-		const transformsAttribute = storage.transforms.proxyNode.value;
+		const transformsAttribute = storage.objects.proxyNode.value;
 		const transformArrayBuffer = transformsAttribute.array.buffer;
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
 		this._getTransformMap( bvh ).forEach( info => {
 
-			this.writeTransformData( info, _inverseMatrix, info.slot, transformArrayBuffer );
+			this.writeObjectRecord( info, _inverseMatrix, info.slot, transformArrayBuffer );
 
 		} );
 
@@ -556,16 +556,16 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Writes the world/inverse-world matrices and visibility flag for one transform entry
+	 * Writes the world/inverse-world matrices and visibility flag of one object record
 	 * into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
 	 * data (e.g. material index).
 	 *
-	 * @param {{object:Object3D,instanceId:number,compositeId:number,root:number,slot:number}} info - Transform entry: the object, its instance index, and the transform slot it is written to.
+	 * @param {{object:Object3D,instanceId:number,compositeId:number,root:number,slot:number}} info - The object, its instance index, and the slot its record is written to.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
-	 * @param {number} writeOffset - Index of the transform slot to write into.
+	 * @param {number} writeOffset - Index of the record to write into.
 	 * @param {ArrayBuffer} targetBuffer - Destination buffer.
 	 */
-	writeTransformData( info, premultiplyMatrix, writeOffset, targetBuffer ) {
+	writeObjectRecord( info, premultiplyMatrix, writeOffset, targetBuffer ) {
 
 		const { structs } = this;
 		const transformBufferF32 = new Float32Array( targetBuffer );
@@ -585,11 +585,11 @@ export class BVHComputeData {
 
 		// write transform
 		_matrix.premultiply( premultiplyMatrix );
-		_matrix.toArray( transformBufferF32, writeOffset * structs.transform.getLength() );
+		_matrix.toArray( transformBufferF32, writeOffset * structs.objectRecord.getLength() );
 
 		// write inverse transform
 		_matrix.invert();
-		_matrix.toArray( transformBufferF32, writeOffset * structs.transform.getLength() + 16 );
+		_matrix.toArray( transformBufferF32, writeOffset * structs.objectRecord.getLength() + 16 );
 
 		let visible = isObjectVisible( object );
 		if ( object.isBatchedMesh ) {
@@ -598,7 +598,7 @@ export class BVHComputeData {
 
 		}
 
-		transformBufferU32[ writeOffset * structs.transform.getLength() + 32 ] = visible ? 1 : 0;
+		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 32 ] = visible ? 1 : 0;
 
 	}
 
