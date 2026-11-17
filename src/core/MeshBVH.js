@@ -250,22 +250,6 @@ export class MeshBVH extends GeometryBVH {
 
 	}
 
-	constructor( geometry, options = {} ) {
-
-		if ( options.maxLeafTris ) {
-
-			console.warn( 'MeshBVH: "maxLeafTris" option has been deprecated. Use "targetLeafSize", instead.' );
-			options = {
-				...options,
-				targetLeafSize: options.maxLeafTris,
-			};
-
-		}
-
-		super( geometry, options );
-
-	}
-
 	/**
 	 * Adjusts all triangle offsets stored in the BVH by the given offset. This is useful when the
 	 * triangle data has been compacted or shifted in the geometry buffers (e.g. in `BatchedMesh`

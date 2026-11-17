@@ -150,15 +150,4 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
-	it.each( [ false, true ] )( 'supports the deprecated inverse model-view-projection camera ray arguments (named: %s)', async named => {
-
-		warnings.length = 0;
-		const { direction, maxDist } = await page.evaluate( n => window.testDeprecatedCameraRay( n ), named );
-		expect( direction ).toBeLessThan( 1e-5 );
-		expect( maxDist ).toBeLessThan( 1e-3 );
-		expect( warnings.some( w => w.includes( 'ndcToCameraRay' ) ) ).toBe( true );
-		expect( errors ).toEqual( [] );
-
-	} );
-
 } );

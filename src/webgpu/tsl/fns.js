@@ -120,27 +120,16 @@ export const intersectRayTriangle = wgslTagFn/* wgsl */ `
 	}
 `;
 
-const ndcToCameraRayDeprecated = wgslTagFn/* wgsl */`
-	// fn
-	fn ndcToCameraRayDeprecated( ndc: vec2f, inverseModelViewProjection: mat4x4f ) -> ${ rayStruct } {
-
-		var homogeneous = vec4f();
-		var ray: ${ rayStruct };
-
-		homogeneous = inverseModelViewProjection * vec4f( ndc, 0.0, 1.0 );
-		ray.origin = homogeneous.xyz / homogeneous.w;
-
-		homogeneous = inverseModelViewProjection * vec4f( ndc, 1.0, 1.0 );
-		let toFarPlane = ( homogeneous.xyz / homogeneous.w ) - ray.origin;
-		ray.maxDist = length( toFarPlane );
-		ray.direction = toFarPlane / ray.maxDist;
-
-		return ray;
-
-	}
-`;
-
-const ndcToCameraRayFn = wgslTagFn/* wgsl */`
+/**
+ * WGSL function node that builds a camera ray (origin + direction) from an NDC coordinate,
+ * the camera's world matrix, and its inverse projection matrix. Works for both
+ * perspective and orthographic projections. The origin sits on the near plane, the returned
+ * direction is normalized, and "maxDist" is the world-space distance to the far plane so
+ * traversal clips there.
+ * @type {FunctionNode}
+ * @section TSL Functions
+ */
+export const ndcToCameraRay = wgslTagFn/* wgsl */`
 	// fn
 	fn ndcToCameraRay( ndc: vec2f, cameraToWorld: mat4x4f, inverseProjection: mat4x4f ) -> ${ rayStruct } {
 
@@ -169,34 +158,3 @@ const ndcToCameraRayFn = wgslTagFn/* wgsl */`
 	}
 `;
 
-/**
- * WGSL function node that builds a camera ray (origin + direction) from an NDC coordinate,
- * the camera's world matrix, and its inverse projection matrix. Works for both
- * perspective and orthographic projections. The origin sits on the near plane, the returned
- * direction is normalized, and "maxDist" is the world-space distance to the far plane so
- * traversal clips there.
- *
- * Calling it from TSL with the deprecated "( ndc, inverseModelViewProjection )" arguments still
- * works but logs a warning, and will be removed in the next breaking release. WGSL code that calls
- * it by name must pass all three arguments.
- * @type {FunctionNode}
- * @section TSL Functions
- */
-export const ndcToCameraRay = new Proxy( ndcToCameraRayFn, {
-
-	apply( target, thisArg, params ) {
-
-		const [ first ] = params;
-		const namedDeprecated = params.length === 1 && first && typeof first === 'object' && ! first.isNode && 'inverseModelViewProjection' in first;
-		if ( params.length === 2 || namedDeprecated ) {
-
-			console.warn( 'ndcToCameraRay: "( ndc, inverseModelViewProjection )" arguments have been deprecated. Use "( ndc, cameraToWorld, inverseProjection )", instead.' );
-			return ndcToCameraRayDeprecated( ...params );
-
-		}
-
-		return target( ...params );
-
-	},
-
-} );
