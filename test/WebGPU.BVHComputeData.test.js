@@ -359,4 +359,89 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'returns where each object and geometry group was packed from getObjectInfo.', () => {
+
+		// a box has one group, and so one packed object, per side
+		const grouped = new BoxGeometry();
+		const single = new BoxGeometry( 2, 2, 2 );
+		single.clearGroups();
+
+		const groupedMesh = new Mesh( grouped );
+		const singleMesh = new Mesh( single );
+		const data = new BVHComputeData( [ groupedMesh, singleMesh ], { attributes: { position: 'vec3f' } } );
+		expect( data.getObjectInfo( groupedMesh ) ).toBe( null );
+		data.update();
+
+		const geometry = data.storage.geometry.value.array;
+		const packed = new Float32Array( geometry.buffer );
+		const toKey = ( x, y, z ) => [ x, y, z ].join();
+
+		// the positions of every triangle of an object, read the way a shader does
+		const readTriangles = info => {
+
+			const triangles = [];
+			for ( let t = info.triangleOffset, l = info.triangleOffset + info.triangleCount; t < l; t ++ ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const vertexOffset = info.attributesOffset + geometry[ info.indexOffset + t * 3 + k ] * 3;
+					return toKey( ...packed.slice( vertexOffset, vertexOffset + 3 ) );
+
+				} );
+				triangles.push( triangle.join( '|' ) );
+
+			}
+
+			return triangles.sort();
+
+		};
+
+		// the positions of a range of a geometry's triangles
+		const expectedTriangles = ( geo, start, count ) => {
+
+			const { position } = geo.attributes;
+			const triangles = [];
+			for ( let i = start; i < start + count; i += 3 ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const v = geo.index.getX( i + k );
+					return toKey( ...[ position.getX( v ), position.getY( v ), position.getZ( v ) ].map( Math.fround ) );
+
+				} );
+				triangles.push( triangle.join( '|' ) );
+
+			}
+
+			return triangles.sort();
+
+		};
+
+		// the source index is read before it is compared since the bvh reorders it within each group
+		const objectIndices = new Set();
+		grouped.groups.forEach( ( group, g ) => {
+
+			const info = data.getObjectInfo( groupedMesh, 0, g );
+			objectIndices.add( info.objectIndex );
+			expect( info.triangleCount ).toBe( group.count / 3 );
+			expect( readTriangles( info ) ).toEqual( expectedTriangles( grouped, group.start, group.count ) );
+
+		} );
+
+		const singleInfo = data.getObjectInfo( singleMesh );
+		objectIndices.add( singleInfo.objectIndex );
+		expect( singleInfo.triangleOffset ).toBe( 0 );
+		expect( singleInfo.triangleCount ).toBe( single.index.count / 3 );
+		expect( readTriangles( singleInfo ) ).toEqual( expectedTriangles( single, 0, single.index.count ) );
+
+		// every group is its own object, and all of a geometry's groups share its block
+		expect( objectIndices.size ).toBe( grouped.groups.length + 1 );
+		expect( data.getObjectInfo( groupedMesh, 0, 1 ).indexOffset ).toBe( data.getObjectInfo( groupedMesh ).indexOffset );
+		expect( singleInfo.indexOffset ).not.toBe( data.getObjectInfo( groupedMesh ).indexOffset );
+
+		expect( data.getObjectInfo( new Mesh( grouped ) ) ).toBe( null );
+		expect( data.getObjectInfo( groupedMesh, 0, grouped.groups.length ) ).toBe( null );
+
+	} );
+
 } );

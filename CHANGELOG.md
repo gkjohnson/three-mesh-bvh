@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHHelper: "displayChildBVHs" option to also display the BVHs of the objects in an ObjectBVH.
 - BVHComputeData: "oct16", "2x16float" and "4x16float" packed attribute types for octahedral encoded normals and tangents and half float uvs and colors.
 - BVH: The "strategy" option can be a function that picks the split for each node, for custom split heuristics.
+- BVHComputeData: "getObjectInfo" function returning an object's index, geometry offsets and triangle range in the packed buffers.
 
 ### Changed
 - BVHComputeData: "getShapecastFn" "transformShapeFn" must return a bool, whether to traverse the object, so an object can be skipped.
