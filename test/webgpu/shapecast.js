@@ -63,7 +63,7 @@ async function init() {
 				fn bounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ resultStruct }> ) -> u32 { return 1u; }
 			`,
 			intersectRangeFn: wgslTagFn`
-				fn range( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ resultStruct }> ) -> ${ booleanResult ? 'bool' : 'u32' } {
+				fn range( ray: ${ rayStruct }, offset: u32, count: u32, indexOffset: u32, attributesOffset: u32, result: ptr<function, ${ resultStruct }> ) -> ${ booleanResult ? 'bool' : 'u32' } {
 					result.visits += 1u;
 					if ( ${ activeObject } == 0u ) { result.badState += 1u; }
 					${ booleanResult ? `return ${ hit ? 'true' : 'false' };` : '' }
@@ -188,13 +188,13 @@ async function init() {
 		const bits = await readCompute( output => wgslTagFn`
 			fn vertices() -> void {
 				for ( var i = 0u; i < ${ count }u; i ++ ) {
-					let v = ${ vertexData.fns.getVertex }( i, 0u );
+					let v = ${ vertexData.fns.getVertex }( i, ${ vertexData.storage.transforms }[ 0 ].attributesOffset );
 					let values = array<f32, 10>( v.position.x, v.position.y, v.position.z, v.uv.x, v.uv.y, v.uv1.x, v.uv1.y, v.normal.x, v.normal.y, v.normal.z );
 					for ( var j = 0u; j < 10u; j ++ ) {
 						${ output }[ i * 10u + j ] = bitcast<u32>( values[ j ] );
 					}
 				}
-				let s = ${ vertexData.fns.sampleTrianglePoint }( vec3f( 1.0, 0.0, 0.0 ), vec3u( ${ triangle[ 0 ] }u, ${ triangle[ 1 ] }u, ${ triangle[ 2 ] }u ), 0u );
+				let s = ${ vertexData.fns.sampleTrianglePoint }( vec3f( 1.0, 0.0, 0.0 ), vec3u( ${ triangle[ 0 ] }u, ${ triangle[ 1 ] }u, ${ triangle[ 2 ] }u ), ${ vertexData.storage.transforms }[ 0 ].attributesOffset );
 				let sampled = array<f32, 10>( s.position.x, s.position.y, s.position.z, s.uv.x, s.uv.y, s.uv1.x, s.uv1.y, s.normal.x, s.normal.y, s.normal.z );
 				for ( var j = 0u; j < 10u; j ++ ) {
 					${ output }[ ${ count * 10 }u + j ] = bitcast<u32>( sampled[ j ] );
@@ -213,7 +213,7 @@ async function init() {
 				let found = ${ vertexData.fns.closestPointToPoint }( ray.origin, &point );
 				${ output }[ ${ count * 10 + 13 }u ] = bitcast<u32>( select( -1.0, point.distanceSq, found ) );
 				for ( var i = 0u; i < ${ count }u; i ++ ) {
-					let p = ${ vertexData.fns.getVertexPosition }( i, 0u );
+					let p = ${ vertexData.fns.getVertexPosition }( i, ${ vertexData.storage.transforms }[ 0 ].attributesOffset );
 					${ output }[ ${ count * 10 + 14 }u + i * 3u + 0u ] = bitcast<u32>( p.x );
 					${ output }[ ${ count * 10 + 14 }u + i * 3u + 1u ] = bitcast<u32>( p.y );
 					${ output }[ ${ count * 10 + 14 }u + i * 3u + 2u ] = bitcast<u32>( p.z );
@@ -274,7 +274,7 @@ async function init() {
 		const bits = await readCompute( output => wgslTagFn`
 			fn vertices() -> void {
 				for ( var i = 0u; i < ${ count }u; i ++ ) {
-					let v = ${ packedData.fns.getVertex }( i, 0u );
+					let v = ${ packedData.fns.getVertex }( i, ${ packedData.storage.transforms }[ 0 ].attributesOffset );
 					let values = array<vec4f, 4>( v.normal, v.tangent, v.color, vec4f( v.uv, 0.0, 0.0 ) );
 					for ( var j = 0u; j < 14u; j ++ ) {
 						${ output }[ i * 14u + j ] = bitcast<u32>( values[ j / 4u ][ j % 4u ] );
@@ -331,9 +331,10 @@ async function init() {
 			fn triangles() -> void {
 				for ( var t = 0u; t < ${ triCount }u; t ++ ) {
 					let objectIndex = t / ${ objectTriCount }u;
-					let indices = ${ triData.fns.getTriangleIndices }( t % ${ objectTriCount }u, objectIndex );
+					let info = &${ triData.storage.transforms }[ objectIndex ];
+					let indices = ${ triData.fns.getTriangleIndices }( t % ${ objectTriCount }u, info.indexOffset );
 					for ( var k = 0u; k < 3u; k ++ ) {
-						let p = ${ triData.fns.getVertexPosition }( indices[ k ], objectIndex );
+						let p = ${ triData.fns.getVertexPosition }( indices[ k ], info.attributesOffset );
 						${ output }[ t * 9u + k * 3u + 0u ] = bitcast<u32>( p.x );
 						${ output }[ t * 9u + k * 3u + 1u ] = bitcast<u32>( p.y );
 						${ output }[ t * 9u + k * 3u + 2u ] = bitcast<u32>( p.z );
@@ -348,9 +349,10 @@ async function init() {
 					let didHit = ${ triData.fns.raycastFirstHit }( ray, &hit );
 					let base = ${ triCount * 9 }u + m * 4u;
 					${ output }[ base ] = bitcast<u32>( select( -1.0, hit.dist, didHit ) );
-					let expected = ${ triData.fns.getTriangleIndices }( hit.indices.w, hit.objectIndex );
+					let hitInfo = &${ triData.storage.transforms }[ hit.objectIndex ];
+					let expected = ${ triData.fns.getTriangleIndices }( hit.indices.w, hitInfo.indexOffset );
 					${ output }[ base + 1u ] = u32( all( expected == hit.indices.xyz ) );
-					let p = ${ triData.fns.getVertexPosition }( hit.indices.x, hit.objectIndex );
+					let p = ${ triData.fns.getVertexPosition }( hit.indices.x, hitInfo.attributesOffset );
 					${ output }[ base + 2u ] = bitcast<u32>( abs( p.x ) );
 					${ output }[ base + 3u ] = bitcast<u32>( abs( p.z ) );
 				}

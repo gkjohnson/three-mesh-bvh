@@ -23,8 +23,6 @@ export class BVHComputeData {
 		getTriangleIndices: unknown;
 		getVertex: unknown;
 		getVertexPosition: unknown;
-		getTraversalTriangleIndices: unknown;
-		getTraversalVertexPosition: unknown;
 		closestPointToPoint: unknown;
 	};
 

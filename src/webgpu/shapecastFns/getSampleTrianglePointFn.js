@@ -25,12 +25,12 @@ export function getSampleTrianglePointFn( bvhData ) {
 
 	return wgslTagFn/* wgsl */`
 		// fn
-		fn bvh_sampleTrianglePoint( barycoord: vec3f, indices: vec3u, objectIndex: u32 ) -> ${ structs.attributes } {
+		fn bvh_sampleTrianglePoint( barycoord: vec3f, indices: vec3u, attributesOffset: u32 ) -> ${ structs.attributes } {
 
 			var result: ${ structs.attributes };
-			var a0 = ${ fns.getVertex }( indices.x, objectIndex );
-			var a1 = ${ fns.getVertex }( indices.y, objectIndex );
-			var a2 = ${ fns.getVertex }( indices.z, objectIndex );
+			var a0 = ${ fns.getVertex }( indices.x, attributesOffset );
+			var a1 = ${ fns.getVertex }( indices.y, attributesOffset );
+			var a2 = ${ fns.getVertex }( indices.z, attributesOffset );
 			${ interpolateBody }
 			return result;
 
