@@ -18,7 +18,8 @@ import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../../core/Constants.js';
  * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
  * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
  * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
- * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range.
+ * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range, called with the shape,
+ * the range's triangle offset and count relative to the object's geometry, the object index, and the result.
  * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
  * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
@@ -187,7 +188,7 @@ export function getShapecastFn( bvhData, options ) {
 						let count = infoX & 0x0000ffffu;
 						let offset = infoY;
 						// Cast bool callbacks to u32 to preserve their existing hit / miss behavior.
-						let rangeResult = u32( ${ intersectRangeFn }( localShape, offset, count, ${ resultArg } ) );
+						let rangeResult = u32( ${ intersectRangeFn }( localShape, offset, count, objectIndex, ${ resultArg } ) );
 						blasDidHit = rangeResult != ${ NOT_INTERSECTED }u || blasDidHit;
 						if ( rangeResult == ${ STOP_TRAVERSAL }u ) {
 

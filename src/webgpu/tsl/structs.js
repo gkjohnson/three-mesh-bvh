@@ -18,13 +18,15 @@ export const bvhNodeStruct = new StructTypeNode( {
 }, 'BVHNode' );
 bvhNodeStruct.getLength = () => 2 * bvhNodeBoundsStruct.getLength() + 4;
 
+// "indexOffset" and "attributesOffset" are where the object's geometry index and vertex attributes
+// start in the geometry buffer, in 32-bit words. Triangle and vertex indices are relative to them.
 export const transformStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',
 	inverseMatrixWorld: 'mat4x4f',
 	visible: 'uint',
+	indexOffset: 'uint',
+	attributesOffset: 'uint',
 	_alignment0: 'uint',
-	_alignment1: 'uint',
-	_alignment2: 'uint',
 }, 'TransformStruct' );
 
 
