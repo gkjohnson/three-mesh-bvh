@@ -163,6 +163,34 @@ export function getSubtreeNodeCount( root, nodeIndex ) {
 
 }
 
+/**
+ * Returns the range of primitives under a BVH root, from its leaves.
+ *
+ * @private
+ * @param {ArrayBuffer} root - A single BVH root's packed node buffer.
+ * @returns {{offset:number,count:number}}
+ */
+export function getRootPrimitiveRange( root ) {
+
+	const rootBuffer16 = new Uint16Array( root );
+	const rootBuffer32 = new Uint32Array( root );
+	let offset = Infinity;
+	let count = 0;
+	for ( let n32 = 0, l = rootBuffer32.length; n32 < l; n32 += UINT32_PER_NODE ) {
+
+		if ( IS_LEAF( n32 * 2, rootBuffer16 ) ) {
+
+			offset = Math.min( offset, rootBuffer32[ n32 + 6 ] );
+			count += rootBuffer16[ n32 * 2 + 14 ];
+
+		}
+
+	}
+
+	return { offset: count === 0 ? 0 : offset, count };
+
+}
+
 // exact contiguous span ( node count ) of the subtree rooted at "nodeIndex"
 function spanOf( rootBuffer16, rootBuffer32, nodeIndex ) {
 

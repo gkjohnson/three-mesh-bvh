@@ -33,6 +33,13 @@ export class BVHComputeData {
 
 	update(): void;
 	updateAsync(): Promise<void>;
+	getObjectInfo( object: Object3D, instanceId?: number, group?: number ): {
+		objectIndex: number;
+		indexOffset: number;
+		attributesOffset: number;
+		triangleOffset: number;
+		triangleCount: number;
+	} | null;
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;

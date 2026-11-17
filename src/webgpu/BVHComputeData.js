@@ -11,7 +11,7 @@ import {
 	bvhNodeStruct,
 	transformStruct,
 } from './tsl/structs.js';
-import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getRootPrimitiveRange, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
@@ -163,6 +163,9 @@ export class BVHComputeData {
 			getVertex: null,
 			getVertexPosition: null,
 		}, proxyFn );
+
+		// what "update" packed for every transform, for "getObjectInfo"
+		this._packedObjects = [];
 
 		// this needs no layout from "update"
 		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
@@ -487,6 +490,22 @@ export class BVHComputeData {
 
 		} );
 
+		// record what was packed for every transform, for "getObjectInfo"
+		const packedObjects = [];
+		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
+
+			packedObjects[ slot ] = { object, instanceId, root, data: null, triangleRange: null };
+
+		} );
+
+		primitiveInfo.forEach( info => {
+
+			packedObjects[ info.transformSlot ].data = info.subtree.data;
+
+		} );
+
+		this._packedObjects = packedObjects;
+
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
 		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
@@ -682,6 +701,52 @@ export class BVHComputeData {
 		}
 
 		return bvh;
+
+	}
+
+	/**
+	 * Returns where an object was packed by the last {@link BVHComputeData#update}, or null if it was
+	 * not: its `objectIndex`, the index used by `storage.transforms` and reported by hits, the
+	 * `indexOffset` and `attributesOffset` of its geometry in `storage.geometry`, and the
+	 * `triangleOffset` and `triangleCount` of the geometry group's triangles relative to that geometry.
+	 *
+	 * @param {Object3D} object - The mesh.
+	 * @param {number} [instanceId=0] - Instance index (relevant for InstancedMesh / BatchedMesh).
+	 * @param {number} [group=0] - Index of the geometry group, each of which is packed as its own object.
+	 * @returns {{objectIndex:number,indexOffset:number,attributesOffset:number,triangleOffset:number,triangleCount:number}|null}
+	 */
+	getObjectInfo( object, instanceId = 0, group = 0 ) {
+
+		const objectIndex = this._packedObjects.findIndex( packed => {
+
+			return packed.object === object && packed.instanceId === instanceId && packed.root === group;
+
+		} );
+
+		if ( objectIndex === - 1 ) {
+
+			return null;
+
+		}
+
+		const packed = this._packedObjects[ objectIndex ];
+		const { bvh, range, indexOffset, attributesOffset } = packed.data;
+		if ( packed.triangleRange === null ) {
+
+			packed.triangleRange = getRootPrimitiveRange( bvh._roots[ group ] );
+
+		}
+
+		// A non-indirect bvh built over a sub-range stores leaf offsets from the start of the whole
+		// geometry, which are shifted back by the range's triangle start when packed.
+		const triangleShift = bvh.indirect ? 0 : - range.start / 3;
+		return {
+			objectIndex,
+			indexOffset,
+			attributesOffset,
+			triangleOffset: packed.triangleRange.offset + triangleShift,
+			triangleCount: packed.triangleRange.count,
+		};
 
 	}
 
