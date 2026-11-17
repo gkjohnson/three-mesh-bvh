@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: "writeTransformData", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
-- BVHComputeData: The index and attributes are packed in one block per geometry, with triangle and vertex indices relative to it. "getTriangleIndices", "getVertex", "getVertexPosition" and "sampleTrianglePoint" take the object index as a last argument, and "intersectRangeFn" callbacks read triangles with the new "fns.getTraversalTriangleIndices" and "fns.getTraversalVertexPosition".
+- BVHComputeData: The index and attributes are packed in one block per geometry, with triangle and vertex indices relative to it. "getTriangleIndices" takes the geometry's index offset and "getVertex", "getVertexPosition" and "sampleTrianglePoint" its attributes offset as a last argument, read from the object's entry in "storage.transforms". "intersectRangeFn" callbacks receive both offsets after the count.
 
 ### Fixed
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
