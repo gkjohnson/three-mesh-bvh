@@ -35,14 +35,14 @@ export function getRaycastAnyHitFn( bvhData ) {
 			}
 		`,
 		intersectRangeFn: wgslTagFn/* wgsl */`
-			fn intersectRangeAnyHit( ray: ${ rayStruct }, offset: u32, count: u32 ) -> u32 {
+			fn intersectRangeAnyHit( ray: ${ rayStruct }, offset: u32, count: u32, objectIndex: u32 ) -> u32 {
 
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
 
-					let indices = ${ getTriangleIndices }( ti );
-					let a = ${ getVertexPosition }( indices.x );
-					let b = ${ getVertexPosition }( indices.y );
-					let c = ${ getVertexPosition }( indices.z );
+					let indices = ${ getTriangleIndices }( ti, objectIndex );
+					let a = ${ getVertexPosition }( indices.x, objectIndex );
+					let b = ${ getVertexPosition }( indices.y, objectIndex );
+					let c = ${ getVertexPosition }( indices.z, objectIndex );
 
 					let triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					if ( triResult.didHit && ( ray.maxDist <= 0.0 || triResult.dist * ${ scratchRayScalar } < ray.maxDist ) ) {

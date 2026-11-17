@@ -268,7 +268,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs the index data of every geometry before the attributes, rebased to each geometry\'s vertices.', () => {
+	it( 'packs the index data of every geometry before its attributes, relative to the geometry\'s vertices.', () => {
 
 		const indexed = new BoxGeometry();
 		const nonIndexed = new BoxGeometry( 2, 2, 2 ).toNonIndexed();
@@ -280,16 +280,40 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const geometry = data.storage.geometry.value.array;
 		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
 
-		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set
-		const packed = getPackedAttributes( data, indexCount );
-		const toKey = ( x, y, z ) => [ x, y, z ].join();
-		const packedTriangles = [];
-		for ( let i = 0; i < indexCount; i += 3 ) {
+		// every transform gives the start of its geometry's index and attributes, shared by the transforms
+		// of one geometry's bvh roots
+		const transforms = data.storage.objects.value.array;
+		const transformLength = data.structs.objectRecord.getLength();
+		const blocks = new Map();
+		for ( let i = 0; i < transforms.length; i += transformLength ) {
 
-			const triangle = [ 0, 1, 2 ].map( k => toKey( ...packed.slice( geometry[ i + k ] * 3, geometry[ i + k ] * 3 + 3 ) ) );
-			packedTriangles.push( triangle.join( '|' ) );
+			blocks.set( transforms[ i + 33 ], transforms[ i + 34 ] );
 
 		}
+
+		// one block per geometry, in either order
+		expect( blocks.size ).toBe( 2 );
+		expect( blocks.has( 0 ) ).toBe( true );
+
+		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set
+		const packed = new Float32Array( geometry.buffer );
+		const toKey = ( x, y, z ) => [ x, y, z ].join();
+		const packedTriangles = [];
+		blocks.forEach( ( attributesOffset, indexOffset ) => {
+
+			for ( let i = indexOffset; i < attributesOffset; i += 3 ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const vertexOffset = attributesOffset + geometry[ i + k ] * 3;
+					return toKey( ...packed.slice( vertexOffset, vertexOffset + 3 ) );
+
+				} );
+				packedTriangles.push( triangle.join( '|' ) );
+
+			}
+
+		} );
 
 		const expectedTriangles = [];
 		[ indexed, nonIndexed ].forEach( geo => {
