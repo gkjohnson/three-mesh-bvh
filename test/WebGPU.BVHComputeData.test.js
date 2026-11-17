@@ -380,7 +380,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const readTriangles = info => {
 
 			const triangles = [];
-			for ( let t = info.triangleOffset, l = info.triangleOffset + info.triangleCount; t < l; t ++ ) {
+			for ( let t = info.primitiveOffset, l = info.primitiveOffset + info.primitiveCount; t < l; t ++ ) {
 
 				const triangle = [ 0, 1, 2 ].map( k => {
 
@@ -423,15 +423,15 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 			const info = data.getObjectInfo( groupedMesh, 0, g );
 			objectIndices.add( info.objectIndex );
-			expect( info.triangleCount ).toBe( group.count / 3 );
+			expect( info.primitiveCount ).toBe( group.count / 3 );
 			expect( readTriangles( info ) ).toEqual( expectedTriangles( grouped, group.start, group.count ) );
 
 		} );
 
 		const singleInfo = data.getObjectInfo( singleMesh );
 		objectIndices.add( singleInfo.objectIndex );
-		expect( singleInfo.triangleOffset ).toBe( 0 );
-		expect( singleInfo.triangleCount ).toBe( single.index.count / 3 );
+		expect( singleInfo.primitiveOffset ).toBe( 0 );
+		expect( singleInfo.primitiveCount ).toBe( single.index.count / 3 );
 		expect( readTriangles( singleInfo ) ).toEqual( expectedTriangles( single, 0, single.index.count ) );
 
 		// every group is its own object, and all of a geometry's groups share its block
