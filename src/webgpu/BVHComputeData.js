@@ -11,7 +11,7 @@ import {
 	bvhNodeStruct,
 	objectRecordStruct,
 } from './tsl/structs.js';
-import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getRootPrimitiveRange, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
@@ -66,6 +66,20 @@ function getTransformKey( compositeId, root ) {
 	return `${ compositeId }_${ root }`;
 
 }
+
+/**
+ * Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo`.
+ *
+ * @typedef {Object} ObjectInfo
+ * @property {number} objectIndex - Index of the object's record in `storage.objects`. Hits report it as `objectIndex`.
+ * @property {number} indexOffset - Where the index data of the object's geometry starts in `storage.geometry`,
+ *   in 32-bit words. Shared by the objects of a geometry's groups.
+ * @property {number} attributesOffset - Where the vertex attributes of the object's geometry start in
+ *   `storage.geometry`, in 32-bit words.
+ * @property {number} primitiveOffset - The object's first primitive, counted from the start of its geometry's
+ *   index data. Non-zero for a geometry group after the first.
+ * @property {number} primitiveCount - The number of primitives in the object.
+ */
 
 /**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
@@ -163,6 +177,9 @@ export class BVHComputeData {
 			getVertex: null,
 			getVertexPosition: null,
 		}, proxyFn );
+
+		// what "update" packed for every object record, for "getObjectInfo"
+		this._packedObjects = [];
 
 		// this needs no layout from "update"
 		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
@@ -487,6 +504,22 @@ export class BVHComputeData {
 
 		} );
 
+		// record what was packed for every object record, for "getObjectInfo"
+		const packedObjects = [];
+		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
+
+			packedObjects[ slot ] = { object, instanceId, root, data: null, primitiveRange: null };
+
+		} );
+
+		primitiveInfo.forEach( info => {
+
+			packedObjects[ info.transformSlot ].data = info.subtree.data;
+
+		} );
+
+		this._packedObjects = packedObjects;
+
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
 		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
@@ -682,6 +715,49 @@ export class BVHComputeData {
 		}
 
 		return bvh;
+
+	}
+
+	/**
+	 * Returns where an object was packed by the last {@link BVHComputeData#update}, or null if it was not.
+	 *
+	 * @param {Object3D} object - The mesh.
+	 * @param {number} [instanceId=0] - Instance index (relevant for InstancedMesh / BatchedMesh).
+	 * @param {number} [group=0] - Index of the geometry group, each of which is packed as its own object.
+	 * @returns {ObjectInfo|null}
+	 */
+	getObjectInfo( object, instanceId = 0, group = 0 ) {
+
+		const objectIndex = this._packedObjects.findIndex( packed => {
+
+			return packed.object === object && packed.instanceId === instanceId && packed.root === group;
+
+		} );
+
+		if ( objectIndex === - 1 ) {
+
+			return null;
+
+		}
+
+		const packed = this._packedObjects[ objectIndex ];
+		const { bvh, range, indexOffset, attributesOffset } = packed.data;
+		if ( packed.primitiveRange === null ) {
+
+			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ group ] );
+
+		}
+
+		// A non-indirect bvh built over a sub-range stores leaf offsets from the start of the whole
+		// geometry, which are shifted back by the range's triangle start when packed.
+		const primitiveShift = bvh.indirect ? 0 : - range.start / 3;
+		return {
+			objectIndex,
+			indexOffset,
+			attributesOffset,
+			primitiveOffset: packed.primitiveRange.offset + primitiveShift,
+			primitiveCount: packed.primitiveRange.count,
+		};
 
 	}
 

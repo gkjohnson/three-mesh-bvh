@@ -1,6 +1,14 @@
 import { Matrix4, Object3D, Vector4 } from 'three';
 import { MeshBVH, ObjectBVH, SkinnedMeshBVH } from 'three-mesh-bvh';
 
+export interface ObjectInfo {
+	objectIndex: number;
+	indexOffset: number;
+	attributesOffset: number;
+	primitiveOffset: number;
+	primitiveCount: number;
+}
+
 export class BVHComputeData {
 
 	autogenerateBvh: boolean;
@@ -33,6 +41,7 @@ export class BVHComputeData {
 
 	update(): void;
 	updateAsync(): Promise<void>;
+	getObjectInfo( object: Object3D, instanceId?: number, group?: number ): ObjectInfo | null;
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;
