@@ -18,7 +18,6 @@ export const bvhNodeStruct = new StructTypeNode( {
 }, 'BVHNode' );
 bvhNodeStruct.getLength = () => 2 * bvhNodeBoundsStruct.getLength() + 4;
 
-// the record of each object packed into the scene: its transform and visibility
 export const objectRecordStruct = new StructTypeNode( {
 	matrixWorld: 'mat4x4f',
 	inverseMatrixWorld: 'mat4x4f',
