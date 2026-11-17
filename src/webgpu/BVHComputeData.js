@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
 import { Matrix4, Mesh, Group } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage } from 'three/tsl';
+import { storage, uint } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
@@ -16,7 +16,7 @@ import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
 import { getSampleTrianglePointFn } from './shapecastFns/getSampleTrianglePointFn.js';
-import { getTriangleIndicesFn, getVertexFn, getVertexPositionFn } from './shapecastFns/getVertexFn.js';
+import { getTriangleIndicesFn, getVertexFn, getVertexPositionFn, getTraversalTriangleIndicesFn, getTraversalVertexPositionFn } from './shapecastFns/getVertexFn.js';
 import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointFn.js';
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
@@ -82,6 +82,9 @@ function getTransformKey( compositeId, root ) {
  *   attribute data share one internal buffer whose packing may change, so read them through these.
  * - `getVertexPosition( index, objectIndex ) -> vec3f`: reads only the position of a vertex, for custom traversal.
  * - `sampleTrianglePoint( barycoord, indices, objectIndex ) -> bvh_GeometryStruct`: interpolates a triangle's attributes.
+ * - `getTraversalTriangleIndices( triIndex ) -> vec3u` and `getTraversalVertexPosition( index ) -> vec3f`: the same
+ *   reads for the object a traversal is currently in. Only valid inside a shapecast `intersectRangeFn`, where
+ *   they are faster than the `objectIndex` versions.
  *
  * Triangle and vertex indices, including those of a hit, are relative to the geometry of the object
  * they belong to, so they are always paired with its `objectIndex`.
@@ -161,12 +164,20 @@ export class BVHComputeData {
 			getTriangleIndices: null,
 			getVertex: null,
 			getVertexPosition: null,
+			getTraversalTriangleIndices: null,
+			getTraversalVertexPosition: null,
 		}, proxyFn );
 
-		// the index data is found through the transforms, so this needs no layout from "update"
-		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
+		// Where the geometry of the object a traversal is in starts, cached by the traversal when it enters
+		// the object. Reading the offsets from the transform for every leaf is measurably slower.
+		this._traversalIndexOffset = uint( 0 ).toVar( 'bvh_traversalIndexOffset' );
+		this._traversalAttributesOffset = uint( 0 ).toVar( 'bvh_traversalAttributesOffset' );
 
-		// these read through "fns.getTriangleIndices" and "fns.getVertexPosition", so "fns" must exist first
+		// the index data is found through the transforms, so these need no layout from "update"
+		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
+		this.fns.getTraversalTriangleIndices = getTraversalTriangleIndicesFn( this );
+
+		// these read through the traversal lookups in "fns", so "fns" must exist first
 		this.fns.raycastFirstHit = getRaycastFirstHitFn( this );
 		this.fns.raycastAnyHit = getRaycastAnyHitFn( this );
 		this.fns.closestPointToPoint = getClosestPointToPointFn( this );
@@ -491,6 +502,7 @@ export class BVHComputeData {
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
 		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
+		this.fns.getTraversalVertexPosition = getTraversalVertexPositionFn( this, attributeLayout );
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.

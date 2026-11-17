@@ -170,3 +170,62 @@ export function getVertexPositionFn( bvhData, layout ) {
 	`;
 
 }
+
+/**
+ * Builds the `getTraversalTriangleIndices` function: `getTriangleIndices` for the object a traversal
+ * is in, from the index offset the traversal cached when it entered the object. Only valid inside a
+ * shapecast `intersectRangeFn`.
+ *
+ * @private
+ * @param {BVHComputeData} bvhData
+ * @returns {Function} TSL function node.
+ */
+export function getTraversalTriangleIndicesFn( bvhData ) {
+
+	const { storage, _traversalIndexOffset } = bvhData;
+	return wgslTagFn/* wgsl */`
+		// fn
+		fn bvh_getTraversalTriangleIndices( triIndex: u32 ) -> vec3u {
+
+			let base = ${ _traversalIndexOffset } + triIndex * 3u;
+			return vec3u(
+				${ storage.geometry }[ base ],
+				${ storage.geometry }[ base + 1u ],
+				${ storage.geometry }[ base + 2u ],
+			);
+
+		}
+	`;
+
+}
+
+/**
+ * Builds the `getTraversalVertexPosition` function: `getVertexPosition` for the object a traversal
+ * is in, from the attributes offset the traversal cached when it entered the object. Only valid
+ * inside a shapecast `intersectRangeFn`.
+ *
+ * @private
+ * @param {BVHComputeData} bvhData
+ * @param {AttributeLayout} layout
+ * @returns {Function} TSL function node.
+ */
+export function getTraversalVertexPositionFn( bvhData, layout ) {
+
+	const { storage, _traversalAttributesOffset } = bvhData;
+
+	const { offset } = layout.members.find( member => member.name === 'position' );
+	return wgslTagFn/* wgsl */`
+		// fn
+		fn bvh_getTraversalVertexPosition( index: u32 ) -> vec3f {
+
+			let base = ${ _traversalAttributesOffset } + index * ${ layout.stride }u;
+			return bitcast<vec3f>( vec3u(
+				${ storage.geometry }[ base + ${ offset }u ],
+				${ storage.geometry }[ base + ${ offset + 1 }u ],
+				${ storage.geometry }[ base + ${ offset + 2 }u ],
+			) );
+
+		}
+	`;
+
+}

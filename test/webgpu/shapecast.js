@@ -63,7 +63,7 @@ async function init() {
 				fn bounds( ray: ${ rayStruct }, bounds: ${ bvhNodeBoundsStruct }, result: ptr<function, ${ resultStruct }> ) -> u32 { return 1u; }
 			`,
 			intersectRangeFn: wgslTagFn`
-				fn range( ray: ${ rayStruct }, offset: u32, count: u32, objectIndex: u32, result: ptr<function, ${ resultStruct }> ) -> ${ booleanResult ? 'bool' : 'u32' } {
+				fn range( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ resultStruct }> ) -> ${ booleanResult ? 'bool' : 'u32' } {
 					result.visits += 1u;
 					if ( ${ activeObject } == 0u ) { result.badState += 1u; }
 					${ booleanResult ? `return ${ hit ? 'true' : 'false' };` : '' }

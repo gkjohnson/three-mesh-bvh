@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord" and "transformStruct" to "objectRecordStruct".
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
-- BVHComputeData: The index and attributes are packed in one block per geometry, with triangle and vertex indices relative to it. "getTriangleIndices", "getVertex", "getVertexPosition" and "sampleTrianglePoint" take the object index as a last argument, and "intersectRangeFn" callbacks receive it after the count.
+- BVHComputeData: The index and attributes are packed in one block per geometry, with triangle and vertex indices relative to it. "getTriangleIndices", "getVertex", "getVertexPosition" and "sampleTrianglePoint" take the object index as a last argument, and "intersectRangeFn" callbacks read triangles with the new "fns.getTraversalTriangleIndices" and "fns.getTraversalVertexPosition".
 
 ### Removed
 - Deprecated "maxLeafTris" and "maxLeafSize" options. Use "targetLeafSize" instead.
