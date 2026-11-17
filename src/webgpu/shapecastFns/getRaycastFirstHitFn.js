@@ -17,7 +17,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
 	const { transforms } = bvhData.storage;
-	const { getTriangleIndices, getVertexPosition } = bvhData.fns;
+	const { getTraversalTriangleIndices, getTraversalVertexPosition } = bvhData.fns;
 
 	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalar' );
 
@@ -59,15 +59,15 @@ export function getRaycastFirstHitFn( bvhData ) {
 
 		`,
 		intersectRangeFn: wgslTagFn/* wgsl */`
-			fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, objectIndex: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
+			fn intersectRange( ray: ${ rayStruct }, offset: u32, count: u32, result: ptr<function, ${ rayIntersectionResultStruct }> ) -> bool {
 
 				var didHit = false;
 				for ( var ti = offset; ti < offset + count; ti = ti + 1u ) {
 
-					let indices = ${ getTriangleIndices }( ti, objectIndex );
-					let a = ${ getVertexPosition }( indices.x, objectIndex );
-					let b = ${ getVertexPosition }( indices.y, objectIndex );
-					let c = ${ getVertexPosition }( indices.z, objectIndex );
+					let indices = ${ getTraversalTriangleIndices }( ti );
+					let a = ${ getTraversalVertexPosition }( indices.x );
+					let b = ${ getTraversalVertexPosition }( indices.y );
+					let c = ${ getTraversalVertexPosition }( indices.z );
 
 					var triResult = ${ intersectRayTriangle }( ray, a, b, c, 0.0 );
 					triResult.dist *= ${ scratchRayScalar };
