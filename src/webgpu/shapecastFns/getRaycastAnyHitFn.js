@@ -17,7 +17,7 @@ import { rayBoundsDistance } from './rayShapecastUtils.js';
 export function getRaycastAnyHitFn( bvhData ) {
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { transforms } = bvhData.storage;
+	const { objects } = bvhData.storage;
 	const { getTriangleIndices, getVertexPosition } = bvhData.fns;
 
 	const scratchRayScalar = float( 1.0 ).toVar( 'bvh_rayScalarAnyHit' );
@@ -60,7 +60,7 @@ export function getRaycastAnyHitFn( bvhData ) {
 		transformShapeFn: wgslTagFn/* wgsl */`
 			fn transformRayAnyHit( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
 
-				let toLocal = ${ transforms }[ objectIndex ].inverseMatrixWorld;
+				let toLocal = ${ objects }[ objectIndex ].inverseMatrixWorld;
 				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
 				ray.direction = ( toLocal * vec4f( ray.direction, 0.0 ) ).xyz;
 
