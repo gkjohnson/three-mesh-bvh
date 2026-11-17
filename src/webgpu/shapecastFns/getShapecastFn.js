@@ -50,7 +50,7 @@ export function getShapecastFn( bvhData, options ) {
 	} = options;
 
 	// these are proxy nodes, so they can be referenced before the storage buffers exist
-	const { nodes, transforms } = bvhData.storage;
+	const { nodes, objects } = bvhData.storage;
 
 	let prefixSnippet = '';
 	if ( prefixFn ) {
@@ -170,16 +170,16 @@ export function getShapecastFn( bvhData, options ) {
 						// directly as the BLAS entry node. Each TLAS leaf references one cluster.
 						objectIndex = infoX & 0x00ffffffu;
 
-						let transform = ${ transforms }[ objectIndex ];
-						if ( transform.visible != 0u ) {
+						let objectRecord = ${ objects }[ objectIndex ];
+						if ( objectRecord.visible != 0u ) {
 
 							tlasReset = pointer;
 							isTLAS = false;
 							blasDidHit = false;
 
 							// where the object's geometry starts, passed to the range function
-							indexOffset = transform.indexOffset;
-							attributesOffset = transform.attributesOffset;
+							indexOffset = objectRecord.indexOffset;
+							attributesOffset = objectRecord.attributesOffset;
 
 							// Transform shape into object local space
 							localShape = shape;

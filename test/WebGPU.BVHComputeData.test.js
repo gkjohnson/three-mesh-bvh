@@ -14,6 +14,7 @@ import {
 	Vector4,
 } from 'three';
 import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
+import { MeshBVH } from '../src/index.js';
 
 const attributes = {
 	position: 'vec4f',
@@ -279,14 +280,14 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const geometry = data.storage.geometry.value.array;
 		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
 
-		// every transform gives the start of its geometry's index and attributes, shared by the transforms
-		// of one geometry's bvh roots
-		const transforms = data.storage.transforms.value.array;
-		const transformLength = data.structs.transform.getLength();
+		// every object record gives the start of its geometry's index and attributes, shared by the
+		// records of one geometry's bvh roots
+		const records = data.storage.objects.value.array;
+		const recordLength = data.structs.objectRecord.getLength();
 		const blocks = new Map();
-		for ( let i = 0; i < transforms.length; i += transformLength ) {
+		for ( let i = 0; i < records.length; i += recordLength ) {
 
-			blocks.set( transforms[ i + 33 ], transforms[ i + 34 ] );
+			blocks.set( records[ i + 33 ], records[ i + 34 ] );
 
 		}
 
@@ -419,6 +420,27 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 		expect( data.getObjectInfo( new Mesh( grouped ) ) ).toBe( null );
 		expect( data.getObjectInfo( groupedMesh, 0, grouped.groups.length ) ).toBe( null );
+
+	} );
+
+	it( 'throws when the BVH is deeper than the traversal stack.', () => {
+
+		// triangles spaced exponentially split off one at a time, giving a tree as deep as the count
+		const count = 80;
+		const positions = new Float32Array( count * 9 );
+		for ( let i = 0; i < count; i ++ ) {
+
+			const x = 2 ** i;
+			positions.set( [ x, 0, 0, x, 1, 0, x, 0, 1 ], i * 9 );
+
+		}
+
+		const geometry = new BufferGeometry();
+		geometry.setAttribute( 'position', new BufferAttribute( positions, 3 ) );
+		geometry.boundsTree = new MeshBVH( geometry, { maxDepth: 100, targetLeafSize: 1 } );
+
+		const data = new BVHComputeData( new Mesh( geometry ) );
+		expect( () => data.update() ).toThrow( 'BVH depth overruns the compute stack depth' );
 
 	} );
 
