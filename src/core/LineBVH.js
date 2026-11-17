@@ -1,9 +1,12 @@
 /** @import { BufferGeometry } from 'three' */
 /** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
-import { Matrix4, Line3, Vector3, Ray, Box3 } from 'three';
+import { Matrix4, Line3, Vector3, Ray, Box3, REVISION } from 'three';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { GeometryBVH } from './GeometryBVH.js';
+
+// three.js r188 scales the raycast threshold by the largest world scale (mrdoob/three.js#35466)
+const IS_GT_REVISION_188 = parseInt( REVISION ) >= 188;
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _ray = /* @__PURE__ */ new Ray();
@@ -109,7 +112,10 @@ export class LineSegmentsBVH extends GeometryBVH {
 		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		const threshold = raycaster.params.Line.threshold;
-		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
+		const scale = IS_GT_REVISION_188 ?
+			matrixWorld.getMaxScaleOnAxis() :
+			( object.scale.x + object.scale.y + object.scale.z ) / 3;
+		const localThreshold = threshold / scale;
 		const localThresholdSq = localThreshold * localThreshold;
 
 		let closestHit = null;

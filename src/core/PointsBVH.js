@@ -1,8 +1,11 @@
 /** @import { IntersectsBoundsCallback, IntersectsRangeCallback, BoundsTraverseOrderCallback } from './BVH.js' */
-import { Vector3, Matrix4, Ray, Box3 } from 'three';
+import { Vector3, Matrix4, Ray, Box3, REVISION } from 'three';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { GeometryBVH } from './GeometryBVH.js';
+
+// three.js r188 scales the raycast threshold by the largest world scale (mrdoob/three.js#35466)
+const IS_GT_REVISION_188 = parseInt( REVISION ) >= 188;
 
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
 const _ray = /* @__PURE__ */ new Ray();
@@ -100,7 +103,10 @@ export class PointsBVH extends GeometryBVH {
 		_ray.copy( raycaster.ray ).applyMatrix4( _inverseMatrix );
 
 		const threshold = raycaster.params.Points.threshold;
-		const localThreshold = threshold / ( ( object.scale.x + object.scale.y + object.scale.z ) / 3 );
+		const scale = IS_GT_REVISION_188 ?
+			matrixWorld.getMaxScaleOnAxis() :
+			( object.scale.x + object.scale.y + object.scale.z ) / 3;
+		const localThreshold = threshold / scale;
 		const localThresholdSq = localThreshold * localThreshold;
 
 		let closestHit = null;

@@ -6,6 +6,8 @@ import {
 	PointsMaterial,
 	Float32BufferAttribute,
 	Uint16BufferAttribute,
+	Group,
+	Vector3,
 	REVISION,
 } from 'three';
 import {
@@ -34,6 +36,50 @@ runTestMatrix( {
 	} else {
 
 		describe.skip( 'Skipping tests due to three.js revision' );
+
+	}
+
+} );
+
+// The structure of the raycast results has changed in previous versions
+describe.skipIf( parseInt( REVISION ) < 175 )( 'Raycast threshold scale', () => {
+
+	// the bvh must scale the threshold the same way Points.raycast does in the installed three.js version
+	const cases = [
+		{ name: 'non-uniform object scale', objectScale: [ 1, 1, 0.5 ], parentScale: 1, offset: 0.11 },
+		{ name: 'scaled parent', objectScale: [ 1, 1, 1 ], parentScale: 2, offset: 0.15 },
+	];
+
+	for ( const { name, objectScale, parentScale, offset } of cases ) {
+
+		it( `matches three.js with a ${ name }`, () => {
+
+			// the second point keeps the bounding sphere large enough that three's sphere check passes
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new Float32BufferAttribute( [ 0, 0, 0, 1, 0, 0 ], 3 ) );
+			geometry.computeBoundsTree( { type: PointsBVH } );
+			const bvh = geometry.boundsTree;
+
+			const pointCloud = new Points( geometry );
+			pointCloud.scale.set( ...objectScale );
+
+			const parent = new Group();
+			parent.scale.setScalar( parentScale );
+			parent.add( pointCloud );
+			parent.updateMatrixWorld( true );
+
+			const raycaster = new Raycaster( new Vector3( offset, - 1, 0 ), new Vector3( 0, 1, 0 ) );
+			raycaster.params.Points.threshold = 0.1;
+
+			const bvhHits = raycaster.intersectObject( pointCloud );
+
+			geometry.boundsTree = null;
+			const ogHits = raycaster.intersectObject( pointCloud );
+			geometry.boundsTree = bvh;
+
+			expect( bvhHits ).toEqual( ogHits );
+
+		} );
 
 	}
 
