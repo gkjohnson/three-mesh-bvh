@@ -68,6 +68,20 @@ function getTransformKey( compositeId, root ) {
 }
 
 /**
+ * Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo`.
+ *
+ * @typedef {Object} ObjectInfo
+ * @property {number} objectIndex - Index of the object's record in `storage.objects`. Hits report it as `objectIndex`.
+ * @property {number} indexOffset - Where the index data of the object's geometry starts in `storage.geometry`,
+ *   in 32-bit words. Shared by the objects of a geometry's groups.
+ * @property {number} attributesOffset - Where the vertex attributes of the object's geometry start in
+ *   `storage.geometry`, in 32-bit words.
+ * @property {number} primitiveOffset - The object's first primitive, counted from the start of its geometry's
+ *   index data. Non-zero for a geometry group after the first.
+ * @property {number} primitiveCount - The number of primitives in the object.
+ */
+
+/**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
  * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
  * {@link BVHComputeData#update} to populate the storage buffers, then reference
@@ -494,7 +508,7 @@ export class BVHComputeData {
 		const packedObjects = [];
 		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
 
-			packedObjects[ slot ] = { object, instanceId, root, data: null, triangleRange: null };
+			packedObjects[ slot ] = { object, instanceId, root, data: null, primitiveRange: null };
 
 		} );
 
@@ -705,15 +719,12 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Returns where an object was packed by the last {@link BVHComputeData#update}, or null if it was
-	 * not: its `objectIndex`, the index used by `storage.objects` and reported by hits, the
-	 * `indexOffset` and `attributesOffset` of its geometry in `storage.geometry`, and the
-	 * `triangleOffset` and `triangleCount` of the geometry group's triangles relative to that geometry.
+	 * Returns where an object was packed by the last {@link BVHComputeData#update}, or null if it was not.
 	 *
 	 * @param {Object3D} object - The mesh.
 	 * @param {number} [instanceId=0] - Instance index (relevant for InstancedMesh / BatchedMesh).
 	 * @param {number} [group=0] - Index of the geometry group, each of which is packed as its own object.
-	 * @returns {{objectIndex:number,indexOffset:number,attributesOffset:number,triangleOffset:number,triangleCount:number}|null}
+	 * @returns {ObjectInfo|null}
 	 */
 	getObjectInfo( object, instanceId = 0, group = 0 ) {
 
@@ -731,21 +742,21 @@ export class BVHComputeData {
 
 		const packed = this._packedObjects[ objectIndex ];
 		const { bvh, range, indexOffset, attributesOffset } = packed.data;
-		if ( packed.triangleRange === null ) {
+		if ( packed.primitiveRange === null ) {
 
-			packed.triangleRange = getRootPrimitiveRange( bvh._roots[ group ] );
+			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ group ] );
 
 		}
 
 		// A non-indirect bvh built over a sub-range stores leaf offsets from the start of the whole
 		// geometry, which are shifted back by the range's triangle start when packed.
-		const triangleShift = bvh.indirect ? 0 : - range.start / 3;
+		const primitiveShift = bvh.indirect ? 0 : - range.start / 3;
 		return {
 			objectIndex,
 			indexOffset,
 			attributesOffset,
-			triangleOffset: packed.triangleRange.offset + triangleShift,
-			triangleCount: packed.triangleRange.count,
+			primitiveOffset: packed.primitiveRange.offset + primitiveShift,
+			primitiveCount: packed.primitiveRange.count,
 		};
 
 	}
