@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
 
+### Removed
+- Deprecated "maxLeafTris" and "maxLeafSize" options. Use "targetLeafSize" instead.
+- Deprecated "MeshBVHHelper" class and "MeshBVHOptions" type. Use "BVHHelper" and "BVHOptions" instead.
+- Deprecated WebGPU WGSL functions from "bvh_ray_functions", "common_functions" and "distance_functions". Use "BVHComputeData" instead.
+- ndcToCameraRay: Deprecated "( ndc, inverseModelViewProjection )" arguments. Use "( ndc, cameraToWorld, inverseProjection )" instead.
+
 ### Fixed
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.

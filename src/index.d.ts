@@ -27,10 +27,6 @@ export interface HitPointInfo {
 export interface BVHOptions {
 	strategy?: SplitStrategy;
 	maxDepth?: number;
-	/** @deprecated Use targetLeafSize instead */
-	maxLeafTris?: number;
-	/** @deprecated Use targetLeafSize instead */
-	maxLeafSize?: number;
 	targetLeafSize?: number;
 	setBoundingBox?: boolean;
 	useSharedArrayBuffer?: boolean;
@@ -39,9 +35,6 @@ export interface BVHOptions {
 	onProgress?: ( progress: number ) => void;
 	range?: { start: number; count: number };
 }
-
-/** @deprecated Use BVHOptions instead */
-export interface MeshBVHOptions extends BVHOptions {} // eslint-disable-line
 
 export interface ComputeBVHOptions extends BVHOptions {
 	type?: typeof GeometryBVH;
@@ -76,14 +69,6 @@ export interface ShapecastCallbacks {
 		nodeIndex: number,
 		box: Box3
 	) => boolean;
-
-	/** @deprecated geometry.boundsTree must be cast to "MeshBVH" in order to use "intersectsTriangle" callback. */
-	intersectsTriangle?: (
-		triangle: ExtendedTriangle,
-		triangleIndex: number,
-		contained: boolean,
-		depth: number
-	) => boolean|void
 }
 
 export interface BVHCastCallbacks {
@@ -308,9 +293,6 @@ export class BVHHelper extends Group {
 	get color(): Color;
 
 }
-
-/** @deprecated Use BVHHelper instead */
-export class MeshBVHHelper extends BVHHelper {}
 
 // THREE.js Extensions
 

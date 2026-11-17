@@ -590,14 +590,3 @@ export class BVHHelper extends Group {
 	}
 
 }
-
-export class MeshBVHHelper extends BVHHelper {
-
-	constructor( ...args ) {
-
-		console.warn( 'MeshBVHHelper: Class has been deprecated. Use BVHHelper instead.' );
-		super( ...args );
-
-	}
-
-}
