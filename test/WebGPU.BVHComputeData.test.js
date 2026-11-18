@@ -117,12 +117,12 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs every attribute layout the same as Vector4.fromBufferAttribute.', () => {
+	it( 'packs every attribute layout the same as Vector4.fromBufferAttribute.', async () => {
 
 		const geometry = createGeometry();
 		const count = geometry.attributes.position.count;
 		const data = new BVHComputeData( new Mesh( geometry ), { attributes } );
-		data.update();
+		await data.update();
 
 		const packed = getPackedAttributes( data, geometry.index.count );
 		expect( packed.slice( 0, count * names.length * 4 ) ).toEqual( getExpected( data, geometry, 0, count ) );
@@ -188,7 +188,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs attributes smaller than vec4f at their own offsets.', () => {
+	it( 'packs attributes smaller than vec4f at their own offsets.', async () => {
 
 		const geometry = createGeometry();
 		const uv1 = geometry.attributes.uv.clone();
@@ -198,7 +198,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const count = geometry.attributes.position.count;
 		// color ( normalized ) and half ( float16 ) take the accessor path
 		const data = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', uv: 'vec2f', uv1: 'vec2f', color: 'vec3f', half: 'vec2f' } } );
-		data.update();
+		await data.update();
 
 		const packed = getPackedAttributes( data, geometry.index.count );
 		const { position, uv, color, half } = geometry.attributes;
@@ -217,7 +217,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs "oct16" directions, "2x16float" uvs and "4x16float" colors.', () => {
+	it( 'packs "oct16" directions, "2x16float" uvs and "4x16float" colors.', async () => {
 
 		// the path tracer layout from #961 with "2x16float" uvs comes to 36 bytes per vertex
 		const layout = getAttributeLayout( { position: 'vec3f', normal: 'oct16', tangent: 'oct16', color: '4x16float', uv: '2x16float', uv1: '2x16float' } );
@@ -242,7 +242,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const warn = vi.spyOn( console, 'warn' );
 		try {
 
-			data.update();
+			await data.update();
 			expect( warn ).not.toHaveBeenCalled();
 
 		} finally {
@@ -268,16 +268,16 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs the index data of every geometry before the attributes, rebased to each geometry\'s vertices.', () => {
+	it( 'packs the index data of every geometry before the attributes, rebased to each geometry\'s vertices.', async () => {
 
 		const indexed = new BoxGeometry();
 		const nonIndexed = new BoxGeometry( 2, 2, 2 ).toNonIndexed();
 		const data = new BVHComputeData( [ new Mesh( indexed ), new Mesh( nonIndexed ) ], { attributes: { position: 'vec3f' } } );
-		data.update();
+		await data.update();
 
 		const indexCount = indexed.index.count + nonIndexed.attributes.position.count;
 		const vertexCount = indexed.attributes.position.count + nonIndexed.attributes.position.count;
-		const geometry = data.storage.geometry.value.array;
+		const geometry = new Uint32Array( await data.readStorage( 'geometry' ) );
 		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
 
 		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set
@@ -314,7 +314,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'throws when the BVH is deeper than the traversal stack.', () => {
+	it( 'throws when the BVH is deeper than the traversal stack.', async () => {
 
 		// triangles spaced exponentially split off one at a time, giving a tree as deep as the count
 		const count = 80;
@@ -331,7 +331,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		geometry.boundsTree = new MeshBVH( geometry, { maxDepth: 100, targetLeafSize: 1 } );
 
 		const data = new BVHComputeData( new Mesh( geometry ) );
-		expect( () => data.update() ).toThrow( 'BVH depth overruns the compute stack depth' );
+		await expect( data.update() ).rejects.toThrow( 'BVH depth overruns the compute stack depth' );
 
 	} );
 

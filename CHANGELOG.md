@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - "REVISION" export with the package version, with a "-dev" suffix outside of published builds, and a "window.__THREE_MESH_BVH__" global set to it so pages using the library can be detected, with a warning when multiple copies are loaded.
 - BVHHelper: "displayChildBVHs" option to also display the BVHs of the objects in an ObjectBVH.
 - BVHComputeData: "oct16", "2x16float" and "4x16float" packed attribute types for octahedral encoded normals and tangents and half float uvs and colors.
+- BVHComputeData: "readStorage" to read the contents of a storage buffer for use on the CPU.
 
 ### Changed
+- BVHComputeData: "update" is now async and awaits "getBVH" for every object, replacing "updateAsync".
 - BVHComputeData: "writeObjectRecord", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord" and "transformStruct" to "objectRecordStruct".
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.

@@ -31,8 +31,8 @@ export class BVHComputeData {
 		autogenerateBvh?: boolean;
 	} );
 
-	update(): void;
-	updateAsync(): Promise<void>;
+	update(): Promise<void>;
+	readStorage( name: string ): Promise<ArrayBuffer>;
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;

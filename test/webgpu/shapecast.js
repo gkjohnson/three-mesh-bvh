@@ -14,7 +14,7 @@ async function init() {
 	meshes[ 1 ].position.z = - 5;
 	meshes.forEach( mesh => mesh.updateMatrixWorld( true ) );
 	const data = new BVHComputeData( meshes );
-	data.update();
+	await data.update();
 
 	const adapter = await navigator.gpu?.requestAdapter();
 	if ( ! adapter ) throw new Error( 'A hardware WebGPU adapter is required.' );
@@ -176,7 +176,7 @@ async function init() {
 		uv1.array.forEach( ( v, i, arr ) => arr[ i ] = v + 100 );
 		vertexGeometry.setAttribute( 'uv1', uv1 );
 		const vertexData = new BVHComputeData( new Mesh( vertexGeometry ), { attributes: { uv: 'vec2f', position: 'vec3f', uv1: 'vec2f', normal: 'vec3f' } } );
-		vertexData.update();
+		await vertexData.update();
 
 		const { position, uv, normal } = vertexGeometry.attributes;
 		const count = position.count;
@@ -265,7 +265,7 @@ async function init() {
 		}
 
 		const packedData = new BVHComputeData( new Mesh( geometry ), { attributes: { position: 'vec3f', normal: 'oct16', tangent: 'oct16', color: '4x16float', uv: '2x16float' } } );
-		packedData.update();
+		await packedData.update();
 
 		const bits = await readCompute( output => wgslTagFn`
 			fn vertices() -> void {
@@ -315,7 +315,7 @@ async function init() {
 		triMeshes[ 1 ].position.x = 5;
 		triMeshes.forEach( mesh => mesh.updateMatrixWorld( true ) );
 		const triData = new BVHComputeData( triMeshes, { attributes: { position: 'vec3f' } } );
-		triData.update();
+		await triData.update();
 
 		const triCount = ( indexed.index.count + nonIndexed.attributes.position.count ) / 3;
 		const bits = await readCompute( output => wgslTagFn`
