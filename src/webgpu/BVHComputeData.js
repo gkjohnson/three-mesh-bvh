@@ -68,9 +68,13 @@ function getTransformKey( compositeId, root ) {
 }
 
 /**
- * Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo`.
+ * Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo` and
+ * `BVHComputeData.getAllObjectInfo`.
  *
  * @typedef {Object} ObjectInfo
+ * @property {Object3D} object - The mesh.
+ * @property {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
+ * @property {number} group - Index of the geometry group, each of which is packed as its own object.
  * @property {number} objectIndex - Index of the object's record in `storage.objects`. Hits report it as `objectIndex`.
  * @property {number} indexOffset - Where the index data of the object's geometry starts in `storage.geometry`,
  *   in 32-bit words. Shared by the objects of a geometry's groups.
@@ -742,11 +746,29 @@ export class BVHComputeData {
 
 		}
 
+		return this._getObjectInfoAt( objectIndex );
+
+	}
+
+	/**
+	 * Returns where every object was packed by the last {@link BVHComputeData#update}, in object index order.
+	 *
+	 * @returns {Array<ObjectInfo>}
+	 */
+	getAllObjectInfo() {
+
+		return this._packedObjects.map( ( _, objectIndex ) => this._getObjectInfoAt( objectIndex ) );
+
+	}
+
+	_getObjectInfoAt( objectIndex ) {
+
 		const packed = this._packedObjects[ objectIndex ];
+		const { object, instanceId, root } = packed;
 		const { bvh, range, indexOffset, attributesOffset } = packed.data;
 		if ( packed.primitiveRange === null ) {
 
-			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ group ] );
+			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ root ] );
 
 		}
 
@@ -754,6 +776,9 @@ export class BVHComputeData {
 		// geometry, which are shifted back by the range's triangle start when packed.
 		const primitiveShift = bvh.indirect ? 0 : - range.start / 3;
 		return {
+			object,
+			instanceId,
+			group: root,
 			objectIndex,
 			indexOffset,
 			attributesOffset,

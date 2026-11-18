@@ -2,6 +2,9 @@ import { Matrix4, Object3D, Vector4 } from 'three';
 import { MeshBVH, ObjectBVH, SkinnedMeshBVH } from 'three-mesh-bvh';
 
 export interface ObjectInfo {
+	object: Object3D;
+	instanceId: number;
+	group: number;
 	objectIndex: number;
 	indexOffset: number;
 	attributesOffset: number;
@@ -42,6 +45,7 @@ export class BVHComputeData {
 	update(): void;
 	updateAsync(): Promise<void>;
 	getObjectInfo( object: Object3D, instanceId?: number, group?: number ): ObjectInfo | null;
+	getAllObjectInfo(): ObjectInfo[];
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;

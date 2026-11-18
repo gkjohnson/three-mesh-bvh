@@ -442,6 +442,16 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		expect( data.getObjectInfo( new Mesh( grouped ) ) ).toBe( null );
 		expect( data.getObjectInfo( groupedMesh, 0, grouped.groups.length ) ).toBe( null );
 
+		// every object's info, in object index order
+		const allInfo = data.getAllObjectInfo();
+		expect( allInfo ).toHaveLength( grouped.groups.length + 1 );
+		allInfo.forEach( ( info, i ) => {
+
+			expect( info.objectIndex ).toBe( i );
+			expect( data.getObjectInfo( info.object, info.instanceId, info.group ) ).toEqual( info );
+
+		} );
+
 	} );
 
 } );
