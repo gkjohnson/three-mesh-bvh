@@ -144,8 +144,6 @@ describe( 'Options', () => {
 
 	describe( 'strategy', () => {
 
-		it.todo( 'should set the split strategy' );
-
 		it( 'should build the same tree as CENTER with a function that splits at the center.', () => {
 
 			const centerSplit = ( nodeBounds, centroidBounds ) => {
