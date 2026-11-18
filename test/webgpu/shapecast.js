@@ -71,12 +71,10 @@ async function init() {
 					${ booleanResult ? '' : `return ${ hit ? 1 : 0 }u;` }
 				}
 			`,
-			transformShapeFn: skipObject === - 1 ? wgslTagFn`
-				fn testTransformShape( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void { ${ activeObject } = objectIndex + 1u; }
-			` : wgslTagFn`
-				fn testSkipShape( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> bool {
+			transformShapeFn: wgslTagFn`
+				fn testTransformShape( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> bool {
 					${ activeObject } = objectIndex + 1u;
-					return objectIndex != ${ skipObject }u;
+					return ${ skipObject === - 1 ? 'true' : `objectIndex != ${ skipObject }u` };
 				}
 			`,
 			transformResultFn: wgslTagFn`

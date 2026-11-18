@@ -232,7 +232,7 @@ export class BVHComputeData {
 	 * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
 	 * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
-	 * It can return a bool, skipping the object when it returns false.
+	 * Returns whether to traverse the object, skipping it when false.
 	 * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
 	 * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
 	 * @returns {Function} TSL function node for the traversal.
