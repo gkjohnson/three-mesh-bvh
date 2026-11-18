@@ -45,12 +45,6 @@ function computeSurfaceAreaAt( array, offset ) {
 
 export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count, strategy ) {
 
-	if ( typeof strategy === 'function' ) {
-
-		return strategy( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count );
-
-	}
-
 	let axis = - 1;
 	let pos = 0;
 
@@ -275,6 +269,10 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 			}
 
 		}
+
+	} else if ( typeof strategy === 'function' ) {
+
+		( { axis, pos } = strategy( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count ) );
 
 	} else {
 
