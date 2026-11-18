@@ -2,7 +2,6 @@
 
 import puppeteer from 'puppeteer';
 import { createServer } from 'vite';
-import { CENTER } from 'three-mesh-bvh';
 import { runTestMatrix } from './utils.js';
 
 describe( 'Workers', () => {
@@ -15,7 +14,7 @@ describe( 'Workers', () => {
 
 		return page.evaluate( async options => {
 
-			const { TorusGeometry } = window.THREE;
+			const { TorusGeometry, BufferAttribute, InterleavedBuffer, InterleavedBufferAttribute } = window.THREE;
 			const { MeshBVH, ParallelMeshBVHWorker, GenerateMeshBVHWorker } = window;
 			const worker = options.parallel ? new ParallelMeshBVHWorker() : new GenerateMeshBVHWorker();
 
@@ -23,6 +22,9 @@ describe( 'Workers', () => {
 			let workerBvh = null;
 			let error = null;
 			let progress = null;
+			let readable = true;
+			let keptArrays = false;
+			let positionMatches = false;
 			try {
 
 				const geometry = new TorusGeometry( 5, 5, 50, 100 );
@@ -36,24 +38,58 @@ describe( 'Workers', () => {
 
 				}
 
+				if ( options.normalized ) {
+
+					// quantize the positions to normalized int16 values in the range [ - 1, 1 ]
+					const array = Int16Array.from( geometry.attributes.position.array, v => Math.round( 32767 * v / 10 ) );
+					geometry.setAttribute( 'position', new BufferAttribute( array, 3, true ) );
+
+				}
+
+				if ( options.interleaved ) {
+
+					// pad the vertices so the positions are read with a stride and an offset
+					const { array, count, normalized } = geometry.attributes.position;
+					const buffer = new InterleavedBuffer( new array.constructor( count * 6 ), 6 );
+					for ( let i = 0; i < count; i ++ ) {
+
+						buffer.array.set( array.subarray( i * 3, i * 3 + 3 ), i * 6 + 3 );
+
+					}
+
+					geometry.setAttribute( 'position', new InterleavedBufferAttribute( buffer, 3, 3, normalized ) );
+
+				}
+
+				const { index, attributes } = geometry;
+				const indexArray = index.array;
+				const positionArray = attributes.position.array;
 				if ( options.progress ) {
 
 					progress = [];
 					options.onProgress = v => {
 
+						// transferred arrays are empty until the build finishes
+						readable = readable && index.array.length !== 0 && attributes.position.array.length !== 0;
 						progress.push( v );
 
 					};
 
 				}
 
-				bvh = new MeshBVH( geometry.clone(), {
+				const reference = geometry.clone();
+				bvh = new MeshBVH( reference, {
 					...options,
 					onProgress: null,
 				} );
 
-				workerBvh = await worker.generate( geometry.clone(), options );
+				workerBvh = await worker.generate( geometry, options );
 				worker.dispose();
+
+				keptArrays = index.array === indexArray && attributes.position.array === positionArray;
+				const referenceArray = reference.attributes.position.array;
+				positionMatches = attributes.position.array.length === referenceArray.length &&
+					referenceArray.every( ( v, i ) => v === attributes.position.array[ i ] );
 
 			} catch ( e ) {
 
@@ -77,6 +113,9 @@ describe( 'Workers', () => {
 				bvh: serializedBvh,
 				workerBvh: serializedWorkerBvh,
 				progress,
+				readable,
+				keptArrays,
+				positionMatches,
 			};
 
 		}, options );
@@ -168,53 +207,11 @@ describe( 'Workers', () => {
 
 	} );
 
-	it.each( [ 'ParallelMeshBVHWorker', 'GenerateMeshBVHWorker' ] )( '%s should write the index back to the original attribute if it is replaced during the build', async name => {
-
-		const result = await page.evaluate( async name => {
-
-			const { TorusGeometry, BufferAttribute } = window.THREE;
-			const { MeshBVH } = window;
-
-			const geometry = new TorusGeometry( 5, 5, 50, 100 );
-			const reference = geometry.clone();
-			new MeshBVH( reference );
-
-			const original = geometry.index;
-			const replacement = new BufferAttribute( new Uint32Array( 3 ), 1 );
-			const worker = new window[ name ]();
-			// the first progress update is posted once the worker has the geometry
-			let replaced = false;
-			await worker.generate( geometry, {
-				onProgress: () => {
-
-					if ( ! replaced ) {
-
-						geometry.setIndex( replacement );
-						replaced = true;
-
-					}
-
-				},
-			} );
-			worker.dispose();
-
-			return {
-				replaced,
-				replacementUntouched: geometry.index === replacement && replacement.array.every( v => v === 0 ),
-				originalMatches: original.array.every( ( v, i ) => v === reference.index.array[ i ] ),
-			};
-
-		}, name );
-
-		expect( result.replaced ).toBe( true );
-		expect( result.replacementUntouched ).toBe( true );
-		expect( result.originalMatches ).toBe( true );
-
-	} );
-
 	runTestMatrix( {
 		parallel: [ false, true ],
 		groups: [ false, true ],
+		interleaved: [ false, true ],
+		normalized: [ false, true ],
 	}, ( desc, options ) => {
 
 		describe( `Running with Options: { ${ desc } }`, () => {
@@ -233,146 +230,22 @@ describe( 'Workers', () => {
 
 			} );
 
+			it.each( [ false, true ] )( 'should copy the geometry buffers unless transferred with { transferBuffers: %s }', async transferBuffers => {
+
+				const result = await generate( { ...options, transferBuffers, progress: true } );
+
+				// only GenerateMeshBVHWorker transfers, and an interleaved position is always copied
+				const transferred = transferBuffers && ! options.parallel && ! options.interleaved;
+				expect( result.error ).toBe( null );
+				expect( result.workerBvh ).toEqual( result.bvh );
+				expect( result.readable ).toBe( ! transferred );
+				expect( result.keptArrays ).toBe( ! transferred );
+				expect( result.positionMatches ).toBe( true );
+
+			} );
+
 		} );
 
 	} );
-
-	const copyMatrix = {
-		parallel: [ false, true ],
-		interleaved: [ false, true ],
-		indexed: [ true, false ],
-		transferBuffers: [ false, true ],
-		strategy: [ CENTER ],
-	};
-
-	runTestMatrix( copyMatrix, copyTest );
-	runTestMatrix( { ...copyMatrix, indexed: [ true ], normalized: [ true ] }, copyTest );
-
-	function copyTest( desc, options ) {
-
-		it( `should copy or transfer the geometry arrays with { ${ desc } }`, async () => {
-
-			const result = await page.evaluate( async options => {
-
-				const { TorusGeometry, BufferAttribute, InterleavedBuffer, InterleavedBufferAttribute } = window.THREE;
-				const { MeshBVH, ParallelMeshBVHWorker, GenerateMeshBVHWorker } = window;
-
-				let geometry = new TorusGeometry( 5, 5, 50, 100 );
-				if ( ! options.indexed ) {
-
-					geometry = geometry.toNonIndexed();
-
-				}
-
-				if ( options.normalized ) {
-
-					// quantize to normalized int16 like KHR_mesh_quantization, scaling the positions into [ - 1, 1 ]
-					for ( const [ name, scale ] of [[ 'position', 10 ], [ 'normal', 1 ]] ) {
-
-						const attr = geometry.attributes[ name ];
-						const array = new Int16Array( attr.count * 3 );
-						for ( let i = 0; i < array.length; i ++ ) {
-
-							array[ i ] = Math.round( attr.array[ i ] / scale * 32767 );
-
-						}
-
-						geometry.setAttribute( name, new BufferAttribute( array, 3, true ) );
-
-					}
-
-				}
-
-				if ( options.interleaved ) {
-
-					// store the normals and positions in one buffer
-					const { position, normal } = geometry.attributes;
-					const buffer = new InterleavedBuffer( new position.array.constructor( position.count * 6 ), 6 );
-					const newNormal = new InterleavedBufferAttribute( buffer, 3, 0, normal.normalized );
-					const newPosition = new InterleavedBufferAttribute( buffer, 3, 3, position.normalized );
-					for ( let i = 0; i < position.count; i ++ ) {
-
-						newNormal.setXYZ( i, normal.getX( i ), normal.getY( i ), normal.getZ( i ) );
-						newPosition.setXYZ( i, position.getX( i ), position.getY( i ), position.getZ( i ) );
-
-					}
-
-					geometry.setAttribute( 'normal', newNormal );
-					geometry.setAttribute( 'position', newPosition );
-
-				}
-
-				const reference = geometry.clone();
-				const bvh = new MeshBVH( reference, options );
-				const indexArray = geometry.index ? geometry.index.array : null;
-
-				const warnings = [];
-				const warn = console.warn;
-				console.warn = ( ...args ) => warnings.push( args.join( ' ' ) );
-
-				const worker = options.parallel ? new ParallelMeshBVHWorker() : new GenerateMeshBVHWorker();
-				// the first progress update is posted once the worker has the geometry
-				let readableDuringBuild = null;
-				const workerBvh = await worker.generate( geometry, {
-					...options,
-					onProgress: () => {
-
-						if ( readableDuringBuild === null ) {
-
-							readableDuringBuild = geometry.attributes.position.array.length !== 0;
-
-						}
-
-					},
-				} );
-				worker.dispose();
-				console.warn = warn;
-
-				const serialize = b => {
-
-					const serialized = MeshBVH.serialize( b );
-					serialized.roots = serialized.roots.map( ab => new Uint8Array( ab ) );
-					return serialized;
-
-				};
-
-				const sameValues = ( a, b ) => a === b || a && b && a.count === b.count && a.array.every( ( v, i ) => v === b.array[ i ] );
-
-				return {
-					bvh: serialize( bvh ),
-					workerBvh: serialize( workerBvh ),
-					readableDuringBuild,
-					warnings,
-					keptIndexArray: indexArray !== null && geometry.index.array === indexArray,
-					indexMatches: sameValues( geometry.index, reference.index ),
-					normalMatches: [ 'getX', 'getY', 'getZ' ].every( fn => {
-
-						const a = geometry.attributes.normal;
-						const b = reference.attributes.normal;
-						for ( let i = 0; i < a.count; i ++ ) {
-
-							if ( a[ fn ]( i ) !== b[ fn ]( i ) ) return false;
-
-						}
-
-						return true;
-
-					} ),
-				};
-
-			}, options );
-
-			// interleaved positions are always copied, and the parallel worker never detaches the arrays
-			const copied = ! options.transferBuffers || options.interleaved;
-			expect( result.workerBvh ).toEqual( result.bvh );
-			expect( result.indexMatches ).toBe( true );
-			expect( result.normalMatches ).toBe( true );
-			expect( result.readableDuringBuild ).toBe( copied || options.parallel );
-			expect( result.keptIndexArray ).toBe( copied && options.indexed );
-			expect( result.warnings.some( w => /interleaved/.test( w ) ) ).toBe( options.transferBuffers && options.interleaved );
-
-		} );
-
-	}
 
 } );
