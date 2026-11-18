@@ -11,6 +11,7 @@ import {
 	getBVHExtremes,
 	acceleratedRaycast,
 	validateBounds,
+	CENTER,
 } from 'three-mesh-bvh';
 import { getMaxDepth } from './utils.js';
 
@@ -136,6 +137,42 @@ describe( 'Options', () => {
 
 			expect( ogHits ).toEqual( bvhHits );
 			expect( firstHit[ 0 ] ).toEqual( ogHits[ 0 ] );
+
+		} );
+
+	} );
+
+	describe( 'strategy', () => {
+
+		it( 'should build the same tree as CENTER with a function that splits at the center.', () => {
+
+			const centerSplit = ( nodeBounds, centroidBounds ) => {
+
+				let axis = 0;
+				for ( let i = 1; i < 3; i ++ ) {
+
+					if ( centroidBounds[ i + 3 ] - centroidBounds[ i ] > centroidBounds[ axis + 3 ] - centroidBounds[ axis ] ) {
+
+						axis = i;
+
+					}
+
+				}
+
+				return { axis, pos: ( centroidBounds[ axis ] + centroidBounds[ axis + 3 ] ) / 2 };
+
+			};
+
+			const expected = new MeshBVH( geometry.clone(), { strategy: CENTER } );
+			const result = new MeshBVH( geometry.clone(), { strategy: centerSplit } );
+			expect( result._roots ).toEqual( expected._roots );
+
+		} );
+
+		it( 'should make a leaf when the function returns an axis of -1.', () => {
+
+			const bvh = new MeshBVH( geometry, { strategy: () => ( { axis: - 1, pos: 0 } ) } );
+			expect( getMaxDepth( bvh ) ).toBe( 0 );
 
 		} );
 
@@ -377,12 +414,6 @@ describe( 'Options', () => {
 			expect( deserialized._indirectBuffer ).toEqual( bvh._indirectBuffer );
 
 		} );
-
-	} );
-
-	describe( 'strategy', () => {
-
-		it.todo( 'should set the split strategy' );
 
 	} );
 

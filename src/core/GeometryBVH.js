@@ -37,6 +37,20 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
 }
 
 /**
+ * Picks the split for a node during the build. Primitives whose center on "axis" is less than "pos" go
+ * to the left child. Returning an axis of -1 makes the node a leaf.
+ * @callback SplitStrategyCallback
+ * @param {Float32Array} nodeBounds - The node bounds in a min / max format.
+ * @param {Float32Array} centroidBounds - The bounds of the primitive centers in a min / max format.
+ * @param {Float32Array} primitiveBounds - Per primitive center and half extents for each axis. The primitive at
+ * "i" is stored at "( i - primitiveBounds.offset ) * 6", and the original primitive at "i" can be found through
+ * "bvh.primitiveBuffer".
+ * @param {number} offset - The first primitive in the node.
+ * @param {number} count - The number of primitives in the node.
+ * @returns {{ axis: number, pos: number }}
+ */
+
+/**
  * Abstract base class for geometry-backed BVH implementations. Handles geometry
  * indexing, indirect mode, and bounding box initialization. Subclasses implement
  * primitive-specific bounds computation and raycasting via `writePrimitiveBounds`
@@ -44,7 +58,8 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
  *
  * @param {BufferGeometry} geometry
  * @param {Object} [options]
- * @param {number} [options.strategy=CENTER] - Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
+ * @param {number|SplitStrategyCallback} [options.strategy=CENTER] - Split strategy: `CENTER`, `AVERAGE`, `SAH`, or a
+ * function that picks the split for each node. Functions can't be used with the worker builds.
  * @param {number} [options.maxDepth=40] - Maximum tree depth. Note that this can cause the target leaf size to not
  * be met if the tree is truncated.
  * @param {number} [options.targetLeafSize=10] - The target number of primitives per leaf node. Note that this is
