@@ -1,6 +1,6 @@
 /** @import { FunctionNode } from 'three/tsl'; */
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
-import { rayIntersectionResultStruct, rayStruct } from './structs.js';
+import { rayIntersectionResultStruct, rayStruct, bvhNodeBoundsStruct } from './structs.js';
 
 /**
  * WGSL function node that finds the closest point on a triangle to `p` and returns the barycoord.
@@ -158,3 +158,25 @@ export const ndcToCameraRay = wgslTagFn/* wgsl */`
 	}
 `;
 
+
+/**
+ * Decodes one child's bounds of a GPU BVH node - the three words holding its six 16 bit steps from the
+ * frame "origin" / "step". The multiply-add may or may not be fused depending on the GPU, and the packer
+ * keeps the box conservative either way.
+ * @private
+ * @type {FunctionNode}
+ */
+export const bvhDecodeBounds = wgslTagFn/* wgsl */`
+	// fn
+	fn bvhDecodeBounds( a: u32, b: u32, c: u32, origin: vec3f, step: vec3f ) -> ${ bvhNodeBoundsStruct } {
+
+		let bMin = origin + vec3f( f32( a & 0xffffu ), f32( a >> 16u ), f32( b & 0xffffu ) ) * step;
+		let bMax = origin + vec3f( f32( b >> 16u ), f32( c & 0xffffu ), f32( c >> 16u ) ) * step;
+
+		var bounds: ${ bvhNodeBoundsStruct };
+		bounds.min = array<f32, 3>( bMin.x, bMin.y, bMin.z );
+		bounds.max = array<f32, 3>( bMax.x, bMax.y, bMax.z );
+		return bounds;
+
+	}
+`;

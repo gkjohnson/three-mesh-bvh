@@ -2,7 +2,7 @@
 import { mat4 } from 'three/tsl';
 import { wgslTagFn } from '../nodes/WGSLTagFnNode.js';
 import { bvhNodeStruct, bvhNodeBoundsStruct, pointQueryResultStruct } from '../tsl/structs.js';
-import { closestPointToTriangle } from '../tsl/fns.js';
+import { closestPointToTriangle, bvhDecodeBounds } from '../tsl/fns.js';
 
 /**
  * Builds the `closestPointToPoint` shapecast function: finds the closest point on any triangle in
@@ -26,7 +26,7 @@ export function getClosestPointToPointFn( bvhData ) {
 		resultStruct: pointQueryResultStruct,
 
 		boundsOrderFn: wgslTagFn/* wgsl */`
-			fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
+			fn cppBoundsOrder( shape: vec3f, splitAxis: u32, node: ${ bvhNodeStruct }, frameOrigin: vec3f, frameStep: vec3f ) -> bool {
 
 				let toWorld = ${ scratchToWorldMat };
 				let absX = abs( toWorld[ 0 ].xyz );
@@ -34,15 +34,17 @@ export function getClosestPointToPointFn( bvhData ) {
 				let absZ = abs( toWorld[ 2 ].xyz );
 
 				// squared distance from the point to each child's bounds in world space
-				let lMin = vec3f( node.leftBounds.min[ 0 ], node.leftBounds.min[ 1 ], node.leftBounds.min[ 2 ] );
-				let lMax = vec3f( node.leftBounds.max[ 0 ], node.leftBounds.max[ 1 ], node.leftBounds.max[ 2 ] );
+				let leftBounds = ${ bvhDecodeBounds }( node.bounds[ 0 ], node.bounds[ 1 ], node.bounds[ 2 ], frameOrigin, frameStep );
+				let rightBounds = ${ bvhDecodeBounds }( node.bounds[ 3 ], node.bounds[ 4 ], node.bounds[ 5 ], frameOrigin, frameStep );
+				let lMin = vec3f( leftBounds.min[ 0 ], leftBounds.min[ 1 ], leftBounds.min[ 2 ] );
+				let lMax = vec3f( leftBounds.max[ 0 ], leftBounds.max[ 1 ], leftBounds.max[ 2 ] );
 				let lHalf = ( lMax - lMin ) * 0.5;
 				let lCenter = ( toWorld * vec4f( ( lMin + lMax ) * 0.5, 1.0 ) ).xyz;
 				let lExtent = absX * lHalf.x + absY * lHalf.y + absZ * lHalf.z;
 				let lDelta = shape - clamp( shape, lCenter - lExtent, lCenter + lExtent );
 
-				let rMin = vec3f( node.rightBounds.min[ 0 ], node.rightBounds.min[ 1 ], node.rightBounds.min[ 2 ] );
-				let rMax = vec3f( node.rightBounds.max[ 0 ], node.rightBounds.max[ 1 ], node.rightBounds.max[ 2 ] );
+				let rMin = vec3f( rightBounds.min[ 0 ], rightBounds.min[ 1 ], rightBounds.min[ 2 ] );
+				let rMax = vec3f( rightBounds.max[ 0 ], rightBounds.max[ 1 ], rightBounds.max[ 2 ] );
 				let rHalf = ( rMax - rMin ) * 0.5;
 				let rCenter = ( toWorld * vec4f( ( rMin + rMax ) * 0.5, 1.0 ) ).xyz;
 				let rExtent = absX * rHalf.x + absY * rHalf.y + absZ * rHalf.z;
