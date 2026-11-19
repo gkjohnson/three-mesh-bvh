@@ -236,26 +236,13 @@ describe( 'Bounds Tree', () => {
 		expect( nodes.get( 0 ).depth ).toBe( 0 );
 		expect( nodes.size ).toBe( bvh._roots[ 0 ].byteLength / 32 );
 
-		let internalCount = 0;
-		nodes.forEach( ( { depth, isLeaf, leftIndex, rightIndex } ) => {
-
-			if ( isLeaf ) {
-
-				expect( leftIndex ).toBe( undefined );
-				expect( rightIndex ).toBe( undefined );
-
-			} else {
-
-				internalCount ++;
-				expect( nodes.get( leftIndex ).depth ).toBe( depth + 1 );
-				expect( nodes.get( rightIndex ).depth ).toBe( depth + 1 );
-				expect( leftIndex ).not.toBe( rightIndex );
-
-			}
-
-		} );
-
-		expect( internalCount ).toBeGreaterThan( 0 );
+		const leaves = [ ...nodes.values() ].filter( node => node.isLeaf );
+		const internal = [ ...nodes.values() ].filter( node => ! node.isLeaf );
+		expect( internal.length ).toBeGreaterThan( 0 );
+		expect( leaves.every( node => node.leftIndex === undefined && node.rightIndex === undefined ) ).toBe( true );
+		expect( internal.every( node => node.leftIndex !== node.rightIndex ) ).toBe( true );
+		expect( internal.every( node => nodes.get( node.leftIndex ).depth === node.depth + 1 ) ).toBe( true );
+		expect( internal.every( node => nodes.get( node.rightIndex ).depth === node.depth + 1 ) ).toBe( true );
 
 	} );
 
