@@ -53,6 +53,19 @@ describe( 'Workers', () => {
 
 				}
 
+				if ( options.offsetBuffers ) {
+
+					// views into larger buffers, as GLTFLoader produces, with a length that isn't a multiple of 4
+					for ( const attr of [ geometry.index, geometry.attributes.position ].filter( Boolean ) ) {
+
+						const { array } = attr;
+						attr.array = new array.constructor( new ArrayBuffer( array.byteLength * 2 + 2 ), array.byteLength, array.length );
+						attr.array.set( array );
+
+					}
+
+				}
+
 				if ( options.interleaved ) {
 
 					// pad the vertices so the positions are read with a stride and an offset
@@ -222,6 +235,7 @@ describe( 'Workers', () => {
 		nonIndexed: [ false, true ],
 		interleaved: [ false, true ],
 		normalized: [ false, true ],
+		offsetBuffers: [ false, true ],
 	}, ( desc, options ) => {
 
 		describe( `Running with Options: { ${ desc } }`, () => {
