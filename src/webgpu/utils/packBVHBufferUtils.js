@@ -347,7 +347,6 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
 /**
  * An attribute in the packed per-vertex layout.
  *
- * @private
  * @typedef {Object} AttributeLayoutMember
  * @property {string} name - Geometry attribute name.
  * @property {string} type - Attribute type, eg "vec3f" or "oct16".
@@ -357,9 +356,8 @@ export function appendIndexData( bvh, range, valueOffset, writeOffset, target ) 
  */
 
 /**
- * The tightly packed per-vertex attribute layout.
+ * The tightly packed per-vertex attribute layout, as in `BVHComputeData.attributeLayout`.
  *
- * @private
  * @typedef {Object} AttributeLayout
  * @property {Array<AttributeLayoutMember>} members - Attributes in declaration order.
  * @property {number} stride - Vertex stride in 32-bit words.

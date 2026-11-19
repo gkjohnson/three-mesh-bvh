@@ -188,6 +188,21 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'reports the packed attribute layout after update.', () => {
+
+		const data = new BVHComputeData( new Mesh( createGeometry() ), { attributes: { position: 'vec3f', normal: 'oct16', uv: 'vec2f' } } );
+		expect( data.attributeLayout ).toBe( null );
+
+		data.update();
+		expect( data.attributeLayout.stride ).toBe( 6 );
+		expect( data.attributeLayout.members.map( m => [ m.name, m.type, m.offset, m.size ] ) ).toEqual( [
+			[ 'position', 'vec3f', 0, 3 ],
+			[ 'normal', 'oct16', 3, 1 ],
+			[ 'uv', 'vec2f', 4, 2 ],
+		] );
+
+	} );
+
 	it( 'packs attributes smaller than vec4f at their own offsets.', () => {
 
 		const geometry = createGeometry();

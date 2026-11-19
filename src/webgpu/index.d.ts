@@ -12,10 +12,24 @@ export interface ObjectInfo {
 	primitiveCount: number;
 }
 
+export interface AttributeLayoutMember {
+	name: string;
+	type: string;
+	structType: string;
+	offset: number;
+	size: number;
+}
+
+export interface AttributeLayout {
+	members: AttributeLayoutMember[];
+	stride: number;
+}
+
 export class BVHComputeData {
 
 	autogenerateBvh: boolean;
 	attributes: Record<string, string>;
+	attributeLayout: AttributeLayout | null;
 
 	storage: {
 		nodes: unknown;
