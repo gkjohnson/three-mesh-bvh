@@ -280,14 +280,14 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const geometry = data.storage.geometry.value.array;
 		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
 
-		// every transform gives the start of its geometry's index and attributes, shared by the transforms
-		// of one geometry's bvh roots
-		const transforms = data.storage.objects.value.array;
-		const transformLength = data.structs.objectRecord.getLength();
+		// every object record gives the start of its geometry's index and attributes, shared by the
+		// records of one geometry's bvh roots
+		const records = data.storage.objects.value.array;
+		const recordLength = data.structs.objectRecord.getLength();
 		const blocks = new Map();
-		for ( let i = 0; i < transforms.length; i += transformLength ) {
+		for ( let i = 0; i < records.length; i += recordLength ) {
 
-			blocks.set( transforms[ i + 33 ], transforms[ i + 34 ] );
+			blocks.set( records[ i + 33 ], records[ i + 34 ] );
 
 		}
 

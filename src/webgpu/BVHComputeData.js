@@ -27,8 +27,8 @@ import { BVH_STACK_DEPTH } from './tsl/constants.js';
 // 		- add a callback for writing a property for a geometry to a range
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
 
-// the 32-bit word of a transform entry its "indexOffset" is written to, with "attributesOffset" after it
-const TRANSFORM_GEOMETRY_OFFSET = 33;
+// the 32-bit word of an object record its "indexOffset" is written to, with "attributesOffset" after it
+const OBJECT_RECORD_GEOMETRY_OFFSET = 33;
 
 // scratch
 const _matrix = /* @__PURE__ */ new Matrix4();
@@ -182,7 +182,7 @@ export class BVHComputeData {
 			getVertexPosition: null,
 		}, proxyFn );
 
-		// what "update" packed for every transform, for "getObjectInfo"
+		// what "update" packed for every object record, for "getObjectInfo"
 		this._packedObjects = [];
 
 		// this needs no layout from "update"
@@ -498,19 +498,19 @@ export class BVHComputeData {
 
 		} );
 
-		// writes where every transform's geometry starts, after the matrices and visibility
+		// writes where every object's geometry starts, after the matrices and visibility
 		const transformBufferU32 = new Uint32Array( transformArrayBuffer );
-		const transformLength = structs.objectRecord.getLength();
+		const recordLength = structs.objectRecord.getLength();
 		primitiveInfo.forEach( info => {
 
 			const { indexOffset, attributesOffset } = info.subtree.data;
-			const offset = info.transformSlot * transformLength + TRANSFORM_GEOMETRY_OFFSET;
+			const offset = info.transformSlot * recordLength + OBJECT_RECORD_GEOMETRY_OFFSET;
 			transformBufferU32[ offset ] = indexOffset;
 			transformBufferU32[ offset + 1 ] = attributesOffset;
 
 		} );
 
-		// record what was packed for every transform, for "getObjectInfo"
+		// record what was packed for every object record, for "getObjectInfo"
 		const packedObjects = [];
 		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
 
