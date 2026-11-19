@@ -78,6 +78,14 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 	} );
 
+	it( 'skips an object when transformShapeFn returns false', async () => {
+
+		const full = await page.evaluate( () => window.testShapecast( true, true, 0 ) );
+		const result = await page.evaluate( () => window.testShapecast( true, true, 0, 0 ) );
+		expect( result ).toEqual( [ 1, full[ 1 ] / 2, 1, 1, 0 ] );
+
+	} );
+
 	it( 'supports closest-hit and any-hit together, transforms, misses, and exclusive maxDist', async () => {
 
 		const result = await page.evaluate( () => window.testRays() );

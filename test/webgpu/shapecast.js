@@ -45,7 +45,7 @@ async function init() {
 	}
 
 	// Exercise multiple BLAS leaves and TLAS placements, with hooks that detect leaked state.
-	window.testShapecast = async ( booleanResult, hit, stopAfter ) => {
+	window.testShapecast = async ( booleanResult, hit, stopAfter, skipObject = - 1 ) => {
 
 		const resetCount = uint( 0 ).toVar();
 		const activeObject = uint( 0 ).toVar();
@@ -72,7 +72,11 @@ async function init() {
 				}
 			`,
 			transformShapeFn: wgslTagFn`
-				fn testTransformShape( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void { ${ activeObject } = objectIndex + 1u; }
+				fn testTransformShape( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> bool {
+					${ skipObject === - 1 ? '' : `if ( objectIndex == ${ skipObject }u ) { return false; }` }
+					${ activeObject } = objectIndex + 1u;
+					return true;
+				}
 			`,
 			transformResultFn: wgslTagFn`
 				fn finish( result: ptr<function, ${ resultStruct }>, objectIndex: u32 ) -> void {

@@ -146,9 +146,10 @@ export function getClosestPointToPointFn( bvhData ) {
 			`,
 
 		transformShapeFn: wgslTagFn/* wgsl */`
-			fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> void {
+			fn cppTransformShape( shape: ptr<function, vec3f>, objectIndex: u32 ) -> bool {
 
 				${ scratchToWorldMat } = ${ objects }[ objectIndex ].matrixWorld;
+				return true;
 
 			}
 		`,

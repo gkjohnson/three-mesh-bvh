@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVH: The "strategy" option can be a function that picks the split for each node, for custom split heuristics.
 
 ### Changed
+- BVHComputeData: "getShapecastFn" "transformShapeFn" must return a bool, whether to traverse the object, so an object can be skipped.
 - BVHComputeData: "writeObjectRecord", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord" and "transformStruct" to "objectRecordStruct".
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
