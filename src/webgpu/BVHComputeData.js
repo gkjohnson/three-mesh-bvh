@@ -102,6 +102,9 @@ function getTransformKey( compositeId, root ) {
  * they belong to. The offsets to read them with are the `indexOffset` and `attributesOffset` of the
  * object's record in `storage.objects`, eg `objects[ hit.objectIndex ].attributesOffset`.
  *
+ * `this.attributeLayout` describes how a vertex is packed in `storage.geometry` once `update` has run: the
+ * vertex `stride` and the `offset` and `size` of each attribute, in 32-bit words.
+ *
  * Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
  * A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
  * No alpha or material tests are applied.
@@ -167,6 +170,9 @@ export class BVHComputeData {
 		this.attributes = attributes;
 		this.objects = objects;
 		this.bvh = null;
+
+		// the packed layout of a vertex in the geometry buffer, set in "update"
+		this.attributeLayout = null;
 
 		// storage buffers and structs are populated in "update"; their members are accessed through
 		// proxy nodes so the functions below can reference them up front and keep working across rebuilds
@@ -421,6 +427,7 @@ export class BVHComputeData {
 		// construct the attribute struct, which is what getVertex returns. The buffer itself is packed
 		// without the struct's alignment padding.
 		const attributeLayout = getAttributeLayout( attributes );
+		this.attributeLayout = attributeLayout;
 		const attributeStruct = new StructTypeNode( Object.fromEntries( attributeLayout.members.map( m => [ m.name, m.structType ] ) ), 'bvh_GeometryStruct' );
 
 		// Write the geometry buffer & bvh data. Every geometry gets one block, its index data followed by
