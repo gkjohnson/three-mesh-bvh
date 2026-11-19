@@ -14,7 +14,6 @@ import {
 	Vector4,
 } from 'three';
 import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
-import { getStructMemberOffset } from '../src/webgpu/tsl/structs.js';
 import { MeshBVH } from '../src/index.js';
 
 const attributes = {
@@ -34,7 +33,7 @@ const names = Object.keys( attributes );
 // in node (0.168), so BVHComputeData is only imported when the tests run.
 const IS_REVISION_185 = parseInt( REVISION ) >= 185;
 
-let BVHComputeData;
+let BVHComputeData, getStructMemberOffset;
 
 function createGeometry() {
 
@@ -115,6 +114,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 	beforeAll( async () => {
 
 		( { BVHComputeData } = await import( '../src/webgpu/BVHComputeData.js' ) );
+		( { getStructMemberOffset } = await import( '../src/webgpu/tsl/structs.js' ) );
 
 	} );
 
