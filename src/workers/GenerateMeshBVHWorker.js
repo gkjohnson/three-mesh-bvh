@@ -110,12 +110,6 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
-			if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
-
-				throw new Error( 'GenerateMeshBVHWorker: InterleavedBufferAttribute is not supported for the index attribute.' );
-
-			}
-
 			let { transferBuffers = false } = options;
 			if ( transferBuffers && geometry.attributes.position.isInterleavedBufferAttribute ) {
 
@@ -174,7 +168,6 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 							// the build reordered a copy of the index so write it back
 							indexAttribute.array.set( serialized.index );
-							indexAttribute.needsUpdate = true;
 
 						}
 

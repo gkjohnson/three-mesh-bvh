@@ -75,12 +75,6 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			}
 
-			if ( geometry.index && geometry.index.isInterleavedBufferAttribute ) {
-
-				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute is not supported for the index attribute.' );
-
-			}
-
 			const indexAttribute = geometry.index;
 
 			worker.onerror = e => {
@@ -111,7 +105,6 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 						// the build reordered a copy of the index so write it back
 						indexAttribute.array.set( serialized.index );
-						indexAttribute.needsUpdate = true;
 
 					}
 

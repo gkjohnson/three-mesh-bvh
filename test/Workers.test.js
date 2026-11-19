@@ -25,12 +25,19 @@ describe( 'Workers', () => {
 			let readable = true;
 			let keptArrays = false;
 			let positionMatches = false;
+			let hasIndex = false;
 			try {
 
-				const geometry = new TorusGeometry( 5, 5, 50, 100 );
+				let geometry = new TorusGeometry( 5, 5, 50, 100 );
+				if ( options.nonIndexed ) {
+
+					geometry = geometry.toNonIndexed();
+
+				}
+
 				if ( options.groups ) {
 
-					const chunks = geometry.index.count / 3;
+					const chunks = ( geometry.index || geometry.attributes.position ).count / 3;
 					geometry.clearGroups();
 					geometry.addGroup( 0, chunks, 0 );
 					geometry.addGroup( chunks, chunks, 0 );
@@ -62,7 +69,7 @@ describe( 'Workers', () => {
 				}
 
 				const { index, attributes } = geometry;
-				const indexArray = index.array;
+				const indexArray = index ? index.array : null;
 				const positionArray = attributes.position.array;
 				if ( options.progress ) {
 
@@ -70,7 +77,7 @@ describe( 'Workers', () => {
 					options.onProgress = v => {
 
 						// transferred arrays are empty until the build finishes
-						readable = readable && index.array.length !== 0 && attributes.position.array.length !== 0;
+						readable = readable && ( ! index || index.array.length !== 0 ) && attributes.position.array.length !== 0;
 						progress.push( v );
 
 					};
@@ -86,7 +93,8 @@ describe( 'Workers', () => {
 				workerBvh = await worker.generate( geometry, options );
 				worker.dispose();
 
-				keptArrays = index.array === indexArray && attributes.position.array === positionArray;
+				keptArrays = ( ! index || index.array === indexArray ) && attributes.position.array === positionArray;
+				hasIndex = Boolean( geometry.index );
 				const referenceArray = reference.attributes.position.array;
 				positionMatches = attributes.position.array.length === referenceArray.length &&
 					referenceArray.every( ( v, i ) => v === attributes.position.array[ i ] );
@@ -116,6 +124,7 @@ describe( 'Workers', () => {
 				readable,
 				keptArrays,
 				positionMatches,
+				hasIndex,
 			};
 
 		}, options );
@@ -210,6 +219,7 @@ describe( 'Workers', () => {
 	runTestMatrix( {
 		parallel: [ false, true ],
 		groups: [ false, true ],
+		nonIndexed: [ false, true ],
 		interleaved: [ false, true ],
 		normalized: [ false, true ],
 	}, ( desc, options ) => {
@@ -218,7 +228,7 @@ describe( 'Workers', () => {
 
 			it( 'should generate a matching bvh and log onProgress correctly', async () => {
 
-				const { workerBvh, bvh, error, progress } = await generate( { ...options, progress: true } );
+				const { workerBvh, bvh, error, progress, hasIndex } = await generate( { ...options, progress: true } );
 				const minProgress = Math.min( ...progress );
 				const maxProgress = Math.max( ...progress );
 
@@ -227,6 +237,9 @@ describe( 'Workers', () => {
 
 				expect( error ).toBe( null );
 				expect( workerBvh ).toEqual( bvh );
+
+				// indirect builds leave a non-indexed geometry without an index
+				expect( hasIndex ).toBe( ! ( options.nonIndexed && options.indirect ) );
 
 			} );
 
