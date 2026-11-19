@@ -277,7 +277,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 		const indexCount = indexed.index.count + nonIndexed.attributes.position.count;
 		const vertexCount = indexed.attributes.position.count + nonIndexed.attributes.position.count;
-		const geometry = new Uint32Array( await data.readStorage( 'geometry' ) );
+		const geometry = data.storage.geometry.value.array;
 		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
 
 		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set

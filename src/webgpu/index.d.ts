@@ -32,7 +32,6 @@ export class BVHComputeData {
 	} );
 
 	update(): Promise<void>;
-	readStorage( name: string ): Promise<ArrayBuffer>;
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;
