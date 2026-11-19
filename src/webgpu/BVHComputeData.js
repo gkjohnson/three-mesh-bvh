@@ -10,6 +10,7 @@ import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	objectRecordStruct,
+	getStructMemberOffset,
 } from './tsl/structs.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getRootPrimitiveRange, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
@@ -26,9 +27,6 @@ import { BVH_STACK_DEPTH } from './tsl/constants.js';
 // TODO: add material support w/ function to easily update material
 // 		- add a callback for writing a property for a geometry to a range
 // TODO: Add support for other geometry types (tris, lines, custom BVHs etc)
-
-// the 32-bit word of an object record its "indexOffset" is written to, with "attributesOffset" after it
-const OBJECT_RECORD_GEOMETRY_OFFSET = 33;
 
 // scratch
 const _matrix = /* @__PURE__ */ new Matrix4();
@@ -490,27 +488,7 @@ export class BVHComputeData {
 		this.storage.geometry = geometryStorage;
 		this.structs.attributes = attributeStruct;
 
-		// writes every transform
-		_inverseMatrix.copy( bvh.matrixWorld ).invert();
-		transformMap.forEach( info => {
-
-			this.writeObjectRecord( info, _inverseMatrix, info.slot, transformArrayBuffer );
-
-		} );
-
-		// writes where every object's geometry starts, after the matrices and visibility
-		const transformBufferU32 = new Uint32Array( transformArrayBuffer );
-		const recordLength = structs.objectRecord.getLength();
-		primitiveInfo.forEach( info => {
-
-			const { indexOffset, attributesOffset } = info.subtree.data;
-			const offset = info.transformSlot * recordLength + OBJECT_RECORD_GEOMETRY_OFFSET;
-			transformBufferU32[ offset ] = indexOffset;
-			transformBufferU32[ offset + 1 ] = attributesOffset;
-
-		} );
-
-		// record what was packed for every object record, for "getObjectInfo"
+		// record what was packed for every object record, for "writeObjectRecord" and "getObjectInfo"
 		const packedObjects = [];
 		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
 
@@ -525,6 +503,14 @@ export class BVHComputeData {
 		} );
 
 		this._packedObjects = packedObjects;
+
+		// writes every object record
+		_inverseMatrix.copy( bvh.matrixWorld ).invert();
+		transformMap.forEach( info => {
+
+			this.writeObjectRecord( info, _inverseMatrix, info.slot, transformArrayBuffer );
+
+		} );
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
 		this.fns.getVertex = getVertexFn( this, attributeLayout );
@@ -609,9 +595,10 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Writes the world/inverse-world matrices and visibility flag of one object record
-	 * into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
-	 * data (e.g. material index).
+	 * Writes one object record into a raw ArrayBuffer: the world/inverse-world matrices, the
+	 * visibility flag, and where the object's geometry starts in `storage.geometry`. Override this
+	 * in a subclass to write additional per-object data (e.g. material index) into members added
+	 * after the base record's.
 	 *
 	 * @param {{object:Object3D,instanceId:number,compositeId:number,root:number,slot:number}} info - The object, its instance index, and the slot its record is written to.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
@@ -652,6 +639,12 @@ export class BVHComputeData {
 		}
 
 		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 32 ] = visible ? 1 : 0;
+
+		// write where the object's geometry starts in the geometry buffer
+		const { indexOffset, attributesOffset } = this._packedObjects[ writeOffset ].data;
+		const recordOffset = writeOffset * structs.objectRecord.getLength();
+		transformBufferU32[ recordOffset + getStructMemberOffset( structs.objectRecord, 'indexOffset' ) ] = indexOffset;
+		transformBufferU32[ recordOffset + getStructMemberOffset( structs.objectRecord, 'attributesOffset' ) ] = attributesOffset;
 
 	}
 

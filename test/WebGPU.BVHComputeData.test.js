@@ -14,6 +14,7 @@ import {
 	Vector4,
 } from 'three';
 import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
+import { getStructMemberOffset } from '../src/webgpu/tsl/structs.js';
 import { MeshBVH } from '../src/index.js';
 
 const attributes = {
@@ -284,10 +285,12 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		// records of one geometry's bvh roots
 		const records = data.storage.objects.value.array;
 		const recordLength = data.structs.objectRecord.getLength();
+		const indexOffsetMember = getStructMemberOffset( data.structs.objectRecord, 'indexOffset' );
+		const attributesOffsetMember = getStructMemberOffset( data.structs.objectRecord, 'attributesOffset' );
 		const blocks = new Map();
 		for ( let i = 0; i < records.length; i += recordLength ) {
 
-			blocks.set( records[ i + 33 ], records[ i + 34 ] );
+			blocks.set( records[ i + indexOffsetMember ], records[ i + attributesOffsetMember ] );
 
 		}
 
