@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
 import { Matrix4, Mesh, Group } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage, uniform } from 'three/tsl';
+import { storage } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
@@ -11,7 +11,7 @@ import {
 	bvhNodeStruct,
 	objectRecordStruct,
 } from './tsl/structs.js';
-import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
+import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getRootPrimitiveRange, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
 import { getRaycastAnyHitFn } from './shapecastFns/getRaycastAnyHitFn.js';
 import { getRaycastFirstHitFn } from './shapecastFns/getRaycastFirstHitFn.js';
@@ -65,6 +65,24 @@ function getTransformKey( compositeId, root ) {
 }
 
 /**
+ * Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo` and
+ * `BVHComputeData.getAllObjectInfo`.
+ *
+ * @typedef {Object} ObjectInfo
+ * @property {Object3D} object - The mesh.
+ * @property {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
+ * @property {number} group - Index of the geometry group, each of which is packed as its own object.
+ * @property {number} objectIndex - Index of the object's record in `storage.objects`. Hits report it as `objectIndex`.
+ * @property {number} indexOffset - Where the index data of the object's geometry starts in `storage.geometry`,
+ *   in 32-bit words. Shared by the objects of a geometry's groups.
+ * @property {number} attributesOffset - Where the vertex attributes of the object's geometry start in
+ *   `storage.geometry`, in 32-bit words.
+ * @property {number} primitiveOffset - The object's first primitive, counted from the start of its geometry's
+ *   index data. Non-zero for a geometry group after the first.
+ * @property {number} primitiveCount - The number of primitives in the object.
+ */
+
+/**
  * Packs one or more scene objects into GPU-accessible BVH buffers (TLAS + BLAS) for use
  * in WebGPU compute shaders via the Three.js TSL node system. After construction, call
  * {@link BVHComputeData#update} to populate the storage buffers, then reference
@@ -74,10 +92,15 @@ function getTransformKey( compositeId, root ) {
  * - `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
  * - `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
  * - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
- * - `getTriangleIndices( triIndex ) -> vec3u`: reads the vertex indices of a triangle.
- * - `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. The index and
+ * - `getTriangleIndices( triIndex, indexOffset ) -> vec3u`: reads the vertex indices of a triangle.
+ * - `getVertex( index, attributesOffset ) -> bvh_GeometryStruct`: reads the attributes of a vertex. The index and
  *   attribute data share one internal buffer whose packing may change, so read them through these.
- * - `getVertexPosition( index ) -> vec3f`: reads only the position of a vertex, for custom traversal.
+ * - `getVertexPosition( index, attributesOffset ) -> vec3f`: reads only the position of a vertex, for custom traversal.
+ * - `sampleTrianglePoint( barycoord, indices, attributesOffset ) -> bvh_GeometryStruct`: interpolates a triangle's attributes.
+ *
+ * Triangle and vertex indices, including those of a hit, are relative to the geometry of the object
+ * they belong to. The offsets to read them with are the `indexOffset` and `attributesOffset` of the
+ * object's record in `storage.objects`, eg `objects[ hit.objectIndex ].attributesOffset`.
  *
  * Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
  * A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
@@ -156,11 +179,10 @@ export class BVHComputeData {
 			getVertexPosition: null,
 		}, proxyFn );
 
-		// the start of the attribute data in the geometry buffer, in 32-bit words. A uniform so the shader
-		// code doesn't change, and need recompiling, when the index length does
-		this._attributesOffset = uniform( 0, 'uint' );
+		// what "update" packed for every object record, for "getObjectInfo"
+		this._packedObjects = [];
 
-		// the index data sits at the start of the geometry buffer, so this needs no layout from "update"
+		// this needs no layout from "update"
 		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
 
 		// these read through "fns.getTriangleIndices" and "fns.getVertexPosition", so "fns" must exist first
@@ -339,7 +361,9 @@ export class BVHComputeData {
 					bvh: primBvh,
 					range: range,
 
-					geometryOffset: 0,
+					// where the geometry's index and attributes start in the geometry buffer, in 32-bit words
+					indexOffset: 0,
+					attributesOffset: 0,
 
 				};
 
@@ -399,35 +423,28 @@ export class BVHComputeData {
 		const attributeLayout = getAttributeLayout( attributes );
 		const attributeStruct = new StructTypeNode( Object.fromEntries( attributeLayout.members.map( m => [ m.name, m.structType ] ) ), 'bvh_GeometryStruct' );
 
-		// write the geometry buffer & bvh data. The index data comes first and the attributes follow it,
-		// so the index and attributes take one storage binding instead of two.
-		let attributesOffset = 0;
-		let indexOffset = 0;
+		// Write the geometry buffer & bvh data. Every geometry gets one block, its index data followed by
+		// its attributes, so the index and attributes take one storage binding and a geometry can be
+		// rewritten or moved on its own. The indices are relative to the block's attributes and the leaf
+		// triangle offsets to its index data.
 		const attributesWordLength = attributesBufferLength * attributeLayout.stride;
 		const geometryBuffer = new Uint32Array( Math.max( indexBufferLength + attributesWordLength, 2 ) );
-		const indexBuffer = geometryBuffer.subarray( 0, indexBufferLength );
-		const attributesBuffer = new Float32Array( geometryBuffer.buffer, indexBufferLength * 4, attributesWordLength );
 		const bvhNodesBuffer = new ArrayBuffer( bvhNodesBufferLength );
 
-		// pack each unique geometry ( index + attributes ) once, recording its triangle base so the
-		// referenced subtrees' leaves can be rebased into it
+		// pack each unique geometry ( index + attributes ) once
+		let geometryWriteOffset = 0;
 		bvhInfo.forEach( info => {
 
-			info.geometryOffset = indexOffset / 3;
+			const { bvh, range } = info;
+			const attributesLength = range.vertexCount * attributeLayout.stride;
+			info.indexOffset = geometryWriteOffset;
+			info.attributesOffset = geometryWriteOffset + range.count;
 
-			// A non-indirect bvh built over a sub-range stores absolute leaf offsets, so shift the
-			// base back by the range's triangle start.
-			if ( ! info.bvh.indirect ) {
+			const attributesBuffer = new Float32Array( geometryBuffer.buffer, info.attributesOffset * 4, attributesLength );
+			appendIndexData( bvh, range, 0, info.indexOffset, geometryBuffer );
+			appendGeometryData( bvh, range, 0, attributesBuffer, attributeLayout, this );
 
-				info.geometryOffset -= info.range.start / 3;
-
-			}
-
-			appendIndexData( info.bvh, info.range, attributesOffset, indexOffset, indexBuffer );
-			appendGeometryData( info.bvh, info.range, attributesOffset, attributesBuffer, attributeLayout, this );
-
-			indexOffset += info.range.count;
-			attributesOffset += info.range.vertexCount;
+			geometryWriteOffset += range.count + attributesLength;
 
 		} );
 
@@ -436,8 +453,12 @@ export class BVHComputeData {
 		let nodeWriteOffset = getTotalBVHNodeCount( bvh );
 		subtreeInfo.forEach( subtree => {
 
+			// A non-indirect bvh built over a sub-range stores leaf offsets from the start of the whole
+			// geometry, so shift them back by the range's triangle start.
+			const { bvh, range } = subtree.data;
+			const triangleOffset = bvh.indirect ? 0 : - range.start / 3;
 			subtree.base = nodeWriteOffset;
-			appendBVHSubtree( subtree.data.bvh._roots[ subtree.root ], subtree.node, subtree.size, subtree.data.geometryOffset, nodeWriteOffset, bvhNodesBuffer );
+			appendBVHSubtree( bvh._roots[ subtree.root ], subtree.node, subtree.size, triangleOffset, nodeWriteOffset, bvhNodesBuffer );
 			nodeWriteOffset += subtree.size;
 
 		} );
@@ -465,9 +486,24 @@ export class BVHComputeData {
 		this.storage.nodes = bvhNodesStorage;
 		this.storage.geometry = geometryStorage;
 		this.structs.attributes = attributeStruct;
-		this._attributesOffset.value = indexBufferLength;
 
-		// writes every transform
+		// record what was packed for every object record, for "writeObjectRecord" and "getObjectInfo"
+		const packedObjects = [];
+		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
+
+			packedObjects[ slot ] = { object, instanceId, root, data: null, primitiveRange: null };
+
+		} );
+
+		primitiveInfo.forEach( info => {
+
+			packedObjects[ info.transformSlot ].data = info.subtree.data;
+
+		} );
+
+		this._packedObjects = packedObjects;
+
+		// writes every object record
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
 		transformMap.forEach( info => {
 
@@ -476,8 +512,8 @@ export class BVHComputeData {
 		} );
 
 		// these depend on the resolved attribute layout, so they must be built here rather than up front
-		this.fns.getVertex = getVertexFn( this, attributeLayout, this._attributesOffset );
-		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout, this._attributesOffset );
+		this.fns.getVertex = getVertexFn( this, attributeLayout );
+		this.fns.getVertexPosition = getVertexPositionFn( this, attributeLayout );
 		this.fns.sampleTrianglePoint = getSampleTrianglePointFn( this );
 
 		// clear our cache for now. In the future we will need to keep this around.
@@ -558,9 +594,10 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Writes the world/inverse-world matrices and visibility flag of one object record
-	 * into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
-	 * data (e.g. material index).
+	 * Writes one object record into a raw ArrayBuffer: the world/inverse-world matrices, the
+	 * visibility flag, and where the object's geometry starts in `storage.geometry`. Override this
+	 * in a subclass to write additional per-object data (e.g. material index) into members added
+	 * after the base record's.
 	 *
 	 * @param {{object:Object3D,instanceId:number,compositeId:number,root:number,slot:number}} info - The object, its instance index, and the slot its record is written to.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
@@ -601,6 +638,13 @@ export class BVHComputeData {
 		}
 
 		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 32 ] = visible ? 1 : 0;
+
+		// write where the object's geometry starts in the geometry buffer
+		// TODO: the member offsets are hardcoded since three.js's StructTypeNode doesn't expose or cache
+		// them, and computing them per record is too slow. Use them once three.js provides them.
+		const { indexOffset, attributesOffset } = this._packedObjects[ writeOffset ].data;
+		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 33 ] = indexOffset;
+		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 34 ] = attributesOffset;
 
 	}
 
@@ -670,6 +714,70 @@ export class BVHComputeData {
 		}
 
 		return bvh;
+
+	}
+
+	/**
+	 * Returns where an object was packed by the last {@link BVHComputeData#update}, or null if it was not.
+	 *
+	 * @param {Object3D} object - The mesh.
+	 * @param {number} [instanceId=0] - Instance index (relevant for InstancedMesh / BatchedMesh).
+	 * @param {number} [group=0] - Index of the geometry group, each of which is packed as its own object.
+	 * @returns {ObjectInfo|null}
+	 */
+	getObjectInfo( object, instanceId = 0, group = 0 ) {
+
+		const objectIndex = this._packedObjects.findIndex( packed => {
+
+			return packed.object === object && packed.instanceId === instanceId && packed.root === group;
+
+		} );
+
+		if ( objectIndex === - 1 ) {
+
+			return null;
+
+		}
+
+		return this._getObjectInfoAt( objectIndex );
+
+	}
+
+	/**
+	 * Returns where every object was packed by the last {@link BVHComputeData#update}, in object index order.
+	 *
+	 * @returns {Array<ObjectInfo>}
+	 */
+	getAllObjectInfo() {
+
+		return this._packedObjects.map( ( _, objectIndex ) => this._getObjectInfoAt( objectIndex ) );
+
+	}
+
+	_getObjectInfoAt( objectIndex ) {
+
+		const packed = this._packedObjects[ objectIndex ];
+		const { object, instanceId, root } = packed;
+		const { bvh, range, indexOffset, attributesOffset } = packed.data;
+		if ( packed.primitiveRange === null ) {
+
+			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ root ] );
+
+		}
+
+		// A non-indirect bvh built over a sub-range stores leaf offsets from the start of the whole
+		// geometry, which are shifted back by the range's triangle start when packed.
+		const primitiveShift = bvh.indirect ? 0 : - range.start / 3;
+		return {
+			object,
+			instanceId,
+			group: root,
+			objectIndex,
+			indexOffset,
+			attributesOffset,
+			primitiveOffset: packed.primitiveRange.offset + primitiveShift,
+			primitiveCount: packed.primitiveRange.count,
+		};
 
 	}
 

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHHelper: "displayChildBVHs" option to also display the BVHs of the objects in an ObjectBVH.
 - BVHComputeData: "oct16", "2x16float" and "4x16float" packed attribute types for octahedral encoded normals and tangents and half float uvs and colors.
 - BVH: The "strategy" option can be a function that picks the split for each node, for custom split heuristics.
+- BVHComputeData: "getObjectInfo" and "getAllObjectInfo" functions returning an object's mesh, instance, group, index, geometry offsets and triangle range in the packed buffers.
 
 ### Changed
 - BVHComputeData: "getShapecastFn" "transformShapeFn" must return a bool, whether to traverse the object, so an object can be skipped.
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord" and "transformStruct" to "objectRecordStruct".
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
+- BVHComputeData: The index and attributes are packed in one block per geometry, with triangle and vertex indices relative to it. "getTriangleIndices" takes the geometry's index offset and "getVertex", "getVertexPosition" and "sampleTrianglePoint" its attributes offset as a last argument, read from the object's record in "storage.objects". "intersectRangeFn" callbacks receive both offsets after the count.
 
 ### Removed
 - Deprecated "maxLeafTris" and "maxLeafSize" options. Use "targetLeafSize" instead.

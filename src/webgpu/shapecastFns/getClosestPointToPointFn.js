@@ -88,7 +88,7 @@ export function getClosestPointToPointFn( bvhData ) {
 		`,
 
 		intersectRangeFn: wgslTagFn /* wgsl */`
-			fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
+			fn cppIntersectsRange( shape: vec3f, offset: u32, count: u32, indexOffset: u32, attributesOffset: u32, result: ptr<function, ${ pointQueryResultStruct }> ) -> bool {
 
 				var didHit = false;
 				let toWorld = ${ scratchToWorldMat };
@@ -96,10 +96,10 @@ export function getClosestPointToPointFn( bvhData ) {
 				for ( var i = offset; i < offset + count; i ++ ) {
 
 					// transform the triangle to world space
-					let indices = ${ getTriangleIndices }( i );
-					let a = ( toWorld * vec4f( ${ getVertexPosition }( indices.x ), 1.0 ) ).xyz;
-					let b = ( toWorld * vec4f( ${ getVertexPosition }( indices.y ), 1.0 ) ).xyz;
-					let c = ( toWorld * vec4f( ${ getVertexPosition }( indices.z ), 1.0 ) ).xyz;
+					let indices = ${ getTriangleIndices }( i, indexOffset );
+					let a = ( toWorld * vec4f( ${ getVertexPosition }( indices.x, attributesOffset ), 1.0 ) ).xyz;
+					let b = ( toWorld * vec4f( ${ getVertexPosition }( indices.y, attributesOffset ), 1.0 ) ).xyz;
+					let c = ( toWorld * vec4f( ${ getVertexPosition }( indices.z, attributesOffset ), 1.0 ) ).xyz;
 
 					let barycoord = ${ closestPointToTriangle }( shape, a, b, c );
 					let closestPoint = barycoord.x * a + barycoord.y * b + barycoord.z * c;
