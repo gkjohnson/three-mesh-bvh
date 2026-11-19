@@ -73,8 +73,9 @@ async function init() {
 			`,
 			transformShapeFn: wgslTagFn`
 				fn testTransformShape( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> bool {
+					${ skipObject === - 1 ? '' : `if ( objectIndex == ${ skipObject }u ) { return false; }` }
 					${ activeObject } = objectIndex + 1u;
-					return ${ skipObject === - 1 ? 'true' : `objectIndex != ${ skipObject }u` };
+					return true;
 				}
 			`,
 			transformResultFn: wgslTagFn`

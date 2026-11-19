@@ -82,7 +82,7 @@ describe.skipIf( ! process.env.BVH_WEBGPU_TESTS )( 'WebGPU shapecast', () => {
 
 		const full = await page.evaluate( () => window.testShapecast( true, true, 0 ) );
 		const result = await page.evaluate( () => window.testShapecast( true, true, 0, 0 ) );
-		expect( result ).toEqual( [ 1, full[ 1 ] / 2, 1, 2, 0 ] );
+		expect( result ).toEqual( [ 1, full[ 1 ] / 2, 1, 1, 0 ] );
 
 	} );
 
