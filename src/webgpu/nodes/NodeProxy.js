@@ -130,6 +130,44 @@ export const proxyFn = ( ...args ) => {
 
 };
 
+// A container whose string members are returned as stable proxy nodes. Assigning a member stores
+// the underlying node.
+// TODO: we should automatically infer a proxy node vs fn. Perhaps in r185 we won't need the difference?
+export class NodeProxyObject {
+
+	constructor( initialization = {}, createProxy = proxy ) {
+
+		const proxies = {};
+
+		// the raw backing object holds the underlying nodes and is the proxy target. "createProxy"
+		// selects the proxy variant - "proxy" for plain nodes, "proxyFn" for callable function nodes.
+		return new Proxy( { ...initialization }, {
+
+			get( target, property ) {
+
+				if ( ! proxies[ property ] ) {
+
+					proxies[ property ] = createProxy( property, target );
+
+				}
+
+				return proxies[ property ];
+
+			},
+
+			set( target, property, value ) {
+
+				target[ property ] = value;
+				return true;
+
+			},
+
+		} );
+
+	}
+
+}
+
 //
 
 // A node proxy that falls back to the active context
