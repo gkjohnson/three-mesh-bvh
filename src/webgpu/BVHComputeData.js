@@ -10,7 +10,6 @@ import { proxy, proxyFn } from './nodes/NodeProxy.js';
 import {
 	bvhNodeStruct,
 	objectRecordStruct,
-	getStructMemberOffset,
 } from './tsl/structs.js';
 import { appendBVHData, appendBVHSubtree, appendIndexData, appendGeometryData, getAttributeLayout, getSubtreeNodeCount, getRootPrimitiveRange, getMaxNodeDepth, GPU_BYTES_PER_NODE } from './utils/packBVHBufferUtils.js';
 import { getShapecastFn } from './shapecastFns/getShapecastFn.js';
@@ -641,10 +640,11 @@ export class BVHComputeData {
 		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 32 ] = visible ? 1 : 0;
 
 		// write where the object's geometry starts in the geometry buffer
+		// TODO: the member offsets are hardcoded since three.js's StructTypeNode doesn't expose or cache
+		// them, and computing them per record is too slow. Use them once three.js provides them.
 		const { indexOffset, attributesOffset } = this._packedObjects[ writeOffset ].data;
-		const recordOffset = writeOffset * structs.objectRecord.getLength();
-		transformBufferU32[ recordOffset + getStructMemberOffset( structs.objectRecord, 'indexOffset' ) ] = indexOffset;
-		transformBufferU32[ recordOffset + getStructMemberOffset( structs.objectRecord, 'attributesOffset' ) ] = attributesOffset;
+		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 33 ] = indexOffset;
+		transformBufferU32[ writeOffset * structs.objectRecord.getLength() + 34 ] = attributesOffset;
 
 	}
 

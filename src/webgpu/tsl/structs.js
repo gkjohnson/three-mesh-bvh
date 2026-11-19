@@ -1,26 +1,4 @@
-import { NodeUtils, StructTypeNode } from 'three/webgpu';
-
-// Returns the offset of a struct member in 32-bit words, with the alignment "StructTypeNode.getLength" uses
-export function getStructMemberOffset( struct, name ) {
-
-	let offset = 0;
-	for ( const member of struct.membersLayout ) {
-
-		const alignment = NodeUtils.getAlignmentFromType( member.type );
-		offset = Math.ceil( offset / alignment ) * alignment;
-		if ( member.name === name ) {
-
-			return offset;
-
-		}
-
-		offset += NodeUtils.getMemoryLengthFromType( member.type );
-
-	}
-
-	throw new Error( `getStructMemberOffset: "${ name }" is not a member of the struct.` );
-
-}
+import { StructTypeNode } from 'three/webgpu';
 
 export const bvhNodeBoundsStruct = new StructTypeNode( {
 	min: 'array<f32, 3>',
