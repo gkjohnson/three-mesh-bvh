@@ -270,6 +270,10 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 		}
 
+	} else if ( typeof strategy === 'function' ) {
+
+		( { axis, pos } = strategy( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count ) );
+
 	} else {
 
 		console.warn( `BVH: Invalid build strategy value ${ strategy } used.` );

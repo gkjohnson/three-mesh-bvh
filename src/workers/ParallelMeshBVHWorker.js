@@ -1,8 +1,8 @@
 /** @import { BufferGeometry } from 'three' */
-import { Box3, BufferAttribute } from 'three';
+import { Box3 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { convertToBufferType, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
 
@@ -75,14 +75,7 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			}
 
-			if (
-				geometry.getAttribute( 'position' ).isInterleavedBufferAttribute ||
-				geometry.index && geometry.index.isInterleavedBufferAttribute
-			) {
-
-				throw new Error( 'ParallelMeshBVHWorker: InterleavedBufferAttribute are not supported for the geometry attributes.' );
-
-			}
+			const indexAttribute = geometry.index;
 
 			worker.onerror = e => {
 
@@ -101,28 +94,17 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 				} else if ( data.serialized ) {
 
-					const { serialized, position } = data;
+					const { serialized } = data;
 					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
 					const boundsOptions = {
 						setBoundingBox: true,
 						...options,
 					};
 
-					// we need to replace the arrays because they're neutered entirely by the
-					// webworker transfer.
-					geometry.attributes.position.array = position;
-					if ( serialized.index ) {
+					if ( indexAttribute && ! bvh.indirect ) {
 
-						if ( geometry.index ) {
-
-							geometry.index.array = serialized.index;
-
-						} else {
-
-							const newIndex = new BufferAttribute( serialized.index, 1, false );
-							geometry.setIndex( newIndex );
-
-						}
+						// the build reordered a copy of the index so write it back
+						indexAttribute.array.set( serialized.index );
 
 					}
 
@@ -149,14 +131,21 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			};
 
-			const index = geometry.index ? geometry.index.array : null;
-			const position = geometry.attributes.position.array;
+			// the position is only read so it's shared if possible, while the index is always copied
+			// since non-indirect builds reorder it
+			const positionAttribute = geometry.attributes.position;
+			const position = positionAttribute.isInterleavedBufferAttribute ?
+				copyAttributeArray( positionAttribute, SharedArrayBuffer ) :
+				convertToBufferType( positionAttribute.array, SharedArrayBuffer );
+			const index = indexAttribute ? copyAttributeArray( indexAttribute, SharedArrayBuffer ) : null;
+
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
 				maxWorkerCount: this.maxWorkerCount,
-				index: convertToBufferType( index, SharedArrayBuffer ),
-				position: convertToBufferType( position, SharedArrayBuffer ),
+				index,
+				position,
+				normalized: positionAttribute.normalized,
 				options: {
 					...options,
 					onProgress: null,
@@ -176,7 +165,10 @@ class _ParallelMeshBVHWorker extends WorkerBase {
  * A drop-in replacement for `GenerateMeshBVHWorker` that distributes BVH construction across
  * multiple Web Workers in parallel for faster builds on large geometry. Requires
  * `SharedArrayBuffer` support (cross-origin isolated context). Falls back to a single-threaded
- * `GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable.
+ * `GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable. A parallel build
+ * shares the position array if it already uses a `SharedArrayBuffer` and copies it otherwise.
+ * The index is always copied and written back to the original array when the build finishes.
+ * `transferBuffers` only applies to the fallback.
  *
  * Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
  * `maxWorkerCount`.

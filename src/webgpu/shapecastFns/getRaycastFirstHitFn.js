@@ -91,7 +91,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 			}
 		`,
 		transformShapeFn: wgslTagFn/* wgsl */`
-			fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> void {
+			fn transformRay( ray: ptr<function, ${ rayStruct }>, objectIndex: u32 ) -> bool {
 
 				let toLocal = ${ objects }[ objectIndex ].inverseMatrixWorld;
 				ray.origin = ( toLocal * vec4f( ray.origin, 1.0 ) ).xyz;
@@ -100,6 +100,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 				let len = length( ray.direction );
 				ray.direction /= len;
 				${ scratchRayScalar } = 1.0 / len;
+				return true;
 
 			}
 		`,

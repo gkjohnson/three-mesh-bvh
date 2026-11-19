@@ -22,6 +22,8 @@ import { NOT_INTERSECTED, STOP_TRAVERSAL } from '../../core/Constants.js';
  * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
  * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
  * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.
+ * Returns whether to traverse the object. When returning false the shape and any per-object state must be left
+ * untouched, since `resetShapeFn` is not called for a skipped object.
  * @param {Function|null} [options.transformResultFn] - function node that transforms a hit result back to world space.
  * @param {Function|null} [options.resetShapeFn] - function node called after each BLAS traversal to reset any per-object state set by `transformShapeFn`.
  * @returns {Function} TSL function node for the traversal.
@@ -68,7 +70,7 @@ export function getShapecastFn( bvhData, options ) {
 	let transformShapeSnippet = '';
 	if ( transformShapeFn ) {
 
-		transformShapeSnippet = wgslTagCode/* wgsl */`${ transformShapeFn }( &localShape, objectIndex );`;
+		transformShapeSnippet = wgslTagCode/* wgsl */`enterObject = ${ transformShapeFn }( &localShape, objectIndex );`;
 
 	}
 
@@ -169,16 +171,22 @@ export function getShapecastFn( bvhData, options ) {
 						let objectRecord = ${ objects }[ objectIndex ];
 						if ( objectRecord.visible != 0u ) {
 
-							tlasReset = pointer;
-							isTLAS = false;
-							blasDidHit = false;
-
-							// Transform shape into object local space
+							// Transform shape into object local space. A hook that returns false leaves
+							// the shape and any per-object state untouched so the TLAS walk continues as is.
+							var enterObject = true;
 							localShape = shape;
 							${ transformShapeSnippet }
 
-							pointer = pointer + 1;
-							stack[ pointer ] = infoY;
+							if ( enterObject ) {
+
+								tlasReset = pointer;
+								isTLAS = false;
+								blasDidHit = false;
+
+								pointer = pointer + 1;
+								stack[ pointer ] = infoY;
+
+							}
 
 						}
 

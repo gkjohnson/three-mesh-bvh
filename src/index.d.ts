@@ -24,8 +24,16 @@ export interface HitPointInfo {
 	faceIndex: number;
 }
 
+export type SplitStrategyCallback = (
+	nodeBounds: Float32Array,
+	centroidBounds: Float32Array,
+	primitiveBounds: Float32Array,
+	offset: number,
+	count: number
+) => { axis: number, pos: number };
+
 export interface BVHOptions {
-	strategy?: SplitStrategy;
+	strategy?: SplitStrategy | SplitStrategyCallback;
 	maxDepth?: number;
 	targetLeafSize?: number;
 	setBoundingBox?: boolean;
