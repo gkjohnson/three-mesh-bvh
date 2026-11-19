@@ -57,6 +57,7 @@ async function handleMessage( data ) {
 			maxWorkerCount,
 			index,
 			position,
+			normalized,
 			options,
 		} = data;
 
@@ -64,7 +65,7 @@ async function handleMessage( data ) {
 		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
 
 		// generate necessary buffers and objects - based on the "buildTree" implementation
-		const geometry = getGeometry( index, position, options.groups );
+		const geometry = getGeometry( index, position, normalized, options.groups );
 		let proxyBvh = createProxyBVH( geometry, null );
 
 		let indirectBuffer = null;
@@ -107,6 +108,7 @@ async function handleMessage( data ) {
 					count,
 					index,
 					position,
+					normalized,
 					triangleBounds: primitiveBounds,
 					triangleBoundsOffset: primitiveBounds.offset,
 					indirectBuffer,
@@ -168,6 +170,7 @@ async function handleMessage( data ) {
 						indirectBuffer,
 						index,
 						position,
+						normalized,
 						triangleBounds: primitiveBounds,
 						triangleBoundsOffset: primitiveBounds.offset,
 						options: workerOptions,
@@ -222,12 +225,13 @@ async function handleMessage( data ) {
 			indirectBuffer,
 			index,
 			position,
+			normalized,
 			triangleBounds,
 			triangleBoundsOffset,
 			options,
 		} = data;
 
-		const geometry = getGeometry( index, position );
+		const geometry = getGeometry( index, position, normalized );
 		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 
 		// the subtree is transferred back, so it cannot be a shared buffer
@@ -249,6 +253,7 @@ async function handleMessage( data ) {
 		const {
 			index,
 			position,
+			normalized,
 			triangleBounds,
 			triangleBoundsOffset,
 			offset,
@@ -259,7 +264,7 @@ async function handleMessage( data ) {
 		// reconstruct the triangle bounds structure before use
 		triangleBounds.offset = triangleBoundsOffset;
 
-		const geometry = getGeometry( index, position );
+		const geometry = getGeometry( index, position, normalized );
 		const proxyBvh = createProxyBVH( geometry, indirectBuffer );
 		proxyBvh.computePrimitiveBounds( offset, count, triangleBounds );
 
@@ -311,7 +316,7 @@ function triggerOnProgress( progress ) {
 
 }
 
-function getGeometry( index, position, groups = null ) {
+function getGeometry( index, position, normalized, groups = null ) {
 
 	const geometry = new BufferGeometry();
 	if ( index ) {
@@ -320,7 +325,7 @@ function getGeometry( index, position, groups = null ) {
 
 	}
 
-	geometry.setAttribute( 'position', new BufferAttribute( position, 3 ) );
+	geometry.setAttribute( 'position', new BufferAttribute( position, 3, normalized ) );
 
 	if ( groups ) {
 
