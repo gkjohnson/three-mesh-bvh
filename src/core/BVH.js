@@ -230,9 +230,11 @@ export class BVH {
 	/**
 	 * Traverses all nodes of the BVH, invoking a callback for each node.
 	 *
-	 * For leaf nodes the callback receives `( depth, isLeaf, boundingData, offset, count )`.
-	 * For internal nodes it receives `( depth, isLeaf, boundingData, splitAxis )` and may
-	 * return `true` to stop descending into that node's children.
+	 * For leaf nodes the callback receives `( depth, isLeaf, boundingData, offset, count, nodeIndex )`.
+	 * For internal nodes it receives `( depth, isLeaf, boundingData, splitAxis, undefined, nodeIndex,
+	 * leftIndex, rightIndex )` and may return `true` to stop descending into that node's children.
+	 * `nodeIndex` is the index of the node within its root, and `leftIndex` and `rightIndex` those of
+	 * its children.
 	 *
 	 * @param {Function} callback
 	 * @param {number} [rootIndex=0]

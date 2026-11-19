@@ -222,6 +222,43 @@ describe( 'Bounds Tree', () => {
 
 	} );
 
+	it( 'should report the node and child indices to the traverse callback.', () => {
+
+		const bvh = new MeshBVH( new SphereGeometry( 1, 20, 20 ) );
+		const nodes = new Map();
+		bvh.traverse( ( depth, isLeaf, box, offsetOrSplit, count, nodeIndex, leftIndex, rightIndex ) => {
+
+			nodes.set( nodeIndex, { depth, isLeaf, leftIndex, rightIndex } );
+
+		} );
+
+		// every node is visited once under its own index, starting at the root
+		expect( nodes.get( 0 ).depth ).toBe( 0 );
+		expect( nodes.size ).toBe( bvh._roots[ 0 ].byteLength / 32 );
+
+		let internalCount = 0;
+		nodes.forEach( ( { depth, isLeaf, leftIndex, rightIndex } ) => {
+
+			if ( isLeaf ) {
+
+				expect( leftIndex ).toBe( undefined );
+				expect( rightIndex ).toBe( undefined );
+
+			} else {
+
+				internalCount ++;
+				expect( nodes.get( leftIndex ).depth ).toBe( depth + 1 );
+				expect( nodes.get( rightIndex ).depth ).toBe( depth + 1 );
+				expect( leftIndex ).not.toBe( rightIndex );
+
+			}
+
+		} );
+
+		expect( internalCount ).toBeGreaterThan( 0 );
+
+	} );
+
 	describe( 'drawRange', () => {
 
 		let geometry;

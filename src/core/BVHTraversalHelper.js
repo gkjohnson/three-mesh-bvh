@@ -1,4 +1,5 @@
 import { COUNT, IS_LEAF, LEFT_NODE, OFFSET, RIGHT_NODE, SPLIT_AXIS } from './utils/nodeBufferUtils.js';
+import { UINT32_PER_NODE } from './Constants.js';
 
 export const BVHTraversalHelper = new ( class {
 
@@ -108,17 +109,20 @@ export const BVHTraversalHelper = new ( class {
 
 			this.traverseBuffer( ( depth, isLeaf, node32Index ) => {
 
+				const nodeIndex = node32Index / UINT32_PER_NODE;
 				if ( isLeaf ) {
 
 					const node16Index = node32Index * 2;
 					const offset = uint32Array[ node32Index + 6 ];
 					const count = uint16Array[ node16Index + 14 ];
-					return callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), offset, count );
+					return callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), offset, count, nodeIndex );
 
 				} else {
 
 					const splitAxis = SPLIT_AXIS( node32Index, uint32Array );
-					return callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis );
+					const leftIndex = LEFT_NODE( node32Index ) / UINT32_PER_NODE;
+					const rightIndex = RIGHT_NODE( node32Index, uint32Array ) / UINT32_PER_NODE;
+					return callback( depth, isLeaf, new Float32Array( buffer, node32Index * 4, 6 ), splitAxis, undefined, nodeIndex, leftIndex, rightIndex );
 
 				}
 

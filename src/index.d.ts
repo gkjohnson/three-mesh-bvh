@@ -104,8 +104,11 @@ export class BVH {
 			isLeaf: boolean,
 			boundingData: Float32Array,
 			offsetOrSplit: number,
-			count: number
-		) => void,
+			count: number | undefined,
+			nodeIndex: number,
+			leftIndex?: number,
+			rightIndex?: number
+		) => boolean | void,
 		rootIndex?: number
 	): void;
 
