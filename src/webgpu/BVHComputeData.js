@@ -30,6 +30,7 @@ import { BVH_STACK_DEPTH } from './tsl/constants.js';
 // scratch
 const _matrix = /* @__PURE__ */ new Matrix4();
 const _inverseMatrix = /* @__PURE__ */ new Matrix4();
+const _range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
 
 // functions
 function isObjectVisible( object ) {
@@ -244,15 +245,14 @@ export class BVHComputeData {
 	/**
 	 * Rebuilds all GPU storage buffers from the current scene state. Must be called at least
 	 * once before using `this.storage` or `this.fns` in a shader, and again whenever the
-	 * scene topology changes (objects added/removed, geometry modified). Requests the BVH of every
-	 * object and instance at once through {@link BVHComputeData#getBVH} and awaits them before
-	 * packing, so an override may build the BVHs asynchronously.
+	 * scene topology changes (objects added/removed, geometry modified). Awaits
+	 * {@link BVHComputeData#getBVH} for every object and instance first, so an override may build
+	 * the BVHs asynchronously as long as it returns the built BVH synchronously afterward. The BVHs
+	 * are all requested at once.
 	 * @returns {Promise<void>}
 	 */
 	async update() {
 
-		// the bvh and geometry range of every object instance, resolved once up front
-		const bvhMap = new Map();
 		const promises = [];
 		this.getRootObject().traverse( object => {
 
@@ -273,16 +273,11 @@ export class BVHComputeData {
 
 			}
 
-			const entries = [];
 			for ( let instanceId = 0; instanceId < instanceCount; instanceId ++ ) {
 
-				const entry = { bvh: null, range: { start: 0, count: 0, vertexStart: 0, vertexCount: 0 } };
-				promises.push( Promise.resolve( this.getBVH( object, instanceId, entry.range ) ).then( bvh => entry.bvh = bvh ) );
-				entries.push( entry );
+				promises.push( this.getBVH( object, instanceId, _range ) );
 
 			}
-
-			bvhMap.set( object, entries );
 
 		} );
 
@@ -318,7 +313,7 @@ export class BVHComputeData {
 
 		this.bvh = new ClusteredBVH( root, {
 			strategy: SAH,
-			getBVH: ( object, instance ) => bvhMap.get( object )[ instance ].bvh,
+			getBVH: ( object, instance ) => this._getBVHSync( object, instance, _range ),
 			primitiveLimit: total < 3 ? Infinity : 64,
 		} );
 
@@ -358,7 +353,8 @@ export class BVHComputeData {
 			const compositeNodeId = primitiveBuffer[ i + 1 ];
 			const object = bvh.objects[ bvh.getObjectId( compositeId ) ];
 			const instanceId = bvh.getInstanceId( compositeId );
-			const { bvh: primBvh, range } = bvhMap.get( object )[ instanceId ];
+			const range = { start: 0, count: 0, vertexStart: 0, vertexCount: 0 };
+			const primBvh = this._getBVHSync( object, instanceId, range );
 
 			if ( ! primBvh ) {
 
@@ -602,8 +598,8 @@ export class BVHComputeData {
 	/**
 	 * Returns the BVH for a given object/instance, populating `rangeTarget` with the
 	 * corresponding index and vertex ranges within the packed geometry buffers. Override
-	 * to support custom BVH types or caching strategies. An override may return a promise for the
-	 * BVH, in which case `rangeTarget` must be populated by the time it resolves.
+	 * to support custom BVH types or caching strategies. An override may return a promise while
+	 * the BVH is being built, and the BVH itself once it is.
 	 *
 	 * @param {Object3D} object - The object to generate a BVH for.
 	 * @param {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
@@ -704,6 +700,20 @@ export class BVHComputeData {
 			storage[ key ].value?.dispose();
 
 		}
+
+	}
+
+	// "getBVH" with a check that an async override has finished building
+	_getBVHSync( object, instanceId, rangeTarget ) {
+
+		const bvh = this.getBVH( object, instanceId, rangeTarget );
+		if ( bvh instanceof Promise ) {
+
+			throw new Error( 'BVHComputeData: "getBVH" returned a promise after it was awaited.' );
+
+		}
+
+		return bvh;
 
 	}
 
