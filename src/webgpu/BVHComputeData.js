@@ -607,6 +607,8 @@ export class BVHComputeData {
 	 * @param {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
 	 * @param {{start:number,count:number,vertexStart:number,vertexCount:number}} rangeTarget - Populated with the object's geometry range.
 	 * @returns {MeshBVH|SkinnedMeshBVH|null|Promise<MeshBVH|SkinnedMeshBVH|null>}
+	 * @note It may be called multiple times for the same object during an update and must be monotonic
+	 * over that period: the same promise while the BVH builds, then the built BVH.
 	 */
 	getBVH( object, instanceId, rangeTarget ) {
 
