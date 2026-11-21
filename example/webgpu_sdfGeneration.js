@@ -93,7 +93,7 @@ async function init() {
 	scene.add( mesh );
 
 	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f' } } );
-	bvhData.update();
+	await bvhData.update();
 
 	const computeShaderParams = {
 		matrix: uniform( new THREE.Matrix4() ),

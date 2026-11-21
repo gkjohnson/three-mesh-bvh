@@ -56,8 +56,7 @@ export class BVHComputeData {
 		autogenerateBvh?: boolean;
 	} );
 
-	update(): void;
-	updateAsync(): Promise<void>;
+	update(): Promise<void>;
 	getObjectInfo( object: Object3D, instanceId?: number, group?: number ): ObjectInfo | null;
 	getAllObjectInfo(): ObjectInfo[];
 	getShapecastFn( options: {

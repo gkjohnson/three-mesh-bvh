@@ -29,7 +29,7 @@ const WORKGROUP_SIZE = [ 8, 8, 1 ];
 
 init();
 
-function init() {
+async function init() {
 
 	// renderer
 	renderer = new WebGPURenderer( {
@@ -39,7 +39,6 @@ function init() {
 		forceWebGL: false,
 
 	} );
-	renderer.setAnimationLoop( render );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setClearColor( 0x09141a );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -72,7 +71,7 @@ function init() {
 	// animation
 	clock = new THREE.Clock();
 	bvhData = new BVHComputeData( mesh, { attributes: { position: 'vec4f', normal: 'vec4f' } } );
-	bvhData.update();
+	await bvhData.update();
 
 	outputTex = new StorageTexture( 1, 1 );
 
@@ -173,6 +172,8 @@ function init() {
 	// resize
 	window.addEventListener( 'resize', resize, false );
 	resize();
+
+	renderer.setAnimationLoop( render );
 
 }
 
