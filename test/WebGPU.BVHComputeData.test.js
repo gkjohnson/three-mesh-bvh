@@ -188,6 +188,21 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'reports the packed attribute layout after update.', async () => {
+
+		const data = new BVHComputeData( new Mesh( createGeometry() ), { attributes: { position: 'vec3f', normal: 'oct16', uv: 'vec2f' } } );
+		expect( data.attributeLayout ).toBe( null );
+
+		await data.update();
+		expect( data.attributeLayout.stride ).toBe( 6 );
+		expect( data.attributeLayout.members.map( m => [ m.name, m.type, m.offset, m.size ] ) ).toEqual( [
+			[ 'position', 'vec3f', 0, 3 ],
+			[ 'normal', 'oct16', 3, 1 ],
+			[ 'uv', 'vec2f', 4, 2 ],
+		] );
+
+	} );
+
 	it( 'packs attributes smaller than vec4f at their own offsets.', async () => {
 
 		const geometry = createGeometry();
@@ -268,7 +283,7 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
-	it( 'packs the index data of every geometry before the attributes, rebased to each geometry\'s vertices.', async () => {
+	it( 'packs the index data of every geometry before its attributes, relative to the geometry\'s vertices.', async () => {
 
 		const indexed = new BoxGeometry();
 		const nonIndexed = new BoxGeometry( 2, 2, 2 ).toNonIndexed();
@@ -280,16 +295,40 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		const geometry = data.storage.geometry.value.array;
 		expect( geometry.length ).toBe( indexCount + vertexCount * 3 );
 
-		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set
-		const packed = getPackedAttributes( data, indexCount );
-		const toKey = ( x, y, z ) => [ x, y, z ].join();
-		const packedTriangles = [];
-		for ( let i = 0; i < indexCount; i += 3 ) {
+		// every object record gives the start of its geometry's index and attributes, shared by the
+		// records of one geometry's bvh roots
+		const records = data.storage.objects.value.array;
+		const recordLength = data.structs.objectRecord.getLength();
+		const blocks = new Map();
+		for ( let i = 0; i < records.length; i += recordLength ) {
 
-			const triangle = [ 0, 1, 2 ].map( k => toKey( ...packed.slice( geometry[ i + k ] * 3, geometry[ i + k ] * 3 + 3 ) ) );
-			packedTriangles.push( triangle.join( '|' ) );
+			blocks.set( records[ i + 33 ], records[ i + 34 ] );
 
 		}
+
+		// one block per geometry, in either order
+		expect( blocks.size ).toBe( 2 );
+		expect( blocks.has( 0 ) ).toBe( true );
+
+		// the bvh reorders each geometry's triangles, so compare each triangle's positions as a set
+		const packed = new Float32Array( geometry.buffer );
+		const toKey = ( x, y, z ) => [ x, y, z ].join();
+		const packedTriangles = [];
+		blocks.forEach( ( attributesOffset, indexOffset ) => {
+
+			for ( let i = indexOffset; i < attributesOffset; i += 3 ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const vertexOffset = attributesOffset + geometry[ i + k ] * 3;
+					return toKey( ...packed.slice( vertexOffset, vertexOffset + 3 ) );
+
+				} );
+				packedTriangles.push( triangle.join( '|' ) );
+
+			}
+
+		} );
 
 		const expectedTriangles = [];
 		[ indexed, nonIndexed ].forEach( geo => {
@@ -332,6 +371,101 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 		const data = new BVHComputeData( new Mesh( geometry ) );
 		await expect( data.update() ).rejects.toThrow( 'BVH depth overruns the compute stack depth' );
+
+	} );
+
+	it( 'returns where each object and geometry group was packed from getObjectInfo.', async () => {
+
+		// a box has one group, and so one packed object, per side
+		const grouped = new BoxGeometry();
+		const single = new BoxGeometry( 2, 2, 2 );
+		single.clearGroups();
+
+		const groupedMesh = new Mesh( grouped );
+		const singleMesh = new Mesh( single );
+		const data = new BVHComputeData( [ groupedMesh, singleMesh ], { attributes: { position: 'vec3f' } } );
+		expect( data.getObjectInfo( groupedMesh ) ).toBe( null );
+		await data.update();
+
+		const geometry = data.storage.geometry.value.array;
+		const packed = new Float32Array( geometry.buffer );
+		const toKey = ( x, y, z ) => [ x, y, z ].join();
+
+		// the positions of every triangle of an object, read the way a shader does
+		const readTriangles = info => {
+
+			const triangles = [];
+			for ( let t = info.primitiveOffset, l = info.primitiveOffset + info.primitiveCount; t < l; t ++ ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const vertexOffset = info.attributesOffset + geometry[ info.indexOffset + t * 3 + k ] * 3;
+					return toKey( ...packed.slice( vertexOffset, vertexOffset + 3 ) );
+
+				} );
+				triangles.push( triangle.join( '|' ) );
+
+			}
+
+			return triangles.sort();
+
+		};
+
+		// the positions of a range of a geometry's triangles
+		const expectedTriangles = ( geo, start, count ) => {
+
+			const { position } = geo.attributes;
+			const triangles = [];
+			for ( let i = start; i < start + count; i += 3 ) {
+
+				const triangle = [ 0, 1, 2 ].map( k => {
+
+					const v = geo.index.getX( i + k );
+					return toKey( ...[ position.getX( v ), position.getY( v ), position.getZ( v ) ].map( Math.fround ) );
+
+				} );
+				triangles.push( triangle.join( '|' ) );
+
+			}
+
+			return triangles.sort();
+
+		};
+
+		// the source index is read before it is compared since the bvh reorders it within each group
+		const objectIndices = new Set();
+		grouped.groups.forEach( ( group, g ) => {
+
+			const info = data.getObjectInfo( groupedMesh, 0, g );
+			objectIndices.add( info.objectIndex );
+			expect( info.primitiveCount ).toBe( group.count / 3 );
+			expect( readTriangles( info ) ).toEqual( expectedTriangles( grouped, group.start, group.count ) );
+
+		} );
+
+		const singleInfo = data.getObjectInfo( singleMesh );
+		objectIndices.add( singleInfo.objectIndex );
+		expect( singleInfo.primitiveOffset ).toBe( 0 );
+		expect( singleInfo.primitiveCount ).toBe( single.index.count / 3 );
+		expect( readTriangles( singleInfo ) ).toEqual( expectedTriangles( single, 0, single.index.count ) );
+
+		// every group is its own object, and all of a geometry's groups share its block
+		expect( objectIndices.size ).toBe( grouped.groups.length + 1 );
+		expect( data.getObjectInfo( groupedMesh, 0, 1 ).indexOffset ).toBe( data.getObjectInfo( groupedMesh ).indexOffset );
+		expect( singleInfo.indexOffset ).not.toBe( data.getObjectInfo( groupedMesh ).indexOffset );
+
+		expect( data.getObjectInfo( new Mesh( grouped ) ) ).toBe( null );
+		expect( data.getObjectInfo( groupedMesh, 0, grouped.groups.length ) ).toBe( null );
+
+		// every object's info, in object index order
+		const allInfo = data.getAllObjectInfo();
+		expect( allInfo ).toHaveLength( grouped.groups.length + 1 );
+		allInfo.forEach( ( info, i ) => {
+
+			expect( info.objectIndex ).toBe( i );
+			expect( data.getObjectInfo( info.object, info.instanceId, info.group ) ).toEqual( info );
+
+		} );
 
 	} );
 
