@@ -188,6 +188,9 @@ export class BVHComputeData {
 		// what "update" packed for every object record, for "getObjectInfo"
 		this._packedObjects = [];
 
+		// counts "update" calls, so only the latest one writes the buffers
+		this._updateId = 0;
+
 		// this needs no layout from "update"
 		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
 
@@ -280,9 +283,12 @@ export class BVHComputeData {
 	 * the BVHs asynchronously as long as it returns the built BVH synchronously afterward. The BVHs
 	 * are all requested at once.
 	 * @returns {Promise<void>}
+	 * @note When "update" is called again before an earlier call finishes, only the latest call writes the
+	 * buffers. The earlier ones resolve without changing them.
 	 */
 	async update() {
 
+		const updateId = ++ this._updateId;
 		const promises = [];
 		this.getRootObject().traverse( object => {
 
@@ -312,6 +318,13 @@ export class BVHComputeData {
 		} );
 
 		await Promise.all( promises );
+
+		// a later call replaces this one
+		if ( updateId !== this._updateId ) {
+
+			return;
+
+		}
 
 		// TODO
 		// - check if the total object geometries have changed somehow. We should sort the objects to
