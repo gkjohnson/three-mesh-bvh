@@ -120,7 +120,7 @@ async function init() {
 			// write result
 			if ( hit.didHit ) {
 
-				let localNormal = normalize( bvh_sampleTrianglePoint( hit.barycoord, hit.indices.xyz ).normal.xyz );
+				let localNormal = normalize( bvh_sampleTrianglePoint( hit.barycoord, hit.indices.xyz, bvh_objects[ hit.objectIndex ].attributesOffset ).normal.xyz );
 				let normal = select(
 					hit.normal,
 					localNormal,
