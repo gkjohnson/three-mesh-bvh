@@ -374,6 +374,16 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'writes the buffers only for the latest of overlapping update calls.', async () => {
+
+		// "update" disposes the previous buffers right before writing new ones
+		const data = new BVHComputeData( new Mesh( new BoxGeometry() ), { attributes: { position: 'vec3f' } } );
+		const dispose = vi.spyOn( data, 'dispose' );
+		await Promise.all( [ data.update(), data.update() ] );
+		expect( dispose ).toHaveBeenCalledTimes( 1 );
+
+	} );
+
 	it( 'returns where each object and geometry group was packed from getObjectInfo.', async () => {
 
 		// a box has one group, and so one packed object, per side
