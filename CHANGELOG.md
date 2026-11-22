@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVHComputeData: "getObjectInfo" and "getAllObjectInfo" functions returning an object's mesh, instance, group, index, geometry offsets and triangle range in the packed buffers.
 
 ### Changed
+- BVHComputeData: "update" is now async and awaits "getBVH" for every object, replacing "updateAsync".
 - BVHComputeData: "getShapecastFn" "transformShapeFn" must return a bool, whether to traverse the object, so an object can be skipped.
 - BVHComputeData: "writeObjectRecord", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
 - BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord" and "transformStruct" to "objectRecordStruct".
