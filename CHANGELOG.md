@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 - BVHComputeData: "update" now throws when the BVH is deeper than the traversal stack.
+- OrientedBox: "distanceToBox" throwing when targets are passed and the boxes intersect.
 
 ## [0.9.18] - 2026-11-03
 ### Added
