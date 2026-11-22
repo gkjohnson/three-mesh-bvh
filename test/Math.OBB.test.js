@@ -196,4 +196,27 @@ describe( 'OBB Distance', () => {
 
 	} );
 
+	it( 'should set the target points when the boxes intersect', () => {
+
+		const aabb = new Box3(
+			new Vector3( 0, 0, 0 ),
+			new Vector3( 2, 2, 2 ),
+		);
+
+		const box = new OrientedBox();
+		box.min.setScalar( - 0.5 );
+		box.max.setScalar( 0.5 );
+		box.matrix.makeRotationY( Math.PI / 4 ).setPosition( 2, 1, 1 );
+		box.needsUpdate = true;
+
+		const target1 = new Vector3();
+		const target2 = new Vector3();
+		expect( box.distanceToBox( aabb, 0, target1, target2 ) ).toBe( 0 );
+
+		// target1 is on this box and target2 is inside the AABB
+		expect( box.distanceToPoint( target1 ) ).toBeCloseTo( 0, 5 );
+		expect( aabb.containsPoint( target2 ) ).toBe( true );
+
+	} );
+
 } );

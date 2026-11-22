@@ -348,7 +348,8 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 				box.getCenter( point2 );
 				this.closestPointToPoint( point2, point1 );
-				box.closestPointToPoint( point1, point2 );
+				// Box3 has no "closestPointToPoint" - "clampPoint" returns the closest point in the box
+				box.clampPoint( point1, point2 );
 
 				if ( target1 ) target1.copy( point1 );
 				if ( target2 ) target2.copy( point2 );
