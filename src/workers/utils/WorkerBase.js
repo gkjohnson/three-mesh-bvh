@@ -1,6 +1,3 @@
-import { BufferAttribute, BufferGeometry, InterleavedBuffer, InterleavedBufferAttribute } from 'three';
-import { ensureIndex, getFullPrimitiveRange } from '../../core/build/geometryUtils.js';
-
 // resolves when the worker posts "ready" and rejects if it fails to load first
 function waitForReady( worker ) {
 
@@ -82,82 +79,7 @@ export class WorkerBase {
 
 	runTask() {}
 
-	// Builds the range as its own geometry, with views of the original's buffers, so only its data is
-	// copied to the worker and written back
-	async runRangeTask( worker, geometry, options ) {
-
-		if ( options.transferBuffers ) {
-
-			console.warn( `${ this.name }: A range cannot be transferred. Copying the buffers instead.` );
-
-		}
-
-		if ( ! options.indirect ) {
-
-			ensureIndex( geometry, options );
-
-		}
-
-		const { index, groups } = geometry;
-		const { position } = geometry.attributes;
-		const { offset, count } = getFullPrimitiveRange( geometry, options.range, 3 );
-		const start = offset * 3;
-
-		const rangeGeometry = new BufferGeometry();
-		rangeGeometry.groups = groups.map( group => ( { ...group, start: group.start - start } ) );
-
-		// the vertices spanned by the triangles
-		let vertexStart = start;
-		let vertexEnd = start + count * 3;
-		if ( index ) {
-
-			const indices = index.array.subarray( vertexStart, vertexEnd );
-			vertexStart = indices.reduce( ( min, v ) => Math.min( min, v ) );
-			vertexEnd = indices.reduce( ( max, v ) => Math.max( max, v ) ) + 1;
-			rangeGeometry.setIndex( new BufferAttribute( indices, 1 ) );
-
-		}
-
-		if ( position.isInterleavedBufferAttribute ) {
-
-			const { array, stride } = position.data;
-			const buffer = new InterleavedBuffer( array.subarray( vertexStart * stride, vertexEnd * stride ), stride );
-			rangeGeometry.setAttribute( 'position', new InterleavedBufferAttribute( buffer, 3, position.offset, position.normalized ) );
-
-		} else {
-
-			const array = position.array.subarray( vertexStart * 3, vertexEnd * 3 );
-			rangeGeometry.setAttribute( 'position', new BufferAttribute( array, 3, position.normalized ) );
-
-		}
-
-		const bvh = await this.runTask( worker, rangeGeometry, {
-			...options,
-			range: null,
-			transferBuffers: false,
-
-			// the worker offsets its copy of the index by this
-			vertexOffset: vertexStart,
-		} );
-
-		// move the result to the original geometry
-		bvh.geometry = geometry;
-		if ( bvh._indirectBuffer instanceof Uint16Array && offset + count > 2 ** 16 ) {
-
-			// the offset indices don't fit in 16 bits
-			const { buffer, length } = bvh._indirectBuffer;
-			const indirectBuffer = new Uint32Array( new buffer.constructor( length * 4 ) );
-			indirectBuffer.set( bvh._indirectBuffer );
-			bvh._indirectBuffer = indirectBuffer;
-
-		}
-
-		bvh.shiftTriangleOffsets( offset );
-		return bvh;
-
-	}
-
-	generate( geometry, options = {} ) {
+	generate( ...args ) {
 
 		if ( this.running ) {
 
@@ -174,7 +96,7 @@ export class WorkerBase {
 		this.running = true;
 
 		const promise = this._workerPromise.then(
-			worker => options.range?.count > 0 ? this.runRangeTask( worker, geometry, options ) : this.runTask( worker, geometry, options ),
+			worker => this.runTask( worker, ...args ),
 			error => {
 
 				throw new Error( `${ this.name }: Could not create Web Worker with error "${ error.message }"` );

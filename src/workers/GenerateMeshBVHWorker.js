@@ -3,6 +3,7 @@ import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 import { copyAttributeArray } from '../utils/BufferUtils.js';
+import { ensureIndex, getFullPrimitiveRange } from '../core/build/geometryUtils.js';
 
 let _fallbackUrl = null;
 
@@ -110,15 +111,27 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
+			const hasRange = options.range?.count > 0;
 			let { transferBuffers = false } = options;
-			if ( transferBuffers && geometry.attributes.position.isInterleavedBufferAttribute ) {
+			if ( transferBuffers && ( hasRange || geometry.attributes.position.isInterleavedBufferAttribute ) ) {
 
-				console.warn( 'GenerateMeshBVHWorker: An interleaved position attribute cannot be transferred. Copying the buffers instead.' );
+				console.warn( 'GenerateMeshBVHWorker: An interleaved position attribute or a range cannot be transferred. Copying the buffers instead.' );
 				transferBuffers = false;
 
 			}
 
+			// the worker can't create the index since it only gets the range
+			if ( hasRange && ! options.indirect ) {
+
+				ensureIndex( geometry, options );
+
+			}
+
 			const indexAttribute = geometry.index;
+
+			// the first index and vertex sent to the worker
+			let indexStart = 0;
+			let vertexStart = 0;
 
 			worker.onerror = e => {
 
@@ -167,7 +180,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 						} else if ( ! bvh.indirect ) {
 
 							// the build reordered a copy of the index so write it back
-							indexAttribute.array.set( serialized.index );
+							indexAttribute.array.set( serialized.index, indexStart );
 
 						}
 
@@ -202,6 +215,25 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				index = geometry.index ? geometry.index.array : null;
 				position = geometry.attributes.position.array;
 
+			} else if ( hasRange ) {
+
+				// copy the triangles in the range and the vertices they span
+				const { offset, count } = getFullPrimitiveRange( geometry, options.range, 3 );
+				indexStart = offset * 3;
+				vertexStart = indexStart;
+				let vertexEnd = indexStart + count * 3;
+
+				index = null;
+				if ( indexAttribute ) {
+
+					index = copyAttributeArray( indexAttribute, ArrayBuffer, indexStart, count * 3 );
+					vertexStart = index.reduce( ( min, v ) => Math.min( min, v ) );
+					vertexEnd = index.reduce( ( max, v ) => Math.max( max, v ) ) + 1;
+
+				}
+
+				position = copyAttributeArray( geometry.attributes.position, ArrayBuffer, vertexStart, vertexEnd - vertexStart );
+
 			} else {
 
 				index = geometry.index ? copyAttributeArray( geometry.index ) : null;
@@ -221,11 +253,14 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				index,
 				position,
 				normalized: geometry.attributes.position.normalized,
+				indexStart,
+				vertexStart,
 				options: {
 					...options,
+					range: hasRange ? null : options.range,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
-					groups: [ ... geometry.groups ],
+					groups: geometry.groups.map( group => ( { ...group, start: group.start - indexStart } ) ),
 				},
 
 			}, transferable.map( arr => arr.buffer ).filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) ) );

@@ -308,9 +308,12 @@ describe( 'Workers', () => {
 
 			expect( matches ).toEqual( [ true, true ] );
 
-			// only the vertices a range uses are sent
-			expect( positionFractions ).toHaveLength( 2 );
-			expect( Math.max( ...positionFractions ) ).toBeLessThan( 0.1 );
+			// only the vertices a range uses are copied, while parallel workers share all of them
+			if ( ! options.parallel ) {
+
+				expect( Math.max( ...positionFractions ) ).toBeLessThan( 0.1 );
+
+			}
 
 		} );
 

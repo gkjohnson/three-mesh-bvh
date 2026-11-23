@@ -4,6 +4,7 @@ import {
 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { offsetArray } from '../utils/BufferUtils.js';
+import { getTriCount } from '../core/build/geometryUtils.js';
 
 self.onmessage = ( { data } ) => {
 
@@ -31,15 +32,14 @@ self.onmessage = ( { data } ) => {
 
 	}
 
-	const { index, position, normalized, options } = data;
-	const { vertexOffset = 0 } = options;
+	const { index, position, normalized, indexStart, vertexStart, options } = data;
 	try {
 
 		const geometry = new BufferGeometry();
 		geometry.setAttribute( 'position', new BufferAttribute( position, 3, normalized ) );
 		if ( index ) {
 
-			offsetArray( index, - vertexOffset );
+			offsetArray( index, - vertexStart );
 			geometry.setIndex( new BufferAttribute( index, 1, false ) );
 
 		}
@@ -63,11 +63,28 @@ self.onmessage = ( { data } ) => {
 		}
 
 		const bvh = new MeshBVH( geometry, options );
+
+		// shift the result to where the data is in the original geometry
+		if ( index ) {
+
+			offsetArray( index, vertexStart );
+
+		}
+
+		// the shifted triangle indices may not fit in 16 bits
+		const triangleOffset = indexStart / 3;
+		if ( bvh._indirectBuffer && triangleOffset + getTriCount( geometry ) > 2 ** 16 ) {
+
+			bvh._indirectBuffer = Uint32Array.from( bvh._indirectBuffer );
+
+		}
+
+		bvh.shiftTriangleOffsets( triangleOffset );
+
 		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
 		let toTransfer = [ position.buffer, ...serialized.roots ];
 		if ( serialized.index ) {
 
-			offsetArray( serialized.index, vertexOffset );
 			toTransfer.push( serialized.index.buffer );
 
 		}
