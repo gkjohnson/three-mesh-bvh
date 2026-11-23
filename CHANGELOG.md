@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - GenerateMeshBVHWorker, ParallelMeshBVHWorker: Support for interleaved position attributes.
 
 ### Changed
-- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
+- GenerateMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
+- ParallelMeshBVHWorker: The geometry's position and index arrays are no longer replaced by a build.
 - ndcToCameraRay: Takes "( ndc, cameraToWorld, inverseProjection )" instead of "( ndc, inverseModelViewProjection )", keeping the ray precise when the camera is far from the origin.
 - BVHComputeData: Automatically generated BVHs are built with the "SAH" strategy, for faster GPU traversal.
 - BVHComputeData: "update" is now async and awaits "getBVH" for every object, replacing "updateAsync".
