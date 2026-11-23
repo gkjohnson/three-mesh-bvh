@@ -272,7 +272,7 @@ export function getOptimalSplit( nodeBoundingData, centroidBoundingData, primiti
 
 	} else if ( typeof strategy === 'function' ) {
 
-		( { axis, pos } = strategy( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count ) );
+		( { axis, pos } = strategy( nodeBoundingData, centroidBoundingData, primitiveBounds, offset, count, primitiveBounds.offset ) );
 
 	} else {
 

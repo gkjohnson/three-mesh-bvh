@@ -27,9 +27,10 @@ export interface HitPointInfo {
 export type SplitStrategyCallback = (
 	nodeBounds: Float32Array,
 	centroidBounds: Float32Array,
-	primitiveBounds: Float32Array & { offset: number },
+	primitiveBounds: Float32Array,
 	offset: number,
-	count: number
+	count: number,
+	boundsOffset: number
 ) => { axis: number, pos: number };
 
 export interface BVHOptions {

@@ -43,10 +43,11 @@ export function generateIndirectBuffer( ranges, useSharedArrayBuffer ) {
  * @param {Float32Array} nodeBounds - The node bounds in a min / max format.
  * @param {Float32Array} centroidBounds - The bounds of the primitive centers in a min / max format.
  * @param {Float32Array} primitiveBounds - Per primitive center and half extents for each axis. The primitive at
- * "i" is stored at "( i - primitiveBounds.offset ) * 6", and the original primitive at "i" can be found through
+ * "i" is stored at "( i - boundsOffset ) * 6", and the original primitive at "i" can be found through
  * "bvh.primitiveBuffer".
  * @param {number} offset - The first primitive in the node.
  * @param {number} count - The number of primitives in the node.
+ * @param {number} boundsOffset - The first primitive in "primitiveBounds".
  * @returns {{ axis: number, pos: number }}
  */
 
