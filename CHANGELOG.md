@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 - BVHComputeData: "update" now throws when the BVH is deeper than the traversal stack.
 - OrientedBox: "distanceToBox" throwing when targets are passed and the boxes intersect.
+- BVHHelper: Fixed throwing for a BatchedMesh on recent three.js versions.
 - PointsBVH, LineSegmentsBVH: The raycast threshold uses the object's world scale on three.js r188 and up, to match three.js.
 - ParallelMeshBVHWorker: A position attribute that is a view into a larger buffer no longer adds the rest of that buffer as extra vertices.
 - BVHComputeData: Attributes other than "vec4f" are no longer read from the wrong offset.
