@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - GenerateMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
 - ParallelMeshBVHWorker: The geometry's position and index arrays are no longer replaced by a build.
-- GenerateMeshBVHWorker, ParallelMeshBVHWorker: With the "range" option only the triangles and vertices in the range are copied, and separate ranges of a geometry can be built at the same time.
+- GenerateMeshBVHWorker: With the "range" option only the triangles and vertices in the range are copied.
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: Separate "range" builds of a geometry can run at the same time.
 - ndcToCameraRay: Takes "( ndc, cameraToWorld, inverseProjection )" instead of "( ndc, inverseModelViewProjection )", keeping the ray precise when the camera is far from the origin.
 - MeshBVH: "bvhcast" passes the triangle indices of the geometry to "intersectsTriangles" when using "indirect", so they must no longer be passed to "resolveTriangleIndex".
 - BVHComputeData: Automatically generated BVHs are built with the "SAH" strategy, for faster GPU traversal.
