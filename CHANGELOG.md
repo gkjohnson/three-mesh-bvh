@@ -13,13 +13,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - BVH: The "strategy" option can be a function that picks the split for each node, for custom split heuristics.
 - BVHComputeData: "attributeLayout" with the packed vertex stride and the offset and size of each attribute.
 - BVHComputeData: "getObjectInfo" and "getAllObjectInfo" functions returning an object's mesh, instance, group, index, geometry offsets and triangle range in the packed buffers.
+- BVHComputeData: "fns.getVertex" and "fns.getVertexPosition" functions to read a vertex from the packed attributes.
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: Support for interleaved position attributes.
 
 ### Changed
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
+- ndcToCameraRay: Takes "( ndc, cameraToWorld, inverseProjection )" instead of "( ndc, inverseModelViewProjection )", keeping the ray precise when the camera is far from the origin.
 - BVHComputeData: Automatically generated BVHs are built with the "SAH" strategy, for faster GPU traversal.
 - BVHComputeData: "update" is now async and awaits "getBVH" for every object, replacing "updateAsync".
 - BVHComputeData: "getShapecastFn" "transformShapeFn" must return a bool, whether to traverse the object, so an object can be skipped.
 - BVHComputeData: "writeObjectRecord", "getBVH" and "getDefaultAttributeValue" are now public so subclasses can override them. The class API is still unstable and may change in future releases.
-- BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord" and "transformStruct" to "objectRecordStruct".
+- BVHComputeData: Renamed "storage.transforms" to "storage.objects", "structs.transform" to "structs.objectRecord", "transformStruct" to "objectRecordStruct" and "writeTransformData" to "writeObjectRecord".
 - BVHComputeData: Geometry attributes are copied directly from the backing arrays when packing, making "update" several times faster on large scenes.
 - BVHComputeData: The index and attributes are packed into one storage buffer, freeing a binding. "storage.index" and "storage.attributes" are removed, read triangle indices with the new "fns.getTriangleIndices" instead.
 - BVHComputeData: The index and attributes are packed in one block per geometry, with triangle and vertex indices relative to it. "getTriangleIndices" takes the geometry's index offset and "getVertex", "getVertexPosition" and "sampleTrianglePoint" its attributes offset as a last argument, read from the object's record in "storage.objects". "intersectRangeFn" callbacks receive both offsets after the count.
@@ -28,13 +32,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Deprecated "maxLeafTris" and "maxLeafSize" options. Use "targetLeafSize" instead.
 - Deprecated "MeshBVHHelper" class and "MeshBVHOptions" type. Use "BVHHelper" and "BVHOptions" instead.
 - Deprecated WebGPU WGSL functions from "bvh_ray_functions", "common_functions" and "distance_functions". Use "BVHComputeData" instead.
-- ndcToCameraRay: Deprecated "( ndc, inverseModelViewProjection )" arguments. Use "( ndc, cameraToWorld, inverseProjection )" instead.
 
 ### Fixed
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 - BVHComputeData: "update" now throws when the BVH is deeper than the traversal stack.
 - OrientedBox: "distanceToBox" throwing when targets are passed and the boxes intersect.
+- PointsBVH, LineSegmentsBVH: The raycast threshold uses the object's world scale on three.js r188 and up, to match three.js.
+- ParallelMeshBVHWorker: A position attribute that is a view into a larger buffer no longer adds the rest of that buffer as extra vertices.
+- BVHComputeData: Attributes other than "vec4f" are no longer read from the wrong offset.
 
 ## [0.9.18] - 2026-11-03
 ### Added
