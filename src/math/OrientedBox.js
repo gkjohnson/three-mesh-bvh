@@ -136,6 +136,8 @@ OrientedBox.prototype.update = ( function () {
  * @function
  * @param {Box3} box
  * @returns {boolean}
+ * @note This function is designed for speed during BVH traversal rather than precision and may return
+ * true for boxes that are close but not intersecting.
  */
 OrientedBox.prototype.intersectsBox = ( function () {
 
@@ -323,6 +325,8 @@ OrientedBox.prototype.distanceToPoint = ( function () {
  * @param {Vector3} [target1]
  * @param {Vector3} [target2]
  * @returns {number}
+ * @note This function is designed for speed during BVH traversal rather than precision and may return
+ * 0 for boxes that are close but not intersecting.
  */
 OrientedBox.prototype.distanceToBox = ( function () {
 
