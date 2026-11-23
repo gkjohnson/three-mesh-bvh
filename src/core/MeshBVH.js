@@ -652,35 +652,10 @@ export class MeshBVH extends GeometryBVH {
 		const triangle1 = ExtendedTrianglePool.getPrimitive();
 		const indexAttr1 = this.geometry.index;
 		const positionAttr1 = this.geometry.attributes.position;
-		const assignTriangle1 = this.indirect ?
-			i1 => {
-
-
-				const ti = this.resolveTriangleIndex( i1 );
-				setTriangle( triangle1, ti * 3, indexAttr1, positionAttr1 );
-
-			} :
-			i1 => {
-
-				setTriangle( triangle1, i1 * 3, indexAttr1, positionAttr1 );
-
-			};
 
 		const triangle2 = ExtendedTrianglePool.getPrimitive();
 		const indexAttr2 = otherBvh.geometry.index;
 		const positionAttr2 = otherBvh.geometry.attributes.position;
-		const assignTriangle2 = otherBvh.indirect ?
-			i2 => {
-
-				const ti2 = otherBvh.resolveTriangleIndex( i2 );
-				setTriangle( triangle2, ti2 * 3, indexAttr2, positionAttr2 );
-
-			} :
-			i2 => {
-
-				setTriangle( triangle2, i2 * 3, indexAttr2, positionAttr2 );
-
-			};
 
 		// generate triangle callback if needed
 		if ( intersectsTriangles ) {
@@ -695,7 +670,8 @@ export class MeshBVH extends GeometryBVH {
 
 				for ( let i2 = offset2, l2 = offset2 + count2; i2 < l2; i2 ++ ) {
 
-					assignTriangle2( i2 );
+					const ti2 = otherBvh.resolveTriangleIndex( i2 );
+					setTriangle( triangle2, ti2 * 3, indexAttr2, positionAttr2 );
 
 					triangle2.a.applyMatrix4( matrixToLocal );
 					triangle2.b.applyMatrix4( matrixToLocal );
@@ -704,11 +680,12 @@ export class MeshBVH extends GeometryBVH {
 
 					for ( let i1 = offset1, l1 = offset1 + count1; i1 < l1; i1 ++ ) {
 
-						assignTriangle1( i1 );
+						const ti1 = this.resolveTriangleIndex( i1 );
+						setTriangle( triangle1, ti1 * 3, indexAttr1, positionAttr1 );
 
 						triangle1.needsUpdate = true;
 
-						if ( intersectsTriangles( triangle1, triangle2, i1, i2, depth1, nodeIndex1, depth2, nodeIndex2 ) ) {
+						if ( intersectsTriangles( triangle1, triangle2, ti1, ti2, depth1, nodeIndex1, depth2, nodeIndex2 ) ) {
 
 							return true;
 
