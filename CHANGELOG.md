@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - GenerateMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
 - ParallelMeshBVHWorker: The geometry's position and index arrays are no longer replaced by a build.
 - ndcToCameraRay: Takes "( ndc, cameraToWorld, inverseProjection )" instead of "( ndc, inverseModelViewProjection )", keeping the ray precise when the camera is far from the origin.
+- MeshBVH: "bvhcast" passes the triangle indices of the geometry to "intersectsTriangles" when using "indirect", so they must no longer be passed to "resolveTriangleIndex".
 - BVHComputeData: Automatically generated BVHs are built with the "SAH" strategy, for faster GPU traversal.
 - BVHComputeData: "update" is now async and awaits "getBVH" for every object, replacing "updateAsync".
 - BVHComputeData: "getShapecastFn" "transformShapeFn" must return a bool, whether to traverse the object, so an object can be skipped.
@@ -35,7 +36,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Deprecated WebGPU WGSL functions from "bvh_ray_functions", "common_functions" and "distance_functions". Use "BVHComputeData" instead.
 
 ### Fixed
-- MeshBVH: "bvhcast" passes the triangle indices of the geometry to "intersectsTriangles" when using "indirect".
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 - BVHComputeData: "update" now throws when the BVH is deeper than the traversal stack.
