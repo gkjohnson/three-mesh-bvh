@@ -160,7 +160,11 @@ getShapecastFn(
 		// function node testing the shape against a BVH node's bounds.
 		intersectsBoundsFn: function,
 
-		// function node testing a leaf triangle range. Returns
+		// function node testing a leaf triangle range, called with the
+		// shape, the range's triangle offset and count, the
+		// "indexOffset" and "attributesOffset" of the geometry being
+		// traversed to pass to `fns.getTriangleIndices` and
+		// `fns.getVertexPosition`, and the result. Returns
 		// `NOT_INTERSECTED` (0), `INTERSECTED` (1), or
 		// `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
 		// after running `transformResultFn` and `resetShapeFn`).
