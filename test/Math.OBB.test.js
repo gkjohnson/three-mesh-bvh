@@ -1,4 +1,4 @@
-import { Vector3, Triangle, Plane, Box3 } from 'three';
+import { Vector3, Triangle, Plane, Box3, Euler } from 'three';
 import { OrientedBox } from 'three-mesh-bvh';
 import { setRandomVector, getRandomOrientation } from './utils.js';
 
@@ -156,6 +156,28 @@ describe( 'OBB Intersections', () => {
 			expect( box.intersectsTriangle( triangle ) ).toBe( false );
 
 		}
+
+	} );
+
+	it( 'should not intersect a box that is only separated along an edge cross axis', () => {
+
+		// The boxes overlap when projected onto the three world axes and the three oriented box
+		// axes, so only an axis built from the cross product of two edges separates them.
+		const aabb = new Box3( new Vector3( - 1, - 1, - 1 ), new Vector3( 1, 1, 1 ) );
+		const obb = new OrientedBox( new Vector3( - 1, - 1, - 1 ), new Vector3( 1, 1, 1 ) );
+		obb.matrix
+			.makeRotationFromEuler( new Euler( Math.PI / 4, Math.PI / 4, 0 ) )
+			.setPosition( 2.2, 2.2, 0 );
+		obb.needsUpdate = true;
+
+		expect( obb.intersectsBox( aabb ) ).toBe( false );
+		expect( obb.distanceToBox( aabb ) ).toBeGreaterThan( 0.2 );
+
+		obb.matrix.setPosition( 1.8, 1.8, 0 );
+		obb.needsUpdate = true;
+
+		expect( obb.intersectsBox( aabb ) ).toBe( true );
+		expect( obb.distanceToBox( aabb ) ).toBe( 0 );
 
 	} );
 

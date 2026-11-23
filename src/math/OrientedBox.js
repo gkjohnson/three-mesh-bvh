@@ -140,9 +140,15 @@ OrientedBox.prototype.update = ( function () {
 OrientedBox.prototype.intersectsBox = ( function () {
 
 	const aabbBounds = /* @__PURE__ */ new SeparatingAxisBounds();
+	const obbBounds = /* @__PURE__ */ new SeparatingAxisBounds();
+	const cachedAxis = /* @__PURE__ */ new Vector3();
+	const aabbAxes = [
+		/* @__PURE__ */ new Vector3( 1, 0, 0 ),
+		/* @__PURE__ */ new Vector3( 0, 1, 0 ),
+		/* @__PURE__ */ new Vector3( 0, 0, 1 ),
+	];
 	return function intersectsBox( box ) {
 
-		// TODO: should this be doing SAT against the AABB?
 		if ( this.needsUpdate ) {
 
 			this.update();
@@ -173,6 +179,22 @@ OrientedBox.prototype.intersectsBox = ( function () {
 			const sb = satBounds[ i ];
 			aabbBounds.setFromBox( axis, box );
 			if ( sb.isSeparated( aabbBounds ) ) return false;
+
+		}
+
+		// check crossed axes
+		const points = this.points;
+		for ( let i = 0; i < 3; i ++ ) {
+
+			const sa1 = satAxes[ i ];
+			for ( let i2 = 0; i2 < 3; i2 ++ ) {
+
+				cachedAxis.crossVectors( sa1, aabbAxes[ i2 ] );
+				aabbBounds.setFromBox( cachedAxis, box );
+				obbBounds.setFromPoints( cachedAxis, points );
+				if ( obbBounds.isSeparated( aabbBounds ) ) return false;
+
+			}
 
 		}
 
