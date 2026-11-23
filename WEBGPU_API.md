@@ -33,10 +33,6 @@ perspective and orthographic projections. The origin sits on the near plane, the
 direction is normalized, and "maxDist" is the world-space distance to the far plane so
 traversal clips there.
 
-Calling it from TSL with the deprecated "( ndc, inverseModelViewProjection )" arguments still
-works but logs a warning, and will be removed in the next breaking release. WGSL code that calls
-it by name must pass all three arguments.
-
 ## TSL Structs
 
 ### rayStruct
@@ -83,10 +79,18 @@ in WebGPU compute shaders via the Three.js TSL node system. After construction, 
 - `raycastFirstHit( ray, &hit ) -> bool`: finds the closest ray / triangle intersection.
 - `raycastAnyHit( ray ) -> bool`: occlusion query that returns as soon as any triangle is hit.
 - `closestPointToPoint`: finds the closest point on the scene's triangles to a point.
-- `getTriangleIndices( triIndex ) -> vec3u`: reads the vertex indices of a triangle.
-- `getVertex( index ) -> bvh_GeometryStruct`: reads the attributes of a vertex. The index and
+- `getTriangleIndices( triIndex, indexOffset ) -> vec3u`: reads the vertex indices of a triangle.
+- `getVertex( index, attributesOffset ) -> bvh_GeometryStruct`: reads the attributes of a vertex. The index and
   attribute data share one internal buffer whose packing may change, so read them through these.
-- `getVertexPosition( index ) -> vec3f`: reads only the position of a vertex, for custom traversal.
+- `getVertexPosition( index, attributesOffset ) -> vec3f`: reads only the position of a vertex, for custom traversal.
+- `sampleTrianglePoint( barycoord, indices, attributesOffset ) -> bvh_GeometryStruct`: interpolates a triangle's attributes.
+
+Triangle and vertex indices, including those of a hit, are relative to the geometry of the object
+they belong to. The offsets to read them with are the `indexOffset` and `attributesOffset` of the
+object's record in `storage.objects`, eg `objects[ hit.objectIndex ].attributesOffset`.
+
+`this.attributeLayout` describes how a vertex is packed in `storage.geometry` once `update` has run: the
+vertex `stride` and the `offset` and `size` of each attribute, in 32-bit words.
 
 Ray queries expect a normalized, scene-space `ray.direction` and treat triangles as two-sided.
 A positive `ray.maxDist` excludes hits at or beyond that distance; zero means unbounded.
@@ -106,16 +110,18 @@ constructor(
 	{
 		// Type map for the interleaved per-vertex attribute buffer.
 		// Keys are geometry attribute names; values are `'f32'`,
-		// `'vec2f'`, `'vec3f'` or `'vec4f'`, or one of the packed types:
-		// `'oct16'` stores a direction and the sign of w in one word
-		// (normals, tangents) and always unpacks to a `vec4f` unit vector
-		// with w = ±1, `'2x16float'` stores two half floats in one word
-		// (uvs) and unpacks to a `vec2f`, and `'4x16float'` stores four
-		// half floats in two words (colors) and unpacks to a `vec4f`.
+		// `'vec2f'`, `'vec3f'` or `'vec4f'`, or one of the packed
+		// types: `'oct16'` stores a direction and the sign of w in one
+		// word (normals, tangents) and always unpacks to a `vec4f`
+		// unit vector with w = ±1, `'2x16float'` stores two half
+		// floats in one word (uvs) and unpacks to a `vec2f`, and
+		// `'4x16float'` stores four half floats in two words (colors)
+		// and unpacks to a `vec4f`.
 		attributes = { position: 'vec4f' }: Record<string, string>,
 
 		// When true, a [MeshBVH](MeshBVH) is automatically built for any
-		// object that does not already have `geometry.boundsTree` set.
+		// object that does not already have `geometry.boundsTree` set,
+		// using the `SAH` split strategy for faster GPU traversal.
 		autogenerateBvh = true: boolean,
 	}
 )
@@ -163,7 +169,10 @@ getShapecastFn(
 		intersectRangeFn: function,
 
 		// function node that transforms the shape into object local
-		// space.
+		// space. Returns whether to traverse the object. When
+		// returning false the shape and any per-object state must be
+		// left untouched, since `resetShapeFn` is not called for a
+		// skipped object.
 		transformShapeFn?: function | null,
 
 		// function node that transforms a hit result back to world
@@ -185,24 +194,19 @@ merged stack/loop for a custom shape type. The returned function signature is:
 ### .update
 
 ```js
-update(): void
+async update(): Promise<void>
 ```
 
 Rebuilds all GPU storage buffers from the current scene state. Must be called at least
 once before using `this.storage` or `this.fns` in a shader, and again whenever the
-scene topology changes (objects added/removed, geometry modified).
+scene topology changes (objects added/removed, geometry modified). Awaits
+[BVHComputeData#getBVH](BVHComputeData#getBVH) for every object and instance first, so an override may build
+the BVHs asynchronously as long as it returns the built BVH synchronously afterward. The BVHs
+are all requested at once.
 
-
-### .updateAsync
-
-```js
-async updateAsync(): Promise<void>
-```
-
-Like [BVHComputeData#update](BVHComputeData#update) but awaits [BVHComputeData#getBVH](BVHComputeData#getBVH) for every
-object and instance first, so an override may build the BVHs asynchronously as long as it
-returns the built BVH synchronously afterward. The BVHs are all requested at once.
-
+> [!NOTE]
+> When "update" is called again before an earlier call finishes, only the latest call writes the
+> buffers. The earlier ones resolve without changing them.
 
 ### .updateTransforms
 
@@ -210,16 +214,16 @@ returns the built BVH synchronously afterward. The BVHs are all requested at onc
 updateTransforms(): void
 ```
 
-Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
+Refits the clustered BVH and rewrites every record in `storage.objects` from the objects'
 current world matrices. Call this when object transforms or visibility change but the scene
-topology does not. The transform slots are derived from the clustered BVH's primitive buffer,
+topology does not. The object indices are derived from the clustered BVH's primitive buffer,
 so they match those written by [BVHComputeData#update](BVHComputeData#update).
 
 
-### .writeTransformData
+### .writeObjectRecord
 
 ```js
-writeTransformData(
+writeObjectRecord(
 	info: Object,
 	premultiplyMatrix: Matrix4,
 	writeOffset: number,
@@ -227,9 +231,10 @@ writeTransformData(
 ): void
 ```
 
-Writes the world/inverse-world matrices and visibility flag for one transform entry
-into a raw ArrayBuffer. Override this in a subclass to inject additional per-object
-data (e.g. material index).
+Writes one object record into a raw ArrayBuffer: the world/inverse-world matrices, the
+visibility flag, and where the object's geometry starts in `storage.geometry`. Override this
+in a subclass to write additional per-object data (e.g. material index) into members added
+after the base record's.
 
 
 ### .getBVH
@@ -244,9 +249,33 @@ getBVH(
 
 Returns the BVH for a given object/instance, populating `rangeTarget` with the
 corresponding index and vertex ranges within the packed geometry buffers. Override
-to support custom BVH types or caching strategies. With [BVHComputeData#updateAsync](BVHComputeData#updateAsync)
-an override may return a promise while the BVH is being built, and the BVH itself once
-it is.
+to support custom BVH types or caching strategies. An override may return a promise while
+the BVH is being built, and the BVH itself once it is.
+
+> [!NOTE]
+> It may be called multiple times for the same object during an update and must be monotonic
+> over that period: the same promise while the BVH builds, then the built BVH.
+
+### .getObjectInfo
+
+```js
+getObjectInfo(
+	object: Object3D,
+	instanceId = 0: number,
+	group = 0: number
+): ObjectInfo | null
+```
+
+Returns where an object was packed by the last [BVHComputeData#update](BVHComputeData#update), or null if it was not.
+
+
+### .getAllObjectInfo
+
+```js
+getAllObjectInfo(): Array<ObjectInfo>
+```
+
+Returns where every object was packed by the last [BVHComputeData#update](BVHComputeData#update), in object index order.
 
 
 ### .getDefaultAttributeValue
@@ -267,3 +296,143 @@ dispose(): void
 
 Releases GPU resources held by this instance.
 
+
+## AttributeLayout
+
+The tightly packed per-vertex attribute layout, as in `BVHComputeData.attributeLayout`.
+
+
+### .members
+
+```js
+members: Array<AttributeLayoutMember>
+```
+
+Attributes in declaration order.
+
+### .stride
+
+```js
+stride: number
+```
+
+Vertex stride in 32-bit words.
+
+## AttributeLayoutMember
+
+An attribute in the packed per-vertex layout.
+
+
+### .name
+
+```js
+name: string
+```
+
+Geometry attribute name.
+
+### .type
+
+```js
+type: string
+```
+
+Attribute type, eg "vec3f" or "oct16".
+
+### .structType
+
+```js
+structType: string
+```
+
+WGSL type of the unpacked value in the attribute struct.
+
+### .offset
+
+```js
+offset: number
+```
+
+Offset within the vertex in 32-bit words.
+
+### .size
+
+```js
+size: number
+```
+
+Size in 32-bit words.
+
+## ObjectInfo
+
+Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo` and
+`BVHComputeData.getAllObjectInfo`.
+
+
+### .object
+
+```js
+object: Object3D
+```
+
+The mesh.
+
+### .instanceId
+
+```js
+instanceId: number
+```
+
+Instance index (relevant for InstancedMesh / BatchedMesh).
+
+### .group
+
+```js
+group: number
+```
+
+Index of the BVH root, one per geometry group and each packed as its own object.
+  Always 0 for an indirect BVH, which has a single root.
+
+### .objectIndex
+
+```js
+objectIndex: number
+```
+
+Index of the object's record in `storage.objects`. Hits report it as `objectIndex`.
+
+### .indexOffset
+
+```js
+indexOffset: number
+```
+
+Where the index data of the object's geometry starts in `storage.geometry`,
+  in 32-bit words. Shared by the objects of a geometry's groups.
+
+### .attributesOffset
+
+```js
+attributesOffset: number
+```
+
+Where the vertex attributes of the object's geometry start in
+  `storage.geometry`, in 32-bit words.
+
+### .primitiveOffset
+
+```js
+primitiveOffset: number
+```
+
+The object's first primitive, counted from the start of its geometry's
+  index data. Non-zero for a geometry group after the first.
+
+### .primitiveCount
+
+```js
+primitiveCount: number
+```
+
+The number of primitives in the object.

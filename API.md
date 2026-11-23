@@ -265,8 +265,10 @@ The geometry this BVH was built from.
 constructor(
 	geometry: BufferGeometry,
 	{
-		// Split strategy: `CENTER`, `AVERAGE`, or `SAH`.
-		strategy = CENTER: number,
+		// Split strategy: `CENTER`, `AVERAGE`, `SAH`, or a function
+		// that picks the split for each node. Functions can't be used
+		// with the worker builds.
+		strategy = CENTER: number | ( nodeBounds: Float32Array, centroidBounds: Float32Array, primitiveBounds: Float32Array, offset: number, count: number, boundsOffset: number ) => Object,
 
 		// Maximum tree depth. Note that this can cause the target leaf
 		// size to not be met if the tree is truncated.
@@ -943,6 +945,15 @@ instanceId: number
 ```
 
 
+### .displayChildBVHs
+
+```js
+displayChildBVHs: boolean
+```
+
+When displaying an `ObjectBVH`, also display the BVHs of the objects it contains.
+
+
 ### .edgeMaterial
 
 ```js
@@ -1128,10 +1139,12 @@ A VertexAttributeTexture that forces the float texture type.
 _extends `WorkerBase`_
 
 Helper class for generating a MeshBVH for a given geometry in asynchronously in a worker. The
-geometry position and index buffer attribute `ArrayBuffers` are transferred to the Worker while
-the BVH is being generated meaning the geometry will be unavailable to use while the BVH is
-being processed unless `SharedArrayBuffers` are used. They will be automatically replaced when
-the MeshBVH is finished generating.
+geometry position and index arrays are copied to the Worker so the geometry can still be read
+while the BVH is being generated, and the reordered index is written back to the geometry's
+original index array when it finishes. If `transferBuffers` is set the array `ArrayBuffers` are
+transferred instead, meaning the geometry will be unavailable to use while the BVH is being
+processed unless `SharedArrayBuffers` are used. They will be automatically replaced when the
+MeshBVH is finished generating.
 
 If the worker module can't be loaded, such as when the library is loaded from a CDN on another
 origin or the worker can't resolve the "three" import, a pre-bundled copy of the worker script
@@ -1159,12 +1172,22 @@ generate(
 		// Callback invoked with a `[0, 1]`   progress value as the BVH
 		// is built.
 		onProgress?: function,
+
+		// If true the position and index   `ArrayBuffers` are
+		// transferred to the worker rather than copied, avoiding the
+		// copy but   leaving the geometry unusable until the build
+		// finishes. Any other attribute stored in the   same
+		// `ArrayBuffer` is detached as well. Ignored with a warning
+		// for an interleaved position   attribute.
+		transferBuffers = false: boolean,
 	}
 ): Promise<MeshBVH>
 ```
 
 Generates a `MeshBVH` instance for the given geometry with the given options in a WebWorker.
 Returns a Promise that resolves with the generated `MeshBVH`. Throws if already running.
+By default the geometry can still be read during the build, but its position and index
+arrays must not be modified until the promise resolves.
 
 
 ### .dispose
@@ -1266,6 +1289,9 @@ intersectsBox( box: Box3 ): boolean
 
 Returns true if intersecting with the provided box.
 
+> [!NOTE]
+> This function is designed for speed during BVH traversal rather than precision and may return
+> true for boxes that are close but not intersecting.
 
 ### .intersectsTriangle
 
@@ -1310,13 +1336,19 @@ Returns the distance to the provided box. `threshold` is an optional distance to
 if the distance is found to be within it. `target1` and `target2` are set to the points on the
 surface of this box and the `box` argument respectively.
 
+> [!NOTE]
+> This function is designed for speed during BVH traversal rather than precision and may return
+> 0 for boxes that are close but not intersecting.
 
 ## ParallelMeshBVHWorker
 
 A drop-in replacement for `GenerateMeshBVHWorker` that distributes BVH construction across
 multiple Web Workers in parallel for faster builds on large geometry. Requires
 `SharedArrayBuffer` support (cross-origin isolated context). Falls back to a single-threaded
-`GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable.
+`GenerateMeshBVHWorker` automatically if `SharedArrayBuffer` is unavailable. A parallel build
+shares the position array if it already uses a `SharedArrayBuffer` and copies it otherwise.
+The index is always copied and written back to the original array when the build finishes.
+`transferBuffers` only applies to the fallback.
 
 Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
 `maxWorkerCount`.
