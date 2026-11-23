@@ -1,12 +1,15 @@
 import {
+	BatchedMesh,
 	Bone,
 	BoxGeometry,
 	BufferAttribute,
 	BufferGeometry,
 	Float16BufferAttribute,
+	InstancedMesh,
 	InterleavedBuffer,
 	InterleavedBufferAttribute,
 	Mesh,
+	MeshBasicMaterial,
 	REVISION,
 	Skeleton,
 	SkinnedMesh,
@@ -14,7 +17,8 @@ import {
 	Vector4,
 } from 'three';
 import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
-import { MeshBVH, ObjectBVH } from '../src/index.js';
+import { CENTER, computeBatchedBoundsTree, MeshBVH, ObjectBVH } from '../src/index.js';
+import { runTestMatrix } from './utils.js';
 
 const attributes = {
 	position: 'vec4f',
@@ -391,6 +395,63 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 		const bvh = new ObjectBVH( new Mesh( new BoxGeometry() ) );
 		expect( () => new BVHComputeData( bvh ) ).toThrow( 'BVHComputeData: Objects must be' );
+
+	} );
+
+	it( 'packs every instance of an InstancedMesh.', async () => {
+
+		const geometry = createGeometry();
+		const mesh = new InstancedMesh( geometry, new MeshBasicMaterial(), 3 );
+		const data = new BVHComputeData( mesh );
+		await data.update();
+
+		const info = data.getAllObjectInfo();
+		expect( info.map( ( { instanceId } ) => instanceId ).sort() ).toEqual( [ 0, 1, 2 ] );
+		info.forEach( ( { primitiveCount } ) => expect( primitiveCount ).toBe( geometry.index.count / 3 ) );
+
+	} );
+
+	// without "boundsTrees" a bvh is generated for each geometry
+	runTestMatrix( {
+		strategy: [ CENTER ],
+		boundsTrees: [ false, true ],
+		deleted: [ false, true ],
+	}, ( desc, { indirect, boundsTrees, deleted } ) => {
+
+		it( `packs every active instance of a BatchedMesh with { ${ desc } }.`, async () => {
+
+			const geometries = [ new BoxGeometry(), new TorusKnotGeometry( 1, 0.4, 40, 8 ) ];
+			const vertexCount = geometries.reduce( ( sum, { attributes } ) => sum + attributes.position.count, 0 );
+			const indexCount = geometries.reduce( ( sum, { index } ) => sum + index.count, 0 );
+			const mesh = new BatchedMesh( 4, vertexCount, indexCount, new MeshBasicMaterial() );
+			const ids = geometries.map( geometry => mesh.addGeometry( geometry ) );
+			[ 0, 1, 0, 1 ].forEach( i => mesh.addInstance( ids[ i ] ) );
+
+			if ( boundsTrees ) {
+
+				computeBatchedBoundsTree.call( mesh, - 1, { indirect } );
+
+			}
+
+			if ( deleted ) {
+
+				mesh.deleteInstance( 1 );
+
+			}
+
+			const data = new BVHComputeData( mesh, { attributes: { position: 'vec3f' } } );
+			await data.update();
+			data.updateTransforms();
+
+			const info = data.getAllObjectInfo();
+			expect( info.map( ( { instanceId } ) => instanceId ).sort() ).toEqual( deleted ? [ 0, 2, 3 ] : [ 0, 1, 2, 3 ] );
+			info.forEach( ( { instanceId, primitiveCount } ) => {
+
+				expect( primitiveCount ).toBe( geometries[ instanceId % 2 ].index.count / 3 );
+
+			} );
+
+		} );
 
 	} );
 

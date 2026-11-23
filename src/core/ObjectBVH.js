@@ -3,6 +3,7 @@
 import { Box3, BufferGeometry, Matrix4, Mesh, Vector3, Ray, Sphere } from 'three';
 import { BVH } from './BVH.js';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
+import { forEachInstance } from '../utils/InstanceUtilities.js';
 
 const _geometry = /* @__PURE__ */ new BufferGeometry();
 const _matrix = /* @__PURE__ */ new Matrix4();
@@ -514,43 +515,14 @@ export class ObjectBVH extends BVH {
 		let index = 0;
 		objects.forEach( ( object, i ) => {
 
-			if ( object.isInstancedMesh && includeInstances ) {
+			if ( includeInstances ) {
 
-				const count = object.count;
-				for ( let c = 0; c < count; c ++ ) {
+				forEachInstance( object, instance => {
 
-					target[ index ] = ( c << idBits ) | i;
+					target[ index ] = ( instance << idBits ) | i;
 					index ++;
 
-				}
-
-			} else if ( object.isBatchedMesh && includeInstances ) {
-
-				const { instanceCount, maxInstanceCount } = object;
-				let foundInstances = 0;
-				let iter = 0;
-
-				while ( foundInstances < instanceCount && iter < maxInstanceCount ) {
-
-					// TODO: it would be better to have a consistent way of querying whether an
-					// instance were active
-					try {
-
-						object.getVisibleAt( iter );
-
-						target[ index ] = ( iter << idBits ) | i;
-						foundInstances ++;
-						index ++;
-
-					} catch {
-
-						//
-
-					}
-
-					iter ++;
-
-				}
+				} );
 
 			} else {
 
