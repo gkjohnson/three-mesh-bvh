@@ -176,6 +176,17 @@ describe( 'Options', () => {
 
 		} );
 
+		it( 'should pass the first primitive in the bounds to the function.', () => {
+
+			const strategy = vi.fn( () => ( { axis: - 1, pos: 0 } ) );
+			new MeshBVH( geometry, { strategy, range: { start: 30, count: 300 } } );
+
+			const [ , , primitiveBounds, offset, count, boundsOffset ] = strategy.mock.calls[ 0 ];
+			expect( [ offset, count, boundsOffset ] ).toEqual( [ 10, 100, 10 ] );
+			expect( primitiveBounds ).toHaveLength( 100 * 6 );
+
+		} );
+
 	} );
 
 	describe( '_strictLeafSize', () => {

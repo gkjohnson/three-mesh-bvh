@@ -32,10 +32,12 @@ export class BVHComputeData {
 	autogenerateBvh: boolean;
 	attributes: Record<string, string>;
 	attributeLayout: AttributeLayout | null;
+	objects: Object3D[];
 
 	storage: {
 		nodes: unknown;
 		objects: unknown;
+		geometry: unknown;
 	};
 
 	structs: {
@@ -59,17 +61,22 @@ export class BVHComputeData {
 	} );
 
 	update(): Promise<void>;
+	updateTransforms(): void;
+	dispose(): void;
+	getRootObject(): Object3D;
 	getObjectInfo( object: Object3D, instanceId?: number, group?: number ): ObjectInfo | null;
 	getAllObjectInfo(): ObjectInfo[];
 	getShapecastFn( options: {
 		name?: string;
 		shapeStruct: unknown;
 		resultStruct?: unknown;
+		prefixFn?: unknown;
 		boundsOrderFn?: unknown;
 		intersectsBoundsFn: unknown;
 		intersectRangeFn: unknown;
 		transformShapeFn?: unknown;
 		transformResultFn?: unknown;
+		resetShapeFn?: unknown;
 	} ): unknown;
 
 	// override points for subclasses
@@ -100,3 +107,23 @@ export class BVHComputeData {
 	getDefaultAttributeValue( key: string, target: Vector4 ): Vector4;
 
 }
+
+// structs
+export const bvhNodeBoundsStruct: unknown;
+export const bvhNodeStruct: unknown;
+export const objectRecordStruct: unknown;
+export const rayStruct: unknown;
+export const rayIntersectionResultStruct: unknown;
+export const pointQueryResultStruct: unknown;
+
+// functions
+export const closestPointToTriangle: unknown;
+export const intersectRayTriangle: unknown;
+export const ndcToCameraRay: unknown;
+
+// constants
+export const BVH_STACK_DEPTH: unknown;
+
+// template tags for writing functions
+export const wgslTagFn: ( tokens: TemplateStringsArray, ...args: unknown[] ) => unknown;
+export const wgslTagCode: ( tokens: TemplateStringsArray, ...args: unknown[] ) => unknown;
