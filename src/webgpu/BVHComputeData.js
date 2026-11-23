@@ -21,6 +21,7 @@ import { getClosestPointToPointFn } from './shapecastFns/getClosestPointToPointF
 import { SAH } from '../core/Constants.js';
 import { ClusteredBVH } from './ClusteredBVH.js';
 import { BVH_STACK_DEPTH } from './tsl/constants.js';
+import { forEachInstance } from '../utils/InstanceUtilities.js';
 
 // TODO: add ability to easily update a single matrix / scene rearrangement (partial update)
 // TODO: add material support w/ function to easily update material
@@ -290,22 +291,11 @@ export class BVHComputeData {
 
 			}
 
-			let instanceCount = 1;
-			if ( object.isInstancedMesh ) {
-
-				instanceCount = object.count;
-
-			} else if ( object.isBatchedMesh ) {
-
-				instanceCount = object.instanceCount;
-
-			}
-
-			for ( let instanceId = 0; instanceId < instanceCount; instanceId ++ ) {
+			forEachInstance( object, instanceId => {
 
 				promises.push( this.getBVH( object, instanceId, _range ) );
 
-			}
+			} );
 
 		} );
 
@@ -692,7 +682,7 @@ export class BVHComputeData {
 			const geometryId = object.getGeometryIdAt( instanceId );
 			const range = object.getGeometryRangeAt( geometryId );
 			Object.assign( rangeTarget, range );
-			bvh = object.boundsTrees[ geometryId ] || null;
+			bvh = object.boundsTrees?.[ geometryId ] || null;
 
 			if ( bvh === null && autogenerateBvh ) {
 
