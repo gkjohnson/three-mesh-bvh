@@ -2,6 +2,7 @@
 
 import puppeteer from 'puppeteer';
 import { createServer } from 'vite';
+import { CENTER } from 'three-mesh-bvh';
 import { runTestMatrix } from './utils.js';
 
 describe( 'Workers', () => {
@@ -37,7 +38,7 @@ describe( 'Workers', () => {
 
 				if ( options.groups ) {
 
-					const chunks = ( geometry.index || geometry.attributes.position ).count / 3;
+					const chunks = options.groupSize || ( geometry.index || geometry.attributes.position ).count / 3;
 					geometry.clearGroups();
 					geometry.addGroup( 0, chunks, 0 );
 					geometry.addGroup( chunks, chunks, 0 );
@@ -200,6 +201,10 @@ describe( 'Workers', () => {
 			const { TorusGeometry } = window.THREE;
 			const worker = new window[ name ]();
 
+			// nothing validates the groups, so one outside the geometry throws inside the worker
+			const geometry = new TorusGeometry( 5, 5, 50, 100 );
+			geometry.addGroup( 1e6, 30, 0 );
+
 			let unhandled = 0;
 			const onUnhandled = () => unhandled ++;
 			window.addEventListener( 'unhandledrejection', onUnhandled );
@@ -207,8 +212,7 @@ describe( 'Workers', () => {
 			let error = null;
 			try {
 
-				// nothing validates the range, so a negative count throws inside the worker
-				await worker.generate( new TorusGeometry( 5, 5, 50, 100 ), { range: { start: 0, count: - 30 } } );
+				await worker.generate( geometry );
 
 			} catch ( e ) {
 
@@ -223,9 +227,91 @@ describe( 'Workers', () => {
 
 		}, name );
 
-		expect( error ).toMatch( /RangeError/ );
+		expect( error ).toMatch( /TypeError/ );
 		expect( built ).toBe( true );
 		expect( unhandled ).toBe( 0 );
+
+	} );
+
+	// the worker only gets the range's data, so its result is shifted back to the whole geometry
+	runTestMatrix( {
+		strategy: [ CENTER ],
+		parallel: [ false, true ],
+		groups: [ false, true ],
+		groupSize: [ 9000 ],
+		nonIndexed: [ false, true ],
+		interleaved: [ false, true ],
+		range: [ { start: 3000, count: 12000 } ],
+	}, ( desc, options ) => {
+
+		it( `should generate a matching bvh for a range with { ${ desc } }`, async () => {
+
+			const { workerBvh, bvh, error, positionMatches } = await generate( options );
+			expect( error ).toBe( null );
+			expect( workerBvh ).toEqual( bvh );
+			expect( positionMatches ).toBe( true );
+
+		} );
+
+	} );
+
+	runTestMatrix( {
+		strategy: [ CENTER ],
+		parallel: [ false, true ],
+	}, ( desc, options ) => {
+
+		it( `should build separate ranges of a geometry at once with { ${ desc } }`, async () => {
+
+			const { matches, positionFractions } = await page.evaluate( async options => {
+
+				const { TorusGeometry } = window.THREE;
+				const { MeshBVH, ParallelMeshBVHWorker, GenerateMeshBVHWorker } = window;
+
+				// the last range is past 2 ** 16 triangles, so it needs 32 bit indirect indices
+				const geometry = new TorusGeometry( 5, 5, 300, 150 );
+				const reference = geometry.clone();
+				const ranges = [
+					{ start: 3000, count: 6000 },
+					{ start: geometry.index.count - 6000, count: 6000 },
+				];
+
+				// track the fraction of the positions sent to each worker
+				const positionFractions = [];
+				const { postMessage } = Worker.prototype;
+				Worker.prototype.postMessage = function ( message, ...args ) {
+
+					positionFractions.push( message.position.length / geometry.attributes.position.array.length );
+					postMessage.call( this, message, ...args );
+
+				};
+
+				const workers = ranges.map( () => options.parallel ? new ParallelMeshBVHWorker() : new GenerateMeshBVHWorker() );
+				const bvhs = await Promise.all( workers.map( ( worker, i ) => worker.generate( geometry, { ...options, range: ranges[ i ] } ) ) );
+				workers.forEach( worker => worker.dispose() );
+				Worker.prototype.postMessage = postMessage;
+
+				const toString = bvh => {
+
+					const { roots, index, indirectBuffer } = MeshBVH.serialize( bvh );
+					return [ ...roots.map( root => new Uint8Array( root ) ), index, indirectBuffer ].join( ' ' );
+
+				};
+
+				const referenceBvhs = ranges.map( range => new MeshBVH( reference, { ...options, range } ) );
+				return {
+					matches: bvhs.map( ( bvh, i ) => toString( bvh ) === toString( referenceBvhs[ i ] ) ),
+					positionFractions,
+				};
+
+			}, options );
+
+			expect( matches ).toEqual( [ true, true ] );
+
+			// only the vertices a range uses are sent
+			expect( positionFractions ).toHaveLength( 2 );
+			expect( Math.max( ...positionFractions ) ).toBeLessThan( 0.1 );
+
+		} );
 
 	} );
 

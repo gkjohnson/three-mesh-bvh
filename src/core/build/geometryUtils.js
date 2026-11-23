@@ -57,7 +57,7 @@ export function ensureIndex( geo, options ) {
 //                      g1 = [16, 40]           g2 = [41, 60]
 //
 // we would need four BVH roots: [0, 15], [16, 20], [21, 40], [41, 60].
-function getFullPrimitiveRange( geo, range, stride ) {
+export function getFullPrimitiveRange( geo, range, stride ) {
 
 	const primitiveCount = getVertexCount( geo ) / stride;
 	const drawRange = range ? range : geo.drawRange;

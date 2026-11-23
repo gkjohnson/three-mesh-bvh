@@ -40,15 +40,15 @@ export function convertToBufferType( array, BufferConstructor ) {
 
 }
 
-// Returns a tightly packed copy of the attribute's array, pulling the components out of
-// the interleaved buffer if needed.
-export function copyAttributeArray( attribute, BufferConstructor = ArrayBuffer ) {
+// Returns a tightly packed copy of the attribute's array, or the given range of its items, pulling
+// the components out of the interleaved buffer if needed.
+export function copyAttributeArray( attribute, BufferConstructor = ArrayBuffer, start = 0, count = attribute.count ) {
 
-	const { itemSize, count } = attribute;
+	const { itemSize } = attribute;
 	const interleaved = attribute.isInterleavedBufferAttribute;
 	const source = interleaved ? attribute.data.array : attribute.array;
 	const stride = interleaved ? attribute.data.stride : itemSize;
-	const offset = interleaved ? attribute.offset : 0;
+	const offset = start * stride + ( interleaved ? attribute.offset : 0 );
 
 	const length = count * itemSize;
 	const result = new source.constructor( new BufferConstructor( length * source.BYTES_PER_ELEMENT ) );

@@ -2,7 +2,8 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { copyAttributeArray } from '../utils/BufferUtils.js';
+import { getBuildData, shiftBuildTriangles, writeBuildIndex } from './utils/buildData.js';
+import { ensureIndex } from '../core/build/geometryUtils.js';
 
 let _fallbackUrl = null;
 
@@ -79,7 +80,8 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	 * Generates a `MeshBVH` instance for the given geometry with the given options in a WebWorker.
 	 * Returns a Promise that resolves with the generated `MeshBVH`. Throws if already running.
 	 * By default the geometry can still be read during the build, but its position and index
-	 * arrays must not be modified until the promise resolves.
+	 * arrays must not be modified until the promise resolves. With a `range` only the data it uses
+	 * is copied, and separate ranges of a geometry can be built at the same time by different workers.
 	 *
 	 * @name generate
 	 * @memberof GenerateMeshBVHWorker
@@ -118,7 +120,29 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 			}
 
+			// the worker only sees part of the geometry so it can't create the index
+			if ( options.range && ! options.indirect ) {
+
+				ensureIndex( geometry, options );
+
+			}
+
 			const indexAttribute = geometry.index;
+
+			let buildData;
+			if ( transferBuffers ) {
+
+				buildData = {
+					index: indexAttribute ? indexAttribute.array : null,
+					position: geometry.attributes.position.array,
+					groups: geometry.groups,
+				};
+
+			} else {
+
+				buildData = getBuildData( geometry, options.range );
+
+			}
 
 			worker.onerror = e => {
 
@@ -151,6 +175,10 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 						// webworker transfer.
 						geometry.attributes.position.array = position;
 
+					} else {
+
+						shiftBuildTriangles( bvh, buildData );
+
 					}
 
 					if ( serialized.index ) {
@@ -167,7 +195,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 						} else if ( ! bvh.indirect ) {
 
 							// the build reordered a copy of the index so write it back
-							indexAttribute.array.set( serialized.index );
+							writeBuildIndex( indexAttribute, serialized.index, buildData );
 
 						}
 
@@ -196,19 +224,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 			};
 
-			let index, position;
-			if ( transferBuffers ) {
-
-				index = geometry.index ? geometry.index.array : null;
-				position = geometry.attributes.position.array;
-
-			} else {
-
-				index = geometry.index ? copyAttributeArray( geometry.index ) : null;
-				position = copyAttributeArray( geometry.attributes.position );
-
-			}
-
+			const { index, position, groups } = buildData;
 			const transferable = [ position ];
 			if ( index ) {
 
@@ -223,9 +239,12 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				normalized: geometry.attributes.position.normalized,
 				options: {
 					...options,
+
+					// copied data only includes the range
+					range: transferBuffers ? options.range : null,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
-					groups: [ ... geometry.groups ],
+					groups: [ ...groups ],
 				},
 
 			}, transferable.map( arr => arr.buffer ).filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) ) );
