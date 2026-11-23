@@ -388,6 +388,34 @@ function runSuiteWithOptions( defaultOptions ) {
 
 		} );
 
+		it( 'should pass the triangle indices of the geometry with "indirect"', () => {
+
+			const geometryA = new SphereGeometry( 1, 10, 10 );
+			const geometryB = new SphereGeometry( 1, 8, 8 );
+			const bvhA = new MeshBVH( geometryA, { indirect: true } );
+			const bvhB = new MeshBVH( geometryB, { indirect: true } );
+
+			const expected = new Vector3();
+			const expectIndex = ( geometry, triangleIndex, triangle ) => {
+
+				expected.fromBufferAttribute( geometry.attributes.position, geometry.index.getX( 3 * triangleIndex ) );
+				expect( triangle.a.distanceTo( expected ) ).toBeLessThan( 1e-6 );
+
+			};
+
+			const intersectsTriangles = vi.fn( ( triangle1, triangle2, index1, index2 ) => {
+
+				expectIndex( geometryA, index1, triangle1 );
+				expectIndex( geometryB, index2, triangle2 );
+				return false;
+
+			} );
+
+			bvhA.bvhcast( bvhB, new Matrix4(), { intersectsTriangles } );
+			expect( intersectsTriangles ).toHaveBeenCalled();
+
+		} );
+
 		describe( 'Dense intersecting cubes', () => {
 
 			let matrix;
