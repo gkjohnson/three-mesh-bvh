@@ -75,7 +75,7 @@
     "eslint": "^9.0.0",
     "eslint-config-mdcs": "^5.0.0",
     "eslint-plugin-jsdoc": "^50.8.0",
-    "glob": "^10.3.3",
+    "glob": "^14.0.6",
     "globals": "^16.5.0",
     "jsdoc": "^4.0.5",
     "jsdom": "^26.0.0",
