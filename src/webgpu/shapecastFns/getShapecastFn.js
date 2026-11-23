@@ -167,7 +167,7 @@ export function getShapecastFn( bvhData, options ) {
 
 					if ( isTLAS ) {
 
-						// the leaf encodes the placement / transform slot in the low 24 bits of infoX
+						// the leaf encodes the object index in the low 24 bits of infoX
 						// and the cluster subtree's absolute node offset in infoY, which is pushed
 						// directly as the BLAS entry node. Each TLAS leaf references one cluster.
 						objectIndex = infoX & 0x00ffffffu;

@@ -71,7 +71,8 @@ function getTransformKey( compositeId, root ) {
  * @typedef {Object} ObjectInfo
  * @property {Object3D} object - The mesh.
  * @property {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
- * @property {number} group - Index of the geometry group, each of which is packed as its own object.
+ * @property {number} group - Index of the BVH root, one per geometry group and each packed as its own object.
+ *   Always 0 for an indirect BVH, which has a single root.
  * @property {number} objectIndex - Index of the object's record in `storage.objects`. Hits report it as `objectIndex`.
  * @property {number} indexOffset - Where the index data of the object's geometry starts in `storage.geometry`,
  *   in 32-bit words. Shared by the objects of a geometry's groups.
@@ -379,14 +380,14 @@ export class BVHComputeData {
 		let indexBufferLength = 0;
 		let attributesBufferLength = 0;
 
-		// per primitive (in final tree order): the { transformSlot, subtree } for its TLAS leaf. The
+		// per primitive (in final tree order): the { objectIndex, subtree } for its TLAS leaf. The
 		// leaf's node offset is resolved to the subtree's packed base once all subtrees are laid out.
 		const primitiveInfo = [];
 
 		// tracks the deepest packed cluster subtree for the traversal depth bound below
 		let maxSubtreeDepth = 0;
 
-		// the transform slots, derived from the same primitive buffer walk "updateTransforms" uses
+		// the object records, derived from the same primitive buffer walk "updateTransforms" uses
 		const transformMap = this._getTransformMap( bvh );
 
 		const { primitiveBuffer, primitiveBufferStride } = bvh;
@@ -448,7 +449,7 @@ export class BVHComputeData {
 
 			// nodeOffset is resolved to the subtree's packed base after the subtrees are laid out
 			primitiveInfo.push( {
-				transformSlot: transformMap.get( getTransformKey( compositeId, root ) ).slot,
+				objectIndex: transformMap.get( getTransformKey( compositeId, root ) ).objectIndex,
 				subtree,
 			} );
 
@@ -543,15 +544,15 @@ export class BVHComputeData {
 
 		// record what was packed for every object record, for "writeObjectRecord" and "getObjectInfo"
 		const packedObjects = [];
-		transformMap.forEach( ( { object, instanceId, root, slot } ) => {
+		transformMap.forEach( ( { object, instanceId, group, objectIndex } ) => {
 
-			packedObjects[ slot ] = { object, instanceId, root, data: null, primitiveRange: null };
+			packedObjects[ objectIndex ] = { object, instanceId, group, data: null, primitiveRange: null };
 
 		} );
 
 		primitiveInfo.forEach( info => {
 
-			packedObjects[ info.transformSlot ].data = info.subtree.data;
+			packedObjects[ info.objectIndex ].data = info.subtree.data;
 
 		} );
 
@@ -561,7 +562,7 @@ export class BVHComputeData {
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
 		transformMap.forEach( info => {
 
-			this.writeObjectRecord( info, _inverseMatrix, info.slot, transformArrayBuffer );
+			this.writeObjectRecord( info, _inverseMatrix, info.objectIndex, transformArrayBuffer );
 
 		} );
 
@@ -576,9 +577,9 @@ export class BVHComputeData {
 	}
 
 	/**
-	 * Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
+	 * Refits the clustered BVH and rewrites every record in `storage.objects` from the objects'
 	 * current world matrices. Call this when object transforms or visibility change but the scene
-	 * topology does not. The transform slots are derived from the clustered BVH's primitive buffer,
+	 * topology does not. The object indices are derived from the clustered BVH's primitive buffer,
 	 * so they match those written by {@link BVHComputeData#update}.
 	 */
 	updateTransforms() {
@@ -598,7 +599,7 @@ export class BVHComputeData {
 		_inverseMatrix.copy( bvh.matrixWorld ).invert();
 		this._getTransformMap( bvh ).forEach( info => {
 
-			this.writeObjectRecord( info, _inverseMatrix, info.slot, transformArrayBuffer );
+			this.writeObjectRecord( info, _inverseMatrix, info.objectIndex, transformArrayBuffer );
 
 		} );
 
@@ -612,7 +613,7 @@ export class BVHComputeData {
 	 * in a subclass to write additional per-object data (e.g. material index) into members added
 	 * after the base record's.
 	 *
-	 * @param {{object:Object3D,instanceId:number,compositeId:number,root:number,slot:number}} info - The object, its instance index, and the slot its record is written to.
+	 * @param {{object:Object3D,instanceId:number,compositeId:number,group:number,objectIndex:number}} info - The object, its instance index and group, and the index of its record, as in `ObjectInfo`.
 	 * @param {Matrix4} premultiplyMatrix - Matrix pre-multiplied onto the object's world matrix (usually the inverse TLAS root matrix).
 	 * @param {number} writeOffset - Index of the record to write into.
 	 * @param {ArrayBuffer} targetBuffer - Destination buffer.
@@ -736,14 +737,14 @@ export class BVHComputeData {
 	 *
 	 * @param {Object3D} object - The mesh.
 	 * @param {number} [instanceId=0] - Instance index (relevant for InstancedMesh / BatchedMesh).
-	 * @param {number} [group=0] - Index of the geometry group, each of which is packed as its own object.
+	 * @param {number} [group=0] - Index of the BVH root, one per geometry group and each packed as its own object.
 	 * @returns {ObjectInfo|null}
 	 */
 	getObjectInfo( object, instanceId = 0, group = 0 ) {
 
 		const objectIndex = this._packedObjects.findIndex( packed => {
 
-			return packed.object === object && packed.instanceId === instanceId && packed.root === group;
+			return packed.object === object && packed.instanceId === instanceId && packed.group === group;
 
 		} );
 
@@ -771,11 +772,11 @@ export class BVHComputeData {
 	_getObjectInfoAt( objectIndex ) {
 
 		const packed = this._packedObjects[ objectIndex ];
-		const { object, instanceId, root } = packed;
+		const { object, instanceId, group } = packed;
 		const { bvh, range, indexOffset, attributesOffset } = packed.data;
 		if ( packed.primitiveRange === null ) {
 
-			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ root ] );
+			packed.primitiveRange = getRootPrimitiveRange( bvh._roots[ group ] );
 
 		}
 
@@ -785,7 +786,7 @@ export class BVHComputeData {
 		return {
 			object,
 			instanceId,
-			group: root,
+			group,
 			objectIndex,
 			indexOffset,
 			attributesOffset,
@@ -858,8 +859,8 @@ export class BVHComputeData {
 		for ( let i = 0, l = primitiveBuffer.length; i < l; i += primitiveBufferStride ) {
 
 			const compositeId = primitiveBuffer[ i ];
-			const root = bvh.getBVHRootIndex( primitiveBuffer[ i + 1 ] );
-			const key = getTransformKey( compositeId, root );
+			const group = bvh.getBVHRootIndex( primitiveBuffer[ i + 1 ] );
+			const key = getTransformKey( compositeId, group );
 
 			// each bvh root gets its own transform so per-group data like materials can
 			// be attached. The many cluster primitives of a root all share it, so matrices
@@ -870,10 +871,10 @@ export class BVHComputeData {
 
 			}
 
-			const slot = transformMap.size;
+			const objectIndex = transformMap.size;
 			const object = bvh.objects[ bvh.getObjectId( compositeId ) ];
 			const instanceId = bvh.getInstanceId( compositeId );
-			transformMap.set( key, { object, instanceId, compositeId, root, slot } );
+			transformMap.set( key, { object, instanceId, compositeId, group, objectIndex } );
 
 		}
 
