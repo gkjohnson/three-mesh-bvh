@@ -3,6 +3,7 @@ import { BVH } from '../core/BVH.js';
 import { BVHTraversalHelper } from '../core/BVHTraversalHelper.js';
 import { UINT32_PER_NODE } from '../core/Constants.js';
 import { arrayToBox } from '../utils/ArrayBoxUtilities.js';
+import { forEachInstance } from '../utils/InstanceUtilities.js';
 
 // the second primitive word packs the owning bvh root index above the node index, which occupies
 // the low NODE_INDEX_BITS bits.
@@ -69,7 +70,7 @@ export class ClusteredBVH extends BVH {
 	init( options ) {
 
 		let total = 0;
-		const { objects, bvhMap, matrixWorld } = this;
+		const { objects, bvhMap, matrixWorld, includeInstances } = this;
 
 		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
 		_inverseMatrix.copy( matrixWorld ).invert();
@@ -80,16 +81,26 @@ export class ClusteredBVH extends BVH {
 			// instance given the same inputs, in addition to any shared instances. A falsy entry excludes that
 			// instance from the tree.
 			const bvhList = [];
-			for ( let instance = 0, count = this._getInstanceCount( object ); instance < count; instance ++ ) {
+			const addInstance = instance => {
 
 				const bvh = this.getBVH( object, instance );
-				bvhList.push( bvh );
+				bvhList[ instance ] = bvh;
 				if ( bvh ) {
 
 					// "instance" objects are referenced whole, everything else is subdivided into clusters
 					total += this.shouldCluster( object ) ? bvh._roots.length : this._countRelevantLeafNodes( bvh );
 
 				}
+
+			};
+
+			if ( includeInstances ) {
+
+				forEachInstance( object, addInstance );
+
+			} else {
+
+				addInstance( 0 );
 
 			}
 
@@ -187,26 +198,6 @@ export class ClusteredBVH extends BVH {
 	getBVHNodeIndex( compositeNodeId ) {
 
 		return ( compositeNodeId & NODE_INDEX_MASK ) * UINT32_PER_NODE;
-
-	}
-
-	_getInstanceCount( object ) {
-
-		// TODO: can we share this with ObjectBVH?
-		const { includeInstances } = this;
-		if ( object.isInstancedMesh && includeInstances ) {
-
-			return object.count;
-
-		} else if ( object.isBatchedMesh && includeInstances ) {
-
-			return object.instanceCount;
-
-		} else {
-
-			return 1;
-
-		}
 
 	}
 
