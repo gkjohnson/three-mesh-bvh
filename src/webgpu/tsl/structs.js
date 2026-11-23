@@ -7,16 +7,14 @@ export const bvhNodeBoundsStruct = new StructTypeNode( {
 bvhNodeBoundsStruct.getLength = () => 6;
 
 // an internal node stores the bounds of both its children so they are tested where the parent is
-// fetched. A leaf's bounds live in its parent and its own bounds fields are unused.
+// fetched, as 16 bit steps from the frame of the tree being traversed: words 0-2 the left child's min
+// and max, words 3-5 the right child's. A TLAS leaf holds the frame of the subtree it enters there instead.
 export const bvhNodeStruct = new StructTypeNode( {
-	leftBounds: 'BVHBoundingBox',
-	rightBounds: 'BVHBoundingBox',
+	bounds: 'array<u32, 6>',
 	rightChildOrTriangleOffset: 'uint',
 	splitAxisOrTriangleCount: 'uint',
-	_alignment0: 'uint',
-	_alignment1: 'uint',
 }, 'BVHNode' );
-bvhNodeStruct.getLength = () => 2 * bvhNodeBoundsStruct.getLength() + 4;
+bvhNodeStruct.getLength = () => 8;
 
 // "indexOffset" and "attributesOffset" are where the object's geometry index and vertex attributes
 // start in the geometry buffer, in 32-bit words. Triangle and vertex indices are relative to them.

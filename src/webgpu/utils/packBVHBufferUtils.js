@@ -4,9 +4,10 @@ import { DataUtils, Vector4 } from 'three';
 import { BYTES_PER_NODE, UINT32_PER_NODE, IS_LEAFNODE_FLAG } from '../../core/Constants.js';
 import { IS_LEAF, LEFT_NODE, RIGHT_NODE } from '../../core/utils/nodeBufferUtils.js';
 
-// the GPU node: both children's bounds, then the right child offset or triangle offset, then the
-// split axis or leaf count, padded to 64 bytes
-export const GPU_BYTES_PER_NODE = 64;
+// the GPU node: both children's bounds as 16 bit steps from the frame of the tree being traversed
+// ( six values each ), then the right child offset or triangle offset, then the split axis or leaf count.
+// A TLAS leaf holds the frame of the BLAS subtree it enters in place of the bounds, as six floats.
+export const GPU_BYTES_PER_NODE = 32;
 export const GPU_UINT32_PER_NODE = GPU_BYTES_PER_NODE / 4;
 
 // scratch
@@ -14,9 +15,83 @@ const _def = /* @__PURE__ */ new Vector4();
 const _vec = /* @__PURE__ */ new Vector4();
 const _defArray = [ 0, 0, 0, 0 ];
 
-// writes the bounds of a source node into "target" at float offset "t32", turning the
-// [ Infinity, - Infinity ] bounds of an empty leaf into [ 1, - 1 ] so the GPU never enters it
-function writeBounds( rootF32, srcNode, targetF32, t32 ) {
+// the largest quantized bounds value - child bounds are stored as 16 bit steps from a frame's origin
+export const QUANTIZED_BOUNDS_MAX = 0xFFFF;
+
+// scratch for stepping a float to the next representable value
+const _stepF32 = /* @__PURE__ */ new Float32Array( 1 );
+const _stepU32 = /* @__PURE__ */ new Uint32Array( _stepF32.buffer );
+
+// the value reconstructed from a quantized coordinate with two 32 bit roundings ( multiply, then add )
+function dequantize( origin, step, q ) {
+
+	return Math.fround( origin + Math.fround( q * step ) );
+
+}
+
+// GPUs differ in whether "origin + q * step" is rounded once ( fused, e.g. NVIDIA ) or twice ( e.g. AMD on Metal ),
+// so a decoded bound is only conservative if it is for both. With one rounding the result is the 32 bit float
+// nearest the exact value, so it's enough to compare the exact value, which a TwoSum gives in 64 bit floats.
+// https://en.wikipedia.org/wiki/2Sum
+function compareExact( origin, step, q, v ) {
+
+	const p = q * step;
+	const s = origin + p;
+	const pp = s - origin;
+	const err = ( origin - ( s - pp ) ) + ( p - pp );
+	return s !== v ? s - v : err;
+
+}
+
+function decodesAtMost( origin, step, q, v ) {
+
+	return dequantize( origin, step, q ) <= v && compareExact( origin, step, q, v ) <= 0;
+
+}
+
+function decodesAtLeast( origin, step, q, v ) {
+
+	return dequantize( origin, step, q ) >= v && compareExact( origin, step, q, v ) >= 0;
+
+}
+
+// writes the quantization frame for the bounds of source node "srcNode" into "target" at float offset
+// "t32": the origin ( bounds min ) and then the size of one of the 65535 steps along each axis. The step
+// is rounded up so the last step reaches the bounds max when decoded with 32 bit floats.
+export function writeQuantizationFrame( rootF32, srcNode, targetF32, t32 ) {
+
+	const r32 = srcNode * UINT32_PER_NODE;
+	for ( let c = 0; c < 3; c ++ ) {
+
+		const vMin = rootF32[ r32 + c ];
+		const vMax = rootF32[ r32 + c + 3 ];
+
+		// no finite step reaches an infinite bound, so the search below would never end
+		if ( vMax > vMin && ! Number.isFinite( vMax - vMin ) ) {
+
+			throw new Error( 'BVHComputeData: BVH bounds must be finite.' );
+
+		}
+
+		// an empty or flat frame only needs a nonzero step so the division is defined
+		_stepF32[ 0 ] = vMax > vMin ? ( vMax - vMin ) / QUANTIZED_BOUNDS_MAX : 1;
+		while ( vMax > vMin && ! decodesAtLeast( vMin, _stepF32[ 0 ], QUANTIZED_BOUNDS_MAX, vMax ) ) {
+
+			_stepU32[ 0 ] ++;
+
+		}
+
+		targetF32[ t32 + c ] = vMin > vMax ? 0 : vMin;
+		targetF32[ t32 + c + 3 ] = _stepF32[ 0 ];
+
+	}
+
+}
+
+// writes the bounds of a source node into "target" at 16 bit offset "t16" as steps from the frame at
+// float offset "f32" of "frameF32". The min is rounded down and the max up so the decoded box always
+// contains the source box, and the bounds of an empty leaf become [ 65535, 0 ] so the GPU never enters it.
+export function writeQuantizedBounds( rootF32, srcNode, frameF32, f32, targetU16, t16 ) {
 
 	const r32 = srcNode * UINT32_PER_NODE;
 	for ( let c = 0; c < 3; c ++ ) {
@@ -25,26 +100,59 @@ function writeBounds( rootF32, srcNode, targetF32, t32 ) {
 		const vMax = rootF32[ r32 + c + 3 ];
 		if ( vMin > vMax ) {
 
-			targetF32[ t32 + c ] = 1;
-			targetF32[ t32 + c + 3 ] = - 1;
-
-		} else {
-
-			targetF32[ t32 + c ] = vMin;
-			targetF32[ t32 + c + 3 ] = vMax;
+			targetU16[ t16 + c ] = QUANTIZED_BOUNDS_MAX;
+			targetU16[ t16 + c + 3 ] = 0;
+			continue;
 
 		}
+
+		const origin = frameF32[ f32 + c ];
+		const step = frameF32[ f32 + c + 3 ];
+		let qMin = Math.min( Math.max( Math.floor( ( vMin - origin ) / step ), 0 ), QUANTIZED_BOUNDS_MAX );
+		let qMax = Math.min( Math.max( Math.ceil( ( vMax - origin ) / step ), 0 ), QUANTIZED_BOUNDS_MAX );
+
+		// the division and the decode round differently, so step outward until the decoded value is conservative
+		while ( qMin > 0 && ! decodesAtMost( origin, step, qMin, vMin ) ) {
+
+			qMin --;
+
+		}
+
+		while ( qMax < QUANTIZED_BOUNDS_MAX && ! decodesAtLeast( origin, step, qMax, vMax ) ) {
+
+			qMax ++;
+
+		}
+
+		targetU16[ t16 + c ] = qMin;
+		targetU16[ t16 + c + 3 ] = qMax;
 
 	}
 
 }
 
-// writes both children's bounds of an internal source node into the GPU node at "n32"
-function writeChildBounds( rootF32, rootU32, srcNode, targetF32, n32 ) {
+// decodes the bounds written by "writeQuantizedBounds" into "target" at float offset "t32" with two 32 bit
+// roundings, as GPUs that don't fuse the multiply-add do
+export function readQuantizedBounds( sourceU16, s16, frameF32, f32, targetF32, t32 ) {
+
+	for ( let c = 0; c < 3; c ++ ) {
+
+		const origin = frameF32[ f32 + c ];
+		const step = frameF32[ f32 + c + 3 ];
+		targetF32[ t32 + c ] = dequantize( origin, step, sourceU16[ s16 + c ] );
+		targetF32[ t32 + c + 3 ] = dequantize( origin, step, sourceU16[ s16 + c + 3 ] );
+
+	}
+
+}
+
+// writes both children's bounds of an internal source node into the GPU node at "n16", quantized against
+// the frame at float offset "f32" of "frameF32"
+function writeChildBounds( rootF32, rootU32, srcNode, frameF32, f32, targetU16, n16 ) {
 
 	const r32 = srcNode * UINT32_PER_NODE;
-	writeBounds( rootF32, srcNode + 1, targetF32, n32 );
-	writeBounds( rootF32, srcNode + rootU32[ r32 + 6 ], targetF32, n32 + 6 );
+	writeQuantizedBounds( rootF32, srcNode + 1, frameF32, f32, targetU16, n16 );
+	writeQuantizedBounds( rootF32, srcNode + rootU32[ r32 + 6 ], frameF32, f32, targetU16, n16 + 6 );
 
 }
 
@@ -80,17 +188,25 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  * refreshing a refit tree whose topology is unchanged.
  * @param {number} nodeWriteOffset
  * @param {ArrayBuffer} target
+ * @param {Float32Array} frameTarget - Receives the TLAS quantization frame ( origin, then step per axis )
+ * the internal node bounds are written against.
  */
-export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
+export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target, frameTarget ) {
 
+	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
 	const targetF32 = new Float32Array( target );
 
-	bvh._roots.forEach( root => {
+	bvh._roots.forEach( ( root, rootIndex ) => {
 
 		const rootBuffer16 = new Uint16Array( root );
 		const rootBuffer32 = new Uint32Array( root );
 		const rootBufferF32 = new Float32Array( root );
+
+		// GPU traversal only enters the first root
+		const frameF32 = rootIndex === 0 ? frameTarget : new Float32Array( 6 );
+		writeQuantizationFrame( rootBufferF32, 0, frameF32, 0 );
+
 		for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
 
 			const r32 = i * UINT32_PER_NODE;
@@ -101,7 +217,7 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 			// write the children's bounds - a leaf's bounds are held by its parent
 			if ( ! isLeaf ) {
 
-				writeChildBounds( rootBufferF32, rootBuffer32, i, targetF32, n32 );
+				writeChildBounds( rootBufferF32, rootBuffer32, i, frameF32, 0, targetU16, n32 * 2 );
 
 			}
 
@@ -123,20 +239,35 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 				// an empty bvh produces a single primitiveless leaf with no primitiveInfo entry; its
 				// degenerate bounds keep the GPU from traversing into it, so write an empty placeholder.
-				const { transformSlot, nodeOffset } = count === 0 ? { transformSlot: 0, nodeOffset: 0 } : primitiveInfo[ offset ];
+				const info = count === 0 ? null : primitiveInfo[ offset ];
+				const { transformSlot, nodeOffset } = info || { transformSlot: 0, nodeOffset: 0 };
 				if ( transformSlot > 0x00ffffff ) {
 
 					throw new Error( `packBVHBufferUtils: transform slot ${ transformSlot } exceeds the 24-bit TLAS leaf limit.` );
 
 				}
 
-				targetU32[ n32 + 12 ] = nodeOffset;
-				targetU32[ n32 + 13 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
+				// the leaf's bounds fields hold the frame of the subtree it enters, which the BLAS nodes
+				// are quantized against
+				if ( info ) {
+
+					const { subtree } = info;
+					const subtreeRoot = new Float32Array( subtree.data.bvh._roots[ subtree.root ] );
+					writeQuantizationFrame( subtreeRoot, subtree.node, targetF32, n32 );
+
+				} else {
+
+					targetF32.fill( 0, n32, n32 + 6 );
+
+				}
+
+				targetU32[ n32 + 6 ] = nodeOffset;
+				targetU32[ n32 + 7 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
 
 			} else {
 
-				targetU32[ n32 + 12 ] = rootBuffer32[ r32 + 6 ];
-				targetU32[ n32 + 13 ] = rootBuffer32[ r32 + 7 ];
+				targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
+				targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
 
 			}
 
@@ -263,10 +394,13 @@ export function appendBVHSubtree( root, subtreeStart, subtreeSize, geometryOffse
 
 	const targetU16 = new Uint16Array( target );
 	const targetU32 = new Uint32Array( target );
-	const targetF32 = new Float32Array( target );
 	const rootBuffer16 = new Uint16Array( root );
 	const rootBuffer32 = new Uint32Array( root );
 	const rootBufferF32 = new Float32Array( root );
+
+	// the subtree's nodes are quantized against its root's bounds, which the TLAS leaf entering it holds
+	const frameF32 = new Float32Array( 6 );
+	writeQuantizationFrame( rootBufferF32, subtreeStart, frameF32, 0 );
 
 	for ( let k = 0; k < subtreeSize; k ++ ) {
 
@@ -280,17 +414,17 @@ export function appendBVHSubtree( root, subtreeStart, subtreeSize, geometryOffse
 		if ( isLeaf ) {
 
 			// mesh leaf ( 0xFFFF ) - rebase the triangle offset into the packed index buffer
-			targetU32[ n32 + 12 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
-			targetU16[ n16 + 26 ] = rootBuffer16[ r16 + 14 ];
-			targetU16[ n16 + 27 ] = IS_LEAFNODE_FLAG;
+			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ] + geometryOffset;
+			targetU16[ n16 + 14 ] = rootBuffer16[ r16 + 14 ];
+			targetU16[ n16 + 15 ] = IS_LEAFNODE_FLAG;
 
 		} else {
 
 			// internal node - the children's bounds are stored here and the right-child offset is
 			// relative, so it is valid as-is on the copy
-			writeChildBounds( rootBufferF32, rootBuffer32, src, targetF32, n32 );
-			targetU32[ n32 + 12 ] = rootBuffer32[ r32 + 6 ];
-			targetU32[ n32 + 13 ] = rootBuffer32[ r32 + 7 ];
+			writeChildBounds( rootBufferF32, rootBuffer32, src, frameF32, 0, targetU16, n16 );
+			targetU32[ n32 + 6 ] = rootBuffer32[ r32 + 6 ];
+			targetU32[ n32 + 7 ] = rootBuffer32[ r32 + 7 ];
 
 		}
 

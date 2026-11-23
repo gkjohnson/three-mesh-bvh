@@ -1,7 +1,7 @@
 /** @import { Object3D, BufferGeometry, Vector4 } from 'three' */
-import { Matrix4, Mesh, Group } from 'three';
+import { Matrix4, Mesh, Group, Vector3 } from 'three';
 import { StorageBufferAttribute, StructTypeNode } from 'three/webgpu';
-import { storage } from 'three/tsl';
+import { storage, uniform } from 'three/tsl';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { SkinnedMeshBVH } from '../core/SkinnedMeshBVH.js';
 import { GeometryBVH } from '../core/GeometryBVH.js';
@@ -191,6 +191,12 @@ export class BVHComputeData {
 		// counts "update" calls, so only the latest one writes the buffers
 		this._updateId = 0;
 
+		// origin and step per axis the TLAS node bounds are quantized against. Uniforms so a refit that
+		// moves the frame doesn't change the shader code
+		this._tlasFrame = new Float32Array( 6 );
+		this._tlasFrameOrigin = uniform( new Vector3() );
+		this._tlasFrameStep = uniform( new Vector3() );
+
 		// this needs no layout from "update"
 		this.fns.getTriangleIndices = getTriangleIndicesFn( this );
 
@@ -257,7 +263,9 @@ export class BVHComputeData {
 	 * @param {StructTypeNode} options.shapeStruct - TSL struct or definition describing the query shape.
 	 * @param {StructTypeNode|null} [options.resultStruct] - TSL struct for the accumulated result, or null.
 	 * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
-	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
+	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order,
+	 * called as `( shape, splitAxis, node, frameOrigin, frameStep )`. The node's child bounds are 16 bit steps from
+	 * the frame, see `bvhDecodeBounds`.
 	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
 	 * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range.
 	 * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
@@ -519,7 +527,8 @@ export class BVHComputeData {
 
 		// resolve each TLAS leaf's node offset now that the subtree bases are known, then pack the TLAS
 		primitiveInfo.forEach( info => info.nodeOffset = info.subtree.base );
-		appendBVHData( bvh, primitiveInfo, 0, bvhNodesBuffer );
+		appendBVHData( bvh, primitiveInfo, 0, bvhNodesBuffer, this._tlasFrame );
+		this._updateTLASFrame();
 
 		//
 
@@ -575,6 +584,14 @@ export class BVHComputeData {
 
 	}
 
+	_updateTLASFrame() {
+
+		const frame = this._tlasFrame;
+		this._tlasFrameOrigin.value.set( frame[ 0 ], frame[ 1 ], frame[ 2 ] );
+		this._tlasFrameStep.value.set( frame[ 3 ], frame[ 4 ], frame[ 5 ] );
+
+	}
+
 	/**
 	 * Refits the clustered BVH and rewrites every entry in the transform buffer from the objects'
 	 * current world matrices. Call this when object transforms or visibility change but the scene
@@ -590,7 +607,8 @@ export class BVHComputeData {
 		// the TLAS occupies the head of the node buffer - rewrite just those nodes' bounds. A null
 		// "primitiveInfo" leaves the leaf encodings, and the cluster subtrees that follow them, in place.
 		const nodesAttribute = storage.nodes.proxyNode.value;
-		appendBVHData( bvh, null, 0, nodesAttribute.array.buffer );
+		appendBVHData( bvh, null, 0, nodesAttribute.array.buffer, this._tlasFrame );
+		this._updateTLASFrame();
 		nodesAttribute.needsUpdate = true;
 
 		const transformsAttribute = storage.objects.proxyNode.value;

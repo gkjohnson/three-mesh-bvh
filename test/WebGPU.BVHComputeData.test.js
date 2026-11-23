@@ -13,7 +13,17 @@ import {
 	TorusKnotGeometry,
 	Vector4,
 } from 'three';
-import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
+import {
+	appendGeometryData,
+	getAttributeLayout,
+	getSubtreeNodeCount,
+	readQuantizedBounds,
+	writeQuantizationFrame,
+	GPU_UINT32_PER_NODE,
+	QUANTIZED_BOUNDS_MAX,
+} from '../src/webgpu/utils/packBVHBufferUtils.js';
+import { BYTES_PER_NODE, UINT32_PER_NODE } from '../src/core/Constants.js';
+import { IS_LEAF } from '../src/core/utils/nodeBufferUtils.js';
 import { MeshBVH } from '../src/index.js';
 
 const attributes = {
@@ -350,6 +360,137 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 		} );
 
 		expect( packedTriangles.sort() ).toEqual( expectedTriangles.sort() );
+
+	} );
+
+	it( 'packs the TLAS against its frame and gives each TLAS leaf the frame of the subtree it enters.', async () => {
+
+		const meshes = [ 1, 2, 3 ].map( i => {
+
+			const geometry = new TorusKnotGeometry( i, 0.4 * i, 40, 8 );
+			geometry.boundsTree = new MeshBVH( geometry );
+			const mesh = new Mesh( geometry );
+			mesh.position.set( i * 10, - i, 1000 );
+			mesh.updateMatrixWorld();
+			return mesh;
+
+		} );
+
+		const data = new BVHComputeData( meshes, { attributes: { position: 'vec3f' } } );
+		await data.update();
+
+		const nodes = data.storage.nodes.value.array;
+		const nodesU16 = new Uint16Array( nodes.buffer );
+		const nodesF32 = new Float32Array( nodes.buffer );
+
+		// the TLAS leaves enter cluster subtrees, each quantized against the bounds of its own root node
+		const nodeFrames = new Map();
+		meshes.forEach( mesh => {
+
+			const root = new Float32Array( mesh.geometry.boundsTree._roots[ 0 ] );
+			const frame = new Float32Array( 6 );
+			for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
+
+				writeQuantizationFrame( root, i, frame, 0 );
+				nodeFrames.set( frame.join(), { mesh, root, node: i } );
+
+			}
+
+		} );
+
+		const checkTLAS = () => {
+
+			const root = data.bvh._roots[ 0 ];
+			const rootF32 = new Float32Array( root );
+			const rootU32 = new Uint32Array( root );
+			const rootU16 = new Uint16Array( root );
+			const decoded = new Float32Array( 6 );
+			const leaves = [];
+			for ( let i = 0, l = root.byteLength / BYTES_PER_NODE; i < l; i ++ ) {
+
+				const r32 = i * UINT32_PER_NODE;
+				const n32 = i * GPU_UINT32_PER_NODE;
+				if ( IS_LEAF( r32 * 2, rootU16 ) ) {
+
+					leaves.push( { frame: nodesF32.slice( n32, n32 + 6 ), tag: nodes[ n32 + 7 ] >>> 24, box: rootF32.slice( r32, r32 + 6 ), nodeOffset: nodes[ n32 + 6 ] } );
+					continue;
+
+				}
+
+				[ i + 1, i + rootU32[ r32 + 6 ] ].forEach( ( child, side ) => {
+
+					readQuantizedBounds( nodesU16, n32 * 2 + side * 6, data._tlasFrame, 0, decoded, 0 );
+					const c32 = child * UINT32_PER_NODE;
+					for ( let c = 0; c < 3; c ++ ) {
+
+						expect( decoded[ c ] ).toBeLessThanOrEqual( rootF32[ c32 + c ] );
+						expect( decoded[ c + 3 ] ).toBeGreaterThanOrEqual( rootF32[ c32 + c + 3 ] );
+
+					}
+
+				} );
+
+			}
+
+			// each leaf's subtree frame box, moved to world space, lies inside the leaf's TLAS box
+			leaves.forEach( ( { frame, tag, box, nodeOffset } ) => {
+
+				const source = nodeFrames.get( frame.join() );
+				expect( source ).toBeDefined();
+				expect( tag ).toBe( 0xFF );
+				for ( let c = 0; c < 3; c ++ ) {
+
+					const offset = source.mesh.position.getComponent( c );
+					expect( frame[ c ] + offset ).toBeGreaterThanOrEqual( box[ c ] - 1e-3 );
+					expect( frame[ c ] + frame[ c + 3 ] * QUANTIZED_BOUNDS_MAX + offset ).toBeLessThanOrEqual( box[ c + 3 ] + 1e-3 );
+
+				}
+
+				// the subtree the leaf enters decodes around its source boxes with the leaf's frame
+				const { root, node } = source;
+				const sourceU16 = new Uint16Array( root.buffer );
+				const sourceU32 = new Uint32Array( root.buffer );
+				const count = getSubtreeNodeCount( root.buffer, node );
+				for ( let k = 0; k < count; k ++ ) {
+
+					const s32 = ( node + k ) * UINT32_PER_NODE;
+					if ( IS_LEAF( s32 * 2, sourceU16 ) ) continue;
+
+					const p32 = ( nodeOffset + k ) * GPU_UINT32_PER_NODE;
+					[ node + k + 1, node + k + sourceU32[ s32 + 6 ] ].forEach( ( child, side ) => {
+
+						readQuantizedBounds( nodesU16, p32 * 2 + side * 6, frame, 0, decoded, 0 );
+						const c32 = child * UINT32_PER_NODE;
+						for ( let c = 0; c < 3; c ++ ) {
+
+							expect( decoded[ c ] ).toBeLessThanOrEqual( root[ c32 + c ] );
+							expect( decoded[ c + 3 ] ).toBeGreaterThanOrEqual( root[ c32 + c + 3 ] );
+
+						}
+
+					} );
+
+				}
+
+			} );
+
+			// the shader decodes the TLAS with these uniforms
+			expect( [ ...data._tlasFrameOrigin.value.toArray(), ...data._tlasFrameStep.value.toArray() ] ).toEqual( [ ...data._tlasFrame ] );
+
+			return leaves.map( leaf => leaf.frame.join() );
+
+		};
+
+		const leafFrames = checkTLAS();
+		expect( new Set( leafFrames ).size ).toBe( leafFrames.length );
+
+		// a refit re-quantizes the TLAS against its new frame and leaves the leaf frames as they were
+		const frameBefore = [ ...data._tlasFrame ];
+		meshes[ 0 ].position.x -= 500;
+		meshes[ 0 ].updateMatrixWorld();
+		data.updateTransforms();
+		expect( [ ...data._tlasFrame ] ).not.toEqual( frameBefore );
+		expect( checkTLAS() ).toEqual( leafFrames );
 
 	} );
 

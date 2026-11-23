@@ -27,7 +27,7 @@ export function getRaycastFirstHitFn( bvhData ) {
 		resultStruct: rayIntersectionResultStruct,
 
 		boundsOrderFn: wgslTagFn/* wgsl */`
-			fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct } ) -> bool {
+			fn getBoundsOrder( ray: ${ rayStruct }, splitAxis: u32, node: ${ bvhNodeStruct }, frameOrigin: vec3f, frameStep: vec3f ) -> bool {
 
 				return ray.direction[ splitAxis ] >= 0.0;
 
