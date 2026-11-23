@@ -818,6 +818,9 @@ export class BVHComputeData {
 	 */
 	dispose() {
 
+		// a pending "update" must not write new buffers once disposed
+		this._updateId ++;
+
 		const { storage } = this;
 		for ( const key in storage ) {
 

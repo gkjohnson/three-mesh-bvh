@@ -404,6 +404,20 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'does not write the buffers when disposed during an update.', async () => {
+
+		const data = new BVHComputeData( new Mesh( new BoxGeometry() ), { attributes: { position: 'vec3f' } } );
+		const promise = data.update();
+		data.dispose();
+		await promise;
+		expect( data.getAllObjectInfo() ).toHaveLength( 0 );
+
+		// and can be updated again afterward
+		await data.update();
+		expect( data.getAllObjectInfo().length ).toBeGreaterThan( 0 );
+
+	} );
+
 	it( 'returns where each object and geometry group was packed from getObjectInfo.', async () => {
 
 		// a box has one group, and so one packed object, per side
