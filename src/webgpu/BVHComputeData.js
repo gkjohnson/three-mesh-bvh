@@ -64,6 +64,31 @@ function getTransformKey( compositeId, root ) {
 
 }
 
+// returns the Object3D to pack for a constructor input
+function toObject3D( item ) {
+
+	if ( item.isObject3D ) {
+
+		return item;
+
+	} else if ( item.isBufferGeometry ) {
+
+		return new Mesh( item );
+
+	} else if ( item instanceof GeometryBVH ) {
+
+		const mesh = new Mesh( item.geometry );
+		mesh.boundsTree = item;
+		return mesh;
+
+	} else {
+
+		throw new Error( 'BVHComputeData: Objects must be Object3D, BufferGeometry, or GeometryBVH instances.' );
+
+	}
+
+}
+
 /**
  * Where an object is packed in the storage buffers, as returned by `BVHComputeData.getObjectInfo` and
  * `BVHComputeData.getAllObjectInfo`.
@@ -144,25 +169,7 @@ export class BVHComputeData {
 
 		}
 
-		objects = objects.map( item => {
-
-			if ( item.isObject3D ) {
-
-				return item;
-
-			} else if ( item.isBufferGeometry ) {
-
-				return new Mesh( item );
-
-			} else if ( item instanceof GeometryBVH ) {
-
-				const dummy = new Mesh();
-				dummy.geometry.boundsTree = item;
-				return dummy;
-
-			}
-
-		} );
+		objects = objects.map( toObject3D );
 
 		this._bvhCache = new Map();
 
@@ -221,25 +228,7 @@ export class BVHComputeData {
 
 		}
 
-		objects = objects.map( item => {
-
-			if ( item.isObject3D ) {
-
-				return item;
-
-			} else if ( item.isBufferGeometry ) {
-
-				return new Mesh( item );
-
-			} else if ( item instanceof GeometryBVH ) {
-
-				const dummy = new Mesh();
-				dummy.geometry.boundsTree = item;
-				return dummy;
-
-			}
-
-		} );
+		objects = objects.map( toObject3D );
 
 		const result = new Group();
 		result.children = objects;

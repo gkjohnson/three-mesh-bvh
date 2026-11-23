@@ -1,5 +1,7 @@
-import { Matrix4, Object3D, Vector4 } from 'three';
-import { MeshBVH, ObjectBVH, SkinnedMeshBVH } from 'three-mesh-bvh';
+import { BufferGeometry, Matrix4, Object3D, Vector4 } from 'three';
+import { GeometryBVH, MeshBVH, SkinnedMeshBVH } from 'three-mesh-bvh';
+
+type ComputeDataObject = Object3D | BufferGeometry | GeometryBVH;
 
 export interface ObjectInfo {
 	object: Object3D;
@@ -51,7 +53,7 @@ export class BVHComputeData {
 		closestPointToPoint: unknown;
 	};
 
-	constructor( bvh: ObjectBVH | object | object[], options?: {
+	constructor( objects: ComputeDataObject | ComputeDataObject[], options?: {
 		attributes?: Record<string, string>;
 		autogenerateBvh?: boolean;
 	} );
