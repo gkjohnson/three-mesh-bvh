@@ -14,7 +14,7 @@ import {
 	Vector4,
 } from 'three';
 import { appendGeometryData, getAttributeLayout } from '../src/webgpu/utils/packBVHBufferUtils.js';
-import { MeshBVH } from '../src/index.js';
+import { MeshBVH, ObjectBVH } from '../src/index.js';
 
 const attributes = {
 	position: 'vec4f',
@@ -371,6 +371,26 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 		const data = new BVHComputeData( new Mesh( geometry ) );
 		await expect( data.update() ).rejects.toThrow( 'BVH depth overruns the compute stack depth' );
+
+	} );
+
+	it( 'accepts a MeshBVH and packs it without rebuilding it.', async () => {
+
+		const geometry = createGeometry();
+		const bvh = new MeshBVH( geometry );
+		const data = new BVHComputeData( bvh );
+		const getBVH = vi.spyOn( data, 'getBVH' );
+		await data.update();
+
+		expect( data.getAllObjectInfo()[ 0 ].primitiveCount ).toBe( geometry.index.count / 3 );
+		getBVH.mock.results.forEach( result => expect( result.value ).toBe( bvh ) );
+
+	} );
+
+	it( 'throws for an unsupported object.', () => {
+
+		const bvh = new ObjectBVH( new Mesh( new BoxGeometry() ) );
+		expect( () => new BVHComputeData( bvh ) ).toThrow( 'BVHComputeData: Objects must be' );
 
 	} );
 
