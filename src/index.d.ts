@@ -27,7 +27,7 @@ export interface HitPointInfo {
 export type SplitStrategyCallback = (
 	nodeBounds: Float32Array,
 	centroidBounds: Float32Array,
-	primitiveBounds: Float32Array,
+	primitiveBounds: Float32Array & { offset: number },
 	offset: number,
 	count: number
 ) => { axis: number, pos: number };
@@ -224,6 +224,7 @@ export class PointsBVH extends GeometryBVH {
 	shapecast(
 		callbacks: ShapecastCallbacks & {
 			intersectsPoint?: (
+				point: Vector3,
 				pointIndex: number,
 				contained: boolean,
 				depth: number
@@ -238,6 +239,7 @@ export class LineSegmentsBVH extends GeometryBVH {
 	shapecast(
 		callbacks: ShapecastCallbacks & {
 			intersectsLine?: (
+				line: Line3,
 				lineIndex: number,
 				contained: boolean,
 				depth: number
@@ -250,9 +252,14 @@ export class LineSegmentsBVH extends GeometryBVH {
 export class LineLoopBVH extends LineSegmentsBVH {}
 export class LineBVH extends LineLoopBVH {}
 
+export interface ObjectBVHOptions extends BVHOptions {
+	precise?: boolean;
+	includeInstances?: boolean;
+}
+
 export class ObjectBVH extends BVH {
 
-	constructor( root: Array<Object3D> | Object3D, options?: BVHOptions );
+	constructor( root: Array<Object3D> | Object3D, options?: ObjectBVHOptions );
 	getObjectFromId( compositeId: number ): Object3D;
 	getInstanceFromId( compositeId: number ): number;
 	shapecast(
@@ -284,7 +291,7 @@ export class BVHHelper extends Group {
 	opacity: number;
 	depth: number;
 	mesh: Object3D | null;
-	bvh: GeometryBVH | null;
+	bvh: BVH | null;
 	instanceId: number;
 	displayParents: boolean;
 	displayEdges: boolean;
@@ -292,8 +299,8 @@ export class BVHHelper extends Group {
 	edgeMaterial: LineBasicMaterial;
 	meshMaterial: MeshBasicMaterial;
 
-	constructor( meshOrBVH: Object3D | GeometryBVH, depth?: number );
-	constructor( mesh?: Object3D | null, bvh?: GeometryBVH | null, depth?: number );
+	constructor( meshOrBVH: Object3D | MeshBVH, depth?: number );
+	constructor( mesh?: Object3D | null, bvh?: BVH | null, depth?: number );
 
 	update(): void;
 	dispose(): void;
@@ -417,11 +424,11 @@ export class ExtendedTriangle extends Triangle {
 
 	needsUpdate : boolean;
 
-	intersectsTriangle( other : Triangle, target? : Line3 ) : boolean;
+	intersectsTriangle( other : Triangle, target? : Line3 | null, suppressLog? : boolean ) : boolean;
 	intersectsSphere( sphere : Sphere ) : boolean;
 	closestPointToSegment( segment : Line3, target1? : Vector3, target2? : Vector3 ) : number;
 	distanceToPoint( point : Vector3 ) : number;
-	distanceToTriangle( tri : Triangle ) : number;
+	distanceToTriangle( tri : Triangle, target1? : Vector3 | null, target2? : Vector3 | null ) : number;
 
 }
 
@@ -432,8 +439,8 @@ export class OrientedBox {
 	matrix : Matrix4;
 	needsUpdate : boolean;
 
-	constructor( min : Vector3, max : Vector3 );
-	set( min : Vector3, max : Vector3, matrix : Matrix4 ) : OrientedBox;
+	constructor( min? : Vector3, max? : Vector3, matrix? : Matrix4 );
+	set( min : Vector3, max : Vector3, matrix : Matrix4 ) : void;
 	intersectsBox( box : Box3 ) : boolean;
 	intersectsTriangle( tri : Triangle ) : boolean;
 	closestPointToPoint( point : Vector3, target? : Vector3 ) : number;
