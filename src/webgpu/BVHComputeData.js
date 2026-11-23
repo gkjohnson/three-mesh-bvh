@@ -249,7 +249,9 @@ export class BVHComputeData {
 	 * @param {Function|null} [options.prefixFn] - function node that runs before the bvh traversal - useful for resetting or initializing necessary module variables.
 	 * @param {Function|null} [options.boundsOrderFn] - function node controlling left/right child traversal order.
 	 * @param {Function} options.intersectsBoundsFn - function node testing the shape against a BVH node's bounds.
-	 * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range.
+	 * @param {Function} options.intersectRangeFn - function node testing a leaf triangle range, called with the shape,
+	 * the range's triangle offset and count, the "indexOffset" and "attributesOffset" of the geometry being traversed
+	 * to pass to `fns.getTriangleIndices` and `fns.getVertexPosition`, and the result.
 	 * Returns `NOT_INTERSECTED` (0), `INTERSECTED` (1), or `STOP_TRAVERSAL` (3, a hit that ends the entire traversal
 	 * after running `transformResultFn` and `resetShapeFn`). Boolean returns remain supported: false misses and true hits without stopping.
 	 * @param {Function|null} [options.transformShapeFn] - function node that transforms the shape into object local space.

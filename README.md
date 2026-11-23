@@ -117,7 +117,7 @@ geom.computeBoundsTree();
 // Or generate BatchedMesh and associated BVHs
 const batchedMesh = new THREE.BatchedMesh( ... );
 const geomId = batchedMesh.addGeometry( geom );
-const instId = batchedMesh.addGeometry( geom );
+const instId = batchedMesh.addInstance( geomId );
 
 // Generate bounds tree for sub geometry
 batchedMesh.computeBoundsTree( geomId );
@@ -202,7 +202,7 @@ const hit = bvh.raycastFirst( raycaster.ray );
 
 // results are returned in local spac, as well, so they must be transformed into
 // world space if needed.
-hit.point.applyMatrixWorld( mesh.matrixWorld );
+hit.point.applyMatrix4( mesh.matrixWorld );
 
 // spherecasting
 // ensure the sphere is in the local space of the geometry being cast against
@@ -213,7 +213,7 @@ const intersects = bvh.intersectsSphere( sphere );
 ## Serialization and Deserialization
 
 ```js
-const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
+const geometry = new THREE.TorusKnotGeometry( 1, 0.5, 40, 10 );
 const bvh = new MeshBVH( geometry );
 const serialized = MeshBVH.serialize( bvh );
 
@@ -225,14 +225,14 @@ geometry.boundsTree = deserializedBVH;
 
 ## Asynchronous Generation
 
-_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is exported separately via `three-mesh-bvh/worker` subpath. If needed the code from `src/worker` can be copied and modified to accommodate a particular build process._
+_NOTE WebWorker syntax is inconsistently supported across bundlers and sometimes not supported at all so the GenerateMeshBVHWorker class is exported separately via `three-mesh-bvh/worker` subpath. If needed the code from `src/workers` can be copied and modified to accommodate a particular build process._
 
 ```js
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 // ...
 
-const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
+const geometry = new THREE.TorusKnotGeometry( 1, 0.5, 40, 10 );
 const worker = new GenerateMeshBVHWorker();
 worker.generate( geometry ).then( bvh => {
 
@@ -250,7 +250,7 @@ import { ParallelMeshBVHWorker } from 'three-mesh-bvh/worker';
 
 // ...
 
-const geometry = new KnotGeometry( 1, 0.5, 40, 10 );
+const geometry = new THREE.TorusKnotGeometry( 1, 0.5, 40, 10 );
 const worker = new ParallelMeshBVHWorker();
 worker.generate( geometry ).then( bvh => {
 
@@ -274,7 +274,7 @@ The same documentation is also available as markdown in [API.md](./API.md) and, 
 - When querying the MeshBVH directly all shapes and geometry are expected to be specified in the local frame of the BVH. When using three.js' built in raycasting system all results are implicitly transformed into world coordinates.
 - A bounds tree can be generated for either an indexed or non-indexed `BufferGeometry`, but an index will
   be produced and retained as a side effect of the construction unless the "indirect" option is used.
-- The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](#refit) function can be used to adjust the bounds tree.
+- The bounds hierarchy is _not_ dynamic, so geometry that uses morph targets or skinning cannot be used. Though if vertex positions are modified directly the [refit](./API.md#refit-1) function can be used to adjust the bounds tree.
 - If the geometry is changed then a new bounds tree will need to be generated or refit.
 - [InterleavedBufferAttributes](https://threejs.org/docs/#api/en/core/InterleavedBufferAttribute) are not supported with the geometry index buffer attribute.
 - A separate bounds tree root is generated for each [geometry group](https://threejs.org/docs/#api/en/objects/Group), which could result in less than optimal raycast performance on geometry with lots of groups. Triangles excluded from these groups are not included in the BVH.
