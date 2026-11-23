@@ -156,12 +156,17 @@ export class BVHComputeData {
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
 	 * already have `geometry.boundsTree` set, using the `SAH` split strategy for faster GPU traversal.
+	 * @param {number} [options.clusterPrimitiveLimit=64]
+	 * Each object's BVH is split into clusters of fewer than this many primitives for the top level BVH.
+	 * Smaller clusters let the top level BVH separate overlapping objects better at the cost of build
+	 * time and memory. Only applied when there are three or more meshes.
 	 */
 	constructor( objects, options = {} ) {
 
 		const {
 			attributes = { position: 'vec4f' },
 			autogenerateBvh = true,
+			clusterPrimitiveLimit = 64,
 		} = options;
 
 		// convert the arguments to a list of objects
@@ -176,6 +181,7 @@ export class BVHComputeData {
 		this._bvhCache = new Map();
 
 		this.autogenerateBvh = autogenerateBvh;
+		this.clusterPrimitiveLimit = clusterPrimitiveLimit;
 		this.attributes = attributes;
 		this.objects = objects;
 		this.bvh = null;
@@ -339,7 +345,7 @@ export class BVHComputeData {
 		this.bvh = new ClusteredBVH( root, {
 			strategy: SAH,
 			getBVH: ( object, instance ) => this._getBVHSync( object, instance, _range ),
-			primitiveLimit: total < 3 ? Infinity : 64,
+			primitiveLimit: total < 3 ? Infinity : this.clusterPrimitiveLimit,
 		} );
 
 		// free any buffers from a previous update before swapping in the new ones

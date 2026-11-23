@@ -70,7 +70,8 @@ export class ClusteredBVH extends BVH {
 	init( options ) {
 
 		let total = 0;
-		const { objects, bvhMap, matrixWorld, includeInstances } = this;
+		let oversizedLeaves = 0;
+		const { objects, bvhMap, matrixWorld, includeInstances, primitiveLimit } = this;
 
 		// pre-cache the inverse matrix for use in the "getPrimitiveBoundingBox" function
 		_inverseMatrix.copy( matrixWorld ).invert();
@@ -88,7 +89,17 @@ export class ClusteredBVH extends BVH {
 				if ( bvh ) {
 
 					// "instance" objects are referenced whole, everything else is subdivided into clusters
-					total += this.shouldCluster( object ) ? bvh._roots.length : this._countRelevantLeafNodes( bvh );
+					if ( this.shouldCluster( object ) ) {
+
+						total += bvh._roots.length;
+
+					} else {
+
+						const counts = this._countRelevantLeafNodes( bvh );
+						total += counts.total;
+						oversizedLeaves += counts.oversized;
+
+					}
 
 				}
 
@@ -107,6 +118,12 @@ export class ClusteredBVH extends BVH {
 			bvhMap.set( object, bvhList );
 
 		} );
+
+		if ( oversizedLeaves > 0 ) {
+
+			console.warn( `ClusteredBVH: ${ oversizedLeaves } leaf nodes have more primitives than the cluster primitive limit of ${ primitiveLimit } allows and cannot be subdivided further.` );
+
+		}
 
 		this.primitiveBuffer = new Uint32Array( total * 2 );
 		this._fillPrimitiveBuffer( this.primitiveBuffer );
@@ -266,19 +283,20 @@ export class ClusteredBVH extends BVH {
 
 		const { primitiveLimit } = this;
 		let total = 0;
+		let oversized = 0;
 		_traverseClusters( bvh, primitiveLimit, ( r, node32Index, count, isLeaf ) => {
 
 			total ++;
 
 			if ( isLeaf && count >= primitiveLimit ) {
 
-				console.warn( `ClusteredBVH: a leaf node with ${ count } primitives exceeds the cluster primitive limit of ${ primitiveLimit } and cannot be subdivided further.` );
+				oversized ++;
 
 			}
 
 		} );
 
-		return total;
+		return { total, oversized };
 
 	}
 

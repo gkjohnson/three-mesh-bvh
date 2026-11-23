@@ -30,6 +30,7 @@ export interface AttributeLayout {
 export class BVHComputeData {
 
 	autogenerateBvh: boolean;
+	clusterPrimitiveLimit: number;
 	attributes: Record<string, string>;
 	attributeLayout: AttributeLayout | null;
 	objects: Object3D[];
@@ -58,6 +59,7 @@ export class BVHComputeData {
 	constructor( objects: ComputeDataObject | ComputeDataObject[], options?: {
 		attributes?: Record<string, string>;
 		autogenerateBvh?: boolean;
+		clusterPrimitiveLimit?: number;
 	} );
 
 	update(): Promise<void>;

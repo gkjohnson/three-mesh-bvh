@@ -455,6 +455,37 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'splits objects into clusters below "clusterPrimitiveLimit", warning once for leaves it cannot split.', async () => {
+
+		// the limit is only applied with three or more meshes
+		const createData = options => new BVHComputeData( [ 0, 1, 2 ].map( () => new Mesh( createGeometry() ) ), options );
+
+		const warn = vi.spyOn( console, 'warn' ).mockImplementation( () => {} );
+		try {
+
+			const coarse = createData();
+			await coarse.update();
+			expect( coarse.bvh.primitiveLimit ).toBe( 64 );
+
+			const fine = createData( { clusterPrimitiveLimit: 16 } );
+			await fine.update();
+			expect( fine.bvh.primitiveLimit ).toBe( 16 );
+			expect( fine.bvh.primitiveBuffer.length ).toBeGreaterThan( coarse.bvh.primitiveBuffer.length );
+			expect( warn ).not.toHaveBeenCalled();
+
+			// most geometry BVH leaves hold more than 2 primitives and can't be split down to 2
+			await createData( { clusterPrimitiveLimit: 2 } ).update();
+			expect( warn ).toHaveBeenCalledTimes( 1 );
+			expect( warn.mock.calls[ 0 ][ 0 ] ).toContain( 'ClusteredBVH:' );
+
+		} finally {
+
+			warn.mockRestore();
+
+		}
+
+	} );
+
 	it( 'writes the buffers only for the latest of overlapping update calls.', async () => {
 
 		// "update" disposes the previous buffers right before writing new ones
