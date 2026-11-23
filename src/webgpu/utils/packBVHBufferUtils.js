@@ -75,7 +75,7 @@ function dereferenceIndex( indexAttr, indirectBuffer ) {
  *
  * @private
  * @param {Object} bvh
- * @param {Array|null} primitiveInfo - Per-primitive `{ transformSlot, nodeOffset }` used to encode TLAS
+ * @param {Array|null} primitiveInfo - Per-primitive `{ objectIndex, nodeOffset }` used to encode TLAS
  * leaves. Pass null to write only the node bounds and leave the existing node data in place, as when
  * refreshing a refit tree whose topology is unchanged.
  * @param {number} nodeWriteOffset
@@ -115,7 +115,7 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 			if ( isLeaf ) {
 
-				// TLAS leaf - stores the placement / transform slot (low 24 bits, tagged with
+				// TLAS leaf - stores the object index (low 24 bits, tagged with
 				// 0xFF in the top byte) and the cluster subtree's absolute node offset, which the
 				// GPU enters directly as the BLAS entry node.
 				const offset = rootBuffer32[ r32 + 6 ];
@@ -123,15 +123,15 @@ export function appendBVHData( bvh, primitiveInfo, nodeWriteOffset, target ) {
 
 				// an empty bvh produces a single primitiveless leaf with no primitiveInfo entry; its
 				// degenerate bounds keep the GPU from traversing into it, so write an empty placeholder.
-				const { transformSlot, nodeOffset } = count === 0 ? { transformSlot: 0, nodeOffset: 0 } : primitiveInfo[ offset ];
-				if ( transformSlot > 0x00ffffff ) {
+				const { objectIndex, nodeOffset } = count === 0 ? { objectIndex: 0, nodeOffset: 0 } : primitiveInfo[ offset ];
+				if ( objectIndex > 0x00ffffff ) {
 
-					throw new Error( `packBVHBufferUtils: transform slot ${ transformSlot } exceeds the 24-bit TLAS leaf limit.` );
+					throw new Error( `packBVHBufferUtils: object index ${ objectIndex } exceeds the 24-bit TLAS leaf limit.` );
 
 				}
 
 				targetU32[ n32 + 12 ] = nodeOffset;
-				targetU32[ n32 + 13 ] = 0xFF000000 | ( transformSlot & 0x00ffffff );
+				targetU32[ n32 + 13 ] = 0xFF000000 | ( objectIndex & 0x00ffffff );
 
 			} else {
 

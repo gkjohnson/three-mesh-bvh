@@ -76,8 +76,8 @@ export class BVHComputeData {
 			object: Object3D;
 			instanceId: number;
 			compositeId: number;
-			root: number;
-			slot: number;
+			group: number;
+			objectIndex: number;
 		},
 		premultiplyMatrix: Matrix4,
 		writeOffset: number,
