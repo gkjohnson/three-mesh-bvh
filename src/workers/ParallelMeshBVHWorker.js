@@ -65,13 +65,6 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 	}
 
-	generate( geometry, options ) {
-
-		// the buffers are never transferred
-		return super.generate( geometry, { ...options, transferBuffers: false } );
-
-	}
-
 	runTask( worker, geometry, options = {} ) {
 
 		return new Promise( ( resolve, reject ) => {

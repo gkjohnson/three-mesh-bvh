@@ -82,8 +82,15 @@ export class WorkerBase {
 
 	runTask() {}
 
-	// Builds the range as its own geometry so only its data is sent to the worker and written back
+	// Builds the range as its own geometry, with views of the original's buffers, so only its data is
+	// copied to the worker and written back
 	async runRangeTask( worker, geometry, options ) {
+
+		if ( options.transferBuffers ) {
+
+			console.warn( `${ this.name }: A range cannot be transferred. Copying the buffers instead.` );
+
+		}
 
 		if ( ! options.indirect ) {
 
@@ -99,24 +106,18 @@ export class WorkerBase {
 		const rangeGeometry = new BufferGeometry();
 		rangeGeometry.groups = groups.map( group => ( { ...group, start: group.start - start } ) );
 
-		// copy the triangles, with indices relative to the first vertex they use
+		// the vertices spanned by the triangles
 		let vertexStart = start;
 		let vertexEnd = start + count * 3;
 		if ( index ) {
 
-			const indices = index.array.slice( start, start + count * 3 );
+			const indices = index.array.subarray( vertexStart, vertexEnd );
 			vertexStart = indices.reduce( ( min, v ) => Math.min( min, v ) );
 			vertexEnd = indices.reduce( ( max, v ) => Math.max( max, v ) ) + 1;
-			indices.forEach( ( v, i ) => {
-
-				indices[ i ] = v - vertexStart;
-
-			} );
 			rangeGeometry.setIndex( new BufferAttribute( indices, 1 ) );
 
 		}
 
-		// the positions are a view since "runTask" makes the copy for the worker
 		if ( position.isInterleavedBufferAttribute ) {
 
 			const { array, stride } = position.data;
@@ -130,19 +131,18 @@ export class WorkerBase {
 
 		}
 
-		const bvh = await this.runTask( worker, rangeGeometry, { ...options, range: null } );
+		const bvh = await this.runTask( worker, rangeGeometry, {
+			...options,
+			range: null,
+			transferBuffers: false,
+
+			// the worker offsets its copy of the index by this
+			vertexOffset: vertexStart,
+		} );
 
 		// move the result to the original geometry
 		bvh.geometry = geometry;
-		if ( ! bvh.indirect ) {
-
-			rangeGeometry.index.array.forEach( ( v, i ) => {
-
-				index.array[ start + i ] = v + vertexStart;
-
-			} );
-
-		} else if ( bvh._indirectBuffer instanceof Uint16Array && offset + count > 2 ** 16 ) {
+		if ( bvh._indirectBuffer instanceof Uint16Array && offset + count > 2 ** 16 ) {
 
 			// the offset indices don't fit in 16 bits
 			const { buffer, length } = bvh._indirectBuffer;
@@ -174,14 +174,7 @@ export class WorkerBase {
 		this.running = true;
 
 		const promise = this._workerPromise.then(
-			worker => {
-
-				// transferred buffers are sent whole
-				const copied = ! options.transferBuffers || geometry.attributes.position.isInterleavedBufferAttribute;
-				const isRange = copied && options.range?.count > 0;
-				return isRange ? this.runRangeTask( worker, geometry, options ) : this.runTask( worker, geometry, options );
-
-			},
+			worker => options.range?.count > 0 ? this.runRangeTask( worker, geometry, options ) : this.runTask( worker, geometry, options ),
 			error => {
 
 				throw new Error( `${ this.name }: Could not create Web Worker with error "${ error.message }"` );

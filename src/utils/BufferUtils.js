@@ -40,6 +40,17 @@ export function convertToBufferType( array, BufferConstructor ) {
 
 }
 
+// Adds a value to every item in the array
+export function offsetArray( array, offset ) {
+
+	for ( let i = 0, l = array.length; i < l; i ++ ) {
+
+		array[ i ] += offset;
+
+	}
+
+}
+
 // Returns a tightly packed copy of the attribute's array, pulling the components out of
 // the interleaved buffer if needed.
 export function copyAttributeArray( attribute, BufferConstructor = ArrayBuffer ) {

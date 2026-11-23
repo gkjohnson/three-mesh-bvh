@@ -93,7 +93,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	 *   `ArrayBuffers` are transferred to the worker rather than copied, avoiding the copy but
 	 *   leaving the geometry unusable until the build finishes. Any other attribute stored in the
 	 *   same `ArrayBuffer` is detached as well. Ignored with a warning for an interleaved position
-	 *   attribute.
+	 *   attribute or a `range`.
 	 * @returns {Promise<MeshBVH>}
 	 */
 

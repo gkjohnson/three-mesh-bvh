@@ -3,6 +3,7 @@ import {
 	BufferAttribute,
 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
+import { offsetArray } from '../utils/BufferUtils.js';
 
 self.onmessage = ( { data } ) => {
 
@@ -31,12 +32,14 @@ self.onmessage = ( { data } ) => {
 	}
 
 	const { index, position, normalized, options } = data;
+	const { vertexOffset = 0 } = options;
 	try {
 
 		const geometry = new BufferGeometry();
 		geometry.setAttribute( 'position', new BufferAttribute( position, 3, normalized ) );
 		if ( index ) {
 
+			offsetArray( index, - vertexOffset );
 			geometry.setIndex( new BufferAttribute( index, 1, false ) );
 
 		}
@@ -64,6 +67,7 @@ self.onmessage = ( { data } ) => {
 		let toTransfer = [ position.buffer, ...serialized.roots ];
 		if ( serialized.index ) {
 
+			offsetArray( serialized.index, vertexOffset );
 			toTransfer.push( serialized.index.buffer );
 
 		}

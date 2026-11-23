@@ -245,11 +245,12 @@ describe( 'Workers', () => {
 		it( `should generate a matching bvh for a range with { ${ desc } }`, async () => {
 
 			const { workerBvh, bvh, error, positionMatches, keptArrays } = await generate( options );
-			const transferred = options.transferBuffers && ! options.parallel && ! options.interleaved;
 			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 			expect( positionMatches ).toBe( true );
-			expect( keptArrays ).toBe( ! transferred );
+
+			// a range is never transferred
+			expect( keptArrays ).toBe( true );
 
 		} );
 

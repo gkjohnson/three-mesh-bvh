@@ -5,6 +5,7 @@ import { buildTree } from '../core/build/buildTree.js';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { getRootPrimitiveRanges } from '../core/build/geometryUtils.js';
 import { generateIndirectBuffer } from '../core/GeometryBVH.js';
+import { offsetArray } from '../utils/BufferUtils.js';
 
 let isRunning = false;
 // a new worker's clock starts near 0, so start at -Infinity to post the first update
@@ -60,6 +61,13 @@ async function handleMessage( data ) {
 			normalized,
 			options,
 		} = data;
+
+		const { vertexOffset = 0 } = options;
+		if ( index ) {
+
+			offsetArray( index, - vertexOffset );
+
+		}
 
 		// initialize the number of workers balanced for a binary tree
 		workerPool.setWorkerCount( MathUtils.floorPowerOfTwo( maxWorkerCount ) );
@@ -201,6 +209,12 @@ async function handleMessage( data ) {
 			mergeSubtrees( topTree, leaves, buffer );
 
 			packedRoots.push( buffer );
+
+		}
+
+		if ( index ) {
+
+			offsetArray( index, vertexOffset );
 
 		}
 
