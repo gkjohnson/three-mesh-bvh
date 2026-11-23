@@ -1,5 +1,5 @@
-import { Mesh, BufferGeometry, BufferAttribute, SphereGeometry } from 'three';
-import { MeshBVH, BVHHelper } from 'three-mesh-bvh';
+import { BatchedMesh, Mesh, MeshBasicMaterial, BufferGeometry, BufferAttribute, REVISION, SphereGeometry } from 'three';
+import { MeshBVH, BVHHelper, computeBatchedBoundsTree } from 'three-mesh-bvh';
 
 describe( 'BVHHelper', () => {
 
@@ -29,6 +29,19 @@ describe( 'BVHHelper', () => {
 		const position = helper.children[ 0 ].geometry.attributes.position;
 		expect( position.count ).toBe( 8 );
 		expect( position.array.every( v => Number.isFinite( v ) ) ).toBe( true );
+
+	} );
+
+	it.skipIf( parseInt( REVISION ) < 166 )( 'should generate bounds for an instance of a BatchedMesh.', () => {
+
+		const geometry = new SphereGeometry();
+		const mesh = new BatchedMesh( 1, geometry.attributes.position.count, geometry.index.count, new MeshBasicMaterial() );
+		mesh.addInstance( mesh.addGeometry( geometry ) );
+		computeBatchedBoundsTree.call( mesh );
+
+		const helper = new BVHHelper( mesh, null, 1 );
+		expect( helper.children ).toHaveLength( 1 );
+		expect( helper.children[ 0 ].geometry.attributes.position.count ).toBe( 8 );
 
 	} );
 

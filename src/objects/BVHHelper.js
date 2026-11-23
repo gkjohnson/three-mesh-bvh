@@ -428,10 +428,10 @@ export class BVHHelper extends Group {
 
 			// get the bvh from a batchedMesh if not provided
 			// TODO: we should have an official way to get the geometry index cleanly
-			const drawInfo = mesh._drawInfo[ instanceId ];
-			if ( drawInfo ) {
+			const instanceInfo = ( mesh._drawInfo || mesh._instanceInfo )[ instanceId ];
+			if ( instanceInfo ) {
 
-				bvh = mesh.boundsTrees[ drawInfo.geometryIndex ] || bvh;
+				bvh = mesh.boundsTrees[ instanceInfo.geometryIndex ] || bvh;
 
 			}
 
