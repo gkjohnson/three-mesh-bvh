@@ -128,7 +128,7 @@ export class BVHComputeData {
 	 * and `'4x16float'` stores four half floats in two words (colors) and unpacks to a `vec4f`.
 	 * @param {boolean} [options.autogenerateBvh=true]
 	 * When true, a {@link MeshBVH} is automatically built for any object that does not
-	 * already have `geometry.boundsTree` set.
+	 * already have `geometry.boundsTree` set, using the `SAH` split strategy for faster GPU traversal.
 	 */
 	constructor( objects, options = {} ) {
 
@@ -690,7 +690,7 @@ export class BVHComputeData {
 			if ( bvh === null && autogenerateBvh ) {
 
 				const id = object.uuid;
-				bvh = _bvhCache.get( id ) || new SkinnedMeshBVH( object );
+				bvh = _bvhCache.get( id ) || new SkinnedMeshBVH( object, { strategy: SAH } );
 				_bvhCache.set( id, bvh );
 
 			}
@@ -705,7 +705,7 @@ export class BVHComputeData {
 			if ( bvh === null && autogenerateBvh ) {
 
 				const id = `batched_${ object.geometry.uuid }_${ range.start }_${ range.count }`;
-				bvh = _bvhCache.get( id ) || new MeshBVH( object.geometry, { range: { ...rangeTarget } } );
+				bvh = _bvhCache.get( id ) || new MeshBVH( object.geometry, { strategy: SAH, range: { ...rangeTarget } } );
 				_bvhCache.set( id, bvh );
 
 			}
@@ -720,7 +720,7 @@ export class BVHComputeData {
 			if ( bvh === null && autogenerateBvh ) {
 
 				const id = geometry.uuid;
-				bvh = _bvhCache.get( id ) || new MeshBVH( geometry );
+				bvh = _bvhCache.get( id ) || new MeshBVH( geometry, { strategy: SAH } );
 				_bvhCache.set( id, bvh );
 
 			}
