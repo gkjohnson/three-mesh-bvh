@@ -2,8 +2,7 @@
 import { Box3 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { getBuildData, shiftBuildTriangles, writeBuildIndex } from './utils/buildData.js';
-import { isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
 
@@ -66,6 +65,13 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 	}
 
+	generate( geometry, options ) {
+
+		// the buffers are never transferred
+		return super.generate( geometry, { ...options, transferBuffers: false } );
+
+	}
+
 	runTask( worker, geometry, options = {} ) {
 
 		return new Promise( ( resolve, reject ) => {
@@ -77,10 +83,6 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 			}
 
 			const indexAttribute = geometry.index;
-
-			// the position is only read so it's shared if possible, while the index is always copied
-			// since non-indirect builds reorder it
-			const buildData = getBuildData( geometry, options.range, SharedArrayBuffer );
 
 			worker.onerror = e => {
 
@@ -106,12 +108,10 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 						...options,
 					};
 
-					shiftBuildTriangles( bvh, buildData );
-
 					if ( indexAttribute && ! bvh.indirect ) {
 
 						// the build reordered a copy of the index so write it back
-						writeBuildIndex( indexAttribute, serialized.index, buildData );
+						indexAttribute.array.set( serialized.index );
 
 					}
 
@@ -138,21 +138,26 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			};
 
+			// the position is only read so it's shared if possible, while the index is always copied
+			// since non-indirect builds reorder it
+			const positionAttribute = geometry.attributes.position;
+			const position = positionAttribute.isInterleavedBufferAttribute ?
+				copyAttributeArray( positionAttribute, SharedArrayBuffer ) :
+				convertToBufferType( positionAttribute.array, SharedArrayBuffer );
+			const index = indexAttribute ? copyAttributeArray( indexAttribute, SharedArrayBuffer ) : null;
+
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
 				maxWorkerCount: this.maxWorkerCount,
-				index: buildData.index,
-				position: buildData.position,
-				normalized: geometry.attributes.position.normalized,
+				index,
+				position,
+				normalized: positionAttribute.normalized,
 				options: {
 					...options,
-
-					// the build data only includes the range
-					range: null,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
-					groups: [ ...buildData.groups ],
+					groups: [ ...geometry.groups ],
 				},
 
 			} );

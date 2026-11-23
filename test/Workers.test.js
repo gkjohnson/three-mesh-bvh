@@ -201,10 +201,6 @@ describe( 'Workers', () => {
 			const { TorusGeometry } = window.THREE;
 			const worker = new window[ name ]();
 
-			// nothing validates the groups, so one outside the geometry throws inside the worker
-			const geometry = new TorusGeometry( 5, 5, 50, 100 );
-			geometry.addGroup( 1e6, 30, 0 );
-
 			let unhandled = 0;
 			const onUnhandled = () => unhandled ++;
 			window.addEventListener( 'unhandledrejection', onUnhandled );
@@ -212,7 +208,8 @@ describe( 'Workers', () => {
 			let error = null;
 			try {
 
-				await worker.generate( geometry );
+				// nothing validates the range, so a negative count throws inside the worker
+				await worker.generate( new TorusGeometry( 5, 5, 50, 100 ), { range: { start: 0, count: - 30 } } );
 
 			} catch ( e ) {
 
@@ -227,7 +224,7 @@ describe( 'Workers', () => {
 
 		}, name );
 
-		expect( error ).toMatch( /TypeError/ );
+		expect( error ).toMatch( /RangeError/ );
 		expect( built ).toBe( true );
 		expect( unhandled ).toBe( 0 );
 
@@ -241,15 +238,18 @@ describe( 'Workers', () => {
 		groupSize: [ 9000 ],
 		nonIndexed: [ false, true ],
 		interleaved: [ false, true ],
+		transferBuffers: [ false, true ],
 		range: [ { start: 3000, count: 12000 } ],
 	}, ( desc, options ) => {
 
 		it( `should generate a matching bvh for a range with { ${ desc } }`, async () => {
 
-			const { workerBvh, bvh, error, positionMatches } = await generate( options );
+			const { workerBvh, bvh, error, positionMatches, keptArrays } = await generate( options );
+			const transferred = options.transferBuffers && ! options.parallel && ! options.interleaved;
 			expect( error ).toBe( null );
 			expect( workerBvh ).toEqual( bvh );
 			expect( positionMatches ).toBe( true );
+			expect( keptArrays ).toBe( ! transferred );
 
 		} );
 
