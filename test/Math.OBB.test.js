@@ -219,4 +219,77 @@ describe( 'OBB Distance', () => {
 
 	} );
 
+	describe( 'intersecting boxes', () => {
+
+		const aabb = new Box3(
+			new Vector3( 0, 0, 0 ),
+			new Vector3( 2, 2, 2 ),
+		);
+
+		// Long thin boxes whose closest point to the center of the AABB is outside of the AABB,
+		// so clamping that point into the AABB gives a different point. `elements` is the matrix
+		// in column-major order.
+		const cases = [
+			{
+				halfLength: 1.297891540338603,
+				elements: [ - 0.2408, - 0.3106, - 0.9195, 0, 0.1718, 0.9188, - 0.3554, 0, 0.9552, - 0.2436, - 0.1679, 0, 2.6699, 0.353, 1.1805, 1 ],
+			},
+			{
+				halfLength: 0.9700240171976482,
+				elements: [ 0.9091, - 0.2925, 0.2965, 0, 0.4165, 0.6318, - 0.6537, 0, 0.0039, 0.7178, 0.6963, 0, 2.3746, 0.7247, - 0.2438, 1 ],
+			},
+			{
+				halfLength: 0.8014836062417139,
+				elements: [ - 0.9198, 0.3774, - 0.1077, 0, - 0.326, - 0.8875, - 0.3255, 0, - 0.2185, - 0.2643, 0.9394, 0, 0.3406, - 0.3798, 0.6031, 1 ],
+			},
+		];
+
+		cases.forEach( ( { halfLength, elements }, i ) => {
+
+			it( `should return one point that is in both boxes (${ i })`, () => {
+
+				const box = new OrientedBox();
+				box.min.set( - halfLength, - halfLength * 0.3, - halfLength * 0.3 );
+				box.max.set( halfLength, halfLength * 0.3, halfLength * 0.3 );
+				box.matrix.fromArray( elements );
+				box.needsUpdate = true;
+
+				const target1 = new Vector3();
+				const target2 = new Vector3();
+				expect( box.distanceToBox( aabb, 0, target1, target2 ) ).toBe( 0 );
+
+				expect( target2.distanceTo( target1 ) ).toBeCloseTo( 0, 5 );
+				expect( box.distanceToPoint( target1 ) ).toBeCloseTo( 0, 3 );
+				expect( aabb.distanceToPoint( target1 ) ).toBeCloseTo( 0, 5 );
+
+			} );
+
+		} );
+
+		it( 'should still set both targets when the boxes are close but have no point in common', () => {
+
+			// "intersectsBox" does not test the cross products of edges for separation, so this pair
+			// reports an intersection although no point is in both boxes
+			const box = new OrientedBox();
+			box.min.setScalar( - 1 );
+			box.max.setScalar( 1 );
+			box.matrix.set(
+				0.5644121856571941, - 0.5573632585911242, - 0.6089212450344894, 1.4011524042995989,
+				- 0.7934259307774998, - 0.16268110373783445, - 0.586523785414111, 2.4665965963772534,
+				0.227846828047983, 0.8141750772771932, - 0.5340456595546389, 3.4375762589279804,
+				0, 0, 0, 1,
+			);
+			box.needsUpdate = true;
+			expect( box.intersectsBox( aabb ) ).toBe( true );
+
+			const target1 = new Vector3( NaN, NaN, NaN );
+			const target2 = new Vector3( NaN, NaN, NaN );
+			expect( box.distanceToBox( aabb, 0, target1, target2 ) ).toBe( 0 );
+			expect( target1.toArray().every( Number.isFinite ) ).toBe( true );
+			expect( target2.toArray().every( Number.isFinite ) ).toBe( true );
+
+		} );
+
+	} );
+
 } );

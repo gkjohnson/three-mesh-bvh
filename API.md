@@ -1334,7 +1334,8 @@ distanceToBox(
 
 Returns the distance to the provided box. `threshold` is an optional distance to return early
 if the distance is found to be within it. `target1` and `target2` are set to the points on the
-surface of this box and the `box` argument respectively.
+surface of this box and the `box` argument respectively. When the boxes intersect they are both
+set to the same point, which is in both boxes.
 
 > [!NOTE]
 > This function is designed for speed during BVH traversal rather than precision and may return
