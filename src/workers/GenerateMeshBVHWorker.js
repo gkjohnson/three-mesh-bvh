@@ -2,7 +2,7 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { convertToBufferType, copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
+import { copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
 import { ensureIndex, getFullPrimitiveRange } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/Constants.js';
 
@@ -97,6 +97,8 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	 *   same `ArrayBuffer` is detached as well. Ignored with a warning for an interleaved position
 	 *   attribute or a `range`.
 	 * @returns {Promise<MeshBVH>}
+	 * @note With a `range`, only its triangles and the vertices they span are copied, so separate
+	 * ranges of one geometry can be built at the same time. The ranges must not overlap.
 	 */
 
 	/**
@@ -164,9 +166,10 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 						// the shifted triangle indices may not fit in 16 bits
 						const indirectBuffer = bvh._indirectBuffer;
-						if ( indirectBuffer && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
+						if ( indirectBuffer && indirectBuffer.BYTES_PER_ELEMENT === 2 && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
 
-							bvh._indirectBuffer = convertToBufferType( Uint32Array.from( indirectBuffer ), indirectBuffer.buffer.constructor );
+							bvh._indirectBuffer = new Uint32Array( new indirectBuffer.buffer.constructor( 4 * indirectBuffer.length ) );
+							bvh._indirectBuffer.set( indirectBuffer );
 
 						}
 
