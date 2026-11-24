@@ -4,6 +4,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 import { convertToBufferType, copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
 import { ensureIndex, getFullPrimitiveRange } from '../core/build/geometryUtils.js';
+import { DEFAULT_OPTIONS } from '../core/Constants.js';
 
 let _fallbackUrl = null;
 
@@ -109,11 +110,17 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 	runTask( worker, geometry, options = {} ) {
 
+		options = {
+			...DEFAULT_OPTIONS,
+			transferBuffers: false,
+			...options,
+		};
+
 		return new Promise( ( resolve, reject ) => {
 
-			const hasRange = options.range?.count > 0;
-			let { transferBuffers = false } = options;
-			if ( transferBuffers && ( hasRange || geometry.attributes.position.isInterleavedBufferAttribute ) ) {
+			const { range } = options;
+			let { transferBuffers } = options;
+			if ( transferBuffers && ( range || geometry.attributes.position.isInterleavedBufferAttribute ) ) {
 
 				console.warn( 'GenerateMeshBVHWorker: An interleaved position attribute or a range cannot be transferred. Copying the buffers instead.' );
 				transferBuffers = false;
@@ -121,7 +128,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 			}
 
 			// the worker can't create the index since it only gets the range
-			if ( hasRange && ! options.indirect ) {
+			if ( range && ! options.indirect ) {
 
 				ensureIndex( geometry, options );
 
@@ -152,17 +159,12 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					const { serialized, position } = data;
 					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
-					const boundsOptions = Object.assign( {
 
-						setBoundingBox: true,
-
-					}, options );
-
-					if ( hasRange ) {
+					if ( range ) {
 
 						// the shifted triangle indices may not fit in 16 bits
 						const indirectBuffer = bvh._indirectBuffer;
-						if ( indirectBuffer && ( indexStart + options.range.count ) / 3 > 2 ** 16 ) {
+						if ( indirectBuffer && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
 
 							bvh._indirectBuffer = convertToBufferType( Uint32Array.from( indirectBuffer ), indirectBuffer.buffer.constructor );
 
@@ -201,7 +203,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					}
 
-					if ( boundsOptions.setBoundingBox ) {
+					if ( options.setBoundingBox ) {
 
 						geometry.boundingBox = bvh.getBoundingBox( new Box3() );
 
@@ -230,16 +232,16 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				index = geometry.index ? geometry.index.array : null;
 				position = geometry.attributes.position.array;
 
-			} else if ( hasRange ) {
+			} else if ( range ) {
 
 				// copy the triangles in the range and the vertices they span
-				const { offset, count } = getFullPrimitiveRange( geometry, options.range, 3 );
+				const { offset, count } = getFullPrimitiveRange( geometry, range, 3 );
 				indexStart = offset * 3;
 				vertexStart = indexStart;
 				let vertexEnd = indexStart + count * 3;
 
 				index = null;
-				if ( indexAttribute ) {
+				if ( indexAttribute && count > 0 ) {
 
 					index = copyAttributeArray( indexAttribute, ArrayBuffer, indexStart, count * 3 );
 					vertexStart = index.reduce( ( min, v ) => Math.min( min, v ) );
@@ -271,7 +273,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				normalized: geometry.attributes.position.normalized,
 				options: {
 					...options,
-					range: hasRange ? null : options.range,
+					range: null,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
 					groups: geometry.groups.map( group => ( { ...group, start: group.start - indexStart } ) ),

@@ -208,8 +208,10 @@ describe( 'Workers', () => {
 			let error = null;
 			try {
 
-				// nothing validates the range, so a negative count throws inside the worker
-				await worker.generate( new TorusGeometry( 5, 5, 50, 100 ), { range: { start: 0, count: - 30 } } );
+				// nothing validates the groups, so one outside the geometry throws inside the worker
+				const geometry = new TorusGeometry( 5, 5, 50, 100 );
+				geometry.addGroup( 1e6, 30, 0 );
+				await worker.generate( geometry );
 
 			} catch ( e ) {
 
@@ -224,7 +226,7 @@ describe( 'Workers', () => {
 
 		}, name );
 
-		expect( error ).toMatch( /RangeError/ );
+		expect( error ).toMatch( /TypeError/ );
 		expect( built ).toBe( true );
 		expect( unhandled ).toBe( 0 );
 
