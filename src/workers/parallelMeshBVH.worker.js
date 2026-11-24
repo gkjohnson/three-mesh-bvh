@@ -86,10 +86,9 @@ async function handleMessage( data ) {
 			count: lastRange.offset + lastRange.count - firstRange.offset,
 		};
 
-		// construct the primitive bounds for sorting
-		const primitiveBounds = new Float32Array( 6 * fullRange.count );
+		// construct the primitive bounds for sorting, shared with the workers that fill and sort them
+		const primitiveBounds = new Float32Array( new SharedArrayBuffer( 4 * Math.floor( 6 * fullRange.count ) ) );
 		primitiveBounds.offset = fullRange.offset;
-		proxyBvh.computePrimitiveBounds( fullRange.offset, fullRange.count, primitiveBounds );
 
 		// generate portions of the triangle bounds buffer over multiple frames
 		const boundsPromises = [];
@@ -104,7 +103,7 @@ async function handleMessage( data ) {
 				i,
 				{
 					operation: 'BUILD_TRIANGLE_BOUNDS',
-					offset,
+					offset: fullRange.offset + offset,
 					count,
 					index,
 					position,

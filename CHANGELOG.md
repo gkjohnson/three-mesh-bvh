@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
+- Workers: Builds no longer copy the triangle bounds to every parallel worker, or the index and nodes before returning them.
 - BVHComputeData: "update" now throws when the BVH is deeper than the traversal stack.
 - BVHComputeData: Passing a MeshBVH no longer throws in "update".
 - BVHComputeData: A BatchedMesh with no "boundsTrees" or with deleted instances no longer throws in "update".

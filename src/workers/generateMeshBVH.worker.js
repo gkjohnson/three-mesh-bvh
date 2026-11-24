@@ -60,7 +60,7 @@ self.onmessage = ( { data } ) => {
 		}
 
 		const bvh = new MeshBVH( geometry, options );
-		const serialized = MeshBVH.serialize( bvh, { copyIndexBuffer: false } );
+		const serialized = MeshBVH.serialize( bvh, { cloneBuffers: false } );
 		let toTransfer = [ position.buffer, ...serialized.roots ];
 		if ( serialized.index ) {
 
@@ -68,13 +68,13 @@ self.onmessage = ( { data } ) => {
 
 		}
 
-		toTransfer = toTransfer.filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) );
-
 		if ( bvh._indirectBuffer ) {
 
 			toTransfer.push( serialized.indirectBuffer.buffer );
 
 		}
+
+		toTransfer = toTransfer.filter( v => ( typeof SharedArrayBuffer === 'undefined' ) || ! ( v instanceof SharedArrayBuffer ) );
 
 		self.postMessage( {
 
