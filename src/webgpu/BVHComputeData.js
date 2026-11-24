@@ -651,7 +651,7 @@ export class BVHComputeData {
 	 *
 	 * @param {Object3D} object - The object to generate a BVH for.
 	 * @param {number} instanceId - Instance index (relevant for InstancedMesh / BatchedMesh).
-	 * @param {{start:number,count:number,vertexStart:number,vertexCount:number}} rangeTarget - Populated with the object's geometry range.
+	 * @param {{start:number,count:number,vertexStart:number,vertexCount:number}} rangeTarget - Populated with the object's geometry range. Every field must be written.
 	 * @returns {MeshBVH|SkinnedMeshBVH|null|Promise<MeshBVH|SkinnedMeshBVH|null>}
 	 * @note It may be called multiple times for the same object during an update and must be monotonic
 	 * over that period: the same promise while the BVH builds, then the built BVH.
@@ -665,7 +665,9 @@ export class BVHComputeData {
 
 			// this is a case where a mesh has morph targets and skinned meshes
 			const geometry = object.geometry;
+			rangeTarget.start = 0;
 			rangeTarget.count = geometry.index ? geometry.index.count : geometry.attributes.position.count;
+			rangeTarget.vertexStart = 0;
 			rangeTarget.vertexCount = geometry.attributes.position.count;
 			bvh = object.boundsTree || null;
 
@@ -695,7 +697,9 @@ export class BVHComputeData {
 		} else {
 
 			const geometry = object.geometry;
+			rangeTarget.start = 0;
 			rangeTarget.count = geometry.index ? geometry.index.count : geometry.attributes.position.count;
+			rangeTarget.vertexStart = 0;
 			rangeTarget.vertexCount = geometry.attributes.position.count;
 			bvh = object.geometry.boundsTree || null;
 
