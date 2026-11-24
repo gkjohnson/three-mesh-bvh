@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - GenerateMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
 - ParallelMeshBVHWorker: The geometry's position and index arrays are no longer replaced by a build.
-- GenerateMeshBVHWorker: With the "range" option only the triangles and vertices in the range are copied, and separate ranges of a geometry can be built at the same time.
+- GenerateMeshBVHWorker, ParallelMeshBVHWorker: With the "range" option only the triangles and vertices in the range are copied, and separate ranges of a geometry can be built at the same time.
 - ndcToCameraRay: Takes "( ndc, cameraToWorld, inverseProjection )" instead of "( ndc, inverseModelViewProjection )", keeping the ray precise when the camera is far from the origin.
 - MeshBVH: "bvhcast" passes the triangle indices of the geometry to "intersectsTriangles" when using "indirect", so they must no longer be passed to "resolveTriangleIndex".
 - BVHComputeData: Automatically generated BVHs are built with the "SAH" strategy, for faster GPU traversal.
@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - OrientedBox: "distanceToBox" throwing when targets are passed and the boxes intersect.
 - BVHHelper: Fixed throwing for a BatchedMesh on recent three.js versions.
 - PointsBVH, LineSegmentsBVH: The raycast threshold uses the object's world scale on three.js r188 and up, to match three.js.
+- ParallelMeshBVHWorker: Builds now respect the geometry's draw range, as MeshBVH does.
 - ParallelMeshBVHWorker: A position attribute that is a view into a larger buffer no longer adds the rest of that buffer as extra vertices.
 - BVHComputeData: Attributes other than "vec4f" are no longer read from the wrong offset.
 

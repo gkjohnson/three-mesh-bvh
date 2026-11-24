@@ -4,42 +4,6 @@ export function isSharedArrayBufferSupported() {
 
 }
 
-export function convertToBufferType( array, BufferConstructor ) {
-
-	if ( array === null ) {
-
-		return array;
-
-	} else if ( array.buffer ) {
-
-		const buffer = array.buffer;
-		if ( buffer.constructor === BufferConstructor ) {
-
-			return array;
-
-		}
-
-		const ArrayConstructor = array.constructor;
-		const result = new ArrayConstructor( new BufferConstructor( array.byteLength ) );
-		result.set( array );
-		return result;
-
-	} else {
-
-		if ( array.constructor === BufferConstructor ) {
-
-			return array;
-
-		}
-
-		const result = new BufferConstructor( array.byteLength );
-		new Uint8Array( result ).set( new Uint8Array( array ) );
-		return result;
-
-	}
-
-}
-
 // Adds a value to every item in the array
 export function offsetArray( array, offset ) {
 
@@ -82,5 +46,19 @@ export function copyAttributeArray( attribute, BufferConstructor = ArrayBuffer, 
 	}
 
 	return result;
+
+}
+
+// The same as "copyAttributeArray" except the array is not copied if it already uses the buffer type
+export function convertAttributeArray( attribute, BufferConstructor = ArrayBuffer, start = 0, count = attribute.count ) {
+
+	const { array, itemSize } = attribute;
+	if ( ! attribute.isInterleavedBufferAttribute && array.buffer.constructor === BufferConstructor ) {
+
+		return array.subarray( start * itemSize, ( start + count ) * itemSize );
+
+	}
+
+	return copyAttributeArray( attribute, BufferConstructor, start, count );
 
 }

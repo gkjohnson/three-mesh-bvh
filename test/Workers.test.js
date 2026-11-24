@@ -232,9 +232,30 @@ describe( 'Workers', () => {
 
 	} );
 
+	it.each( [ 'ParallelMeshBVHWorker', 'GenerateMeshBVHWorker' ] )( '%s should build an empty geometry', async name => {
+
+		const roots = await page.evaluate( async name => {
+
+			const { BufferGeometry, BufferAttribute } = window.THREE;
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new BufferAttribute( new Float32Array( 0 ), 3 ) );
+			geometry.setIndex( [] );
+
+			const worker = new window[ name ]();
+			const bvh = await worker.generate( geometry );
+			worker.dispose();
+			return bvh._roots.length;
+
+		}, name );
+
+		expect( roots ).toBe( 1 );
+
+	} );
+
 	// the worker only gets the range's data, so its result is shifted back to the whole geometry
 	runTestMatrix( {
 		strategy: [ CENTER ],
+		parallel: [ false, true ],
 		groups: [ false, true ],
 		groupSize: [ 9000 ],
 		nonIndexed: [ false, true ],
@@ -259,6 +280,7 @@ describe( 'Workers', () => {
 
 	runTestMatrix( {
 		strategy: [ CENTER ],
+		parallel: [ false, true ],
 	}, ( desc, options ) => {
 
 		it( `should build separate ranges of a geometry at once with { ${ desc } }`, async () => {
@@ -266,7 +288,7 @@ describe( 'Workers', () => {
 			const { matches, positionFractions } = await page.evaluate( async options => {
 
 				const { TorusGeometry } = window.THREE;
-				const { MeshBVH, GenerateMeshBVHWorker } = window;
+				const { MeshBVH, ParallelMeshBVHWorker, GenerateMeshBVHWorker } = window;
 
 				// the last range is past 2 ** 16 triangles, so it needs 32 bit indirect indices
 				const geometry = new TorusGeometry( 5, 5, 300, 150 );
@@ -286,7 +308,7 @@ describe( 'Workers', () => {
 
 				};
 
-				const workers = ranges.map( () => new GenerateMeshBVHWorker() );
+				const workers = ranges.map( () => options.parallel ? new ParallelMeshBVHWorker() : new GenerateMeshBVHWorker() );
 				const bvhs = await Promise.all( workers.map( ( worker, i ) => worker.generate( geometry, { ...options, range: ranges[ i ] } ) ) );
 				workers.forEach( worker => worker.dispose() );
 				Worker.prototype.postMessage = postMessage;
