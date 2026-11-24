@@ -2,7 +2,7 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { copyAttributeArray } from '../utils/BufferUtils.js';
+import { convertToBufferType, copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
 import { ensureIndex, getFullPrimitiveRange } from '../core/build/geometryUtils.js';
 
 let _fallbackUrl = null;
@@ -158,6 +158,20 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					}, options );
 
+					if ( hasRange ) {
+
+						// the shifted triangle indices may not fit in 16 bits
+						const indirectBuffer = bvh._indirectBuffer;
+						if ( indirectBuffer && ( indexStart + options.range.count ) / 3 > 2 ** 16 ) {
+
+							bvh._indirectBuffer = convertToBufferType( Uint32Array.from( indirectBuffer ), indirectBuffer.buffer.constructor );
+
+						}
+
+						bvh.shiftTriangleOffsets( indexStart / 3 );
+
+					}
+
 					if ( transferBuffers ) {
 
 						// we need to replace the arrays because they're neutered entirely by the
@@ -180,6 +194,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 						} else if ( ! bvh.indirect ) {
 
 							// the build reordered a copy of the index so write it back
+							offsetArray( serialized.index, vertexStart );
 							indexAttribute.array.set( serialized.index, indexStart );
 
 						}
@@ -229,6 +244,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 					index = copyAttributeArray( indexAttribute, ArrayBuffer, indexStart, count * 3 );
 					vertexStart = index.reduce( ( min, v ) => Math.min( min, v ) );
 					vertexEnd = index.reduce( ( max, v ) => Math.max( max, v ) ) + 1;
+					offsetArray( index, - vertexStart );
 
 				}
 
@@ -253,8 +269,6 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 				index,
 				position,
 				normalized: geometry.attributes.position.normalized,
-				indexStart,
-				vertexStart,
 				options: {
 					...options,
 					range: hasRange ? null : options.range,

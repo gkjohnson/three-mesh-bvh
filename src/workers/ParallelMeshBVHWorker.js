@@ -4,7 +4,7 @@ import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
-import { ensureIndex, getFullPrimitiveRange } from '../core/build/geometryUtils.js';
+import { ensureIndex } from '../core/build/geometryUtils.js';
 
 let _fallbackUrl = null;
 
@@ -103,10 +103,8 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 					if ( indexAttribute && ! bvh.indirect ) {
 
-						// the build reordered a copy of the index so write it back, only for the range
-						// since another build may have reordered the rest
-						const { offset, count } = getFullPrimitiveRange( geometry, options.range || { start: 0, count: Infinity }, 3 );
-						indexAttribute.array.set( serialized.index.subarray( 3 * offset, 3 * ( offset + count ) ), 3 * offset );
+						// the build reordered a copy of the index so write it back
+						indexAttribute.array.set( serialized.index );
 
 					}
 
