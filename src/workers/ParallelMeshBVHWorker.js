@@ -3,7 +3,7 @@ import { Box3 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
 import { copyRange } from './utils/rangeUtils.js';
-import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported, offsetArray } from '../utils/BufferUtils.js';
+import { isSharedArrayBufferSupported, offsetArray } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/Constants.js';
@@ -76,18 +76,15 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 		return new Promise( ( resolve, reject ) => {
 
-			const { range } = options;
 			if ( ! options.indirect ) {
 
 				ensureIndex( geometry, options );
 
 			}
 
-			const indexAttribute = geometry.index;
-
-			// the first index and vertex sent to the worker
-			let indexStart = 0;
-			let vertexStart = 0;
+			// the position is only read so it's shared if possible, while the index is always copied
+			// since non-indirect builds reorder it
+			const { index, position, indexStart, vertexStart } = copyRange( geometry, options.range, SharedArrayBuffer );
 
 			worker.onerror = e => {
 
@@ -108,18 +105,13 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 					const { serialized } = data;
 					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
-
-					if ( range ) {
-
-						bvh.shiftPrimitiveOffsets( indexStart / 3 );
-
-					}
+					bvh.shiftPrimitiveOffsets( indexStart / 3 );
 
 					if ( serialized.index && ! bvh.indirect ) {
 
 						// the build reordered a copy of the index so write it back
 						offsetArray( serialized.index, vertexStart );
-						indexAttribute.array.set( serialized.index, indexStart );
+						geometry.index.array.set( serialized.index, indexStart );
 
 					}
 
@@ -146,30 +138,13 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 			};
 
-			// the position is only read so it's shared if possible, while the index is always copied
-			// since non-indirect builds reorder it
-			const positionAttribute = geometry.attributes.position;
-			let index, position;
-			if ( range ) {
-
-				( { index, position, indexStart, vertexStart } = copyRange( geometry, range, SharedArrayBuffer ) );
-
-			} else {
-
-				index = indexAttribute ? copyAttributeArray( indexAttribute, SharedArrayBuffer ) : null;
-				position = positionAttribute.isInterleavedBufferAttribute ?
-					copyAttributeArray( positionAttribute, SharedArrayBuffer ) :
-					convertToBufferType( positionAttribute.array, SharedArrayBuffer );
-
-			}
-
 			worker.postMessage( {
 
 				operation: 'BUILD_BVH',
 				maxWorkerCount: this.maxWorkerCount,
 				index,
 				position,
-				normalized: positionAttribute.normalized,
+				normalized: geometry.attributes.position.normalized,
 				options: {
 					...options,
 					range: null,

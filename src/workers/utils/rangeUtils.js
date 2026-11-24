@@ -13,11 +13,18 @@ export function copyRange( geometry, range, BufferConstructor = ArrayBuffer ) {
 	let vertexEnd = indexStart + count * 3;
 
 	let index = null;
-	if ( indexAttribute && count > 0 ) {
+	if ( indexAttribute ) {
 
 		index = copyAttributeArray( indexAttribute, BufferConstructor, indexStart, count * 3 );
-		vertexStart = index.reduce( ( min, v ) => Math.min( min, v ) );
-		vertexEnd = index.reduce( ( max, v ) => Math.max( max, v ) ) + 1;
+		vertexStart = count > 0 ? Infinity : 0;
+		vertexEnd = 0;
+		for ( let i = 0, l = index.length; i < l; i ++ ) {
+
+			vertexStart = Math.min( vertexStart, index[ i ] );
+			vertexEnd = Math.max( vertexEnd, index[ i ] + 1 );
+
+		}
+
 		offsetArray( index, - vertexStart );
 
 	}

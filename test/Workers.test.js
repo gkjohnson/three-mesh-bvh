@@ -232,6 +232,26 @@ describe( 'Workers', () => {
 
 	} );
 
+	it.each( [ 'ParallelMeshBVHWorker', 'GenerateMeshBVHWorker' ] )( '%s should build an empty geometry', async name => {
+
+		const roots = await page.evaluate( async name => {
+
+			const { BufferGeometry, BufferAttribute } = window.THREE;
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new BufferAttribute( new Float32Array( 0 ), 3 ) );
+			geometry.setIndex( [] );
+
+			const worker = new window[ name ]();
+			const bvh = await worker.generate( geometry );
+			worker.dispose();
+			return bvh._roots.length;
+
+		}, name );
+
+		expect( roots ).toBe( 1 );
+
+	} );
+
 	// the worker only gets the range's data, so its result is shifted back to the whole geometry
 	runTestMatrix( {
 		strategy: [ CENTER ],
