@@ -197,6 +197,9 @@ class _ParallelMeshBVHWorker extends WorkerBase {
  *
  * Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
  * `maxWorkerCount`.
+ *
+ * @note With a `range`, only its triangles and the vertices they span are copied, so separate
+ * ranges of one geometry can be built at the same time. The ranges must not overlap.
  */
 export class ParallelMeshBVHWorker {
 

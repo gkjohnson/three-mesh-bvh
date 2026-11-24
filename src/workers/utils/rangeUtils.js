@@ -42,9 +42,10 @@ export function shiftRange( bvh, range, indexStart ) {
 
 	// the shifted triangle indices may not fit in 16 bits
 	const indirectBuffer = bvh._indirectBuffer;
-	if ( indirectBuffer && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
+	if ( indirectBuffer && indirectBuffer.BYTES_PER_ELEMENT === 2 && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
 
-		bvh._indirectBuffer = convertToBufferType( Uint32Array.from( indirectBuffer ), indirectBuffer.buffer.constructor );
+		bvh._indirectBuffer = new Uint32Array( new indirectBuffer.buffer.constructor( 4 * indirectBuffer.length ) );
+		bvh._indirectBuffer.set( indirectBuffer );
 
 	}
 

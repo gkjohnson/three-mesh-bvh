@@ -98,6 +98,8 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 	 *   same `ArrayBuffer` is detached as well. Ignored with a warning for an interleaved position
 	 *   attribute or a `range`.
 	 * @returns {Promise<MeshBVH>}
+	 * @note With a `range`, only its triangles and the vertices they span are copied, so separate
+	 * ranges of one geometry can be built at the same time. The ranges must not overlap.
 	 */
 
 	/**
