@@ -455,6 +455,36 @@ describe.skipIf( ! IS_REVISION_185 )( 'BVHComputeData', () => {
 
 	} );
 
+	it( 'writes every field of the range in getBVH.', async () => {
+
+		const box = new BoxGeometry();
+		const batched = new BatchedMesh( 1, 2 * box.attributes.position.count, 2 * box.index.count, new MeshBasicMaterial() );
+		batched.addGeometry( box );
+		batched.addInstance( batched.addGeometry( box ) );
+
+		const mesh = new Mesh( box );
+		const data = new BVHComputeData( [ batched, mesh ], { attributes: { position: 'vec3f' } } );
+		const { getBVH } = data;
+		const ranges = [];
+		data.getBVH = ( object, instanceId, range ) => {
+
+			const bvh = getBVH.call( data, object, instanceId, range );
+			if ( object === mesh ) {
+
+				ranges.push( { ...range } );
+
+			}
+
+			return bvh;
+
+		};
+
+		await data.update();
+		expect( ranges.length ).toBeGreaterThan( 0 );
+		ranges.forEach( range => expect( range ).toMatchObject( { start: 0, count: 36, vertexStart: 0, vertexCount: 24 } ) );
+
+	} );
+
 	it( 'splits objects into clusters below "clusterPrimitiveLimit", warning once for leaves it cannot split.', async () => {
 
 		// the limit is only applied with three or more meshes
