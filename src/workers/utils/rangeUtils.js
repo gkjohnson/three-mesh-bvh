@@ -25,19 +25,3 @@ export function copyRange( geometry, range ) {
 	return { index, position, indexStart, vertexStart };
 
 }
-
-// Shifts a bvh built from a copied range to where the range is in the geometry
-export function shiftRange( bvh, range, indexStart ) {
-
-	// the shifted triangle indices may not fit in 16 bits
-	const indirectBuffer = bvh._indirectBuffer;
-	if ( indirectBuffer && indirectBuffer.BYTES_PER_ELEMENT === 2 && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
-
-		bvh._indirectBuffer = new Uint32Array( new indirectBuffer.buffer.constructor( 4 * indirectBuffer.length ) );
-		bvh._indirectBuffer.set( indirectBuffer );
-
-	}
-
-	bvh.shiftPrimitiveOffsets( indexStart / 3 );
-
-}

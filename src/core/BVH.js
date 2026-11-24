@@ -188,8 +188,18 @@ export class BVH {
 	 */
 	shiftPrimitiveOffsets( offset ) {
 
-		const indirectBuffer = this._indirectBuffer;
+		let indirectBuffer = this._indirectBuffer;
 		if ( indirectBuffer ) {
+
+			// expand the buffer if the shifted offsets don't fit in 16 bits
+			if ( indirectBuffer.BYTES_PER_ELEMENT === 2 && indirectBuffer.some( value => value + offset >= 2 ** 16 ) ) {
+
+				const BufferConstructor = indirectBuffer.buffer.constructor;
+				indirectBuffer = new Uint32Array( new BufferConstructor( 4 * indirectBuffer.length ) );
+				indirectBuffer.set( this._indirectBuffer );
+				this._indirectBuffer = indirectBuffer;
+
+			}
 
 			// the offsets are embedded in the indirect buffer
 			for ( let i = 0, l = indirectBuffer.length; i < l; i ++ ) {

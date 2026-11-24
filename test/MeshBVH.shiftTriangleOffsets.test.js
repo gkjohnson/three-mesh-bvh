@@ -143,6 +143,22 @@ describe( 'shiftTriangleOffsets', () => {
 
 		} );
 
+		it( 'should expand the indirect buffer when the offsets do not fit in 16 bits', () => {
+
+			const geometry = new SphereGeometry( 1, 1000, 40 );
+			const bvh = new MeshBVH( geometry, { indirect: true, range: { start: 90, count: 90 } } );
+			const offset = 2 ** 16 - 45;
+
+			expect( bvh._indirectBuffer.BYTES_PER_ELEMENT ).toBe( 2 );
+			expect( validateBounds( bvh ) ).toBe( true );
+
+			shiftIndices( geometry, offset );
+			bvh.shiftTriangleOffsets( offset );
+			expect( validateBounds( bvh ) ).toBe( true );
+			expect( Array.from( bvh._indirectBuffer ).sort( ( a, b ) => a - b ) ).toEqual( Array.from( { length: 30 }, ( _, i ) => 30 + i + offset ) );
+
+		} );
+
 		it( 'should work when there is no index buffer.', () => {
 
 			const geometry = new SphereGeometry().toNonIndexed();
