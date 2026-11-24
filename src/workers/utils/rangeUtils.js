@@ -1,12 +1,11 @@
-import { convertToBufferType, copyAttributeArray, offsetArray } from '../../utils/BufferUtils.js';
+import { convertAttributeArray, copyAttributeArray, offsetArray } from '../../utils/BufferUtils.js';
 import { getFullPrimitiveRange } from '../../core/build/geometryUtils.js';
 
 // Copies the triangles in the range and the vertices they span, with the indices shifted to start at the
-// first vertex. The position is shared rather than copied if it already uses the requested shared buffer.
+// first vertex. The position is not copied if it already uses a requested SharedArrayBuffer.
 export function copyRange( geometry, range, BufferConstructor = ArrayBuffer ) {
 
 	const indexAttribute = geometry.index;
-	const positionAttribute = geometry.attributes.position;
 	const { offset, count } = getFullPrimitiveRange( geometry, range, 3 );
 	const indexStart = offset * 3;
 	let vertexStart = indexStart;
@@ -29,17 +28,9 @@ export function copyRange( geometry, range, BufferConstructor = ArrayBuffer ) {
 
 	}
 
-	let position;
-	if ( BufferConstructor === ArrayBuffer || positionAttribute.isInterleavedBufferAttribute ) {
-
-		position = copyAttributeArray( positionAttribute, BufferConstructor, vertexStart, vertexEnd - vertexStart );
-
-	} else {
-
-		position = convertToBufferType( positionAttribute.array.subarray( vertexStart * 3, vertexEnd * 3 ), BufferConstructor );
-
-	}
-
+	// an ArrayBuffer is transferred to the worker so it must be a copy
+	const getArray = BufferConstructor === ArrayBuffer ? copyAttributeArray : convertAttributeArray;
+	const position = getArray( geometry.attributes.position, BufferConstructor, vertexStart, vertexEnd - vertexStart );
 	return { index, position, indexStart, vertexStart };
 
 }
