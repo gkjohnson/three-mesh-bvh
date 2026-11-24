@@ -2,7 +2,7 @@
 import { Box3 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { copyRange, shiftRange } from './utils/rangeUtils.js';
+import { copyRange } from './utils/rangeUtils.js';
 import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported, offsetArray } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
@@ -111,7 +111,7 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 					if ( range ) {
 
-						shiftRange( bvh, range, indexStart );
+						bvh.shiftPrimitiveOffsets( indexStart / 3 );
 
 					}
 

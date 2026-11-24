@@ -2,7 +2,7 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { copyRange, shiftRange } from './utils/rangeUtils.js';
+import { copyRange } from './utils/rangeUtils.js';
 import { copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/Constants.js';
@@ -165,7 +165,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					if ( range ) {
 
-						shiftRange( bvh, range, indexStart );
+						bvh.shiftPrimitiveOffsets( indexStart / 3 );
 
 					}
 
