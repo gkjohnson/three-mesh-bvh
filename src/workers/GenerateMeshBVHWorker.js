@@ -170,7 +170,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 						}
 
-						bvh.shiftTriangleOffsets( indexStart / 3 );
+						bvh.shiftPrimitiveOffsets( indexStart / 3 );
 
 					}
 
