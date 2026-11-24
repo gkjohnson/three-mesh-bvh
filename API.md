@@ -1178,7 +1178,7 @@ generate(
 		// copy but   leaving the geometry unusable until the build
 		// finishes. Any other attribute stored in the   same
 		// `ArrayBuffer` is detached as well. Ignored with a warning
-		// for an interleaved position   attribute.
+		// for an interleaved position   attribute or a `range`.
 		transferBuffers = false: boolean,
 	}
 ): Promise<MeshBVH>
@@ -1189,6 +1189,9 @@ Returns a Promise that resolves with the generated `MeshBVH`. Throws if already 
 By default the geometry can still be read during the build, but its position and index
 arrays must not be modified until the promise resolves.
 
+> [!NOTE]
+> With a `range`, only its triangles and the vertices they span are copied, so separate
+> ranges of one geometry can be built at the same time. The ranges must not overlap.
 
 ### .dispose
 
@@ -1353,6 +1356,9 @@ The index is always copied and written back to the original array when the build
 Exposes the same API as `GenerateMeshBVHWorker`: `generate`, `dispose`, `running`, and
 `maxWorkerCount`.
 
+> [!NOTE]
+> With a `range`, only its triangles and the vertices they span are copied, so separate
+> ranges of one geometry can be built at the same time. The ranges must not overlap.
 
 ## StaticGeometryGenerator
 
