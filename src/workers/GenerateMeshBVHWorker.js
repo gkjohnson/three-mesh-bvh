@@ -2,8 +2,9 @@
 import { Box3, BufferAttribute } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { convertToBufferType, copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
-import { ensureIndex, getFullPrimitiveRange } from '../core/build/geometryUtils.js';
+import { copyRange, shiftRange } from './utils/rangeUtils.js';
+import { copyAttributeArray, offsetArray } from '../utils/BufferUtils.js';
+import { ensureIndex } from '../core/build/geometryUtils.js';
 import { DEFAULT_OPTIONS } from '../core/Constants.js';
 
 let _fallbackUrl = null;
@@ -162,15 +163,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 					if ( range ) {
 
-						// the shifted triangle indices may not fit in 16 bits
-						const indirectBuffer = bvh._indirectBuffer;
-						if ( indirectBuffer && ( indexStart + range.count ) / 3 > 2 ** 16 ) {
-
-							bvh._indirectBuffer = convertToBufferType( Uint32Array.from( indirectBuffer ), indirectBuffer.buffer.constructor );
-
-						}
-
-						bvh.shiftPrimitiveOffsets( indexStart / 3 );
+						shiftRange( bvh, range, indexStart );
 
 					}
 
@@ -234,23 +227,7 @@ export class GenerateMeshBVHWorker extends WorkerBase {
 
 			} else if ( range ) {
 
-				// copy the triangles in the range and the vertices they span
-				const { offset, count } = getFullPrimitiveRange( geometry, range, 3 );
-				indexStart = offset * 3;
-				vertexStart = indexStart;
-				let vertexEnd = indexStart + count * 3;
-
-				index = null;
-				if ( indexAttribute && count > 0 ) {
-
-					index = copyAttributeArray( indexAttribute, ArrayBuffer, indexStart, count * 3 );
-					vertexStart = index.reduce( ( min, v ) => Math.min( min, v ) );
-					vertexEnd = index.reduce( ( max, v ) => Math.max( max, v ) ) + 1;
-					offsetArray( index, - vertexStart );
-
-				}
-
-				position = copyAttributeArray( geometry.attributes.position, ArrayBuffer, vertexStart, vertexEnd - vertexStart );
+				( { index, position, indexStart, vertexStart } = copyRange( geometry, range ) );
 
 			} else {
 

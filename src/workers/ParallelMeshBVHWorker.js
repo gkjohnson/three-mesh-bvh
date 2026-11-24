@@ -2,9 +2,11 @@
 import { Box3 } from 'three';
 import { MeshBVH } from '../core/MeshBVH.js';
 import { WorkerBase } from './utils/WorkerBase.js';
-import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported } from '../utils/BufferUtils.js';
+import { copyRange, shiftRange } from './utils/rangeUtils.js';
+import { convertToBufferType, copyAttributeArray, isSharedArrayBufferSupported, offsetArray } from '../utils/BufferUtils.js';
 import { GenerateMeshBVHWorker } from './GenerateMeshBVHWorker.js';
 import { ensureIndex } from '../core/build/geometryUtils.js';
+import { DEFAULT_OPTIONS } from '../core/Constants.js';
 
 let _fallbackUrl = null;
 
@@ -67,8 +69,14 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 	runTask( worker, geometry, options = {} ) {
 
+		options = {
+			...DEFAULT_OPTIONS,
+			...options,
+		};
+
 		return new Promise( ( resolve, reject ) => {
 
+			const { range } = options;
 			if ( ! options.indirect ) {
 
 				ensureIndex( geometry, options );
@@ -76,6 +84,10 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 			}
 
 			const indexAttribute = geometry.index;
+
+			// the first index and vertex sent to the worker
+			let indexStart = 0;
+			let vertexStart = 0;
 
 			worker.onerror = e => {
 
@@ -96,19 +108,22 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 
 					const { serialized } = data;
 					const bvh = MeshBVH.deserialize( serialized, geometry, { setIndex: false } );
-					const boundsOptions = {
-						setBoundingBox: true,
-						...options,
-					};
 
-					if ( indexAttribute && ! bvh.indirect ) {
+					if ( range ) {
 
-						// the build reordered a copy of the index so write it back
-						indexAttribute.array.set( serialized.index );
+						shiftRange( bvh, range, indexStart );
 
 					}
 
-					if ( boundsOptions.setBoundingBox ) {
+					if ( serialized.index && ! bvh.indirect ) {
+
+						// the build reordered a copy of the index so write it back
+						offsetArray( serialized.index, vertexStart );
+						indexAttribute.array.set( serialized.index, indexStart );
+
+					}
+
+					if ( options.setBoundingBox ) {
 
 						geometry.boundingBox = bvh.getBoundingBox( new Box3() );
 
@@ -134,10 +149,19 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 			// the position is only read so it's shared if possible, while the index is always copied
 			// since non-indirect builds reorder it
 			const positionAttribute = geometry.attributes.position;
-			const position = positionAttribute.isInterleavedBufferAttribute ?
-				copyAttributeArray( positionAttribute, SharedArrayBuffer ) :
-				convertToBufferType( positionAttribute.array, SharedArrayBuffer );
-			const index = indexAttribute ? copyAttributeArray( indexAttribute, SharedArrayBuffer ) : null;
+			let index, position;
+			if ( range ) {
+
+				( { index, position, indexStart, vertexStart } = copyRange( geometry, range, SharedArrayBuffer ) );
+
+			} else {
+
+				index = indexAttribute ? copyAttributeArray( indexAttribute, SharedArrayBuffer ) : null;
+				position = positionAttribute.isInterleavedBufferAttribute ?
+					copyAttributeArray( positionAttribute, SharedArrayBuffer ) :
+					convertToBufferType( positionAttribute.array, SharedArrayBuffer );
+
+			}
 
 			worker.postMessage( {
 
@@ -148,9 +172,10 @@ class _ParallelMeshBVHWorker extends WorkerBase {
 				normalized: positionAttribute.normalized,
 				options: {
 					...options,
+					range: null,
 					onProgress: null,
 					includedProgressCallback: Boolean( options.onProgress ),
-					groups: [ ...geometry.groups ],
+					groups: geometry.groups.map( group => ( { ...group, start: group.start - indexStart } ) ),
 				},
 
 			} );
