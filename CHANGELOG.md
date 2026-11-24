@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Deprecated WebGPU WGSL functions from "bvh_ray_functions", "common_functions" and "distance_functions". Use "BVHComputeData" instead.
 
 ### Fixed
+- OrientedBox: "distanceToBox" sets "target1" and "target2" to the same point, in both boxes, when the boxes intersect.
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 - Workers: Builds no longer copy the triangle bounds to every parallel worker, or the index and nodes before returning them.

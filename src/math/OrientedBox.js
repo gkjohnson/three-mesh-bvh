@@ -4,6 +4,105 @@ import { SeparatingAxisBounds } from './SeparatingAxisBounds.js';
 import { ExtendedTriangle } from './ExtendedTriangle.js';
 import { closestPointsSegmentToSegment } from './MathUtilities.js';
 
+const xyzFields = [ 'x', 'y', 'z' ];
+
+// Writes the point of the segment from "start" to "end" that is in the middle of the part inside
+// the box with the given min and max to "target". Returns false if the segment misses the box.
+function clipSegmentToBounds( start, end, min, max, target ) {
+
+	let t0 = 0;
+	let t1 = 1;
+	for ( let i = 0; i < 3; i ++ ) {
+
+		const field = xyzFields[ i ];
+		const s = start[ field ];
+		const d = end[ field ] - s;
+		if ( d === 0 ) {
+
+			if ( s < min[ field ] || s > max[ field ] ) return false;
+
+		} else {
+
+			let near = ( min[ field ] - s ) / d;
+			let far = ( max[ field ] - s ) / d;
+			if ( near > far ) {
+
+				const tmp = near;
+				near = far;
+				far = tmp;
+
+			}
+
+			t0 = Math.max( t0, near );
+			t1 = Math.min( t1, far );
+			if ( t0 > t1 ) return false;
+
+		}
+
+	}
+
+	target.lerpVectors( start, end, ( t0 + t1 ) / 2 );
+	return true;
+
+}
+
+// Finds a point that is inside both the oriented box and the Box3, if there is one, and writes it
+// to "target". Intersecting boxes always have a corner of one inside the other or an edge of one
+// crossing the other, so this is a contained corner or the middle of an edge clipped by the other
+// box. Returns whether a point was found.
+const findSharedPoint = ( function () {
+
+	const boxPoints = /* @__PURE__ */ new Array( 8 ).fill().map( () => new Vector3() );
+	const start = /* @__PURE__ */ new Vector3();
+	const end = /* @__PURE__ */ new Vector3();
+
+	return function findSharedPoint( obb, box, target ) {
+
+		// corners are indexed with x, y and z in bits 0, 1 and 2, matching "points"
+		for ( let i = 0; i < 8; i ++ ) {
+
+			boxPoints[ i ].set(
+				i & 1 ? box.max.x : box.min.x,
+				i & 2 ? box.max.y : box.min.y,
+				i & 4 ? box.max.z : box.min.z,
+			);
+
+		}
+
+		const points = obb.points;
+		for ( let i = 0; i < 8; i ++ ) {
+
+			for ( let bit = 1; bit <= 4; bit <<= 1 ) {
+
+				if ( i & bit ) continue;
+
+				// the edge of the oriented box against the Box3
+				if ( clipSegmentToBounds( points[ i ], points[ i | bit ], box.min, box.max, target ) ) {
+
+					return true;
+
+				}
+
+				// the edge of the Box3 against the oriented box, in the local frame of the oriented box
+				start.copy( boxPoints[ i ] ).applyMatrix4( obb.invMatrix );
+				end.copy( boxPoints[ i | bit ] ).applyMatrix4( obb.invMatrix );
+				if ( clipSegmentToBounds( start, end, obb.min, obb.max, target ) ) {
+
+					target.applyMatrix4( obb.matrix );
+					return true;
+
+				}
+
+			}
+
+		}
+
+		return false;
+
+	};
+
+} )();
+
 /**
  * An oriented version of three.js' Box3 class. A variety of derivative values are cached on the
  * object to accelerate the intersection functions. `.needsUpdate` must be set to true when
@@ -318,7 +417,8 @@ OrientedBox.prototype.distanceToPoint = ( function () {
 /**
  * Returns the distance to the provided box. `threshold` is an optional distance to return early
  * if the distance is found to be within it. `target1` and `target2` are set to the points on the
- * surface of this box and the `box` argument respectively.
+ * surface of this box and the `box` argument respectively. When the boxes intersect they are both
+ * set to the same point, which is in both boxes.
  * @function
  * @param {Box3} box
  * @param {number} [threshold=0]
@@ -330,7 +430,6 @@ OrientedBox.prototype.distanceToPoint = ( function () {
  */
 OrientedBox.prototype.distanceToBox = ( function () {
 
-	const xyzFields = [ 'x', 'y', 'z' ];
 	const segments1 = /* @__PURE__ */ new Array( 12 ).fill().map( () => new Line3() );
 	const segments2 = /* @__PURE__ */ new Array( 12 ).fill().map( () => new Line3() );
 
@@ -350,10 +449,20 @@ OrientedBox.prototype.distanceToBox = ( function () {
 
 			if ( target1 || target2 ) {
 
-				box.getCenter( point2 );
-				this.closestPointToPoint( point2, point1 );
-				// Box3 has no "closestPointToPoint" - "clampPoint" returns the closest point in the box
-				box.clampPoint( point1, point2 );
+				if ( ! findSharedPoint( this, box, point1 ) ) {
+
+					// "intersectsBox" favors speed over precision, so boxes that are only close can end
+					// up here with no shared point. Fall back to nearby points on each box.
+					box.getCenter( point2 );
+					this.closestPointToPoint( point2, point1 );
+					// Box3 has no "closestPointToPoint" - "clampPoint" returns the closest point in the box
+					box.clampPoint( point1, point2 );
+
+				} else {
+
+					point2.copy( point1 );
+
+				}
 
 				if ( target1 ) target1.copy( point1 );
 				if ( target2 ) target2.copy( point2 );
