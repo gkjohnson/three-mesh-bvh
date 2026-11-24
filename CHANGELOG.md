@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - GenerateMeshBVHWorker: The position and index are copied to the worker by default so the geometry stays usable during the build. Set the new "transferBuffers" option to transfer them instead, as before.
 - ParallelMeshBVHWorker: The geometry's position and index arrays are no longer replaced by a build.
+- GenerateMeshBVHWorker: With the "range" option only the triangles and vertices in the range are copied, and separate ranges of a geometry can be built at the same time.
 - ndcToCameraRay: Takes "( ndc, cameraToWorld, inverseProjection )" instead of "( ndc, inverseModelViewProjection )", keeping the ray precise when the camera is far from the origin.
 - MeshBVH: "bvhcast" passes the triangle indices of the geometry to "intersectsTriangles" when using "indirect", so they must no longer be passed to "resolveTriangleIndex".
 - BVHComputeData: Automatically generated BVHs are built with the "SAH" strategy, for faster GPU traversal.
@@ -39,6 +40,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - ParallelMeshBVHWorker: A build that throws now rejects instead of never settling and blocking later builds.
 - Workers: A failed build no longer also logs an unhandled promise rejection when the caller handles it.
 - Workers: Builds no longer copy the triangle bounds to every parallel worker, or the index and nodes before returning them.
+- BVH: "shiftPrimitiveOffsets" no longer wraps the offsets of an indirect BVH when they don't fit in 16 bits.
 - BVHComputeData: "update" now throws when the BVH is deeper than the traversal stack.
 - BVHComputeData: Passing a MeshBVH no longer throws in "update".
 - BVHComputeData: A BatchedMesh with no "boundsTrees" or with deleted instances no longer throws in "update".
