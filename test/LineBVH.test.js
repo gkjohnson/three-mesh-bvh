@@ -91,6 +91,78 @@ describe.skipIf( parseInt( REVISION ) < 175 )( 'Raycast threshold scale', () => 
 
 } );
 
+describe.skipIf( parseInt( REVISION ) < 175 )( 'LineLoopBVH draw range', () => {
+
+	// the loop closes back to the first vertex of the draw range like LineLoop.raycast
+	const cases = [
+		{ name: 'a limited draw range', start: 1, count: 3, hit: [ 3, 1 ], miss: [ 3, 4 ] },
+		{ name: 'a draw range that starts after the first vertex', start: 2, count: Infinity, hit: [ 5, 2 ], miss: [ 5, 0 ] },
+	];
+
+	for ( const indexed of [ false, true ] ) {
+
+		for ( const { name, start, count, hit, miss } of cases ) {
+
+			it( `closes the loop with ${ name } and indexed: ${ indexed }`, () => {
+
+				// six points on a unit circle
+				const positions = [];
+				for ( let i = 0; i < 6; i ++ ) {
+
+					positions.push( Math.cos( i * Math.PI / 3 ), Math.sin( i * Math.PI / 3 ), 0 );
+
+				}
+
+				const geometry = new BufferGeometry();
+				geometry.setAttribute( 'position', new Float32BufferAttribute( positions, 3 ) );
+				if ( indexed ) {
+
+					geometry.setIndex( [ 0, 1, 2, 3, 4, 5 ] );
+
+				}
+
+				geometry.setDrawRange( start, count );
+				geometry.computeBoundsTree( { type: LineLoopBVH } );
+				const bvh = geometry.boundsTree;
+
+				const lineLoop = new LineLoop( geometry );
+				lineLoop.updateMatrixWorld();
+
+				const raycaster = new Raycaster();
+				raycaster.params.Line.threshold = 0.01;
+
+				// casts through the middle of the segment between the two given vertices
+				const castThrough = ( [ a, b ] ) => {
+
+					const point = new Vector3().fromArray( positions, a * 3 )
+						.add( new Vector3().fromArray( positions, b * 3 ) )
+						.multiplyScalar( 0.5 );
+
+					raycaster.ray.origin.copy( point ).setZ( 1 );
+					raycaster.ray.direction.set( 0, 0, - 1 );
+
+					geometry.boundsTree = bvh;
+					const bvhHits = raycaster.intersectObject( lineLoop );
+
+					geometry.boundsTree = null;
+					const ogHits = raycaster.intersectObject( lineLoop );
+
+					expect( bvhHits ).toEqual( ogHits );
+					return bvhHits;
+
+				};
+
+				expect( castThrough( hit ).map( h => h.index ) ).toEqual( [ hit[ 0 ] ] );
+				expect( castThrough( miss ) ).toHaveLength( 0 );
+
+			} );
+
+		}
+
+	}
+
+} );
+
 function runSuiteWithOptions( options ) {
 
 	const transformSeed = Math.floor( Math.random() * 1e10 );
