@@ -4,6 +4,7 @@ import { Matrix4, Line3, Vector3, Ray, Box3, REVISION } from 'three';
 import { PrimitivePool } from '../utils/PrimitivePool.js';
 import { INTERSECTED, NOT_INTERSECTED } from './Constants.js';
 import { GeometryBVH } from './GeometryBVH.js';
+import { getFullPrimitiveRange } from './build/geometryUtils.js';
 
 // three.js r188 scales the raycast threshold by the largest world scale (mrdoob/three.js#35466)
 const IS_GT_REVISION_188 = parseInt( REVISION ) >= 188;
@@ -47,12 +48,10 @@ export class LineSegmentsBVH extends GeometryBVH {
 		const posAttr = geometry.attributes.position;
 		const indexAttr = geometry.index;
 
-		// TODO: this may not be right for a LineLoop with a limited draw range / groups
-		const vertCount = indexAttr ? indexAttr.count : posAttr.count;
-
+		// TODO: this may not be right for a LineLoop with groups
 		const prim = indirectBuffer ? indirectBuffer[ i ] : i;
 		let i0 = prim * primitiveStride;
-		let i1 = ( i0 + 1 ) % vertCount;
+		let i1 = getSegmentEnd( this, i0 );
 		if ( indexAttr ) {
 
 			i0 = indexAttr.getX( i0 );
@@ -236,6 +235,18 @@ export class LineLoopBVH extends LineSegmentsBVH {
 
 	}
 
+	init( options ) {
+
+		// the last segment of the loop closes back to the first vertex of the drawn range,
+		// like LineLoop.raycast
+		const { offset, count } = getFullPrimitiveRange( this.geometry, options.range, 1 );
+		this._loopStart = offset;
+		this._loopEnd = offset + count;
+
+		super.init( options );
+
+	}
+
 }
 
 /**
@@ -270,13 +281,12 @@ function iterateOverLines(
 	const { geometry, primitiveStride } = bvh;
 	const { index } = geometry;
 	const posAttr = geometry.attributes.position;
-	const vertCount = index ? index.count : posAttr.count;
 
 	for ( let i = offset, l = count + offset; i < l; i ++ ) {
 
 		const prim = bvh.resolvePrimitiveIndex( i );
 		let i0 = prim * primitiveStride;
-		let i1 = ( i0 + 1 ) % vertCount;
+		let i1 = getSegmentEnd( bvh, i0 );
 		if ( index ) {
 
 			i0 = index.getX( i0 );
@@ -296,5 +306,13 @@ function iterateOverLines(
 	}
 
 	return false;
+
+}
+
+// returns the vertex that ends the segment starting at "i0"
+function getSegmentEnd( bvh, i0 ) {
+
+	const i1 = i0 + 1;
+	return i1 === bvh._loopEnd ? bvh._loopStart : i1;
 
 }
