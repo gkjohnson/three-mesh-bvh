@@ -167,7 +167,7 @@ export class WGSLTagFnNode extends FunctionNode {
 	getNodeFunction( builder ) {
 
 		const { tokens } = this;
-		const _normalizedArgs = this._normalizedArgs ?? normalizeArgs( this.args, builder );
+		const normalizedArgs = this._normalizedArgs ?? normalizeArgs( this.args, builder );
 		const nodeData = builder.getDataFromNode( this );
 		let nodeFunction = nodeData.nodeFunction;
 		if ( nodeFunction === undefined ) {
@@ -179,9 +179,9 @@ export class WGSLTagFnNode extends FunctionNode {
 
 				fullCode += tokens[ i ];
 
-				if ( i < _normalizedArgs.length ) {
+				if ( i < normalizedArgs.length ) {
 
-					const arg = _normalizedArgs[ i ];
+					const arg = normalizedArgs[ i ];
 					if ( Array.isArray( arg ) ) {
 
 						// include array — no text output
