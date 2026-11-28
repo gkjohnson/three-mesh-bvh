@@ -162,10 +162,12 @@ export class WGSLTagFnNode extends FunctionNode {
 
 	}
 
-	// assemble the signature from tokens and arg names then parse
+	// assemble the signature from tokens and arg names then parse. The args are normalized here if the node hasn't been
+	// set up yet, since a call's type can be read before then
 	getNodeFunction( builder ) {
 
-		const { tokens, _normalizedArgs } = this;
+		const { tokens } = this;
+		const _normalizedArgs = this._normalizedArgs ?? normalizeArgs( this.args, builder );
 		const nodeData = builder.getDataFromNode( this );
 		let nodeFunction = nodeData.nodeFunction;
 		if ( nodeFunction === undefined ) {
